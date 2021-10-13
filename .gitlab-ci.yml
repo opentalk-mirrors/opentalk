@@ -1,0 +1,124 @@
+---
+image: rust:latest
+
+stages:
+  - lint
+  - test
+  - build
+
+variables:
+  CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
+  # Enable one network per build for the test container and services
+  FF_NETWORK_PER_BUILD: 'true'
+
+lint:fmt:
+  rules:
+    # Run in merge requests (if there is one job with this instruction, all jobs without
+    # it are ignored for the MR pipeline)
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+    # Run on scheduled pipeline runs
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+    # Run on feature branches
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  stage: lint
+  before_script:
+    - rustup component add rustfmt
+  script:
+    - cargo fmt -- --check
+
+lint:clippy:
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  stage: lint
+  before_script:
+    - rustup component add clippy
+  script: cargo clippy --all-features -- --deny warnings
+
+lint:dependency_check:
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  stage: lint
+  before_script:
+    - cargo install --locked cargo-deny
+  script: cargo deny check
+
+lint:yaml:
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  stage: lint
+  image: archlinux:latest
+  before_script:
+    - pacman -Syy --noconfirm yamllint
+  script: yamllint .
+
+test:cargo_check:
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  stage: test
+  variables:
+    RUSTFLAGS: -D warnings
+  script: cargo check --tests --all-features
+
+test:cargo_test:
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  stage: test
+  script:
+    - cargo test --workspace --locked
+
+test:container:
+  rules:
+    # Run only on MR, cause we have no access to the registry in other repos
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+  stage: test
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: ['']
+  script:
+    - mkdir -p /kaniko/.docker
+    - >
+      echo
+      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
+      /kaniko/.docker/config.json
+    - >
+      /kaniko/executor
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile
+      --cache=true
+      --cache-ttl=730h
+      --cache-repo $CI_REGISTRY_IMAGE/cache
+      --no-push
+      --force
+
+build:container:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG != null
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: ['']
+  script:
+    - mkdir -p /kaniko/.docker
+    - >
+      echo
+      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
+      /kaniko/.docker/config.json
+    - >
+      /kaniko/executor
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile
+      --cache=true
+      --cache-ttl=730h
+      --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+      --force
