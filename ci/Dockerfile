@@ -1,4 +1,6 @@
-FROM rust:slim AS Builder
+FROM rust:alpine AS Builder
+
+RUN apk add --no-cache musl-dev glib-dev openssl-dev gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev
 
 WORKDIR /obelisk
 
@@ -13,18 +15,18 @@ RUN cargo build --release
 
 # Now copy the real source over
 COPY src src
+COPY audio audio
+
 # Cargo detects changes only by mtime
 RUN touch src/main.rs
 RUN cargo build --release
 
-FROM debian:bullseye-slim
+FROM alpine:3.14
 
-RUN apt-get update && apt-get install -y libpq5
+RUN apk add --no-cache gst-plugins-bad gst-plugins-base gstreamer glib libssl1.1 libcrypto1.1
 
 WORKDIR /obelisk
 
 COPY --from=Builder /obelisk/target/release/k3k-obelisk .
 
-# Unicode Dagger/Obelisk = U+2020
-EXPOSE 2020
 ENTRYPOINT [ "./k3k-obelisk" ]

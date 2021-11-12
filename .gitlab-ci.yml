@@ -1,5 +1,5 @@
 ---
-image: git.heinlein-video.de:5050/heinlein-video/rust:1.56
+image: git.heinlein-video.de:5050/heinlein-video/rust:1.56-alpine
 
 stages:
   - lint
@@ -30,7 +30,13 @@ lint:clippy:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: lint
-  script: cargo clippy --all-features -- --deny warnings
+  before_script:
+    - >
+      apk add --no-cache
+      musl-dev glib-dev openssl-dev
+      gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev
+  script:
+    - cargo clippy --all-features --tests -- --deny warnings
 
 lint:dependency_check:
   image: git.heinlein-video.de:5050/heinlein-video/cargo-deny:latest
@@ -52,22 +58,17 @@ lint:yaml:
     - pacman -Syy --noconfirm yamllint
   script: yamllint .
 
-test:cargo_check:
-  rules:
-    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-  stage: test
-  variables:
-    RUSTFLAGS: -D warnings
-  script: cargo check --tests --all-features
-
 test:cargo_test:
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
     - if: $CI_PIPELINE_SOURCE == 'schedule'
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: test
+  before_script:
+    - >
+      apk add --no-cache
+      musl-dev glib-dev openssl-dev
+      gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev
   script:
     - cargo test --workspace --locked
 
