@@ -19,11 +19,11 @@ COPY audio audio
 
 # Cargo detects changes only by mtime
 RUN touch src/main.rs
-RUN cargo build --release
+RUN RUSTFLAGS=-Ctarget-feature=-crt-static cargo build --release
 
 FROM alpine:3.14
 
-RUN apk add --no-cache gst-plugins-bad gst-plugins-base gstreamer glib libssl1.1 libcrypto1.1
+RUN apk add --no-cache glib libssl1.1 libcrypto1.1 gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad
 
 WORKDIR /obelisk
 
