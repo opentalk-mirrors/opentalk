@@ -39,7 +39,7 @@ pub struct SipSettings {
     pub realm: String,
 
     pub registrar: String,
-    pub stun_server: String,
+    pub stun_server: Option<String>,
 
     #[serde(default)]
     pub enforce_qop: bool,

@@ -1,7 +1,7 @@
 use crate::media::{self, MediaTaskHandle, Track};
 use crate::settings::Settings;
 use crate::signaling::Signaling;
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use gst::glib;
 use sip_auth::digest::{DigestAuthenticator, DigestCredentials};
 use sip_auth::{CredentialStore, RequestParts, UacAuthSession};
@@ -25,7 +25,7 @@ use tokio::time::sleep;
 
 struct AppData {
     contact: Contact,
-    pub_addr: IpAddr,
+    pub_ip: IpAddr,
     main_ctx: glib::MainContext,
 }
 
@@ -59,7 +59,7 @@ impl Layer for AppLayer {
 
         let (contact, handle) = if let Some(app_data) = &*self.app_data.read() {
             let contact = app_data.contact.clone();
-            let handle = media::spawn_task(app_data.pub_addr, &app_data.main_ctx);
+            let handle = media::spawn_task(app_data.pub_ip, &app_data.main_ctx);
 
             (contact, handle)
         } else {
@@ -189,25 +189,38 @@ pub(crate) async fn run(main_loop: glib::MainLoop, settings: Arc<Settings>) -> R
 
     let endpoint = builder.build();
 
-    let stun_server: Vec<SocketAddr> = lookup_host(&settings.sip.stun_server).await?.collect();
-    let nat_addr = endpoint
-        .discover_public_address(&stun_server, &transport)
-        .await?;
+    let pub_addr = if let Some(stun_server) = settings.sip.stun_server.as_ref() {
+        let stun_server: Vec<SocketAddr> = lookup_host(stun_server.as_str()).await?.collect();
+        let pub_addr = endpoint
+            .discover_public_address(&stun_server, &transport)
+            .await?;
 
-    log::info!("Discovered public address {}", nat_addr.ip());
+        log::info!("Discovered public address {}", pub_addr.ip());
+
+        pub_addr
+    } else {
+        let pub_addr = lookup_host((settings.sip.addr.as_str(), settings.sip.port))
+            .await?
+            .next()
+            .context("failed to resolve local addr")?;
+
+        log::info!("Using {} as public address", pub_addr.ip());
+
+        pub_addr
+    };
 
     // Construct this SIP endpoints SIP uri
-    let id = endpoint.parse_uri(format!("sip:{}@{}", settings.sip.username, nat_addr))?;
+    let id = endpoint.parse_uri(format!("sip:{}@{}", settings.sip.username, pub_addr))?;
 
     // set app data
     endpoint[app_layer].set_app_data(AppData {
-        pub_addr: nat_addr.ip(),
+        pub_ip: pub_addr.ip(),
         main_ctx: main_loop.context(),
         contact: Contact::new(NameAddr::uri(id.clone())),
     });
 
     let mut target = TargetTransportInfo {
-        via_host_port: Some(nat_addr.into()),
+        via_host_port: Some(pub_addr.into()),
         transport: Some(transport),
         destination: vec![],
     };
