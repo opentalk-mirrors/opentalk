@@ -391,7 +391,7 @@ impl MediaTask {
             gst::GhostPad::with_target(Some("subscribe-audio-output"), &audio_output_src_pad)?;
         subscribe_bin.add_pad(&audio_output_ghost_pad)?;
 
-        // Get mixer or create one
+        // Get mixer
         let mixer = self
             .pipeline
             .by_name("subscriber-audiomix")
@@ -460,14 +460,13 @@ impl MediaTask {
     }
 
     fn remove_subscribe(&mut self, uuid: Uuid) -> Result<()> {
-        let subscribe_bin = if let Some(subscribe_bin) =
-            self.pipeline.by_name(&format!("webrtc-subscribe:{}", uuid))
-        {
-            subscribe_bin
-        } else {
-            log::warn!("tried to remove nonexistent webrtc-subscribe:{}", uuid);
-            return Ok(());
-        };
+        let subscribe_bin =
+            if let Some(subscribe_bin) = self.pipeline.by_name(&format!("subscribe:{}", uuid)) {
+                subscribe_bin
+            } else {
+                log::warn!("tried to remove nonexistent subscribe:{}", uuid);
+                return Ok(());
+            };
 
         let mixer = self
             .pipeline
@@ -476,12 +475,21 @@ impl MediaTask {
 
         self.pipeline.set_state(gst::State::Paused)?;
 
-        subscribe_bin.unlink(&mixer);
-        subscribe_bin.set_state(gst::State::Null)?;
+        let res = || -> Result<()> {
+            // Unlink subscribe_bin from mixer and remove it frm the pipeline
+            subscribe_bin.unlink(&mixer);
+            self.pipeline.remove(&subscribe_bin)?;
 
-        self.pipeline.remove(&subscribe_bin)?;
+            // Set subscribe_bin to Ready, then Null - destroying it
+            subscribe_bin.set_state(gst::State::Ready)?;
+            subscribe_bin.set_state(gst::State::Null)?;
+            Ok(())
+        }();
 
         self.pipeline.set_state(gst::State::Playing)?;
+
+        // Check result of subscribe-bin removal
+        res?;
 
         Ok(())
     }

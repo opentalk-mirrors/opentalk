@@ -90,8 +90,7 @@ impl Websocket {
     /// Join the room with the given `display_name` and returns a list of participants inside the room
     pub async fn join(&mut self, display_name: &str) -> Result<Vec<Participant>> {
         #[derive(Debug, Deserialize)]
-        struct JoinSuccess<'s> {
-            message: &'s str,
+        struct JoinSuccess {
             id: Uuid,
             participants: Vec<Participant>,
         }
