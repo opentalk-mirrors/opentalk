@@ -2,9 +2,11 @@ use crate::http::{start, InvalidCredentials};
 use crate::media::{HandleEvent, MediaTaskHandle, Target, Track, TrackController};
 use crate::settings::Settings;
 use crate::websocket::{Participant, Websocket, WebsocketEvent};
-use anyhow::Result;
+use anyhow::{bail, Result};
 use bytesstr::BytesStr;
-use sip_ua::invite::session::{Event, Session};
+use sip_types::header::typed::ContentType;
+use sip_types::Code;
+use sip_ua::invite::session::{Event, ReInviteReceived, Session};
 use std::fmt::Write;
 use std::future::pending;
 use std::sync::Arc;
@@ -93,8 +95,10 @@ impl Signaling {
                     match event? {
                         Event::RefreshNeeded(event) => event.process_default().await?,
                         Event::ReInviteReceived(event) => {
-                            // TODO: potential SDP handling
-                            event.process_default().await?;
+                            if let Err(e) = handle_reinvite(&mut self.media, event).await {
+                                log::error!("failed to handle re-invite, {:?}", e);
+                                self.state = State::Quitting;
+                            }
                         },
                         Event::Bye(event) => {
                             event.process_default().await?;
@@ -319,5 +323,58 @@ async fn websocket_receive(websocket: &mut Option<Websocket>) -> Result<Websocke
         websocket.receive().await
     } else {
         pending().await
+    }
+}
+
+async fn handle_reinvite(media: &mut MediaTaskHandle, event: ReInviteReceived<'_>) -> Result<()> {
+    let request = &event.invite;
+
+    let body_is_not_sdp = request
+        .headers
+        .get_named()
+        .map(|content_type: ContentType| content_type.0 != "application/sdp")
+        .unwrap_or_default();
+
+    if body_is_not_sdp {
+        let response = event
+            .session
+            .endpoint
+            .create_response(request, Code::NOT_ACCEPTABLE, None)
+            .await?;
+
+        event.transaction.respond_failure(response).await?;
+
+        bail!("failed to handle re-invite unknown content-type");
+    }
+
+    let body = request.body.clone();
+
+    match media.send_sip_sdp_reinvite(body).await {
+        Ok(answer) => {
+            let mut response = event
+                .session
+                .endpoint
+                .create_response(request, Code::OK, None)
+                .await?;
+
+            response.msg.body = answer.into();
+
+            event.respond_success(response).await?;
+
+            Ok(())
+        }
+        Err(_) => {
+            log::error!("failed to handle sdp update");
+
+            let response = event
+                .session
+                .endpoint
+                .create_response(request, Code::SERVER_INTERNAL_ERROR, None)
+                .await?;
+
+            event.transaction.respond_failure(response).await?;
+
+            Ok(())
+        }
     }
 }

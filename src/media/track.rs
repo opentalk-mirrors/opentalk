@@ -1,4 +1,4 @@
-//! GSttreamer custom component based on `appsrc` to play audio tracks provided
+//! GStreamer custom component based on `appsrc` to play audio tracks provided
 //! by the application on demand without loading them off the disk each time.
 
 use anyhow::bail;
@@ -77,8 +77,10 @@ struct ElementData {
     track: Option<Arc<[i16]>>,
     cursor: usize,
 
+    num_samples: u64,
+
     /// Flag to check if the `push_data` callback is still registered/running
-    push_data_running: bool,
+    push_data_running: Option<glib::SourceId>,
 }
 
 /// Creates an `appsrc` element which has one `src` pad which
@@ -87,12 +89,13 @@ struct ElementData {
 /// Returns a `TrackController` and `Element`. The controller
 /// can be used to control which tracks the element is playing
 pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
-    let appsrc = gst::ElementFactory::make("appsrc", None)?;
+    let appsrc = gst::ElementFactory::make("appsrc", Some("track-player"))?;
 
     let data = Arc::new(Mutex::new(ElementData {
         track: None,
         cursor: 0,
-        push_data_running: false,
+        num_samples: 0,
+        push_data_running: None,
     }));
 
     // Set the capabilities of the appsrc` to 48000 2 channel interleaved (i16/S16LE) audio
@@ -112,6 +115,8 @@ pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
 
     // Set the format property to time
     appsrc.set_property("format", gst::Format::Time)?;
+    appsrc.set_property("is-live", true)?;
+    appsrc.set_property("do-timestamp", true)?;
 
     // Register need-data callback which will register the `push_data` callback to the glib runtime
     // push_data will be called until the `appsrc` buffer is completely full, then it un-registers itself
@@ -123,12 +128,23 @@ pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
         let mut data = data_clone.lock();
 
         // Avoid registering the callback twice
-        if !data.push_data_running {
-            data.push_data_running = true;
-
+        if data.push_data_running.is_none() {
             // Register push-data to glib runtime which will calls it until the `appsrc` buffer is full
-            let fun = push_data(appsrc, Arc::downgrade(&data_clone));
-            glib::idle_add(fun);
+            data.push_data_running = Some(glib::idle_add(push_data(
+                appsrc,
+                Arc::downgrade(&data_clone),
+            )));
+        }
+
+        None
+    })?;
+
+    let data_clone = data.clone();
+    appsrc.connect("enough-data", true, move |_values| {
+        let mut data = data_clone.lock();
+
+        if let Some(source_id) = data.push_data_running.take() {
+            glib::source_remove(source_id);
         }
 
         None
@@ -159,7 +175,7 @@ fn push_data(
         };
 
         if !continue_.0 {
-            data.push_data_running = false;
+            data.push_data_running = None;
         }
 
         continue_
@@ -167,6 +183,12 @@ fn push_data(
 }
 
 fn try_push_data(appsrc: &gst::Element, data: &mut ElementData) -> Result<glib::Continue> {
+    const SAMPLES_PER_BUF: u64 = 4096;
+    const BYTES_PER_SAMPLE: u64 = 2;
+    const BYTES_PER_BUF: u64 = SAMPLES_PER_BUF * BYTES_PER_SAMPLE;
+    const SAMPLE_RATE: u64 = 48000;
+    const CHANNELS: u64 = 2;
+
     // Check if next push would block because the buffer is full
     let current_bytes = appsrc.property("current-level-bytes")?.get::<u64>()?;
     let max_bytes = appsrc.property("max-bytes")?.get::<u64>()?;
@@ -176,45 +198,50 @@ fn try_push_data(appsrc: &gst::Element, data: &mut ElementData) -> Result<glib::
     }
 
     // Get the samples to play
-    let to_play = match &data.track {
-        Some(track) => &track[data.cursor / 2..],
+    let samples_to_play = match &data.track {
+        Some(track) => &track[data.cursor / BYTES_PER_SAMPLE as usize..],
         None => &[][..],
     };
 
-    let mut to_play = to_play.as_byte_slice();
+    let mut bytes_to_play = samples_to_play.as_byte_slice();
 
-    let duration =
-        gst::ClockTime::from_nseconds(scale(4096, gst::ClockTime::SECOND.nseconds(), 48000));
+    let duration = gst::ClockTime::from_nseconds(scale(
+        SAMPLES_PER_BUF / CHANNELS,
+        gst::ClockTime::SECOND.nseconds(),
+        SAMPLE_RATE,
+    ));
+
+    let timestamp = gst::ClockTime::from_nseconds(scale(
+        data.num_samples / CHANNELS,
+        gst::ClockTime::SECOND.nseconds(),
+        SAMPLE_RATE,
+    ));
+
+    data.num_samples += SAMPLES_PER_BUF;
+
+    let mut buffer = gst::Buffer::with_size(BYTES_PER_BUF as usize)?;
+
+    let buffer_ref = buffer.make_mut();
+    buffer_ref.set_duration(duration);
+    buffer_ref.set_pts(timestamp);
 
     // Create a constant size buffer from zero or more samples
-    let buffer = if to_play.is_empty() {
-        let mut buffer = gst::Buffer::from_slice(&[0; 4096][..]);
-        let buffer_ref = buffer.make_mut();
-        buffer_ref.set_duration(duration);
-
-        buffer
-    } else if to_play.len() < 4096 {
-        let mut buffer = gst::Buffer::with_size(4096).unwrap();
-        let buffer_ref = buffer.make_mut();
-
-        buffer_ref.copy_from_slice(0, &[0; 4069]).unwrap();
-        buffer_ref.copy_from_slice(0, to_play).unwrap();
-        buffer_ref.set_duration(duration);
-
-        buffer
+    if bytes_to_play.is_empty() {
+        buffer_ref
+            .copy_from_slice(0, &[0; BYTES_PER_BUF as usize][..])
+            .expect("copy must work, amount was allocated on buffer create");
+    } else if bytes_to_play.len() < BYTES_PER_BUF as usize {
+        buffer_ref
+            .copy_from_slice(0, &[0; BYTES_PER_BUF as usize])
+            .unwrap();
+        buffer_ref.copy_from_slice(0, bytes_to_play).unwrap();
     } else {
-        to_play = &to_play[..4096];
-
-        let mut buffer = gst::Buffer::with_size(4096).unwrap();
-        let buffer_ref = buffer.make_mut();
-        buffer_ref.copy_from_slice(0, to_play).unwrap();
-        buffer_ref.set_duration(duration);
-
-        buffer
+        bytes_to_play = &bytes_to_play[..BYTES_PER_BUF as usize];
+        buffer_ref.copy_from_slice(0, bytes_to_play).unwrap();
     };
 
     // Set the cursor forward
-    data.cursor += to_play.len();
+    data.cursor += bytes_to_play.len();
 
     // Push audio bytes to the appsrc
     let ret = appsrc.emit_by_name("push-buffer", &[&buffer])?;

@@ -2,13 +2,14 @@ use crate::media::{self, MediaTaskHandle, Track};
 use crate::settings::Settings;
 use crate::signaling::Signaling;
 use anyhow::{bail, Context, Result};
+use bytesstr::BytesStr;
 use gst::glib;
 use sip_auth::digest::{DigestAuthenticator, DigestCredentials};
 use sip_auth::{CredentialStore, RequestParts, UacAuthSession};
 use sip_core::transport::udp::Udp;
-use sip_core::transport::TargetTransportInfo;
+use sip_core::transport::{TargetTransportInfo, TpHandle};
 use sip_core::{Endpoint, IncomingRequest, Layer, LayerKey, MayTake};
-use sip_types::header::typed::Contact;
+use sip_types::header::typed::{Contact, ContentType};
 use sip_types::uri::sip::{SipUri, UserPart};
 use sip_types::uri::NameAddr;
 use sip_types::{Code, Method, Name};
@@ -21,7 +22,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::lookup_host;
 use tokio::sync::broadcast;
-use tokio::time::sleep;
+use tokio::time::{interval, sleep};
 
 struct AppData {
     contact: Contact,
@@ -84,6 +85,23 @@ impl AppLayer {
     ) -> Result<()> {
         // Save body and display name before handing the request to the acceptor
         let sdp_offer = request.body.clone();
+
+        let content_type: ContentType = request.headers.get_named()?;
+
+        if content_type.0 != "application/sdp" {
+            let tsx = endpoint.create_server_inv_tsx(&request);
+
+            let response = endpoint
+                .create_response(
+                    &request,
+                    Code::NOT_ACCEPTABLE,
+                    Some(BytesStr::from_static("Invalid Content Type")),
+                )
+                .await?;
+
+            tsx.respond_failure(response).await?;
+            bail!("Invalid invite content type {:?}", content_type.0);
+        }
 
         let dialog = Dialog::new_server(endpoint.clone(), self.dialog_layer, &request, contact)?;
 
@@ -221,7 +239,7 @@ pub(crate) async fn run(main_loop: glib::MainLoop, settings: Arc<Settings>) -> R
 
     let mut target = TargetTransportInfo {
         via_host_port: Some(pub_addr.into()),
-        transport: Some(transport),
+        transport: Some(transport.clone()),
         destination: vec![],
     };
 
@@ -242,6 +260,8 @@ pub(crate) async fn run(main_loop: glib::MainLoop, settings: Arc<Settings>) -> R
 
     let mut ctrl_c = Box::pin(tokio::signal::ctrl_c());
 
+    let mut nat_keep_alive_spawned = false;
+
     loop {
         let mut request = registration.create_register(false);
         request.headers.insert_named(endpoint.allowed());
@@ -255,6 +275,16 @@ pub(crate) async fn run(main_loop: glib::MainLoop, settings: Arc<Settings>) -> R
         match response.line.code.into_u16() {
             200..=299 => {
                 registration.receive_success_response(response);
+
+                // On successful registration spawn task that will send CRLF keep alive packets
+                if !nat_keep_alive_spawned {
+                    nat_keep_alive_spawned = true;
+                    tokio::spawn(nat_keep_alive(
+                        transport.clone(),
+                        target.destination.clone(),
+                        settings.sip.nat_ping_delta,
+                    ));
+                }
 
                 tokio::select! {
                     _ = registration.wait_for_expiry() => {
@@ -331,4 +361,16 @@ pub(crate) async fn run(main_loop: glib::MainLoop, settings: Arc<Settings>) -> R
     main_loop.quit();
 
     Ok(())
+}
+
+async fn nat_keep_alive(tp: TpHandle, target: Vec<SocketAddr>, interval_delta: Duration) {
+    let mut interval = interval(interval_delta);
+
+    loop {
+        if let Err(e) = tp.send(b"\r\n", &target).await {
+            log::error!("failed to send keep-alive, {}", e);
+        }
+
+        interval.tick().await;
+    }
 }

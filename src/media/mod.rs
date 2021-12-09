@@ -4,6 +4,7 @@ use gio::prelude::*;
 use gst::glib;
 use gst::prelude::*;
 use gst_webrtc::WebRTCRTPTransceiverDirection;
+use sip_bin::SipBin;
 use std::net::IpAddr;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -12,7 +13,7 @@ use uuid::Uuid;
 
 mod handle;
 mod sip_bin;
-mod track;
+pub mod track;
 
 pub use handle::{HandleError, HandleEvent, MediaTaskHandle, Target};
 pub use track::{Track, TrackController};
@@ -21,6 +22,10 @@ enum MediaTaskMsg {
     CreateSipSession {
         offer: Bytes,
         answer_tx: oneshot::Sender<(TrackController, String)>,
+    },
+    SipReInvite {
+        offer: Bytes,
+        answer_tx: oneshot::Sender<String>,
     },
     CreatePublish,
     CreateSubscribe {
@@ -39,6 +44,7 @@ struct MediaTask {
     pub_addr: IpAddr,
     task_tx: mpsc::UnboundedSender<HandleEvent>,
     pipeline: gst::Pipeline,
+    sip_bin: Option<SipBin>,
 }
 
 impl Drop for MediaTask {
@@ -55,6 +61,7 @@ impl MediaTask {
             pub_addr,
             task_tx,
             pipeline,
+            sip_bin: None,
         }
     }
 
@@ -64,6 +71,13 @@ impl MediaTask {
                 MediaTaskMsg::CreateSipSession { offer, answer_tx } => {
                     if let Err(e) = self.on_sip_sdp_offer(offer, answer_tx) {
                         log::error!("failed to handle sdp offer, {:?}", e);
+                        self.task_tx.send(HandleEvent::Error).ok();
+                        break;
+                    }
+                }
+                MediaTaskMsg::SipReInvite { offer, answer_tx } => {
+                    if let Err(e) = self.on_reinvite(offer, answer_tx) {
+                        log::error!("failed to handle reinvite, {:?}", e);
                         self.task_tx.send(HandleEvent::Error).ok();
                         break;
                     }
@@ -103,17 +117,22 @@ impl MediaTask {
         offer: Bytes,
         answer_tx: oneshot::Sender<(TrackController, String)>,
     ) -> Result<()> {
-        let (sip_bin, answer) = sip_bin::create_sip_bin_from_sdp_offer(self.pub_addr, offer)?;
-        self.pipeline.add(&sip_bin)?;
+        if self.sip_bin.is_some() {
+            bail!("Already created a sip_bin");
+        }
+
+        let (sip_bin, answer) = SipBin::new(self.pub_addr, offer)?;
+        self.pipeline.add(&sip_bin.bin)?;
 
         let mixer = gst::ElementFactory::make("audiomixer", Some("subscriber-audiomix"))?;
         self.pipeline.add(&mixer)?;
 
         mixer
-            .link_pads(Some("src"), &sip_bin, Some("sip-audio-sink"))
+            .link_pads(Some("src"), &sip_bin.bin, Some("sip-audio-sink"))
             .context("failed to link mixer to sip-bin")?;
 
         let (controller, tracksrc) = track::create_track_src()?;
+
         self.pipeline.add(&tracksrc)?;
         tracksrc.link(&mixer)?;
 
@@ -121,6 +140,8 @@ impl MediaTask {
         let bus = self.pipeline.bus().context("failed to get pipeline bus")?;
 
         let task_tx = self.task_tx.clone();
+
+        self.sip_bin = Some(sip_bin);
 
         if answer_tx.send((controller, answer)).is_err() {
             bail!("failed to send SDP response to handle")
@@ -130,6 +151,9 @@ impl MediaTask {
             let mut do_continue = true;
 
             match msg.view() {
+                gst::MessageView::Error(e) => {
+                    log::error!("pipeline error, {:?}", e);
+                }
                 gst::MessageView::Element(element) => {
                     if let Some(structure) = element.structure() {
                         if structure.name() == "dtmf-event" {
@@ -185,6 +209,21 @@ impl MediaTask {
         self.pipeline.set_state(gst::State::Playing)?;
 
         Ok(())
+    }
+
+    fn on_reinvite(&mut self, offer: Bytes, answer_tx: oneshot::Sender<String>) -> Result<()> {
+        if let Some(sip_bin) = &mut self.sip_bin {
+            match sip_bin.update(offer) {
+                Ok(answer) => {
+                    answer_tx.send(answer).ok();
+                }
+                Err(e) => log::error!("Failed to handle re-invite, {:?}", e),
+            }
+
+            Ok(())
+        } else {
+            bail!("received SipReInvite event without a sip_bin initialized");
+        }
     }
 
     fn create_publish(&mut self) -> Result<()> {

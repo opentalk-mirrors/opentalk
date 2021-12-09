@@ -12,11 +12,13 @@ use sdp_types::TaggedAddress;
 use std::io;
 use std::net::SocketAddr;
 use std::net::{IpAddr, ToSocketAddrs};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 /// The local info used to negotiate the SDP session
 pub struct LocalInfo {
     pub offer: Message,
+
+    pub id: u64,
+    pub version: u64,
 
     pub rtp_addr: SocketAddr,
     pub rtcp_addr: SocketAddr,
@@ -24,7 +26,10 @@ pub struct LocalInfo {
 
 /// The SDP session info used to construct the sip_bin
 pub struct SessionInfo {
-    pub answer: Message,
+    pub local_sdp: Message,
+
+    pub remote_id: u64,
+    pub remote_version: u64,
 
     pub telephone_event_pt: u32,
     pub rtp_addr: SocketAddr,
@@ -40,16 +45,30 @@ pub enum Error {
 }
 
 /// Negotiate a audio PCMA & DTMF (telephone-event) session
-pub fn respond(mut local_info: LocalInfo) -> Result<SessionInfo, Error> {
-    if local_info.offer.media_scopes.len() != 1 {
+pub fn respond(local_info: LocalInfo) -> Result<SessionInfo, Error> {
+    let mut offer = local_info.offer;
+
+    if offer.media_scopes.len() != 1 {
         return Err(Error::InvalidOffer);
     }
 
-    let mut media = local_info.offer.media_scopes.remove(0);
+    let mut media = offer.media_scopes.remove(0);
 
     if media.desc.media_type != MediaType::Audio {
         return Err(Error::InvalidOffer);
     }
+
+    let remote_id: u64 = offer
+        .origin
+        .session_id
+        .parse()
+        .map_err(|_| Error::InvalidOffer)?;
+
+    let remote_version: u64 = offer
+        .origin
+        .session_version
+        .parse()
+        .map_err(|_| Error::InvalidOffer)?;
 
     let peer_rtp_port = media.desc.port;
     let peer_rtcp_port = media
@@ -57,8 +76,24 @@ pub fn respond(mut local_info: LocalInfo) -> Result<SessionInfo, Error> {
         .map(|rtcp| rtcp.port)
         .unwrap_or_else(|| peer_rtp_port + 1);
 
-    let peer_rtp_addr = tagged_to_socket_addr(&local_info.offer.origin.address, peer_rtp_port)?;
+    let connection = media
+        .connection
+        .or(offer.connection)
+        .ok_or(Error::InvalidOffer)?;
+
+    let peer_rtp_addr = tagged_to_socket_addr(&connection.address, peer_rtp_port)?;
     let peer_rtcp_addr = SocketAddr::new(peer_rtp_addr.ip(), peer_rtcp_port);
+
+    let origin_unspecified = peer_rtp_addr.ip().is_unspecified();
+
+    let direction = match media.direction {
+        Direction::SendRecv if origin_unspecified => Direction::RecvOnly,
+        Direction::SendRecv => Direction::SendRecv,
+        Direction::RecvOnly if origin_unspecified => Direction::Inactive,
+        Direction::RecvOnly => Direction::SendOnly,
+        Direction::SendOnly => Direction::RecvOnly,
+        Direction::Inactive => Direction::Inactive,
+    };
 
     let mut answer_media = MediaScope {
         desc: MediaDescription {
@@ -68,7 +103,7 @@ pub fn respond(mut local_info: LocalInfo) -> Result<SessionInfo, Error> {
             proto: TransportProtocol::RtpAvp,
             fmts: vec![8],
         },
-        direction: Direction::SendRecv,
+        direction,
         connection: Some(Connection {
             address: local_info.rtp_addr.ip().into(),
             ttl: None,
@@ -92,7 +127,10 @@ pub fn respond(mut local_info: LocalInfo) -> Result<SessionInfo, Error> {
     let mut telephone_event_pt = None;
 
     for rtpmap in media.rtpmaps {
-        if rtpmap.payload == 8 && rtpmap.encoding == "PCMA" && rtpmap.clock_rate == 8000 {
+        if rtpmap.payload == 8
+            && rtpmap.encoding.eq_ignore_ascii_case("PCMA")
+            && rtpmap.clock_rate == 8000
+        {
             answer_media.rtpmaps.push(rtpmap);
             supports_pcma = true;
         } else if rtpmap.encoding == "telephone-event" && rtpmap.clock_rate == 8000 {
@@ -115,21 +153,16 @@ pub fn respond(mut local_info: LocalInfo) -> Result<SessionInfo, Error> {
         return Err(Error::InvalidOffer);
     }
 
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-
-    let answer = Message {
-        name: BytesStr::from_static("ezk"),
+    let local_sdp = Message {
+        name: BytesStr::from_static("opentalk-obelisk"),
         origin: Origin {
             username: BytesStr::from_static("-"),
-            session_id: now.to_string().into(),
-            session_version: (now + 1).to_string().into(),
+            session_id: local_info.id.to_string().into(),
+            session_version: local_info.version.to_string().into(),
             address: local_info.rtp_addr.ip().into(),
         },
         time: Time { start: 0, stop: 0 },
-        direction: Direction::SendRecv,
+        direction,
         connection: None,
         bandwidth: vec![],
         ice_options: ice::Options::default(),
@@ -141,7 +174,11 @@ pub fn respond(mut local_info: LocalInfo) -> Result<SessionInfo, Error> {
     };
 
     Ok(SessionInfo {
-        answer,
+        local_sdp,
+
+        remote_id,
+        remote_version,
+
         // unwrap safe: checked earlier
         telephone_event_pt: telephone_event_pt.unwrap(),
         rtp_addr: peer_rtp_addr,

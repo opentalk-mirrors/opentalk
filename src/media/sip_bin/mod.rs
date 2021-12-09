@@ -4,50 +4,235 @@ use bytesstr::BytesStr;
 use gio::prelude::*;
 use gst::glib;
 use gst::prelude::*;
+use sdp::SessionInfo;
+use sdp_types::attributes::direction::Direction;
 use std::convert::TryFrom;
 use std::net::{IpAddr, SocketAddr};
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
 mod sdp;
 
-pub fn create_sip_bin_from_sdp_offer(pub_addr: IpAddr, offer: Bytes) -> Result<(gst::Bin, String)> {
-    // Parse SDP offer
-    let offer = BytesStr::from_utf8_bytes(offer)?;
-    let offer = sdp_types::msg::parse::<sdp_types::msg::Builder>(&offer)?;
+pub struct SipBin {
+    pub(crate) bin: gst::Bin,
 
-    // Create RTP/RTCP UDP socket
-    let (rtp_socket, rtp_port) = create_udp_socket()?;
-    let (rtcp_socket, rtcp_port) = create_udp_socket()?;
+    id: u64,
+    version: u64,
 
-    let local_info = sdp::LocalInfo {
-        offer,
-        rtp_addr: SocketAddr::new(pub_addr, rtp_port),
-        rtcp_addr: SocketAddr::new(pub_addr, rtcp_port),
-    };
+    local_rtp_addr: SocketAddr,
+    local_rtcp_addr: SocketAddr,
 
-    let answer = sdp::respond(local_info)?;
+    current_session_info: SessionInfo,
+}
 
+impl SipBin {
+    /// Create a new SipBin based on a public [IpAddr] and an SDP offer
+    ///
+    /// Usually called by the first SIP INVITE.
+    pub fn new(pub_addr: IpAddr, offer: Bytes) -> Result<(SipBin, String)> {
+        // Parse SDP offer
+        let offer = BytesStr::from_utf8_bytes(offer)?;
+        let offer = sdp_types::msg::parse::<sdp_types::msg::Builder>(&offer)?;
+
+        // Create RTP/RTCP UDP socket
+        let (rtp_socket, rtp_port) = create_udp_socket()?;
+        let (rtcp_socket, rtcp_port) = create_udp_socket()?;
+
+        let local_rtp_addr = SocketAddr::new(pub_addr, rtp_port);
+        let local_rtcp_addr = SocketAddr::new(pub_addr, rtcp_port);
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        let id = now;
+        let version = now + 1;
+
+        let local_info = sdp::LocalInfo {
+            offer,
+            id,
+            version,
+            rtp_addr: local_rtp_addr,
+            rtcp_addr: local_rtcp_addr,
+        };
+
+        let current_session_info = sdp::respond(local_info)?;
+        let bin = create_sip_bin(
+            rtp_socket,
+            rtcp_socket,
+            current_session_info.telephone_event_pt,
+        )
+        .context("Failed to create sip_bin")?;
+
+        let mut this = Self {
+            bin,
+            id,
+            version,
+            local_rtp_addr,
+            local_rtcp_addr,
+            current_session_info,
+        };
+
+        let send_data = matches!(
+            this.current_session_info.local_sdp.media_scopes[0].direction,
+            Direction::SendRecv | Direction::SendOnly
+        );
+
+        if send_data {
+            this.set_destination(
+                this.current_session_info.rtp_addr,
+                this.current_session_info.rtcp_addr,
+            )
+            .context("Failed to set destination during creation")?;
+        } else {
+            this.set_hold()
+                .context("Failed to set hold during creation")?;
+        }
+
+        let answer = this.current_session_info.local_sdp.to_string();
+
+        Ok((this, answer))
+    }
+
+    /// Update the SipBin based on a new SDP offer
+    ///
+    /// Usually called by a SIP ReINVITE.
+    pub fn update(&mut self, offer: Bytes) -> Result<String> {
+        // Parse SDP offer
+        let offer = BytesStr::from_utf8_bytes(offer)?;
+        let offer = sdp_types::msg::parse::<sdp_types::msg::Builder>(&offer)?;
+
+        self.version += 1;
+
+        let local_info = sdp::LocalInfo {
+            offer,
+            id: self.id,
+            version: self.version,
+            rtp_addr: self.local_rtp_addr,
+            rtcp_addr: self.local_rtcp_addr,
+        };
+
+        let session_info = sdp::respond(local_info)?;
+
+        let send_data = matches!(
+            session_info.local_sdp.media_scopes[0].direction,
+            Direction::SendRecv | Direction::SendOnly
+        );
+
+        // check if version of sdp::respond is larger than current version.
+        if session_info.remote_version > self.current_session_info.remote_version {
+            if send_data {
+                self.set_unhold(session_info.rtp_addr, session_info.rtcp_addr)
+                    .context("Failed to set unhold during update")?;
+            } else {
+                self.set_hold()
+                    .context("Failed to set hold during update")?;
+            }
+        }
+
+        self.current_session_info = session_info;
+
+        Ok(self.current_session_info.local_sdp.to_string())
+    }
+
+    fn set_destination(
+        &mut self,
+        remote_rtp_addr: SocketAddr,
+        remote_rtcp_addr: SocketAddr,
+    ) -> Result<()> {
+        log::trace!(
+            "Setting destination to {} and {}",
+            remote_rtp_addr,
+            remote_rtcp_addr
+        );
+
+        let rtp_udp_sink = self
+            .bin
+            .by_name("rtp-udpsink")
+            .context("failed to get rtp-udpsink from sip_bin")?;
+
+        let rtcp_udp_sink = self
+            .bin
+            .by_name("rtcp-udpsink")
+            .context("failed to get rtcp-udpsink from sip_bin")?;
+
+        rtp_udp_sink.set_property("host", remote_rtp_addr.ip().to_string())?;
+        rtp_udp_sink.set_property("port", remote_rtp_addr.port() as i32)?;
+
+        rtcp_udp_sink.set_property("host", remote_rtcp_addr.ip().to_string())?;
+        rtcp_udp_sink.set_property("port", remote_rtcp_addr.port() as i32)?;
+
+        Ok(())
+    }
+
+    /// Unlinks the udp sockets from the rtp and rtcp srcs and links them to a fakesink
+    fn set_hold(&mut self) -> Result<()> {
+        log::trace!("Set Hold");
+        let rtp_valve = self
+            .bin
+            .by_name("audio-input-valve")
+            .context("failed to get audio-input-valve")?;
+
+        rtp_valve.set_property("drop", true)?;
+
+        Ok(())
+    }
+
+    /// Unlinks the fakesink, updates the udp socket destinations and links udp sockets back into the pipeline
+    fn set_unhold(
+        &mut self,
+        remote_rtp_addr: SocketAddr,
+        remote_rtcp_addr: SocketAddr,
+    ) -> Result<()> {
+        log::trace!("Set Unhold");
+        let rtp_valve = self
+            .bin
+            .by_name("audio-input-valve")
+            .context("failed to get audio-input-valve")?;
+
+        rtp_valve.set_property("drop", false)?;
+
+        if self.current_session_info.rtp_addr != remote_rtp_addr
+            || self.current_session_info.rtcp_addr != remote_rtcp_addr
+        {
+            // Update destination in udp-sinks
+            self.set_destination(remote_rtp_addr, remote_rtcp_addr)
+                .context("Failed to set destination during unhold")?;
+        }
+
+        Ok(())
+    }
+}
+
+/// Creates a gst sip-bin
+///
+/// The default state has:
+/// * No udp destination port set.
+/// *
+fn create_sip_bin(
+    rtp_socket: gio::Socket,
+    rtcp_socket: gio::Socket,
+    telephone_event_pt: u32,
+) -> Result<gst::Bin> {
     // Create pipeline textual description
-    let sip_bin = format!(
-        r#"
-            rtpbin name=session
+    let sip_bin = r#"
+        rtpbin name=session
+
+        queue name=audio-sink min-threshold-time=20000000 ! valve name=audio-input-valve drop-mode="forward-sticky-events" ! audioconvert ! audioresample  ! alawenc ! rtppcmapay ! session.send_rtp_sink_0
+
+        udpsrc name=rtp-udp-src ! queue ! session.recv_rtp_sink_0
+        udpsrc name=rtcp-udp-src caps="application/x-rtcp" ! queue ! session.recv_rtcp_sink_0
+
+        session.send_rtp_src_0 ! udpsink host=127.0.0.1 port=9 name=rtp-udpsink
+        session.send_rtcp_src_0 ! udpsink host=127.0.0.1 port=9 name=rtcp-udpsink
     
-            queue name=audio-sink max-size-time=20000000 ! audioconvert ! audioresample  ! alawenc ! rtppcmapay  ! session.send_rtp_sink_0
-    
-            udpsrc name=rtp-udp-src ! session.recv_rtp_sink_0
-            udpsrc name=rtcp-udp-src caps="application/x-rtcp" ! session.recv_rtcp_sink_0
-    
-            session.send_rtp_src_0 ! udpsink host={ip} port={rtp_port} name=rtp-udp-sink
-            session.send_rtcp_src_0 ! udpsink host={ip} port={rtcp_port} name=rtcp-udp-sink
-        
-            rtppcmadepay name=pcmadepay ! alawdec ! queue name=audio-src
-            "#,
-        ip = answer.rtp_addr.ip(),
-        rtp_port = answer.rtp_addr.port(),
-        rtcp_port = answer.rtcp_addr.port(),
-    );
+        rtppcmadepay name=pcmadepay ! alawdec ! queue name=audio-src
+
+        "#;
 
     // Parse pipeline
-    let sip_bin = gst::parse_bin_from_description_with_name(&sip_bin, false, "sip-bin")?;
+    let sip_bin = gst::parse_bin_from_description_with_name(sip_bin, false, "sip-bin")?;
 
     // ==== CREATE AUDIO SINK GHOSTPAD (as in audio to be sent via RTP)
 
@@ -58,33 +243,9 @@ pub fn create_sip_bin_from_sdp_offer(pub_addr: IpAddr, offer: Bytes) -> Result<(
         .static_pad("sink")
         .context("failed to get sink pad")?;
 
-    let audio_sink_ghost_pad = gst::GhostPad::new(Some("sip-audio-sink"), gst::PadDirection::Sink);
+    let audio_sink_ghost_pad =
+        gst::GhostPad::with_target(Some("sip-audio-sink"), &audio_sink_sink_pad)?;
     sip_bin.add_pad(&audio_sink_ghost_pad)?;
-
-    // TODO replace audiotestsrc against generic
-    let audio_testsrc = gst::ElementFactory::make("audiotestsrc", None)?;
-    sip_bin.add(&audio_testsrc)?;
-    let audio_testsrc_src_pad = audio_testsrc.static_pad("src").unwrap();
-    audio_testsrc_src_pad.link(&audio_sink_sink_pad)?;
-
-    // Add 'linked' callback to GhostPad.
-    // Once the ghostpad was linked against this callback will remove the audiotestsrc
-    // and link whatever was linked against the ghostpad to the rtpstream to transmit that instead.
-    let sip_bin_clone = sip_bin.clone();
-    audio_sink_ghost_pad
-        .clone()
-        .connect("linked", true, move |_values| {
-            if let Err(e) = || -> Result<()> {
-                audio_testsrc_src_pad.unlink(&audio_sink_sink_pad)?;
-                sip_bin_clone.remove(&audio_testsrc)?;
-                audio_sink_ghost_pad.set_target(Some(&audio_sink_sink_pad))?;
-                Ok(())
-            }() {
-                log::error!("failed to handle linked ghostpad {}", e);
-            }
-
-            None
-        })?;
 
     // ==== CREATE AUDIO SRC GHOSTPAD (as in received audio from RTP)
 
@@ -97,11 +258,13 @@ pub fn create_sip_bin_from_sdp_offer(pub_addr: IpAddr, offer: Bytes) -> Result<(
         .static_pad("src")
         .context("failed to get src pad")?;
 
+    // TODO(r.floren) Rename this to src, to follow the general gstreamer eco system.
     let audio_src_ghost_pad = gst::GhostPad::new(Some("sip-audio-src"), gst::PadDirection::Src);
     sip_bin.add_pad(&audio_src_ghost_pad)?;
 
     // Connect outgoing audio to fakesink to not interrupt pipeline flow
     let audio_fakesink = gst::ElementFactory::make("fakesink", Some("sip-audio-fakesink"))?;
+
     sip_bin.add(&audio_fakesink)?;
     let audio_fakesink_sink_pad = audio_fakesink.static_pad("sink").unwrap();
     audio_src_src_pad.link(&audio_fakesink_sink_pad)?;
@@ -127,10 +290,10 @@ pub fn create_sip_bin_from_sdp_offer(pub_addr: IpAddr, offer: Bytes) -> Result<(
 
     // Set sockets of udp_(src/sink)
     let rtp_udp_src = sip_bin.by_name("rtp-udp-src").unwrap();
-    let rtp_udp_sink = sip_bin.by_name("rtp-udp-sink").unwrap();
+    let rtp_udp_sink = sip_bin.by_name("rtp-udpsink").unwrap();
 
     let rtcp_udp_src = sip_bin.by_name("rtcp-udp-src").unwrap();
-    let rtcp_udp_sink = sip_bin.by_name("rtcp-udp-sink").unwrap();
+    let rtcp_udp_sink = sip_bin.by_name("rtcp-udpsink").unwrap();
 
     rtp_udp_src.set_property("socket", rtp_socket.clone())?;
     rtp_udp_sink.set_property("socket", rtp_socket)?;
@@ -144,16 +307,16 @@ pub fn create_sip_bin_from_sdp_offer(pub_addr: IpAddr, offer: Bytes) -> Result<(
     rtp_bin.connect(
         "request-pt-map",
         false,
-        on_request_pt_map(answer.telephone_event_pt),
+        on_request_pt_map(telephone_event_pt),
     )?;
 
     rtp_bin.connect(
         "pad-added",
         true,
-        on_pad_added(sip_bin.clone(), answer.telephone_event_pt),
+        on_pad_added(sip_bin.clone(), telephone_event_pt),
     )?;
 
-    Ok((sip_bin, answer.answer.to_string()))
+    Ok(sip_bin)
 }
 
 fn create_udp_socket() -> Result<(gio::Socket, u16)> {
@@ -206,7 +369,9 @@ fn on_request_pt_map(telephone_event_pt: u32) -> impl Fn(&[glib::Value]) -> Opti
                 ))
                 .build()
         } else {
-            return None;
+            log::warn!("requested caps for unknown pt {}", pt);
+
+            gst::Caps::new_empty()
         };
 
         Some(caps.to_value())
@@ -261,8 +426,8 @@ fn try_on_pad_added(
         //
         // Create a dtmfdepay and link its audio output to a fakesink as we don't want the audio
         // from it, only the signals it emits on the pipeline's bus.
-        let dtmfdepay = gst::ElementFactory::make("rtpdtmfdepay", None)?;
-        let fakesink = gst::ElementFactory::make("fakesink", None)?;
+        let dtmfdepay = gst::ElementFactory::make("rtpdtmfdepay", Some("dtmf-depay"))?;
+        let fakesink = gst::ElementFactory::make("fakesink", Some("dtmf-fakesink"))?;
 
         // add the dtmfdepay and fakesink to the pipeline
         sip_bin.add_many(&[&fakesink, &dtmfdepay])?;
@@ -284,6 +449,8 @@ fn try_on_pad_added(
 
         dtmfdepay.set_state(gst::State::Playing)?;
         fakesink.set_state(gst::State::Playing)?;
+    } else {
+        log::warn!("pad with unknown pt {} added", payload);
     }
 
     Ok(())
