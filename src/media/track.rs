@@ -89,7 +89,9 @@ struct ElementData {
 /// Returns a `TrackController` and `Element`. The controller
 /// can be used to control which tracks the element is playing
 pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
-    let appsrc = gst::ElementFactory::make("appsrc", Some("track-player"))?;
+    let appsrc = gst::ElementFactory::make("appsrc", Some("track-player"))?
+        .downcast::<gst_app::AppSrc>()
+        .unwrap();
 
     let data = Arc::new(Mutex::new(ElementData {
         track: None,
@@ -99,62 +101,54 @@ pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
     }));
 
     // Set the capabilities of the appsrc` to 48000 2 channel interleaved (i16/S16LE) audio
-    appsrc.set_property(
-        "caps",
-        gst::Caps::new_simple(
-            "audio/x-raw",
-            &[
-                ("format", &"S16LE"),
-                ("rate", &48000i32),
-                ("channels", &2i32),
-                ("layout", &"interleaved"),
-            ],
-        )
-        .to_value(),
-    )?;
+    appsrc.set_caps(Some(
+        &gst::Caps::builder("audio/x-raw")
+            .field("format", "S16LE")
+            .field("rate", 48000i32)
+            .field("channels", 2i32)
+            .field("layout", "interleaved")
+            .build(),
+    ));
 
     // Set the format property to time
-    appsrc.set_property("format", gst::Format::Time)?;
-    appsrc.set_property("is-live", true)?;
-    appsrc.set_property("do-timestamp", true)?;
+    appsrc.set_format(gst::Format::Time);
+    appsrc.set_is_live(true);
+    appsrc.set_do_timestamp(true);
 
     // Register need-data callback which will register the `push_data` callback to the glib runtime
     // push_data will be called until the `appsrc` buffer is completely full, then it un-registers itself
     // by returning glib::Continue(false)
     let data_clone = data.clone();
-    appsrc.connect("need-data", true, move |values| {
-        let appsrc = values[0].get::<gst::Element>().expect("appsrc is element");
+    let data_clone2 = data.clone();
+    appsrc.set_callbacks(
+        gst_app::AppSrcCallbacks::builder()
+            .need_data(move |appsrc, _size| {
+                let mut data = data_clone.lock();
 
-        let mut data = data_clone.lock();
+                // Avoid registering the callback twice
+                if data.push_data_running.is_none() {
+                    // Register push-data to glib runtime which will calls it until the `appsrc` buffer is full
+                    data.push_data_running = Some(glib::idle_add(push_data(
+                        appsrc.clone(),
+                        Arc::downgrade(&data_clone),
+                    )));
+                }
+            })
+            .enough_data(move |_appsrc| {
+                let mut data = data_clone2.lock();
 
-        // Avoid registering the callback twice
-        if data.push_data_running.is_none() {
-            // Register push-data to glib runtime which will calls it until the `appsrc` buffer is full
-            data.push_data_running = Some(glib::idle_add(push_data(
-                appsrc,
-                Arc::downgrade(&data_clone),
-            )));
-        }
+                if let Some(source_id) = data.push_data_running.take() {
+                    glib::source_remove(source_id);
+                }
+            })
+            .build(),
+    );
 
-        None
-    })?;
-
-    let data_clone = data.clone();
-    appsrc.connect("enough-data", true, move |_values| {
-        let mut data = data_clone.lock();
-
-        if let Some(source_id) = data.push_data_running.take() {
-            glib::source_remove(source_id);
-        }
-
-        None
-    })?;
-
-    Ok((TrackController { data }, appsrc))
+    Ok((TrackController { data }, appsrc.upcast()))
 }
 
 fn push_data(
-    appsrc: gst::Element,
+    appsrc: gst_app::AppSrc,
     data: Weak<Mutex<ElementData>>,
 ) -> impl FnMut() -> glib::Continue {
     move || {
@@ -182,7 +176,7 @@ fn push_data(
     }
 }
 
-fn try_push_data(appsrc: &gst::Element, data: &mut ElementData) -> Result<glib::Continue> {
+fn try_push_data(appsrc: &gst_app::AppSrc, data: &mut ElementData) -> Result<glib::Continue> {
     const SAMPLES_PER_BUF: u64 = 4096;
     const BYTES_PER_SAMPLE: u64 = 2;
     const BYTES_PER_BUF: u64 = SAMPLES_PER_BUF * BYTES_PER_SAMPLE;
@@ -190,8 +184,8 @@ fn try_push_data(appsrc: &gst::Element, data: &mut ElementData) -> Result<glib::
     const CHANNELS: u64 = 2;
 
     // Check if next push would block because the buffer is full
-    let current_bytes = appsrc.property("current-level-bytes")?.get::<u64>()?;
-    let max_bytes = appsrc.property("max-bytes")?.get::<u64>()?;
+    let current_bytes = appsrc.current_level_bytes();
+    let max_bytes = appsrc.max_bytes();
 
     if current_bytes >= max_bytes {
         return Ok(glib::Continue(false));
@@ -244,13 +238,11 @@ fn try_push_data(appsrc: &gst::Element, data: &mut ElementData) -> Result<glib::
     data.cursor += bytes_to_play.len();
 
     // Push audio bytes to the appsrc
-    let ret = appsrc.emit_by_name("push-buffer", &[&buffer])?;
+    let ret = appsrc.push_buffer(buffer);
 
     // Check flow return
-    if let Some(ret) = ret.and_then(|ret| ret.get::<gst::FlowReturn>().ok()) {
-        if ret != gst::FlowReturn::Ok {
-            bail!("failed to push buffer, got {:?}", ret);
-        }
+    if let Err(err) = ret {
+        bail!("failed to push buffer, got {:?}", err);
     }
 
     Ok(glib::Continue(true))

@@ -9,6 +9,7 @@ authors = ["Konstantin Baltruschat <k.baltruschat@heinlein-video.de>"]
 config = { version = "0.11", default-features = false, features = ["toml"] }
 
 gst = { package = "gstreamer", version = "0.17" }
+gst-app = { package = "gstreamer-app", version = "0.17" }
 gst-sdp = { package = "gstreamer-sdp", version = "0.17" }
 gst-webrtc = { package = "gstreamer-webrtc", version = "0.17", features = [
     "v1_18",
