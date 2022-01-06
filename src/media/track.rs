@@ -4,13 +4,11 @@
 use anyhow::bail;
 use anyhow::Result;
 use byte_slice_cast::*;
-use gst::glib;
 use gst::prelude::*;
 use hound::WavReader;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use std::sync::Arc;
-use std::sync::Weak;
 
 macro_rules! wav_file {
     ($ident:ident=>$file:literal) => {
@@ -78,9 +76,6 @@ struct ElementData {
     cursor: usize,
 
     num_samples: u64,
-
-    /// Flag to check if the `push_data` callback is still registered/running
-    push_data_running: Option<glib::SourceId>,
 }
 
 /// Creates an `appsrc` element which has one `src` pad which
@@ -97,7 +92,6 @@ pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
         track: None,
         cursor: 0,
         num_samples: 0,
-        push_data_running: None,
     }));
 
     // Set the capabilities of the appsrc` to 48000 2 channel interleaved (i16/S16LE) audio
@@ -112,33 +106,16 @@ pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
 
     // Set the format property to time
     appsrc.set_format(gst::Format::Time);
-    appsrc.set_is_live(true);
-    appsrc.set_do_timestamp(true);
+    // Set max-bytes to 1 to block immediately when a buffer is queued up
+    appsrc.set_max_bytes(1);
+    appsrc.set_block(true);
 
-    // Register need-data callback which will register the `push_data` callback to the glib runtime
-    // push_data will be called until the `appsrc` buffer is completely full, then it un-registers itself
-    // by returning glib::Continue(false)
     let data_clone = data.clone();
-    let data_clone2 = data.clone();
     appsrc.set_callbacks(
         gst_app::AppSrcCallbacks::builder()
             .need_data(move |appsrc, _size| {
-                let mut data = data_clone.lock();
-
-                // Avoid registering the callback twice
-                if data.push_data_running.is_none() {
-                    // Register push-data to glib runtime which will calls it until the `appsrc` buffer is full
-                    data.push_data_running = Some(glib::idle_add(push_data(
-                        appsrc.clone(),
-                        Arc::downgrade(&data_clone),
-                    )));
-                }
-            })
-            .enough_data(move |_appsrc| {
-                let mut data = data_clone2.lock();
-
-                if let Some(source_id) = data.push_data_running.take() {
-                    glib::source_remove(source_id);
+                if let Err(err) = push_data(appsrc, &data_clone) {
+                    log::error!("failed to push data, {:?}", err);
                 }
             })
             .build(),
@@ -147,49 +124,14 @@ pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
     Ok((TrackController { data }, appsrc.upcast()))
 }
 
-fn push_data(
-    appsrc: gst_app::AppSrc,
-    data: Weak<Mutex<ElementData>>,
-) -> impl FnMut() -> glib::Continue {
-    move || {
-        let data = if let Some(data) = data.upgrade() {
-            data
-        } else {
-            return glib::Continue(false);
-        };
-
-        let mut data = data.lock();
-
-        let continue_ = match try_push_data(&appsrc, &mut data) {
-            Ok(continue_) => continue_,
-            Err(e) => {
-                log::error!("failed to push data, {:?}", e);
-                glib::Continue(false)
-            }
-        };
-
-        if !continue_.0 {
-            data.push_data_running = None;
-        }
-
-        continue_
-    }
-}
-
-fn try_push_data(appsrc: &gst_app::AppSrc, data: &mut ElementData) -> Result<glib::Continue> {
+fn push_data(appsrc: &gst_app::AppSrc, data: &Arc<Mutex<ElementData>>) -> Result<()> {
     const SAMPLES_PER_BUF: u64 = 4096;
     const BYTES_PER_SAMPLE: u64 = 2;
     const BYTES_PER_BUF: u64 = SAMPLES_PER_BUF * BYTES_PER_SAMPLE;
     const SAMPLE_RATE: u64 = 48000;
     const CHANNELS: u64 = 2;
 
-    // Check if next push would block because the buffer is full
-    let current_bytes = appsrc.current_level_bytes();
-    let max_bytes = appsrc.max_bytes();
-
-    if current_bytes >= max_bytes {
-        return Ok(glib::Continue(false));
-    }
+    let mut data = data.lock();
 
     // Get the samples to play
     let samples_to_play = match &data.track {
@@ -210,8 +152,6 @@ fn try_push_data(appsrc: &gst_app::AppSrc, data: &mut ElementData) -> Result<gli
         gst::ClockTime::SECOND.nseconds(),
         SAMPLE_RATE,
     ));
-
-    data.num_samples += SAMPLES_PER_BUF;
 
     let mut buffer = gst::Buffer::with_size(BYTES_PER_BUF as usize)?;
 
@@ -236,6 +176,10 @@ fn try_push_data(appsrc: &gst_app::AppSrc, data: &mut ElementData) -> Result<gli
 
     // Set the cursor forward
     data.cursor += bytes_to_play.len();
+    data.num_samples += SAMPLES_PER_BUF;
+
+    // Drop mutex guard because pushing below can block
+    drop(data);
 
     // Push audio bytes to the appsrc
     let ret = appsrc.push_buffer(buffer);
@@ -245,7 +189,7 @@ fn try_push_data(appsrc: &gst_app::AppSrc, data: &mut ElementData) -> Result<gli
         bail!("failed to push buffer, got {:?}", err);
     }
 
-    Ok(glib::Continue(true))
+    Ok(())
 }
 
 #[cfg(test)]
