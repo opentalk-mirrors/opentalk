@@ -79,13 +79,20 @@ impl SipBin {
             Direction::SendRecv | Direction::SendOnly
         );
 
-        if send_data {
+        // When remote sends 0.0.0.0 as media address it does not want to receive ANY RTP traffic,
+        // regardless of stream direction
+        // Thats why we don't set the destination to the remote address and instead send them all to
+        // the default 127.0.0.1
+        if !this.current_session_info.rtp_addr.ip().is_unspecified() {
             this.set_destination(
                 this.current_session_info.rtp_addr,
                 this.current_session_info.rtcp_addr,
             )
             .context("Failed to set destination during creation")?;
-        } else {
+        }
+
+        // Close the audio data valve if no data is supposed to be sent
+        if !send_data {
             this.set_hold()
                 .context("Failed to set hold during creation")?;
         }
@@ -122,8 +129,20 @@ impl SipBin {
 
         // check if version of sdp::respond is larger than current version.
         if session_info.remote_version > self.current_session_info.remote_version {
+            // on unspecified ip (0.0.0.0) stop sending data anywhere, else set destination to sdp addresses
+            // See https://datatracker.ietf.org/doc/html/rfc3264#section-8.4
+            // and https://datatracker.ietf.org/doc/html/rfc2543#appendix-B.5
+            if session_info.rtp_addr.ip().is_unspecified() {
+                self.set_destination(([127, 0, 0, 1], 9).into(), ([127, 0, 0, 1], 9).into())?;
+            } else if session_info.rtp_addr != self.current_session_info.rtp_addr
+                || session_info.rtcp_addr != self.current_session_info.rtcp_addr
+            {
+                // Update destination in udp-sinks
+                self.set_destination(session_info.rtp_addr, session_info.rtcp_addr)?;
+            }
+
             if send_data {
-                self.set_unhold(session_info.rtp_addr, session_info.rtcp_addr)
+                self.set_unhold()
                     .context("Failed to set unhold during update")?;
             } else {
                 self.set_hold()
@@ -142,9 +161,10 @@ impl SipBin {
         remote_rtcp_addr: SocketAddr,
     ) -> Result<()> {
         log::trace!(
-            "Setting destination to {} and {}",
+            "Setting destination to {} and {} for {}",
             remote_rtp_addr,
-            remote_rtcp_addr
+            remote_rtcp_addr,
+            self.id,
         );
 
         let rtp_udp_sink = self
@@ -168,7 +188,8 @@ impl SipBin {
 
     /// Unlinks the udp sockets from the rtp and rtcp srcs and links them to a fakesink
     fn set_hold(&mut self) -> Result<()> {
-        log::trace!("Set Hold");
+        log::trace!("Holding call for {}", self.id);
+
         let rtp_valve = self
             .bin
             .by_name("audio-input-valve")
@@ -180,26 +201,15 @@ impl SipBin {
     }
 
     /// Unlinks the fakesink, updates the udp socket destinations and links udp sockets back into the pipeline
-    fn set_unhold(
-        &mut self,
-        remote_rtp_addr: SocketAddr,
-        remote_rtcp_addr: SocketAddr,
-    ) -> Result<()> {
-        log::trace!("Set Unhold");
+    fn set_unhold(&mut self) -> Result<()> {
+        log::trace!("Unholding call for {}", self.id);
+
         let rtp_valve = self
             .bin
             .by_name("audio-input-valve")
             .context("failed to get audio-input-valve")?;
 
         rtp_valve.set_property("drop", false)?;
-
-        if self.current_session_info.rtp_addr != remote_rtp_addr
-            || self.current_session_info.rtcp_addr != remote_rtcp_addr
-        {
-            // Update destination in udp-sinks
-            self.set_destination(remote_rtp_addr, remote_rtcp_addr)
-                .context("Failed to set destination during unhold")?;
-        }
 
         Ok(())
     }
