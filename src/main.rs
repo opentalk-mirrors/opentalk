@@ -18,12 +18,14 @@ fn check_plugins() -> Result<()> {
         "udp",
         "rtp",
         "alaw",
+        "mulaw",
         "app",
         "audiomixer",
         "dtmf",
         "audioconvert",
         "audioresample",
         "opus",
+        "libav",
     ];
 
     let missing = required
@@ -32,7 +34,7 @@ fn check_plugins() -> Result<()> {
         .collect::<Vec<_>>();
 
     if !missing.is_empty() {
-        bail!("Missing plugins: {:?}", missing);
+        bail!("Missing gstreamer plugins: {:?}", missing);
     } else {
         Ok(())
     }
