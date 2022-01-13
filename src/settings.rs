@@ -1,6 +1,6 @@
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
-use std::path::Path;
+use std::{path::Path, time::Duration};
 
 #[derive(Deserialize)]
 pub struct Settings {
@@ -41,6 +41,20 @@ pub struct SipSettings {
     pub registrar: String,
     pub stun_server: Option<String>,
 
+    #[serde(default = "default_nat_ping_delta", deserialize_with = "duration_secs")]
+    pub nat_ping_delta: Duration,
+
     #[serde(default)]
     pub enforce_qop: bool,
+}
+
+fn default_nat_ping_delta() -> Duration {
+    Duration::from_secs(30)
+}
+
+pub fn duration_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(Duration::from_secs(<u64>::deserialize(deserializer)?))
 }

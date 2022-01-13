@@ -73,6 +73,18 @@ impl MediaTaskHandle {
         answer_rx.await.map_err(|_| HandleError)
     }
 
+    /// Send the SIP SDP offer of an received ReINVITE and wait for the media task
+    /// to generate a SDP response
+    pub async fn send_sip_sdp_reinvite(&self, offer: Bytes) -> Result<String, HandleError> {
+        let (answer_tx, answer_rx) = oneshot::channel();
+
+        self.tx
+            .send(MediaTaskMsg::SipReInvite { offer, answer_tx })
+            .map_err(|_| HandleError)?;
+
+        answer_rx.await.map_err(|_| HandleError)
+    }
+
     /// Instruct the media task to create the webrtc-publish webrtcbin, shortly afterwards
     /// a `HandleEvent::PublishOffer` will be received with the SDP offer
     pub fn send_create_publish(&self) -> Result<(), HandleError> {

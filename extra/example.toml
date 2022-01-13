@@ -24,6 +24,9 @@ realm = "example.org"
 # SIP URI of the registrar 
 registrar = "sip:example.org"
 
+# Seconds between ping/pong to keep NAT binding alive
+#nat_ping_delta = 30
+
 # Host-port of the stun server used for SIP
 stun_server = "stun.example.org:3478"
 
