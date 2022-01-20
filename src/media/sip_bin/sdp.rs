@@ -1,3 +1,4 @@
+use super::codec::{choose_codec, GstCodecInfo};
 use bytesstr::BytesStr;
 use sdp_types::attributes::direction::Direction;
 use sdp_types::attributes::ice;
@@ -34,6 +35,8 @@ pub struct SessionInfo {
     pub telephone_event_pt: u32,
     pub rtp_addr: SocketAddr,
     pub rtcp_addr: SocketAddr,
+
+    pub gst_elements: GstCodecInfo,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -44,7 +47,7 @@ pub enum Error {
     Io(#[from] io::Error),
 }
 
-/// Negotiate a audio PCMA & DTMF (telephone-event) session
+/// Negotiate a audio codec & DTMF (telephone-event) session
 pub fn respond(local_info: LocalInfo) -> Result<SessionInfo, Error> {
     let mut offer = local_info.offer;
 
@@ -57,6 +60,8 @@ pub fn respond(local_info: LocalInfo) -> Result<SessionInfo, Error> {
     if media.desc.media_type != MediaType::Audio {
         return Err(Error::InvalidOffer);
     }
+
+    let codec_info = choose_codec(&media).ok_or(Error::InvalidOffer)?;
 
     let remote_id: u64 = offer
         .origin
@@ -101,7 +106,7 @@ pub fn respond(local_info: LocalInfo) -> Result<SessionInfo, Error> {
             port: local_info.rtp_addr.port(),
             ports_num: None,
             proto: TransportProtocol::RtpAvp,
-            fmts: vec![8],
+            fmts: vec![codec_info.rtpmap.payload],
         },
         direction,
         connection: Some(Connection {
@@ -114,7 +119,7 @@ pub fn respond(local_info: LocalInfo) -> Result<SessionInfo, Error> {
             port: local_info.rtcp_addr.port(),
             address: Some(local_info.rtcp_addr.ip().into()),
         }),
-        rtpmaps: vec![],
+        rtpmaps: vec![codec_info.rtpmap],
         fmtps: vec![],
         ice_ufrag: None,
         ice_pwd: None,
@@ -123,17 +128,14 @@ pub fn respond(local_info: LocalInfo) -> Result<SessionInfo, Error> {
         attributes: vec![],
     };
 
-    let mut supports_pcma = false;
+    if let Some(fmtp) = codec_info.fmtp {
+        media.fmtps.push(fmtp);
+    }
+
     let mut telephone_event_pt = None;
 
     for rtpmap in media.rtpmaps {
-        if rtpmap.payload == 8
-            && rtpmap.encoding.eq_ignore_ascii_case("PCMA")
-            && rtpmap.clock_rate == 8000
-        {
-            answer_media.rtpmaps.push(rtpmap);
-            supports_pcma = true;
-        } else if rtpmap.encoding == "telephone-event" && rtpmap.clock_rate == 8000 {
+        if rtpmap.encoding.eq_ignore_ascii_case("telephone-event") && rtpmap.clock_rate == 8000 {
             let fmtp = media
                 .fmtps
                 .iter()
@@ -149,9 +151,7 @@ pub fn respond(local_info: LocalInfo) -> Result<SessionInfo, Error> {
         }
     }
 
-    if !supports_pcma || telephone_event_pt.is_none() {
-        return Err(Error::InvalidOffer);
-    }
+    let telephone_event_pt = telephone_event_pt.ok_or(Error::InvalidOffer)?;
 
     let local_sdp = Message {
         name: BytesStr::from_static("opentalk-obelisk"),
@@ -179,10 +179,11 @@ pub fn respond(local_info: LocalInfo) -> Result<SessionInfo, Error> {
         remote_id,
         remote_version,
 
-        // unwrap safe: checked earlier
-        telephone_event_pt: telephone_event_pt.unwrap(),
+        telephone_event_pt,
         rtp_addr: peer_rtp_addr,
         rtcp_addr: peer_rtcp_addr,
+
+        gst_elements: codec_info.gst_elements,
     })
 }
 

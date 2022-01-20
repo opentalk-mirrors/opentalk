@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use bytesstr::BytesStr;
+use codec::{GstCodecInfo, PayloadCaps};
 use gio::prelude::*;
 use gst::glib;
 use gst::prelude::*;
@@ -11,6 +12,7 @@ use std::net::{IpAddr, SocketAddr};
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
+mod codec;
 mod sdp;
 
 pub struct SipBin {
@@ -62,6 +64,7 @@ impl SipBin {
             rtp_socket,
             rtcp_socket,
             current_session_info.telephone_event_pt,
+            current_session_info.gst_elements.clone(),
         )
         .context("Failed to create sip_bin")?;
 
@@ -224,12 +227,14 @@ fn create_sip_bin(
     rtp_socket: gio::Socket,
     rtcp_socket: gio::Socket,
     telephone_event_pt: u32,
+    gst_elements: GstCodecInfo,
 ) -> Result<gst::Bin> {
     // Create pipeline textual description
-    let sip_bin = r#"
+    let sip_bin = format!(
+        r#"
         rtpbin name=session
 
-        queue name=audio-sink min-threshold-time=20000000 ! clocksync sync=true ! valve name=audio-input-valve drop-mode="forward-sticky-events" ! audioconvert ! audioresample  ! alawenc ! rtppcmapay ! session.send_rtp_sink_0
+        queue name=audio-sink min-threshold-time=20000000 ! clocksync sync=true ! valve name=audio-input-valve drop-mode="forward-sticky-events" ! audioconvert ! audioresample  ! {encoder} ! {rtppay} ! session.send_rtp_sink_0
 
         udpsrc name=rtp-udp-src ! queue ! session.recv_rtp_sink_0
         udpsrc name=rtcp-udp-src caps="application/x-rtcp" ! queue ! session.recv_rtcp_sink_0
@@ -237,12 +242,17 @@ fn create_sip_bin(
         session.send_rtp_src_0 ! udpsink host=127.0.0.1 port=9 name=rtp-udpsink
         session.send_rtcp_src_0 ! udpsink host=127.0.0.1 port=9 name=rtcp-udpsink
     
-        rtppcmadepay name=pcmadepay ! alawdec ! queue name=audio-src
+        {rtpdepay} name=audiodepay ! {decoder} ! queue name=audio-src
 
-        "#;
+        "#,
+        encoder = gst_elements.encoder,
+        decoder = gst_elements.decoder,
+        rtppay = gst_elements.rtppay,
+        rtpdepay = gst_elements.rtpdepay,
+    );
 
     // Parse pipeline
-    let sip_bin = gst::parse_bin_from_description_with_name(sip_bin, false, "sip-bin")?;
+    let sip_bin = gst::parse_bin_from_description_with_name(&sip_bin, false, "sip-bin")?;
 
     // ==== CREATE AUDIO SINK GHOSTPAD (as in audio to be sent via RTP)
 
@@ -315,15 +325,19 @@ fn create_sip_bin(
     let rtp_bin = sip_bin.by_name("session").unwrap();
 
     rtp_bin.connect(
-        "request-pt-map",
-        false,
-        on_request_pt_map(telephone_event_pt),
+        "pad-added",
+        true,
+        on_pad_added(
+            sip_bin.clone(),
+            gst_elements.payload_caps.payload,
+            telephone_event_pt,
+        ),
     )?;
 
     rtp_bin.connect(
-        "pad-added",
-        true,
-        on_pad_added(sip_bin.clone(), telephone_event_pt),
+        "request-pt-map",
+        false,
+        on_request_pt_map(gst_elements.payload_caps, telephone_event_pt),
     )?;
 
     Ok(sip_bin)
@@ -351,22 +365,19 @@ fn create_udp_socket() -> Result<(gio::Socket, u16)> {
 /// Callback function whenever the rtpbin encounters a new payload inside the RTP stream.
 ///
 /// Provides gst::Caps for the given payload number, so gstreamer can properly handle
-/// the payload. Currently maps 8 to PCMA and telephone_event_pt to telephone-event/dtmf caps.
-fn on_request_pt_map(telephone_event_pt: u32) -> impl Fn(&[glib::Value]) -> Option<glib::Value> {
+/// the payload.
+///
+/// Provides the caps of `payload_caps.caps` if payload is equal to payload_caps.payload`
+/// and telephone event caps if `payload == telephone_event_pt`
+fn on_request_pt_map(
+    payload_caps: PayloadCaps,
+    telephone_event_pt: u32,
+) -> impl Fn(&[glib::Value]) -> Option<glib::Value> {
     move |values| {
         let pt = values[2].get::<u32>().unwrap();
 
-        let caps = if pt == 8 {
-            gst::Caps::builder_full()
-                .structure(gst::Structure::new(
-                    "application/x-rtp",
-                    &[
-                        ("media", &"audio"),
-                        ("encoding-name", &"PCMA"),
-                        ("clock-rate", &8000i32),
-                    ],
-                ))
-                .build()
+        let caps = if pt == payload_caps.payload {
+            payload_caps.caps.clone()
         } else if pt == telephone_event_pt {
             gst::Caps::builder_full()
                 .structure(gst::Structure::new(
@@ -390,10 +401,11 @@ fn on_request_pt_map(telephone_event_pt: u32) -> impl Fn(&[glib::Value]) -> Opti
 
 fn on_pad_added(
     sip_bin: gst::Bin,
+    expected_media_pt: u32,
     telephone_event_pt: u32,
 ) -> impl Fn(&[glib::Value]) -> Option<glib::Value> {
     move |values| {
-        if let Err(e) = try_on_pad_added(&sip_bin, telephone_event_pt, values) {
+        if let Err(e) = try_on_pad_added(&sip_bin, expected_media_pt, telephone_event_pt, values) {
             log::error!("failed to handle added pad, {}", e);
         }
 
@@ -403,6 +415,7 @@ fn on_pad_added(
 
 fn try_on_pad_added(
     sip_bin: &gst::Bin,
+    expected_media_pt: u32,
     telephone_event_pt: u32,
     values: &[glib::Value],
 ) -> Result<()> {
@@ -418,18 +431,18 @@ fn try_on_pad_added(
     // Extract payload number from capabilities
     let payload = caps.value("payload")?.get::<i32>()?;
 
-    //  PCMA audio
-    if payload == 8 {
-        // Get the pcmadepay from withing the pipeline
+    //  media payload
+    if expected_media_pt as i32 == payload {
+        // Get the audiodepay from withing the pipeline
         // Its defined in the textual description so this should not panic
-        let pcmadepay = sip_bin.by_name("pcmadepay").unwrap();
+        let audiodepay = sip_bin.by_name("audiodepay").unwrap();
 
         // Try to get the `sink` static pad to link it with the new pad
-        let sink_pad = pcmadepay
+        let sink_pad = audiodepay
             .static_pad("sink")
-            .context("pcmadepay static pad 'sink' not available")?;
+            .context("audiodepay static pad 'sink' not available")?;
 
-        // Link the incoming newly added pad to the pcmadepay
+        // Link the incoming newly added pad to the audiodepay
         pad.link(&sink_pad)?;
     } else if telephone_event_pt as i32 == payload {
         // A DTMF event was detected and a pad was added for it.
