@@ -234,7 +234,7 @@ fn create_sip_bin(
         r#"
         rtpbin name=session
 
-        queue name=audio-sink min-threshold-time=20000000 ! clocksync sync=true ! valve name=audio-input-valve drop-mode="forward-sticky-events" ! audioconvert ! audioresample  ! {encoder} ! {rtppay} ! session.send_rtp_sink_0
+        queue name=audio-sink min-threshold-time=20000000 ! clocksync sync=true ! valve name=audio-input-valve ! audioconvert ! audioresample  ! {encoder} ! {rtppay} ! session.send_rtp_sink_0
 
         udpsrc name=rtp-udp-src ! queue ! session.recv_rtp_sink_0
         udpsrc name=rtcp-udp-src caps="application/x-rtcp" ! queue ! session.recv_rtcp_sink_0
