@@ -341,8 +341,7 @@ async fn handle_reinvite(media: &mut MediaTaskHandle, event: ReInviteReceived<'_
         let response = event
             .session
             .endpoint
-            .create_response(request, Code::NOT_ACCEPTABLE, None)
-            .await?;
+            .create_response(request, Code::NOT_ACCEPTABLE, None);
 
         event.transaction.respond_failure(response).await?;
 
@@ -356,8 +355,7 @@ async fn handle_reinvite(media: &mut MediaTaskHandle, event: ReInviteReceived<'_
             let mut response = event
                 .session
                 .endpoint
-                .create_response(request, Code::OK, None)
-                .await?;
+                .create_response(request, Code::OK, None);
 
             response.msg.body = answer.into();
 
@@ -368,11 +366,11 @@ async fn handle_reinvite(media: &mut MediaTaskHandle, event: ReInviteReceived<'_
         Err(_) => {
             log::error!("failed to handle sdp update");
 
-            let response = event
-                .session
-                .endpoint
-                .create_response(request, Code::SERVER_INTERNAL_ERROR, None)
-                .await?;
+            let response =
+                event
+                    .session
+                    .endpoint
+                    .create_response(request, Code::SERVER_INTERNAL_ERROR, None);
 
             event.transaction.respond_failure(response).await?;
 
