@@ -182,7 +182,9 @@ impl Signaling {
 
                                 // Subscribe to all participants that currently publish
                                 for participant in &self.participants {
-                                    if participant.media.video.is_some() {
+                                    if participant.control.left_at.is_none()
+                                        && participant.media.video.is_some()
+                                    {
                                         websocket.subscribe(participant.id).await?;
                                     }
                                 }

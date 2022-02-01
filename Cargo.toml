@@ -43,6 +43,8 @@ tt = { package = "tokio-tungstenite", version = "0.15", features = [
     "rustls-tls",
 ] }
 
+chrono = {version = "0.4", features = ["serde"] }
+
 sdp-types = { version = "0.1", package = "ezk-sdp-types" }
 sip-types = { version = "0.1", package = "ezk-sip-types" }
 sip-core = { version = "0.1", package = "ezk-sip-core" }
