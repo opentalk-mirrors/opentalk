@@ -4,6 +4,7 @@
 
 use crate::settings::ControllerSettings;
 use anyhow::{bail, Context, Result};
+use chrono::{DateTime, Utc};
 use futures::{SinkExt, StreamExt};
 use reqwest::header::SEC_WEBSOCKET_PROTOCOL;
 use serde::Deserialize;
@@ -331,10 +332,18 @@ pub struct AssociatedParticipant {
 pub struct Participant {
     pub id: Uuid,
 
+    pub control: ControlData,
+
+    #[serde(default)]
     pub media: MediaData,
 }
 
 #[derive(Debug, Deserialize)]
+pub struct ControlData {
+    pub left_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Default, Deserialize)]
 pub struct MediaData {
     pub video: Option<MediaSessionState>,
     pub screen: Option<MediaSessionState>,

@@ -91,13 +91,11 @@ impl AppLayer {
         if content_type.0 != "application/sdp" {
             let tsx = endpoint.create_server_inv_tsx(&request);
 
-            let response = endpoint
-                .create_response(
-                    &request,
-                    Code::NOT_ACCEPTABLE,
-                    Some(BytesStr::from_static("Invalid Content Type")),
-                )
-                .await?;
+            let response = endpoint.create_response(
+                &request,
+                Code::NOT_ACCEPTABLE,
+                Some(BytesStr::from_static("Invalid Content Type")),
+            );
 
             tsx.respond_failure(response).await?;
             bail!("Invalid invite content type {:?}", content_type.0);

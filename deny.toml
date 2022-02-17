@@ -48,7 +48,8 @@ notice = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-    # "RUSTSEC-2020-0056",
+    "RUSTSEC-2020-0071",
+    "RUSTSEC-2020-0159",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -177,7 +178,8 @@ deny = [
 ]
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
-    { name = "nom", version = "=5.1.2" }
+    { name = "nom", version = "=5.1.2" },
+    { name = "itoa", version = "=0.4.8" }
     # { name = "base64", version = "=0.12.3" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
