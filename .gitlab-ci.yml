@@ -1,5 +1,5 @@
 ---
-image: git.heinlein-video.de:5050/heinlein-video/rust:1.56-alpine
+image: git.heinlein-video.de:5050/heinlein-video/rust:1.58.1-alpine
 
 stages:
   - lint
