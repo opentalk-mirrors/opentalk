@@ -12,6 +12,7 @@ use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
 mod handle;
+pub mod port_pool;
 mod sip_bin;
 pub mod track;
 
@@ -151,8 +152,18 @@ impl MediaTask {
             let mut do_continue = true;
 
             match msg.view() {
-                gst::MessageView::Error(e) => {
-                    log::error!("pipeline error, {:?}", e);
+                gst::MessageView::Error(error) => {
+                    if let Some(source) = error.src() {
+                        if source.name() == "rtp-watchdog" {
+                            if task_tx.send(HandleEvent::Error).is_err() {
+                                log::error!("Unable to send rtp timeout error to signaling");
+                            }
+
+                            return Continue(false);
+                        }
+                    }
+
+                    log::error!("Unhandled pipeline error, {:?}", error);
                 }
                 gst::MessageView::Element(element) => {
                     if let Some(structure) = element.structure() {

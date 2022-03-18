@@ -52,6 +52,11 @@ fn main() -> Result<()> {
 
     let settings = settings::Settings::load("config.toml")?;
 
+    media::port_pool::PortPool::init(
+        settings.sip.rtp_port_range.start,
+        settings.sip.rtp_port_range.end,
+    );
+
     // Spawn a new thread for the tokio runtime
     let main_loop_clone = main_loop.clone();
     thread::spawn(move || {

@@ -46,6 +46,24 @@ pub struct SipSettings {
 
     #[serde(default)]
     pub enforce_qop: bool,
+
+    #[serde(default)]
+    pub rtp_port_range: RtpPortRange,
+}
+
+#[derive(Deserialize)]
+pub struct RtpPortRange {
+    pub start: u16,
+    pub end: u16,
+}
+
+impl Default for RtpPortRange {
+    fn default() -> Self {
+        Self {
+            start: 40000,
+            end: 49999,
+        }
+    }
 }
 
 fn default_nat_ping_delta() -> Duration {
