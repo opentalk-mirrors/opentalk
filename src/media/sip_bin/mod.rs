@@ -1,3 +1,4 @@
+use crate::media::port_pool::PortPool;
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use bytesstr::BytesStr;
@@ -7,7 +8,6 @@ use gst::glib;
 use gst::prelude::*;
 use sdp::SessionInfo;
 use sdp_types::attributes::direction::Direction;
-use std::convert::TryFrom;
 use std::net::{IpAddr, SocketAddr};
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
@@ -37,11 +37,15 @@ impl SipBin {
         let offer = sdp_types::msg::parse::<sdp_types::msg::Builder>(&offer)?;
 
         // Create RTP/RTCP UDP socket
-        let (rtp_socket, rtp_port) = create_udp_socket()?;
-        let (rtcp_socket, rtcp_port) = create_udp_socket()?;
+        let port_pool = PortPool::instance();
 
-        let local_rtp_addr = SocketAddr::new(pub_addr, rtp_port);
-        let local_rtcp_addr = SocketAddr::new(pub_addr, rtcp_port);
+        let socket_pair = port_pool
+            .create_rtp_socket_pair()
+            .context("Failed to create RTP/RTCP sockets")?
+            .context("No more RTP/RTCP ports are available")?;
+
+        let local_rtp_addr = SocketAddr::new(pub_addr, socket_pair.rtp_port);
+        let local_rtcp_addr = SocketAddr::new(pub_addr, socket_pair.rtcp_port);
 
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -61,8 +65,8 @@ impl SipBin {
 
         let current_session_info = sdp::respond(local_info)?;
         let bin = create_sip_bin(
-            rtp_socket,
-            rtcp_socket,
+            socket_pair.rtp_socket,
+            socket_pair.rtcp_socket,
             current_session_info.telephone_event_pt,
             current_session_info.gst_elements.clone(),
         )
@@ -236,7 +240,7 @@ fn create_sip_bin(
 
         queue name=audio-sink min-threshold-time=20000000 ! clocksync sync=true ! valve name=audio-input-valve ! audioconvert ! audioresample  ! {encoder} ! {rtppay} ! session.send_rtp_sink_0
 
-        udpsrc name=rtp-udp-src ! queue ! session.recv_rtp_sink_0
+        udpsrc name=rtp-udp-src ! queue ! watchdog name=rtp-watchdog timeout=10000 ! session.recv_rtp_sink_0
         udpsrc name=rtcp-udp-src caps="application/x-rtcp" ! queue ! session.recv_rtcp_sink_0
 
         session.send_rtp_src_0 ! udpsink host=127.0.0.1 port=9 name=rtp-udpsink
@@ -343,23 +347,12 @@ fn create_sip_bin(
     Ok(sip_bin)
 }
 
-fn create_udp_socket() -> Result<(gio::Socket, u16)> {
-    let socket = gio::Socket::new(
-        gio::SocketFamily::Ipv4,
-        gio::SocketType::Datagram,
-        gio::SocketProtocol::Udp,
-    )?;
+impl Drop for SipBin {
+    fn drop(&mut self) {
+        let port_pool = PortPool::instance();
 
-    let addr = gio::InetAddress::new_any(gio::SocketFamily::Ipv4);
-    let addr = gio::InetSocketAddress::new(&addr, 0);
-    socket.bind(&addr, false)?;
-
-    let local_address = socket
-        .property("local-address")?
-        .get::<gio::SocketAddress>()?;
-    let local_port = local_address.property("port")?.get::<u32>()?;
-
-    Ok((socket, u16::try_from(local_port)?))
+        port_pool.clear_port(self.local_rtp_addr.port())
+    }
 }
 
 /// Callback function whenever the rtpbin encounters a new payload inside the RTP stream.
