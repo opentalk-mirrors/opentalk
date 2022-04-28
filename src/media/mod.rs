@@ -39,6 +39,9 @@ enum MediaTaskMsg {
     ReceivePublishResponse {
         response: String,
     },
+    PublishMute {
+        mute: bool,
+    },
 }
 
 struct MediaTask {
@@ -105,6 +108,13 @@ impl MediaTask {
                 MediaTaskMsg::ReceivePublishResponse { response } => {
                     if let Err(e) = self.on_publish_response(response) {
                         log::error!("failed to handle publish response, {:?}", e);
+                        self.task_tx.send(HandleEvent::Error).ok();
+                        break;
+                    }
+                }
+                MediaTaskMsg::PublishMute { mute } => {
+                    if let Err(e) = self.on_publish_mute(mute) {
+                        log::error!("failed to mute, {:?}", e);
                         self.task_tx.send(HandleEvent::Error).ok();
                         break;
                     }
@@ -241,7 +251,8 @@ impl MediaTask {
         let publish_bin = r#"
             webrtcbin name=webrtc-publish
 
-            audioconvert name=audio-input !
+            volume name=audio-input !
+                audioconvert !
                 audioresample !
                 audio/x-raw,rate=48000,channels=2,layout=interleaved !
                 opusenc !
@@ -540,6 +551,14 @@ impl MediaTask {
 
         // Check result of subscribe-bin removal
         res?;
+
+        Ok(())
+    }
+
+    fn on_publish_mute(&mut self, mute: bool) -> Result<()> {
+        if let Some(volume) = self.pipeline.by_name("audio-input") {
+            volume.set_property("mute", mute)?;
+        }
 
         Ok(())
     }

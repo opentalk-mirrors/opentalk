@@ -237,6 +237,24 @@ impl Websocket {
         Ok(())
     }
 
+    /// Send `update_media_session` to set the audio mute flag
+    pub async fn send_audio_mute(&mut self, mute: bool) -> Result<()> {
+        self.send(serde_json::json!({
+            "namespace": "media",
+            "payload": {
+                "action": "update_media_session",
+                "media_session_type": "video",
+                "media_session_state": {
+                    "video": false,
+                    "audio": !mute
+                }
+            }
+        }))
+        .await?;
+
+        Ok(())
+    }
+
     async fn receive_raw(&mut self) -> Result<Message> {
         loop {
             match self.websocket.next().await {
