@@ -33,6 +33,11 @@ wav_file!(DE_ENTER_PIN => "../../audio/DE_enter_pin.wav");
 wav_file!(DE_SUCCESS => "../../audio/DE_success.wav");
 wav_file!(DE_FAILURE => "../../audio/DE_failure.wav");
 
+// Sounds taken from
+// https://gitlab.senfcall.de/senfcall-public/mute-and-unmute-sounds/-/tree/master/
+wav_file!(DE_MUTED => "../../audio/DE_muted.wav");
+wav_file!(DE_UNMUTED => "../../audio/DE_unmuted.wav");
+
 /// Track to play
 pub enum Track {
     // Silence,
@@ -40,6 +45,8 @@ pub enum Track {
     EnterPin,
     Success,
     Failure,
+    Muted,
+    Unmuted,
 }
 
 // substitute for gst_util_uint64_scale
@@ -67,6 +74,8 @@ impl TrackController {
             Track::EnterPin => data.track = Some(DE_ENTER_PIN.clone()),
             Track::Success => data.track = Some(DE_SUCCESS.clone()),
             Track::Failure => data.track = Some(DE_FAILURE.clone()),
+            Track::Muted => data.track = Some(DE_MUTED.clone()),
+            Track::Unmuted => data.track = Some(DE_UNMUTED.clone()),
         }
     }
 }
@@ -202,5 +211,7 @@ mod test {
         Lazy::force(&DE_ENTER_PIN);
         Lazy::force(&DE_SUCCESS);
         Lazy::force(&DE_FAILURE);
+        Lazy::force(&DE_MUTED);
+        Lazy::force(&DE_UNMUTED);
     }
 }

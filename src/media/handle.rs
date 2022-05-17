@@ -124,4 +124,13 @@ impl MediaTaskHandle {
 
         Ok(())
     }
+
+    /// Instruct the media task to remove the webrtc-subscribe:{uuid} webrtcbin from the pipeline
+    pub fn send_publish_mute(&self, mute: bool) -> Result<(), HandleError> {
+        self.tx
+            .send(MediaTaskMsg::PublishMute { mute })
+            .map_err(|_| HandleError)?;
+
+        Ok(())
+    }
 }

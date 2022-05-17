@@ -51,8 +51,12 @@ pub struct Signaling {
 
     /// DTMF ID is set before connecting the websocket
     dtmf_id: String,
+
     /// DTMF ID is set before connecting the websocket
     dtmf_pw: String,
+
+    /// Is the client muted
+    muted: bool,
 
     /// List of participants inside the room,
     /// unused before initiating the websocket connection
@@ -82,6 +86,7 @@ impl Signaling {
             state: State::Running,
             dtmf_id: String::new(),
             dtmf_pw: String::new(),
+            muted: false,
             participants: Vec::new(),
             shutdown,
         }
@@ -138,9 +143,10 @@ impl Signaling {
 
     async fn handle_media_event(&mut self, event: HandleEvent) -> Result<()> {
         match event {
-            HandleEvent::DtmfDigit(digit) => {
+            HandleEvent::DtmfDigit(digit) if self.dtmf_pw.len() < 10 => {
+                // Dialing into the session
                 match digit {
-                    11 if self.dtmf_pw.len() < 10 => {
+                    11 => {
                         // #
                         self.dtmf_id.clear();
                         self.dtmf_pw.clear();
@@ -155,7 +161,7 @@ impl Signaling {
                             if self.dtmf_id.len() == 10 {
                                 self.track_controller.play_track(Track::EnterPin);
                             }
-                        } else if self.dtmf_pw.len() < 10 {
+                        } else {
                             let _ = write!(&mut self.dtmf_pw, "{}", digit);
 
                             if self.dtmf_pw.len() == 10 {
@@ -189,11 +195,23 @@ impl Signaling {
                                     }
                                 }
                             }
-                        } else {
-                            // TODO in session
                         }
                     }
                     _ => {}
+                }
+            }
+            HandleEvent::DtmfDigit(digit) => {
+                if digit == 1 {
+                    if let Some(websocket) = &mut self.websocket {
+                        self.muted = !self.muted;
+                        self.media.send_publish_mute(self.muted)?;
+                        self.track_controller.play_track(if self.muted {
+                            Track::Muted
+                        } else {
+                            Track::Unmuted
+                        });
+                        websocket.send_audio_mute(self.muted).await?;
+                    }
                 }
             }
             HandleEvent::Error => {
