@@ -252,12 +252,13 @@ impl MediaTask {
             webrtcbin name=webrtc-publish
 
             volume name=audio-input !
-                audioconvert !
                 audioresample !
+                level audio-level-meta=true !
+                audioconvert !
                 audio/x-raw,rate=48000,channels=2,layout=interleaved !
                 opusenc !
-                rtpopuspay pt=97 !
-                capsfilter caps="application/x-rtp,media=audio,encoding-name=OPUS,payload=97" !
+                rtpopuspay pt=97 auto-header-extension=true !
+                application/x-rtp,media=audio,encoding-name=OPUS,payload=97,extmap-1=(string)<"", urn:ietf:params:rtp-hdrext:ssrc-audio-level, "vad=on"> !
                 queue name=opus-output
         "#;
 
