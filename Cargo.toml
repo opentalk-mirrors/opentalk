@@ -1,6 +1,6 @@
 [package]
 name = "k3k-obelisk"
-version = "0.1.0"
+version = "1.0.0-rc.1"
 edition = "2018"
 authors = ["Konstantin Baltruschat <k.baltruschat@heinlein-video.de>"]
 
