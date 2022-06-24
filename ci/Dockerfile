@@ -1,4 +1,4 @@
-FROM rust:alpine AS Builder
+FROM rust:alpine3.16 AS Builder
 
 RUN apk add --no-cache musl-dev glib-dev openssl-dev gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev
 
@@ -21,7 +21,7 @@ COPY audio audio
 RUN touch src/main.rs
 RUN RUSTFLAGS=-Ctarget-feature=-crt-static cargo build --release
 
-FROM alpine:3.14
+FROM alpine:3.16
 
 RUN apk add --no-cache glib libssl1.1 libcrypto1.1 gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad libnice-gstreamer gst-libav
 
