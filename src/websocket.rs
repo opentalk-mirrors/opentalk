@@ -34,6 +34,7 @@ pub enum WebsocketEvent {
     Joined(Participant),
     Update(Participant),
     Left(AssociatedParticipant),
+    Receiving(bool),
 }
 
 /// Abstraction over the controller websocket API must call `join` before anything else
@@ -195,7 +196,7 @@ impl Websocket {
     }
 
     /// Send `end_of_candidates` event for given subscribe session
-    pub async fn subscribe_complete(&mut self, uuid: Uuid) -> Result<()> {
+    pub async fn subscribe_end_of_candidates(&mut self, uuid: Uuid) -> Result<()> {
         self.send(serde_json::json!({
             "namespace": "media",
             "payload": {
@@ -209,8 +210,8 @@ impl Websocket {
         Ok(())
     }
 
-    /// Send `end_of_candidates` and `publish_complete` event for publish session
-    pub async fn publish_complete(&mut self) -> Result<()> {
+    /// Send `end_of_candidates` for publish session
+    pub async fn publish_end_of_candidates(&mut self) -> Result<()> {
         self.send(serde_json::json!({
             "namespace": "media",
             "payload": {
@@ -221,6 +222,11 @@ impl Websocket {
         }))
         .await?;
 
+        Ok(())
+    }
+
+    /// Send `publish_complete` for publish session
+    pub async fn publish_complete(&mut self) -> Result<()> {
         self.send(serde_json::json!({
             "namespace": "media",
             "payload": {
@@ -259,7 +265,7 @@ impl Websocket {
         loop {
             match self.websocket.next().await {
                 Some(Ok(Message::Ping(data))) => self.websocket.send(Message::Pong(data)).await?,
-                Some(Ok(msg)) => return Ok(dbg!(msg)),
+                Some(Ok(msg)) => return Ok(msg),
                 Some(Err(e)) => return Err(e.into()),
                 None => bail!("connection closed"),
             }
@@ -301,6 +307,22 @@ impl Websocket {
                     MediaPayload::SdpAnswer(sdp) => {
                         Ok(Some(WebsocketEvent::PublishResponse { response: sdp.sdp }))
                     }
+                    MediaPayload::MediaStatus(MediaStatus {
+                        source,
+                        kind,
+                        receiving,
+                    }) => {
+                        if let Some(id) = self.id {
+                            // Only audio is published so only check for that
+                            if source == id && kind == "audio" {
+                                Ok(Some(WebsocketEvent::Receiving(receiving)))
+                            } else {
+                                Ok(None)
+                            }
+                        } else {
+                            Ok(None)
+                        }
+                    }
                 },
             }
         } else {
@@ -325,12 +347,21 @@ enum MediaPayload {
     SdpOffer(Sdp),
     #[serde(rename = "sdp_answer")]
     SdpAnswer(Sdp),
+    #[serde(rename = "media_status")]
+    MediaStatus(MediaStatus),
 }
 
 #[derive(Deserialize)]
 struct Sdp {
     pub sdp: String,
     pub source: Uuid,
+}
+
+#[derive(Deserialize)]
+struct MediaStatus {
+    pub source: Uuid,
+    pub kind: String,
+    pub receiving: bool,
 }
 
 #[derive(Deserialize)]
