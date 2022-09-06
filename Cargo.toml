@@ -1,9 +1,9 @@
 [package]
 name = "k3k-obelisk"
 version = "1.0.0-rc.2"
-edition = "2018"
+edition = "2021"
 authors = ["Konstantin Baltruschat <k.baltruschat@heinlein-video.de>"]
-
+publish = false
 
 [dependencies]
 config = { version = "0.11", default-features = false, features = ["toml"] }

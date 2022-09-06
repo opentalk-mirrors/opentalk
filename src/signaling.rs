@@ -45,6 +45,7 @@ pub struct Signaling {
     media: MediaTaskHandle,
     /// Track controller to play audio tracks on demand to the SIP user
     track_controller: TrackController,
+    publish_complete_pending: bool,
 
     /// Current state of the signaling
     state: State,
@@ -83,6 +84,7 @@ impl Signaling {
             websocket: None,
             media,
             track_controller,
+            publish_complete_pending: true,
             state: State::Running,
             dtmf_id: String::new(),
             dtmf_pw: String::new(),
@@ -240,9 +242,9 @@ impl Signaling {
             HandleEvent::NoMoreIceCandidates(target) => {
                 if let Some(websocket) = &mut self.websocket {
                     match target {
-                        Target::Publish => websocket.publish_complete().await?,
+                        Target::Publish => websocket.publish_end_of_candidates().await?,
                         Target::Subscribe(uuid) => {
-                            websocket.subscribe_complete(uuid).await?;
+                            websocket.subscribe_end_of_candidates(uuid).await?;
                         }
                     }
                 }
@@ -312,6 +314,12 @@ impl Signaling {
                     if participant.media.video.is_some() {
                         self.media.send_remove_subscribe(participant.id)?;
                     }
+                }
+            }
+            WebsocketEvent::Receiving(receiving) => {
+                if self.publish_complete_pending && receiving {
+                    self.publish_complete_pending = false;
+                    websocket.publish_complete().await?;
                 }
             }
         }
