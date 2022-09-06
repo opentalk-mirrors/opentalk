@@ -1,6 +1,6 @@
 Changelog
 ---
-## Unreleased
+## 1.0.0-rc.3 (06 September, 2022)
 
 ### Fixed
 
