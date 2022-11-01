@@ -1,4 +1,4 @@
-use crate::http::{start, InvalidCredentials};
+use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{HandleEvent, MediaTaskHandle, Target, Track, TrackController};
 use crate::settings::Settings;
 use crate::websocket::{Participant, Websocket, WebsocketEvent};
@@ -30,6 +30,8 @@ enum State {
 /// and the websocket connection to the controller.
 pub struct Signaling {
     settings: Arc<Settings>,
+
+    http_client: Arc<HttpClient>,
 
     /// Name of the user (usually the phone number or Anonymous)
     name: Option<BytesStr>,
@@ -71,6 +73,7 @@ impl Signaling {
     /// Create a new Signaling from a newly established SIP session
     pub fn new(
         settings: Arc<Settings>,
+        http_client: Arc<HttpClient>,
         name: Option<BytesStr>,
         sip: Session,
         media: MediaTaskHandle,
@@ -79,6 +82,7 @@ impl Signaling {
     ) -> Self {
         Self {
             settings,
+            http_client,
             name,
             sip,
             websocket: None,
@@ -328,7 +332,10 @@ impl Signaling {
     }
 
     async fn join(&mut self) -> Result<()> {
-        let ticket = start(&self.settings.controller, &self.dtmf_id, &self.dtmf_pw).await?;
+        let ticket = self
+            .http_client
+            .start(&self.settings.controller, &self.dtmf_id, &self.dtmf_pw)
+            .await?;
 
         let mut websocket = Websocket::connect(&self.settings.controller, ticket).await?;
 

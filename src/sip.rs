@@ -1,3 +1,4 @@
+use crate::http::HttpClient;
 use crate::media::{self, MediaTaskHandle, Track};
 use crate::settings::Settings;
 use crate::signaling::Signaling;
@@ -33,6 +34,7 @@ struct AppData {
 /// This layer is the application layer of the SIP endpoint and handles incoming INVITE requests
 struct AppLayer {
     settings: Arc<Settings>,
+    http_client: Arc<HttpClient>,
     shutdown: broadcast::Sender<()>,
     app_data: parking_lot::RwLock<Option<AppData>>,
     dialog_layer: LayerKey<DialogLayer>,
@@ -151,6 +153,7 @@ impl AppLayer {
 
         let mut signaling = Signaling::new(
             self.settings.clone(),
+            self.http_client.clone(),
             name,
             session,
             handle,
@@ -189,8 +192,13 @@ pub(crate) async fn run(main_loop: glib::MainLoop, settings: Arc<Settings>) -> R
 
     let (shutdown, _) = broadcast::channel(1);
 
+    let http_client = HttpClient::discover(&settings.auth)
+        .await
+        .context("failed to discover oidc issuer")?;
+
     let app_layer = builder.add_layer(AppLayer {
         settings: settings.clone(),
+        http_client: Arc::new(http_client),
         shutdown,
         app_data: parking_lot::RwLock::new(None),
         dialog_layer,
