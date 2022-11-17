@@ -1,9 +1,11 @@
 use config::{Config, ConfigError, Environment, File};
+use openidconnect::{ClientId, ClientSecret, IssuerUrl};
 use serde::Deserialize;
 use std::{path::Path, time::Duration};
 
 #[derive(Deserialize)]
 pub struct Settings {
+    pub auth: AuthSettings,
     pub controller: ControllerSettings,
     pub sip: SipSettings,
 }
@@ -20,6 +22,13 @@ impl Settings {
 
         cfg.try_into()
     }
+}
+
+#[derive(Deserialize)]
+pub struct AuthSettings {
+    pub issuer: IssuerUrl,
+    pub client_id: ClientId,
+    pub client_secret: ClientSecret,
 }
 
 #[derive(Deserialize)]

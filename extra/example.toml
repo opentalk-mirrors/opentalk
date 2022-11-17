@@ -1,5 +1,16 @@
+# Obelisk OIDC authentication
+#
+# The Client requires a service account with the `opentalk-call-in` realm-role set.
+[auth]
+# OIDC issuer url
+issuer = "http://localhost/auth/realms/Example"
+# OIDC client ID
+client_id = "Obelisk"
+# OIDC client secret
+client_secret = "obeliskclientsecret"
+
 [controller]
-# host-port of the controller 
+# host-port of the controller
 domain = "localhost:8000"
 
 # Optional flag to use http/ws instead of their TLS counterparts

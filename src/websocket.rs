@@ -10,7 +10,7 @@ use reqwest::header::SEC_WEBSOCKET_PROTOCOL;
 use serde::Deserialize;
 use std::borrow::Cow;
 use tokio::net::TcpStream;
-use tt::tungstenite::handshake::client::Request;
+use tt::tungstenite::client::IntoClientRequest;
 use tt::tungstenite::protocol::frame::coding::CloseCode;
 use tt::tungstenite::protocol::CloseFrame;
 use tt::tungstenite::Message;
@@ -54,12 +54,11 @@ impl Websocket {
             format!("wss://{}/signaling", settings.domain)
         };
 
-        let ws_req = Request::get(uri)
-            .header(
-                SEC_WEBSOCKET_PROTOCOL,
-                format!("k3k-signaling-json-v1.0,ticket#{}", ticket.0),
-            )
-            .body(())?;
+        let mut ws_req = uri.into_client_request()?;
+        ws_req.headers_mut().insert(
+            SEC_WEBSOCKET_PROTOCOL,
+            format!("k3k-signaling-json-v1.0,ticket#{}", ticket.0).try_into()?,
+        );
 
         let (websocket, _) = tt::connect_async(ws_req).await?;
 
