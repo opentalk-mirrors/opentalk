@@ -7,6 +7,10 @@ Changelog
 
 - Raise and lower hand via DTMF button 2 ([#14](https://git.opentalk.dev/heinlein-video/k3k-obelisk/-/issues/14))
 
+### Changed
+
+- Update audio files ([#27](https://git.opentalk.dev/heinlein-video/k3k-obelisk/-/issues/27))
+
 ## 1.0.0-rc.4 (02 December, 2022)
 
 ### Added

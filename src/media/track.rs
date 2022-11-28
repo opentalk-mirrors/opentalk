@@ -28,10 +28,10 @@ macro_rules! wav_file {
 // Statically load all audio files as WAV and decode them lazily
 // WAV files must be 48000Hz 2 channel interleaved (and optimally i16/S16LE) audio
 
-wav_file!(DE_ENTER_ID => "../../audio/DE_enter_id.wav");
-wav_file!(DE_ENTER_PIN => "../../audio/DE_enter_pin.wav");
-wav_file!(DE_SUCCESS => "../../audio/DE_success.wav");
-wav_file!(DE_FAILURE => "../../audio/DE_failure.wav");
+wav_file!(DE_WELCOME_CONFERENCE_ID => "../../audio/DE_welcome_conference_id.wav");
+wav_file!(DE_WELCOME_PASSCODE => "../../audio/DE_welcome_passcode.wav");
+wav_file!(DE_WELCOME_USAGE => "../../audio/DE_welcome_usage.wav");
+wav_file!(DE_INPUT_INVALID => "../../audio/DE_input_invalid.wav");
 
 // Sounds taken from
 // https://gitlab.senfcall.de/senfcall-public/mute-and-unmute-sounds/-/tree/master/
@@ -43,10 +43,10 @@ wav_file!(DE_HAND_LOWERED => "../../audio/DE_hand_lowered.wav");
 /// Track to play
 pub enum Track {
     // Silence,
-    EnterId,
-    EnterPin,
-    Success,
-    Failure,
+    WelcomeConferenceId,
+    WelcomePasscode,
+    WelcomeUsage,
+    InputInvalid,
     Muted,
     Unmuted,
     HandRaised,
@@ -74,10 +74,10 @@ impl TrackController {
 
         match track {
             // Track::Silence => data.track = None,
-            Track::EnterId => data.track = Some(DE_ENTER_ID.clone()),
-            Track::EnterPin => data.track = Some(DE_ENTER_PIN.clone()),
-            Track::Success => data.track = Some(DE_SUCCESS.clone()),
-            Track::Failure => data.track = Some(DE_FAILURE.clone()),
+            Track::WelcomeConferenceId => data.track = Some(DE_WELCOME_CONFERENCE_ID.clone()),
+            Track::WelcomePasscode => data.track = Some(DE_WELCOME_PASSCODE.clone()),
+            Track::WelcomeUsage => data.track = Some(DE_WELCOME_USAGE.clone()),
+            Track::InputInvalid => data.track = Some(DE_INPUT_INVALID.clone()),
             Track::Muted => data.track = Some(DE_MUTED.clone()),
             Track::Unmuted => data.track = Some(DE_UNMUTED.clone()),
             Track::HandRaised => data.track = Some(DE_HAND_RAISED.clone()),
@@ -213,10 +213,10 @@ mod test {
 
     #[test]
     fn verify_wav_files() {
-        Lazy::force(&DE_ENTER_ID);
-        Lazy::force(&DE_ENTER_PIN);
-        Lazy::force(&DE_SUCCESS);
-        Lazy::force(&DE_FAILURE);
+        Lazy::force(&DE_WELCOME_CONFERENCE_ID);
+        Lazy::force(&DE_WELCOME_PASSCODE);
+        Lazy::force(&DE_WELCOME_USAGE);
+        Lazy::force(&DE_INPUT_INVALID);
         Lazy::force(&DE_MUTED);
         Lazy::force(&DE_UNMUTED);
     }
