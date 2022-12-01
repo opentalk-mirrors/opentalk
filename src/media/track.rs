@@ -37,6 +37,8 @@ wav_file!(DE_FAILURE => "../../audio/DE_failure.wav");
 // https://gitlab.senfcall.de/senfcall-public/mute-and-unmute-sounds/-/tree/master/
 wav_file!(DE_MUTED => "../../audio/DE_muted.wav");
 wav_file!(DE_UNMUTED => "../../audio/DE_unmuted.wav");
+wav_file!(DE_HAND_RAISED => "../../audio/DE_hand_raised.wav");
+wav_file!(DE_HAND_LOWERED => "../../audio/DE_hand_lowered.wav");
 
 /// Track to play
 pub enum Track {
@@ -47,6 +49,8 @@ pub enum Track {
     Failure,
     Muted,
     Unmuted,
+    HandRaised,
+    HandLowered,
 }
 
 // substitute for gst_util_uint64_scale
@@ -76,6 +80,8 @@ impl TrackController {
             Track::Failure => data.track = Some(DE_FAILURE.clone()),
             Track::Muted => data.track = Some(DE_MUTED.clone()),
             Track::Unmuted => data.track = Some(DE_UNMUTED.clone()),
+            Track::HandRaised => data.track = Some(DE_HAND_RAISED.clone()),
+            Track::HandLowered => data.track = Some(DE_HAND_LOWERED.clone()),
         }
     }
 }
