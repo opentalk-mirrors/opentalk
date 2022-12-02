@@ -1,5 +1,5 @@
 ---
-image: git.opentalk.dev:5050/heinlein-video/backend/rust:1.64.0-alpine
+image: git.opentalk.dev:5050/opentalk/backend/rust:1.64.0-alpine
 
 stages:
   - lint
@@ -39,7 +39,7 @@ lint:clippy:
     - cargo clippy --all-features --tests -- --deny warnings
 
 lint:dependency_check:
-  image: git.opentalk.dev:5050/heinlein-video/backend/cargo-deny:latest
+  image: git.opentalk.dev:5050/opentalk/backend/cargo-deny:latest
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     - if: $CI_PIPELINE_SOURCE == 'schedule'
