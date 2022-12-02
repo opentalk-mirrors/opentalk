@@ -1,5 +1,16 @@
 Changelog
 ---
+
+## 1.0.0-rc.4 (02 December, 2022)
+
+### Added
+
+- implement service authentication using the client_credentials flow
+
+### Fixed
+
+- fixed a bug where environment variables did not overwrite config values
+
 ## 1.0.0-rc.3 (06 September, 2022)
 
 ### Fixed
