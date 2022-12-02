@@ -1,7 +1,7 @@
-use config::{Config, ConfigError, Environment, File};
+use config::{Config, ConfigError, Environment, File, FileFormat};
 use openidconnect::{ClientId, ClientSecret, IssuerUrl};
 use serde::Deserialize;
-use std::{path::Path, time::Duration};
+use std::time::Duration;
 
 #[derive(Deserialize)]
 pub struct Settings {
@@ -11,16 +11,16 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn load<P: AsRef<Path>>(file_name: P) -> Result<Self, ConfigError> {
-        let mut cfg = Config::new();
-
-        cfg.merge(File::from(file_name.as_ref()))?;
-
-        let env = Environment::with_prefix("K3K_OBLSK").separator("__");
-
-        cfg.merge(env)?;
-
-        cfg.try_into()
+    pub fn load(file_name: &str) -> Result<Self, ConfigError> {
+        Config::builder()
+            .add_source(File::new(file_name, FileFormat::Toml))
+            .add_source(
+                Environment::with_prefix("K3K_OBLSK")
+                    .prefix_separator("_")
+                    .separator("__"),
+            )
+            .build()?
+            .try_deserialize()
     }
 }
 
@@ -84,4 +84,32 @@ where
     D: serde::Deserializer<'de>,
 {
     Ok(Duration::from_secs(<u64>::deserialize(deserializer)?))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::env;
+
+    #[test]
+    fn settings_env_vars_overwite_config() -> Result<(), ConfigError> {
+        // Sanity check
+        let settings = Settings::load("./extra/example.toml")?;
+
+        assert_eq!(settings.controller.domain, "localhost:8000");
+        assert_eq!(settings.sip.port, 5060u16);
+
+        // Set environment variables to overwrite default config file
+        let env_controller_domain = "localhost:8080".to_string();
+        let env_sip_port: u16 = 5070;
+        env::set_var("K3K_OBLSK_CONTROLLER__DOMAIN", &env_controller_domain);
+        env::set_var("K3K_OBLSK_SIP__PORT", env_sip_port.to_string());
+
+        let settings = Settings::load("./extra/example.toml")?;
+
+        assert_eq!(settings.controller.domain, env_controller_domain);
+        assert_eq!(settings.sip.port, env_sip_port);
+
+        Ok(())
+    }
 }
