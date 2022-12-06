@@ -260,6 +260,20 @@ impl Websocket {
         Ok(())
     }
 
+    /// Send `raise_hand` or `lower_hand`
+    pub async fn send_hand_action(&mut self, raised: bool) -> Result<()> {
+        let action = if raised { "raise_hand" } else { "lower_hand" };
+        self.send(serde_json::json!({
+            "namespace": "control",
+            "payload": {
+                "action": action
+            }
+        }))
+        .await?;
+
+        Ok(())
+    }
+
     async fn receive_raw(&mut self) -> Result<Message> {
         loop {
             match self.websocket.next().await {

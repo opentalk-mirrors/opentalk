@@ -1,6 +1,12 @@
 Changelog
 ---
 
+## Unreleased
+
+### Added
+
+- Raise and lower hand via DTMF button 2 ([#14](https://git.opentalk.dev/heinlein-video/k3k-obelisk/-/issues/14))
+
 ## 1.0.0-rc.4 (02 December, 2022)
 
 ### Added

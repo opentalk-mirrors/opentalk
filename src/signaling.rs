@@ -61,6 +61,9 @@ pub struct Signaling {
     /// Is the client muted
     muted: bool,
 
+    /// has the client the hand raised
+    hand_raised: bool,
+
     /// List of participants inside the room,
     /// unused before initiating the websocket connection
     participants: Vec<Participant>,
@@ -93,6 +96,7 @@ impl Signaling {
             dtmf_id: String::new(),
             dtmf_pw: String::new(),
             muted: false,
+            hand_raised: false,
             participants: Vec::new(),
             shutdown,
         }
@@ -217,6 +221,16 @@ impl Signaling {
                             Track::Unmuted
                         });
                         websocket.send_audio_mute(self.muted).await?;
+                    }
+                } else if digit == 2 {
+                    if let Some(websocket) = &mut self.websocket {
+                        self.hand_raised = !self.hand_raised;
+                        self.track_controller.play_track(if self.hand_raised {
+                            Track::HandRaised
+                        } else {
+                            Track::HandLowered
+                        });
+                        websocket.send_hand_action(self.hand_raised).await?;
                     }
                 }
             }
