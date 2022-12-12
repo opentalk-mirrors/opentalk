@@ -342,6 +342,14 @@ impl Signaling {
                     websocket.publish_complete().await?;
                 }
             }
+            WebsocketEvent::RequestMute { .. } => {
+                if !self.muted {
+                    self.muted = true;
+                    self.media.send_publish_mute(self.muted)?;
+                    self.track_controller.play_track(Track::ModeratorMuted);
+                    websocket.send_audio_mute(self.muted).await?;
+                }
+            }
         }
 
         Ok(())

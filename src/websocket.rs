@@ -35,6 +35,7 @@ pub enum WebsocketEvent {
     Update(Participant),
     Left(AssociatedParticipant),
     Receiving(bool),
+    RequestMute { issuer: Uuid, force: bool },
 }
 
 /// Abstraction over the controller websocket API must call `join` before anything else
@@ -336,6 +337,9 @@ impl Websocket {
                             Ok(None)
                         }
                     }
+                    MediaPayload::RequestMute(RequestMute { issuer, force }) => {
+                        Ok(Some(WebsocketEvent::RequestMute { issuer, force }))
+                    }
                 },
             }
         } else {
@@ -362,6 +366,8 @@ enum MediaPayload {
     SdpAnswer(Sdp),
     #[serde(rename = "media_status")]
     MediaStatus(MediaStatus),
+    #[serde(rename = "request_mute")]
+    RequestMute(RequestMute),
 }
 
 #[derive(Deserialize)]
@@ -375,6 +381,12 @@ struct MediaStatus {
     pub source: Uuid,
     pub kind: String,
     pub receiving: bool,
+}
+
+#[derive(Deserialize)]
+pub struct RequestMute {
+    pub issuer: Uuid,
+    pub force: bool,
 }
 
 #[derive(Deserialize)]
