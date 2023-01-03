@@ -169,19 +169,19 @@ impl Signaling {
                             let _ = write!(&mut self.dtmf_id, "{}", digit);
 
                             if self.dtmf_id.len() == 10 {
-                                self.track_controller.play_track(Track::EnterPin);
+                                self.track_controller.play_track(Track::WelcomePasscode);
                             }
                         } else {
                             let _ = write!(&mut self.dtmf_pw, "{}", digit);
 
                             if self.dtmf_pw.len() == 10 {
                                 match self.join().await {
-                                    Ok(_) => self.track_controller.play_track(Track::Success),
+                                    Ok(_) => self.track_controller.play_track(Track::WelcomeUsage),
                                     Err(e) if e.is::<InvalidCredentials>() => {
                                         self.dtmf_id.clear();
                                         self.dtmf_pw.clear();
 
-                                        self.track_controller.play_track(Track::Failure);
+                                        self.track_controller.play_track(Track::InputInvalid);
                                         return Ok(());
                                     }
                                     Err(e) => {
