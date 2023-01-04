@@ -42,7 +42,7 @@ wav_file!(DE_HAND_LOWERED => "../../audio/DE_hand_lowered.wav");
 
 /// Track to play
 pub enum Track {
-    // Silence,
+    Silence,
     WelcomeConferenceId,
     WelcomePasscode,
     WelcomeUsage,
@@ -73,7 +73,7 @@ impl TrackController {
         data.cursor = 0;
 
         match track {
-            // Track::Silence => data.track = None,
+            Track::Silence => data.track = None,
             Track::WelcomeConferenceId => data.track = Some(DE_WELCOME_CONFERENCE_ID.clone()),
             Track::WelcomePasscode => data.track = Some(DE_WELCOME_PASSCODE.clone()),
             Track::WelcomeUsage => data.track = Some(DE_WELCOME_USAGE.clone()),

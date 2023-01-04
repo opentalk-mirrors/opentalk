@@ -211,7 +211,9 @@ impl Signaling {
                 }
             }
             HandleEvent::DtmfDigit(digit) => {
-                if digit == 1 {
+                if digit == 0 {
+                    self.track_controller.play_track(Track::Silence)
+                } else if digit == 1 {
                     if let Some(websocket) = &mut self.websocket {
                         self.muted = !self.muted;
                         self.media.send_publish_mute(self.muted)?;

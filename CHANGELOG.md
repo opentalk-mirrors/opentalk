@@ -6,6 +6,7 @@ Changelog
 ### Added
 
 - Raise and lower hand via DTMF button 2 ([#14](https://git.opentalk.dev/heinlein-video/k3k-obelisk/-/issues/14))
+- Stop playback on DTMF button 0 ([#29](https://git.opentalk.dev/heinlein-video/k3k-obelisk/-/issues/29))
 
 ### Changed
 
