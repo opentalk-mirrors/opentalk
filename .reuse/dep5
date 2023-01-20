@@ -1,0 +1,24 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: https://git.opentalk.dev/opentalk/k3k-obelisk
+Upstream-Name: OpenTalk K3K Obelisk
+Upstream-Contact: OpenTalk GmbH <mail@opentalk.eu>
+
+Files:
+ Cargo.lock
+ CHANGELOG.md
+ README.md
+Copyright: OpenTalk GmbH <mail@opentalk.eu>
+License: EUPL-1.2
+
+Files:
+ audio/DE_hand_lowered.wav
+ audio/DE_hand_raised.wav
+ audio/DE_input_invalid.wav
+ audio/DE_moderator_muted.wav
+ audio/DE_muted.wav
+ audio/DE_unmuted.wav
+ audio/DE_welcome_conference_id.wav
+ audio/DE_welcome_passcode.wav
+ audio/DE_welcome_usage.wav
+Copyright: OpenTalk GmbH <mail@opentalk.eu>
+License: CC-BY-NC-ND-4.0

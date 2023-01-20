@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 //! GStreamer custom component based on `appsrc` to play audio tracks provided
 //! by the application on demand without loading them off the disk each time.
 

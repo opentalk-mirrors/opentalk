@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 //! Minimal implementation of the k3k-controller websocket API
 //!
 //! Should be replaced by more complete implementation sometime in the future

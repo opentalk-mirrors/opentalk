@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 use anyhow::{bail, Context, Result};
 use bytes::Bytes;
 use gio::prelude::*;

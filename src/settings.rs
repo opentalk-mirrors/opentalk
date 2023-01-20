@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use openidconnect::{ClientId, ClientSecret, IssuerUrl};
 use serde::Deserialize;

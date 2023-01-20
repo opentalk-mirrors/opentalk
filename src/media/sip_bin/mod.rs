@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 use crate::media::port_pool::PortPool;
 use anyhow::{Context, Result};
 use bytes::Bytes;
