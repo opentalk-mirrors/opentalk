@@ -1,7 +1,7 @@
 Changelog
 ---
 
-## Unreleased
+## 0.1.0-rc.1 (23 January, 2023)
 
 ### Added
 
