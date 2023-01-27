@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 use crate::http::HttpClient;
 use crate::media::{self, MediaTaskHandle, Track};
 use crate::settings::Settings;

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # see https://yamllint.readthedocs.io/en/stable/rules.html
 # for detailed description of the rules

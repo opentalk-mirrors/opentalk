@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 FROM rust:alpine3.16 AS Builder
 
 RUN apk add --no-cache musl-dev glib-dev openssl-dev gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev

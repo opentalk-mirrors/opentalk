@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{HandleEvent, MediaTaskHandle, Target, Track, TrackController};
 use crate::settings::Settings;

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 image: git.opentalk.dev:5050/opentalk/backend/rust:1.66.1-alpine
 
@@ -57,6 +61,17 @@ lint:yaml:
   before_script:
     - pacman -Syy --noconfirm yamllint
   script: yamllint .
+
+lint:licensing:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+  stage: lint
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: ['']
+  script:
+    - reuse lint
 
 test:cargo_test:
   rules:

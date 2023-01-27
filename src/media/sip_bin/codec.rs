@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 use sdp_types::attributes::fmtp::Fmtp;
 use sdp_types::attributes::rtpmap::RtpMap;
 use sdp_types::msg::MediaScope;

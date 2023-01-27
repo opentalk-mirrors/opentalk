@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 //! HTTP calls made by this library (except for websockets)
 
 use crate::settings::{AuthSettings, ControllerSettings};

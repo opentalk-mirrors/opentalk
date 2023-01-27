@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 use super::codec::{choose_codec, GstCodecInfo};
 use bytesstr::BytesStr;
 use sdp_types::attributes::direction::Direction;
