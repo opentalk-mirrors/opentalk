@@ -6,7 +6,7 @@
 name = "k3k-obelisk"
 version = "0.0.0-dev"
 edition = "2021"
-authors = ["Konstantin Baltruschat <k.baltruschat@heinlein-video.de>"]
+authors = ["OpenTalk Team <mail@opentalk.eu>"]
 publish = false
 
 [dependencies]
