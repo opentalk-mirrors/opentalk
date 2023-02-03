@@ -120,6 +120,13 @@ impl HttpClient {
                         bail!(InvalidCredentials);
                     }
                 }
+                StatusCode::BAD_REQUEST => {
+                    let ApiError { code } = response.json::<ApiError>().await?;
+
+                    if code == "invalid_credentials" {
+                        bail!(InvalidCredentials);
+                    }
+                }
                 code => bail!("unexpected status code {code:?}"),
             }
         }
