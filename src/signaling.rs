@@ -108,6 +108,9 @@ impl Signaling {
 
     /// Run until completion
     pub async fn run(&mut self) -> Result<()> {
+        let (welcome_finished_channel_tx, mut welcome_finished_channel_rx) =
+            broadcast::channel::<()>(3);
+
         while matches!(self.state, State::Running) {
             tokio::select! {
                 event = self.sip.drive() => {
@@ -127,7 +130,7 @@ impl Signaling {
                     }
                 }
                 event = self.media.poll_event() => {
-                    if let Err(e) = self.handle_media_event(event).await {
+                    if let Err(e) = self.handle_media_event(event, welcome_finished_channel_tx.clone()).await {
                         log::error!("failed to handle media event, {:?}", e);
                         self.state = State::Quitting;
                     }
@@ -136,6 +139,22 @@ impl Signaling {
                     if let Err(e) = self.handle_websocket_event(event).await {
                         log::error!("failed to handle websocket event, {:?}", e);
                         self.state = State::Quitting;
+                    }
+                }
+                _ = welcome_finished_channel_rx.recv() => {
+                    // Send publish command to media task
+                    self.media.send_create_publish()?;
+
+                    // Websocket is set on join
+                    let websocket = self.websocket.as_mut().unwrap();
+
+                    // Subscribe to all participants that currently publish
+                    for participant in &self.participants {
+                        if participant.control.left_at.is_none()
+                            && participant.media.video.is_some()
+                        {
+                            websocket.subscribe(participant.id).await?;
+                        }
                     }
                 }
                 _ = self.shutdown.recv() => {
@@ -155,7 +174,11 @@ impl Signaling {
         Ok(())
     }
 
-    async fn handle_media_event(&mut self, event: HandleEvent) -> Result<()> {
+    async fn handle_media_event(
+        &mut self,
+        event: HandleEvent,
+        welcome_finished_responder: broadcast::Sender<()>,
+    ) -> Result<()> {
         match event {
             HandleEvent::DtmfDigit(digit) if self.dtmf_pw.len() < 10 => {
                 // Dialing into the session
@@ -180,7 +203,12 @@ impl Signaling {
 
                             if self.dtmf_pw.len() == 10 {
                                 match self.join().await {
-                                    Ok(_) => self.track_controller.play_track(Track::WelcomeUsage),
+                                    Ok(_) => {
+                                        self.track_controller.play_track_and_respond(
+                                            Track::WelcomeUsage,
+                                            welcome_finished_responder,
+                                        );
+                                    }
                                     Err(e) if e.is::<InvalidCredentials>() => {
                                         self.dtmf_id.clear();
                                         self.dtmf_pw.clear();
@@ -191,21 +219,6 @@ impl Signaling {
                                     Err(e) => {
                                         log::error!("failed to join, {}", e);
                                         return Err(e);
-                                    }
-                                }
-
-                                // Send publish command to media task
-                                self.media.send_create_publish()?;
-
-                                // Websocket is set on join
-                                let websocket = self.websocket.as_mut().unwrap();
-
-                                // Subscribe to all participants that currently publish
-                                for participant in &self.participants {
-                                    if participant.control.left_at.is_none()
-                                        && participant.media.video.is_some()
-                                    {
-                                        websocket.subscribe(participant.id).await?;
                                     }
                                 }
                             }
