@@ -13,6 +13,7 @@ use hound::WavReader;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use std::sync::Arc;
+use tokio::sync::broadcast;
 
 macro_rules! wav_file {
     ($ident:ident=>$file:literal) => {
@@ -72,11 +73,20 @@ pub struct TrackController {
 }
 
 impl TrackController {
-    /// Set the track to play, will stop any track playing currently
+    pub fn play_track_and_respond(&self, track: Track, responder: broadcast::Sender<()>) {
+        self.play_track_int(track, Some(responder));
+    }
+
     pub fn play_track(&self, track: Track) {
+        self.play_track_int(track, None);
+    }
+
+    /// Set the track to play, stopping any track currently playing
+    fn play_track_int(&self, track: Track, responder: Option<broadcast::Sender<()>>) {
         let mut data = self.data.lock();
 
-        data.cursor = 0;
+        data.stop_playback();
+        data.playback_finished_responder = responder;
 
         match track {
             Track::Silence => data.track = None,
@@ -96,8 +106,21 @@ impl TrackController {
 struct ElementData {
     track: Option<Arc<[i16]>>,
     cursor: usize,
-
+    playback_finished_responder: Option<broadcast::Sender<()>>,
     num_samples: u64,
+}
+
+impl ElementData {
+    fn stop_playback(&mut self) {
+        if self.track.is_some() {
+            if let Some(responder) = self.playback_finished_responder.take() {
+                let _ = responder.send(());
+            }
+        };
+
+        self.track = None;
+        self.cursor = 0;
+    }
 }
 
 /// Creates an `appsrc` element which has one `src` pad which
@@ -113,6 +136,7 @@ pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
     let data = Arc::new(Mutex::new(ElementData {
         track: None,
         cursor: 0,
+        playback_finished_responder: None,
         num_samples: 0,
     }));
 
@@ -196,8 +220,12 @@ fn push_data(appsrc: &gst_app::AppSrc, data: &Arc<Mutex<ElementData>>) -> Result
         buffer_ref.copy_from_slice(0, bytes_to_play).unwrap();
     };
 
-    // Set the cursor forward
-    data.cursor += bytes_to_play.len();
+    let bytes_to_play_len = bytes_to_play.len();
+    if bytes_to_play_len == 0 {
+        data.stop_playback();
+    } else {
+        data.cursor += bytes_to_play_len;
+    }
     data.num_samples += SAMPLES_PER_BUF;
 
     // Drop mutex guard because pushing below can block

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed incorrect handling of an HTTP response, resulting in a call hang-up when entering an invalid id/pin. ([#28](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/28))
+- Fixed overlapping of room audio while welcome message is played back. ([#34](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/34))
 
 ## [0.1.0-rc.2] - 2023-01-31
 
