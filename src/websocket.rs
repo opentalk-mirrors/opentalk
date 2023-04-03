@@ -34,6 +34,7 @@ pub enum WebsocketEvent {
     Left(AssociatedParticipant),
     Receiving(bool),
     RequestMute { issuer: Uuid, force: bool },
+    SessionEnded { issued_by: Uuid },
     Disconnected,
 }
 
@@ -397,6 +398,9 @@ impl Websocket {
             Payload::Moderation { payload } => match payload {
                 ModerationPayload::InWaitingRoom => bail!("unexpected InWaitingRoom"),
                 ModerationPayload::Accepted => bail!("unexpected Accepted"),
+                ModerationPayload::SessionEnded(SessionEnded { issued_by }) => {
+                    Ok(Some(WebsocketEvent::SessionEnded { issued_by }))
+                }
             },
         }
     }
@@ -497,4 +501,11 @@ pub struct MediaSessionState {
 enum ModerationPayload {
     InWaitingRoom,
     Accepted,
+    #[serde(rename = "session_ended")]
+    SessionEnded(SessionEnded),
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SessionEnded {
+    pub issued_by: Uuid,
 }

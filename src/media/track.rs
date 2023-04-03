@@ -36,6 +36,7 @@ macro_rules! wav_file {
 wav_file!(DE_WELCOME_CONFERENCE_ID => "../../audio/DE_welcome_conference_id.wav");
 wav_file!(DE_WELCOME_PASSCODE => "../../audio/DE_welcome_passcode.wav");
 wav_file!(DE_WELCOME_USAGE => "../../audio/DE_welcome_usage.wav");
+wav_file!(DE_CONFERENCE_CLOSED => "../../audio/DE_conference_closed.wav");
 wav_file!(DE_INPUT_INVALID => "../../audio/DE_input_invalid.wav");
 wav_file!(DE_MODERATOR_MUTED => "../../audio/DE_moderator_muted.wav");
 wav_file!(DE_ENTERED_WAITING_ROOM => "../../audio/DE_waiting_room_entered.wav");
@@ -53,6 +54,7 @@ pub enum Track {
     WelcomeConferenceId,
     WelcomePasscode,
     WelcomeUsage,
+    ConferenceClosed,
     InputInvalid,
     ModeratorMuted,
     EnteredWaitingRoom,
@@ -95,6 +97,7 @@ impl TrackController {
             Track::WelcomeConferenceId => data.track = Some(DE_WELCOME_CONFERENCE_ID.clone()),
             Track::WelcomePasscode => data.track = Some(DE_WELCOME_PASSCODE.clone()),
             Track::WelcomeUsage => data.track = Some(DE_WELCOME_USAGE.clone()),
+            Track::ConferenceClosed => data.track = Some(DE_CONFERENCE_CLOSED.clone()),
             Track::InputInvalid => data.track = Some(DE_INPUT_INVALID.clone()),
             Track::ModeratorMuted => data.track = Some(DE_MODERATOR_MUTED.clone()),
             Track::EnteredWaitingRoom => data.track = Some(DE_ENTERED_WAITING_ROOM.clone()),
@@ -254,6 +257,7 @@ mod test {
         Lazy::force(&DE_WELCOME_CONFERENCE_ID);
         Lazy::force(&DE_WELCOME_PASSCODE);
         Lazy::force(&DE_WELCOME_USAGE);
+        Lazy::force(&DE_CONFERENCE_CLOSED);
         Lazy::force(&DE_INPUT_INVALID);
         Lazy::force(&DE_MODERATOR_MUTED);
         Lazy::force(&DE_ENTERED_WAITING_ROOM);
