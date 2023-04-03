@@ -5,7 +5,7 @@
 use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{HandleEvent, MediaTaskHandle, Target, Track, TrackController};
 use crate::settings::Settings;
-use crate::websocket::{Participant, Websocket, WebsocketEvent};
+use crate::websocket::{JoinState, Participant, Websocket, WebsocketEvent};
 use anyhow::{bail, Result};
 use bytesstr::BytesStr;
 use sip_types::header::typed::ContentType;
@@ -389,7 +389,16 @@ impl Signaling {
             .map(|s| s.as_str())
             .unwrap_or("Anonymous");
 
-        self.participants = websocket.join(name).await?;
+        match websocket.join(name).await? {
+            JoinState::Joined(participants) => {
+                self.participants = participants;
+            }
+            JoinState::InWaitingRoom => {
+                self.track_controller.play_track(Track::EnteredWaitingRoom);
+                websocket.wait_until_accepted_into_waiting_room().await?;
+                self.participants = websocket.enter_from_waiting_room().await?;
+            }
+        }
 
         self.websocket = Some(websocket);
 

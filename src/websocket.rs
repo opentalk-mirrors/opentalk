@@ -43,6 +43,11 @@ pub struct Websocket {
     websocket: WebSocketStream<MaybeTlsStream<TcpStream>>,
 }
 
+pub enum JoinState {
+    Joined(Vec<Participant>),
+    InWaitingRoom,
+}
+
 impl Websocket {
     /// Connect to the websocket api with the given settings and ticket
     pub async fn connect(settings: &ControllerSettings, ticket: Ticket) -> Result<Self> {
@@ -89,7 +94,7 @@ impl Websocket {
     }
 
     /// Join the room with the given `display_name` and returns a list of participants inside the room
-    pub async fn join(&mut self, display_name: &str) -> Result<Vec<Participant>> {
+    pub async fn join(&mut self, display_name: &str) -> Result<JoinState> {
         self.send(serde_json::json!({
             "namespace": "control",
             "payload": {
@@ -104,14 +109,56 @@ impl Websocket {
             .await?
             .context("unexpected disconnection")?;
 
-        if let Payload::Control {
-            payload: ControlPayload::JoinSuccess(join_success),
-        } = response
-        {
-            self.id = Some(join_success.id);
-            Ok(join_success.participants)
-        } else {
-            bail!("Unexpected response to Join request");
+        match response {
+            Payload::Control {
+                payload: ControlPayload::JoinSuccess(join_success),
+            } => {
+                self.id = Some(join_success.id);
+                Ok(JoinState::Joined(join_success.participants))
+            }
+            Payload::Moderation {
+                payload: ModerationPayload::InWaitingRoom,
+            } => Ok(JoinState::InWaitingRoom),
+            _ => bail!("Unexpected response to Join request"),
+        }
+    }
+
+    pub async fn wait_until_accepted_into_waiting_room(&mut self) -> Result<()> {
+        loop {
+            match self.receive_payload().await? {
+                Some(Payload::Moderation {
+                    payload: ModerationPayload::Accepted,
+                }) => return Ok(()),
+                Some(unhandled) => {
+                    log::warn!("Unhandled message while in waiting_room, {unhandled:?}")
+                }
+                None => bail!("Connection closed while waiting inside the waiting room"),
+            }
+        }
+    }
+
+    pub async fn enter_from_waiting_room(&mut self) -> Result<Vec<Participant>> {
+        self.send(serde_json::json!({
+            "namespace": "control",
+            "payload": {
+                "action": "enter_room"
+            }
+        }))
+        .await?;
+
+        let response = self
+            .receive_payload()
+            .await?
+            .context("unexpected disconnection")?;
+
+        match response {
+            Payload::Control {
+                payload: ControlPayload::JoinSuccess(join_success),
+            } => {
+                self.id = Some(join_success.id);
+                Ok(join_success.participants)
+            }
+            _ => bail!("Unexpected response when trying to enter from waiting room"),
         }
     }
 
@@ -347,20 +394,26 @@ impl Websocket {
                     Ok(Some(WebsocketEvent::RequestMute { issuer, force }))
                 }
             },
+            Payload::Moderation { payload } => match payload {
+                ModerationPayload::InWaitingRoom => bail!("unexpected InWaitingRoom"),
+                ModerationPayload::Accepted => bail!("unexpected Accepted"),
+            },
         }
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(tag = "namespace")]
 enum Payload {
     #[serde(rename = "control")]
     Control { payload: ControlPayload },
     #[serde(rename = "media")]
     Media { payload: MediaPayload },
+    #[serde(rename = "moderation")]
+    Moderation { payload: ModerationPayload },
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(tag = "message")]
 enum MediaPayload {
     #[serde(rename = "sdp_offer")]
@@ -373,26 +426,26 @@ enum MediaPayload {
     RequestMute(RequestMute),
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct Sdp {
     pub sdp: String,
     pub source: Uuid,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct MediaStatus {
     pub source: Uuid,
     pub kind: String,
     pub receiving: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct RequestMute {
     pub issuer: Uuid,
     pub force: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(tag = "message", rename_all = "snake_case")]
 enum ControlPayload {
     JoinSuccess(JoinSuccess),
@@ -437,4 +490,11 @@ pub struct MediaData {
 pub struct MediaSessionState {
     pub video: bool,
     pub audio: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "message", rename_all = "snake_case")]
+enum ModerationPayload {
+    InWaitingRoom,
+    Accepted,
 }

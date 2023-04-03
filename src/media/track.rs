@@ -38,6 +38,7 @@ wav_file!(DE_WELCOME_PASSCODE => "../../audio/DE_welcome_passcode.wav");
 wav_file!(DE_WELCOME_USAGE => "../../audio/DE_welcome_usage.wav");
 wav_file!(DE_INPUT_INVALID => "../../audio/DE_input_invalid.wav");
 wav_file!(DE_MODERATOR_MUTED => "../../audio/DE_moderator_muted.wav");
+wav_file!(DE_ENTERED_WAITING_ROOM => "../../audio/DE_waiting_room_entered.wav");
 
 // Sounds taken from
 // https://gitlab.senfcall.de/senfcall-public/mute-and-unmute-sounds/-/tree/master/
@@ -54,6 +55,7 @@ pub enum Track {
     WelcomeUsage,
     InputInvalid,
     ModeratorMuted,
+    EnteredWaitingRoom,
     Muted,
     Unmuted,
     HandRaised,
@@ -95,6 +97,7 @@ impl TrackController {
             Track::WelcomeUsage => data.track = Some(DE_WELCOME_USAGE.clone()),
             Track::InputInvalid => data.track = Some(DE_INPUT_INVALID.clone()),
             Track::ModeratorMuted => data.track = Some(DE_MODERATOR_MUTED.clone()),
+            Track::EnteredWaitingRoom => data.track = Some(DE_ENTERED_WAITING_ROOM.clone()),
             Track::Muted => data.track = Some(DE_MUTED.clone()),
             Track::Unmuted => data.track = Some(DE_UNMUTED.clone()),
             Track::HandRaised => data.track = Some(DE_HAND_RAISED.clone()),
@@ -253,6 +256,7 @@ mod test {
         Lazy::force(&DE_WELCOME_USAGE);
         Lazy::force(&DE_INPUT_INVALID);
         Lazy::force(&DE_MODERATOR_MUTED);
+        Lazy::force(&DE_ENTERED_WAITING_ROOM);
         Lazy::force(&DE_MUTED);
         Lazy::force(&DE_UNMUTED);
     }
