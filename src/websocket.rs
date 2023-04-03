@@ -25,12 +25,6 @@ use uuid::Uuid;
 /// Newtype wrapper for the signaling ticket
 pub struct Ticket(pub String);
 
-#[derive(Deserialize)]
-struct Namespaced<'n, P> {
-    namespace: &'n str,
-    payload: P,
-}
-
 /// Event received via the websocket
 pub enum WebsocketEvent {
     SubscribeOffer { offer: String, uuid: Uuid },
@@ -40,6 +34,7 @@ pub enum WebsocketEvent {
     Left(AssociatedParticipant),
     Receiving(bool),
     RequestMute { issuer: Uuid, force: bool },
+    Disconnected,
 }
 
 /// Abstraction over the controller websocket API must call `join` before anything else
@@ -95,12 +90,6 @@ impl Websocket {
 
     /// Join the room with the given `display_name` and returns a list of participants inside the room
     pub async fn join(&mut self, display_name: &str) -> Result<Vec<Participant>> {
-        #[derive(Debug, Deserialize)]
-        struct JoinSuccess {
-            id: Uuid,
-            participants: Vec<Participant>,
-        }
-
         self.send(serde_json::json!({
             "namespace": "control",
             "payload": {
@@ -111,17 +100,19 @@ impl Websocket {
         .await?;
 
         let response = self
-            .receive_raw()
-            .await
-            .context("expected join_success response")?;
+            .receive_payload()
+            .await?
+            .context("unexpected disconnection")?;
 
-        let response: Namespaced<'_, JoinSuccess> = serde_json::from_str(response.to_text()?)?;
-
-        assert_eq!(response.namespace, "control");
-
-        self.id = Some(response.payload.id);
-
-        Ok(response.payload.participants)
+        if let Payload::Control {
+            payload: ControlPayload::JoinSuccess(join_success),
+        } = response
+        {
+            self.id = Some(join_success.id);
+            Ok(join_success.participants)
+        } else {
+            bail!("Unexpected response to Join request");
+        }
     }
 
     /// Initiate negotiation of publish-media using the given SDP
@@ -279,75 +270,83 @@ impl Websocket {
         Ok(())
     }
 
-    async fn receive_raw(&mut self) -> Result<Message> {
+    async fn receive_raw(&mut self) -> Result<Option<String>> {
         loop {
             match self.websocket.next().await {
                 Some(Ok(Message::Ping(data))) => self.websocket.send(Message::Pong(data)).await?,
-                Some(Ok(msg)) => return Ok(msg),
+                Some(Ok(Message::Close(_))) => return Ok(None),
+                Some(Ok(msg)) => return Ok(Some(msg.into_text()?)),
                 Some(Err(e)) => return Err(e.into()),
-                None => bail!("connection closed"),
+                None => return Ok(None),
             }
+        }
+    }
+
+    async fn receive_payload(&mut self) -> Result<Option<Payload>> {
+        match self.receive_raw().await? {
+            Some(msg) => serde_json::from_str(&msg)
+                .context("Failed to parse payload")
+                .map(Some),
+            None => Ok(None),
         }
     }
 
     /// Wait until either a websocket event or error has been received
     pub async fn receive(&mut self) -> Result<WebsocketEvent> {
         loop {
-            let msg = self.receive_raw().await?;
-
-            if let Some(event) = self.parse_msg(msg)? {
-                return Ok(event);
+            match self.receive_payload().await {
+                Ok(Some(payload)) => {
+                    if let Some(event) = self.payload_to_event(payload)? {
+                        return Ok(event);
+                    }
+                }
+                Ok(None) => return Ok(WebsocketEvent::Disconnected),
+                Err(e) if e.is::<tt::tungstenite::Error>() => return Err(e),
+                Err(_) => {}
             }
         }
     }
 
-    fn parse_msg(&self, msg: Message) -> Result<Option<WebsocketEvent>> {
-        let msg = msg.into_text()?;
-
-        if let Ok(payload) = serde_json::from_str::<Payload>(&msg) {
-            match payload {
-                Payload::Control { payload } => match payload {
-                    ControlPayload::Update(participant) => {
-                        Ok(Some(WebsocketEvent::Update(participant)))
-                    }
-                    ControlPayload::Joined(participant) => {
-                        Ok(Some(WebsocketEvent::Joined(participant)))
-                    }
-                    ControlPayload::Left(participant) => {
-                        Ok(Some(WebsocketEvent::Left(participant)))
-                    }
-                },
-                Payload::Media { payload } => match payload {
-                    MediaPayload::SdpOffer(sdp) => Ok(Some(WebsocketEvent::SubscribeOffer {
-                        offer: sdp.sdp,
-                        uuid: sdp.source,
-                    })),
-                    MediaPayload::SdpAnswer(sdp) => {
-                        Ok(Some(WebsocketEvent::PublishResponse { response: sdp.sdp }))
-                    }
-                    MediaPayload::MediaStatus(MediaStatus {
-                        source,
-                        kind,
-                        receiving,
-                    }) => {
-                        if let Some(id) = self.id {
-                            // Only audio is published so only check for that
-                            if source == id && kind == "audio" {
-                                Ok(Some(WebsocketEvent::Receiving(receiving)))
-                            } else {
-                                Ok(None)
-                            }
+    fn payload_to_event(&self, payload: Payload) -> Result<Option<WebsocketEvent>> {
+        match payload {
+            Payload::Control { payload } => match payload {
+                ControlPayload::JoinSuccess(_) => bail!("unexpected JoinSuccess"),
+                ControlPayload::Update(participant) => {
+                    Ok(Some(WebsocketEvent::Update(participant)))
+                }
+                ControlPayload::Joined(participant) => {
+                    Ok(Some(WebsocketEvent::Joined(participant)))
+                }
+                ControlPayload::Left(participant) => Ok(Some(WebsocketEvent::Left(participant))),
+            },
+            Payload::Media { payload } => match payload {
+                MediaPayload::SdpOffer(sdp) => Ok(Some(WebsocketEvent::SubscribeOffer {
+                    offer: sdp.sdp,
+                    uuid: sdp.source,
+                })),
+                MediaPayload::SdpAnswer(sdp) => {
+                    Ok(Some(WebsocketEvent::PublishResponse { response: sdp.sdp }))
+                }
+                MediaPayload::MediaStatus(MediaStatus {
+                    source,
+                    kind,
+                    receiving,
+                }) => {
+                    if let Some(id) = self.id {
+                        // Only audio is published so only check for that
+                        if source == id && kind == "audio" {
+                            Ok(Some(WebsocketEvent::Receiving(receiving)))
                         } else {
                             Ok(None)
                         }
+                    } else {
+                        Ok(None)
                     }
-                    MediaPayload::RequestMute(RequestMute { issuer, force }) => {
-                        Ok(Some(WebsocketEvent::RequestMute { issuer, force }))
-                    }
-                },
-            }
-        } else {
-            Ok(None)
+                }
+                MediaPayload::RequestMute(RequestMute { issuer, force }) => {
+                    Ok(Some(WebsocketEvent::RequestMute { issuer, force }))
+                }
+            },
         }
     }
 }
@@ -396,9 +395,16 @@ pub struct RequestMute {
 #[derive(Deserialize)]
 #[serde(tag = "message", rename_all = "snake_case")]
 enum ControlPayload {
+    JoinSuccess(JoinSuccess),
     Update(Participant),
     Joined(Participant),
     Left(AssociatedParticipant),
+}
+
+#[derive(Debug, Deserialize)]
+struct JoinSuccess {
+    id: Uuid,
+    participants: Vec<Participant>,
 }
 
 #[derive(Debug, Deserialize)]

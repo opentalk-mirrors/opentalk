@@ -367,6 +367,9 @@ impl Signaling {
                     websocket.send_audio_mute(self.muted).await?;
                 }
             }
+            WebsocketEvent::Disconnected => {
+                self.state = State::Quitting;
+            }
         }
 
         Ok(())
