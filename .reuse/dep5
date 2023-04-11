@@ -20,5 +20,6 @@ Files:
  audio/DE_welcome_conference_id.wav
  audio/DE_welcome_passcode.wav
  audio/DE_welcome_usage.wav
+ audio/DE_waiting_room_entered.wav
 Copyright: OpenTalk GmbH <mail@opentalk.eu>
 License: CC-BY-NC-ND-4.0
