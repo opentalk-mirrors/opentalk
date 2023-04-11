@@ -110,6 +110,8 @@ impl Signaling {
     pub async fn run(&mut self) -> Result<()> {
         let (welcome_finished_channel_tx, mut welcome_finished_channel_rx) =
             broadcast::channel::<()>(3);
+        let (closed_finished_channel_tx, mut closed_finished_channel_rx) =
+            broadcast::channel::<()>(3);
 
         while matches!(self.state, State::Running) {
             tokio::select! {
@@ -136,7 +138,7 @@ impl Signaling {
                     }
                 }
                 event = websocket_receive(&mut self.websocket) => {
-                    if let Err(e) = self.handle_websocket_event(event).await {
+                    if let Err(e) = self.handle_websocket_event(event, closed_finished_channel_tx.clone()).await {
                         log::error!("failed to handle websocket event, {:?}", e);
                         self.state = State::Quitting;
                     }
@@ -145,17 +147,19 @@ impl Signaling {
                     // Send publish command to media task
                     self.media.send_create_publish()?;
 
-                    // Websocket is set on join
-                    let websocket = self.websocket.as_mut().unwrap();
-
-                    // Subscribe to all participants that currently publish
-                    for participant in &self.participants {
-                        if participant.control.left_at.is_none()
-                            && participant.media.video.is_some()
-                        {
-                            websocket.subscribe(participant.id).await?;
+                    if let Some(websocket) = &mut self.websocket {
+                        // Subscribe to all participants that currently publish
+                        for participant in &self.participants {
+                            if participant.control.left_at.is_none()
+                                && participant.media.video.is_some()
+                            {
+                                websocket.subscribe(participant.id).await?;
+                            }
                         }
                     }
+                }
+                _ = closed_finished_channel_rx.recv() => {
+                    self.state = State::Quitting;
                 }
                 _ = self.shutdown.recv() => {
                     self.state = State::Quitting;
@@ -167,10 +171,16 @@ impl Signaling {
             self.sip.terminate().await?;
         }
 
+        self.close_websocket().await?;
+
+        Ok(())
+    }
+
+    async fn close_websocket(&mut self) -> Result<()> {
         if let Some(websocket) = &mut self.websocket {
             websocket.close().await?;
+            self.websocket = None;
         }
-
         Ok(())
     }
 
@@ -301,7 +311,11 @@ impl Signaling {
         Ok(())
     }
 
-    async fn handle_websocket_event(&mut self, event: Result<WebsocketEvent>) -> Result<()> {
+    async fn handle_websocket_event(
+        &mut self,
+        event: Result<WebsocketEvent>,
+        closed_finished_responder: broadcast::Sender<()>,
+    ) -> Result<()> {
         let websocket = self.websocket.as_mut().expect("websocket must be set");
 
         match event? {
@@ -366,6 +380,11 @@ impl Signaling {
                     self.track_controller.play_track(Track::ModeratorMuted);
                     websocket.send_audio_mute(self.muted).await?;
                 }
+            }
+            WebsocketEvent::SessionEnded { .. } => {
+                self.close_websocket().await?;
+                self.track_controller
+                    .play_track_and_respond(Track::ConferenceClosed, closed_finished_responder);
             }
             WebsocketEvent::Disconnected => {
                 self.state = State::Quitting;

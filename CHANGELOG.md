@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added an announcement at the end of a conference. ([#36](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/36))
+
 ### Fixed
 
 - Fixed incorrect handling of an HTTP response, resulting in a call hang-up when entering an invalid id/pin. ([#28](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/28))
