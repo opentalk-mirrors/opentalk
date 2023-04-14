@@ -189,8 +189,10 @@ deny = [
 skip = [
     { name = "base64", version = "=0.13" },
     { name = "hermit-abi", version = "0.1" },
+    { name = "hermit-abi", version = "0.2" },
     { name = "syn", version = "1" },
     { name = "wasi", version = "0.10" },
+    { name = "windows-sys", version = "0.45" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive

@@ -1,6 +1,6 @@
-# K3K Obelisk
+# OpenTalk Obelisk
 
-SIP bridge for the K3K conference system.
+SIP bridge for the OpenTalk conference system.
 
 ## Build the container image
 

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Minimal implementation of the k3k-controller websocket API
+//! Minimal implementation of the opentalk-controller websocket API
 //!
 //! Should be replaced by more complete implementation sometime in the future
 
@@ -63,7 +63,7 @@ impl Websocket {
         let mut ws_req = uri.into_client_request()?;
         ws_req.headers_mut().insert(
             SEC_WEBSOCKET_PROTOCOL,
-            format!("k3k-signaling-json-v1.0,ticket#{}", ticket.0).try_into()?,
+            format!("opentalk-signaling-json-v1.0,ticket#{}", ticket.0).try_into()?,
         );
 
         let (websocket, _) = tt::connect_async(ws_req).await?;
