@@ -14,12 +14,54 @@ pub struct Settings {
     pub sip: SipSettings,
 }
 
+#[derive(Debug, Clone)]
+struct WarningSource<T: Clone>(T);
+
+impl<T> config::Source for WarningSource<T>
+where
+    T: config::Source + Send + Sync + Clone + 'static,
+{
+    fn clone_into_box(&self) -> Box<dyn config::Source + Send + Sync> {
+        Box::new((*self).clone())
+    }
+
+    fn collect(&self) -> Result<config::Map<String, config::Value>, config::ConfigError> {
+        let values = self.0.collect()?;
+        if !values.is_empty() {
+            use owo_colors::OwoColorize as _;
+
+            anstream::eprintln!(
+                "{}: The following environment variables have been deprecated and \
+                will not work in a future release. Please change them as suggested below:",
+                "DEPRECATION WARNING".yellow().bold(),
+            );
+
+            for key in values.keys() {
+                let env_var = key.replace('.', "__").to_uppercase();
+                anstream::eprintln!(
+                    "{}: rename environment variable {} to {}",
+                    "DEPRECATION WARNING".yellow().bold(),
+                    format!("K3K_OBLSK_{}", env_var).yellow(),
+                    format!("OPENTALK_OBLSK_{}", env_var).green().bold(),
+                );
+            }
+        }
+
+        Ok(values)
+    }
+}
+
 impl Settings {
     pub fn load(file_name: &str) -> Result<Self, ConfigError> {
         Config::builder()
             .add_source(File::new(file_name, FileFormat::Toml))
-            .add_source(
+            .add_source(WarningSource(
                 Environment::with_prefix("K3K_OBLSK")
+                    .prefix_separator("_")
+                    .separator("__"),
+            ))
+            .add_source(
+                Environment::with_prefix("OPENTALK_OBLSK")
                     .prefix_separator("_")
                     .separator("__"),
             )
@@ -106,8 +148,8 @@ mod test {
         // Set environment variables to overwrite default config file
         let env_controller_domain = "localhost:8080".to_string();
         let env_sip_port: u16 = 5070;
-        env::set_var("K3K_OBLSK_CONTROLLER__DOMAIN", &env_controller_domain);
-        env::set_var("K3K_OBLSK_SIP__PORT", env_sip_port.to_string());
+        env::set_var("OPENTALK_OBLSK_CONTROLLER__DOMAIN", &env_controller_domain);
+        env::set_var("OPENTALK_OBLSK_SIP__PORT", env_sip_port.to_string());
 
         let settings = Settings::load("./extra/example.toml")?;
 

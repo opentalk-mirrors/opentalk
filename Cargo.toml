@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-name = "k3k-obelisk"
+name = "opentalk-obelisk"
 version = "0.0.0-dev"
 edition = "2021"
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
@@ -64,3 +64,6 @@ hound = "3.4"
 byte-slice-cast = "1.2"
 
 openidconnect = "2.3"
+
+anstream = "0.2"
+owo-colors = "3"

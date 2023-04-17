@@ -31,6 +31,7 @@ RUN apk add --no-cache glib libssl1.1 libcrypto1.1 gstreamer gst-plugins-base gs
 
 WORKDIR /obelisk
 
-COPY --from=Builder /obelisk/target/release/k3k-obelisk .
+COPY --from=Builder /obelisk/target/release/opentalk-obelisk .
+RUN ln -s opentalk-obelisk k3k-obelisk
 
-ENTRYPOINT [ "./k3k-obelisk" ]
+ENTRYPOINT [ "./opentalk-obelisk" ]

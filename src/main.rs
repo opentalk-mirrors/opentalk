@@ -45,6 +45,19 @@ fn check_plugins() -> Result<()> {
 }
 
 fn main() -> Result<()> {
+    match std::env::args().next() {
+        Some(s) if s.contains("k3k-obelisk") => {
+            use owo_colors::OwoColorize as _;
+            anstream::eprintln!(
+                "{}: It appears you're using the deprecated `k3k-obelisk` executable, \
+                you should be using the `opentalk-obelisk` executable instead. \
+                The `k3k-obelisk` executable will be removed in a future release.",
+                "DEPRECATION WARNING".yellow().bold(),
+            );
+        }
+        _ => {}
+    }
+
     gst::init()?;
 
     check_plugins()?;

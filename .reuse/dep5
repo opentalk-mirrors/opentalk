@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Source: https://git.opentalk.dev/opentalk/k3k-obelisk
-Upstream-Name: OpenTalk K3K Obelisk
+Upstream-Name: OpenTalk Obelisk
 Upstream-Contact: OpenTalk GmbH <mail@opentalk.eu>
 
 Files:
