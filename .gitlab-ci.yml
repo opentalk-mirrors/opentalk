@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-image: git.opentalk.dev:5050/opentalk/backend/rust:1.66.1-alpine
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.66.1-alpine
 
 stages:
   - lint
@@ -43,7 +43,7 @@ lint:clippy:
     - cargo clippy --all-features --tests -- --deny warnings
 
 lint:dependency_check:
-  image: git.opentalk.dev:5050/opentalk/backend/cargo-deny:latest
+  image: git.opentalk.dev:5050/opentalk/backend/containers/cargo-deny:latest
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     - if: $CI_PIPELINE_SOURCE == 'schedule'
