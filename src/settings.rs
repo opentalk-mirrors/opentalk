@@ -89,6 +89,7 @@ pub struct SipSettings {
     pub addr: String,
     pub port: u16,
 
+    pub id: Option<String>,
     pub username: String,
     pub password: String,
     pub realm: String,

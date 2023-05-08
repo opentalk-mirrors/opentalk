@@ -28,6 +28,11 @@ addr = "0.0.0.0"
 # Port to bind to (5060 is SIP default)
 port = 5060
 
+# ID of this SIP endpoint
+# When not set, it is generated as sip:<username>@<addr> where `addr` may be replaced by the
+# public address discovered using the stun-server
+#id = "sip:alice@example.org"
+
 # Username/Password pair.
 # Usually provided by the SIP provider
 username = "alice"
@@ -45,7 +50,7 @@ registrar = "sip:example.org"
 # Host-port of the stun server used for SIP
 stun_server = "stun.example.org:3478"
 
-# Enforce quality of protection on SIP authentication 
+# Enforce quality of protection on SIP authentication
 # (reuse of nonce + nonce-count instead of
 #  requesting a new nonce for each request) 
 # 
