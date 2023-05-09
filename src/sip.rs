@@ -238,7 +238,13 @@ pub(crate) async fn run(main_loop: glib::MainLoop, settings: Arc<Settings>) -> R
     };
 
     // Construct this SIP endpoints SIP uri
-    let id = endpoint.parse_uri(format!("sip:{}@{}", settings.sip.username, pub_addr))?;
+    let id = if let Some(id) = &settings.sip.id {
+        endpoint
+            .parse_uri(id)
+            .context("Failed to parse `id` sip uri")?
+    } else {
+        endpoint.parse_uri(format!("sip:{}@{}", settings.sip.username, pub_addr))?
+    };
 
     // set app data
     endpoint[app_layer].set_app_data(AppData {
