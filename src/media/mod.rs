@@ -4,7 +4,7 @@
 
 use anyhow::{bail, Context, Result};
 use bytes::Bytes;
-use gio::prelude::*;
+use glib::source::Continue;
 use gst::glib;
 use gst::prelude::*;
 use gst_webrtc::WebRTCRTPTransceiverDirection;
@@ -139,7 +139,9 @@ impl MediaTask {
         let (sip_bin, answer) = SipBin::new(self.pub_addr, offer)?;
         self.pipeline.add(&sip_bin.bin)?;
 
-        let mixer = gst::ElementFactory::make("audiomixer", Some("subscriber-audiomix"))?;
+        let mixer = gst::ElementFactory::make("audiomixer")
+            .name("subscriber-audiomix")
+            .build()?;
         self.pipeline.add(&mixer)?;
 
         mixer
@@ -323,12 +325,11 @@ impl MediaTask {
 
         // Set transceiver direction to sendonly
         let transceiver = webrtc
-            .emit_by_name("get-transceiver", &[&0])?
-            .context("no transceiver in 0")?
-            .get::<gst_webrtc::WebRTCRTPTransceiver>()?;
+            .emit_by_name::<Option<gst_webrtc::WebRTCRTPTransceiver>>("get-transceiver", &[&0])
+            .context("no transceiver in 0")?;
 
         transceiver.set_direction(WebRTCRTPTransceiverDirection::Sendonly);
-        transceiver.set_property("do-nack", &false)?;
+        transceiver.set_property("do-nack", false);
 
         let task_tx = self.task_tx.clone();
 
@@ -345,7 +346,7 @@ impl MediaTask {
                 .ok();
 
             None
-        })?;
+        });
 
         webrtc.add_property_notify_watch(None, true);
 
@@ -372,11 +373,8 @@ impl MediaTask {
 
                 log::debug!("setting local description to\n{}", offer.sdp());
 
-                if let Err(e) =
-                    webrtc.emit_by_name("set-local-description", &[&offer, &None::<gst::Promise>])
-                {
-                    log::error!("failed to set local description, {}", e);
-                }
+                webrtc
+                    .emit_by_name::<()>("set-local-description", &[&offer, &None::<gst::Promise>]);
 
                 if task_tx
                     .send(HandleEvent::PublishOffer(offer.sdp().to_string()))
@@ -386,14 +384,11 @@ impl MediaTask {
                 }
             });
 
-            if let Err(e) = webrtc_clone
-                .emit_by_name("create-offer", &[&None::<gst::Structure>, &on_create_offer])
-            {
-                log::error!("on-negotiation-needed-cb: failed to create offer, {}", e);
-            }
+            webrtc_clone
+                .emit_by_name::<()>("create-offer", &[&None::<gst::Structure>, &on_create_offer]);
 
             None
-        })?;
+        });
 
         self.pipeline.set_state(gst::State::Playing)?;
 
@@ -413,10 +408,10 @@ impl MediaTask {
 
         log::debug!("setting remote description to\n{}", response.sdp());
 
-        webrtc.emit_by_name(
+        webrtc.emit_by_name::<()>(
             "set-remote-description",
             &[&response, &None::<gst::Promise>],
-        )?;
+        );
 
         Ok(())
     }
@@ -485,7 +480,7 @@ impl MediaTask {
 
         log::debug!("settings remote description to \n{}", offer.sdp());
 
-        webrtc.emit_by_name("set-remote-description", &[&offer, &None::<gst::Promise>])?;
+        webrtc.emit_by_name::<()>("set-remote-description", &[&offer, &None::<gst::Promise>]);
 
         let webrtc_clone = webrtc.clone();
         let task_tx = self.task_tx.clone();
@@ -505,11 +500,7 @@ impl MediaTask {
 
             log::debug!("setting local description to\n{}", answer.sdp());
 
-            if let Err(e) =
-                webrtc.emit_by_name("set-local-description", &[&answer, &None::<gst::Promise>])
-            {
-                log::error!("failed to set local description, {}", e);
-            }
+            webrtc.emit_by_name::<()>("set-local-description", &[&answer, &None::<gst::Promise>]);
 
             if task_tx
                 .send(HandleEvent::SubscribeAnswer {
@@ -522,11 +513,7 @@ impl MediaTask {
             }
         });
 
-        if let Err(e) =
-            webrtc_clone.emit_by_name("create-answer", &[&None::<gst::Structure>, &promise])
-        {
-            log::error!("failed to create answer, {}", e);
-        }
+        webrtc_clone.emit_by_name::<()>("create-answer", &[&None::<gst::Structure>, &promise]);
 
         Ok(())
     }
@@ -568,7 +555,7 @@ impl MediaTask {
 
     fn on_publish_mute(&mut self, mute: bool) -> Result<()> {
         if let Some(volume) = self.pipeline.by_name("audio-input") {
-            volume.set_property("mute", mute)?;
+            volume.set_property("mute", mute);
         }
 
         Ok(())

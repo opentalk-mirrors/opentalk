@@ -135,7 +135,9 @@ impl ElementData {
 /// Returns a `TrackController` and `Element`. The controller
 /// can be used to control which tracks the element is playing
 pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
-    let appsrc = gst::ElementFactory::make("appsrc", Some("track-player"))?
+    let appsrc = gst::ElementFactory::make("appsrc")
+        .name("track-player")
+        .build()?
         .downcast::<gst_app::AppSrc>()
         .unwrap();
 
