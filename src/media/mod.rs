@@ -12,6 +12,7 @@ use sip_bin::SipBin;
 use std::net::IpAddr;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::thread;
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
@@ -73,8 +74,8 @@ impl MediaTask {
         }
     }
 
-    async fn run(mut self, mut rx: mpsc::UnboundedReceiver<MediaTaskMsg>) {
-        while let Some(cmd) = rx.recv().await {
+    fn run(mut self, mut rx: mpsc::UnboundedReceiver<MediaTaskMsg>) {
+        while let Some(cmd) = rx.blocking_recv() {
             match cmd {
                 MediaTaskMsg::CreateSipSession { offer, answer_tx } => {
                     if let Err(e) = self.on_sip_sdp_offer(offer, answer_tx) {
@@ -165,7 +166,7 @@ impl MediaTask {
         }
 
         let pipeline = self.pipeline.clone();
-        bus.add_watch_local(move |_, msg| {
+        bus.add_watch(move |_, msg| {
             let mut do_continue = true;
 
             match msg.view() {
@@ -562,12 +563,16 @@ impl MediaTask {
     }
 }
 
-pub fn spawn_task(pub_addr: IpAddr, main_ctx: &glib::MainContext) -> MediaTaskHandle {
+pub fn spawn_task(pub_addr: IpAddr, call_id: &str) -> MediaTaskHandle {
     let (handle_tx, task_rx) = mpsc::unbounded_channel();
     let (task_tx, handle_rx) = mpsc::unbounded_channel();
 
     let handle_tx = Arc::new(handle_tx);
-    main_ctx.spawn(MediaTask::new(pub_addr, task_tx).run(task_rx));
+
+    thread::Builder::new()
+        .name(format!("media-task-{call_id}"))
+        .spawn(move || MediaTask::new(pub_addr, task_tx).run(task_rx))
+        .expect("Failed to spawn media-task thread");
 
     MediaTaskHandle {
         tx: handle_tx,

@@ -8,7 +8,6 @@ use crate::settings::Settings;
 use crate::signaling::Signaling;
 use anyhow::{bail, Context, Result};
 use bytesstr::BytesStr;
-use gst::glib;
 use sip_auth::digest::{DigestAuthenticator, DigestCredentials};
 use sip_auth::{CredentialStore, RequestParts, UacAuthSession};
 use sip_core::transport::udp::Udp;
@@ -32,7 +31,6 @@ use tokio::time::{interval, sleep};
 struct AppData {
     contact: Contact,
     pub_ip: IpAddr,
-    main_ctx: glib::MainContext,
 }
 
 /// This layer is the application layer of the SIP endpoint and handles incoming INVITE requests
@@ -66,7 +64,7 @@ impl Layer for AppLayer {
 
         let (contact, handle) = if let Some(app_data) = &*self.app_data.read() {
             let contact = app_data.contact.clone();
-            let handle = media::spawn_task(app_data.pub_ip, &app_data.main_ctx);
+            let handle = media::spawn_task(app_data.pub_ip, &request.base_headers.call_id.0);
 
             (contact, handle)
         } else {
@@ -188,7 +186,7 @@ impl AppLayer {
 ///
 /// On shutdown it sends a shutdown signal to all active tasks shutting down all calls gracefully
 /// and un-registering from the SIP registrar
-pub(crate) async fn run(main_loop: glib::MainLoop, settings: Arc<Settings>) -> Result<()> {
+pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
     let mut builder = Endpoint::builder();
 
     let dialog_layer = builder.add_layer(DialogLayer::default());
@@ -249,7 +247,6 @@ pub(crate) async fn run(main_loop: glib::MainLoop, settings: Arc<Settings>) -> R
     // set app data
     endpoint[app_layer].set_app_data(AppData {
         pub_ip: pub_addr.ip(),
-        main_ctx: main_loop.context(),
         contact: Contact::new(NameAddr::uri(id.clone())),
     });
 
@@ -371,10 +368,6 @@ pub(crate) async fn run(main_loop: glib::MainLoop, settings: Arc<Settings>) -> R
             break;
         }
     }
-
-    log::info!("Obelisk exiting, bye!");
-
-    main_loop.quit();
 
     Ok(())
 }
