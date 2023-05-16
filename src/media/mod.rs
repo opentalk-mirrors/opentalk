@@ -162,6 +162,7 @@ impl MediaTask {
             bail!("failed to send SDP response to handle")
         }
 
+        let pipeline = self.pipeline.clone();
         bus.add_watch_local(move |_, msg| {
             let mut do_continue = true;
 
@@ -178,6 +179,11 @@ impl MediaTask {
                     }
 
                     log::error!("Unhandled pipeline error, {:?}", error);
+                }
+                gst::MessageView::Latency(_) => {
+                    if let Err(e) = pipeline.recalculate_latency() {
+                        log::error!("Failed to recalculate latency, {e}");
+                    }
                 }
                 gst::MessageView::Element(element) => {
                     if let Some(structure) = element.structure() {
