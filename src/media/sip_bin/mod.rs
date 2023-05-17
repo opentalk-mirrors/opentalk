@@ -385,9 +385,25 @@ fn on_request_pt_map(
                 .field("clock-rate", 8000)
                 .build()
         } else {
-            log::warn!("requested caps for unknown pt {}", pt);
+            log::error!(
+                "requested caps for unknown pt {}, expected media_pt={} or dtmf_pt={}",
+                pt,
+                payload_caps.payload,
+                telephone_event_pt
+            );
 
-            gst::Caps::new_empty()
+            // rtpbin's jitterbuffer has detected a new payload type which is unknown to us.
+            // If we return nothing here, then this callback will be called every time a new RTP packet
+            // with that unknown pt is received, spamming the log output with warnings and errors all around.
+            //
+            // But we're not really able to provide the correct clock-rate since the payload type is ... unknown
+            //
+            // So this provides caps with a super high clock-rate. The jitterbuffer now calculates that every RTP packet
+            // with this payload type is lagging years behind and doesn't event think about queuing it up. This way
+            // every packets can be discarded immediately into the linked fakesink.
+            gst::Caps::builder("application/x-rtp")
+                .field("clock-rate", i32::MAX)
+                .build()
         };
 
         Some(caps.to_value())
@@ -472,7 +488,19 @@ fn try_on_pad_added(
         dtmfdepay.set_state(gst::State::Playing)?;
         fakesink.set_state(gst::State::Playing)?;
     } else {
-        log::warn!("pad with unknown pt {} added", payload);
+        log::error!("pad with unexpected pt={payload} added, expected media with pt={expected_media_pt} or dtmf with pt={telephone_event_pt}. \
+                     Future RTP packets with this payload will be discarded.");
+
+        let fakesink = gst::ElementFactory::make("fakesink").build()?;
+        sip_bin.add(&fakesink)?;
+
+        pad.link(
+            &fakesink
+                .static_pad("sink")
+                .context("missing static-pad sink on fakesink")?,
+        )?;
+
+        fakesink.set_state(gst::State::Playing)?;
     }
 
     Ok(())
