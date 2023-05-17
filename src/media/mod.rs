@@ -278,8 +278,6 @@ impl MediaTask {
         let publish_bin = gst::parse_bin_from_description_with_name(publish_bin, false, "publish")
             .context("failed to parse webrtc-publish bin")?;
 
-        self.pipeline.set_state(gst::State::Paused)?;
-
         self.pipeline.add(&publish_bin)?;
 
         let webrtc = publish_bin
@@ -391,7 +389,7 @@ impl MediaTask {
             None
         });
 
-        self.pipeline.set_state(gst::State::Playing)?;
+        publish_bin.set_state(gst::State::Playing)?;
 
         Ok(())
     }
@@ -421,11 +419,10 @@ impl MediaTask {
         let subscribe_bin = format!(
             r#"
             webrtcbin name=webrtc-subscribe:{uuid} !
-            
-            rtpopusdepay name=opus-input !
+                rtpopusdepay name=opus-input !
                 opusdec !
                 audio/x-raw,clock-rate=48000,channels=2,layout=interleaved !
-                queue name=audio-output 
+                queue name=audio-output
             "#,
             uuid = uuid
         );
@@ -436,8 +433,6 @@ impl MediaTask {
             &format!("subscribe:{}", uuid),
         )
         .context("failed to parse webrtc-subscribe bin")?;
-
-        self.pipeline.set_state(gst::State::Paused)?;
 
         self.pipeline.add(&subscribe_bin)?;
 
@@ -477,7 +472,7 @@ impl MediaTask {
         let offer =
             gst_webrtc::WebRTCSessionDescription::new(gst_webrtc::WebRTCSDPType::Offer, offer);
 
-        self.pipeline.set_state(gst::State::Playing)?;
+        subscribe_bin.set_state(gst::State::Playing)?;
 
         log::debug!("settings remote description to \n{}", offer.sdp());
 
@@ -523,30 +518,44 @@ impl MediaTask {
         let subscribe_bin =
             if let Some(subscribe_bin) = self.pipeline.by_name(&format!("subscribe:{}", uuid)) {
                 subscribe_bin
+                    .downcast::<gst::Bin>()
+                    .expect("subscribe bin is a gst::Bin")
             } else {
                 log::warn!("tried to remove nonexistent subscribe:{}", uuid);
                 return Ok(());
             };
+
+        log::debug!("Removing subscriber {uuid}");
 
         let mixer = self
             .pipeline
             .by_name("subscriber-audiomix")
             .context("no audiomixer in pipeline")?;
 
-        self.pipeline.set_state(gst::State::Paused)?;
-
         let res = || -> Result<()> {
-            // Unlink subscribe_bin from mixer and remove it frm the pipeline
+            // Get the source pad from the subscribe bin
+            let mut pads = subscribe_bin.pads();
+            assert_eq!(pads.len(), 1, "subscribe bins must only have one pad");
+            let src_pad = pads.remove(0);
+
+            // Get the peer of the source pad, which is the sink request-pad into the subscriber-audiomix
+            let mixer_sink_pad = src_pad
+                .peer()
+                .context("subscribe bin isn't linked to anything")?;
+
+            // Unlink subscribe_bin from mixer and remove it from the pipeline
             subscribe_bin.unlink(&mixer);
+
+            // Release the request pad, we don't need it anymore
+            mixer.release_request_pad(&mixer_sink_pad);
+
             self.pipeline.remove(&subscribe_bin)?;
 
-            // Set subscribe_bin to Ready, then Null - destroying it
-            subscribe_bin.set_state(gst::State::Ready)?;
+            // Set subscribe_bin to Null, destroying it
             subscribe_bin.set_state(gst::State::Null)?;
+
             Ok(())
         }();
-
-        self.pipeline.set_state(gst::State::Playing)?;
 
         // Check result of subscribe-bin removal
         res?;
