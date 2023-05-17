@@ -3,9 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use anyhow::{bail, Result};
-use gst::glib;
 use std::sync::Arc;
-use std::thread;
 
 mod http;
 mod media;
@@ -44,7 +42,8 @@ fn check_plugins() -> Result<()> {
     }
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     match std::env::args().next() {
         Some(s) if s.contains("k3k-obelisk") => {
             use owo_colors::OwoColorize as _;
@@ -64,9 +63,6 @@ fn main() -> Result<()> {
 
     env_logger::init();
 
-    // Let glib run on the main thread
-    let main_loop = glib::MainLoop::new(None, false);
-
     let settings = settings::Settings::load("config.toml")?;
 
     media::port_pool::PortPool::init(
@@ -74,21 +70,21 @@ fn main() -> Result<()> {
         settings.sip.rtp_port_range.end,
     );
 
-    // Spawn a new thread for the tokio runtime
-    let main_loop_clone = main_loop.clone();
-    thread::spawn(move || {
-        let res = tokio::runtime::Runtime::new()
-            .map_err(Into::into)
-            .and_then(|rt| rt.block_on(sip::run(main_loop_clone, Arc::new(settings))));
+    // Run a MainLoop on a separate thread so gstreamer bus watches work
+    let main_loop = gst::glib::MainLoop::new(None, false);
+    std::thread::spawn({
+        let main_loop = main_loop.clone();
 
-        if let Err(e) = res {
-            eprintln!("{:?}", e);
-            std::process::exit(-1);
+        move || {
+            main_loop.run();
         }
     });
 
-    // Run until main_loop.quit() is called in the sip task
-    main_loop.run();
+    sip::run(Arc::new(settings)).await?;
+
+    log::info!("Obelisk exiting, bye!");
+
+    main_loop.quit();
 
     Ok(())
 }
