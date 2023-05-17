@@ -9,6 +9,7 @@ use bytesstr::BytesStr;
 use codec::{GstCodecInfo, PayloadCaps};
 use gio::prelude::*;
 use gst::glib;
+use gst::prelude::ObjectExt;
 use gst::prelude::*;
 use sdp::SessionInfo;
 use sdp_types::attributes::direction::Direction;
@@ -188,11 +189,11 @@ impl SipBin {
             .by_name("rtcp-udpsink")
             .context("failed to get rtcp-udpsink from sip_bin")?;
 
-        rtp_udp_sink.set_property("host", remote_rtp_addr.ip().to_string())?;
-        rtp_udp_sink.set_property("port", remote_rtp_addr.port() as i32)?;
+        rtp_udp_sink.set_property("host", remote_rtp_addr.ip().to_string());
+        rtp_udp_sink.set_property("port", remote_rtp_addr.port() as i32);
 
-        rtcp_udp_sink.set_property("host", remote_rtcp_addr.ip().to_string())?;
-        rtcp_udp_sink.set_property("port", remote_rtcp_addr.port() as i32)?;
+        rtcp_udp_sink.set_property("host", remote_rtcp_addr.ip().to_string());
+        rtcp_udp_sink.set_property("port", remote_rtcp_addr.port() as i32);
 
         Ok(())
     }
@@ -206,7 +207,7 @@ impl SipBin {
             .by_name("audio-input-valve")
             .context("failed to get audio-input-valve")?;
 
-        rtp_valve.set_property("drop", true)?;
+        rtp_valve.set_property("drop", true);
 
         Ok(())
     }
@@ -220,7 +221,7 @@ impl SipBin {
             .by_name("audio-input-valve")
             .context("failed to get audio-input-valve")?;
 
-        rtp_valve.set_property("drop", false)?;
+        rtp_valve.set_property("drop", false);
 
         Ok(())
     }
@@ -291,7 +292,9 @@ fn create_sip_bin(
     sip_bin.add_pad(&audio_src_ghost_pad)?;
 
     // Connect outgoing audio to fakesink to not interrupt pipeline flow
-    let audio_fakesink = gst::ElementFactory::make("fakesink", Some("sip-audio-fakesink"))?;
+    let audio_fakesink = gst::ElementFactory::make("fakesink")
+        .name("sip-audio-fakesink")
+        .build()?;
 
     sip_bin.add(&audio_fakesink)?;
     let audio_fakesink_sink_pad = audio_fakesink.static_pad("sink").unwrap();
@@ -314,7 +317,7 @@ fn create_sip_bin(
             }
 
             None
-        })?;
+        });
 
     // Set sockets of udp_(src/sink)
     let rtp_udp_src = sip_bin.by_name("rtp-udp-src").unwrap();
@@ -323,11 +326,11 @@ fn create_sip_bin(
     let rtcp_udp_src = sip_bin.by_name("rtcp-udp-src").unwrap();
     let rtcp_udp_sink = sip_bin.by_name("rtcp-udpsink").unwrap();
 
-    rtp_udp_src.set_property("socket", rtp_socket.clone())?;
-    rtp_udp_sink.set_property("socket", rtp_socket)?;
+    rtp_udp_src.set_property("socket", rtp_socket.clone());
+    rtp_udp_sink.set_property("socket", rtp_socket);
 
-    rtcp_udp_src.set_property("socket", rtcp_socket.clone())?;
-    rtcp_udp_sink.set_property("socket", rtcp_socket)?;
+    rtcp_udp_src.set_property("socket", rtcp_socket.clone());
+    rtcp_udp_sink.set_property("socket", rtcp_socket);
 
     // Get the rtpbin element
     let rtp_bin = sip_bin.by_name("session").unwrap();
@@ -340,13 +343,13 @@ fn create_sip_bin(
             gst_elements.payload_caps.payload,
             telephone_event_pt,
         ),
-    )?;
+    );
 
     rtp_bin.connect(
         "request-pt-map",
         false,
         on_request_pt_map(gst_elements.payload_caps, telephone_event_pt),
-    )?;
+    );
 
     Ok(sip_bin)
 }
@@ -376,15 +379,10 @@ fn on_request_pt_map(
         let caps = if pt == payload_caps.payload {
             payload_caps.caps.clone()
         } else if pt == telephone_event_pt {
-            gst::Caps::builder_full()
-                .structure(gst::Structure::new(
-                    "application/x-rtp",
-                    &[
-                        ("media", &"audio"),
-                        ("encoding-name", &"TELEPHONE-EVENT"),
-                        ("clock-rate", &8000i32),
-                    ],
-                ))
+            gst::Caps::builder("application/x-rtp")
+                .field("media", "audio")
+                .field("encoding-name", "TELEPHONE-EVENT")
+                .field("clock-rate", 8000)
                 .build()
         } else {
             log::warn!("requested caps for unknown pt {}", pt);
@@ -446,8 +444,12 @@ fn try_on_pad_added(
         //
         // Create a dtmfdepay and link its audio output to a fakesink as we don't want the audio
         // from it, only the signals it emits on the pipeline's bus.
-        let dtmfdepay = gst::ElementFactory::make("rtpdtmfdepay", Some("dtmf-depay"))?;
-        let fakesink = gst::ElementFactory::make("fakesink", Some("dtmf-fakesink"))?;
+        let dtmfdepay = gst::ElementFactory::make("rtpdtmfdepay")
+            .name("dtmf-depay")
+            .build()?;
+        let fakesink = gst::ElementFactory::make("fakesink")
+            .name("dtmf-fakesink")
+            .build()?;
 
         // add the dtmfdepay and fakesink to the pipeline
         sip_bin.add_many(&[&fakesink, &dtmfdepay])?;

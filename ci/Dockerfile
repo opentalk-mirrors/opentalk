@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
-FROM rust:alpine3.16 AS Builder
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:alpine3.18 AS Builder
 
 RUN apk add --no-cache musl-dev glib-dev openssl-dev gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev
 
@@ -25,7 +25,7 @@ COPY audio audio
 RUN touch src/main.rs
 RUN RUSTFLAGS=-Ctarget-feature=-crt-static cargo build --release
 
-FROM alpine:3.16
+FROM alpine:3.18
 
 RUN apk add --no-cache glib libssl1.1 libcrypto1.1 gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad libnice-gstreamer gst-libav
 

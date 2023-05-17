@@ -13,13 +13,13 @@ license = "EUPL-1.2"
 [dependencies]
 config = { version = "0.13.2", default-features = false, features = ["toml"] }
 
-gst = { package = "gstreamer", version = "0.17" }
-gst-app = { package = "gstreamer-app", version = "0.17" }
-gst-sdp = { package = "gstreamer-sdp", version = "0.17" }
-gst-webrtc = { package = "gstreamer-webrtc", version = "0.17", features = [
-    "v1_18",
+gst = { package = "gstreamer", version = "0.20" }
+gst-app = { package = "gstreamer-app", version = "0.20" }
+gst-sdp = { package = "gstreamer-sdp", version = "0.20" }
+gst-webrtc = { package = "gstreamer-webrtc", version = "0.20", features = [
+    "v1_22",
 ] }
-gio = "0.14"
+gio = "0.17"
 
 rand = "0.8"
 
@@ -32,7 +32,7 @@ futures = "0.3"
 bytes = "1"
 
 log = "0.4"
-env_logger = "0.9"
+env_logger = "0.10"
 
 anyhow = "1"
 thiserror = "1"
@@ -44,7 +44,7 @@ uuid = { version = "1", features = ["serde"] }
 
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "json"] }
 
-tt = { package = "tokio-tungstenite", version = "0.17", features = [
+tt = { package = "tokio-tungstenite", version = "0.18", features = [
     "rustls-tls-webpki-roots",
 ] }
 
@@ -63,7 +63,7 @@ hound = "3.4"
 
 byte-slice-cast = "1.2"
 
-openidconnect = "2.3"
+openidconnect = "3"
 
-anstream = "0.2"
+anstream = "0.3"
 owo-colors = "3"
