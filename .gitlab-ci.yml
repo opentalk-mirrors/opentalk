@@ -8,7 +8,7 @@ image: git.opentalk.dev:5050/opentalk/backend/containers/rust:alpine3.18
 stages:
   - lint
   - test
-  - build
+  - package
 
 variables:
   CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
@@ -110,11 +110,31 @@ test:container:
       --no-push
       --force
 
-build:container:
+package:obelisk-container-dev:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  stage: package
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: ['']
+  script:
+    - mkdir -p /kaniko/.docker
+    - >
+      echo
+      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
+      /kaniko/.docker/config.json
+    - >
+      /kaniko/executor
+      --registry-mirror=mirror.gcr.io
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile
+      --destination $CI_REGISTRY_IMAGE:dev
+      --force
+
+package:obelisk-container-tag:
+  rules:
     - if: $CI_COMMIT_TAG != null
-  stage: build
+  stage: package
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: ['']
@@ -131,3 +151,43 @@ build:container:
       --dockerfile $CI_PROJECT_DIR/ci/Dockerfile
       --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
       --force
+
+package:read-latest-tag:
+  rules:
+    - if: $CI_COMMIT_TAG != null
+  image:
+    name: alpine/git
+    entrypoint: ['']
+  stage: package
+  script:
+    - git fetch --tags
+    - LATEST_TAG=$(git tag --list | grep "^v[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+$" | sort -V | tail -n1)
+    - echo "LATEST_TAG=$LATEST_TAG" >> package.env
+  artifacts:
+    reports:
+      dotenv: package.env
+
+package:obelisk-container-latest:
+  rules:
+    - if: $CI_COMMIT_TAG != null
+  stage: package
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: ['']
+  needs:
+    - package:read-latest-tag
+  script:
+    - mkdir -p /kaniko/.docker
+    - >
+      echo
+      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
+      /kaniko/.docker/config.json
+    - |
+      if [ "$CI_COMMIT_TAG" == "$LATEST_TAG" ]; then
+        /kaniko/executor \
+          --registry-mirror=mirror.gcr.io \
+          --context $CI_PROJECT_DIR \
+          --dockerfile $CI_PROJECT_DIR/ci/Dockerfile \
+          --destination $CI_REGISTRY_IMAGE:latest \
+          --force
+      fi
