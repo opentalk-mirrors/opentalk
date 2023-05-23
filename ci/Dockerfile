@@ -15,7 +15,7 @@ RUN mkdir src
 # We need a proper main.rs to make the first cargo build run
 RUN echo 'fn main() {println!("Hello World!");}' > src/main.rs
 # As we haven't copied any source files yet, this will only compile the dependencies
-RUN cargo build --release
+RUN RUSTFLAGS=-Ctarget-feature=-crt-static cargo build --release
 
 # Now copy the real source over
 COPY src src
