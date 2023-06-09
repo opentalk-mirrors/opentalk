@@ -63,7 +63,11 @@ impl Websocket {
         let mut ws_req = uri.into_client_request()?;
         ws_req.headers_mut().insert(
             SEC_WEBSOCKET_PROTOCOL,
-            format!("opentalk-signaling-json-v1.0,ticket#{}", ticket.0).try_into()?,
+            format!(
+                "opentalk-signaling-json-v1.0,k3k-signaling-json-v1.0,ticket#{}",
+                ticket.0
+            )
+            .try_into()?,
         );
 
         let (websocket, _) = tt::connect_async(ws_req).await?;
