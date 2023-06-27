@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.3.0] - 2023-06-27
+
+### Added
+
+- Added a config `sip.id` to allow overriding the obelisk's SIP ID
+
+### Fixed
+
+- Offer old signaling protocol to enable backwards compatibility with older controller versions
+- Miscellaneous internal bugfixes and stability improvements
+- Increase the delay of the welcome message ([#42](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/42))
+
+## [0.2.1] - 2023-05-30
+
+- Added a config `sip.id` to allow overriding the obelisk's SIP ID
+
 ### Added
 
 - Added a config `sip.id` to allow overriding the obelisk's SIP ID
@@ -72,6 +88,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 initial release candidate
 
+[0.3.0]: https://git.opentalk.dev/opentalk/k3k-obelisk/-/compare/682f4a0eff7048adc2a580b380d4cf1bb9e63096...v0.3.0
+
+[0.2.1]: https://git.opentalk.dev/opentalk/k3k-obelisk/-/compare/v0.2.0...v0.2.1
 [0.2.0]: https://git.opentalk.dev/opentalk/k3k-obelisk/-/compare/f0b6143249961167f4a5c475a868c73bff20d5e2...v0.2.0
 
 [0.1.1]: https://git.opentalk.dev/opentalk/k3k-obelisk/-/compare/v0.1.0...v0.1.1
