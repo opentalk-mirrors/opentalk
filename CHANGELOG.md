@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.3.0] - 2023-06-27
+
+### Added
+
+- Added a config `sip.id` to allow overriding the obelisk's SIP ID
+
+### Fixed
+
+- Offer old signaling protocol to enable backwards compatibility with older controller versions
+- Miscellaneous internal bugfixes and stability improvements
+- Increase the delay of the welcome message ([#42](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/42))
+
+## [0.2.1] - 2023-05-30
+
+- Added a config `sip.id` to allow overriding the obelisk's SIP ID
+
 ### Added
 
 - Added a config `sip.id` to allow overriding the obelisk's SIP ID
@@ -15,36 +31,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added an announcement at the end of a conference. ([#36](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/36))
+- Added an announcement at the end of a conference. ([#36](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/36))
 
 ### Fixed
 
-- Fixed incorrect handling of an HTTP response, resulting in a call hang-up when entering an invalid id/pin. ([#28](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/28))
-- Fixed overlapping of room audio while welcome message is played back. ([#34](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/34))
-- Fixed a crash when the waiting-room was active while joining. ([#35](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/35))
+- Fixed incorrect handling of an HTTP response, resulting in a call hang-up when entering an invalid id/pin. ([#28](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/28))
+- Fixed overlapping of room audio while welcome message is played back. ([#34](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/34))
+- Fixed a crash when the waiting-room was active while joining. ([#35](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/35))
 
 ## [0.1.1] - 2023-03-21
 
 ### Fixed
 
-- Fixed overlapping of room audio while welcome message is played back. ([#34](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/34))
+- Fixed overlapping of room audio while welcome message is played back. ([#34](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/34))
 
 ## [0.1.0] - 2023-03-01
 
 ### Added
 
-- Raise and lower hand via DTMF button 2 ([#14](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/14))
-- Stop playback on DTMF button 0 ([#29](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/29))
-- Handle moderator muting of participants ([#16](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/16))
+- Raise and lower hand via DTMF button 2 ([#14](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/14))
+- Stop playback on DTMF button 0 ([#29](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/29))
+- Handle moderator muting of participants ([#16](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/16))
 - Add license information
 
 ### Changed
 
-- Update audio files ([#27](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/27))
+- Update audio files ([#27](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/27))
 
 ### Fixed
 
-- Fixed incorrect handling of an HTTP response, resulting in a call hang-up when entering an invalid id/pin. ([#28](https://git.opentalk.dev/opentalk/k3k-obelisk/-/issues/28))
+- Fixed incorrect handling of an HTTP response, resulting in a call hang-up when entering an invalid id/pin. ([#28](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/28))
 
 ## [0.0.0-internal-release.4] - 2022-12-02
 
@@ -72,12 +88,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 initial release candidate
 
-[0.2.0]: https://git.opentalk.dev/opentalk/k3k-obelisk/-/compare/f0b6143249961167f4a5c475a868c73bff20d5e2...v0.2.0
+[0.3.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/682f4a0eff7048adc2a580b380d4cf1bb9e63096...v0.3.0
 
-[0.1.1]: https://git.opentalk.dev/opentalk/k3k-obelisk/-/compare/v0.1.0...v0.1.1
-[0.1.0]: https://git.opentalk.dev/opentalk/k3k-obelisk/-/compare/a71fc807cdc848b628f1730e44df2ca7d4b11012...v0.1.0
+[0.2.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.2.0...v0.2.1
+[0.2.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/f0b6143249961167f4a5c475a868c73bff20d5e2...v0.2.0
 
-[0.0.0-internal-release.4]: https://git.opentalk.dev/opentalk/k3k-obelisk/-/compare/b5d50ad8882992177bbd40a828101bf3837ea8f4...a71fc807cdc848b628f1730e44df2ca7d4b11012
-[0.0.0-internal-release.3]: https://git.opentalk.dev/opentalk/k3k-obelisk/-/compare/bb85fa8bac24cd5fcd0a95270452d490bbb372dc...b5d50ad8882992177bbd40a828101bf3837ea8f4
-[0.0.0-internal-release.2]: https://git.opentalk.dev/opentalk/k3k-obelisk/-/compare/98a54d32300aaf358f4e0e5cc76a2ee44aa0c10f...bb85fa8bac24cd5fcd0a95270452d490bbb372dc
-[0.0.0-internal-release.1]: https://git.opentalk.dev/opentalk/k3k-obelisk/-/commits/98a54d32300aaf358f4e0e5cc76a2ee44aa0c10f
+[0.1.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.1.0...v0.1.1
+[0.1.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/a71fc807cdc848b628f1730e44df2ca7d4b11012...v0.1.0
+
+[0.0.0-internal-release.4]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/b5d50ad8882992177bbd40a828101bf3837ea8f4...a71fc807cdc848b628f1730e44df2ca7d4b11012
+[0.0.0-internal-release.3]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/bb85fa8bac24cd5fcd0a95270452d490bbb372dc...b5d50ad8882992177bbd40a828101bf3837ea8f4
+[0.0.0-internal-release.2]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/98a54d32300aaf358f4e0e5cc76a2ee44aa0c10f...bb85fa8bac24cd5fcd0a95270452d490bbb372dc
+[0.0.0-internal-release.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/commits/98a54d32300aaf358f4e0e5cc76a2ee44aa0c10f
