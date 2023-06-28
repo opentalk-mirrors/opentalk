@@ -19,6 +19,7 @@ mod handle;
 pub mod port_pool;
 mod sip_bin;
 pub mod track;
+mod webrtc_subscribe;
 
 pub use handle::{HandleError, HandleEvent, MediaTaskHandle, Target};
 pub use track::{Track, TrackController};
@@ -238,7 +239,7 @@ impl MediaTask {
                 rtpopuspay pt=97 auto-header-extension=true !
                 application/x-rtp,media=audio,encoding-name=OPUS,payload=97,extmap-1=(string)<"", urn:ietf:params:rtp-hdrext:ssrc-audio-level, "vad=on"> !
                 queue !
-                webrtc-publish
+                webrtc-publish.
         "#;
 
         let publish_bin = gst::parse_bin_from_description_with_name(publish_bin, false, "publish")
@@ -353,11 +354,7 @@ impl MediaTask {
     fn create_subscribe(&mut self, uuid: Uuid, offer: String) -> Result<()> {
         let subscribe_bin = format!(
             r#"
-            webrtcbin name=webrtc-subscribe:{uuid} bundle-policy=max-bundle !
-                rtpopusdepay name=opus-input !
-                opusdec !
-                audio/x-raw,clock-rate=48000,channels=2,layout=interleaved !
-                queue name=audio-output
+            webrtcbin name=webrtc-subscribe:{uuid} bundle-policy=max-bundle
             "#,
             uuid = uuid
         );
@@ -377,76 +374,31 @@ impl MediaTask {
 
         self.connect_ice_candidate_gathering_hooks(&webrtc, Target::Subscribe(uuid));
 
-        // ==== LINK audio-output -> mixer.sink_%u
-
-        let audio_output = subscribe_bin
-            .by_name("audio-output")
-            .context("No audio-input found")?;
-
-        let audio_output_src_pad = audio_output
-            .static_pad("src")
-            .context("failed to get src sink from audio-output")?;
-
-        let audio_output_ghost_pad =
-            gst::GhostPad::with_target(Some("subscribe-audio-output"), &audio_output_src_pad)?;
-        subscribe_bin.add_pad(&audio_output_ghost_pad)?;
-
         // Get mixer
         let mixer = self
             .pipeline
             .by_name("subscriber-audiomix")
             .context("missing mixer")?;
 
-        let mixer_sink = mixer
-            .request_pad_simple("sink_%u")
-            .context("failed to request mixer sink pad")?;
+        // Handle incoming media streams
+        webrtc.connect(
+            "pad-added",
+            true,
+            webrtc_subscribe::webrtcbin_on_pad_added(
+                uuid,
+                subscribe_bin.downgrade(),
+                mixer.downgrade(),
+            ),
+        );
 
-        audio_output_ghost_pad
-            .link(&mixer_sink)
-            .context("failed to link audio-output src to mixer sink")?;
-
-        let offer = gst_sdp::SDPMessage::parse_buffer(offer.as_bytes())?;
-        let offer =
-            gst_webrtc::WebRTCSessionDescription::new(gst_webrtc::WebRTCSDPType::Offer, offer);
+        // Negotiate SDP when the webrtcbin object is ready
+        webrtc.connect(
+            "on-negotiation-needed",
+            true,
+            webrtc_subscribe::webrtcbin_on_negotation_needed(uuid, self.task_tx.clone(), offer),
+        );
 
         subscribe_bin.set_state(gst::State::Playing)?;
-
-        log::debug!("settings remote description to \n{}", offer.sdp());
-
-        webrtc.emit_by_name::<()>("set-remote-description", &[&offer, &None::<gst::Promise>]);
-
-        let webrtc_clone = webrtc.clone();
-        let task_tx = self.task_tx.clone();
-        let promise = gst::Promise::with_change_func(move |answer| {
-            let answer = answer.ok().flatten().and_then(|answer| {
-                answer
-                    .get::<gst_webrtc::WebRTCSessionDescription>("answer")
-                    .ok()
-            });
-
-            let answer = if let Some(answer) = answer {
-                answer
-            } else {
-                log::error!("create-answer failed");
-                return;
-            };
-
-            log::debug!("setting local description to\n{}", answer.sdp());
-
-            webrtc.emit_by_name::<()>("set-local-description", &[&answer, &None::<gst::Promise>]);
-
-            if task_tx
-                .send(HandleEvent::SubscribeAnswer {
-                    uuid,
-                    answer: answer.sdp().to_string(),
-                })
-                .is_err()
-            {
-                log::error!("bug: failed to send sdp offer");
-            }
-        });
-
-        webrtc_clone.emit_by_name::<()>("create-answer", &[&None::<gst::Structure>, &promise]);
 
         Ok(())
     }
@@ -469,33 +421,25 @@ impl MediaTask {
             .by_name("subscriber-audiomix")
             .context("no audiomixer in pipeline")?;
 
-        let res = || -> Result<()> {
-            // Get the source pad from the subscribe bin
-            let mut pads = subscribe_bin.pads();
-            assert_eq!(pads.len(), 1, "subscribe bins must only have one pad");
-            let src_pad = pads.remove(0);
+        // Clean up every pad
+        for pad in subscribe_bin.pads() {
+            assert_eq!(pad.direction(), gst::PadDirection::Src);
 
             // Get the peer of the source pad, which is the sink request-pad into the subscriber-audiomix
-            let mixer_sink_pad = src_pad
-                .peer()
-                .context("subscribe bin isn't linked to anything")?;
+            let mixer_sink_pad = pad.peer().context("subscribe bin pad")?;
 
-            // Unlink subscribe_bin from mixer and remove it from the pipeline
-            subscribe_bin.unlink(&mixer);
+            pad.unlink(&mixer_sink_pad)
+                .context("Failed to unlink subscribe_bin's pad from its own peer")?;
 
-            // Release the request pad, we don't need it anymore
+            // Release the request pad on the mixer, we don't need it anymore
             mixer.release_request_pad(&mixer_sink_pad);
+        }
 
-            self.pipeline.remove(&subscribe_bin)?;
+        // Remove the subscribe bin from the pipeline
+        self.pipeline.remove(&subscribe_bin)?;
 
-            // Set subscribe_bin to Null, destroying it
-            subscribe_bin.set_state(gst::State::Null)?;
-
-            Ok(())
-        }();
-
-        // Check result of subscribe-bin removal
-        res?;
+        // Set subscribe_bin to Null, destroying it
+        subscribe_bin.set_state(gst::State::Null)?;
 
         Ok(())
     }
