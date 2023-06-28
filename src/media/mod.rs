@@ -226,7 +226,7 @@ impl MediaTask {
 
     fn create_publish(&mut self) -> Result<()> {
         let publish_bin = r#"
-            webrtcbin name=webrtc-publish
+            webrtcbin name=webrtc-publish bundle-policy=max-bundle
 
             volume name=audio-input !
                 audioresample !
@@ -365,7 +365,7 @@ impl MediaTask {
     fn create_subscribe(&mut self, uuid: Uuid, offer: String) -> Result<()> {
         let subscribe_bin = format!(
             r#"
-            webrtcbin name=webrtc-subscribe:{uuid} !
+            webrtcbin name=webrtc-subscribe:{uuid} bundle-policy=max-bundle !
                 rtpopusdepay name=opus-input !
                 opusdec !
                 audio/x-raw,clock-rate=48000,channels=2,layout=interleaved !
