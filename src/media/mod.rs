@@ -64,7 +64,7 @@ impl Drop for MediaTask {
 
 impl MediaTask {
     fn new(pub_addr: IpAddr, task_tx: mpsc::UnboundedSender<HandleEvent>) -> Self {
-        let pipeline = gst::Pipeline::new(Some("nordstream"));
+        let pipeline = gst::Pipeline::new(None);
 
         Self {
             pub_addr,
@@ -165,7 +165,7 @@ impl MediaTask {
             bail!("failed to send SDP response to handle")
         }
 
-        let pipeline = self.pipeline.clone();
+        let pipeline_weak = self.pipeline.downgrade();
         bus.add_watch(move |_, msg| {
             let mut do_continue = true;
 
@@ -184,8 +184,10 @@ impl MediaTask {
                     log::error!("Unhandled pipeline error, {:?}", error);
                 }
                 gst::MessageView::Latency(_) => {
-                    if let Err(e) = pipeline.recalculate_latency() {
-                        log::error!("Failed to recalculate latency, {e}");
+                    if let Some(pipeline) = pipeline_weak.upgrade() {
+                        if let Err(e) = pipeline.recalculate_latency() {
+                            log::error!("Failed to recalculate latency, {e}");
+                        }
                     }
                 }
                 gst::MessageView::Element(element) => {
@@ -285,14 +287,18 @@ impl MediaTask {
 
         self.connect_ice_candidate_gathering_hooks(&webrtc, Target::Publish);
 
-        let webrtc_clone = webrtc.clone();
         let task_tx = self.task_tx.clone();
-        webrtc.connect("on-negotiation-needed", true, move |_| {
-            let webrtc = webrtc_clone.clone();
+        webrtc.connect("on-negotiation-needed", true, move |values| {
+            let webrtc = values[0]
+                .get::<gst::Element>()
+                .expect("values[0] of on-negotiation-needed is a gst::Element");
 
             let task_tx = task_tx.clone();
 
+            let webrtc_weak = webrtc.downgrade();
             let on_create_offer = gst::Promise::with_change_func(move |offer| {
+                let Some(webrtc) = webrtc_weak.upgrade() else { return };
+
                 let offer = offer.ok().flatten().and_then(|offer| {
                     offer
                         .get::<gst_webrtc::WebRTCSessionDescription>("offer")
@@ -319,8 +325,7 @@ impl MediaTask {
                 }
             });
 
-            webrtc_clone
-                .emit_by_name::<()>("create-offer", &[&None::<gst::Structure>, &on_create_offer]);
+            webrtc.emit_by_name::<()>("create-offer", &[&None::<gst::Structure>, &on_create_offer]);
 
             None
         });
