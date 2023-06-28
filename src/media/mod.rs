@@ -229,14 +229,16 @@ impl MediaTask {
             webrtcbin name=webrtc-publish bundle-policy=max-bundle
 
             volume name=audio-input !
-                audioresample !
-                level audio-level-meta=true !
                 audioconvert !
+                audioresample !
+                queue !
+                level audio-level-meta=true !
                 audio/x-raw,rate=48000,channels=2,layout=interleaved !
                 opusenc !
                 rtpopuspay pt=97 auto-header-extension=true !
                 application/x-rtp,media=audio,encoding-name=OPUS,payload=97,extmap-1=(string)<"", urn:ietf:params:rtp-hdrext:ssrc-audio-level, "vad=on"> !
-                queue name=opus-output
+                queue !
+                webrtc-publish
         "#;
 
         let publish_bin = gst::parse_bin_from_description_with_name(publish_bin, false, "publish")
@@ -248,10 +250,6 @@ impl MediaTask {
             .by_name("webrtc-publish")
             .context("webrtc defined in pipeline")?;
 
-        let webrtc_sink = webrtc
-            .request_pad_simple("sink_%u")
-            .context("Unable to request webrtcbin sink pad")?;
-
         let audio_input = publish_bin
             .by_name("audio-input")
             .context("No audio-input found")?;
@@ -259,16 +257,6 @@ impl MediaTask {
         let audio_input_sink = audio_input
             .static_pad("sink")
             .context("Element without sink pad")?;
-
-        let opus_output = publish_bin
-            .by_name("opus-output")
-            .context("No opus-output found")?;
-
-        let opus_output_src = opus_output
-            .static_pad("src")
-            .context("Element without src pad")?;
-
-        opus_output_src.link(&webrtc_sink)?;
 
         let webrtc_publish_audio_sink =
             gst::GhostPad::with_target(Some("webrtc-publish-sink"), &audio_input_sink)?;
