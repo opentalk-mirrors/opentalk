@@ -248,7 +248,7 @@ fn create_sip_bin(
         udpsrc name=rtp-udp-src ! queue ! watchdog name=rtp-watchdog timeout=10000 ! session.recv_rtp_sink_0
         udpsrc name=rtcp-udp-src caps="application/x-rtcp" ! queue ! session.recv_rtcp_sink_0
 
-        session.send_rtp_src_0 ! udpsink host=127.0.0.1 port=9 name=rtp-udpsink
+        session.send_rtp_src_0 ! watchdog name=send-rtp-watchdog timeout=10000 ! udpsink host=127.0.0.1 port=9 name=rtp-udpsink
         session.send_rtcp_src_0 ! udpsink host=127.0.0.1 port=9 name=rtcp-udpsink
     
         {rtpdepay} name=audiodepay ! {decoder} ! queue name=audio-src
