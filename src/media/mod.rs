@@ -10,7 +10,6 @@ use gst::prelude::*;
 use gst_webrtc::WebRTCRTPTransceiverDirection;
 use sip_bin::SipBin;
 use std::net::IpAddr;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::thread;
 use tokio::sync::{mpsc, oneshot};
@@ -197,41 +196,6 @@ impl MediaTask {
                         }
                     }
                 }
-                gst::MessageView::PropertyNotify(property) => {
-                    let (obj, name, value) = property.get();
-
-                    if name == "ice-gathering-state" {
-                        let obj_name = obj.name();
-
-                        let target = if obj_name == "webrtc-publish" {
-                            Some(Target::Publish)
-                        } else if obj_name.starts_with("webrtc-subscribe") {
-                            if let Some((_, uuid)) = obj_name.split_once(':') {
-                                if let Ok(uuid) = Uuid::from_str(uuid) {
-                                    Some(Target::Subscribe(uuid))
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        };
-
-                        if let Some(target) = target {
-                            if let Some(value) = value.and_then(|value| {
-                                value.get::<gst_webrtc::WebRTCICEGatheringState>().ok()
-                            }) {
-                                if value == gst_webrtc::WebRTCICEGatheringState::Complete {
-                                    do_continue = task_tx
-                                        .send(HandleEvent::NoMoreIceCandidates(target))
-                                        .is_ok();
-                                }
-                            }
-                        }
-                    }
-                }
                 _ => (),
             }
 
@@ -330,24 +294,7 @@ impl MediaTask {
         transceiver.set_direction(WebRTCRTPTransceiverDirection::Sendonly);
         transceiver.set_property("do-nack", false);
 
-        let task_tx = self.task_tx.clone();
-
-        webrtc.connect("on-ice-candidate", true, move |values| {
-            let mline_index = values[1].get::<u32>().expect("mline_index is guint");
-            let candidate = values[2].get::<String>().expect("candidate is gchararray");
-
-            task_tx
-                .send(HandleEvent::IceCandidate {
-                    target: Target::Publish,
-                    candidate,
-                    mline_index,
-                })
-                .ok();
-
-            None
-        });
-
-        webrtc.add_property_notify_watch(None, true);
+        self.connect_ice_candidate_gathering_hooks(&webrtc, Target::Publish);
 
         let webrtc_clone = webrtc.clone();
         let task_tx = self.task_tx.clone();
@@ -439,6 +386,8 @@ impl MediaTask {
         let webrtc = subscribe_bin
             .by_name(&format!("webrtc-subscribe:{}", uuid))
             .context("webrtc defined in pipeline")?;
+
+        self.connect_ice_candidate_gathering_hooks(&webrtc, Target::Subscribe(uuid));
 
         // ==== LINK audio-output -> mixer.sink_%u
 
@@ -561,6 +510,40 @@ impl MediaTask {
         res?;
 
         Ok(())
+    }
+
+    fn connect_ice_candidate_gathering_hooks(&self, webrtcbin: &gst::Element, target: Target) {
+        let task_tx = self.task_tx.clone();
+        webrtcbin.connect("on-ice-candidate", true, move |values| {
+            let mline_index = values[1].get::<u32>().expect("mline_index is guint");
+            let candidate = values[2].get::<String>().expect("candidate is gchararray");
+
+            task_tx
+                .send(HandleEvent::IceCandidate {
+                    target,
+                    candidate,
+                    mline_index,
+                })
+                .ok();
+
+            None
+        });
+
+        let task_tx = self.task_tx.clone();
+        webrtcbin.connect("notify::ice-gathering-state", true, move |values| {
+            let webrtcbin = values[0]
+                .get::<gst::Element>()
+                .expect("values[0] of notify::ice-gathering-state is a gst::Element");
+
+            let state =
+                webrtcbin.property::<gst_webrtc::WebRTCICEGatheringState>("ice-gathering-state");
+
+            if state == gst_webrtc::WebRTCICEGatheringState::Complete {
+                let _ = task_tx.send(HandleEvent::NoMoreIceCandidates(target));
+            }
+
+            None
+        });
     }
 
     fn on_publish_mute(&mut self, mute: bool) -> Result<()> {
