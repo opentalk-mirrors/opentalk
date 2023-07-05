@@ -182,12 +182,14 @@ skip = [
     { name = "base64", version = "=0.13" },
     { name = "syn", version = "1" },
     { name = "toml", version = "=0.5" },
+    { name = "bitflags", version = "1" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
 # dependencies starting at the specified crate, up to a certain depth, which is
 # by default infinite
 skip-tree = [
+    { name = "indexmap", version = "1" },
 ]
 
 # This section is considered when running `cargo deny check sources`.
