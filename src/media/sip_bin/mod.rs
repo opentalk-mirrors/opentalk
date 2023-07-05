@@ -248,7 +248,7 @@ fn create_sip_bin(
         udpsrc name=rtp-udp-src ! queue ! watchdog name=rtp-watchdog timeout=10000 ! session.recv_rtp_sink_0
         udpsrc name=rtcp-udp-src caps="application/x-rtcp" ! queue ! session.recv_rtcp_sink_0
 
-        session.send_rtp_src_0 ! udpsink host=127.0.0.1 port=9 name=rtp-udpsink
+        session.send_rtp_src_0 ! watchdog name=send-rtp-watchdog timeout=10000 ! udpsink host=127.0.0.1 port=9 name=rtp-udpsink
         session.send_rtcp_src_0 ! udpsink host=127.0.0.1 port=9 name=rtcp-udpsink
     
         {rtpdepay} name=audiodepay ! {decoder} ! queue name=audio-src
@@ -303,21 +303,27 @@ fn create_sip_bin(
     // Create 'linked' callback to ghostpad.
     // Once the ghostpad was linked, remove the fakesink
     // and connect audio to the ghostpad instead
-    let sip_bin_clone = sip_bin.clone();
-    audio_src_ghost_pad
-        .clone()
-        .connect("linked", true, move |_values| {
-            if let Err(e) = || -> Result<()> {
-                audio_src_src_pad.unlink(&audio_fakesink_sink_pad)?;
-                sip_bin_clone.remove(&audio_fakesink)?;
-                audio_src_ghost_pad.set_target(Some(&audio_src_src_pad))?;
-                Ok(())
-            }() {
-                log::error!("failed to handle linked ghostpad {}", e);
-            }
+    let sip_bin_weak = sip_bin.downgrade();
+    let audio_src_ghost_pad_weak = audio_src_ghost_pad.downgrade();
+    let audio_src_src_pad_weak = audio_src_src_pad.downgrade();
+    let audio_fakesink_weak = audio_fakesink.downgrade();
+    audio_src_ghost_pad.connect("linked", true, move |_values| {
+        let sip_bin = sip_bin_weak.upgrade()?;
+        let audio_src_ghost_pad = audio_src_ghost_pad_weak.upgrade()?;
+        let audio_src_src_pad = audio_src_src_pad_weak.upgrade()?;
+        let audio_fakesink = audio_fakesink_weak.upgrade()?;
 
-            None
-        });
+        if let Err(e) = || -> Result<()> {
+            audio_src_src_pad.unlink(&audio_fakesink_sink_pad)?;
+            sip_bin.remove(&audio_fakesink)?;
+            audio_src_ghost_pad.set_target(Some(&audio_src_src_pad))?;
+            Ok(())
+        }() {
+            log::error!("failed to handle linked ghostpad {:?}", e);
+        }
+
+        None
+    });
 
     // Set sockets of udp_(src/sink)
     let rtp_udp_src = sip_bin.by_name("rtp-udp-src").unwrap();
@@ -339,7 +345,7 @@ fn create_sip_bin(
         "pad-added",
         true,
         on_pad_added(
-            sip_bin.clone(),
+            sip_bin.downgrade(),
             gst_elements.payload_caps.payload,
             telephone_event_pt,
         ),
@@ -411,13 +417,17 @@ fn on_request_pt_map(
 }
 
 fn on_pad_added(
-    sip_bin: gst::Bin,
+    sip_bin_weak: glib::WeakRef<gst::Bin>,
     expected_media_pt: u32,
     telephone_event_pt: u32,
 ) -> impl Fn(&[glib::Value]) -> Option<glib::Value> {
     move |values| {
-        if let Err(e) = try_on_pad_added(&sip_bin, expected_media_pt, telephone_event_pt, values) {
-            log::error!("failed to handle added pad, {}", e);
+        if let Some(sip_bin) = sip_bin_weak.upgrade() {
+            if let Err(e) =
+                try_on_pad_added(&sip_bin, expected_media_pt, telephone_event_pt, values)
+            {
+                log::error!("failed to handle added pad, {}", e);
+            }
         }
 
         None

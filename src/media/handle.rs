@@ -9,6 +9,7 @@ use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
 /// Webrtc session of an event
+#[derive(Clone, Copy)]
 pub enum Target {
     Publish,
     Subscribe(Uuid),
