@@ -135,11 +135,21 @@ impl ElementData {
 /// Returns a `TrackController` and `Element`. The controller
 /// can be used to control which tracks the element is playing
 pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
-    let appsrc = gst::ElementFactory::make("appsrc")
+    let appsrc = gst_app::AppSrc::builder()
         .name("track-player")
-        .build()?
-        .downcast::<gst_app::AppSrc>()
-        .unwrap();
+        .caps(
+            // Set the capabilities of the appsrc` to 48000 2 channel interleaved (i16/S16LE) audio
+            &gst::Caps::builder("audio/x-raw")
+                .field("format", "S16LE")
+                .field("rate", 48000i32)
+                .field("channels", 2i32)
+                .field("layout", "interleaved")
+                .build(),
+        )
+        .format(gst::Format::Time)
+        .max_bytes(1)
+        .block(true)
+        .build();
 
     let data = Arc::new(Mutex::new(ElementData {
         track: None,
@@ -147,22 +157,6 @@ pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
         playback_finished_responder: None,
         num_samples: 0,
     }));
-
-    // Set the capabilities of the appsrc` to 48000 2 channel interleaved (i16/S16LE) audio
-    appsrc.set_caps(Some(
-        &gst::Caps::builder("audio/x-raw")
-            .field("format", "S16LE")
-            .field("rate", 48000i32)
-            .field("channels", 2i32)
-            .field("layout", "interleaved")
-            .build(),
-    ));
-
-    // Set the format property to time
-    appsrc.set_format(gst::Format::Time);
-    // Set max-bytes to 1 to block immediately when a buffer is queued up
-    appsrc.set_max_bytes(1);
-    appsrc.set_block(true);
 
     let data_clone = data.clone();
     appsrc.set_callbacks(
