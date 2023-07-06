@@ -316,6 +316,7 @@ fn create_sip_bin(
         if let Err(e) = || -> Result<()> {
             audio_src_src_pad.unlink(&audio_fakesink_sink_pad)?;
             sip_bin.remove(&audio_fakesink)?;
+            audio_fakesink.set_state(gst::State::Null)?;
             audio_src_ghost_pad.set_target(Some(&audio_src_src_pad))?;
             Ok(())
         }() {
