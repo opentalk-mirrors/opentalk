@@ -11,7 +11,7 @@ publish = false
 license = "EUPL-1.2"
 
 [dependencies]
-config = { version = "0.13.2", default-features = false, features = ["toml"] }
+config = { version = "0.13", default-features = false, features = ["toml"] }
 
 gst = { package = "gstreamer", version = "0.20" }
 gst-app = { package = "gstreamer-app", version = "0.20" }
@@ -44,7 +44,7 @@ uuid = { version = "1", features = ["serde"] }
 
 reqwest = { version = "0.11", default-features = false, features = ["rustls-tls-native-roots", "json"] }
 
-tt = { package = "tokio-tungstenite", version = "0.18", features = [
+tt = { package = "tokio-tungstenite", version = "0.19", features = [
     "rustls-tls-native-roots",
 ] }
 
@@ -58,8 +58,8 @@ sip-auth = { version = "0.1", package = "ezk-sip-auth" }
 
 bytesstr = "1"
 
-once_cell = "1.8"
-hound = "3.4"
+once_cell = "1.18"
+hound = "3.5"
 
 byte-slice-cast = "1.2"
 
