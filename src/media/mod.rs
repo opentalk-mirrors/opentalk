@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use crate::websocket::TrickleCandidate;
 use anyhow::{bail, Context, Result};
 use bytes::Bytes;
 use glib::source::Continue;
@@ -47,6 +48,13 @@ enum MediaTaskMsg {
     PublishMute {
         mute: bool,
     },
+    CandidateReceived {
+        candidate: TrickleCandidate,
+        target: Target,
+    },
+    EndOfCandidatesReceived {
+        target: Target,
+    },
 }
 
 struct MediaTask {
@@ -87,6 +95,20 @@ impl MediaTask {
                 MediaTaskMsg::SipReInvite { offer, answer_tx } => {
                     if let Err(e) = self.on_reinvite(offer, answer_tx) {
                         log::error!("failed to handle reinvite, {:?}", e);
+                        self.task_tx.send(HandleEvent::Error).ok();
+                        break;
+                    }
+                }
+                MediaTaskMsg::CandidateReceived { candidate, target } => {
+                    if let Err(e) = self.on_sdp_candidate(candidate, target) {
+                        log::error!("failed to handle sdp candidate, {:?}", e);
+                        self.task_tx.send(HandleEvent::Error).ok();
+                        break;
+                    }
+                }
+                MediaTaskMsg::EndOfCandidatesReceived { target } => {
+                    if let Err(e) = self.on_sdp_end_of_candidates(target) {
+                        log::error!("failed to handle end of candidates, {:?}", e);
                         self.task_tx.send(HandleEvent::Error).ok();
                         break;
                     }
@@ -208,6 +230,44 @@ impl MediaTask {
         drop(bus);
 
         self.pipeline.set_state(gst::State::Playing)?;
+
+        Ok(())
+    }
+
+    fn on_sdp_candidate(&mut self, candidate: TrickleCandidate, target: Target) -> Result<()> {
+        self.send_sdp_candidate(target, &candidate.sdp_m_line_index, &candidate.candidate)
+    }
+
+    fn on_sdp_end_of_candidates(&mut self, target: Target) -> Result<()> {
+        self.send_sdp_candidate(target, &0u32, &None::<String>)
+    }
+
+    fn send_sdp_candidate(
+        &mut self,
+        target: Target,
+        media_line_index: &u32,
+        candidate: &dyn ToValue,
+    ) -> Result<()> {
+        let target_name = match target {
+            Target::Publish => "publish".to_string(),
+            Target::Subscribe(uuid) => format!("subscribe:{}", uuid),
+        };
+
+        let subscribe_bin = match self.pipeline.by_name(&target_name) {
+            Some(subscribe_bin) => subscribe_bin,
+            None => {
+                log::warn!("tried to add-ice-candidate for {target_name}");
+                return Ok(());
+            }
+        };
+
+        let subscribe_bin = subscribe_bin
+            .downcast::<gst::Bin>()
+            .expect("target bin is a gst::Bin");
+        let webrtc_subscribe = subscribe_bin
+            .by_name(&format!("webrtc-{target_name}"))
+            .context(format!("failed to get webrtc from webrtc-{target_name}"))?;
+        webrtc_subscribe.emit_by_name::<()>("add-ice-candidate", &[media_line_index, candidate]);
 
         Ok(())
     }
