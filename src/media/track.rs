@@ -15,6 +15,12 @@ use parking_lot::Mutex;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 
+const SAMPLES_PER_BUF: u64 = 4096;
+const BYTES_PER_SAMPLE: u64 = 2;
+const BYTES_PER_BUF: u64 = SAMPLES_PER_BUF * BYTES_PER_SAMPLE;
+const SAMPLE_RATE: u64 = 48000;
+const CHANNELS: u64 = 2;
+
 macro_rules! wav_file {
     ($ident:ident=>$file:literal) => {
         static $ident: Lazy<Arc<[i16]>> = Lazy::new(|| {
@@ -130,7 +136,7 @@ impl ElementData {
 }
 
 /// Creates an `appsrc` element which has one `src` pad which
-/// emits a constant stream of 48000 2 channel interleaved (i16/S16LE) audio
+/// emits a constant stream of [SAMPLE_RATE] [CHANNELS] channel interleaved (i16/S16LE) audio
 ///
 /// Returns a `TrackController` and `Element`. The controller
 /// can be used to control which tracks the element is playing
@@ -138,11 +144,11 @@ pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
     let appsrc = gst_app::AppSrc::builder()
         .name("track-player")
         .caps(
-            // Set the capabilities of the appsrc` to 48000 2 channel interleaved (i16/S16LE) audio
+            // Set the capabilities of the appsrc` to [SAMPLE_RATE] [CHANNEL] channel interleaved (i16/S16LE) audio
             &gst::Caps::builder("audio/x-raw")
                 .field("format", "S16LE")
-                .field("rate", 48000i32)
-                .field("channels", 2i32)
+                .field("rate", SAMPLE_RATE as i32)
+                .field("channels", CHANNELS as i32)
                 .field("layout", "interleaved")
                 .build(),
         )
@@ -173,12 +179,6 @@ pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
 }
 
 fn push_data(appsrc: &gst_app::AppSrc, data: &Arc<Mutex<ElementData>>) -> Result<()> {
-    const SAMPLES_PER_BUF: u64 = 4096;
-    const BYTES_PER_SAMPLE: u64 = 2;
-    const BYTES_PER_BUF: u64 = SAMPLES_PER_BUF * BYTES_PER_SAMPLE;
-    const SAMPLE_RATE: u64 = 48000;
-    const CHANNELS: u64 = 2;
-
     let mut data = data.lock();
 
     // Get the samples to play
