@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use crate::websocket::TrickleCandidate;
+
 use super::{MediaTaskMsg, TrackController};
 use bytes::Bytes;
 use std::sync::Arc;
@@ -88,6 +90,26 @@ impl MediaTaskHandle {
             .map_err(|_| HandleError)?;
 
         answer_rx.await.map_err(|_| HandleError)
+    }
+
+    pub fn send_sdp_candidate(
+        &self,
+        candidate: TrickleCandidate,
+        target: Target,
+    ) -> Result<(), HandleError> {
+        self.tx
+            .send(MediaTaskMsg::CandidateReceived { candidate, target })
+            .map_err(|_| HandleError)?;
+
+        Ok(())
+    }
+
+    pub fn send_sdp_end_of_candidates(&self, target: Target) -> Result<(), HandleError> {
+        self.tx
+            .send(MediaTaskMsg::EndOfCandidatesReceived { target })
+            .map_err(|_| HandleError)?;
+
+        Ok(())
     }
 
     /// Instruct the media task to create the webrtc-publish webrtcbin, shortly afterwards

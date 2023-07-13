@@ -6,12 +6,14 @@
 //!
 //! Should be replaced by more complete implementation sometime in the future
 
+use crate::media::Target;
 use crate::settings::ControllerSettings;
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Utc};
 use futures::{SinkExt, StreamExt};
 use reqwest::header::SEC_WEBSOCKET_PROTOCOL;
 use serde::Deserialize;
+use serde::Serialize;
 use std::borrow::Cow;
 use tokio::net::TcpStream;
 use tt::tungstenite::client::IntoClientRequest;
@@ -27,14 +29,31 @@ pub struct Ticket(pub String);
 
 /// Event received via the websocket
 pub enum WebsocketEvent {
-    SubscribeOffer { offer: String, uuid: Uuid },
-    PublishResponse { response: String },
+    SubscribeOffer {
+        offer: String,
+        uuid: Uuid,
+    },
+    PublishResponse {
+        response: String,
+    },
+    CandidateReceived {
+        candidate: TrickleCandidate,
+        target: Target,
+    },
+    EndOfCandidate {
+        target: Target,
+    },
     Joined(Participant),
     Update(Participant),
     Left(AssociatedParticipant),
     Receiving(bool),
-    RequestMute { issuer: Uuid, force: bool },
-    SessionEnded { issued_by: Uuid },
+    RequestMute {
+        issuer: Uuid,
+        force: bool,
+    },
+    SessionEnded {
+        issued_by: Uuid,
+    },
     Disconnected,
 }
 
@@ -374,10 +393,35 @@ impl Websocket {
             Payload::Media { payload } => match payload {
                 MediaPayload::SdpOffer(sdp) => Ok(Some(WebsocketEvent::SubscribeOffer {
                     offer: sdp.sdp,
-                    uuid: sdp.source,
+                    uuid: sdp.source.source,
                 })),
                 MediaPayload::SdpAnswer(sdp) => {
                     Ok(Some(WebsocketEvent::PublishResponse { response: sdp.sdp }))
+                }
+                MediaPayload::SdpCandidate(sdp) => {
+                    let Some(self_id) = self.id else {
+                        return Ok(None);
+                    };
+                    let target = if sdp.source.source == self_id {
+                        Target::Publish
+                    } else {
+                        Target::Subscribe(sdp.source.source)
+                    };
+                    Ok(Some(WebsocketEvent::CandidateReceived {
+                        candidate: sdp.candidate,
+                        target,
+                    }))
+                }
+                MediaPayload::SdpEndCandidates(source) => {
+                    let Some(self_id) = self.id else {
+                        return Ok(None);
+                    };
+                    let target = if source.source == self_id {
+                        Target::Publish
+                    } else {
+                        Target::Subscribe(self_id)
+                    };
+                    Ok(Some(WebsocketEvent::EndOfCandidate { target }))
                 }
                 MediaPayload::MediaStatus(MediaStatus {
                     source,
@@ -428,16 +472,66 @@ enum MediaPayload {
     SdpOffer(Sdp),
     #[serde(rename = "sdp_answer")]
     SdpAnswer(Sdp),
+    /// SDP Candidate, used for ICE negotiation
+    #[serde(rename = "sdp_candidate")]
+    SdpCandidate(SdpCandidate),
+    /// SDP End of Candidate, used for ICE negotiation
+    #[serde(rename = "sdp_end_of_candidates")]
+    SdpEndCandidates(Source),
     #[serde(rename = "media_status")]
     MediaStatus(MediaStatus),
     #[serde(rename = "request_mute")]
     RequestMute(RequestMute),
 }
 
-#[derive(Debug, Deserialize)]
-struct Sdp {
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct Sdp {
+    /// The payload of the sdp message
     pub sdp: String,
+
+    #[serde(flatten)]
+    pub source: Source,
+}
+
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct SdpCandidate {
+    /// The payload of the sdp message
+    pub candidate: TrickleCandidate,
+
+    #[serde(flatten)]
+    pub source: Source,
+}
+
+/// A candidate for ICE/SDP trickle
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TrickleCandidate {
+    /// The SDP m-line index
+    #[serde(rename = "sdpMLineIndex")]
+    pub sdp_m_line_index: u32,
+
+    /// The ICE candidate string
+    pub candidate: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct Source {
+    /// The source of this message
     pub source: Uuid,
+
+    /// The type of stream
+    pub media_session_type: MediaSessionType,
+}
+
+/// The type of media session
+#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MediaSessionType {
+    /// A media session of type video
+    #[serde(rename = "video")]
+    Video,
+
+    /// A media session of type screen
+    #[serde(rename = "screen")]
+    Screen,
 }
 
 #[derive(Debug, Deserialize)]

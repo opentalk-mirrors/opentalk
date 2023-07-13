@@ -325,6 +325,12 @@ impl Signaling {
             WebsocketEvent::PublishResponse { response } => {
                 self.media.send_publish_response(response)?;
             }
+            WebsocketEvent::CandidateReceived { candidate, target } => {
+                self.media.send_sdp_candidate(candidate, target)?;
+            }
+            WebsocketEvent::EndOfCandidate { target } => {
+                self.media.send_sdp_end_of_candidates(target)?;
+            }
             WebsocketEvent::Joined(participant) => {
                 log::debug!("Participant {} joined!", participant.id);
 
