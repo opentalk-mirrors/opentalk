@@ -15,9 +15,9 @@ use sdp::SessionInfo;
 use sdp_types::attributes::direction::Direction;
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
-use std::sync::Arc;
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tokio::sync::Notify;
 
 mod codec;
 mod sdp;
@@ -41,7 +41,11 @@ impl SipBin {
     /// Create a new SipBin based on a public [IpAddr] and an SDP offer
     ///
     /// Usually called by the first SIP INVITE.
-    pub fn new(pub_addr: IpAddr, offer: Bytes) -> Result<(SipBin, String)> {
+    pub fn new(
+        pub_addr: IpAddr,
+        offer: Bytes,
+        ready_to_send: Arc<Notify>,
+    ) -> Result<(SipBin, String)> {
         // Parse SDP offer
         let offer = BytesStr::from_utf8_bytes(offer)?;
         let offer = sdp_types::msg::parse::<sdp_types::msg::Builder>(&offer)?;
@@ -82,6 +86,7 @@ impl SipBin {
             socket_pair.rtcp_socket,
             current_session_info.telephone_event_pt,
             current_session_info.gst_elements.clone(),
+            ready_to_send,
         )
         .context("Failed to create sip_bin")?;
 
@@ -247,6 +252,7 @@ fn create_sip_bin(
     rtcp_socket: gio::Socket,
     telephone_event_pt: u32,
     gst_elements: GstCodecInfo,
+    ready_to_send: Arc<Notify>,
 ) -> Result<gst::Bin> {
     // Create pipeline textual description
     let sip_bin = format!(
@@ -306,6 +312,13 @@ fn create_sip_bin(
     ));
 
     rtp_bin.connect_pad_removed(on_pad_removed(sip_bin.downgrade(), element_chains));
+
+    let notify_on_ready_to_send = ready_to_send.clone();
+    rtp_bin.connect("on-sender-ssrc-active", true, move |_values| {
+        notify_on_ready_to_send.notify_one();
+
+        None
+    });
 
     rtp_bin.connect(
         "request-pt-map",

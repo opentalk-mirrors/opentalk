@@ -148,9 +148,11 @@ impl AppLayer {
 
         // SIP Call established -> loop and handle events
 
-        // Sleep about 3 seconds to wait for the media session
+        // Wait for the client to be ready to accept playback
+        handle.ready_to_send.notified().await;
+        // Sleep about 1 second to wait for the media session
         // to work and then play the welcome track.
-        sleep(Duration::from_secs(3)).await;
+        sleep(Duration::from_secs(1)).await;
 
         track_controller.play_track(Track::WelcomeConferenceId);
 

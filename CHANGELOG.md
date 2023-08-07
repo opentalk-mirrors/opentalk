@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- Fixed the issue where the "welcome to opentalk" message was cut off at the beginning when establishing a new SIP Call with the obelisk ([#43](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/43))
+
 ## [0.4.0] - 2023-08-24
 
 ### Added

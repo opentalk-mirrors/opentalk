@@ -7,7 +7,7 @@ use crate::websocket::TrickleCandidate;
 use super::{MediaTaskMsg, TrackController};
 use bytes::Bytes;
 use std::sync::Arc;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, Notify};
 use uuid::Uuid;
 
 /// Webrtc session of an event
@@ -50,6 +50,7 @@ pub enum HandleEvent {
 pub struct MediaTaskHandle {
     pub(super) tx: Arc<mpsc::UnboundedSender<MediaTaskMsg>>,
     pub(super) rx: mpsc::UnboundedReceiver<HandleEvent>,
+    pub(crate) ready_to_send: Arc<Notify>,
 }
 
 #[derive(Debug, thiserror::Error)]
