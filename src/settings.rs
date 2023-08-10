@@ -90,21 +90,29 @@ pub struct SipSettings {
     pub port: u16,
 
     pub id: Option<String>,
-    pub username: String,
-    pub password: String,
-    pub realm: String,
+    pub username: Option<String>,
 
-    pub registrar: String,
+    #[serde(flatten)]
+    pub registrar: Option<SipRegistrarSettings>,
+
     pub stun_server: Option<String>,
 
-    #[serde(default = "default_nat_ping_delta", deserialize_with = "duration_secs")]
-    pub nat_ping_delta: Duration,
+    #[serde(default)]
+    pub rtp_port_range: RtpPortRange,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct SipRegistrarSettings {
+    pub password: Option<String>,
+    pub realm: Option<String>,
+
+    pub registrar: String,
 
     #[serde(default)]
     pub enforce_qop: bool,
 
-    #[serde(default)]
-    pub rtp_port_range: RtpPortRange,
+    #[serde(default = "default_nat_ping_delta", deserialize_with = "duration_secs")]
+    pub nat_ping_delta: Duration,
 }
 
 #[derive(Deserialize)]
