@@ -4,7 +4,7 @@
 
 use crate::http::HttpClient;
 use crate::media::{self, MediaTaskHandle, Track};
-use crate::settings::Settings;
+use crate::settings::{Settings, SipRegistrarSettings};
 use crate::signaling::Signaling;
 use anyhow::{bail, Context, Result};
 use bytesstr::BytesStr;
@@ -15,13 +15,14 @@ use sip_core::transport::{TargetTransportInfo, TpHandle};
 use sip_core::{Endpoint, IncomingRequest, Layer, LayerKey, MayTake};
 use sip_types::header::typed::{Contact, ContentType};
 use sip_types::uri::sip::{SipUri, UserPart};
-use sip_types::uri::NameAddr;
+use sip_types::uri::{NameAddr, Uri};
 use sip_types::{Code, Method, Name};
 use sip_ua::dialog::{Dialog, DialogLayer};
 use sip_ua::invite::acceptor::Acceptor;
 use sip_ua::invite::InviteLayer;
 use sip_ua::register::Registration;
 use std::net::{IpAddr, SocketAddr};
+use std::pin::pin;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::lookup_host;
@@ -201,7 +202,7 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
     let app_layer = builder.add_layer(AppLayer {
         settings: settings.clone(),
         http_client: Arc::new(http_client),
-        shutdown,
+        shutdown: shutdown.clone(),
         app_data: parking_lot::RwLock::new(None),
         dialog_layer,
         invite_layer,
@@ -240,8 +241,10 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         endpoint
             .parse_uri(id)
             .context("Failed to parse `id` sip uri")?
+    } else if let Some(username) = &settings.sip.username {
+        endpoint.parse_uri(format!("sip:{}@{}", username, pub_addr))?
     } else {
-        endpoint.parse_uri(format!("sip:{}@{}", settings.sip.username, pub_addr))?
+        endpoint.parse_uri(format!("sip:{}", pub_addr))?
     };
 
     // set app data
@@ -250,111 +253,27 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         contact: Contact::new(NameAddr::uri(id.clone())),
     });
 
-    let mut target = TargetTransportInfo {
-        via_host_port: Some(pub_addr.into()),
-        transport: Some(transport.clone()),
-        destination: vec![],
-    };
-
-    let registrar = endpoint.parse_uri(&settings.sip.registrar)?;
-
-    let mut registration = Registration::new(NameAddr::uri(id), registrar);
-
-    let mut authenticator = DigestAuthenticator::default();
-    authenticator.enforce_qop = settings.sip.enforce_qop;
-
-    let mut auth_sess = UacAuthSession::new(authenticator);
-    let mut credentials = CredentialStore::new();
-
-    credentials.add_for_realm(
-        settings.sip.realm.clone(),
-        DigestCredentials::new(settings.sip.username.clone(), settings.sip.password.clone()),
-    );
-
-    let mut ctrl_c = Box::pin(tokio::signal::ctrl_c());
-
-    let mut nat_keep_alive_spawned = false;
-
-    loop {
-        let mut request = registration.create_register(false);
-        request.headers.insert_named(endpoint.allowed());
-
-        auth_sess.authorize_request(&mut request.headers);
-
-        let mut transaction = endpoint.send_request(request, &mut target).await?;
-
-        let response = transaction.receive_final().await?;
-
-        match response.line.code.into_u16() {
-            200..=299 => {
-                registration.receive_success_response(response);
-
-                // On successful registration spawn task that will send CRLF keep alive packets
-                if !nat_keep_alive_spawned {
-                    nat_keep_alive_spawned = true;
-                    tokio::spawn(nat_keep_alive(
-                        transport.clone(),
-                        target.destination.clone(),
-                        settings.sip.nat_ping_delta,
-                    ));
-                }
-
-                tokio::select! {
-                    _ = registration.wait_for_expiry() => {
-                        continue;
-                    }
-                    _ = &mut ctrl_c => {
-                        break;
-                    }
-                };
-            }
-            401 | 407 => auth_sess.handle_authenticate(
-                &response.headers,
-                &credentials,
-                RequestParts {
-                    line: &transaction.request().msg.line,
-                    headers: &transaction.request().msg.headers,
-                    body: &transaction.request().msg.body,
-                },
-            )?,
-            _ => {
-                bail!("Registration failed!");
-            }
-        }
+    if let Some(registrar) = &settings.sip.registrar {
+        register_with_registrar(
+            endpoint.clone(),
+            transport,
+            pub_addr,
+            id,
+            settings.sip.username.clone(),
+            registrar.clone(),
+            shutdown.subscribe(),
+        )
+        .await?;
+    } else {
+        log::info!("Incomplete SIP registrar settings, not registering anywhere.");
     }
+
+    tokio::signal::ctrl_c().await?;
 
     // ==== SHUTDOWN SEQUENCE
 
-    let shutdown = &endpoint[app_layer].shutdown;
-
     // Send shutdown signal
     shutdown.send(()).ok();
-
-    drop(ctrl_c);
-
-    // Then remove binding from registrar
-    loop {
-        let mut request = registration.create_register(true);
-        auth_sess.authorize_request(&mut request.headers);
-
-        let mut transaction = endpoint.send_request(request, &mut target).await?;
-
-        let response = transaction.receive_final().await?;
-
-        if let 401 | 407 = response.line.code.into_u16() {
-            auth_sess.handle_authenticate(
-                &response.headers,
-                &credentials,
-                RequestParts {
-                    line: &transaction.request().msg.line,
-                    headers: &transaction.request().msg.headers,
-                    body: &transaction.request().msg.body,
-                },
-            )?;
-        } else {
-            break;
-        }
-    }
 
     // Wait up to 10 seconds for all tasks to exit
     for _ in 0..10 {
@@ -370,6 +289,152 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Try to register with a SIP registrar, then spawn a task to keep that registration up
+async fn register_with_registrar(
+    endpoint: Endpoint,
+    transport: TpHandle,
+    pub_addr: SocketAddr,
+    id: Box<dyn Uri>,
+    username: Option<String>,
+    settings: SipRegistrarSettings,
+    mut shutdown: broadcast::Receiver<()>,
+) -> Result<()> {
+    let registrar_uri = endpoint
+        .parse_uri(&settings.registrar)
+        .context("Failed to parse registrar URI")?;
+
+    let mut registration = Registration::new(NameAddr::uri(id), registrar_uri);
+
+    let mut authenticator = DigestAuthenticator::default();
+    authenticator.enforce_qop = settings.enforce_qop;
+
+    let mut auth_sess = UacAuthSession::new(authenticator);
+    let mut credentials = CredentialStore::new();
+
+    // Add username & password credentials if both are set
+    if let Some((username, password)) = username.zip(settings.password) {
+        let credential = DigestCredentials::new(username, password);
+
+        if let Some(realm) = settings.realm {
+            credentials.add_for_realm(realm, credential);
+        } else {
+            credentials.set_default(credential);
+        }
+    }
+
+    // Create binding
+    let mut target = TargetTransportInfo {
+        via_host_port: Some(pub_addr.into()),
+        transport: Some(transport.clone()),
+        destination: vec![],
+    };
+
+    register(
+        &endpoint,
+        &mut target,
+        &mut registration,
+        &mut auth_sess,
+        &credentials,
+        false,
+    )
+    .await?;
+
+    // Ping the sip server in an intervall to not loose the NAT binding
+    tokio::spawn(nat_keep_alive(
+        transport.clone(),
+        target.destination.clone(),
+        settings.nat_ping_delta,
+    ));
+
+    // Spawn a task that keeps the registration active
+    tokio::spawn(async move {
+        loop {
+            let shutdown_recv = pin!(shutdown.recv());
+
+            // Wait for either the the register interval to expire or the application shutdown signal
+            tokio::select! {
+                _ = registration.wait_for_expiry() => {
+                    // fallthrough to refresh binding
+                }
+                _ = shutdown_recv => {
+                    // break out of loop to remove binding and exit the task
+                    break;
+                }
+            }
+
+            // Refresh binding
+            if let Err(e) = register(
+                &endpoint,
+                &mut target,
+                &mut registration,
+                &mut auth_sess,
+                &credentials,
+                false,
+            )
+            .await
+            {
+                log::error!("Failed to refresh binding, {e:?}");
+            }
+        }
+
+        // Remove binding
+        if let Err(e) = register(
+            &endpoint,
+            &mut target,
+            &mut registration,
+            &mut auth_sess,
+            &credentials,
+            true,
+        )
+        .await
+        {
+            log::error!("Failed to remove binding, {e:?}")
+        }
+    });
+
+    Ok(())
+}
+
+/// Send a register request and handle authentication using the given session and credentials
+async fn register(
+    endpoint: &Endpoint,
+    target: &mut TargetTransportInfo,
+    registration: &mut Registration,
+    auth_sess: &mut UacAuthSession,
+    credentials: &CredentialStore,
+    remove_binding: bool,
+) -> Result<()> {
+    loop {
+        let mut request = registration.create_register(remove_binding);
+        request.headers.insert_named(endpoint.allowed());
+
+        auth_sess.authorize_request(&mut request.headers);
+
+        let mut transaction = endpoint.send_request(request, target).await?;
+
+        let response = transaction.receive_final().await?;
+
+        match response.line.code.into_u16() {
+            200..=299 => {
+                registration.receive_success_response(response);
+                return Ok(());
+            }
+            401 | 407 => auth_sess.handle_authenticate(
+                &response.headers,
+                credentials,
+                RequestParts {
+                    line: &transaction.request().msg.line,
+                    headers: &transaction.request().msg.headers,
+                    body: &transaction.request().msg.body,
+                },
+            )?,
+            _ => {
+                bail!("Registration failed!");
+            }
+        }
+    }
 }
 
 async fn nat_keep_alive(tp: TpHandle, target: Vec<SocketAddr>, interval_delta: Duration) {
