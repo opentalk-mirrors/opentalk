@@ -159,22 +159,63 @@ impl MediaTask {
             bail!("Already created a sip_bin");
         }
 
+        // Create the SIP-BIN, it has a single sink for audio and zero or more audio sources
         let (sip_bin, answer) = SipBin::new(self.pub_addr, offer)?;
         self.pipeline.add(&sip_bin.bin)?;
 
-        let mixer = gst::ElementFactory::make("audiomixer")
+        // Create a audiomixer to mix all webrtc-subscriptions into a single audio stream, which can be sent to the SIP
+        // peer
+        let subscriber_mixer = gst::ElementFactory::make("audiomixer")
             .name("subscriber-audiomix")
+            .property("ignore-inactive-pads", true)
             .build()?;
-        self.pipeline.add(&mixer)?;
+        self.pipeline.add(&subscriber_mixer)?;
 
-        mixer
+        subscriber_mixer
             .link_pads(Some("src"), &sip_bin.bin, Some("sip-audio-sink"))
             .context("failed to link mixer to sip-bin")?;
 
+        // Create a track-source and link it to the subscriber-audiomix, so the SIP peer will hear the tracks played
         let (controller, tracksrc) = track::create_track_src()?;
 
         self.pipeline.add(&tracksrc)?;
-        tracksrc.link(&mixer)?;
+        tracksrc.link(&subscriber_mixer)?;
+
+        // Create a second audiomixer to combine all audio streams received by us from the SIP peer, to be later
+        // sent via webrtc.
+        // As long as there is no publishing webrtc connection the audio stream is dumped into a fakesink.
+        let publisher_mixer = gst::ElementFactory::make("audiomixer")
+            .name("publisher-audiomix")
+            .property("ignore-inactive-pads", true)
+            .build()?;
+        let fakesink = gst::ElementFactory::make("fakesink")
+            .name("publisher-fakesink")
+            .build()?;
+        self.pipeline.add_many(&[&publisher_mixer, &fakesink])?;
+        publisher_mixer.link(&fakesink)?;
+
+        // Handle pads added to sip-bin
+        let publisher_mixer_weak = publisher_mixer.downgrade();
+        sip_bin.bin.connect_pad_added(move |_, pad| {
+            // Connect the pad directly to the audiomixer
+            let Some(mixer) = publisher_mixer_weak.upgrade() else { return };
+
+            let res = (|| {
+                let sink_pad = mixer
+                    .request_pad_simple("sink_%u")
+                    .context("Failed to request pad from audiomixer")?;
+                pad.link(&sink_pad).context("Failed to link")
+            })();
+
+            if let Err(e) = res {
+                log::error!("Failed to handle new pad in sip-bin, {e:?}");
+            }
+        });
+
+        // TODO: Handle pads removed by the sip-bin (tough edge case)
+        // Currently pad from the sip-bin are directly linked to the publisher-audiomix's requested pads. Not handling
+        // these removed pads leads to these request-pads accumulating, though this should not be a huge problem since
+        // it shouldn't happen very often and the audiomixer has `ignore-inactive-pads` set to true.
 
         // Watch the pipeline bus
         let bus = self.pipeline.bus().context("failed to get pipeline bus")?;
@@ -288,6 +329,10 @@ impl MediaTask {
     }
 
     fn create_publish(&mut self) -> Result<()> {
+        if self.pipeline.by_name("publish").is_some() {
+            bail!("publish bin has already been created once");
+        }
+
         let publish_bin = r#"
             webrtcbin name=webrtc-publish bundle-policy=max-bundle
 
@@ -316,26 +361,29 @@ impl MediaTask {
         let audio_input = publish_bin
             .by_name("audio-input")
             .context("No audio-input found")?;
-
         let audio_input_sink = audio_input
             .static_pad("sink")
             .context("Element without sink pad")?;
 
         let webrtc_publish_audio_sink =
-            gst::GhostPad::with_target(Some("webrtc-publish-sink"), &audio_input_sink)?;
+            gst::GhostPad::with_target(Some("audio-sink"), &audio_input_sink)?;
 
         publish_bin.add_pad(&webrtc_publish_audio_sink)?;
 
-        let sip_bin = self
+        let mixer = self
             .pipeline
-            .by_name("sip-bin")
-            .context("no sip-bin in pipeline")?;
+            .by_name("publisher-audiomix")
+            .context("Failed to get publisher-audiomix, has the sip-bin been created?")?;
+        let publisher_fakesink = self
+            .pipeline
+            .by_name("publisher-fakesink")
+            .context("Failed to get publisher-fakesink")?;
 
-        sip_bin.link_pads(
-            Some("sip-audio-src"),
-            &publish_bin,
-            Some("webrtc-publish-sink"),
-        )?;
+        mixer.unlink(&publisher_fakesink);
+        self.pipeline.remove(&publisher_fakesink)?;
+        publisher_fakesink.set_state(gst::State::Null)?;
+
+        mixer.link_pads(Some("src"), &publish_bin, Some("audio-sink"))?;
 
         // Set transceiver direction to sendonly
         let transceiver = webrtc
