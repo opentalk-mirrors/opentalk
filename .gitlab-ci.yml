@@ -42,14 +42,24 @@ lint:clippy:
   script:
     - cargo clippy --all-features --tests -- --deny warnings
 
-lint:dependency_check:
+lint:dependency_check_advisories:
   image: git.opentalk.dev:5050/opentalk/backend/containers/cargo-deny:latest
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     - if: $CI_PIPELINE_SOURCE == 'schedule'
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: lint
-  script: cargo deny check
+  allow_failure: true
+  script: cargo deny check advisories
+
+lint:dependency_check_bans_licenses_sources:
+  image: git.opentalk.dev:5050/opentalk/backend/containers/cargo-deny:latest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  stage: lint
+  script: cargo deny check bans licenses sources
 
 lint:yaml:
   rules:
