@@ -613,9 +613,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-stun-types"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa20d83dafd5ee7d88a217e5261664ca088137d08c28b88b8ae51d4c9f82fc39"
+checksum = "6215a74319366892c432ecdae9b207cb2b7fe6d1c4a04a89234fbdad00ab3c60"
 dependencies = [
  "bitfield",
  "byteorder",
