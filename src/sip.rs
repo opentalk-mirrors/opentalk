@@ -418,7 +418,10 @@ async fn register(
 
         match response.line.code.into_u16() {
             200..=299 => {
-                registration.receive_success_response(response);
+                if !remove_binding {
+                    registration.receive_success_response(response);
+                }
+
                 return Ok(());
             }
             401 | 407 => auth_sess.handle_authenticate(

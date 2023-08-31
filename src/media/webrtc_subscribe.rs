@@ -51,14 +51,18 @@ fn try_webrtcbin_on_negotiation_needed(
     // Create callback to receive the SDP response from the webrtcbin
     let webrtcbin_weak = webrtcbin.downgrade();
     let promise = gst::Promise::with_change_func(move |answer| {
-        let Some(webrtcbin) = webrtcbin_weak.upgrade() else { return };
+        let Some(webrtcbin) = webrtcbin_weak.upgrade() else {
+            return;
+        };
 
         // Extract the SDP Answer from the many layers of wrapper types
         let Ok(Some(structure)) = answer else {
             log::error!("Failed to create SDP Answer, {:?}", answer);
             return;
         };
-        let Ok(answer) = structure.get::<gst_webrtc::WebRTCSessionDescription>("answer") else { return };
+        let Ok(answer) = structure.get::<gst_webrtc::WebRTCSessionDescription>("answer") else {
+            return;
+        };
 
         // Set our SDP response as local SDP
         log::debug!("setting local description to\n{}", answer.sdp());
