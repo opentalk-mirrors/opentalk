@@ -67,9 +67,9 @@ lint:yaml:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: lint
-  image: archlinux:latest
+  image: alpine:3.18
   before_script:
-    - pacman -Syy --noconfirm yamllint
+    - apk add --no-cache yamllint
   script: yamllint .
 
 lint:licensing:
