@@ -198,7 +198,9 @@ impl MediaTask {
         let publisher_mixer_weak = publisher_mixer.downgrade();
         sip_bin.bin.connect_pad_added(move |_, pad| {
             // Connect the pad directly to the audiomixer
-            let Some(mixer) = publisher_mixer_weak.upgrade() else { return };
+            let Some(mixer) = publisher_mixer_weak.upgrade() else {
+                return;
+            };
 
             let res = (|| {
                 let sink_pad = mixer
@@ -405,7 +407,9 @@ impl MediaTask {
 
             let webrtc_weak = webrtc.downgrade();
             let on_create_offer = gst::Promise::with_change_func(move |offer| {
-                let Some(webrtc) = webrtc_weak.upgrade() else { return };
+                let Some(webrtc) = webrtc_weak.upgrade() else {
+                    return;
+                };
 
                 let offer = offer.ok().flatten().and_then(|offer| {
                     offer
