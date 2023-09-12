@@ -13,6 +13,7 @@ use sip_bin::SipBin;
 use std::net::IpAddr;
 use std::sync::Arc;
 use std::thread;
+use tokio::sync::Notify;
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
 
@@ -82,11 +83,11 @@ impl MediaTask {
         }
     }
 
-    fn run(mut self, mut rx: mpsc::UnboundedReceiver<MediaTaskMsg>) {
+    fn run(mut self, mut rx: mpsc::UnboundedReceiver<MediaTaskMsg>, ready_to_send: Arc<Notify>) {
         while let Some(cmd) = rx.blocking_recv() {
             match cmd {
                 MediaTaskMsg::CreateSipSession { offer, answer_tx } => {
-                    if let Err(e) = self.on_sip_sdp_offer(offer, answer_tx) {
+                    if let Err(e) = self.on_sip_sdp_offer(offer, answer_tx, ready_to_send.clone()) {
                         log::error!("failed to handle sdp offer, {:?}", e);
                         self.task_tx.send(HandleEvent::Error).ok();
                         break;
@@ -154,13 +155,14 @@ impl MediaTask {
         &mut self,
         offer: Bytes,
         answer_tx: oneshot::Sender<(TrackController, String)>,
+        ready_to_send: Arc<Notify>,
     ) -> Result<()> {
         if self.sip_bin.is_some() {
             bail!("Already created a sip_bin");
         }
 
         // Create the SIP-BIN, it has a single sink for audio and zero or more audio sources
-        let (sip_bin, answer) = SipBin::new(self.pub_addr, offer)?;
+        let (sip_bin, answer) = SipBin::new(self.pub_addr, offer, ready_to_send)?;
         self.pipeline.add(&sip_bin.bin)?;
 
         // Create a audiomixer to mix all webrtc-subscriptions into a single audio stream, which can be sent to the SIP
@@ -607,16 +609,19 @@ impl MediaTask {
 pub fn spawn_task(pub_addr: IpAddr, call_id: &str) -> MediaTaskHandle {
     let (handle_tx, task_rx) = mpsc::unbounded_channel();
     let (task_tx, handle_rx) = mpsc::unbounded_channel();
+    let ready_to_send = Arc::new(Notify::new());
 
     let handle_tx = Arc::new(handle_tx);
+    let notify_on_ready_to_send = ready_to_send.clone();
 
     thread::Builder::new()
         .name(format!("media-task-{call_id}"))
-        .spawn(move || MediaTask::new(pub_addr, task_tx).run(task_rx))
+        .spawn(move || MediaTask::new(pub_addr, task_tx).run(task_rx, notify_on_ready_to_send))
         .expect("Failed to spawn media-task thread");
 
     MediaTaskHandle {
         tx: handle_tx,
         rx: handle_rx,
+        ready_to_send,
     }
 }
