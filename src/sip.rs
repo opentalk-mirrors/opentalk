@@ -15,6 +15,7 @@ use sip_core::transport::udp::Udp;
 use sip_core::transport::{TargetTransportInfo, TpHandle};
 use sip_core::{Endpoint, IncomingRequest, Layer, LayerKey, MayTake};
 use sip_types::header::typed::{Contact, ContentType};
+use sip_types::print::AppendCtx;
 use sip_types::uri::sip::{SipUri, UserPart};
 use sip_types::uri::{NameAddr, Uri};
 use sip_types::{Code, Method, Name};
@@ -22,6 +23,7 @@ use sip_ua::dialog::{Dialog, DialogLayer};
 use sip_ua::invite::acceptor::Acceptor;
 use sip_ua::invite::InviteLayer;
 use sip_ua::register::Registration;
+use std::borrow::Cow;
 use std::net::{IpAddr, SocketAddr};
 use std::pin::pin;
 use std::sync::Arc;
@@ -316,21 +318,31 @@ async fn register_with_registrar(
     settings: SipRegistrarSettings,
     mut shutdown: broadcast::Receiver<()>,
 ) -> Result<()> {
-    let registrar_uri_str =
-        if settings.registrar.starts_with("sip:") || settings.registrar.starts_with("sips:") {
-            settings.registrar
-        } else {
-            format!("sip:{}", settings.registrar)
-        };
-
+    let registrar_uri = maybe_add_sip_scheme(&settings.registrar);
     let registrar_uri = endpoint
-        .parse_uri(&registrar_uri_str)
+        .parse_uri(&registrar_uri)
         .context("Failed to parse registrar URI")?;
 
-    let (transport, target_addr) = endpoint
-        .select_transport(&*registrar_uri)
-        .await
-        .with_context(|| format!("Failed to select transport for {}", registrar_uri_str))?;
+    // Check if we send the request to an outbound proxy or directly to the registrar uri
+    let target_uri = if let Some(outbound_proxy) = settings.outbound_proxy {
+        let outbound_proxy = maybe_add_sip_scheme(&outbound_proxy);
+
+        endpoint.parse_uri(&outbound_proxy)?
+    } else {
+        registrar_uri.clone()
+    };
+
+    // Select a transport for the URI to which to send the REGISTER to
+    let (transport, target_addr) =
+        endpoint
+            .select_transport(&*target_uri)
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to select transport for '{}'",
+                    target_uri.default_print_ctx()
+                )
+            })?;
 
     let mut registration = Registration::new(NameAddr::uri(id), registrar_uri);
 
@@ -475,5 +487,13 @@ async fn nat_keep_alive(tp: TpHandle, target: SocketAddr, interval_delta: Durati
         }
 
         interval.tick().await;
+    }
+}
+
+fn maybe_add_sip_scheme(i: &str) -> Cow<'_, str> {
+    if i.starts_with("sip:") || i.starts_with("sips:") {
+        Cow::Borrowed(i)
+    } else {
+        Cow::Owned(format!("sip:{i}"))
     }
 }

@@ -111,6 +111,8 @@ pub struct SipRegistrarSettings {
     #[serde(default)]
     pub enforce_qop: bool,
 
+    pub outbound_proxy: Option<String>,
+
     #[serde(default = "default_nat_ping_delta", deserialize_with = "duration_secs")]
     pub nat_ping_delta: Duration,
 }

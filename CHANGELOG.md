@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Add support for SIP over TCP or TLS ([!75](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/75))
+- Add NAPTR & SRV service discovery for SIP registrars ([#52](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/52))
+- Add setting `sip.outbound_proxy` to specify a SIP proxy to send registration requests to (instead of `sip.registrar`) ([!75](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/75))
+
 ### Fixed
 
 - Fixed the issue where the "welcome to opentalk" message was cut off at the beginning when establishing a new SIP Call with the obelisk ([#43](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/43))
