@@ -454,7 +454,9 @@ async fn register(
 
         let response = transaction.receive_final().await?;
 
-        match response.line.code.into_u16() {
+        let response_code = response.line.code;
+
+        match response_code.into_u16() {
             200..=299 => {
                 if !remove_binding {
                     registration.receive_success_response(response);
@@ -471,9 +473,12 @@ async fn register(
                     body: &transaction.request().msg.body,
                 },
             )?,
-            _ => {
-                bail!("Registration failed!");
+            400..=499 if !remove_binding => {
+                if !registration.receive_error_response(response) {
+                    bail!("Registration failed with code '{:?}'", response_code);
+                }
             }
+            _ => bail!("Registration failed with code '{:?}'", response_code),
         }
     }
 }

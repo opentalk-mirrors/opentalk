@@ -574,9 +574,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-sip-types"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8802b78f9f0d6d9fd1e172b8c0050db43a13c7c65ee3afa5ca7b3da220f2556"
+checksum = "72249f14bc86cd243197dce590e3a37303c609af157edf6054b9a46bf6d3e0a4"
 dependencies = [
  "anyhow",
  "bytes",
@@ -592,9 +592,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-sip-ua"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "611fe6ea0d19735217db1fa40d22e4bcc79d541a341dd873b894c4bea1bf39a5"
+checksum = "532e97936b9543c09fd0594f2857558a1f60f67a242e779998ca6ed22c89bb26"
 dependencies = [
  "async-trait",
  "bytes",
