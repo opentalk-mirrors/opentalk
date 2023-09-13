@@ -10,6 +10,7 @@ use anyhow::{bail, Context, Result};
 use bytesstr::BytesStr;
 use sip_auth::digest::{DigestAuthenticator, DigestCredentials};
 use sip_auth::{CredentialStore, RequestParts, UacAuthSession};
+use sip_core::transport::tcp::TcpConnector;
 use sip_core::transport::udp::Udp;
 use sip_core::transport::{TargetTransportInfo, TpHandle};
 use sip_core::{Endpoint, IncomingRequest, Layer, LayerKey, MayTake};
@@ -210,21 +211,35 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         invite_layer,
     });
 
+    // Create a UDP socket to receive messages
     let transport = Udp::spawn(
         &mut builder,
         format!("{}:{}", settings.sip.addr, settings.sip.port),
     )
     .await?;
 
+    // Add TCP connector to allow the endpoint to create TCP connections
+    builder.add_transport_factory(Arc::new(TcpConnector::default()));
+
+    // Add TLS connector to allow the endpoint to create TLS connections
+    builder.add_transport_factory(Arc::new(tokio_native_tls::TlsConnector::from(
+        native_tls::TlsConnector::new()?,
+    )));
+
     let endpoint = builder.build();
 
+    // Find obelisk's public address using the UDP transport, when a stun-server is configured
     let pub_addr = if let Some(stun_server) = settings.sip.stun_server.as_ref() {
-        let stun_server: Vec<SocketAddr> = lookup_host(stun_server.as_str()).await?.collect();
+        let stun_server: SocketAddr = lookup_host(stun_server.as_str())
+            .await?
+            .find(|addr| addr.is_ipv4() == transport.bound().is_ipv4())
+            .with_context(|| format!("configured stun-server '{stun_server}' yielded no addresses that are compatible with the configured bound address"))?;
+
         let pub_addr = endpoint
-            .discover_public_address(&stun_server, &transport)
+            .discover_public_address(stun_server, &transport)
             .await?;
 
-        log::info!("Discovered public address {}", pub_addr.ip());
+        log::info!("Discovered public address '{}'", pub_addr.ip());
 
         pub_addr
     } else {
@@ -258,7 +273,6 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
     if let Some(registrar) = &settings.sip.registrar {
         register_with_registrar(
             endpoint.clone(),
-            transport,
             pub_addr,
             id,
             settings.sip.username.clone(),
@@ -296,16 +310,27 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
 /// Try to register with a SIP registrar, then spawn a task to keep that registration up
 async fn register_with_registrar(
     endpoint: Endpoint,
-    transport: TpHandle,
     pub_addr: SocketAddr,
     id: Box<dyn Uri>,
     username: Option<String>,
     settings: SipRegistrarSettings,
     mut shutdown: broadcast::Receiver<()>,
 ) -> Result<()> {
+    let registrar_uri_str =
+        if settings.registrar.starts_with("sip:") || settings.registrar.starts_with("sips:") {
+            settings.registrar
+        } else {
+            format!("sip:{}", settings.registrar)
+        };
+
     let registrar_uri = endpoint
-        .parse_uri(&settings.registrar)
+        .parse_uri(&registrar_uri_str)
         .context("Failed to parse registrar URI")?;
+
+    let (transport, target_addr) = endpoint
+        .select_transport(&*registrar_uri)
+        .await
+        .with_context(|| format!("Failed to select transport for {}", registrar_uri_str))?;
 
     let mut registration = Registration::new(NameAddr::uri(id), registrar_uri);
 
@@ -329,8 +354,7 @@ async fn register_with_registrar(
     // Create binding
     let mut target = TargetTransportInfo {
         via_host_port: Some(pub_addr.into()),
-        transport: Some(transport.clone()),
-        destination: vec![],
+        transport: Some((transport.clone(), target_addr)),
     };
 
     register(
@@ -346,7 +370,7 @@ async fn register_with_registrar(
     // Ping the sip server in an intervall to not loose the NAT binding
     tokio::spawn(nat_keep_alive(
         transport.clone(),
-        target.destination.clone(),
+        target_addr,
         settings.nat_ping_delta,
     ));
 
@@ -442,11 +466,11 @@ async fn register(
     }
 }
 
-async fn nat_keep_alive(tp: TpHandle, target: Vec<SocketAddr>, interval_delta: Duration) {
+async fn nat_keep_alive(tp: TpHandle, target: SocketAddr, interval_delta: Duration) {
     let mut interval = interval(interval_delta);
 
     loop {
-        if let Err(e) = tp.send(b"\r\n", &target).await {
+        if let Err(e) = tp.send(b"\r\n", target).await {
             log::error!("failed to send keep-alive, {}", e);
         }
 
