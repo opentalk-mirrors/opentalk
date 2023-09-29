@@ -44,6 +44,9 @@ realm = "example.org"
 # SIP URI of the registrar 
 registrar = "sip:example.org"
 
+# Specify a SIP proxy to send all requests to
+#outbound_proxy = "sip:someotherserver.example.org"
+
 # Seconds between ping/pong to keep NAT binding alive
 #nat_ping_delta = 30
 
