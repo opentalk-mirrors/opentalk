@@ -89,6 +89,7 @@ test:cargo_test:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: test
+  needs: []
   before_script:
     - >
       apk add --no-cache
@@ -102,6 +103,7 @@ test:container:
     # Run only on MR, cause we have no access to the registry in other repos
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   stage: test
+  needs: []
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: ['']
