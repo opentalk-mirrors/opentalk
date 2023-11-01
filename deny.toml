@@ -180,9 +180,10 @@ deny = [
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
     { name = "base64", version = "=0.13" },
+    { name = "bitflags", version = "1" },
+    { name = "spin", version = "0.5" },
     { name = "syn", version = "1" },
     { name = "toml", version = "=0.5" },
-    { name = "bitflags", version = "1" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
