@@ -20,7 +20,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::Notify;
 
 mod codec;
+mod custom_rtpdtmfdepay;
 mod sdp;
+
+pub use custom_rtpdtmfdepay::init_custom_rtpdtmfdepay;
 
 pub struct SipBin {
     pub(crate) bin: gst::Bin,
@@ -495,7 +498,7 @@ fn try_on_pad_added(
         //
         // Create a dtmfdepay and link its audio output to a fakesink as we don't want the audio
         // from it, only the signals it emits on the pipeline's bus.
-        let dtmfdepay = gst::ElementFactory::make("rtpdtmfdepay").build()?;
+        let dtmfdepay = gst::ElementFactory::make("opentalk-rtpdtmfdepay").build()?;
         let fakesink = gst::ElementFactory::make("fakesink").build()?;
 
         // add the dtmfdepay and fakesink to the pipeline

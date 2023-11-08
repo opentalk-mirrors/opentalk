@@ -19,6 +19,9 @@ gst-sdp = { package = "gstreamer-sdp", version = "0.20" }
 gst-webrtc = { package = "gstreamer-webrtc", version = "0.20", features = [
     "v1_22",
 ] }
+gst-rtp = { package = "gstreamer-rtp", version = "0.20", features = [
+    "v1_22",
+] }
 gio = "0.17"
 
 rand = "0.8"
@@ -30,6 +33,7 @@ async-trait = "0.1"
 futures = "0.3"
 
 bytes = "1"
+bitstream-io = "1.8"
 
 log = "0.4"
 env_logger = "0.10"

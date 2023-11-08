@@ -24,6 +24,7 @@ pub mod track;
 mod webrtc_subscribe;
 
 pub use handle::{HandleError, HandleEvent, MediaTaskHandle, Target};
+pub use sip_bin::init_custom_rtpdtmfdepay;
 pub use track::{Track, TrackController};
 
 enum MediaTaskMsg {
@@ -239,7 +240,7 @@ impl MediaTask {
             match msg.view() {
                 gst::MessageView::Error(error) => {
                     if let Some(source) = error.src() {
-                        if source.name() == "rtp-watchdog" {
+                        if source.name().contains("rtp-watchdog") {
                             if task_tx.send(HandleEvent::Error).is_err() {
                                 log::error!("Unable to send rtp timeout error to signaling");
                             }
