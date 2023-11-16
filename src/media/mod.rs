@@ -12,159 +12,69 @@ use gst_webrtc::WebRTCRTPTransceiverDirection;
 use sip_bin::SipBin;
 use std::net::IpAddr;
 use std::sync::Arc;
-use std::thread;
-use tokio::sync::Notify;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, Notify};
 use uuid::Uuid;
 
-mod handle;
 pub mod port_pool;
 mod sip_bin;
 pub mod track;
 mod webrtc_subscribe;
 
-pub use handle::{HandleError, HandleEvent, MediaTaskHandle, Target};
 pub use sip_bin::init_custom_rtpdtmfdepay;
 pub use track::{Track, TrackController};
 
-enum MediaTaskMsg {
-    CreateSipSession {
-        offer: Bytes,
-        answer_tx: oneshot::Sender<(TrackController, String)>,
-    },
-    SipReInvite {
-        offer: Bytes,
-        answer_tx: oneshot::Sender<String>,
-    },
-    CreatePublish,
-    CreateSubscribe {
-        uuid: Uuid,
-        offer: String,
-    },
-    RemoveSubscribe {
-        uuid: Uuid,
-    },
-    ReceivePublishResponse {
-        response: String,
-    },
-    PublishMute {
-        mute: bool,
-    },
-    CandidateReceived {
-        candidate: TrickleCandidate,
-        target: Target,
-    },
-    EndOfCandidatesReceived {
-        target: Target,
-    },
+/// Webrtc session of an event
+#[derive(Clone, Copy)]
+pub enum Target {
+    Publish,
+    Subscribe(Uuid),
 }
 
-struct MediaTask {
-    pub_addr: IpAddr,
-    task_tx: mpsc::UnboundedSender<HandleEvent>,
+/// Asynchronous events emitted by the media pipeline
+pub enum MediaEvent {
+    Error,
+    DtmfDigit(i32),
+    IceCandidate {
+        target: Target,
+        candidate: String,
+        mline_index: u32,
+    },
+    NoMoreIceCandidates(Target),
+}
+
+pub struct MediaPipeline {
+    events_tx: mpsc::UnboundedSender<MediaEvent>,
+    events_rx: mpsc::UnboundedReceiver<MediaEvent>,
     pipeline: gst::Pipeline,
-    sip_bin: Option<SipBin>,
+    sip_bin: SipBin,
 }
 
-impl Drop for MediaTask {
+impl Drop for MediaPipeline {
     fn drop(&mut self) {
-        let _ = self.pipeline.set_state(gst::State::Null);
+        self.pipeline.call_async(|pipeline| {
+            let _ = pipeline.set_state(gst::State::Null);
+        });
     }
 }
 
-impl MediaTask {
-    fn new(pub_addr: IpAddr, task_tx: mpsc::UnboundedSender<HandleEvent>) -> Self {
+impl MediaPipeline {
+    /// # Returns
+    ///
+    /// - Self
+    /// - track controller to play different audio tracks
+    /// - string containing the SIP SDP Answer
+    pub async fn new(
+        pub_addr: IpAddr,
+        sip_sdp_offer: Bytes,
+        ready_to_send: Arc<Notify>,
+    ) -> Result<(Self, TrackController, String)> {
+        let (events_tx, events_rx) = mpsc::unbounded_channel();
+
         let pipeline = gst::Pipeline::new(None);
 
-        Self {
-            pub_addr,
-            task_tx,
-            pipeline,
-            sip_bin: None,
-        }
-    }
-
-    fn run(mut self, mut rx: mpsc::UnboundedReceiver<MediaTaskMsg>, ready_to_send: Arc<Notify>) {
-        while let Some(cmd) = rx.blocking_recv() {
-            match cmd {
-                MediaTaskMsg::CreateSipSession { offer, answer_tx } => {
-                    if let Err(e) = self.on_sip_sdp_offer(offer, answer_tx, ready_to_send.clone()) {
-                        log::error!("failed to handle sdp offer, {:?}", e);
-                        self.task_tx.send(HandleEvent::Error).ok();
-                        break;
-                    }
-                }
-                MediaTaskMsg::SipReInvite { offer, answer_tx } => {
-                    if let Err(e) = self.on_reinvite(offer, answer_tx) {
-                        log::error!("failed to handle reinvite, {:?}", e);
-                        self.task_tx.send(HandleEvent::Error).ok();
-                        break;
-                    }
-                }
-                MediaTaskMsg::CandidateReceived { candidate, target } => {
-                    if let Err(e) = self.on_sdp_candidate(candidate, target) {
-                        log::error!("failed to handle sdp candidate, {:?}", e);
-                        self.task_tx.send(HandleEvent::Error).ok();
-                        break;
-                    }
-                }
-                MediaTaskMsg::EndOfCandidatesReceived { target } => {
-                    if let Err(e) = self.on_sdp_end_of_candidates(target) {
-                        log::error!("failed to handle end of candidates, {:?}", e);
-                        self.task_tx.send(HandleEvent::Error).ok();
-                        break;
-                    }
-                }
-                MediaTaskMsg::CreatePublish => {
-                    if let Err(e) = self.create_publish() {
-                        log::error!("failed to create publish, {:?}", e);
-                        self.task_tx.send(HandleEvent::Error).ok();
-                        break;
-                    }
-                }
-                MediaTaskMsg::CreateSubscribe { uuid, offer } => {
-                    if let Err(e) = self.create_subscribe(uuid, offer) {
-                        log::error!("failed to create subscribe {}, {:?}", uuid, e);
-                        self.task_tx.send(HandleEvent::Error).ok();
-                        break;
-                    }
-                }
-                MediaTaskMsg::RemoveSubscribe { uuid } => {
-                    if let Err(e) = self.remove_subscribe(uuid) {
-                        log::error!("failed to remove subscribe {}, {:?}", uuid, e);
-                    }
-                }
-                MediaTaskMsg::ReceivePublishResponse { response } => {
-                    if let Err(e) = self.on_publish_response(response) {
-                        log::error!("failed to handle publish response, {:?}", e);
-                        self.task_tx.send(HandleEvent::Error).ok();
-                        break;
-                    }
-                }
-                MediaTaskMsg::PublishMute { mute } => {
-                    if let Err(e) = self.on_publish_mute(mute) {
-                        log::error!("failed to mute, {:?}", e);
-                        self.task_tx.send(HandleEvent::Error).ok();
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    fn on_sip_sdp_offer(
-        &mut self,
-        offer: Bytes,
-        answer_tx: oneshot::Sender<(TrackController, String)>,
-        ready_to_send: Arc<Notify>,
-    ) -> Result<()> {
-        if self.sip_bin.is_some() {
-            bail!("Already created a sip_bin");
-        }
-
         // Create the SIP-BIN, it has a single sink for audio and zero or more audio sources
-        let (sip_bin, answer) = SipBin::new(self.pub_addr, offer, ready_to_send)?;
-        self.pipeline.add(&sip_bin.bin)?;
+        let (sip_bin, answer) = SipBin::new(pub_addr, sip_sdp_offer, ready_to_send)?;
+        pipeline.add(&sip_bin.bin)?;
 
         // Create a audiomixer to mix all webrtc-subscriptions into a single audio stream, which can be sent to the SIP
         // peer
@@ -172,7 +82,7 @@ impl MediaTask {
             .name("subscriber-audiomix")
             .property("ignore-inactive-pads", true)
             .build()?;
-        self.pipeline.add(&subscriber_mixer)?;
+        pipeline.add(&subscriber_mixer)?;
 
         subscriber_mixer
             .link_pads(Some("src"), &sip_bin.bin, Some("sip-audio-sink"))
@@ -181,7 +91,7 @@ impl MediaTask {
         // Create a track-source and link it to the subscriber-audiomix, so the SIP peer will hear the tracks played
         let (controller, tracksrc) = track::create_track_src()?;
 
-        self.pipeline.add(&tracksrc)?;
+        pipeline.add(&tracksrc)?;
         tracksrc.link(&subscriber_mixer)?;
 
         // Create a second audiomixer to combine all audio streams received by us from the SIP peer, to be later
@@ -194,7 +104,7 @@ impl MediaTask {
         let fakesink = gst::ElementFactory::make("fakesink")
             .name("publisher-fakesink")
             .build()?;
-        self.pipeline.add_many(&[&publisher_mixer, &fakesink])?;
+        pipeline.add_many(&[&publisher_mixer, &fakesink])?;
         publisher_mixer.link(&fakesink)?;
 
         // Handle pads added to sip-bin
@@ -223,17 +133,11 @@ impl MediaTask {
         // it shouldn't happen very often and the audiomixer has `ignore-inactive-pads` set to true.
 
         // Watch the pipeline bus
-        let bus = self.pipeline.bus().context("failed to get pipeline bus")?;
+        let bus = pipeline.bus().context("failed to get pipeline bus")?;
 
-        let task_tx = self.task_tx.clone();
+        let events_tx_ = events_tx.clone();
 
-        self.sip_bin = Some(sip_bin);
-
-        if answer_tx.send((controller, answer)).is_err() {
-            bail!("failed to send SDP response to handle")
-        }
-
-        let pipeline_weak = self.pipeline.downgrade();
+        let pipeline_weak = pipeline.downgrade();
         bus.add_watch(move |_, msg| {
             let mut do_continue = true;
 
@@ -241,7 +145,12 @@ impl MediaTask {
                 gst::MessageView::Error(error) => {
                     if let Some(source) = error.src() {
                         if source.name().contains("rtp-watchdog") {
-                            if task_tx.send(HandleEvent::Error).is_err() {
+                            log::error!(
+                                "Detected Problems with sending or receiving RTP ({} triggered)",
+                                source.name()
+                            );
+
+                            if events_tx_.send(MediaEvent::Error).is_err() {
                                 log::error!("Unable to send rtp timeout error to signaling");
                             }
 
@@ -262,7 +171,7 @@ impl MediaTask {
                     if let Some(structure) = element.structure() {
                         if structure.name() == "dtmf-event" {
                             if let Ok(digit) = structure.get::<i32>("number") {
-                                do_continue = task_tx.send(HandleEvent::DtmfDigit(digit)).is_ok();
+                                do_continue = events_tx_.send(MediaEvent::DtmfDigit(digit)).is_ok();
                             }
                         }
                     }
@@ -275,16 +184,32 @@ impl MediaTask {
 
         drop(bus);
 
-        self.pipeline.set_state(gst::State::Playing)?;
+        pipeline
+            .call_async_future(|pipeline| pipeline.set_state(gst::State::Playing))
+            .await?;
 
-        Ok(())
+        let this = Self {
+            events_rx,
+            events_tx,
+            pipeline,
+            sip_bin,
+        };
+
+        Ok((this, controller, answer))
     }
 
-    fn on_sdp_candidate(&mut self, candidate: TrickleCandidate, target: Target) -> Result<()> {
+    pub async fn wait_for_event(&mut self) -> MediaEvent {
+        self.events_rx
+            .recv()
+            .await
+            .expect("self also holds the sender side of the channel, so this should never fail")
+    }
+
+    pub fn on_sdp_candidate(&mut self, candidate: TrickleCandidate, target: Target) -> Result<()> {
         self.send_sdp_candidate(target, &candidate.sdp_m_line_index, &candidate.candidate)
     }
 
-    fn on_sdp_end_of_candidates(&mut self, target: Target) -> Result<()> {
+    pub fn on_sdp_end_of_candidates(&mut self, target: Target) -> Result<()> {
         self.send_sdp_candidate(target, &0u32, &None::<String>)
     }
 
@@ -318,22 +243,13 @@ impl MediaTask {
         Ok(())
     }
 
-    fn on_reinvite(&mut self, offer: Bytes, answer_tx: oneshot::Sender<String>) -> Result<()> {
-        if let Some(sip_bin) = &mut self.sip_bin {
-            match sip_bin.update(offer) {
-                Ok(answer) => {
-                    answer_tx.send(answer).ok();
-                }
-                Err(e) => log::error!("Failed to handle re-invite, {:?}", e),
-            }
-
-            Ok(())
-        } else {
-            bail!("received SipReInvite event without a sip_bin initialized");
-        }
+    pub fn on_reinvite(&mut self, offer: Bytes) -> Result<String> {
+        self.sip_bin
+            .update(offer)
+            .context("Failed to handle re-invite")
     }
 
-    fn create_publish(&mut self) -> Result<()> {
+    pub async fn create_publish(&mut self) -> Result<String> {
         if self.pipeline.by_name("publish").is_some() {
             bail!("publish bin has already been created once");
         }
@@ -392,7 +308,7 @@ impl MediaTask {
 
         // Set transceiver direction to sendonly
         let transceiver = webrtc
-            .emit_by_name::<Option<gst_webrtc::WebRTCRTPTransceiver>>("get-transceiver", &[&0])
+            .emit_by_name::<Option<gst_webrtc::WebRTCRTPTransceiver>>("get-transceiver", &[&0i32])
             .context("no transceiver in 0")?;
 
         transceiver.set_direction(WebRTCRTPTransceiverDirection::Sendonly);
@@ -400,57 +316,59 @@ impl MediaTask {
 
         self.connect_ice_candidate_gathering_hooks(&webrtc, Target::Publish);
 
-        let task_tx = self.task_tx.clone();
-        webrtc.connect("on-negotiation-needed", true, move |values| {
-            let webrtc = values[0]
-                .get::<gst::Element>()
-                .expect("values[0] of on-negotiation-needed is a gst::Element");
+        publish_bin
+            .call_async_future(|publish_bin| publish_bin.set_state(gst::State::Playing))
+            .await?;
 
-            let task_tx = task_tx.clone();
+        // Wait for webrtcbin to be ready
+        let notify = Arc::new(Notify::new());
+        let notify_clone = notify.clone();
 
-            let webrtc_weak = webrtc.downgrade();
-            let on_create_offer = gst::Promise::with_change_func(move |offer| {
-                let Some(webrtc) = webrtc_weak.upgrade() else {
-                    return;
-                };
+        let notified = notify.notified();
 
-                let offer = offer.ok().flatten().and_then(|offer| {
-                    offer
-                        .get::<gst_webrtc::WebRTCSessionDescription>("offer")
-                        .ok()
-                });
-
-                let offer = if let Some(offer) = offer {
-                    offer
-                } else {
-                    log::error!("create-offer failed");
-                    return;
-                };
-
-                log::debug!("setting local description to\n{}", offer.sdp());
-
-                webrtc
-                    .emit_by_name::<()>("set-local-description", &[&offer, &None::<gst::Promise>]);
-
-                if task_tx
-                    .send(HandleEvent::PublishOffer(offer.sdp().to_string()))
-                    .is_err()
-                {
-                    log::error!("bug: failed to send sdp offer");
-                }
-            });
-
-            webrtc.emit_by_name::<()>("create-offer", &[&None::<gst::Structure>, &on_create_offer]);
-
+        webrtc.connect("on-negotiation-needed", true, move |_| {
+            notify_clone.notify_waiters();
             None
         });
 
-        publish_bin.set_state(gst::State::Playing)?;
+        notified.await;
 
-        Ok(())
+        // Create SDP offer
+        let (tx, rx) = oneshot::channel();
+        let webrtc_weak = webrtc.downgrade();
+        let on_create_offer = gst::Promise::with_change_func(move |offer| {
+            let Some(webrtc) = webrtc_weak.upgrade() else {
+                return;
+            };
+
+            let offer = offer.ok().flatten().and_then(|offer| {
+                offer
+                    .get::<gst_webrtc::WebRTCSessionDescription>("offer")
+                    .ok()
+            });
+
+            let offer = if let Some(offer) = offer {
+                offer
+            } else {
+                log::error!("create-offer failed");
+                return;
+            };
+
+            log::debug!("setting local description to\n{}", offer.sdp());
+
+            webrtc.emit_by_name::<()>("set-local-description", &[&offer, &None::<gst::Promise>]);
+
+            if tx.send(offer.sdp().to_string()).is_err() {
+                log::error!("Failed to forward sdp offer back to task");
+            }
+        });
+
+        webrtc.emit_by_name::<()>("create-offer", &[&None::<gst::Structure>, &on_create_offer]);
+
+        rx.await.context("Failed to create SDP offer")
     }
 
-    fn on_publish_response(&mut self, response: String) -> Result<()> {
+    pub fn on_publish_response(&mut self, response: String) -> Result<()> {
         let webrtc = self
             .pipeline
             .by_name("webrtc-publish")
@@ -471,7 +389,7 @@ impl MediaTask {
         Ok(())
     }
 
-    fn create_subscribe(&mut self, uuid: Uuid, offer: String) -> Result<()> {
+    pub async fn create_subscribe(&mut self, uuid: Uuid, offer: String) -> Result<String> {
         let subscribe_bin = format!(
             r#"
             webrtcbin name=webrtc-subscribe:{uuid} bundle-policy=max-bundle
@@ -511,19 +429,53 @@ impl MediaTask {
             ),
         );
 
-        // Negotiate SDP when the webrtcbin object is ready
-        webrtc.connect(
-            "on-negotiation-needed",
-            true,
-            webrtc_subscribe::webrtcbin_on_negotation_needed(uuid, self.task_tx.clone(), offer),
-        );
+        subscribe_bin
+            .call_async_future(|subscribe_bin| subscribe_bin.set_state(gst::State::Playing))
+            .await?;
 
-        subscribe_bin.set_state(gst::State::Playing)?;
+        // Parse the SDP text into a gstreamer WebRTCSessionDescription
+        let offer = gst_sdp::SDPMessage::parse_buffer(offer.as_bytes())
+            .context("Failed to parse SDP offer to gst::SDPMessage")?;
+        let offer =
+            gst_webrtc::WebRTCSessionDescription::new(gst_webrtc::WebRTCSDPType::Offer, offer);
 
-        Ok(())
+        // Set the offer as "remote" description to respond with a local description
+        log::debug!("settings remote description to \n{}", offer.sdp());
+        webrtc.emit_by_name::<()>("set-remote-description", &[&offer, &None::<gst::Promise>]);
+
+        // Create callback to receive the SDP response from the webrtcbin
+        let (tx, rx) = oneshot::channel();
+        let webrtc_weak = webrtc.downgrade();
+        let promise = gst::Promise::with_change_func(move |answer| {
+            let Some(webrtc) = webrtc_weak.upgrade() else {
+                return;
+            };
+
+            // Extract the SDP Answer from the many layers of wrapper types
+            let Ok(Some(structure)) = answer else {
+                log::error!("Failed to create SDP Answer, {:?}", answer);
+                return;
+            };
+            let Ok(answer) = structure.get::<gst_webrtc::WebRTCSessionDescription>("answer") else {
+                return;
+            };
+
+            // Set our SDP response as local SDP
+            log::debug!("setting local description to\n{}", answer.sdp());
+            webrtc.emit_by_name::<()>("set-local-description", &[&answer, &None::<gst::Promise>]);
+
+            // Send the SDP answer back to the signaling task
+            if tx.send(answer.sdp().to_string()).is_err() {
+                log::error!("Failed to send SDP answer back to task");
+            }
+        });
+
+        webrtc.emit_by_name::<()>("create-answer", &[&None::<gst::Structure>, &promise]);
+
+        rx.await.context("Failed to create SDP answer")
     }
 
-    fn remove_subscribe(&mut self, uuid: Uuid) -> Result<()> {
+    pub async fn remove_subscribe(&mut self, uuid: Uuid) -> Result<()> {
         let subscribe_bin =
             if let Some(subscribe_bin) = self.pipeline.by_name(&format!("subscribe:{}", uuid)) {
                 subscribe_bin
@@ -559,19 +511,21 @@ impl MediaTask {
         self.pipeline.remove(&subscribe_bin)?;
 
         // Set subscribe_bin to Null, destroying it
-        subscribe_bin.set_state(gst::State::Null)?;
+        subscribe_bin
+            .call_async_future(|subscribe_bin| subscribe_bin.set_state(gst::State::Null))
+            .await?;
 
         Ok(())
     }
 
     fn connect_ice_candidate_gathering_hooks(&self, webrtcbin: &gst::Element, target: Target) {
-        let task_tx = self.task_tx.clone();
+        let events_tx = self.events_tx.clone();
         webrtcbin.connect("on-ice-candidate", true, move |values| {
             let mline_index = values[1].get::<u32>().expect("mline_index is guint");
             let candidate = values[2].get::<String>().expect("candidate is gchararray");
 
-            task_tx
-                .send(HandleEvent::IceCandidate {
+            events_tx
+                .send(MediaEvent::IceCandidate {
                     target,
                     candidate,
                     mline_index,
@@ -581,7 +535,7 @@ impl MediaTask {
             None
         });
 
-        let task_tx = self.task_tx.clone();
+        let events_tx = self.events_tx.clone();
         webrtcbin.connect("notify::ice-gathering-state", true, move |values| {
             let webrtcbin = values[0]
                 .get::<gst::Element>()
@@ -591,38 +545,24 @@ impl MediaTask {
                 webrtcbin.property::<gst_webrtc::WebRTCICEGatheringState>("ice-gathering-state");
 
             if state == gst_webrtc::WebRTCICEGatheringState::Complete {
-                let _ = task_tx.send(HandleEvent::NoMoreIceCandidates(target));
+                // ICE candidate gathering is complete - send signal to task
+                if events_tx
+                    .send(MediaEvent::NoMoreIceCandidates(target))
+                    .is_err()
+                {
+                    log::error!("Failed to send end-of-candidates signal to task");
+                }
             }
 
             None
         });
     }
 
-    fn on_publish_mute(&mut self, mute: bool) -> Result<()> {
+    pub fn on_publish_mute(&mut self, mute: bool) -> Result<()> {
         if let Some(volume) = self.pipeline.by_name("audio-input") {
             volume.set_property("mute", mute);
         }
 
         Ok(())
-    }
-}
-
-pub fn spawn_task(pub_addr: IpAddr, call_id: &str) -> MediaTaskHandle {
-    let (handle_tx, task_rx) = mpsc::unbounded_channel();
-    let (task_tx, handle_rx) = mpsc::unbounded_channel();
-    let ready_to_send = Arc::new(Notify::new());
-
-    let handle_tx = Arc::new(handle_tx);
-    let notify_on_ready_to_send = ready_to_send.clone();
-
-    thread::Builder::new()
-        .name(format!("media-task-{call_id}"))
-        .spawn(move || MediaTask::new(pub_addr, task_tx).run(task_rx, notify_on_ready_to_send))
-        .expect("Failed to spawn media-task thread");
-
-    MediaTaskHandle {
-        tx: handle_tx,
-        rx: handle_rx,
-        ready_to_send,
     }
 }

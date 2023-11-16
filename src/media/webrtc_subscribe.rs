@@ -2,83 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use super::HandleEvent;
 use anyhow::{Context, Result};
 use gio::glib::{Value, WeakRef};
 use gio::prelude::*;
 use gst::prelude::*;
 use gst::traits::{ElementExt, GstBinExt, PadExt};
-use tokio::sync::mpsc;
 use uuid::Uuid;
-
-/// Creates a closure which is called by webrtcbin when it's ready to negotitate via SDP.
-// TODO: This currently will always parse the initial offer, ideally this should request a new offer via signaling
-pub(super) fn webrtcbin_on_negotation_needed(
-    participant_id: Uuid,
-    task_tx: mpsc::UnboundedSender<HandleEvent>,
-    offer: String,
-) -> impl Fn(&[Value]) -> Option<Value> {
-    move |values| {
-        let webrtcbin = values[0]
-            .get::<gst::Element>()
-            .expect("values[0] of on-negotiation-needed is a gst::Element");
-
-        if let Err(e) =
-            try_webrtcbin_on_negotiation_needed(webrtcbin, participant_id, task_tx.clone(), &offer)
-        {
-            log::error!("Failed to handle subscriber-webrtc's on-negotiation-needed event, {e:?}");
-        }
-
-        None
-    }
-}
-
-fn try_webrtcbin_on_negotiation_needed(
-    webrtcbin: gst::Element,
-    participant_id: Uuid,
-    task_tx: mpsc::UnboundedSender<HandleEvent>,
-    offer: &str,
-) -> Result<()> {
-    // Parse the SDP text into a gstreamer WebRTCSessionDescription
-    let offer = gst_sdp::SDPMessage::parse_buffer(offer.as_bytes())
-        .context("Failed to parse SDP offer to gst::SDPMessage")?;
-    let offer = gst_webrtc::WebRTCSessionDescription::new(gst_webrtc::WebRTCSDPType::Offer, offer);
-
-    // Set the offer as "remote" description to respond with a local description
-    log::debug!("settings remote description to \n{}", offer.sdp());
-    webrtcbin.emit_by_name::<()>("set-remote-description", &[&offer, &None::<gst::Promise>]);
-
-    // Create callback to receive the SDP response from the webrtcbin
-    let webrtcbin_weak = webrtcbin.downgrade();
-    let promise = gst::Promise::with_change_func(move |answer| {
-        let Some(webrtcbin) = webrtcbin_weak.upgrade() else {
-            return;
-        };
-
-        // Extract the SDP Answer from the many layers of wrapper types
-        let Ok(Some(structure)) = answer else {
-            log::error!("Failed to create SDP Answer, {:?}", answer);
-            return;
-        };
-        let Ok(answer) = structure.get::<gst_webrtc::WebRTCSessionDescription>("answer") else {
-            return;
-        };
-
-        // Set our SDP response as local SDP
-        log::debug!("setting local description to\n{}", answer.sdp());
-        webrtcbin.emit_by_name::<()>("set-local-description", &[&answer, &None::<gst::Promise>]);
-
-        // Send the SDP answer back to the signaling task
-        let _ = task_tx.send(HandleEvent::SubscribeAnswer {
-            uuid: participant_id,
-            answer: answer.sdp().to_string(),
-        });
-    });
-
-    webrtcbin.emit_by_name::<()>("create-answer", &[&None::<gst::Structure>, &promise]);
-
-    Ok(())
-}
 
 /// Creates a closure which is called by webrtcbin when it added a new pad.
 ///

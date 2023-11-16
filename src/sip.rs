@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use crate::http::HttpClient;
-use crate::media::{self, MediaTaskHandle, Track};
+use crate::media::{MediaPipeline, Track};
 use crate::settings::{Settings, SipRegistrarSettings};
 use crate::signaling::Signaling;
 use anyhow::{bail, Context, Result};
@@ -29,7 +29,7 @@ use std::pin::pin;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::lookup_host;
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, Notify};
 use tokio::time::{interval, sleep};
 
 struct AppData {
@@ -66,17 +66,14 @@ impl Layer for AppLayer {
             return;
         };
 
-        let (contact, handle) = if let Some(app_data) = &*self.app_data.read() {
-            let contact = app_data.contact.clone();
-            let handle = media::spawn_task(app_data.pub_ip, &request.base_headers.call_id.0);
-
-            (contact, handle)
+        let (contact, pub_ip) = if let Some(app_data) = &*self.app_data.read() {
+            (app_data.contact.clone(), app_data.pub_ip)
         } else {
             log::warn!("Got request before contact is ready");
             return;
         };
 
-        if let Err(e) = self.handle_invite(endpoint, request, contact, handle).await {
+        if let Err(e) = self.handle_invite(endpoint, request, contact, pub_ip).await {
             log::error!("failed to handle invite {:?}", e);
         }
     }
@@ -89,7 +86,7 @@ impl AppLayer {
         endpoint: &Endpoint,
         request: IncomingRequest,
         contact: Contact,
-        handle: MediaTaskHandle,
+        pub_ip: IpAddr,
     ) -> Result<()> {
         // Save body and display name before handing the request to the acceptor
         let sdp_offer = request.body.clone();
@@ -133,10 +130,16 @@ impl AppLayer {
         acceptor.respond_provisional(response).await?;
 
         // Hand the incoming SDP to the media task
-        let (track_controller, sdp_answer) = match handle.send_sip_sdp_offer(sdp_offer).await {
-            Ok(answer) => answer,
-            Err(_) => return self.internal_server_error(acceptor).await,
-        };
+        let ready_to_send = Arc::new(Notify::new());
+        let (handle, track_controller, sdp_answer) =
+            match MediaPipeline::new(pub_ip, sdp_offer, ready_to_send.clone()).await {
+                Ok(answer) => answer,
+                Err(e) => {
+                    log::error!("Failed to create GStreamer pipeline, {e:?}");
+
+                    return self.internal_server_error(acceptor).await;
+                }
+            };
 
         // Respond with 200 OK
         let mut response = acceptor.create_response(Code::OK, None).await?;
@@ -152,7 +155,7 @@ impl AppLayer {
         // SIP Call established -> loop and handle events
 
         // Wait for the client to be ready to accept playback
-        handle.ready_to_send.notified().await;
+        ready_to_send.notified().await;
         // Sleep about 1 second to wait for the media session
         // to work and then play the welcome track.
         sleep(Duration::from_secs(1)).await;
