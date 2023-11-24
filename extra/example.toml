@@ -29,7 +29,7 @@ addr = "0.0.0.0"
 port = 5060
 
 # ID of this SIP endpoint
-# When not set, it is generated as sip:<username>@<addr> where `addr` may be replaced by the
+# When not set, it is generated as `sip:<username>@<addr>` where `addr` may be replaced by the
 # public address discovered using the stun-server
 #id = "sip:alice@example.org"
 
@@ -42,7 +42,7 @@ password = "mysecurepassword"
 realm = "example.org"
 
 # SIP URI of the registrar 
-registrar = "sip:example.org"
+registrar = "sip:sip.example.org"
 
 # Specify a SIP proxy to send all requests to
 #outbound_proxy = "sip:someotherserver.example.org"
