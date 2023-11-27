@@ -1,3 +1,7 @@
+---
+title: Obelisk
+---
+
 # Administration guide for the OpenTalk Obelisk SIP bridge
 
 ## General information about the service

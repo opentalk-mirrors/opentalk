@@ -1,3 +1,8 @@
+---
+sidebar_position: 1
+title: Configuration
+---
+
 # Configuring Obelisk
 
 When Obelisk gets started, it loads the configuration from the
