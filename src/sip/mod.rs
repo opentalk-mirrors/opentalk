@@ -2,12 +2,15 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use self::sdp::SessionInfo;
 use crate::http::HttpClient;
+use crate::media::codec::MediaType;
 use crate::media::{MediaPipeline, Track};
 use crate::settings::{Settings, SipRegistrarSettings};
 use crate::signaling::Signaling;
 use anyhow::{bail, Context, Result};
 use bytesstr::BytesStr;
+use sdp_types::attributes::direction::Direction;
 use sip_auth::digest::{DigestAuthenticator, DigestCredentials};
 use sip_auth::{CredentialStore, RequestParts, UacAuthSession};
 use sip_core::transport::tcp::TcpConnector;
@@ -31,6 +34,12 @@ use std::time::Duration;
 use tokio::net::lookup_host;
 use tokio::sync::{broadcast, Notify};
 use tokio::time::{interval, sleep};
+
+mod codec;
+mod sdp;
+mod update;
+
+pub use update::handle_reinvite;
 
 struct AppData {
     contact: Contact,
@@ -88,7 +97,7 @@ impl AppLayer {
         contact: Contact,
         pub_ip: IpAddr,
     ) -> Result<()> {
-        // Save body and display name before handing the request to the acceptor
+        // Save body before handing the request to the acceptor
         let sdp_offer = request.body.clone();
 
         let content_type: ContentType = request.headers.get_named()?;
@@ -105,6 +114,12 @@ impl AppLayer {
             tsx.respond_failure(response).await?;
             bail!("Invalid invite content type {:?}", content_type.0);
         }
+
+        let session_info = SessionInfo::create_from_offer(sdp_offer, pub_ip)?;
+        let session_info_contains_video = session_info
+            .media
+            .iter()
+            .any(|m| m.media_type == MediaType::Video);
 
         let dialog = Dialog::new_server(endpoint.clone(), self.dialog_layer, &request, contact)?;
 
@@ -129,10 +144,10 @@ impl AppLayer {
         let response = acceptor.create_response(Code::TRYING, None).await?;
         acceptor.respond_provisional(response).await?;
 
-        // Hand the incoming SDP to the media task
+        // Create a media pipeline
         let ready_to_send = Arc::new(Notify::new());
-        let (handle, track_controller, sdp_answer) =
-            match MediaPipeline::new(pub_ip, sdp_offer, ready_to_send.clone()).await {
+        let (mut handle, track_controller) =
+            match MediaPipeline::new(ready_to_send.clone(), session_info_contains_video).await {
                 Ok(answer) => answer,
                 Err(e) => {
                     log::error!("Failed to create GStreamer pipeline, {e:?}");
@@ -141,14 +156,60 @@ impl AppLayer {
                 }
             };
 
+        handle.tel_bin.rtp.set_pt_caps(
+            session_info.telephone_event_pt,
+            gst::Caps::builder("application/x-rtp")
+                .field("media", "audio")
+                .field("encoding-name", "TELEPHONE-EVENT")
+                .field("clock-rate", 8000)
+                .build(),
+        );
+
+        for (i, media) in session_info.media.iter().enumerate() {
+            if matches!(media.direction, Direction::SendOnly | Direction::SendRecv) {
+                handle
+                    .tel_bin
+                    .add_sender(
+                        i as u32,
+                        media.gst_elements.codec,
+                        media.gst_elements.payload,
+                        media.rtp_udpsink.clone(),
+                        media.rtcp_udpsrc.clone(),
+                        media.rtcp_udpsink.clone(),
+                        media.remote_rtp_addr,
+                        media.remote_rtcp_addr,
+                    )
+                    .await
+                    .with_context(|| format!("Failed to add sender for session {i}"))?;
+            }
+
+            if matches!(media.direction, Direction::RecvOnly | Direction::SendRecv) {
+                handle
+                    .tel_bin
+                    .add_receiver(
+                        i as u32,
+                        media.gst_elements.codec,
+                        media.gst_elements.payload,
+                        media.rtp_udpsrc.clone(),
+                        media.rtcp_udpsrc.clone(),
+                        media.rtcp_udpsink.clone(),
+                        media.remote_rtcp_addr,
+                    )
+                    .await
+                    .with_context(|| format!("Failed to add receiver for session {i}"))?;
+            }
+        }
+
         // Respond with 200 OK
         let mut response = acceptor.create_response(Code::OK, None).await?;
 
-        response.msg.body = sdp_answer.into();
+        response.msg.body = session_info.local_sdp.to_string().into();
         response
             .msg
             .headers
             .insert(Name::CONTENT_TYPE, "application/sdp");
+
+        drop(session_info);
 
         let (session, _) = acceptor.respond_success(response).await?;
 
@@ -156,6 +217,7 @@ impl AppLayer {
 
         // Wait for the client to be ready to accept playback
         ready_to_send.notified().await;
+
         // Sleep about 1 second to wait for the media session
         // to work and then play the welcome track.
         sleep(Duration::from_secs(1)).await;
@@ -165,6 +227,7 @@ impl AppLayer {
         let mut signaling = Signaling::new(
             self.settings.clone(),
             self.http_client.clone(),
+            pub_ip,
             name,
             session,
             handle,

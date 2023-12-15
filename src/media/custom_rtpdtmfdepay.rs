@@ -31,7 +31,7 @@ struct State {
 
 #[glib::object_subclass]
 impl ObjectSubclass for RTPDtmfDepayClass {
-    const NAME: &'static str = "GstRtpDtmfDepay";
+    const NAME: &'static str = "OpenTalkRtpDtmfDepay";
     type Type = RTPDtmfDepay;
     type ParentType = gst_rtp::RTPBaseDepayload;
 }

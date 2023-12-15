@@ -11,9 +11,13 @@ publish = false
 license = "EUPL-1.2"
 
 [dependencies]
+types = { package = "opentalk-types", version = "0.8.0-rc.1", features = [ "rand", "serde" ] }
+
 config = { version = "0.13", default-features = false, features = ["toml"] }
 
 gst = { package = "gstreamer", version = "0.20" }
+gst-audio = { package = "gstreamer-audio", version = "0.20", features = ["v1_22"] }
+gst-base = { package = "gstreamer-base", version = "0.20", features = ["v1_22"] }
 gst-app = { package = "gstreamer-app", version = "0.20" }
 gst-sdp = { package = "gstreamer-sdp", version = "0.20" }
 gst-webrtc = { package = "gstreamer-webrtc", version = "0.20", features = [
@@ -23,6 +27,8 @@ gst-rtp = { package = "gstreamer-rtp", version = "0.20", features = [
     "v1_22",
 ] }
 gio = "0.17"
+
+compositor.path = "recorder/compositor"
 
 rand = "0.8"
 
@@ -34,6 +40,7 @@ futures = "0.3"
 
 bytes = "1"
 bitstream-io = "2.2"
+multimap = "0.10"
 
 log = "0.4"
 env_logger = "0.11"
@@ -62,7 +69,7 @@ sip-types = { version = "0.1", package = "ezk-sip-types" }
 sip-core = { version = "0.2", package = "ezk-sip-core", features = [
     "tls-native-tls",
 ] }
-sip-ua = { version = "0.3", package = "ezk-sip-ua" }
+sip-ua = { version = "0.3.1", package = "ezk-sip-ua" }
 sip-auth = { version = "0.1", package = "ezk-sip-auth" }
 
 native-tls = "0.2.11"

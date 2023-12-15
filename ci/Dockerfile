@@ -10,6 +10,7 @@ WORKDIR /obelisk
 
 COPY ./Cargo.toml ./Cargo.toml
 COPY ./Cargo.lock ./Cargo.lock
+COPY recorder recorder
 
 # cache library build
 # We need a proper main.rs to make the first cargo build run

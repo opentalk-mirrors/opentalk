@@ -9,11 +9,10 @@
 use crate::media::Target;
 use crate::settings::ControllerSettings;
 use anyhow::{bail, Context, Result};
-use chrono::{DateTime, Utc};
+use compositor::MediaDescriptor;
 use futures::{SinkExt, StreamExt};
 use reqwest::header::SEC_WEBSOCKET_PROTOCOL;
 use serde::Deserialize;
-use serde::Serialize;
 use std::borrow::Cow;
 use tokio::net::TcpStream;
 use tt::tungstenite::client::IntoClientRequest;
@@ -22,7 +21,11 @@ use tt::tungstenite::protocol::CloseFrame;
 use tt::tungstenite::Message;
 use tt::MaybeTlsStream;
 use tt::WebSocketStream;
-use uuid::Uuid;
+use types::core::ParticipantId;
+use types::signaling::control::state::ControlState;
+use types::signaling::control::AssociatedParticipant;
+use types::signaling::media::event::{MediaEvent, MediaStatus, RequestMute};
+use types::signaling::media::{MediaSessionState, MediaSessionType, TrickleCandidate};
 
 /// Newtype wrapper for the signaling ticket
 pub struct Ticket(pub String);
@@ -31,7 +34,7 @@ pub struct Ticket(pub String);
 pub enum WebsocketEvent {
     SubscribeOffer {
         offer: String,
-        uuid: Uuid,
+        desc: MediaDescriptor,
     },
     PublishResponse {
         response: String,
@@ -46,20 +49,20 @@ pub enum WebsocketEvent {
     Joined(Participant),
     Update(Participant),
     Left(AssociatedParticipant),
-    Receiving(bool),
+    Receiving(MediaSessionType, bool),
     RequestMute {
-        issuer: Uuid,
+        issuer: ParticipantId,
         force: bool,
     },
     SessionEnded {
-        issued_by: Uuid,
+        issued_by: ParticipantId,
     },
     Disconnected,
 }
 
 /// Abstraction over the controller websocket API must call `join` before anything else
 pub struct Websocket {
-    id: Option<Uuid>,
+    id: Option<ParticipantId>,
     websocket: WebSocketStream<MaybeTlsStream<TcpStream>>,
 }
 
@@ -138,6 +141,7 @@ impl Websocket {
                 payload: ControlPayload::JoinSuccess(join_success),
             } => {
                 self.id = Some(join_success.id);
+
                 Ok(JoinState::Joined(join_success.participants))
             }
             Payload::Moderation {
@@ -187,13 +191,13 @@ impl Websocket {
     }
 
     /// Initiate negotiation of publish-media using the given SDP
-    pub async fn publish(&mut self, sdp: &str) -> Result<()> {
+    pub async fn publish(&mut self, sdp: &str, media_session_type: MediaSessionType) -> Result<()> {
         self.send(serde_json::json!({
             "namespace": "media",
             "payload": {
                 "action": "publish",
                 "target": self.id.context("id must be set")?,
-                "media_session_type": "video",
+                "media_session_type": media_session_type,
                 "sdp": sdp
             }
         }))
@@ -203,14 +207,14 @@ impl Websocket {
     }
 
     /// Request SDP offer for given participant
-    pub async fn subscribe(&mut self, uuid: Uuid) -> Result<()> {
+    pub async fn subscribe(&mut self, desc: MediaDescriptor, with_video: bool) -> Result<()> {
         self.send(serde_json::json!({
             "namespace": "media",
             "payload": {
                 "action": "subscribe",
-                "target": uuid,
-                "media_session_type": "video",
-                "without_video": true
+                "target": desc.participant_id,
+                "media_session_type": desc.media_type,
+                "without_video": !with_video
             }
         }))
         .await?;
@@ -219,14 +223,14 @@ impl Websocket {
     }
 
     /// Send a SDP answer to a received SDP offer from the participant
-    pub async fn subscribe_answer(&mut self, uuid: Uuid, answer: String) -> Result<()> {
+    pub async fn subscribe_answer(&mut self, desc: MediaDescriptor, answer: String) -> Result<()> {
         self.send(serde_json::json!({
             "namespace": "media",
             "payload": {
                 "action": "sdp_answer",
                 "sdp": answer,
-                "target": uuid,
-                "media_session_type": "video",
+                "target": desc.participant_id,
+                "media_session_type": desc.media_type,
             }
         }))
         .await?;
@@ -240,10 +244,13 @@ impl Websocket {
     /// else its the subscribe session of the given id
     pub async fn send_ice_candidate(
         &mut self,
-        uuid: Option<Uuid>,
+        participant_id: Option<ParticipantId>,
+        media_session_type: MediaSessionType,
         candidate: String,
         mline_index: u32,
     ) -> Result<()> {
+        let target = participant_id.or(self.id).context("self.id must be set")?;
+
         self.send(serde_json::json!({
             "namespace": "media",
             "payload": {
@@ -252,8 +259,8 @@ impl Websocket {
                     "candidate": candidate,
                     "sdpMLineIndex": mline_index,
                 },
-                "target": uuid.or(self.id).context("uuid must be set")?,
-                "media_session_type": "video",
+                "target": target,
+                "media_session_type": media_session_type,
             }
         }))
         .await?;
@@ -262,13 +269,13 @@ impl Websocket {
     }
 
     /// Send `end_of_candidates` event for given subscribe session
-    pub async fn subscribe_end_of_candidates(&mut self, uuid: Uuid) -> Result<()> {
+    pub async fn subscribe_end_of_candidates(&mut self, desc: MediaDescriptor) -> Result<()> {
         self.send(serde_json::json!({
             "namespace": "media",
             "payload": {
                 "action": "sdp_end_of_candidates",
-                "target": uuid,
-                "media_session_type": "video",
+                "target": desc.participant_id,
+                "media_session_type": desc.media_type,
             }
         }))
         .await?;
@@ -277,13 +284,16 @@ impl Websocket {
     }
 
     /// Send `end_of_candidates` for publish session
-    pub async fn publish_end_of_candidates(&mut self) -> Result<()> {
+    pub async fn publish_end_of_candidates(
+        &mut self,
+        media_session_type: MediaSessionType,
+    ) -> Result<()> {
         self.send(serde_json::json!({
             "namespace": "media",
             "payload": {
                 "action": "sdp_end_of_candidates",
                 "target": self.id.context("id must be set")?,
-                "media_session_type": "video",
+                "media_session_type": media_session_type,
             }
         }))
         .await?;
@@ -292,15 +302,19 @@ impl Websocket {
     }
 
     /// Send `publish_complete` for publish session
-    pub async fn publish_complete(&mut self) -> Result<()> {
+    pub async fn publish_complete(
+        &mut self,
+        with_video: bool,
+        media_session_type: MediaSessionType,
+    ) -> Result<()> {
         self.send(serde_json::json!({
             "namespace": "media",
             "payload": {
                 "action": "publish_complete",
-                "media_session_type": "video",
+                "media_session_type": media_session_type,
                 "media_session_state": {
                     "audio": true,
-                    "video": false
+                    "video": with_video
                 }
             }
         }))
@@ -310,15 +324,20 @@ impl Websocket {
     }
 
     /// Send `update_media_session` to set the audio mute flag
-    pub async fn send_audio_mute(&mut self, mute: bool) -> Result<()> {
+    pub async fn send_mute(
+        &mut self,
+        audio_muted: bool,
+        video_muted: bool,
+        media_session_type: MediaSessionType,
+    ) -> Result<()> {
         self.send(serde_json::json!({
             "namespace": "media",
             "payload": {
                 "action": "update_media_session",
-                "media_session_type": "video",
+                "media_session_type": media_session_type,
                 "media_session_state": {
-                    "video": false,
-                    "audio": !mute
+                    "video": !video_muted,
+                    "audio": !audio_muted,
                 }
             }
         }))
@@ -391,56 +410,60 @@ impl Websocket {
                 ControlPayload::Left(participant) => Ok(Some(WebsocketEvent::Left(participant))),
             },
             Payload::Media { payload } => match payload {
-                MediaPayload::SdpOffer(sdp) => Ok(Some(WebsocketEvent::SubscribeOffer {
+                MediaEvent::SdpOffer(sdp) => Ok(Some(WebsocketEvent::SubscribeOffer {
                     offer: sdp.sdp,
-                    uuid: sdp.source.source,
+                    desc: sdp.source.into(),
                 })),
-                MediaPayload::SdpAnswer(sdp) => {
+                MediaEvent::SdpAnswer(sdp) => {
                     Ok(Some(WebsocketEvent::PublishResponse { response: sdp.sdp }))
                 }
-                MediaPayload::SdpCandidate(sdp) => {
+                MediaEvent::SdpCandidate(sdp) => {
                     let Some(self_id) = self.id else {
                         return Ok(None);
                     };
                     let target = if sdp.source.source == self_id {
-                        Target::Publish
+                        Target::Publish(sdp.source.media_session_type)
                     } else {
-                        Target::Subscribe(sdp.source.source)
+                        Target::Subscribe(sdp.source.into())
                     };
                     Ok(Some(WebsocketEvent::CandidateReceived {
                         candidate: sdp.candidate,
                         target,
                     }))
                 }
-                MediaPayload::SdpEndCandidates(source) => {
+                MediaEvent::SdpEndOfCandidates(source) => {
                     let Some(self_id) = self.id else {
                         return Ok(None);
                     };
                     let target = if source.source == self_id {
-                        Target::Publish
+                        Target::Publish(source.media_session_type)
                     } else {
-                        Target::Subscribe(self_id)
+                        Target::Subscribe(source.into())
                     };
                     Ok(Some(WebsocketEvent::EndOfCandidate { target }))
                 }
-                MediaPayload::MediaStatus(MediaStatus {
+                MediaEvent::MediaStatus(MediaStatus {
                     source,
-                    kind,
+                    kind: _,
                     receiving,
                 }) => {
                     if let Some(id) = self.id {
-                        // Only audio is published so only check for that
-                        if source == id && kind == "audio" {
-                            Ok(Some(WebsocketEvent::Receiving(receiving)))
-                        } else {
-                            Ok(None)
+                        if source.source == id {
+                            return Ok(Some(WebsocketEvent::Receiving(
+                                source.media_session_type,
+                                receiving,
+                            )));
                         }
-                    } else {
-                        Ok(None)
                     }
+
+                    Ok(None)
                 }
-                MediaPayload::RequestMute(RequestMute { issuer, force }) => {
+                MediaEvent::RequestMute(RequestMute { issuer, force }) => {
                     Ok(Some(WebsocketEvent::RequestMute { issuer, force }))
+                }
+                evt => {
+                    log::debug!("Unhandled media event: {evt:?}");
+                    Ok(None)
                 }
             },
             Payload::Moderation { payload } => match payload {
@@ -460,91 +483,9 @@ enum Payload {
     #[serde(rename = "control")]
     Control { payload: ControlPayload },
     #[serde(rename = "media")]
-    Media { payload: MediaPayload },
+    Media { payload: MediaEvent },
     #[serde(rename = "moderation")]
     Moderation { payload: ModerationPayload },
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(tag = "message")]
-enum MediaPayload {
-    #[serde(rename = "sdp_offer")]
-    SdpOffer(Sdp),
-    #[serde(rename = "sdp_answer")]
-    SdpAnswer(Sdp),
-    /// SDP Candidate, used for ICE negotiation
-    #[serde(rename = "sdp_candidate")]
-    SdpCandidate(SdpCandidate),
-    /// SDP End of Candidate, used for ICE negotiation
-    #[serde(rename = "sdp_end_of_candidates")]
-    SdpEndCandidates(Source),
-    #[serde(rename = "media_status")]
-    MediaStatus(MediaStatus),
-    #[serde(rename = "request_mute")]
-    RequestMute(RequestMute),
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
-pub struct Sdp {
-    /// The payload of the sdp message
-    pub sdp: String,
-
-    #[serde(flatten)]
-    pub source: Source,
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
-pub struct SdpCandidate {
-    /// The payload of the sdp message
-    pub candidate: TrickleCandidate,
-
-    #[serde(flatten)]
-    pub source: Source,
-}
-
-/// A candidate for ICE/SDP trickle
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TrickleCandidate {
-    /// The SDP m-line index
-    #[serde(rename = "sdpMLineIndex")]
-    pub sdp_m_line_index: u32,
-
-    /// The ICE candidate string
-    pub candidate: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
-pub struct Source {
-    /// The source of this message
-    pub source: Uuid,
-
-    /// The type of stream
-    pub media_session_type: MediaSessionType,
-}
-
-/// The type of media session
-#[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MediaSessionType {
-    /// A media session of type video
-    #[serde(rename = "video")]
-    Video,
-
-    /// A media session of type screen
-    #[serde(rename = "screen")]
-    Screen,
-}
-
-#[derive(Debug, Deserialize)]
-struct MediaStatus {
-    pub source: Uuid,
-    pub kind: String,
-    pub receiving: bool,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct RequestMute {
-    pub issuer: Uuid,
-    pub force: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -558,40 +499,23 @@ enum ControlPayload {
 
 #[derive(Debug, Deserialize)]
 struct JoinSuccess {
-    id: Uuid,
+    id: ParticipantId,
     participants: Vec<Participant>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct AssociatedParticipant {
-    pub id: Uuid,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct Participant {
-    pub id: Uuid,
-
-    pub control: ControlData,
+    pub id: ParticipantId,
+    pub control: ControlState,
 
     #[serde(default)]
     pub media: MediaData,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ControlData {
-    pub left_at: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Deserialize)]
 pub struct MediaData {
     pub video: Option<MediaSessionState>,
     pub screen: Option<MediaSessionState>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct MediaSessionState {
-    pub video: bool,
-    pub audio: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -605,5 +529,5 @@ enum ModerationPayload {
 
 #[derive(Debug, Deserialize)]
 pub struct SessionEnded {
-    pub issued_by: Uuid,
+    pub issued_by: ParticipantId,
 }

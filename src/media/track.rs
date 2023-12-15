@@ -15,11 +15,13 @@ use parking_lot::Mutex;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 
-const SAMPLES_PER_BUF: u64 = 4096;
-const BYTES_PER_SAMPLE: u64 = 2;
-const BYTES_PER_BUF: u64 = SAMPLES_PER_BUF * BYTES_PER_SAMPLE;
 const SAMPLE_RATE: u64 = 48000;
 const CHANNELS: u64 = 2;
+const BYTES_PER_SAMPLE: u64 = 2;
+const BUFFERS_PER_SECOND: u64 = 100;
+const SAMPLES_PER_CHANNEL: u64 = SAMPLE_RATE / BUFFERS_PER_SECOND;
+const SAMPLES_PER_BUF: u64 = SAMPLES_PER_CHANNEL * CHANNELS;
+const BYTES_PER_BUF: u64 = SAMPLES_PER_BUF * BYTES_PER_SAMPLE;
 
 macro_rules! wav_file {
     ($ident:ident=>$file:literal) => {
@@ -120,6 +122,7 @@ struct ElementData {
     cursor: usize,
     playback_finished_responder: Option<broadcast::Sender<()>>,
     num_samples: u64,
+    offset: gst::ClockTime,
 }
 
 impl ElementData {
@@ -162,6 +165,9 @@ pub fn create_track_src() -> Result<(TrackController, gst::Element)> {
         cursor: 0,
         playback_finished_responder: None,
         num_samples: 0,
+        offset: gst::SystemClock::obtain()
+            .time()
+            .expect("SystemClock::time shouldn't fail"),
     }));
 
     let data_clone = data.clone();
@@ -190,7 +196,7 @@ fn push_data(appsrc: &gst_app::AppSrc, data: &Arc<Mutex<ElementData>>) -> Result
     let mut bytes_to_play = samples_to_play.as_byte_slice();
 
     let duration = gst::ClockTime::from_nseconds(scale(
-        SAMPLES_PER_BUF / CHANNELS,
+        SAMPLES_PER_CHANNEL,
         gst::ClockTime::SECOND.nseconds(),
         SAMPLE_RATE,
     ));
@@ -199,7 +205,7 @@ fn push_data(appsrc: &gst_app::AppSrc, data: &Arc<Mutex<ElementData>>) -> Result
         data.num_samples / CHANNELS,
         gst::ClockTime::SECOND.nseconds(),
         SAMPLE_RATE,
-    ));
+    )) + data.offset;
 
     let mut buffer = gst::Buffer::with_size(BYTES_PER_BUF as usize)?;
 
