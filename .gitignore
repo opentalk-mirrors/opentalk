@@ -49,3 +49,5 @@ fabric.properties
 # Local History for Visual Studio Code
 .history/
 
+# Macos specific
+.DS_Store
