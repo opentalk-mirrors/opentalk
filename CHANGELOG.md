@@ -5,14 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [Unreleased]
+
+### Added
+
+- Mute dial-in participants by default ([#67](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/67))
+
+## [0.5.0] - 2023-10-30
 
 ### Added
 
 - Add support for SIP over TCP or TLS ([!75](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/75))
 - Add NAPTR & SRV service discovery for SIP registrars ([#52](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/52))
 - Add setting `sip.outbound_proxy` to specify a SIP proxy to send registration requests to (instead of `sip.registrar`) ([!75](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/75))
-- Mute dial-in participants by default ([#67](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/67))
 
 ### Fixed
 
@@ -113,6 +118,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.0-internal-release.1] 2022-06-23
 
 initial release candidate
+
+[Unreleased]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.5.0...main
+
+[0.5.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/ed499459ca0e207fcb0c915c04c0f99e1cb7c2db...v0.5.0
+
+[0.4.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/ae71d32c12944bff87e2db2955e9bac73451ea37...v0.4.0
 
 [0.3.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/682f4a0eff7048adc2a580b380d4cf1bb9e63096...v0.3.0
 
