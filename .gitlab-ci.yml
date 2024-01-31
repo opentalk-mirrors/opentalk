@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.71.0-alpine3.18
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:alpine3.19
 
 stages:
   - lint
@@ -38,13 +38,12 @@ lint:clippy:
   before_script:
     - >
       apk add --no-cache
-      musl-dev glib-dev openssl-dev
+      glib-dev openssl-dev
       gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev
   script:
     - cargo clippy --all-features --tests -- --deny warnings
 
 lint:dependency_check_advisories:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/cargo-deny:latest
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     - if: $CI_PIPELINE_SOURCE == 'schedule'
@@ -54,7 +53,6 @@ lint:dependency_check_advisories:
   script: cargo deny check advisories
 
 lint:dependency_check_bans_licenses_sources:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/cargo-deny:latest
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     - if: $CI_PIPELINE_SOURCE == 'schedule'
@@ -68,7 +66,7 @@ lint:yaml:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: lint
-  image: alpine:3.18
+  image: alpine:3.19
   before_script:
     - apk add --no-cache yamllint
   script: yamllint .
@@ -90,14 +88,46 @@ test:cargo_test:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: test
-  needs: []
+  artifacts:
+    paths:
+      - target/coverage/html
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: target/coverage/cobertura.xml
+  coverage: '/Coverage: \d+(?:\.\d+)?/'
+  variables:
+    COVERAGE_XML_PATH: 'concat("Coverage: ", 100 * string(//coverage/@line-rate), "%")'
+    RUSTFLAGS: -Ctarget-feature=-crt-static -Cinstrument-coverage -Clink-arg=-fuse-ld=lld
+    LLVM_PROFILE_FILE: ./target/coverage/raw/coverage-%p-%m.profraw
   before_script:
     - >
       apk add --no-cache
-      musl-dev glib-dev openssl-dev
+      glib-dev openssl-dev
       gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev
+      gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly libnice-gstreamer gst-libav ffmpeg
   script:
-    - cargo test --workspace --locked
+    # tests wetc_scenario1 is ignored until fixed
+    - >
+      cargo test
+      --workspace
+      --locked
+      --
+      --test-threads 1
+
+    # Extract code coverage data
+    - >
+      grcov target/coverage/raw
+      --binary-path ./target/debug/
+      --source-dir .
+      --output-types cobertura,html
+      --branch
+      --ignore-not-existing
+      --ignore "*cargo*"
+      --output-path target/coverage
+
+    # Print out the coverage percentage for GitLab
+    - xmllint --xpath "$COVERAGE_XML_PATH" target/coverage/cobertura.xml
 
 test:container:
   rules:
