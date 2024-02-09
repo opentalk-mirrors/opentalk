@@ -62,7 +62,7 @@ sip-types = { version = "0.1", package = "ezk-sip-types" }
 sip-core = { version = "0.2", package = "ezk-sip-core", features = [
     "tls-native-tls",
 ] }
-sip-ua = { version = "0.2", package = "ezk-sip-ua" }
+sip-ua = { version = "0.3", package = "ezk-sip-ua" }
 sip-auth = { version = "0.1", package = "ezk-sip-auth" }
 
 native-tls = "0.2.11"

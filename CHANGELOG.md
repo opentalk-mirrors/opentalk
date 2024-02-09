@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `sip.contact` configuration to allow overriding the contact header in SIP messages
 - Mute dial-in participants by default ([#67](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/67))
+
+### Fixed
+
+- Fix `sip.id` config to only apply to REGISTER message's From and To header. Previously this also affected the contact header of SIP messages which could cause unwanted behavior.
 
 ## [0.5.0] - 2023-10-30
 
