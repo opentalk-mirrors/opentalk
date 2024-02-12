@@ -90,6 +90,8 @@ pub struct SipSettings {
     pub port: u16,
 
     pub id: Option<String>,
+    pub contact: Option<String>,
+
     pub username: Option<String>,
 
     #[serde(flatten)]

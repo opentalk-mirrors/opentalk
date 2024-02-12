@@ -258,16 +258,10 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         pub_addr
     };
 
-    // Construct this SIP endpoints SIP uri
-    let id = if let Some(id) = &settings.sip.id {
-        endpoint
-            .parse_uri(id)
-            .context("Failed to parse `id` sip uri")?
-    } else if let Some(username) = &settings.sip.username {
-        endpoint.parse_uri(format!("sip:{}@{}", username, pub_addr))?
-    } else {
-        endpoint.parse_uri(format!("sip:{}", pub_addr))?
-    };
+    let id =
+        generate_id_uri(&settings, &endpoint, pub_addr).context("Failed to generate id uri")?;
+    let contact = generate_contact_uri(&settings, &endpoint, pub_addr)
+        .context("Failed to generate contact uri")?;
 
     // set app data
     endpoint[app_layer].set_app_data(AppData {
@@ -280,6 +274,7 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
             endpoint.clone(),
             pub_addr,
             id,
+            contact,
             settings.sip.username.clone(),
             registrar.clone(),
             shutdown.subscribe(),
@@ -312,15 +307,74 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
     Ok(())
 }
 
+fn generate_id_uri(
+    settings: &Arc<Settings>,
+    endpoint: &Endpoint,
+    pub_addr: SocketAddr,
+) -> Result<Box<dyn Uri>> {
+    // Overridden by config
+    if let Some(id) = &settings.sip.id {
+        return endpoint
+            .parse_uri(id)
+            .with_context(|| format!("Failed to parse configured id uri {id:?}"));
+    }
+
+    let host = if let Some(registrar_settings) = &settings.sip.registrar {
+        registrar_settings
+            .registrar
+            .trim_start_matches("sip:")
+            .trim_start_matches("sips:")
+            .to_owned()
+    } else {
+        pub_addr.to_string()
+    };
+
+    let uri = if let Some(username) = &settings.sip.username {
+        format!("sip:{}@{}", username, host)
+    } else {
+        format!("sip:{}", host)
+    };
+
+    endpoint
+        .parse_uri(&uri)
+        .with_context(|| format!("Failed to parse generated id uri {uri:?}"))
+}
+
+fn generate_contact_uri(
+    settings: &Arc<Settings>,
+    endpoint: &Endpoint,
+    pub_addr: SocketAddr,
+) -> Result<Box<dyn Uri>> {
+    // Overridden by config
+    if let Some(contact) = &settings.sip.contact {
+        return endpoint
+            .parse_uri(contact)
+            .with_context(|| format!("Failed to parse configured contact uri {contact:?}"));
+    }
+
+    let uri = if let Some(username) = &settings.sip.username {
+        format!("sip:{}@{}", username, pub_addr)
+    } else {
+        format!("sip:{}", pub_addr)
+    };
+
+    endpoint
+        .parse_uri(&uri)
+        .with_context(|| format!("Failed to parse generated contact uri {uri:?}"))
+}
+
 /// Try to register with a SIP registrar, then spawn a task to keep that registration up
 async fn register_with_registrar(
     endpoint: Endpoint,
     pub_addr: SocketAddr,
     id: Box<dyn Uri>,
+    contact: Box<dyn Uri>,
     username: Option<String>,
     settings: SipRegistrarSettings,
     mut shutdown: broadcast::Receiver<()>,
 ) -> Result<()> {
+    const REGISTRATION_EXPIRY: Duration = Duration::from_secs(300);
+
     let registrar_uri = maybe_add_sip_scheme(&settings.registrar);
     let registrar_uri = endpoint
         .parse_uri(&registrar_uri)
@@ -347,7 +401,12 @@ async fn register_with_registrar(
                 )
             })?;
 
-    let mut registration = Registration::new(NameAddr::uri(id), registrar_uri);
+    let mut registration = Registration::new(
+        NameAddr::uri(id),
+        NameAddr::uri(contact),
+        registrar_uri,
+        REGISTRATION_EXPIRY,
+    );
 
     let mut authenticator = DigestAuthenticator::default();
     authenticator.enforce_qop = settings.enforce_qop;

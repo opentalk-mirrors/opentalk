@@ -28,10 +28,15 @@ addr = "0.0.0.0"
 # Port to bind to (5060 is SIP default)
 port = 5060
 
-# ID of this SIP endpoint
-# When not set, it is generated as `sip:<username>@<addr>` where `addr` may be replaced by the
-# public address discovered using the stun-server
+# ID of this SIP endpoint, used for creating the From/To header in SIP REGISTER messages
+# When not set, it is generated as `sip:<username>@<regisrar-host>` if a registrar is configured.
+# If no registrar is configured it is generated the same way as the contact uri (see below).
 #id = "sip:alice@example.org"
+
+# Contact uri of this SIP endpoint, used for creating the SIP Contact header
+# When not set, it is generated as `sip:<username>@<addr>` where `addr` may be replaced by the
+# public address discovered using the stun-server.
+#contact = "sip:alice@192.168.1.100"
 
 # Username/Password pair.
 # Usually provided by the SIP provider
@@ -41,7 +46,7 @@ password = "mysecurepassword"
 # Realm of the given username/password pair
 realm = "example.org"
 
-# SIP URI of the registrar 
+# SIP URI of the registrar
 registrar = "sip:sip.example.org"
 
 # Specify a SIP proxy to send all requests to

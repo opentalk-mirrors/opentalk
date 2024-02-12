@@ -661,9 +661,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-sip-ua"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "532e97936b9543c09fd0594f2857558a1f60f67a242e779998ca6ed22c89bb26"
+checksum = "507daef09c8d58fc75d59e01899f6c0c332ab808c8f2631b3caaf732ace725ed"
 dependencies = [
  "async-trait",
  "bytes",
