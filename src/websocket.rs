@@ -299,7 +299,7 @@ impl Websocket {
                 "action": "publish_complete",
                 "media_session_type": "video",
                 "media_session_state": {
-                    "audio": false,
+                    "audio": true,
                     "video": false
                 }
             }

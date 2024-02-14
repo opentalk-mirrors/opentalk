@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add `sip.contact` configuration to allow overriding the contact header in SIP messages
+- Revert mute by default and redo usage message ([#74](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/74))
 - Mute dial-in participants by default ([#67](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/67))
 
 ### Fixed
