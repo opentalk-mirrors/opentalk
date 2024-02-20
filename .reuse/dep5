@@ -23,5 +23,6 @@ Files:
  audio/DE_waiting_room_entered.wav
  audio/DE_conference_closed.wav
  docs/**.md
+ text/DE_welcome_usage
 Copyright: OpenTalk GmbH <mail@opentalk.eu>
 License: CC-BY-NC-ND-4.0

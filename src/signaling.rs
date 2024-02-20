@@ -99,7 +99,7 @@ impl Signaling {
             state: State::Running,
             dtmf_id: String::new(),
             dtmf_pw: String::new(),
-            muted: true,
+            muted: false,
             hand_raised: false,
             participants: Vec::new(),
             shutdown,
