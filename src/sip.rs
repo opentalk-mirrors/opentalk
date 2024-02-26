@@ -266,7 +266,7 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
     // set app data
     endpoint[app_layer].set_app_data(AppData {
         pub_ip: pub_addr.ip(),
-        contact: Contact::new(NameAddr::uri(id.clone())),
+        contact: Contact::new(NameAddr::uri(contact.clone())),
     });
 
     if let Some(registrar) = &settings.sip.registrar {
