@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use crate::media::codec::Codec;
 use sdp_types::attributes::fmtp::Fmtp;
 use sdp_types::attributes::rtpmap::RtpMap;
 use sdp_types::msg::MediaScope;
@@ -13,7 +14,7 @@ struct CodecEntry {
 }
 
 /// List of all codecs and their constructor function sorted by priority
-static CODEC_LIST: &[CodecEntry] = &[
+static AUDIO_CODEC_LIST: &[CodecEntry] = &[
     CodecEntry {
         static_payload: Some(9),
         name: "G722",
@@ -38,18 +39,8 @@ fn g722_create(rtpmap: Option<&RtpMap>, _: Option<&Fmtp>) -> Option<SdpCodecInfo
         rtpmap,
         fmtp: None,
         gst_elements: GstCodecInfo {
-            payload_caps: PayloadCaps {
-                payload: 9,
-                caps: gst::Caps::builder("application/x-rtp")
-                    .field("media", "audio")
-                    .field("encoding-name", "G722")
-                    .field("clock-rate", 8000i32)
-                    .build(),
-            },
-            rtppay: "rtpg722pay",
-            rtpdepay: "rtpg722depay",
-            encoder: "avenc_g722",
-            decoder: "avdec_g722",
+            payload: 9,
+            codec: Codec::G722,
         },
     })
 }
@@ -66,18 +57,8 @@ fn pcma_create(rtpmap: Option<&RtpMap>, _: Option<&Fmtp>) -> Option<SdpCodecInfo
         rtpmap,
         fmtp: None,
         gst_elements: GstCodecInfo {
-            payload_caps: PayloadCaps {
-                payload: 8,
-                caps: gst::Caps::builder("application/x-rtp")
-                    .field("media", "audio")
-                    .field("encoding-name", "PCMA")
-                    .field("clock-rate", 8000i32)
-                    .build(),
-            },
-            rtppay: "rtppcmapay",
-            rtpdepay: "rtppcmadepay",
-            encoder: "alawenc",
-            decoder: "alawdec",
+            payload: 8,
+            codec: Codec::G711PCMA,
         },
     })
 }
@@ -94,18 +75,8 @@ fn pcmu_create(rtpmap: Option<&RtpMap>, _: Option<&Fmtp>) -> Option<SdpCodecInfo
         rtpmap,
         fmtp: None,
         gst_elements: GstCodecInfo {
-            payload_caps: PayloadCaps {
-                payload: 0,
-                caps: gst::Caps::builder("application/x-rtp")
-                    .field("media", "audio")
-                    .field("encoding-name", "PCMU")
-                    .field("clock-rate", 8000i32)
-                    .build(),
-            },
-            rtppay: "rtppcmupay",
-            rtpdepay: "rtppcmudepay",
-            encoder: "mulawenc",
-            decoder: "mulawdec",
+            payload: 0,
+            codec: Codec::G711PCMU,
         },
     })
 }
@@ -122,13 +93,9 @@ pub struct SdpCodecInfo {
 /// Most of it are strings that name the elements which are used to encode & payload / unpack & decode.
 #[derive(Clone)]
 pub struct GstCodecInfo {
-    pub payload_caps: PayloadCaps,
+    pub payload: u32,
 
-    pub rtppay: &'static str,
-    pub rtpdepay: &'static str,
-
-    pub encoder: &'static str,
-    pub decoder: &'static str,
+    pub codec: Codec,
 }
 
 /// Used by rtpbin's request-pt-map callback to provide caps
@@ -139,8 +106,8 @@ pub struct PayloadCaps {
     pub caps: gst::Caps,
 }
 
-pub fn choose_codec(offer: &MediaScope) -> Option<SdpCodecInfo> {
-    for entry in CODEC_LIST {
+pub fn choose_audio_codec(offer: &MediaScope) -> Option<SdpCodecInfo> {
+    for entry in AUDIO_CODEC_LIST {
         // first check all payload numbers in the m= line
         for payload in &offer.desc.fmts {
             let static_pt_matches = if let Some(static_payload) = entry.static_payload {
@@ -172,4 +139,24 @@ pub fn choose_codec(offer: &MediaScope) -> Option<SdpCodecInfo> {
     }
 
     None
+}
+
+pub fn available_video_codec() -> &'static str {
+    "H264"
+}
+
+pub fn choose_video_codec(offer: &MediaScope) -> Option<SdpCodecInfo> {
+    let rtpmap = offer
+        .rtpmaps
+        .iter()
+        .find(|rtpmap| rtpmap.encoding == "H264" && rtpmap.clock_rate == 90000)?;
+
+    Some(SdpCodecInfo {
+        rtpmap: rtpmap.clone(),
+        fmtp: None,
+        gst_elements: GstCodecInfo {
+            payload: rtpmap.payload,
+            codec: Codec::H264,
+        },
+    })
 }

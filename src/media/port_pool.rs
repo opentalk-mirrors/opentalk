@@ -15,10 +15,13 @@ static INSTANCE: OnceCell<PortPool> = OnceCell::new();
 
 // Contains the rtp as well as the related rtcp socket
 pub struct SocketPair {
-    pub rtp_socket: gio::Socket,
     pub rtp_port: u16,
-    pub rtcp_socket: gio::Socket,
+    pub rtp_udpsink: gst::Element,
+    pub rtp_udpsrc: gst::Element,
+
     pub rtcp_port: u16,
+    pub rtcp_udpsink: gst::Element,
+    pub rtcp_udpsrc: gst::Element,
 }
 
 /// Manages the Obelisks SIP RTP/RTCP port pool
@@ -118,11 +121,25 @@ impl PortPool {
             );
 
             used_pairs.insert(pair);
+
             return Ok(Some(SocketPair {
-                rtp_socket,
                 rtp_port,
-                rtcp_socket,
+                rtp_udpsink: gst::ElementFactory::make("udpsink")
+                    .property("socket", rtp_socket.clone())
+                    .property("sync", false)
+                    .build()?,
+                rtp_udpsrc: gst::ElementFactory::make("udpsrc")
+                    .property("socket", rtp_socket)
+                    .build()?,
+
                 rtcp_port,
+                rtcp_udpsink: gst::ElementFactory::make("udpsink")
+                    .property("socket", rtcp_socket.clone())
+                    .property("sync", false)
+                    .build()?,
+                rtcp_udpsrc: gst::ElementFactory::make("udpsrc")
+                    .property("socket", rtcp_socket)
+                    .build()?,
             }));
         }
     }

@@ -16,23 +16,44 @@ fn check_plugins() -> Result<()> {
     let registry = gst::Registry::get();
 
     let required = [
-        "webrtc",
+        "openh264",
+        "vpx",
+        "videobox",
         "udp",
+        "rtpmanager",
         "rtp",
-        "alaw",
         "mulaw",
-        "app",
-        "audiomixer",
-        "dtmf",
-        "audioconvert",
-        "audioresample",
-        "opus",
+        "level",
+        "debug",
+        "alaw",
         "libav",
+        "webrtc",
+        "srtp",
+        "dtls",
+        "nice",
+        "volume",
+        "videotestsrc",
+        "videoconvertscale",
+        "pango",
+        "opus",
+        "compositor",
+        "audiotestsrc",
+        "audioresample",
+        "audiomixer",
+        "audioconvert",
+        "app",
+        "coreelements",
+        "staticelements",
     ];
 
     let missing = required
         .iter()
-        .filter(|n| registry.find_plugin(n).is_none())
+        .filter(|n| {
+            registry
+                .find_plugin(n)
+                .and_then(|p| p.load().ok())
+                .is_none()
+        })
         .collect::<Vec<_>>();
 
     if !missing.is_empty() {

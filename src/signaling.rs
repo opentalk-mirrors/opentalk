@@ -6,15 +6,16 @@ use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{MediaEvent, MediaPipeline, Target, Track, TrackController};
 use crate::settings::Settings;
 use crate::websocket::{JoinState, Participant, Websocket, WebsocketEvent};
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use bytesstr::BytesStr;
-use sip_types::header::typed::ContentType;
-use sip_types::Code;
-use sip_ua::invite::session::{Event, ReInviteReceived, Session};
+use compositor::MediaDescriptor;
+use sip_ua::invite::session::{Event, Session};
 use std::fmt::Write;
 use std::future::pending;
+use std::net::IpAddr;
 use std::sync::Arc;
 use tokio::sync::broadcast;
+use types::signaling::media::{MediaSessionState, MediaSessionType};
 
 /// State of the signaling task
 enum State {
@@ -36,6 +37,9 @@ pub struct Signaling {
     settings: Arc<Settings>,
 
     http_client: Arc<HttpClient>,
+
+    /// Public ip facing the incoming caller
+    pub_ip: IpAddr,
 
     /// Name of the user (usually the phone number or Anonymous)
     name: Option<BytesStr>,
@@ -78,9 +82,11 @@ pub struct Signaling {
 
 impl Signaling {
     /// Create a new Signaling from a newly established SIP session
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         settings: Arc<Settings>,
         http_client: Arc<HttpClient>,
+        pub_ip: IpAddr,
         name: Option<BytesStr>,
         sip: Session,
         media: MediaPipeline,
@@ -90,6 +96,7 @@ impl Signaling {
         Self {
             settings,
             http_client,
+            pub_ip,
             name,
             sip,
             websocket: None,
@@ -119,7 +126,7 @@ impl Signaling {
                     match event? {
                         Event::RefreshNeeded(event) => event.process_default().await?,
                         Event::ReInviteReceived(event) => {
-                            if let Err(e) = handle_reinvite(&mut self.media, event).await {
+                            if let Err(e) = crate::sip::handle_reinvite(&mut self.media, event, self.pub_ip).await {
                                 log::error!("failed to handle re-invite, {:?}", e);
                                 self.state = State::Quitting;
                             }
@@ -177,14 +184,22 @@ impl Signaling {
             .await
             .context("Failed to create publishing webrtc connection")?;
         websocket
-            .publish(&offer)
+            .publish(&offer, MediaSessionType::Video)
             .await
             .context("Failed to send SDP publish offer via websocket")?;
 
         // Subscribe to all participants that currently publish
         for participant in &self.participants {
             if participant.control.left_at.is_none() && participant.media.video.is_some() {
-                websocket.subscribe(participant.id).await?;
+                websocket
+                    .subscribe(
+                        MediaDescriptor {
+                            participant_id: participant.id,
+                            media_type: MediaSessionType::Video,
+                        },
+                        self.media.with_video,
+                    )
+                    .await?;
             }
         }
 
@@ -258,13 +273,18 @@ impl Signaling {
                 } else if digit == 1 {
                     if let Some(websocket) = &mut self.websocket {
                         self.muted = !self.muted;
-                        self.media.on_publish_mute(self.muted)?;
+                        websocket
+                            .send_mute(
+                                self.muted,
+                                self.muted && (!self.media.with_video),
+                                MediaSessionType::Video,
+                            )
+                            .await?;
                         self.track_controller.play_track(if self.muted {
                             Track::Muted
                         } else {
                             Track::Unmuted
                         });
-                        websocket.send_audio_mute(self.muted).await?;
                     }
                 } else if digit == 2 {
                     if let Some(websocket) = &mut self.websocket {
@@ -288,14 +308,24 @@ impl Signaling {
             } => {
                 if let Some(websocket) = &mut self.websocket {
                     match target {
-                        Target::Publish => {
+                        Target::Publish(media_session_type) => {
                             websocket
-                                .send_ice_candidate(None, candidate, mline_index)
+                                .send_ice_candidate(
+                                    None,
+                                    media_session_type,
+                                    candidate,
+                                    mline_index,
+                                )
                                 .await?
                         }
-                        Target::Subscribe(uuid) => {
+                        Target::Subscribe(desc) => {
                             websocket
-                                .send_ice_candidate(Some(uuid), candidate, mline_index)
+                                .send_ice_candidate(
+                                    Some(desc.participant_id),
+                                    desc.media_type,
+                                    candidate,
+                                    mline_index,
+                                )
                                 .await?
                         }
                     }
@@ -304,7 +334,11 @@ impl Signaling {
             MediaEvent::NoMoreIceCandidates(target) => {
                 if let Some(websocket) = &mut self.websocket {
                     match target {
-                        Target::Publish => websocket.publish_end_of_candidates().await?,
+                        Target::Publish(media_session_type) => {
+                            websocket
+                                .publish_end_of_candidates(media_session_type)
+                                .await?
+                        }
                         Target::Subscribe(uuid) => {
                             websocket.subscribe_end_of_candidates(uuid).await?;
                         }
@@ -324,45 +358,72 @@ impl Signaling {
         let websocket = self.websocket.as_mut().expect("websocket must be set");
 
         match event? {
-            WebsocketEvent::SubscribeOffer { offer, uuid } => {
-                let answer = self.media.create_subscribe(uuid, offer).await?;
-                websocket.subscribe_answer(uuid, answer).await?;
+            WebsocketEvent::SubscribeOffer { offer, desc } => {
+                let Some(participant) = self
+                    .participants
+                    .iter()
+                    .find(|p| p.id == desc.participant_id)
+                else {
+                    log::debug!("Got SDP offer for subscription to unknown participant id={}. Might've just left after subscribing to it", desc.participant_id);
+                    return Ok(());
+                };
+
+                if let Some(status) = &participant.media.video {
+                    let answer = self
+                        .media
+                        .create_subscribe(
+                            desc,
+                            &participant.control.display_name,
+                            offer,
+                            status.audio,
+                            status.video,
+                        )
+                        .await?;
+
+                    websocket.subscribe_answer(desc, answer).await?;
+                }
             }
             WebsocketEvent::PublishResponse { response } => {
-                self.media.on_publish_response(response)?;
+                self.media.on_publish_response(response).await?;
             }
             WebsocketEvent::CandidateReceived { candidate, target } => {
-                self.media.on_sdp_candidate(candidate, target)?;
+                self.media.on_sdp_candidate(candidate, target).await?;
             }
             WebsocketEvent::EndOfCandidate { target } => {
-                self.media.on_sdp_end_of_candidates(target)?;
+                self.media.on_sdp_end_of_candidates(target).await?;
             }
             WebsocketEvent::Joined(participant) => {
                 log::debug!("Participant {} joined!", participant.id);
 
                 if participant.media.video.is_some() {
-                    websocket.subscribe(participant.id).await?;
+                    websocket
+                        .subscribe(
+                            MediaDescriptor {
+                                participant_id: participant.id,
+                                media_type: MediaSessionType::Video,
+                            },
+                            self.media.with_video,
+                        )
+                        .await?;
                 }
 
                 self.participants.push(participant);
             }
             WebsocketEvent::Update(updated) => {
                 if let Some(current) = self.participants.iter_mut().find(|p| p.id == updated.id) {
-                    match (&current.media.video, &updated.media.video) {
-                        (Some(_), None) => {
-                            log::debug!("Participant {} no longer publishing!", updated.id);
+                    let current_state = current.media.video;
+                    let updated_state = updated.media.video;
 
-                            self.media.remove_subscribe(updated.id).await?;
-                        }
-                        (None, Some(_)) => {
-                            log::debug!("Participant {} is now publishing!", updated.id);
-
-                            websocket.subscribe(updated.id).await?;
-                        }
-                        _ => {
-                            // ignore
-                        }
-                    }
+                    Self::update_subscriptions_for_media_session_type(
+                        &mut self.media,
+                        websocket,
+                        &*current,
+                        &updated,
+                        MediaSessionType::Video,
+                        current_state,
+                        updated_state,
+                    )
+                    .await?;
 
                     // update participant state
                     *current = updated;
@@ -375,22 +436,34 @@ impl Signaling {
                     let participant = self.participants.remove(i);
 
                     if participant.media.video.is_some() {
-                        self.media.remove_subscribe(participant.id).await?;
+                        self.media
+                            .remove_subscribe(MediaDescriptor {
+                                participant_id: assoc.id,
+                                media_type: MediaSessionType::Video,
+                            })
+                            .await?;
                     }
                 }
             }
-            WebsocketEvent::Receiving(receiving) => {
+            WebsocketEvent::Receiving(media_session_type, receiving) => {
                 if self.publish_complete_pending && receiving {
                     self.publish_complete_pending = false;
-                    websocket.publish_complete().await?;
+                    websocket
+                        .publish_complete(self.media.with_video, media_session_type)
+                        .await?;
                 }
             }
             WebsocketEvent::RequestMute { .. } => {
                 if !self.muted {
                     self.muted = true;
-                    self.media.on_publish_mute(self.muted)?;
+                    websocket
+                        .send_mute(
+                            self.muted,
+                            self.muted && (!self.media.with_video),
+                            MediaSessionType::Video,
+                        )
+                        .await?;
                     self.track_controller.play_track(Track::ModeratorMuted);
-                    websocket.send_audio_mute(self.muted).await?;
                 }
             }
             WebsocketEvent::SessionEnded { .. } => {
@@ -400,6 +473,59 @@ impl Signaling {
             }
             WebsocketEvent::Disconnected => {
                 self.state = State::Quitting;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn update_subscriptions_for_media_session_type(
+        media: &mut MediaPipeline,
+        websocket: &mut Websocket,
+        current: &Participant,
+        updated: &Participant,
+        media_session_type: MediaSessionType,
+        current_state: Option<MediaSessionState>,
+        updated_state: Option<MediaSessionState>,
+    ) -> Result<(), anyhow::Error> {
+        match (&current_state, &updated_state) {
+            (Some(_), None) => {
+                log::debug!("Participant {} no longer publishing!", updated.id);
+
+                media
+                    .remove_subscribe(MediaDescriptor {
+                        participant_id: current.id,
+                        media_type: media_session_type,
+                    })
+                    .await?;
+            }
+            (None, Some(_)) => {
+                log::debug!("Participant {} is now publishing!", updated.id);
+
+                websocket
+                    .subscribe(
+                        MediaDescriptor {
+                            participant_id: current.id,
+                            media_type: media_session_type,
+                        },
+                        media.with_video,
+                    )
+                    .await?;
+            }
+            (Some(old_status), Some(new_status)) if old_status != new_status => {
+                log::debug!("Participant {} updated their mute status", updated.id);
+
+                media.update_subscribe(
+                    MediaDescriptor {
+                        participant_id: current.id,
+                        media_type: media_session_type,
+                    },
+                    new_status.audio,
+                    new_status.video,
+                )?;
+            }
+            _ => {
+                // ignore
             }
         }
 
@@ -427,6 +553,7 @@ impl Signaling {
             JoinState::InWaitingRoom => {
                 self.track_controller.play_track(Track::EnteredWaitingRoom);
                 websocket.wait_until_accepted_into_waiting_room().await?;
+
                 self.participants = websocket.enter_from_waiting_room().await?;
             }
         }
@@ -442,56 +569,5 @@ async fn websocket_receive(websocket: &mut Option<Websocket>) -> Result<Websocke
         websocket.receive().await
     } else {
         pending().await
-    }
-}
-
-async fn handle_reinvite(media: &mut MediaPipeline, event: ReInviteReceived<'_>) -> Result<()> {
-    let request = &event.invite;
-
-    let body_is_not_sdp = request
-        .headers
-        .get_named()
-        .map(|content_type: ContentType| content_type.0 != "application/sdp")
-        .unwrap_or_default();
-
-    if body_is_not_sdp {
-        let response = event
-            .session
-            .endpoint
-            .create_response(request, Code::NOT_ACCEPTABLE, None);
-
-        event.transaction.respond_failure(response).await?;
-
-        bail!("failed to handle re-invite unknown content-type");
-    }
-
-    let body = request.body.clone();
-
-    match media.on_reinvite(body) {
-        Ok(answer) => {
-            let mut response = event
-                .session
-                .endpoint
-                .create_response(request, Code::OK, None);
-
-            response.msg.body = answer.into();
-
-            event.respond_success(response).await?;
-
-            Ok(())
-        }
-        Err(_) => {
-            log::error!("failed to handle sdp update");
-
-            let response =
-                event
-                    .session
-                    .endpoint
-                    .create_response(request, Code::SERVER_INTERNAL_ERROR, None);
-
-            event.transaction.respond_failure(response).await?;
-
-            Ok(())
-        }
     }
 }
