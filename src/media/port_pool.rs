@@ -2,14 +2,21 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use anyhow::anyhow;
-use anyhow::Result;
+use crate::settings::Settings;
+use anyhow::{anyhow, bail, Context, Result};
+use gio::prelude::*;
 use gio::traits::SocketExt;
-use gio::IOErrorEnum;
+use gio::{Cancellable, IOErrorEnum, InetSocketAddress};
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use rand::prelude::IteratorRandom;
 use std::collections::BTreeSet;
+use std::net::{SocketAddr, ToSocketAddrs};
+use std::sync::Arc;
+use stun_types::attributes::{MappedAddress, Software, XorMappedAddress};
+use stun_types::builder::MessageBuilder;
+use stun_types::header::{Class, Method};
+use stun_types::parse::ParsedMessage;
 
 static INSTANCE: OnceCell<PortPool> = OnceCell::new();
 
@@ -31,6 +38,8 @@ pub struct SocketPair {
 /// specified port range.
 #[derive(Debug)]
 pub struct PortPool {
+    settings: Arc<Settings>,
+
     /// Start of the port range
     port_start: u16,
     /// The number of port pairs
@@ -46,7 +55,10 @@ impl PortPool {
     }
 
     /// Initialize the [`PortPool`] instance with the provided range
-    pub fn init(port_start: u16, port_end: u16) {
+    pub fn init(settings: Arc<Settings>) {
+        let port_start = settings.sip.rtp_port_range.start;
+        let port_end = settings.sip.rtp_port_range.end;
+
         let port_pairs = (port_end - port_start + 1) / 2;
 
         log::trace!(
@@ -58,6 +70,7 @@ impl PortPool {
 
         INSTANCE
             .set(Self {
+                settings,
                 port_start,
                 port_pairs,
                 used_pairs: Mutex::new(BTreeSet::new()),
@@ -111,6 +124,17 @@ impl PortPool {
                     failed_pairs.push(pair);
                     continue;
                 }
+            };
+
+            let (rtp_port, rtcp_port) = if let Some(stun_server) = &self.settings.sip.stun_server {
+                let rtp_addr = resolve_public_addr(&rtp_socket, stun_server)
+                    .context("Failed to discover public addr of RTP socket using STUN")?;
+                let rtcp_addr = resolve_public_addr(&rtcp_socket, stun_server)
+                    .context("Failed to discover public addr of RTCP socket using STUN")?;
+
+                (rtp_addr.port(), rtcp_addr.port())
+            } else {
+                (rtp_port, rtcp_port)
             };
 
             log::trace!(
@@ -179,4 +203,73 @@ fn create_udp_socket(port: u16) -> Result<Option<gio::Socket>> {
     }
 
     Ok(Some(socket))
+}
+
+fn resolve_public_addr(sock: &gio::Socket, stun_server: &str) -> Result<SocketAddr> {
+    // Wait max 1 sec for a packet before returning an error
+    let prev_timeout = sock.timeout();
+    sock.set_timeout(1);
+
+    // Resolve stun server address
+    let server = stun_server
+        .to_socket_addrs()
+        .with_context(|| format!("Failed to resolve stun-server {stun_server:?}"))?
+        .map(InetSocketAddress::from);
+
+    // Build stun request
+    let mut msg = MessageBuilder::new(Class::Request, Method::Binding, rand::random());
+    msg.add_attr(&Software::new("opentalk-obelisk")).unwrap();
+    let msg = msg.finish();
+
+    let mut last_err = anyhow!("hostname {stun_server:?} didn't provide any addresses");
+
+    for server in server {
+        let addr = match send_and_receive_stun(sock, server, &msg) {
+            Ok(addr) => addr,
+            Err(e) => {
+                log::warn!("Failed to resolve public address of created rtp/rtcp port, {e:?}");
+                last_err = e;
+                continue;
+            }
+        };
+
+        // Restore previous timeout
+        sock.set_timeout(prev_timeout);
+
+        return Ok(addr);
+    }
+
+    // Restore previous timeout
+    sock.set_timeout(prev_timeout);
+
+    Err(last_err)
+}
+
+fn send_and_receive_stun(
+    sock: &gio::Socket,
+    server: InetSocketAddress,
+    msg: &Vec<u8>,
+) -> Result<SocketAddr> {
+    let mut recv_buffer = vec![0u8; 1500];
+
+    sock.send_to(Some(&server), msg, Cancellable::NONE)
+        .context("Failed to send request")?;
+
+    let len = sock
+        .receive(&mut recv_buffer, Cancellable::NONE)
+        .context("Failed to receive response")?;
+
+    recv_buffer.truncate(len);
+
+    let mut msg = ParsedMessage::parse(recv_buffer).context("Failed to parse response")?;
+
+    if let Some(Ok(attr)) = msg.get_attr::<XorMappedAddress>() {
+        return Ok(attr.0);
+    }
+
+    if let Some(Ok(attr)) = msg.get_attr::<MappedAddress>() {
+        return Ok(attr.0);
+    }
+
+    bail!("Stun response didn't contain a mapped-address attribute")
 }
