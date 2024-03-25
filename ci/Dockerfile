@@ -31,7 +31,7 @@ FROM alpine:3.19
 
 RUN apk add --no-cache glib libssl3 libcrypto3 \
     gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad libnice-gstreamer gst-libav \
-    ca-certificates
+    openh264 ca-certificates
 
 WORKDIR /obelisk
 

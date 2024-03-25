@@ -106,7 +106,7 @@ test:cargo_test:
       apk add --no-cache
       glib-dev openssl-dev
       gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev
-      gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly libnice-gstreamer gst-libav ffmpeg
+      gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly libnice-gstreamer gst-libav openh264
   script:
     # tests wetc_scenario1 is ignored until fixed
     - >

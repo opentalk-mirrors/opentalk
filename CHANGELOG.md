@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Use generated contact instead of id in invite sessions ([#75](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/75))
 - Revert mute by default and redo usage message ([#74](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/74))
+- Add openh264 dependency ([#87](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/87))
 
 
 ## [0.7.0]
