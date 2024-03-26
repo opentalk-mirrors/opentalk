@@ -46,8 +46,8 @@ fn check_plugins() -> Result<()> {
         "staticelements",
     ];
 
-    let missing = required
-        .iter()
+    let failed_plugins = required
+        .into_iter()
         .filter(|n| {
             registry
                 .find_plugin(n)
@@ -56,8 +56,8 @@ fn check_plugins() -> Result<()> {
         })
         .collect::<Vec<_>>();
 
-    if !missing.is_empty() {
-        bail!("Missing gstreamer plugins: {:?}", missing);
+    if !failed_plugins.is_empty() {
+        bail!("Failed to load GStreamer plugins [{}], try to start the application with 'GST_DEBUG=1' if the plugins are installed correctly.", failed_plugins.join(", "));
     } else {
         Ok(())
     }
