@@ -181,8 +181,12 @@ impl MediaPipeline {
         match target {
             Target::Publish(media_session_type) => {
                 assert_eq!(media_session_type, MediaSessionType::Video);
+                //FIXME: fix in types and remove cast
                 self.tel_bin
-                    .on_publish_sdp_candidate(candidate.sdp_m_line_index, Some(candidate.candidate))
+                    .on_publish_sdp_candidate(
+                        candidate.sdp_m_line_index as u32,
+                        Some(candidate.candidate),
+                    )
                     .await
             }
             Target::Subscribe(desc) => {

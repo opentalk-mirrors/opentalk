@@ -776,7 +776,7 @@ impl TelBin {
 
     pub async fn on_publish_sdp_candidate(
         &mut self,
-        mline: u64,
+        mline: u32,
         candidate: Option<String>,
     ) -> Result<()> {
         let state = self.publish_state.lock().await;
