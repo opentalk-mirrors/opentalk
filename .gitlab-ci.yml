@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-image: git.opentalk.dev:5050/opentalk/backend/containers/rust:alpine3.19
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:alpine-edge
 
 stages:
   - lint
@@ -67,7 +67,7 @@ lint:yaml:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: lint
-  image: alpine:3.19
+  image: alpine:edge
   before_script:
     - apk add --no-cache yamllint
   script: yamllint .
@@ -106,7 +106,7 @@ test:cargo_test:
       apk add --no-cache
       glib-dev openssl-dev
       gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev
-      gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly libnice-gstreamer gst-libav ffmpeg
+      gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly libnice-gstreamer gst-libav openh264
   script:
     # tests wetc_scenario1 is ignored until fixed
     - >
