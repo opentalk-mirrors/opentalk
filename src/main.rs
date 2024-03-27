@@ -85,12 +85,9 @@ async fn main() -> Result<()> {
 
     env_logger::init();
 
-    let settings = settings::Settings::load("config.toml")?;
+    let settings = Arc::new(settings::Settings::load("config.toml")?);
 
-    media::port_pool::PortPool::init(
-        settings.sip.rtp_port_range.start,
-        settings.sip.rtp_port_range.end,
-    );
+    media::port_pool::PortPool::init(settings.clone());
 
     // Run a MainLoop on a separate thread so gstreamer bus watches work
     let main_loop = gst::glib::MainLoop::new(None, false);
@@ -102,7 +99,7 @@ async fn main() -> Result<()> {
         }
     });
 
-    sip::run(Arc::new(settings)).await?;
+    sip::run(settings).await?;
 
     log::info!("Obelisk exiting, bye!");
 

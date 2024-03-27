@@ -71,6 +71,7 @@ sip-core = { version = "0.2", package = "ezk-sip-core", features = [
 ] }
 sip-ua = { version = "0.3.1", package = "ezk-sip-ua" }
 sip-auth = { version = "0.1", package = "ezk-sip-auth" }
+stun-types = { version = "0.1", package = "ezk-stun-types" }
 
 native-tls = "0.2.11"
 tokio-native-tls = "0.3.1"

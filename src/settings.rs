@@ -7,7 +7,7 @@ use openidconnect::{ClientId, ClientSecret, IssuerUrl};
 use serde::Deserialize;
 use std::time::Duration;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Settings {
     pub auth: AuthSettings,
     pub controller: ControllerSettings,
@@ -70,21 +70,21 @@ impl Settings {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct AuthSettings {
     pub issuer: IssuerUrl,
     pub client_id: ClientId,
     pub client_secret: ClientSecret,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct ControllerSettings {
     pub domain: String,
     #[serde(default)]
     pub insecure: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct SipSettings {
     pub addr: String,
     pub port: u16,
@@ -103,7 +103,7 @@ pub struct SipSettings {
     pub rtp_port_range: RtpPortRange,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct SipRegistrarSettings {
     pub password: Option<String>,
     pub realm: Option<String>,
@@ -119,7 +119,7 @@ pub struct SipRegistrarSettings {
     pub nat_ping_delta: Duration,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct RtpPortRange {
     pub start: u16,
     pub end: u16,

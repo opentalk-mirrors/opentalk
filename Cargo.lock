@@ -1948,6 +1948,7 @@ dependencies = [
  "ezk-sip-core",
  "ezk-sip-types",
  "ezk-sip-ua",
+ "ezk-stun-types",
  "futures",
  "gio",
  "gstreamer",
