@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "Newtype derive for diesel types used in OpenTalk crates - proc-macro implementation"
+documentation = "https://docs.rs/opentalk-diesel-newtype-impl"
+edition = "2021"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-diesel-newtype-impl"
+publish = true
+repository.workspace = true
+version = "0.12.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro-crate = "3"
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", features = ["extra-traits"] }
