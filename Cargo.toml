@@ -73,6 +73,8 @@ sip-ua = { version = "0.3.1", package = "ezk-sip-ua" }
 sip-auth = { version = "0.1", package = "ezk-sip-auth" }
 stun-types = { version = "0.1", package = "ezk-stun-types" }
 
+h264-profile-level-id = "0.2"
+
 native-tls = "0.2.11"
 tokio-native-tls = "0.3.1"
 
@@ -87,3 +89,7 @@ openidconnect = "3"
 
 anstream = "0.6"
 owo-colors = "4"
+
+[patch.crates-io]
+# Removes duplicate paste and therefore some compile time
+bitpattern = { git = 'https://github.com/kbalt/bitpattern', branch = 'remove-paste-010-patch' }

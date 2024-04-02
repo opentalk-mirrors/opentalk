@@ -4,6 +4,7 @@
 
 use super::sdp::SessionInfo;
 use crate::media::MediaPipeline;
+use crate::settings::Settings;
 use anyhow::{bail, Context, Result};
 use sdp_types::attributes::direction::Direction;
 use sip_types::{header::typed::ContentType, Code};
@@ -12,6 +13,7 @@ use std::net::IpAddr;
 
 // TODO: rework this to only change local sockets when REALLY required
 pub async fn handle_reinvite(
+    settings: &Settings,
     handle: &mut MediaPipeline,
     event: ReInviteReceived<'_>,
     pub_ip: IpAddr,
@@ -40,7 +42,7 @@ pub async fn handle_reinvite(
     handle.tel_bin.remove_all_transceiver().await;
 
     let session_info =
-        SessionInfo::create_from_offer(body, pub_ip).context("Failed to handle offer")?;
+        SessionInfo::create_from_offer(settings, body, pub_ip).context("Failed to handle offer")?;
 
     handle.tel_bin.rtp.set_pt_caps(
         session_info.telephone_event_pt,
@@ -57,8 +59,7 @@ pub async fn handle_reinvite(
                 .tel_bin
                 .add_sender(
                     i as u32,
-                    media.gst_elements.codec,
-                    media.gst_elements.payload,
+                    &media.gst_elements,
                     media.rtp_udpsink.clone(),
                     media.rtcp_udpsrc.clone(),
                     media.rtcp_udpsink.clone(),

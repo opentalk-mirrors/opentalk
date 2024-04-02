@@ -5,6 +5,7 @@
 use super::codec::{Codec, MediaType};
 use super::track::create_track_src;
 use super::{MediaEvent, Target, TrackController};
+use crate::sip::GstCodecInfo;
 use anyhow::{bail, Context, Result};
 use gio::prelude::*;
 use gst::{glib, prelude::*};
@@ -200,9 +201,13 @@ impl TelBin {
             .property("allow-not-linked", true)
             .build()?;
         let videoconvert = gst::ElementFactory::make("videoconvertscale").build()?;
+        let videorate = gst::ElementFactory::make("videorate")
+            .property("drop-only", true)
+            .build()?;
 
-        bin.add_many(&[&videoconvert, &video_tee])?;
-        videoconvert.link(&video_tee)?;
+        bin.add_many(&[&videoconvert, &videorate, &video_tee])?;
+        gst::Element::link_many(&[&videoconvert, &videorate, &video_tee])?;
+
         let videoconvert_sink = videoconvert
             .static_pad("sink")
             .context("Failed to get static-pad 'sink' of videoconvert")?;
@@ -259,15 +264,15 @@ impl TelBin {
     pub async fn add_sender(
         &mut self,
         session_id: u32,
-        codec: Codec,
-        pt: u32,
+        codec_info: &GstCodecInfo,
         rtp_udpsink: gst::Element,
         rtcp_udpsrc: gst::Element,
         rtcp_udpsink: gst::Element,
         remote_rtp_addr: SocketAddr,
         remote_rtcp_addr: SocketAddr,
     ) -> Result<()> {
-        self.rtp.set_pt_caps(pt, codec.caps());
+        self.rtp
+            .set_pt_caps(codec_info.payload, codec_info.codec.caps());
 
         let pad = self
             .rtp
@@ -282,7 +287,7 @@ impl TelBin {
             .await
             .context("Failed to add sender to RtpBin")?;
 
-        let (convert, scale) = match codec.media_type() {
+        let (convert, scale) = match codec_info.codec.media_type() {
             MediaType::Audio => ("audioconvert", "audioresample"),
             MediaType::Video => ("videoconvert", "videoscale"),
         };
@@ -290,17 +295,29 @@ impl TelBin {
         let queue1 = gst::ElementFactory::make("queue").build()?;
         let convert = gst::ElementFactory::make(convert).build()?;
         let scale = gst::ElementFactory::make(scale).build()?;
-        let encode = codec.encode_element().build()?;
-        let encode_caps = gst::ElementFactory::make("capssetter")
-            .property("caps", codec.encoded_caps())
+        let capsfilter = gst::ElementFactory::make("capsfilter")
+            .property("caps", codec_info.publish_raw_caps.clone())
             .build()?;
-        let payload = codec.payload_element().property("pt", pt).build()?;
+
+        let encode = codec_info
+            .codec
+            .encode_element(&codec_info.codec_params)
+            .build()?;
+        let encode_caps = gst::ElementFactory::make("capssetter")
+            .property("caps", codec_info.codec.encoded_caps())
+            .build()?;
+        let payload = codec_info
+            .codec
+            .payload_element()
+            .property("pt", codec_info.payload)
+            .build()?;
         let queue2 = gst::ElementFactory::make("queue").build()?;
 
         self.bin.add_many(&[
             &queue1,
             &convert,
             &scale,
+            &capsfilter,
             &encode,
             &encode_caps,
             &payload,
@@ -311,13 +328,14 @@ impl TelBin {
             &queue1,
             &convert,
             &scale,
+            &capsfilter,
             &encode,
             &encode_caps,
             &payload,
             &queue2,
         ])?;
 
-        let tee: &gst::Element = match codec.media_type() {
+        let tee: &gst::Element = match codec_info.codec.media_type() {
             MediaType::Audio => &self.audio_sink_tee,
             MediaType::Video => &self.video_sink_tee,
         };
@@ -340,7 +358,7 @@ impl TelBin {
         self.send_paths.insert(
             session_id,
             SendPath {
-                codec,
+                codec: codec_info.codec,
                 tee_pad: tee_src_pad,
                 queue1: queue1.clone(),
                 convert: convert.clone(),
@@ -357,6 +375,7 @@ impl TelBin {
                 queue1.set_state(gst::State::Playing)?;
                 convert.set_state(gst::State::Playing)?;
                 scale.set_state(gst::State::Playing)?;
+                capsfilter.set_state(gst::State::Playing)?;
                 encode.set_state(gst::State::Playing)?;
                 encode_caps.set_state(gst::State::Playing)?;
                 payload.set_state(gst::State::Playing)?;

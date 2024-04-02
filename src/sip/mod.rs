@@ -39,6 +39,7 @@ mod codec;
 mod sdp;
 mod update;
 
+pub use codec::GstCodecInfo;
 pub use update::handle_reinvite;
 
 struct AppData {
@@ -115,7 +116,7 @@ impl AppLayer {
             bail!("Invalid invite content type {:?}", content_type.0);
         }
 
-        let session_info = SessionInfo::create_from_offer(sdp_offer, pub_ip)?;
+        let session_info = SessionInfo::create_from_offer(&self.settings, sdp_offer, pub_ip)?;
         let session_info_contains_video = session_info
             .media
             .iter()
@@ -171,8 +172,7 @@ impl AppLayer {
                     .tel_bin
                     .add_sender(
                         i as u32,
-                        media.gst_elements.codec,
-                        media.gst_elements.payload,
+                        &media.gst_elements,
                         media.rtp_udpsink.clone(),
                         media.rtcp_udpsrc.clone(),
                         media.rtcp_udpsink.clone(),
