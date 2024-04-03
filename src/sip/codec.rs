@@ -204,7 +204,7 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaScope) -> Option<Sdp
                 "max-mbps" => max_mbps = Some(value),
                 "max-fs" => max_fs = Some(value),
                 "max-br" => {
-                    let value = value.max(settings.sip.max_video_bitrate);
+                    let value = value.min(settings.sip.max_video_bitrate);
 
                     // openh264enc takes bitrate in bits/s, so multiply by 1000
                     codec_params.push(("bitrate".to_owned(), (value * 1000).to_string()));
