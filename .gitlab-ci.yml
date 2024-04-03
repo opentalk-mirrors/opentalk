@@ -157,7 +157,8 @@ test:cargo_publish:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     - if: $CI_PIPELINE_SOURCE == 'schedule'
   script:
-    cargo publish --dry-run --no-verify
+    - cargo publish --package opentalk-diesel-newtype-impl --dry-run --no-verify
+    - cargo publish --package opentalk-diesel-newtype --dry-run --no-verify
 
 release:cargo_publish:
   stage: release
@@ -165,4 +166,5 @@ release:cargo_publish:
   rules:
     - if: $CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-\.]+)?$/
   script:
-    cargo publish
+    - cargo publish --package opentalk-diesel-newtype-impl
+    - cargo publish --package opentalk-diesel-newtype
