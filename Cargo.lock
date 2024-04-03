@@ -185,6 +185,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed570934406eb16438a4e976b1b4500774099c13b8cb96eec99f620f05090ddf"
 
 [[package]]
+name = "bitpattern"
+version = "0.1.0"
+source = "git+https://github.com/kbalt/bitpattern?branch=remove-paste-010-patch#97b3165b087052a03232fad2a40eb11c168ee062"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
 name = "bitstream-io"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1300,6 +1309,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "h264-profile-level-id"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45d0dbf6a9847b64c9b06938660891f983434dcc009b5ae6a58f5e34af74a649"
+dependencies = [
+ "bitpattern",
+ "log",
+ "thiserror",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1958,6 +1978,7 @@ dependencies = [
  "gstreamer-rtp",
  "gstreamer-sdp",
  "gstreamer-webrtc",
+ "h264-profile-level-id",
  "hound",
  "log",
  "multimap 0.10.0",

@@ -126,7 +126,7 @@ impl Signaling {
                     match event? {
                         Event::RefreshNeeded(event) => event.process_default().await?,
                         Event::ReInviteReceived(event) => {
-                            if let Err(e) = crate::sip::handle_reinvite(&mut self.media, event, self.pub_ip).await {
+                            if let Err(e) = crate::sip::handle_reinvite(&self.settings, &mut self.media, event, self.pub_ip).await {
                                 log::error!("failed to handle re-invite, {:?}", e);
                                 self.state = State::Quitting;
                             }

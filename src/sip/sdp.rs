@@ -5,6 +5,7 @@
 use super::codec::{choose_audio_codec, choose_video_codec, GstCodecInfo};
 use crate::media::codec::MediaType;
 use crate::media::port_pool::PortPool;
+use crate::settings::Settings;
 use crate::sip::codec::available_video_codec;
 use anyhow::{Context, Result};
 use bytes::Bytes;
@@ -49,7 +50,7 @@ pub struct SessionMedia {
 }
 
 impl SessionInfo {
-    pub fn create_from_offer(offer: Bytes, pub_ip: IpAddr) -> Result<Self> {
+    pub fn create_from_offer(settings: &Settings, offer: Bytes, pub_ip: IpAddr) -> Result<Self> {
         let offer = BytesStr::from_utf8_bytes(offer)
             .context("INVITE body contains invalid UTF-8 characters")?;
         let offer = sdp_types::msg::parse::<sdp_types::msg::Builder>(&offer)
@@ -63,12 +64,18 @@ impl SessionInfo {
         let id = now;
         let version = now + 1;
 
-        respond(offer, pub_ip, id, version)
+        respond(settings, offer, pub_ip, id, version)
     }
 }
 
 /// Negotiate audio & video codecs
-fn respond(offer: Message, pub_ip: IpAddr, id: u64, version: u64) -> Result<SessionInfo> {
+fn respond(
+    settings: &Settings,
+    offer: Message,
+    pub_ip: IpAddr,
+    id: u64,
+    version: u64,
+) -> Result<SessionInfo> {
     let port_pool = PortPool::instance();
 
     let remote_id: u64 = offer
@@ -104,7 +111,7 @@ fn respond(offer: Message, pub_ip: IpAddr, id: u64, version: u64) -> Result<Sess
                 (MediaType::Audio, codec)
             }
             SdpMediaType::Video => {
-                let Some(codec) = choose_video_codec(&media) else {
+                let Some(codec) = choose_video_codec(settings, &media) else {
                     log::debug!("No compatible video codec found (supported is: {}), continuing without video", available_video_codec());
                     continue;
                 };
@@ -203,7 +210,7 @@ fn respond(offer: Message, pub_ip: IpAddr, id: u64, version: u64) -> Result<Sess
         media_scopes.push(answer_media);
         session_media.push(SessionMedia {
             media_type,
-            direction: media.direction,
+            direction,
 
             rtp_udpsrc: socket_pair.rtp_udpsrc,
             rtp_udpsink: socket_pair.rtp_udpsink,

@@ -65,6 +65,9 @@ stun_server = "stun.example.org:3478"
 # Can cause compatibility issues on older registrars.
 enforce_qop = true
 
+# Maximum video bitrate in kbits/s
+#max_video_bitrate = 6000
+
 # The port range for the SIP RTP/RTCP connections (inclusive).
 #
 # Defaults to 40000 - 49999

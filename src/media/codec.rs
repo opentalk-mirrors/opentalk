@@ -37,17 +37,21 @@ impl Codec {
         }
     }
 
-    pub fn encode_element(&self) -> ElementBuilder<'static> {
-        match self {
+    pub fn encode_element<'a>(&self, params: &'a [(String, String)]) -> ElementBuilder<'a> {
+        let mut element = match self {
             Codec::G711PCMA => gst::ElementFactory::make("alawenc"),
             Codec::G711PCMU => gst::ElementFactory::make("mulawenc"),
             Codec::G722 => gst::ElementFactory::make("avenc_g722"),
             Codec::H264 => gst::ElementFactory::make("openh264enc")
                 .property_from_str("usage-type", "camera")
-                .property_from_str("rate-control", "bitrate")
-                // TODO: Make this configurable by SDP
-                .property("bitrate", 128_000u32),
+                .property_from_str("rate-control", "bitrate"),
+        };
+
+        for (name, value) in params {
+            element = element.property_from_str(name, value);
         }
+
+        element
     }
 
     pub fn encoded_caps(&self) -> gst::Caps {

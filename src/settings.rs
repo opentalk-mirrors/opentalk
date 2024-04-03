@@ -101,6 +101,14 @@ pub struct SipSettings {
 
     #[serde(default)]
     pub rtp_port_range: RtpPortRange,
+
+    /// Maximum video bitrate in kilobits/s
+    #[serde(default = "default_max_video_bitrate")]
+    pub max_video_bitrate: u32,
+}
+
+fn default_max_video_bitrate() -> u32 {
+    6000
 }
 
 #[derive(Debug, Clone, Deserialize)]
