@@ -1,0 +1,11 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: https://git.opentalk.dev/opentalk/backend/libs/opentalk-diesel-newtype
+Upstream-Name: OpenTalk Diesel Newtype
+Upstream-Contact: OpenTalk GmbH <mail@opentalk.eu>
+
+Files:
+ Cargo.lock
+ README.md
+ diesel-newtype-impl/README.md
+Copyright: OpenTalk GmbH <mail@opentalk.eu>
+License: EUPL-1.2
