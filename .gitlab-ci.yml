@@ -1,0 +1,168 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.77.0-bullseye
+
+.default_job_condition: &default_job_condition
+  needs: []
+  rules:
+    # Run in merge requests (if there is one job with this instruction, all jobs without
+    # it are ignored for the MR pipeline)
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    # Run on scheduled pipeline runs
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+
+stages:
+  - lint
+  - test
+  - release
+
+lint:fmt:
+  stage: lint
+  <<: *default_job_condition
+  script:
+    - cargo fmt -- --check
+
+lint:clippy:
+  stage: lint
+  <<: *default_job_condition
+  script: cargo clippy --workspace --all-features --tests -- --deny warnings
+
+lint:doc:
+  stage: lint
+  <<: *default_job_condition
+  variables:
+    RUSTDOCFLAGS: -Dwarnings
+  script: cargo doc --workspace --no-deps
+
+lint:dependency_check:
+  stage: lint
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        - Cargo.lock
+        - deny.toml
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+  script: cargo-deny --workspace check
+
+lint:unnecessary_dependencies:
+  stage: lint
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  before_script: if ! cargo machete --version; then cargo install cargo-machete; fi
+  script: cargo machete --with-metadata
+
+lint:yaml:
+  stage: lint
+  <<: *default_job_condition
+  before_script:
+    - apt-get update && apt-get install -y yamllint
+  script: yamllint .
+
+lint:markdown:
+  stage: lint
+  <<: *default_job_condition
+  image: registry.gitlab.com/pipeline-components/markdownlint:latest
+  script:
+    - mdl --style .markdown_style.rb  --warnings .
+
+lint:licensing:
+  stage: lint
+  <<: *default_job_condition
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: ['']
+  script:
+    - reuse lint
+
+lint:shellcheck:
+  stage: lint
+  <<: *default_job_condition
+  before_script:
+    - apt-get update && apt-get install -y shellcheck
+  script:
+    - git ls-files --exclude='*.sh' --ignored -c -z | xargs -0r shellcheck
+
+test:cargo_test:
+  stage: test
+  needs: []
+  rules:
+    # Run in merge requests (if there is one job with this instruction, all jobs without
+    # it are ignored for the MR pipeline)
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    # Run on scheduled pipeline runs
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+    # Also run on protected branches and tags to ensure we detect any issues with the merge
+    - if: $CI_COMMIT_REF_PROTECTED == 'true'
+  artifacts:
+    paths:
+      - target/coverage/html
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: target/coverage/cobertura.xml
+  coverage: '/Coverage: \d+(?:\.\d+)?/'
+  variables:
+    FF_NETWORK_PER_BUILD: 'true'
+    # Used for coverage
+    COVERAGE_XML_PATH: 'concat("Coverage: ", 100 * string(//coverage/@line-rate), "%")'
+
+    # Configure services
+    JANUS_EXCHANGE_TYPE: topic
+    RABBITMQ_DEFAULT_USER: guest
+    RABBITMQ_DEFAULT_PASS: guest
+    RABBITMQ_HOST: rabbitmq
+    RABBITMQ_PORT: '5672'
+
+    # Used for integration tests
+    JANUS_HOST: ws://janus-gateway:8188
+    AMQP_ADDR: amqp://guest:guest@rabbitmq:5672
+  services:
+    - name: rabbitmq:3.8
+      alias: rabbitmq
+    - name: git.opentalk.dev:5050/opentalk/backend/containers/janus-gateway:v0.14.1
+      alias: janus-gateway
+  before_script:
+    - rustup component add rustfmt llvm-tools-preview
+    # libxml2-utils contains the xmllint command used below
+    - apt-get update && apt-get install -y libxml2-utils
+  script:
+    - RUSTFLAGS="-C instrument-coverage -C link-arg=-fuse-ld=lld"
+      LLVM_PROFILE_FILE="$(pwd)/target/coverage/raw/coverage-%p-%m.profraw"
+      cargo test --workspace --locked
+
+    # Extract code coverage data
+    - grcov target/coverage/raw
+      --binary-path ./target/debug/
+      --source-dir .
+      --output-types cobertura,html
+      --branch
+      --ignore-not-existing
+      --ignore "*cargo*"
+      --output-path target/coverage
+
+    # Print out the coverage percentage for GitLab
+    - xmllint --xpath "$COVERAGE_XML_PATH" target/coverage/cobertura.xml
+
+test:cargo_publish:
+  stage: test
+  needs: []
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-\.]+)?$/
+    - if: $CI_COMMIT_REF_NAME =~ /main/
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+  script:
+    cargo publish --dry-run --no-verify
+
+release:cargo_publish:
+  stage: release
+  needs: [test:cargo_publish]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-\.]+)?$/
+  script:
+    cargo publish
