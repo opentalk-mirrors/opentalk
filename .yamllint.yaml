@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# see https://yamllint.readthedocs.io/en/stable/rules.html
+# for detailed description of the rules
+
+yaml-files:
+  - '*.yaml'
+  - '*.yml'
+  - .yamllint
+
+ignore: |
+  .cargo
+
+rules:
+  braces: enable
+  brackets: enable
+  colons: enable
+  commas: enable
+  comments:
+    level: error
+  comments-indentation:
+    level: error
+  document-end: disable
+  document-start:
+    level: error
+  empty-lines: enable
+  empty-values: disable
+  hyphens: enable
+  indentation: enable
+  key-duplicates: enable
+  key-ordering: disable
+  line-length:
+    max: 120
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+  new-line-at-end-of-file: enable
+  new-lines: enable
+  octal-values: enable
+  quoted-strings:
+    quote-type: single
+    required: only-when-needed
+  trailing-spaces: enable
+  truthy:
+    level: error
