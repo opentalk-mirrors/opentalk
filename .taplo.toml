@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+include = ["**/*.toml"]
+
+[formatting]
+reorder_arrays = true
+reorder_keys = true
