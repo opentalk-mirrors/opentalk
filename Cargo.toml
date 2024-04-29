@@ -11,7 +11,7 @@ publish = false
 license = "EUPL-1.2"
 
 [dependencies]
-types = { package = "opentalk-types", version = "0.8.0-rc.1", features = [ "rand", "serde" ] }
+types = { package = "opentalk-types", version = "0.13.0-alpha", features = [ "rand", "serde" ] }
 
 config = { version = "0.13", default-features = false, features = ["toml"] }
 
