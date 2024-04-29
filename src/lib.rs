@@ -3,10 +3,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use bytes::Bytes;
-
 use futures::Stream;
-use reqwest::header::COOKIE;
-use reqwest::{Client, Response, StatusCode, Url};
+use reqwest::{header::COOKIE, Client, Response, StatusCode, Url};
 use serde::Deserialize;
 use serde_repr::Deserialize_repr;
 use snafu::{OptionExt, Snafu};
