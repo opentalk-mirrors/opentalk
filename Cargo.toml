@@ -4,10 +4,14 @@
 
 [package]
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
+description = "Keycloak admin api client library for use in OpenTalk"
+documentation = "https://docs.rs/opentalk-keycloak-admin"
 edition = "2021"
+homepage = "https://opentalk.eu/"
 license = "EUPL-1.2"
 name = "opentalk-keycloak-admin"
 publish = true
+repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-keycloak-admin"
 version = "0.1.0"
 
 [dependencies]
