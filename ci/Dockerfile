@@ -30,8 +30,10 @@ RUN touch src/main.rs; \
 FROM alpine:edge
 
 RUN apk add --no-cache glib libssl3 libcrypto3 \
-    gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad libnice-gstreamer gst-libav \
-    openh264 ca-certificates
+    gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly libnice-gstreamer gst-libav \
+    openh264 ca-certificates \
+    terminus-font font-bitstream-type1 font-bitstream-75dpi font-bitstream-100dpi font-liberation font-noto; \
+    fc-cache -fv
 
 WORKDIR /obelisk
 
