@@ -23,7 +23,7 @@ lint:fmt:
   stage: lint
   <<: *default_job_condition
   script:
-    - cargo fmt -- --check
+    - cargo +nightly fmt -- --check
 
 lint:clippy:
   stage: lint
