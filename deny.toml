@@ -161,6 +161,8 @@ skip = [
   { name = "toml_edit", version = "=0.19.15" },
   { name = "multimap", version = "=0.9.1" },
   { name = "heck", version = "0.4.1" },
+  { name = "base64", version = "0.21.7" },
+  { name = "itertools", version = "0.10.5" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
