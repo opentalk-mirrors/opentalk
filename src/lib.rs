@@ -2,6 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::{
+    fmt::{Debug, Display},
+    hash::Hash,
+};
+
 use diesel::{
     deserialize::{FromSql, FromSqlRow},
     expression::{AsExpression, TypedExpressionType},
@@ -9,10 +14,6 @@ use diesel::{
     sql_types::{SingleValue, SqlType},
 };
 use serde::{de::DeserializeOwned, Serialize};
-use std::{
-    fmt::{Debug, Display},
-    hash::Hash,
-};
 
 #[doc(hidden)]
 pub mod __exports {
