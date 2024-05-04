@@ -122,6 +122,10 @@ impl compositor::Sink for TelBinCompositorSink {
     fn bin(&self) -> gst::Bin {
         self.bin.clone()
     }
+
+    fn requires_eos(&self) -> bool {
+        false
+    }
 }
 
 impl TelBin {

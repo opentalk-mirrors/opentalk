@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Revert mute by default and redo usage message ([#74](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/74))
 - Add openh264 dependency ([#87](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/87))
 
+## [0.7.2]
+
+### Fixed
+
+- RUSTSEC-2024-0019 by updating mio to 0.8.11
+- RUSTSEC-2024-0332 by updating h2 to 0.3.26
+- RUSTSEC-2024-0336 by updating rustls to 0.21.11
+
+## [0.7.1]
+
+### Fixed
+
+- Use generated contact instead of id in invite sessions ([#75](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/75))
+- Revert mute by default and redo usage message ([#74](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/74))
 
 ## [0.7.0]
 
@@ -138,19 +152,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 initial release candidate
 
-[Unreleased]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.5.0...main
+[Unreleased]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.7.0...main
 
-[0.5.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/ed499459ca0e207fcb0c915c04c0f99e1cb7c2db...v0.5.0
+[0.7.2]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.7.1...v0.7.2
+[0.7.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.7.0...v0.7.1
+[0.7.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.5.0...v0.7.0
 
-[0.4.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/ae71d32c12944bff87e2db2955e9bac73451ea37...v0.4.0
+[0.5.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.4.0...v0.5.0
 
-[0.3.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/682f4a0eff7048adc2a580b380d4cf1bb9e63096...v0.3.0
+[0.4.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.3.0...v0.4.0
+
+[0.3.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.2.0...v0.3.0
 
 [0.2.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.2.0...v0.2.1
-[0.2.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/f0b6143249961167f4a5c475a868c73bff20d5e2...v0.2.0
+[0.2.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.1.0...v0.2.0
 
 [0.1.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.1.0...v0.1.1
-[0.1.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/a71fc807cdc848b628f1730e44df2ca7d4b11012...v0.1.0
+[0.1.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/0.0.0-internal-release.4...v0.1.0
 
 [0.0.0-internal-release.4]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/b5d50ad8882992177bbd40a828101bf3837ea8f4...a71fc807cdc848b628f1730e44df2ca7d4b11012
 [0.0.0-internal-release.3]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/bb85fa8bac24cd5fcd0a95270452d490bbb372dc...b5d50ad8882992177bbd40a828101bf3837ea8f4
