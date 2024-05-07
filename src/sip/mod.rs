@@ -2,15 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use self::sdp::SessionInfo;
 use crate::http::HttpClient;
-use crate::media::codec::MediaType;
 use crate::media::{MediaPipeline, Track};
 use crate::settings::{Settings, SipRegistrarSettings};
 use crate::signaling::Signaling;
 use anyhow::{bail, Context, Result};
 use bytesstr::BytesStr;
-use sdp_types::attributes::direction::Direction;
 use sip_auth::digest::{DigestAuthenticator, DigestCredentials};
 use sip_auth::{CredentialStore, RequestParts, UacAuthSession};
 use sip_core::transport::tcp::TcpConnector;
@@ -40,6 +37,7 @@ mod sdp;
 mod update;
 
 pub use codec::GstCodecInfo;
+pub use sdp::SessionState;
 pub use update::handle_reinvite;
 
 struct AppData {
@@ -116,11 +114,11 @@ impl AppLayer {
             bail!("Invalid invite content type {:?}", content_type.0);
         }
 
-        let session_info = SessionInfo::create_from_offer(&self.settings, sdp_offer, pub_ip)?;
-        let session_info_contains_video = session_info
-            .media
-            .iter()
-            .any(|m| m.media_type == MediaType::Video);
+        let mut media_session = SessionState::empty(self.settings.clone(), pub_ip);
+
+        let changes = media_session
+            .receive_offer_bytes(sdp_offer)
+            .context("Failed to handle INVITE application/sdp body")?;
 
         let dialog = Dialog::new_server(endpoint.clone(), self.dialog_layer, &request, contact)?;
 
@@ -148,7 +146,7 @@ impl AppLayer {
         // Create a media pipeline
         let ready_to_send = Arc::new(Notify::new());
         let (mut handle, track_controller) =
-            match MediaPipeline::new(ready_to_send.clone(), session_info_contains_video).await {
+            match MediaPipeline::new(ready_to_send.clone(), media_session.has_video()).await {
                 Ok(answer) => answer,
                 Err(e) => {
                     log::error!("Failed to create GStreamer pipeline, {e:?}");
@@ -157,59 +155,16 @@ impl AppLayer {
                 }
             };
 
-        handle.tel_bin.rtp.set_pt_caps(
-            session_info.telephone_event_pt,
-            gst::Caps::builder("application/x-rtp")
-                .field("media", "audio")
-                .field("encoding-name", "TELEPHONE-EVENT")
-                .field("clock-rate", 8000)
-                .build(),
-        );
-
-        for (i, media) in session_info.media.iter().enumerate() {
-            if matches!(media.direction, Direction::SendOnly | Direction::SendRecv) {
-                handle
-                    .tel_bin
-                    .add_sender(
-                        i as u32,
-                        &media.gst_elements,
-                        media.rtp_udpsink.clone(),
-                        media.rtcp_udpsrc.clone(),
-                        media.rtcp_udpsink.clone(),
-                        media.remote_rtp_addr,
-                        media.remote_rtcp_addr,
-                    )
-                    .await
-                    .with_context(|| format!("Failed to add sender for session {i}"))?;
-            }
-
-            if matches!(media.direction, Direction::RecvOnly | Direction::SendRecv) {
-                handle
-                    .tel_bin
-                    .add_receiver(
-                        i as u32,
-                        media.gst_elements.codec,
-                        media.gst_elements.payload,
-                        media.rtp_udpsrc.clone(),
-                        media.rtcp_udpsrc.clone(),
-                        media.rtcp_udpsink.clone(),
-                        media.remote_rtcp_addr,
-                    )
-                    .await
-                    .with_context(|| format!("Failed to add receiver for session {i}"))?;
-            }
-        }
+        update::apply_changes(&mut handle, &mut media_session, changes).await?;
 
         // Respond with 200 OK
         let mut response = acceptor.create_response(Code::OK, None).await?;
 
-        response.msg.body = session_info.local_sdp.to_string().into();
+        response.msg.body = media_session.build_sdp().to_string().into();
         response
             .msg
             .headers
             .insert(Name::CONTENT_TYPE, "application/sdp");
-
-        drop(session_info);
 
         let (session, _) = acceptor.respond_success(response).await?;
 
@@ -227,10 +182,10 @@ impl AppLayer {
         let mut signaling = Signaling::new(
             self.settings.clone(),
             self.http_client.clone(),
-            pub_ip,
             name,
             session,
             handle,
+            media_session,
             track_controller,
             self.shutdown.subscribe(),
         );
@@ -284,7 +239,8 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         &mut builder,
         format!("{}:{}", settings.sip.addr, settings.sip.port),
     )
-    .await?;
+    .await
+    .context("Failed to bind UDP Socket")?;
 
     // Add TCP connector to allow the endpoint to create TCP connections
     builder.add_transport_factory(Arc::new(TcpConnector::default()));

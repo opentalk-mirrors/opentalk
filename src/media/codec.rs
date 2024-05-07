@@ -3,11 +3,27 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use gst::element_factory::ElementBuilder;
+use sdp_types::media::MediaType as SdpMediaType;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MediaType {
     Audio,
     Video,
+}
+
+impl From<MediaType> for SdpMediaType {
+    fn from(val: MediaType) -> Self {
+        match val {
+            MediaType::Audio => SdpMediaType::Audio,
+            MediaType::Video => SdpMediaType::Video,
+        }
+    }
+}
+
+impl PartialEq<SdpMediaType> for MediaType {
+    fn eq(&self, other: &SdpMediaType) -> bool {
+        SdpMediaType::from(*self) == *other
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

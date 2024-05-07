@@ -5,6 +5,7 @@
 use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{MediaEvent, MediaPipeline, Target, Track, TrackController};
 use crate::settings::Settings;
+use crate::sip::{handle_reinvite, SessionState};
 use crate::websocket::{JoinState, Participant, Websocket, WebsocketEvent};
 use anyhow::{Context, Result};
 use bytesstr::BytesStr;
@@ -12,7 +13,6 @@ use compositor::MediaDescriptor;
 use sip_ua::invite::session::{Event, Session};
 use std::fmt::Write;
 use std::future::pending;
-use std::net::IpAddr;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use types::signaling::media::{MediaSessionState, MediaSessionType};
@@ -38,9 +38,6 @@ pub struct Signaling {
 
     http_client: Arc<HttpClient>,
 
-    /// Public ip facing the incoming caller
-    pub_ip: IpAddr,
-
     /// Name of the user (usually the phone number or Anonymous)
     name: Option<BytesStr>,
 
@@ -53,6 +50,8 @@ pub struct Signaling {
 
     /// Handle to the media task
     media: MediaPipeline,
+    media_session: SessionState,
+
     /// Track controller to play audio tracks on demand to the SIP user
     track_controller: TrackController,
     publish_complete_pending: bool,
@@ -86,21 +85,21 @@ impl Signaling {
     pub fn new(
         settings: Arc<Settings>,
         http_client: Arc<HttpClient>,
-        pub_ip: IpAddr,
         name: Option<BytesStr>,
         sip: Session,
         media: MediaPipeline,
+        media_session: SessionState,
         track_controller: TrackController,
         shutdown: broadcast::Receiver<()>,
     ) -> Self {
         Self {
             settings,
             http_client,
-            pub_ip,
             name,
             sip,
             websocket: None,
             media,
+            media_session,
             track_controller,
             publish_complete_pending: true,
             state: State::Running,
@@ -126,7 +125,7 @@ impl Signaling {
                     match event? {
                         Event::RefreshNeeded(event) => event.process_default().await?,
                         Event::ReInviteReceived(event) => {
-                            if let Err(e) = crate::sip::handle_reinvite(&self.settings, &mut self.media, event, self.pub_ip).await {
+                            if let Err(e) = handle_reinvite(&mut self.media, &mut self.media_session, event).await {
                                 log::error!("failed to handle re-invite, {:?}", e);
                                 self.state = State::Quitting;
                             }

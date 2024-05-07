@@ -233,7 +233,7 @@ impl TelBin {
         ))
     }
 
-    pub async fn enable_video(&mut self, set_state: bool) -> Result<()> {
+    pub async fn enable_video(&mut self, set_new_elements_to_playing: bool) -> Result<()> {
         if self.video_sink_tee.is_some() {
             return Ok(());
         }
@@ -258,7 +258,7 @@ impl TelBin {
         let video_pad = gst::GhostPad::with_target(Some("video-sink"), &videoconvert_sink)?;
         self.bin.add_pad(&video_pad)?;
 
-        if set_state {
+        if set_new_elements_to_playing {
             videoconvert.set_state_async(gst::State::Playing).await?;
             videorate.set_state_async(gst::State::Playing).await?;
             video_tee.set_state_async(gst::State::Playing).await?;
@@ -267,27 +267,6 @@ impl TelBin {
         self.video_sink_tee = Some(video_tee);
 
         Ok(())
-    }
-
-    pub async fn remove_all_transceiver(&mut self) {
-        let state = self.publish_state.lock().await;
-
-        let receiver: Vec<u32> = state.receive_paths.keys().copied().collect();
-        let sender: Vec<u32> = self.send_paths.keys().copied().collect();
-
-        drop(state);
-
-        for session_id in receiver {
-            if let Err(e) = self.remove_receiver(session_id).await {
-                log::error!("Failed to remove receiver for session id={session_id}, {e:?}");
-            }
-        }
-
-        for session_id in sender {
-            if let Err(e) = self.remove_sender(session_id).await {
-                log::error!("Failed to remove sender for session id={session_id}, {e:?}");
-            }
-        }
     }
 
     #[allow(clippy::too_many_arguments)]
