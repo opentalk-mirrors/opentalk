@@ -354,7 +354,7 @@ impl RtpBin {
             .take()
             .context("Tried to non-existing receiver from existing session")?;
 
-        // Remove udpsrc -> rtpbin.recv_rtp_sink_%
+        // Remove udpsrc -> rtpbin.recv_rtp_sink_%u
         receiver.rtp_udpsrc.unlink(&self.rtpbin);
         self.rtpbin
             .release_request_pad(&receiver.rtpbin_recv_rtp_sink);

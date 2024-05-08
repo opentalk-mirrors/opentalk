@@ -192,11 +192,11 @@ impl TelBin {
         subscriber_audio_mixer.link(&audio_tee)?;
 
         let audiomixer_sink_ghostpad = subscriber_audio_mixer
-            .request_pad_simple("sink_%")
-            .context("Failed to request pad 'sink_%' from audiomixer")?;
+            .request_pad_simple("sink_%u")
+            .context("Failed to request pad 'sink_%u' from audiomixer")?;
         let audiomixer_sink_tracksrc = subscriber_audio_mixer
-            .request_pad_simple("sink_%")
-            .context("Failed to request pad 'sink_%' from audiomixer")?;
+            .request_pad_simple("sink_%u")
+            .context("Failed to request pad 'sink_%u' from audiomixer")?;
 
         gst::Element::link_many(&[&tracksrc, &clocksync])?;
         clocksync
@@ -932,8 +932,8 @@ fn rtp_on_pad_added(
                 .context("Failed to get static-pad 'src' from decode element")?;
 
             let audiomixer_pad = audio_mixer
-                .request_pad_simple("sink_%")
-                .context("Failed to request pad 'sink_%' in audiomixer")?;
+                .request_pad_simple("sink_%u")
+                .context("Failed to request pad 'sink_%u' in audiomixer")?;
             decode_src.link(&audiomixer_pad)?;
 
             queue.set_state(gst::State::Playing)?;
@@ -977,7 +977,7 @@ fn rtp_on_pad_added(
                         .context("Failed to get static-pad 'src' from videotestsrc")?
                         .link(
                             &input_selector
-                                .request_pad_simple("sink_%")
+                                .request_pad_simple("sink_%u")
                                 .context("Failed to link videotestsrc to input-selector")?,
                         )?;
 
