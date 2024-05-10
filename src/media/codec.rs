@@ -70,18 +70,6 @@ impl Codec {
         element
     }
 
-    pub fn encoded_caps(&self) -> gst::Caps {
-        match self {
-            Codec::G711PCMA => gst::Caps::builder("audio/x-alaw").build(),
-            Codec::G711PCMU => gst::Caps::builder("audio/x-mulaw").build(),
-            Codec::G722 => gst::Caps::builder("audio/G722").build(),
-            Codec::H264 => gst::Caps::builder("video/x-h264")
-                .field("profile", "baseline")
-                .field("stream-format", "byte-stream")
-                .build(),
-        }
-    }
-
     pub fn decode_element(&self) -> &str {
         match self {
             Codec::G711PCMA => "alawdec",

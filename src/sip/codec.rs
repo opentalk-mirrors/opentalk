@@ -4,6 +4,7 @@
 
 use crate::media::codec::Codec;
 use crate::settings::Settings;
+use h264_profile_level_id::Profile;
 use sdp_types::attributes::fmtp::Fmtp;
 use sdp_types::attributes::rtpmap::RtpMap;
 use sdp_types::msg::MediaScope;
@@ -42,7 +43,8 @@ fn g722_create(rtpmap: Option<&RtpMap>, _: Option<&Fmtp>) -> Option<SdpCodecInfo
         fmtp: None,
         gst_elements: GstCodecInfo {
             payload: 9,
-            publish_raw_caps: gst::Caps::new_any(),
+            pre_encode_caps: gst::Caps::new_any(),
+            post_encode_caps: gst::Caps::new_any(),
             codec_params: Vec::new(),
             codec: Codec::G722,
         },
@@ -62,7 +64,8 @@ fn pcma_create(rtpmap: Option<&RtpMap>, _: Option<&Fmtp>) -> Option<SdpCodecInfo
         fmtp: None,
         gst_elements: GstCodecInfo {
             payload: 8,
-            publish_raw_caps: gst::Caps::new_any(),
+            pre_encode_caps: gst::Caps::new_any(),
+            post_encode_caps: gst::Caps::new_any(),
             codec_params: Vec::new(),
             codec: Codec::G711PCMA,
         },
@@ -82,7 +85,8 @@ fn pcmu_create(rtpmap: Option<&RtpMap>, _: Option<&Fmtp>) -> Option<SdpCodecInfo
         fmtp: None,
         gst_elements: GstCodecInfo {
             payload: 0,
-            publish_raw_caps: gst::Caps::new_any(),
+            pre_encode_caps: gst::Caps::new_any(),
+            post_encode_caps: gst::Caps::new_any(),
             codec_params: Vec::new(),
             codec: Codec::G711PCMU,
         },
@@ -104,8 +108,11 @@ pub struct GstCodecInfo {
     /// RTP payload number to recognize the codec by
     pub payload: u32,
 
-    /// Caps that limit the raw audio/video stream before converting, then encoding
-    pub publish_raw_caps: gst::Caps,
+    /// Caps that are enforced right before the encode element
+    pub pre_encode_caps: gst::Caps,
+
+    /// Caps that are enforced right after the encode element
+    pub post_encode_caps: gst::Caps,
 
     /// Parameters for gstreamer encode element
     pub codec_params: Vec<(String, String)>,
@@ -163,7 +170,8 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaScope) -> Option<Sdp
         .iter()
         .find(|fmtp| fmtp.format == rtpmap.payload);
 
-    let mut capsfilter = gst::Caps::new_any();
+    let mut pre_encode_caps = gst::Caps::new_any();
+    let mut post_encode_caps = gst::Caps::new_any();
     let mut codec_params = vec![];
 
     if let Some(fmtp) = fmtp {
@@ -206,15 +214,35 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaScope) -> Option<Sdp
         }
 
         if let Some(level) = level {
+            // Calculate pre encode caps
             let ((width, height), fps) =
                 calculate_best_resolution_and_fps(level.level(), max_mbps, max_fs);
 
             let caps = format!("video/x-raw,width={width},height={height},framerate={fps}/1");
 
             match gst::Caps::from_str(&caps) {
-                Ok(caps) => capsfilter = caps,
+                Ok(caps) => pre_encode_caps = caps,
                 Err(e) => log::warn!("Failed to parse caps '{caps}', {e}"),
             }
+
+            // Calculate post encode caps
+            let openh264_profile_string = match level.profile() {
+                Profile::ConstrainedBaseline => "constrained-baseline",
+                Profile::Baseline => "baseline",
+                Profile::Main => "main",
+                Profile::ConstrainedHigh => "constrained-high",
+                Profile::High => "high",
+                Profile::PredictiveHigh444 => {
+                    log::warn!("Caller requested unsupported H.264 profile `PredictiveHigh444`");
+                    return None;
+                }
+            };
+
+            post_encode_caps = gst::Caps::builder("video/x-h264")
+                .field("stream-format", "byte-stream")
+                .field("alignment", "au")
+                .field("profile", openh264_profile_string)
+                .build();
         }
     }
 
@@ -223,7 +251,8 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaScope) -> Option<Sdp
         fmtp: None,
         gst_elements: GstCodecInfo {
             payload: rtpmap.payload,
-            publish_raw_caps: capsfilter,
+            pre_encode_caps,
+            post_encode_caps,
             codec_params,
             codec: Codec::H264,
         },
