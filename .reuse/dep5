@@ -7,5 +7,6 @@ Files:
  Cargo.lock
  README.md
  diesel-newtype-impl/README.md
+ renovate.json
 Copyright: OpenTalk GmbH <mail@opentalk.eu>
 License: EUPL-1.2
