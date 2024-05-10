@@ -6,5 +6,6 @@ Upstream-Contact: OpenTalk GmbH <mail@opentalk.eu>
 Files:
  Cargo.lock
  README.md
+ renovate.json
 Copyright: OpenTalk GmbH <mail@opentalk.eu>
 License: EUPL-1.2
