@@ -112,20 +112,16 @@ test:cargo_test:
     COVERAGE_XML_PATH: 'concat("Coverage: ", 100 * string(//coverage/@line-rate), "%")'
 
     # Configure services
-    JANUS_EXCHANGE_TYPE: topic
     RABBITMQ_DEFAULT_USER: guest
     RABBITMQ_DEFAULT_PASS: guest
     RABBITMQ_HOST: rabbitmq
     RABBITMQ_PORT: '5672'
 
     # Used for integration tests
-    JANUS_HOST: ws://janus-gateway:8188
     AMQP_ADDR: amqp://guest:guest@rabbitmq:5672
   services:
     - name: rabbitmq:3.8
       alias: rabbitmq
-    - name: git.opentalk.dev:5050/opentalk/backend/containers/janus-gateway:v0.14.1
-      alias: janus-gateway
   before_script:
     - rustup component add rustfmt llvm-tools-preview
     # libxml2-utils contains the xmllint command used below
