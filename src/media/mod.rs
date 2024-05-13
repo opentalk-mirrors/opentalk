@@ -44,7 +44,7 @@ pub enum MediaEvent {
 pub struct MediaPipeline {
     pub tel_bin: TelBin,
     pub with_video: bool,
-    compositor: Mixer<WebRtcSource>,
+    pub compositor: Mixer<WebRtcSource>,
 
     events_tx: mpsc::UnboundedSender<MediaEvent>,
     events_rx: mpsc::UnboundedReceiver<MediaEvent>,

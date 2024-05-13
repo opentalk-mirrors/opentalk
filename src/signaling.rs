@@ -465,6 +465,16 @@ impl Signaling {
                     self.track_controller.play_track(Track::ModeratorMuted);
                 }
             }
+            WebsocketEvent::SpeakerUpdated { speaker, speaking } => {
+                // Currently ignoring stop-speaking events
+                if !speaking {
+                    return Ok(());
+                }
+
+                if let Err(e) = self.media.compositor.set_speaker(speaker) {
+                    log::warn!("Failed handle SpeakerUpdated event, {e:?}");
+                }
+            }
             WebsocketEvent::SessionEnded { .. } => {
                 self.close_websocket().await?;
                 self.track_controller
