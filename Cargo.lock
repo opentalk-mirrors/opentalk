@@ -153,9 +153,9 @@ checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
 name = "base64"
-version = "0.22.0"
+version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9475866fec1451be56a3c2400fd081ff546538961565ccb5b7142cbd22bc7a51"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "base64ct"
@@ -2020,7 +2020,7 @@ version = "0.13.0-alpha"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "114a03aa0568c88a0c25e7da4be7f19b4cf06c601a993da5467ba3f5955d84ca"
 dependencies = [
- "base64 0.22.0",
+ "base64 0.22.1",
  "bincode",
  "chrono",
  "chrono-tz",

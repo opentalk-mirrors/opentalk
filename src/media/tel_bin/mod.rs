@@ -305,7 +305,7 @@ impl TelBin {
         let convert = gst::ElementFactory::make(convert).build()?;
         let scale = gst::ElementFactory::make(scale).build()?;
         let capsfilter = gst::ElementFactory::make("capsfilter")
-            .property("caps", codec_info.publish_raw_caps.clone())
+            .property("caps", codec_info.pre_encode_caps.clone())
             .build()?;
 
         let encode = codec_info
@@ -313,7 +313,7 @@ impl TelBin {
             .encode_element(&codec_info.codec_params)
             .build()?;
         let encode_caps = gst::ElementFactory::make("capssetter")
-            .property("caps", codec_info.codec.encoded_caps())
+            .property("caps", codec_info.post_encode_caps.clone())
             .build()?;
         let payload = codec_info
             .codec
