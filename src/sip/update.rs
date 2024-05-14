@@ -2,21 +2,88 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use super::sdp::SessionInfo;
+use super::sdp::{MediaChange, SessionState};
 use crate::media::MediaPipeline;
-use crate::settings::Settings;
 use anyhow::{bail, Context, Result};
-use sdp_types::attributes::direction::Direction;
 use sip_types::{header::typed::ContentType, Code};
 use sip_ua::invite::session::ReInviteReceived;
-use std::net::IpAddr;
 
-// TODO: rework this to only change local sockets when REALLY required
-pub async fn handle_reinvite(
-    settings: &Settings,
+pub async fn apply_changes(
     handle: &mut MediaPipeline,
+    media_session: &mut SessionState,
+    changes: Vec<MediaChange>,
+) -> Result<()> {
+    for dtmf_pt in media_session.all_dtmf_payloads() {
+        handle.tel_bin.rtp.set_pt_caps(
+            dtmf_pt,
+            gst::Caps::builder("application/x-rtp")
+                .field("media", "audio")
+                .field("encoding-name", "TELEPHONE-EVENT")
+                .field("clock-rate", 8000)
+                .build(),
+        );
+    }
+
+    for change in changes {
+        match change {
+            MediaChange::AddReceiver(id) => {
+                let media = media_session.media_by_id(id);
+
+                handle
+                    .tel_bin
+                    .add_receiver(
+                        id,
+                        media.codec.gst_elements.codec,
+                        media.codec.gst_elements.payload,
+                        media.socket_pair.rtp_udpsrc.clone(),
+                        media.socket_pair.rtcp_udpsrc.clone(),
+                        media.socket_pair.rtcp_udpsink.clone(),
+                        media.remote_rtcp_addr,
+                    )
+                    .await
+                    .with_context(|| format!("Failed to add receiver for session {id}"))?;
+            }
+            MediaChange::AddSender(id) => {
+                let media = media_session.media_by_id(id);
+
+                handle
+                    .tel_bin
+                    .add_sender(
+                        id,
+                        &media.codec.gst_elements,
+                        media.socket_pair.rtp_udpsink.clone(),
+                        media.socket_pair.rtcp_udpsrc.clone(),
+                        media.socket_pair.rtcp_udpsink.clone(),
+                        media.remote_rtp_addr,
+                        media.remote_rtcp_addr,
+                    )
+                    .await
+                    .with_context(|| format!("Failed to add sender for session {id}"))?;
+            }
+            MediaChange::RemoveReceiver(id) => {
+                handle
+                    .tel_bin
+                    .remove_receiver(id)
+                    .await
+                    .with_context(|| format!("Failed to remove receiver for session {id}"))?;
+            }
+            MediaChange::RemoveSender(id) => {
+                handle
+                    .tel_bin
+                    .remove_sender(id)
+                    .await
+                    .with_context(|| format!("Failed to remove sender for session {id}"))?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn handle_reinvite(
+    handle: &mut MediaPipeline,
+    media_session: &mut SessionState,
     event: ReInviteReceived<'_>,
-    pub_ip: IpAddr,
 ) -> Result<()> {
     let request = &event.invite;
 
@@ -39,55 +106,19 @@ pub async fn handle_reinvite(
 
     let body = request.body.clone();
 
-    handle.tel_bin.remove_all_transceiver().await;
+    let changes = media_session.receive_offer_bytes(body)?;
 
-    let session_info =
-        SessionInfo::create_from_offer(settings, body, pub_ip).context("Failed to handle offer")?;
-
-    handle.tel_bin.rtp.set_pt_caps(
-        session_info.telephone_event_pt,
-        gst::Caps::builder("application/x-rtp")
-            .field("media", "audio")
-            .field("encoding-name", "TELEPHONE-EVENT")
-            .field("clock-rate", 8000)
-            .build(),
-    );
-
-    for (i, media) in session_info.media.iter().enumerate() {
-        if matches!(media.direction, Direction::SendOnly | Direction::SendRecv) {
-            handle
-                .tel_bin
-                .add_sender(
-                    i as u32,
-                    &media.gst_elements,
-                    media.rtp_udpsink.clone(),
-                    media.rtcp_udpsrc.clone(),
-                    media.rtcp_udpsink.clone(),
-                    media.remote_rtp_addr,
-                    media.remote_rtcp_addr,
-                )
-                .await
-                .with_context(|| format!("Failed to add sender for session {i}"))?;
-        }
-
-        if matches!(media.direction, Direction::RecvOnly | Direction::SendRecv) {
-            handle
-                .tel_bin
-                .add_receiver(
-                    i as u32,
-                    media.gst_elements.codec,
-                    media.gst_elements.payload,
-                    media.rtp_udpsrc.clone(),
-                    media.rtcp_udpsrc.clone(),
-                    media.rtcp_udpsink.clone(),
-                    media.remote_rtcp_addr,
-                )
-                .await
-                .with_context(|| format!("Failed to add receiver for session {i}"))?;
-        }
+    // Check if video has been added but currently disabled in the media pipeline
+    if !handle.with_video && media_session.has_video() {
+        handle
+            .enable_video()
+            .await
+            .context("Failed to enable video in media pipeline")?;
     }
 
-    let sdp_response = session_info.local_sdp.to_string();
+    apply_changes(handle, media_session, changes).await?;
+
+    let sdp_response = media_session.build_sdp().to_string();
 
     let mut response = event
         .session

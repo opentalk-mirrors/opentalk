@@ -5,6 +5,7 @@
 use crate::media::port_pool::PortPool;
 use crate::media::util::ElementConvenienceExt;
 use anyhow::{ensure, Context, Result};
+use gio::InetSocketAddress;
 use gst::glib::{self, ObjectExt, ToValue};
 use gst::prelude::*;
 use parking_lot::Mutex;
@@ -28,6 +29,8 @@ struct Session {
     rtpbin_recv_rtcp_sink: gst::Pad,
     rtpbin_send_rtcp_src: gst::Pad,
 
+    rtcp_socket_addr: InetSocketAddress,
+
     sender: Option<Sender>,
     receiver: Option<Receiver>,
 }
@@ -35,9 +38,7 @@ struct Session {
 impl Drop for Session {
     fn drop(&mut self) {
         let port_pool = PortPool::instance();
-        let socket = self.rtcp_udpsrc.property::<gio::Socket>("socket");
-        let socket_addr = socket.property::<gio::InetSocketAddress>("local-address");
-        let port = socket_addr.property::<u32>("port");
+        let port = self.rtcp_socket_addr.property::<u32>("port");
         port_pool.clear_port((port as u16) - 1);
     }
 }
@@ -133,11 +134,15 @@ impl RtpBin {
                 rtcp_udpsink.set_state_async(gst::State::Playing).await?;
                 rtcp_udpsrc.set_state_async(gst::State::Playing).await?;
 
+                let socket = rtcp_udpsrc.property::<gio::Socket>("socket");
+                let socket_addr = socket.property::<gio::InetSocketAddress>("local-address");
+
                 Ok(vacant.insert(Session {
                     rtcp_udpsink,
                     rtcp_udpsrc,
                     rtpbin_recv_rtcp_sink: recv_rtcp_sink,
                     rtpbin_send_rtcp_src: send_rtcp_src,
+                    rtcp_socket_addr: socket_addr,
                     sender: None,
                     receiver: None,
                 }))
@@ -349,7 +354,7 @@ impl RtpBin {
             .take()
             .context("Tried to non-existing receiver from existing session")?;
 
-        // Remove udpsrc -> rtpbin.recv_rtp_sink_%
+        // Remove udpsrc -> rtpbin.recv_rtp_sink_%u
         receiver.rtp_udpsrc.unlink(&self.rtpbin);
         self.rtpbin
             .release_request_pad(&receiver.rtpbin_recv_rtp_sink);

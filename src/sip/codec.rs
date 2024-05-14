@@ -113,14 +113,6 @@ pub struct GstCodecInfo {
     pub codec: Codec,
 }
 
-/// Used by rtpbin's request-pt-map callback to provide caps
-/// for incoming RTP packets using their payload number
-#[derive(Clone)]
-pub struct PayloadCaps {
-    pub payload: u32,
-    pub caps: gst::Caps,
-}
-
 pub fn choose_audio_codec(offer: &MediaScope) -> Option<SdpCodecInfo> {
     for entry in AUDIO_CODEC_LIST {
         // first check all payload numbers in the m= line

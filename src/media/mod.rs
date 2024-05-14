@@ -64,7 +64,7 @@ impl MediaPipeline {
         let mut compositor = Mixer::create(None, Size::HD, Speaker::default(), 6, with_video)
             .context("Failed to create compositor")?;
 
-        let (tel_bin, sink, track_controller) = TelBin::new(ready_to_send)?;
+        let (tel_bin, sink, track_controller) = TelBin::new(ready_to_send, with_video).await?;
 
         compositor
             .link_sink("tel", sink)
@@ -171,6 +171,15 @@ impl MediaPipeline {
             .recv()
             .await
             .expect("self also holds the sender side of the channel, so this should never fail")
+    }
+
+    pub async fn enable_video(&mut self) -> Result<()> {
+        self.tel_bin.enable_video(true).await?;
+        self.compositor
+            .enable_video()
+            .context("Failed to enable video in compositor")?;
+
+        Ok(())
     }
 
     pub async fn on_sdp_candidate(

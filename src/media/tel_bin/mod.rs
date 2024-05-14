@@ -4,6 +4,7 @@
 
 use super::codec::{Codec, MediaType};
 use super::track::create_track_src;
+use super::util::ElementConvenienceExt;
 use super::{MediaEvent, Target, TrackController};
 use crate::sip::GstCodecInfo;
 use anyhow::{bail, Context, Result};
@@ -26,7 +27,7 @@ pub struct TelBin {
 
     pub(crate) rtp: rtpbin_wrapper::RtpBin,
 
-    video_sink_tee: gst::Element,
+    video_sink_tee: Option<gst::Element>,
     audio_sink_tee: gst::Element,
 
     publish_state: Arc<Mutex<ToPublishState>>,
@@ -100,7 +101,6 @@ pub struct TelBinCompositorSink {
     bin: gst::Bin,
     rtp_bin: gst::Bin,
 
-    video_sink_pad: gst::GhostPad,
     audio_sink_pad: gst::GhostPad,
 }
 
@@ -112,7 +112,11 @@ impl compositor::Sink for TelBinCompositorSink {
     }
 
     fn video(&self) -> Option<gst::GhostPad> {
-        Some(self.video_sink_pad.clone())
+        self.bin
+            .sink_pads()
+            .into_iter()
+            .find(|pad| pad.name() == "video-sink")
+            .and_then(|pad| pad.downcast().ok())
     }
 
     fn audio(&self) -> gst::GhostPad {
@@ -129,8 +133,9 @@ impl compositor::Sink for TelBinCompositorSink {
 }
 
 impl TelBin {
-    pub fn new(
+    pub async fn new(
         ready_to_send: Arc<Notify>,
+        with_video: bool,
     ) -> Result<(Self, TelBinCompositorSink, TrackController)> {
         let bin = gst::Bin::new(None);
 
@@ -187,11 +192,11 @@ impl TelBin {
         subscriber_audio_mixer.link(&audio_tee)?;
 
         let audiomixer_sink_ghostpad = subscriber_audio_mixer
-            .request_pad_simple("sink_%")
-            .context("Failed to request pad 'sink_%' from audiomixer")?;
+            .request_pad_simple("sink_%u")
+            .context("Failed to request pad 'sink_%u' from audiomixer")?;
         let audiomixer_sink_tracksrc = subscriber_audio_mixer
-            .request_pad_simple("sink_%")
-            .context("Failed to request pad 'sink_%' from audiomixer")?;
+            .request_pad_simple("sink_%u")
+            .context("Failed to request pad 'sink_%u' from audiomixer")?;
 
         gst::Element::link_many(&[&tracksrc, &clocksync])?;
         clocksync
@@ -199,7 +204,40 @@ impl TelBin {
             .context("Failed to get static-pad 'src' of clocksync")?
             .link(&audiomixer_sink_tracksrc)?;
 
-        // Setup video
+        let audio_pad = gst::GhostPad::with_target(Some("audio-sink"), &audiomixer_sink_ghostpad)?;
+        bin.add_pad(&audio_pad)?;
+
+        let rtp_bin = rtp.bin().clone();
+
+        let mut this = Self {
+            bin: bin.clone(),
+            rtp,
+            audio_sink_tee: audio_tee,
+            video_sink_tee: None,
+            publish_state: state,
+            send_paths: HashMap::new(),
+        };
+
+        if with_video {
+            this.enable_video(false).await?;
+        }
+
+        Ok((
+            this,
+            TelBinCompositorSink {
+                bin,
+                rtp_bin,
+                audio_sink_pad: audio_pad,
+            },
+            track_controller,
+        ))
+    }
+
+    pub async fn enable_video(&mut self, set_new_elements_to_playing: bool) -> Result<()> {
+        if self.video_sink_tee.is_some() {
+            return Ok(());
+        }
+
         let video_tee = gst::ElementFactory::make("tee")
             .name("video-tee")
             .property("allow-not-linked", true)
@@ -209,59 +247,26 @@ impl TelBin {
             .property("drop-only", true)
             .build()?;
 
-        bin.add_many(&[&videoconvert, &videorate, &video_tee])?;
+        self.bin
+            .add_many(&[&videoconvert, &videorate, &video_tee])?;
         gst::Element::link_many(&[&videoconvert, &videorate, &video_tee])?;
 
         let videoconvert_sink = videoconvert
             .static_pad("sink")
             .context("Failed to get static-pad 'sink' of videoconvert")?;
 
-        let video_pad = gst::GhostPad::with_target(None, &videoconvert_sink)?;
-        let audio_pad = gst::GhostPad::with_target(None, &audiomixer_sink_ghostpad)?;
+        let video_pad = gst::GhostPad::with_target(Some("video-sink"), &videoconvert_sink)?;
+        self.bin.add_pad(&video_pad)?;
 
-        bin.add_pad(&video_pad)?;
-        bin.add_pad(&audio_pad)?;
-
-        let rtp_bin = rtp.bin().clone();
-
-        Ok((
-            Self {
-                bin: bin.clone(),
-                rtp,
-                audio_sink_tee: audio_tee,
-                video_sink_tee: video_tee,
-                publish_state: state,
-                send_paths: HashMap::new(),
-            },
-            TelBinCompositorSink {
-                bin,
-                rtp_bin,
-                audio_sink_pad: audio_pad,
-                video_sink_pad: video_pad,
-            },
-            track_controller,
-        ))
-    }
-
-    pub async fn remove_all_transceiver(&mut self) {
-        let state = self.publish_state.lock().await;
-
-        let receiver: Vec<u32> = state.receive_paths.keys().copied().collect();
-        let sender: Vec<u32> = self.send_paths.keys().copied().collect();
-
-        drop(state);
-
-        for session_id in receiver {
-            if let Err(e) = self.remove_receiver(session_id).await {
-                log::error!("Failed to remove receiver for session id={session_id}, {e:?}");
-            }
+        if set_new_elements_to_playing {
+            videoconvert.set_state_async(gst::State::Playing).await?;
+            videorate.set_state_async(gst::State::Playing).await?;
+            video_tee.set_state_async(gst::State::Playing).await?;
         }
 
-        for session_id in sender {
-            if let Err(e) = self.remove_sender(session_id).await {
-                log::error!("Failed to remove sender for session id={session_id}, {e:?}");
-            }
-        }
+        self.video_sink_tee = Some(video_tee);
+
+        Ok(())
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -341,7 +346,10 @@ impl TelBin {
 
         let tee: &gst::Element = match codec_info.codec.media_type() {
             MediaType::Audio => &self.audio_sink_tee,
-            MediaType::Video => &self.video_sink_tee,
+            MediaType::Video => self
+                .video_sink_tee
+                .as_ref()
+                .context("Tried to add video stream without video support")?,
         };
 
         let tee_src_pad = tee
@@ -442,7 +450,11 @@ impl TelBin {
 
         match codec.media_type() {
             MediaType::Audio => self.audio_sink_tee.release_request_pad(&tee_pad),
-            MediaType::Video => self.video_sink_tee.release_request_pad(&tee_pad),
+            MediaType::Video => self
+                .video_sink_tee
+                .as_ref()
+                .context("Tried to add video stream without video support")?
+                .release_request_pad(&tee_pad),
         }
 
         gst::Element::unlink_many(&[
@@ -898,8 +910,10 @@ fn rtp_on_pad_added(
                     let publish_audio_mixer_valve = gst::ElementFactory::make("valve")
                         .property("drop", true)
                         .build()?;
+
                     bin.add_many(&[&publish_audio_mixer, &publish_audio_mixer_valve])?;
-                    publish_audio_mixer.link(&publish_audio_mixer_valve)?;
+                    gst::Element::link_many(&[&publish_audio_mixer, &publish_audio_mixer_valve])?;
+
                     publish_audio_mixer.set_state(gst::State::Playing)?;
                     publish_audio_mixer_valve.set_state(gst::State::Playing)?;
 
@@ -918,8 +932,8 @@ fn rtp_on_pad_added(
                 .context("Failed to get static-pad 'src' from decode element")?;
 
             let audiomixer_pad = audio_mixer
-                .request_pad_simple("sink_%")
-                .context("Failed to request pad 'sink_%' in audiomixer")?;
+                .request_pad_simple("sink_%u")
+                .context("Failed to request pad 'sink_%u' in audiomixer")?;
             decode_src.link(&audiomixer_pad)?;
 
             queue.set_state(gst::State::Playing)?;
@@ -963,7 +977,7 @@ fn rtp_on_pad_added(
                         .context("Failed to get static-pad 'src' from videotestsrc")?
                         .link(
                             &input_selector
-                                .request_pad_simple("sink_%")
+                                .request_pad_simple("sink_%u")
                                 .context("Failed to link videotestsrc to input-selector")?,
                         )?;
 
