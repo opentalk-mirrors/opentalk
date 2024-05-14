@@ -54,6 +54,10 @@ pub enum WebsocketEvent {
         issuer: ParticipantId,
         force: bool,
     },
+    SpeakerUpdated {
+        speaker: ParticipantId,
+        speaking: bool,
+    },
     SessionEnded {
         issued_by: ParticipantId,
     },
@@ -461,6 +465,10 @@ impl Websocket {
                 MediaEvent::RequestMute(RequestMute { issuer, force }) => {
                     Ok(Some(WebsocketEvent::RequestMute { issuer, force }))
                 }
+                MediaEvent::SpeakerUpdated(event) => Ok(Some(WebsocketEvent::SpeakerUpdated {
+                    speaker: event.participant,
+                    speaking: event.speaker.is_speaking,
+                })),
                 evt => {
                     log::debug!("Unhandled media event: {evt:?}");
                     Ok(None)
