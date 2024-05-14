@@ -110,6 +110,12 @@ impl SessionState {
             .any(|m| m.media_type == MediaType::Video)
     }
 
+    pub fn receives_video(&self) -> bool {
+        self.media_sessions
+            .iter()
+            .any(|m| is_receiving(m.direction) && m.media_type == MediaType::Video)
+    }
+
     /// Iterate over all payload numbers that may appear as dtmf tones
     pub fn all_dtmf_payloads(&self) -> impl Iterator<Item = u32> + '_ {
         self.media_sessions

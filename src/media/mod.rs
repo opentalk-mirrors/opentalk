@@ -75,7 +75,7 @@ impl MediaPipeline {
         let pipeline = tel_bin
             .bin
             .parent()
-            .context("sink's bin hast no parent after being added to compositor")?
+            .context("sink's bin has no parent after being added to compositor")?
             .downcast::<gst::Pipeline>()
             .ok()
             .context("sink's parent is not a pipeline")?;
@@ -174,6 +174,7 @@ impl MediaPipeline {
     }
 
     pub async fn enable_video(&mut self) -> Result<()> {
+        self.with_video = true;
         self.tel_bin.enable_video(true).await?;
         self.compositor
             .enable_video()
