@@ -70,6 +70,11 @@ lint:markdown:
   script:
     - mdl --style .markdown_style.rb  --warnings .
 
+lint:toml:
+  stage: lint
+  <<: *default_job_condition
+  script: taplo fmt --check
+
 lint:licensing:
   stage: lint
   <<: *default_job_condition
