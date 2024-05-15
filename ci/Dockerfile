@@ -17,7 +17,7 @@ COPY recorder recorder
 # As we haven't copied any source files yet, this will only compile the dependencies
 RUN mkdir src; \
     echo 'fn main() {println!("Hello World!");}' > src/main.rs; \
-    RUSTFLAGS=-Ctarget-feature=-crt-static cargo build --release
+    RUSTFLAGS=-Ctarget-feature=-crt-static cargo auditable build --release
 
 # Now copy the real source over
 COPY src src
@@ -25,7 +25,7 @@ COPY audio audio
 
 # Cargo detects changes only by mtime
 RUN touch src/main.rs; \
-    RUSTFLAGS=-Ctarget-feature=-crt-static cargo build --release
+    RUSTFLAGS=-Ctarget-feature=-crt-static cargo auditable build --release
 
 FROM alpine:edge
 
