@@ -275,7 +275,7 @@ impl Signaling {
                         websocket
                             .send_mute(
                                 self.muted,
-                                self.muted && (!self.media.with_video),
+                                self.muted || !self.media_session.receives_video(),
                                 MediaSessionType::Video,
                             )
                             .await?;
@@ -448,7 +448,7 @@ impl Signaling {
                 if self.publish_complete_pending && receiving {
                     self.publish_complete_pending = false;
                     websocket
-                        .publish_complete(self.media.with_video, media_session_type)
+                        .publish_complete(self.media_session.receives_video(), media_session_type)
                         .await?;
                 }
             }
@@ -458,7 +458,7 @@ impl Signaling {
                     websocket
                         .send_mute(
                             self.muted,
-                            self.muted && (!self.media.with_video),
+                            self.muted || !self.media_session.receives_video(),
                             MediaSessionType::Video,
                         )
                         .await?;
