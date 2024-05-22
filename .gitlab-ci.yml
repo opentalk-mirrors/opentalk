@@ -17,25 +17,24 @@ variables:
   FF_NETWORK_PER_BUILD: 'true'
   GIT_SUBMODULE_STRATEGY: recursive
 
-lint:fmt:
+.default_job_condition: &default_job_condition
+  needs: []
   rules:
     # Run in merge requests (if there is one job with this instruction, all jobs without
     # it are ignored for the MR pipeline)
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     # Run on scheduled pipeline runs
     - if: $CI_PIPELINE_SOURCE == 'schedule'
-    # Run on feature branches
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+
+lint:fmt:
   stage: lint
+  <<: *default_job_condition
   script:
     - cargo fmt -- --check
 
 lint:clippy:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: lint
+  <<: *default_job_condition
   before_script:
     - >
       apk add --no-cache
@@ -45,28 +44,19 @@ lint:clippy:
     - cargo clippy --all-features --tests -- --deny warnings
 
 lint:dependency_check_advisories:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: lint
+  <<: *default_job_condition
   allow_failure: true
   script: cargo deny check advisories
 
 lint:dependency_check_bans_licenses_sources:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: lint
+  <<: *default_job_condition
   script: cargo deny check bans licenses sources
 
 lint:yaml:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: lint
+  <<: *default_job_condition
   image: alpine:edge
   before_script:
     - apk add --no-cache yamllint
@@ -84,11 +74,8 @@ lint:licensing:
     - reuse lint
 
 test:cargo_test:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
   stage: test
+  <<: *default_job_condition
   artifacts:
     paths:
       - target/coverage/html
@@ -131,10 +118,10 @@ test:cargo_test:
     - xmllint --xpath "$COVERAGE_XML_PATH" target/coverage/cobertura.xml
 
 test:container:
+  stage: test
   rules:
     # Run only on MR, cause we have no access to the registry in other repos
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  stage: test
   needs: []
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -155,9 +142,9 @@ test:container:
       --force
 
 package:obelisk-container-dev:
+  stage: package
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  stage: package
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: ['']
@@ -176,8 +163,8 @@ package:obelisk-container-dev:
       --force
 
 trigger-docs:
-  needs: []
   stage: trigger
+  needs: []
   rules:
     - if: $CI_PIPELINE_SOURCE == "pipeline"
       when: never
@@ -186,9 +173,9 @@ trigger-docs:
     project: opentalk/backend/docs
 
 package:obelisk-container-tag:
+  stage: package
   rules:
     - if: $CI_COMMIT_TAG != null
-  stage: package
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: ['']
@@ -207,12 +194,12 @@ package:obelisk-container-tag:
       --force
 
 package:read-latest-tag:
+  stage: package
   rules:
     - if: $CI_COMMIT_TAG != null
   image:
     name: alpine/git
     entrypoint: ['']
-  stage: package
   script:
     - git fetch --tags
     - LATEST_TAG=$(git tag --list | grep "^v[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+$" | sort -V | tail -n1)
@@ -222,9 +209,9 @@ package:read-latest-tag:
       dotenv: package.env
 
 package:obelisk-container-latest:
+  stage: package
   rules:
     - if: $CI_COMMIT_TAG != null
-  stage: package
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: ['']
