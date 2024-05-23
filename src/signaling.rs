@@ -14,8 +14,11 @@ use sip_ua::invite::session::{Event, Session};
 use std::fmt::Write;
 use std::future::pending;
 use std::sync::Arc;
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, mpsc};
+use tokio::time::{sleep, Duration};
 use types::signaling::media::{MediaSessionState, MediaSessionType};
+
+const PIN_ENTRY_TIMEOUT_INTERVAL: Duration = Duration::from_secs(5);
 
 /// State of the signaling task
 enum State {
@@ -77,6 +80,11 @@ pub struct Signaling {
 
     /// Application shutdown signal
     shutdown: broadcast::Receiver<()>,
+
+    /// Timeout handler
+    timeout_sender: tokio::sync::mpsc::Sender<()>,
+    timeout_receiver: tokio::sync::mpsc::Receiver<()>,
+    timeout_task_handle: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl Signaling {
@@ -92,6 +100,8 @@ impl Signaling {
         track_controller: TrackController,
         shutdown: broadcast::Receiver<()>,
     ) -> Self {
+        let (timeout_sender, timeout_receiver) = mpsc::channel(1);
+
         Self {
             settings,
             http_client,
@@ -109,6 +119,9 @@ impl Signaling {
             hand_raised: false,
             participants: Vec::new(),
             shutdown,
+            timeout_sender,
+            timeout_receiver,
+            timeout_task_handle: None,
         }
     }
 
@@ -148,6 +161,11 @@ impl Signaling {
                         log::error!("failed to handle websocket event, {:?}", e);
                         self.state = State::Quitting;
                     }
+                }
+                _ = self.timeout_receiver.recv() => {
+                    log::debug!("pin entry timed out");
+                    self.dtmf_pw.clear();
+                    self.track_controller.play_track(Track::InputInvalid);
                 }
                 _ = welcome_finished_channel_rx.recv() => {
                     if let Err(e) = self.begin_publish_and_subscriptions().await {
@@ -240,6 +258,11 @@ impl Signaling {
                         } else {
                             let _ = write!(&mut self.dtmf_pw, "{}", digit);
 
+                            // Cancel the previous timeout if it exists
+                            if let Some(task_handle) = self.timeout_task_handle.take() {
+                                task_handle.abort();
+                            }
+
                             if self.dtmf_pw.len() == 10 {
                                 match self.join().await {
                                     Ok(_) => {
@@ -260,6 +283,16 @@ impl Signaling {
                                         return Err(e);
                                     }
                                 }
+                            } else {
+                                // Start a new timeout
+                                let timeout_sender = self.timeout_sender.clone();
+
+                                let task_handle = tokio::spawn(async move {
+                                    sleep(PIN_ENTRY_TIMEOUT_INTERVAL).await;
+                                    let _ = timeout_sender.send(()).await;
+                                });
+
+                                self.timeout_task_handle = Some(task_handle);
                             }
                         }
                     }
