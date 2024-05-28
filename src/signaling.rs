@@ -135,19 +135,13 @@ impl Signaling {
         while matches!(self.state, State::Running) {
             tokio::select! {
                 event = self.sip.drive() => {
-                    match event? {
-                        Event::RefreshNeeded(event) => event.process_default().await?,
-                        Event::ReInviteReceived(event) => {
-                            if let Err(e) = handle_reinvite(&mut self.media, &mut self.media_session, event).await {
-                                log::error!("failed to handle re-invite, {:?}", e);
-                                self.state = State::Quitting;
-                            }
-                        },
-                        Event::Bye(event) => {
-                            event.process_default().await?;
-                            self.state = State::Terminated;
-                        },
-                        Event::Terminated => self.state = State::Terminated,
+                    match handle_sip_event(event?, &mut self.media, &mut self.media_session).await {
+                        Ok(Some(state)) => self.state = state,
+                        Ok(None) => {}
+                        Err(e) => {
+                            log::error!("failed to handle sip event, {:?}", e);
+                            self.state = State::Quitting;
+                        }
                     }
                 }
                 event = self.media.wait_for_event() => {
@@ -582,11 +576,7 @@ impl Signaling {
 
         let mut websocket = Websocket::connect(&self.settings.controller, ticket).await?;
 
-        let name = self
-            .name
-            .as_ref()
-            .map(|s| s.as_str())
-            .unwrap_or("Anonymous");
+        let name = self.name.as_ref().map_or("Anonymous", |s| s.as_str());
 
         match websocket.join(name).await? {
             JoinState::Joined(participants) => {
@@ -594,9 +584,28 @@ impl Signaling {
             }
             JoinState::InWaitingRoom => {
                 self.track_controller.play_track(Track::EnteredWaitingRoom);
-                websocket.wait_until_accepted_into_waiting_room().await?;
 
-                self.participants = websocket.enter_from_waiting_room().await?;
+                // Create a new scope because websocket will be borrowed inside the future `wait_until_accepted`
+                {
+                    let mut wait_until_accepted =
+                        std::pin::pin!(websocket.wait_until_accepted_into_waiting_room());
+
+                    loop {
+                        tokio::select! {
+                            participants = &mut wait_until_accepted => {
+                                // Participants got accepted, break out of loop
+                                self.participants = participants?;
+                                break;
+                            }
+                            sip_event = self.sip.drive() => {
+                                if let Some(state) = handle_sip_event(sip_event?, &mut self.media, &mut self.media_session).await? {
+                                    self.state = state;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -604,6 +613,31 @@ impl Signaling {
 
         Ok(())
     }
+}
+
+async fn handle_sip_event(
+    event: Event<'_>,
+    media: &mut MediaPipeline,
+    media_session: &mut SessionState,
+) -> Result<Option<State>> {
+    match event {
+        Event::RefreshNeeded(event) => event.process_default().await?,
+        Event::ReInviteReceived(event) => {
+            if let Err(e) = handle_reinvite(media, media_session, event).await {
+                log::error!("failed to handle re-invite, {:?}", e);
+                return Ok(Some(State::Quitting));
+            }
+        }
+        Event::Bye(event) => {
+            event.process_default().await?;
+            return Ok(Some(State::Terminated));
+        }
+        Event::Terminated => {
+            return Ok(Some(State::Terminated));
+        }
+    }
+
+    Ok(None)
 }
 
 async fn websocket_receive(websocket: &mut Option<Websocket>) -> Result<WebsocketEvent> {

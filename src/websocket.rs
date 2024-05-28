@@ -155,12 +155,12 @@ impl Websocket {
         }
     }
 
-    pub async fn wait_until_accepted_into_waiting_room(&mut self) -> Result<()> {
+    pub async fn wait_until_accepted_into_waiting_room(&mut self) -> Result<Vec<Participant>> {
         loop {
             match self.receive_payload().await? {
                 Some(Payload::Moderation {
                     payload: ModerationPayload::Accepted,
-                }) => return Ok(()),
+                }) => return self.enter_from_waiting_room().await,
                 Some(unhandled) => {
                     log::warn!("Unhandled message while in waiting_room, {unhandled:?}")
                 }
@@ -379,7 +379,7 @@ impl Websocket {
     async fn receive_payload(&mut self) -> Result<Option<Payload>> {
         match self.receive_raw().await? {
             Some(msg) => serde_json::from_str(&msg)
-                .context("Failed to parse payload")
+                .context("failed to parse payload")
                 .map(Some),
             None => Ok(None),
         }
