@@ -201,14 +201,30 @@ impl Signaling {
 
         // Subscribe to all participants that currently publish
         for participant in &self.participants {
-            if participant.control.left_at.is_none() && participant.media.video.is_some() {
+            if participant.control.left_at.is_some() {
+                continue;
+            }
+
+            if participant.media.video.is_some() {
                 websocket
                     .subscribe(
                         MediaDescriptor {
                             participant_id: participant.id,
                             media_type: MediaSessionType::Video,
                         },
-                        self.media.with_video,
+                        true,
+                    )
+                    .await?;
+            }
+
+            if participant.media.screen.is_some() {
+                websocket
+                    .subscribe(
+                        MediaDescriptor {
+                            participant_id: participant.id,
+                            media_type: MediaSessionType::Screen,
+                        },
+                        true,
                     )
                     .await?;
             }
@@ -365,8 +381,8 @@ impl Signaling {
                                 .publish_end_of_candidates(media_session_type)
                                 .await?
                         }
-                        Target::Subscribe(uuid) => {
-                            websocket.subscribe_end_of_candidates(uuid).await?;
+                        Target::Subscribe(desc) => {
+                            websocket.subscribe_end_of_candidates(desc).await?;
                         }
                     }
                 }
@@ -394,7 +410,12 @@ impl Signaling {
                     return Ok(());
                 };
 
-                if let Some(status) = &participant.media.video {
+                let status = match desc.media_type {
+                    MediaSessionType::Video => &participant.media.video,
+                    MediaSessionType::Screen => &participant.media.screen,
+                };
+
+                if let Some(status) = status {
                     let answer = self
                         .media
                         .create_subscribe(
@@ -428,7 +449,19 @@ impl Signaling {
                                 participant_id: participant.id,
                                 media_type: MediaSessionType::Video,
                             },
-                            self.media.with_video,
+                            true,
+                        )
+                        .await?;
+                }
+
+                if participant.media.screen.is_some() {
+                    websocket
+                        .subscribe(
+                            MediaDescriptor {
+                                participant_id: participant.id,
+                                media_type: MediaSessionType::Screen,
+                            },
+                            true,
                         )
                         .await?;
                 }
@@ -437,17 +470,25 @@ impl Signaling {
             }
             WebsocketEvent::Update(updated) => {
                 if let Some(current) = self.participants.iter_mut().find(|p| p.id == updated.id) {
-                    let current_state = current.media.video;
-                    let updated_state = updated.media.video;
-
                     Self::update_subscriptions_for_media_session_type(
                         &mut self.media,
                         websocket,
                         &*current,
                         &updated,
                         MediaSessionType::Video,
-                        current_state,
-                        updated_state,
+                        current.media.video,
+                        updated.media.video,
+                    )
+                    .await?;
+
+                    Self::update_subscriptions_for_media_session_type(
+                        &mut self.media,
+                        websocket,
+                        &*current,
+                        &updated,
+                        MediaSessionType::Screen,
+                        current.media.screen,
+                        updated.media.screen,
                     )
                     .await?;
 
@@ -466,6 +507,15 @@ impl Signaling {
                             .remove_subscribe(MediaDescriptor {
                                 participant_id: assoc.id,
                                 media_type: MediaSessionType::Video,
+                            })
+                            .await?;
+                    }
+
+                    if participant.media.screen.is_some() {
+                        self.media
+                            .remove_subscribe(MediaDescriptor {
+                                participant_id: assoc.id,
+                                media_type: MediaSessionType::Screen,
                             })
                             .await?;
                     }
@@ -489,6 +539,7 @@ impl Signaling {
                             MediaSessionType::Video,
                         )
                         .await?;
+
                     self.track_controller.play_track(Track::ModeratorMuted);
                 }
             }
@@ -544,7 +595,7 @@ impl Signaling {
                             participant_id: current.id,
                             media_type: media_session_type,
                         },
-                        media.with_video,
+                        true,
                     )
                     .await?;
             }
