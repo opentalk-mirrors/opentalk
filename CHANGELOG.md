@@ -9,13 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Support for video calls via H.264 ([#64](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/64))
 - Add a timeout to the pin entry ([#92](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/92))
 
 ### Fixed
 
-- Use generated contact instead of id in invite sessions ([#75](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/75))
+- Use generated contact instead of id in invite sessions ([#76](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/76))
 - Revert mute by default and redo usage message ([#74](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/74))
 - Add openh264 dependency ([#87](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/87))
+- Handle SIP events (like hangup) while in waiting room ([#93](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/93))
 
 ## [0.7.2]
 
