@@ -16,9 +16,15 @@ version = "0.1.0"
 
 [dependencies]
 log = "0.4"
-reqwest = { version = "0.12", features = ["json", "rustls-tls-native-roots"] }
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 snafu = "0.8"
 tokio = "1"
 url = "2"
+
+[features]
+default = ["native-tls"]
+native-tls = ["reqwest/native-tls"]
+rustls-tls = ["reqwest/rustls-tls"]
+rustls-tls-native-roots = ["reqwest/rustls-tls-native-roots"]
