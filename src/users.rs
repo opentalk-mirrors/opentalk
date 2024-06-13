@@ -77,6 +77,12 @@ struct VerifyEmailQuery<'s> {
     exact: bool,
 }
 
+#[derive(Serialize)]
+struct LimitQuery {
+    first: i32,
+    max: i32,
+}
+
 impl KeycloakAdminClient {
     /// Query keycloak for users using the given search string
     pub async fn search_user(&self, search_str: &str, max_users: usize) -> Result<Vec<User>> {
@@ -205,6 +211,64 @@ impl KeycloakAdminClient {
             return Ok(Some((*user).clone()));
         }
         Ok(None)
+    }
+
+    /// Query keycloak users
+    pub async fn get_users_chunk(&self, offset: i32, limit: i32) -> Result<Vec<User>> {
+        let url = self.url(["admin", "realms", &self.realm, "users"])?;
+
+        let query = LimitQuery {
+            first: offset,
+            max: limit,
+        };
+
+        let response = self
+            .send_authorized(move |c| c.get(url.clone()).query(&query))
+            .await?;
+
+        let status = response.status();
+        if !status.is_success() {
+            log::warn!(
+                "Received unsuccessful status code {} from KeyCloak when attempting to list users",
+                status.as_u16(),
+            );
+            log::warn!("{}", response.text().await?);
+            return Err(Error::KeyCloak);
+        }
+
+        let found_results = response.json::<Vec<ParseResult>>().await?;
+        let found_results_amount = found_results.len();
+        let found_users: Vec<_> = found_results
+            .into_iter()
+            .filter_map(Option::<User>::from)
+            .collect();
+
+        if found_results_amount != found_users.len() {
+            log::warn!("User JSON object from KeyCloak is missing at least one field.");
+        }
+
+        Ok(found_users)
+    }
+
+    /// Query keycloak users count
+    pub async fn get_users_count(&self) -> Result<i32> {
+        let url = self.url(["admin", "realms", &self.realm, "users", "count"])?;
+
+        let response = self.send_authorized(move |c| c.get(url.clone())).await?;
+
+        let status = response.status();
+        if !status.is_success() {
+            log::warn!(
+                "Received unsuccessful status code {} from KeyCloak when attempting to list users",
+                status.as_u16(),
+            );
+            log::warn!("{}", response.text().await?);
+            return Err(Error::KeyCloak);
+        }
+
+        let users_count = response.json::<i32>().await?;
+
+        Ok(users_count)
     }
 }
 
