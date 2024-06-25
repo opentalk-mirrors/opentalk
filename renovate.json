@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "gio",
+        "glib",
+        "gstreamer-*",
+        "gstreamer"
+      ],
+      "groupName": "gstreamer-rs",
+      "groupSlug": "gstreamer-rs"
+    },
+    {
+      "matchPackagePatterns": [
+        "ezk-*"
+      ],
+      "groupName": "EZK-rs",
+      "groupSlug": "EZK-rs"
+    }
+  ]
+}
