@@ -51,7 +51,9 @@ pub enum WebsocketEvent {
     Left(AssociatedParticipant),
     Receiving(MediaSessionType, bool),
     RequestMute {
+        #[allow(dead_code)]
         issuer: ParticipantId,
+        #[allow(dead_code)]
         force: bool,
     },
     SpeakerUpdated {
@@ -59,6 +61,7 @@ pub enum WebsocketEvent {
         speaking: bool,
     },
     SessionEnded {
+        #[allow(dead_code)]
         issued_by: ParticipantId,
     },
     Disconnected,
@@ -523,6 +526,7 @@ pub struct Participant {
 #[derive(Debug, Clone, Copy, Default, Deserialize)]
 pub struct MediaData {
     pub video: Option<MediaSessionState>,
+    #[allow(dead_code)]
     pub screen: Option<MediaSessionState>,
 }
 
@@ -531,6 +535,7 @@ pub struct MediaData {
 enum ModerationPayload {
     InWaitingRoom,
     Accepted,
+    #[allow(dead_code)]
     #[serde(rename = "session_ended")]
     SessionEnded(SessionEnded),
 }
