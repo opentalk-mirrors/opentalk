@@ -33,6 +33,7 @@ pub async fn apply_changes(
                     .tel_bin
                     .add_receiver(
                         id,
+                        media.srtp.as_ref(),
                         media.codec.gst_elements.codec,
                         media.codec.gst_elements.payload,
                         media.socket_pair.rtp_udpsrc.clone(),
@@ -50,6 +51,7 @@ pub async fn apply_changes(
                     .tel_bin
                     .add_sender(
                         id,
+                        media.srtp.as_ref(),
                         &media.codec.gst_elements,
                         media.socket_pair.rtp_udpsink.clone(),
                         media.socket_pair.rtcp_udpsrc.clone(),

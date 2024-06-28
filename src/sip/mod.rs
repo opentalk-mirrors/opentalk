@@ -37,7 +37,7 @@ mod sdp;
 mod update;
 
 pub use codec::GstCodecInfo;
-pub use sdp::SessionState;
+pub use sdp::{SessionState, SrtpInfo};
 pub use update::handle_reinvite;
 
 struct AppData {
@@ -92,7 +92,7 @@ impl AppLayer {
     async fn handle_invite(
         &self,
         endpoint: &Endpoint,
-        request: IncomingRequest,
+        mut request: IncomingRequest,
         contact: Contact,
         pub_ip: IpAddr,
     ) -> Result<()> {
@@ -102,7 +102,7 @@ impl AppLayer {
         let content_type: ContentType = request.headers.get_named()?;
 
         if content_type.0 != "application/sdp" {
-            let tsx = endpoint.create_server_inv_tsx(&request);
+            let tsx = endpoint.create_server_inv_tsx(&mut request);
 
             let response = endpoint.create_response(
                 &request,

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add SRTP support for calls ([#66](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/66))
 - Add a timeout to the pin entry ([#92](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/92))
 
 ### Fixed

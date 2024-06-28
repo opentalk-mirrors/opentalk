@@ -5,9 +5,7 @@
 use crate::media::codec::Codec;
 use crate::settings::Settings;
 use h264_profile_level_id::Profile;
-use sdp_types::attributes::fmtp::Fmtp;
-use sdp_types::attributes::rtpmap::RtpMap;
-use sdp_types::msg::MediaScope;
+use sdp_types::{Fmtp, MediaDescription, RtpMap};
 use std::str::FromStr;
 
 struct CodecEntry {
@@ -120,10 +118,10 @@ pub struct GstCodecInfo {
     pub codec: Codec,
 }
 
-pub fn choose_audio_codec(offer: &MediaScope) -> Option<SdpCodecInfo> {
+pub fn choose_audio_codec(offer: &MediaDescription) -> Option<SdpCodecInfo> {
     for entry in AUDIO_CODEC_LIST {
         // first check all payload numbers in the m= line
-        for payload in &offer.desc.fmts {
+        for payload in &offer.media.fmts {
             let static_pt_matches = if let Some(static_payload) = entry.static_payload {
                 static_payload == *payload
             } else {
@@ -159,7 +157,7 @@ pub fn available_video_codec() -> &'static str {
     "H264"
 }
 
-pub fn choose_video_codec(settings: &Settings, offer: &MediaScope) -> Option<SdpCodecInfo> {
+pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Option<SdpCodecInfo> {
     let rtpmap = offer
         .rtpmaps
         .iter()

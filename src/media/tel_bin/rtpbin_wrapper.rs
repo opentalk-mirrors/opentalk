@@ -4,6 +4,7 @@
 
 use crate::media::port_pool::PortPool;
 use crate::media::util::ElementConvenienceExt;
+use crate::sip::SrtpInfo;
 use anyhow::{ensure, Context, Result};
 use gio::InetSocketAddress;
 use gst::glib;
@@ -31,8 +32,15 @@ struct Session {
 
     rtcp_socket_addr: InetSocketAddress,
 
+    srtp: Option<SrtpElements>,
+
     sender: Option<Sender>,
     receiver: Option<Receiver>,
+}
+
+struct SrtpElements {
+    srtpenc: gst::Element,
+    srtpdec: gst::Element,
 }
 
 impl Drop for Session {
@@ -91,6 +99,7 @@ impl RtpBin {
     async fn get_or_create_session(
         &mut self,
         session_id: u32,
+        srtp_info: Option<&SrtpInfo>,
         rtcp_udpsrc: gst::Element,
         rtcp_udpsink: gst::Element,
         remote_rtcp_addr: SocketAddr,
@@ -117,19 +126,112 @@ impl RtpBin {
                     .add(&rtcp_udpsink)
                     .context("Failed to add rtcp-udpsink to bin")?;
 
-                rtcp_udpsrc
-                    .static_pad("src")
-                    .context("Failed to get static-pad 'src' from rtcp-udpsrc")?
-                    .link(&recv_rtcp_sink)
-                    .context("Failed to link rtcp-udpsrc 'src'to rtpbin 'recv_rtcp_sink_%u'")?;
+                let srtp = if let Some(srtp) = srtp_info {
+                    let mut send_key = gst::Buffer::with_size(srtp.send_key.len())
+                        .context("Failed to create send_key buffer")?;
+                    send_key
+                        .make_mut()
+                        .copy_from_slice(0, &srtp.send_key)
+                        .expect("allocated enough space for this to not fail");
 
-                send_rtcp_src
-                    .link(
-                        &rtcp_udpsink
-                            .static_pad("sink")
-                            .context("Failed to get static-pad 'sink' from rtcp-udpsink")?,
-                    )
-                    .context("Failed to link rtpbin 'send_rtcp_src_%u' to rtcp-udpsink 'sink'")?;
+                    let srtpenc = gst::ElementFactory::make("srtpenc")
+                        .property("key", &send_key)
+                        .property_from_str("rtp-cipher", srtp.gst_cipher)
+                        .property_from_str("rtcp-cipher", srtp.gst_cipher)
+                        .property_from_str("rtp-auth", srtp.gst_auth)
+                        .property_from_str("rtcp-auth", srtp.gst_auth)
+                        .build()?;
+
+                    let mut recv_key = gst::Buffer::with_size(srtp.recv_key.len())
+                        .context("Failed to create recv_key buffer")?;
+                    recv_key
+                        .make_mut()
+                        .copy_from_slice(0, &srtp.recv_key)
+                        .expect("allocated enough space for this to not fail");
+
+                    let srtpdec = gst::ElementFactory::make("srtpdec").build()?;
+
+                    let gst_cipher = srtp.gst_cipher;
+                    let gst_auth = srtp.gst_auth;
+                    srtpdec.connect("request-key", false, move |_| {
+                        Some(
+                            gst::Caps::builder("application/x-srtp")
+                                .field("srtp-key", &recv_key)
+                                .field("srtp-cipher", gst_cipher)
+                                .field("srtp-auth", gst_auth)
+                                .field("srtcp-cipher", gst_cipher)
+                                .field("srtcp-auth", gst_auth)
+                                .build()
+                                .to_value(),
+                        )
+                    });
+
+                    self.bin.add(&srtpenc)?;
+                    self.bin.add(&srtpdec)?;
+
+                    rtcp_udpsrc
+                        .static_pad("src")
+                        .context("Missing static pad 'src'")?
+                        .link(
+                            &srtpdec
+                                .static_pad("rtcp_sink")
+                                .context("Failed to get static-pad 'rtcp_sink' of srtpdec")?,
+                        )
+                        .context("Failed to link rtcp_udpsrc to srtpdec")?;
+
+                    srtpdec
+                        .static_pad("rtcp_src")
+                        .context("Missing static pad 'src'")?
+                        .link(&recv_rtcp_sink)
+                        .context("Failed to link srtpdec to recv_rtcp_sink")?;
+
+                    // rtpbin -> srtpenc -> udpsink
+                    let srtpenc_rtcp_sink = srtpenc
+                        .request_pad_simple(&format!("rtcp_sink_{session_id}"))
+                        .context("Failed to request pad 'rtcp_sink_%u'")?;
+                    send_rtcp_src
+                        .link(&srtpenc_rtcp_sink)
+                        .context("Failed to link send_rtcp_srt to srtpenc.rtcp_sink")?;
+
+                    let srtpenc_send_rtcp_src = srtpenc
+                        .pads()
+                        .into_iter()
+                        .find(|p| p.name() == format!("rtcp_src_{session_id}"))
+                        .context("Failed to find matching rtcp_src_%u pad")?;
+
+                    srtpenc_send_rtcp_src
+                        .link(
+                            &rtcp_udpsink
+                                .static_pad("sink")
+                                .context("Failed to get static-pad 'sink' from rtcp-udpsink")?,
+                        )
+                        .context(
+                            "Failed to link srtpenc's 'send_rtcp_src_%u' to rtcp-udpsink 'sink'",
+                        )?;
+
+                    srtpenc.set_state_async(gst::State::Playing).await?;
+                    srtpdec.set_state_async(gst::State::Playing).await?;
+
+                    Some(SrtpElements { srtpenc, srtpdec })
+                } else {
+                    rtcp_udpsrc
+                        .static_pad("src")
+                        .context("Failed to get static-pad 'src' from rtcp-udpsrc")?
+                        .link(&recv_rtcp_sink)
+                        .context("Failed to link rtcp-udpsrc 'src'to rtpbin 'recv_rtcp_sink_%u'")?;
+
+                    send_rtcp_src
+                        .link(
+                            &rtcp_udpsink
+                                .static_pad("sink")
+                                .context("Failed to get static-pad 'sink' from rtcp-udpsink")?,
+                        )
+                        .context(
+                            "Failed to link rtpbin 'send_rtcp_src_%u' to rtcp-udpsink 'sink'",
+                        )?;
+
+                    None
+                };
 
                 rtcp_udpsink.set_state_async(gst::State::Playing).await?;
                 rtcp_udpsrc.set_state_async(gst::State::Playing).await?;
@@ -143,6 +245,7 @@ impl RtpBin {
                     rtpbin_recv_rtcp_sink: recv_rtcp_sink,
                     rtpbin_send_rtcp_src: send_rtcp_src,
                     rtcp_socket_addr: socket_addr,
+                    srtp,
                     sender: None,
                     receiver: None,
                 }))
@@ -158,6 +261,7 @@ impl RtpBin {
     pub async fn add_sender(
         &mut self,
         session_id: u32,
+        srtp_info: Option<&SrtpInfo>,
         rtp_udpsink: gst::Element,
         rtcp_udpsrc: gst::Element,
         rtcp_udpsink: gst::Element,
@@ -165,19 +269,30 @@ impl RtpBin {
         remote_rtcp_addr: SocketAddr,
     ) -> Result<gst::GhostPad> {
         let self_rtpbin = self.rtpbin.clone();
+        let self_bin = self.bin.clone();
 
         let session = self
-            .get_or_create_session(session_id, rtcp_udpsrc, rtcp_udpsink, remote_rtcp_addr)
+            .get_or_create_session(
+                session_id,
+                srtp_info,
+                rtcp_udpsrc,
+                rtcp_udpsink,
+                remote_rtcp_addr,
+            )
             .await
             .context("Failed to get_or_create_session")?;
 
         ensure!(
             session.sender.is_none(),
-            "Tried to create a second sender for the same session_id ({session_id})"
+            "Tried to create a second sender for the same session_id ({session_id})",
         );
 
         rtp_udpsink.set_property("host", remote_rtp_addr.ip().to_string());
         rtp_udpsink.set_property("port", remote_rtp_addr.port() as i32);
+
+        self_bin
+            .add(&rtp_udpsink)
+            .context("Failed to add rtp-udpsink to bin")?;
 
         // ghost-pad -> rtpbin.send_rtp_sink_%u
         let rtp_sink = self_rtpbin
@@ -185,6 +300,10 @@ impl RtpBin {
             .context("Failed to request pad 'send_rtp_sink_%u' on rtpbin")?;
         let ghost_pad =
             gst::GhostPad::with_target(&rtp_sink).context("Failed to create rtp-sink GhostPad")?;
+
+        self_bin
+            .add_pad(&ghost_pad)
+            .context("Failed to add GhostPad to bin")?;
 
         // rtpbin.send_rtp_src_%u -> udpsink
         let rtp_src = self_rtpbin
@@ -198,20 +317,35 @@ impl RtpBin {
             rtp_udpsink: rtp_udpsink.clone(),
         });
 
-        self.bin
-            .add(&rtp_udpsink)
-            .context("Failed to add rtp-udpsink to bin")?;
-
         let rtp_udpsink_sink = rtp_udpsink
             .static_pad("sink")
             .context("Failed to get static-pad sink in rtp-udpsink")?;
-        rtp_src
-            .link(&rtp_udpsink_sink)
-            .context("Failed to link rtpbin.send_rtp_src_%u to rtp-udpsink.sink")?;
 
-        self.bin
-            .add_pad(&ghost_pad)
-            .context("Failed to add GhostPad to bin")?;
+        if let Some(srtp) = &session.srtp {
+            let srtpenc_rtp_sink = srtp
+                .srtpenc
+                .request_pad_simple(&format!("rtp_sink_{session_id}"))
+                .context("Failed to request pad 'rtp_sink_%u'")?;
+
+            rtp_src
+                .link(&srtpenc_rtp_sink)
+                .context("Failed to link rtp_src to srtpenc.rtp_sink")?;
+
+            let srtpenc_send_rtp_src = srtp
+                .srtpenc
+                .pads()
+                .into_iter()
+                .find(|p| p.name() == format!("rtp_src_{session_id}"))
+                .context("Failed to find pad 'rtp_src_%u'")?;
+
+            srtpenc_send_rtp_src
+                .link(&rtp_udpsink_sink)
+                .context("Failed to link srtpenc.send_rtp_src to rtp_udpsink")?;
+        } else {
+            rtp_src
+                .link(&rtp_udpsink_sink)
+                .context("Failed to link rtpbin.send_rtp_src_%u to rtp-udpsink.sink")?;
+        }
 
         rtp_udpsink.set_state_async(gst::State::Playing).await?;
 
@@ -221,6 +355,7 @@ impl RtpBin {
     pub async fn add_receiver(
         &mut self,
         session_id: u32,
+        srtp_info: Option<&SrtpInfo>,
         rtp_udpsrc: gst::Element,
         rtcp_udpsrc: gst::Element,
         rtcp_udpsink: gst::Element,
@@ -230,7 +365,13 @@ impl RtpBin {
         let self_rtpbin = self.rtpbin.clone();
 
         let session = self
-            .get_or_create_session(session_id, rtcp_udpsrc, rtcp_udpsink, remote_rtcp_addr)
+            .get_or_create_session(
+                session_id,
+                srtp_info,
+                rtcp_udpsrc,
+                rtcp_udpsink,
+                remote_rtcp_addr,
+            )
             .await
             .context("Failed to get_or_create_session")?;
 
@@ -247,11 +388,32 @@ impl RtpBin {
             .request_pad_simple("recv_rtp_sink_%u")
             .context("Failed to request pad 'recv_rtp_sink_%u' on rtpbin")?;
 
-        rtp_udpsrc
-            .static_pad("src")
-            .context("Failed to get static pad 'src' from rtp-udpsrc")?
-            .link(&rtp_sink)
-            .context("Failed to link rtp-udpsrc to rtpbin.recv_rtp_sink_%u")?;
+        if let Some(srtp) = &session.srtp {
+            let srtpdec_rtp_sink = srtp
+                .srtpdec
+                .static_pad("rtp_sink")
+                .context("Failed to get static-pad rtp_sink")?;
+            let srtpdec_rtp_src = srtp
+                .srtpdec
+                .static_pad("rtp_src")
+                .context("Failed to get static-pad rtp_src")?;
+
+            rtp_udpsrc
+                .static_pad("src")
+                .context("Failed to get static-pad 'src' of udpsrc")?
+                .link(&srtpdec_rtp_sink)
+                .context("Failed to link udpsrc.src to srtpdec.rtp_sink")?;
+
+            srtpdec_rtp_src
+                .link(&rtp_sink)
+                .context("Failed to link srtpdec.rtp_src to rtpbin.recv_rtp_sink_%u")?;
+        } else {
+            rtp_udpsrc
+                .static_pad("src")
+                .context("Failed to get static pad 'src' from rtp-udpsrc")?
+                .link(&rtp_sink)
+                .context("Failed to link rtp-udpsrc to rtpbin.recv_rtp_sink_%u")?;
+        }
 
         rtp_udpsrc.set_state_async(gst::State::Playing).await?;
 
@@ -274,8 +436,16 @@ impl RtpBin {
             "Cannot remove session if there's still a sender or receiver connected"
         );
 
-        session.rtcp_udpsrc.unlink(&self.rtpbin);
-        self.rtpbin.unlink(&session.rtcp_udpsink);
+        if let Some(srtp) = &session.srtp {
+            session.rtcp_udpsrc.unlink(&srtp.srtpdec);
+            srtp.srtpdec.unlink(&self.rtpbin);
+
+            self.rtpbin.unlink(&srtp.srtpenc);
+            srtp.srtpenc.unlink(&session.rtcp_udpsink);
+        } else {
+            session.rtcp_udpsrc.unlink(&self.rtpbin);
+            self.rtpbin.unlink(&session.rtcp_udpsink);
+        }
 
         self.rtpbin
             .release_request_pad(&session.rtpbin_recv_rtcp_sink);
@@ -297,6 +467,18 @@ impl RtpBin {
         self.bin
             .remove(&session.rtcp_udpsrc)
             .context("Failed to remove rtcp_udpsrc")?;
+
+        if let Some(srtp) = &session.srtp {
+            srtp.srtpdec.set_state_async(gst::State::Null).await?;
+            srtp.srtpenc.set_state_async(gst::State::Null).await?;
+
+            self.bin
+                .remove(&srtp.srtpenc)
+                .context("Failed to remove srtpenc from bin")?;
+            self.bin
+                .remove(&srtp.srtpdec)
+                .context("Failed to remove srtpdec from bin")?;
+        }
 
         Ok(())
     }
@@ -322,6 +504,10 @@ impl RtpBin {
         self.rtpbin.release_request_pad(&rtpbin_send_rtp_sink);
 
         // Remove rtpudpsink
+        if let Some(srtp) = &session.srtp {
+            srtp.srtpenc.unlink(&sender.rtp_udpsink);
+        }
+
         let rtp_udpsink_pad = sender
             .rtp_udpsink
             .static_pad("sink")
@@ -354,8 +540,14 @@ impl RtpBin {
             .take()
             .context("Tried to non-existing receiver from existing session")?;
 
-        // Remove udpsrc -> rtpbin.recv_rtp_sink_%u
-        receiver.rtp_udpsrc.unlink(&self.rtpbin);
+        // Remove udpsrc [-> srtpdec] -> rtpbin.recv_rtp_sink_%u
+        if let Some(srtp) = &session.srtp {
+            receiver.rtp_udpsrc.unlink(&srtp.srtpdec);
+            srtp.srtpdec.unlink(&self.rtpbin);
+        } else {
+            receiver.rtp_udpsrc.unlink(&self.rtpbin);
+        }
+
         self.rtpbin
             .release_request_pad(&receiver.rtpbin_recv_rtp_sink);
         receiver
