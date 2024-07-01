@@ -125,7 +125,7 @@ test:cargo_test:
     # Used for integration tests
     AMQP_ADDR: amqp://guest:guest@rabbitmq:5672
   services:
-    - name: rabbitmq:3.8
+    - name: rabbitmq:3.13
       alias: rabbitmq
   before_script:
     - rustup component add rustfmt llvm-tools-preview
