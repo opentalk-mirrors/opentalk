@@ -47,12 +47,12 @@ lint:dependency_check_advisories:
   stage: lint
   <<: *default_job_condition
   allow_failure: true
-  script: cargo deny check advisories
+  script: cargo-deny check advisories --deny unmatched-skip --deny license-not-encountered
 
 lint:dependency_check_bans_licenses_sources:
   stage: lint
   <<: *default_job_condition
-  script: cargo deny check bans licenses sources
+  script: cargo-deny check bans licenses sources --deny unmatched-skip --deny license-not-encountered
 
 lint:yaml:
   stage: lint
