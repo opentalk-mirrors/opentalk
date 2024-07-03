@@ -6,7 +6,7 @@ use crate::media::port_pool::PortPool;
 use crate::media::util::ElementConvenienceExt;
 use anyhow::{ensure, Context, Result};
 use gio::InetSocketAddress;
-use gst::glib::{self, ObjectExt, ToValue};
+use gst::glib;
 use gst::prelude::*;
 use parking_lot::Mutex;
 use std::collections::hash_map::Entry;
@@ -55,7 +55,7 @@ struct Receiver {
 
 impl RtpBin {
     pub fn new(ready_to_send: Arc<Notify>) -> Result<Self> {
-        let bin = gst::parse_bin_from_description("rtpbin name=rtpbin", false)?;
+        let bin = gst::parse::bin_from_description("rtpbin name=rtpbin", false)?;
         let rtpbin = bin
             .by_name("rtpbin")
             .context("Failed to get rtpbin from bin")?;
@@ -183,8 +183,8 @@ impl RtpBin {
         let rtp_sink = self_rtpbin
             .request_pad_simple("send_rtp_sink_%u")
             .context("Failed to request pad 'send_rtp_sink_%u' on rtpbin")?;
-        let ghost_pad = gst::GhostPad::with_target(None, &rtp_sink)
-            .context("Failed to create rtp-sink GhostPad")?;
+        let ghost_pad =
+            gst::GhostPad::with_target(&rtp_sink).context("Failed to create rtp-sink GhostPad")?;
 
         // rtpbin.send_rtp_src_%u -> udpsink
         let rtp_src = self_rtpbin
@@ -401,8 +401,10 @@ fn rtpbin_pad_added(
                 .ok()
                 .context("rtpbin's parent is not a bin")?;
 
-            let ghost_pad = gst::GhostPad::with_target(Some(&pad.name()), pad)
-                .context("Failed to create GhostPad")?;
+            let ghost_pad = gst::GhostPad::builder_with_target(pad)
+                .context("Failed to create GhostPad")?
+                .name(&pad.name())
+                .build();
             parent
                 .add_pad(&ghost_pad)
                 .context("Failed to add GhostPad")?;

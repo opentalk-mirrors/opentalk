@@ -4,29 +4,29 @@
 
 [package]
 name = "opentalk-obelisk"
-version = "0.0.0-dev"
+version = "0.9.0-rc.1"
 edition = "2021"
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
 publish = false
 license = "EUPL-1.2"
 
 [dependencies]
-types = { package = "opentalk-types", version = "0.13.0-alpha", features = [ "rand", "serde" ] }
+types = { package = "opentalk-types", version = "0.15.0-alpha", features = [ "rand", "serde" ] }
 
 config = { version = "0.13", default-features = false, features = ["toml"] }
 
-gst = { package = "gstreamer", version = "0.20" }
-gst-audio = { package = "gstreamer-audio", version = "0.20", features = ["v1_22"] }
-gst-base = { package = "gstreamer-base", version = "0.20", features = ["v1_22"] }
-gst-app = { package = "gstreamer-app", version = "0.20" }
-gst-sdp = { package = "gstreamer-sdp", version = "0.20" }
-gst-webrtc = { package = "gstreamer-webrtc", version = "0.20", features = [
+gst = { package = "gstreamer", version = "0.22" }
+gst-audio = { package = "gstreamer-audio", version = "0.22", features = ["v1_22"] }
+gst-base = { package = "gstreamer-base", version = "0.22", features = ["v1_22"] }
+gst-app = { package = "gstreamer-app", version = "0.22" }
+gst-sdp = { package = "gstreamer-sdp", version = "0.22" }
+gst-webrtc = { package = "gstreamer-webrtc", version = "0.22", features = [
     "v1_22",
 ] }
-gst-rtp = { package = "gstreamer-rtp", version = "0.20", features = [
+gst-rtp = { package = "gstreamer-rtp", version = "0.22", features = [
     "v1_22",
 ] }
-gio = "0.17"
+gio = "0.19"
 
 compositor.path = "recorder/compositor"
 

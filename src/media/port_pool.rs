@@ -5,7 +5,6 @@
 use crate::settings::Settings;
 use anyhow::{anyhow, bail, Context, Result};
 use gio::prelude::*;
-use gio::traits::SocketExt;
 use gio::{Cancellable, IOErrorEnum, InetSocketAddress};
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;

@@ -139,7 +139,7 @@ pub fn init_custom_rtpdtmfdepay() -> Result<(), glib::BoolError> {
     gst::Element::register(
         None,
         "opentalk-rtpdtmfdepay",
-        gst::Rank::Marginal,
+        gst::Rank::MARGINAL,
         RTPDtmfDepay::static_type(),
     )
 }

@@ -2,6 +2,9 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
+# The clock format of the timestamp displayed inside the stream.
+clock_format = "%x %X %Z"
+
 # Obelisk OIDC authentication
 #
 # The Client requires a service account with the `opentalk-call-in` realm-role set.
@@ -60,8 +63,8 @@ stun_server = "stun.example.org:3478"
 
 # Enforce quality of protection on SIP authentication
 # (reuse of nonce + nonce-count instead of
-#  requesting a new nonce for each request) 
-# 
+#  requesting a new nonce for each request)
+#
 # Can cause compatibility issues on older registrars.
 enforce_qop = true
 

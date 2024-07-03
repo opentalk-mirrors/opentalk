@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use anyhow::{Context, Result};
-use compositor::{MediaDescriptor, Mixer, Size, Speaker, WebRtcSource, WebRtcSourceParams};
-use glib::source::Continue;
-use gst::glib;
-use gst::prelude::*;
+use compositor::{
+    ClockFormat, MediaDescriptor, Mixer, Size, Speaker, WebRtcSource, WebRtcSourceParams,
+};
+use gst::{bus::BusWatchGuard, glib::ControlFlow, prelude::*};
 use std::sync::Arc;
 use tel_bin::TelBin;
 use tokio::sync::{mpsc, Notify};
@@ -48,6 +48,11 @@ pub struct MediaPipeline {
 
     events_tx: mpsc::UnboundedSender<MediaEvent>,
     events_rx: mpsc::UnboundedReceiver<MediaEvent>,
+
+    // When the bus_watch is dropped the watch guard is removed. We need to keep
+    // it alive for the duration of the media pipeline.
+    #[allow(unused)]
+    bus_watch: BusWatchGuard,
 }
 
 impl MediaPipeline {
@@ -58,11 +63,19 @@ impl MediaPipeline {
     pub async fn new(
         ready_to_send: Arc<Notify>,
         with_video: bool,
+        clock_format: &ClockFormat,
     ) -> Result<(Self, TrackController)> {
         let (events_tx, events_rx) = mpsc::unbounded_channel();
 
-        let mut compositor = Mixer::create(None, Size::HD, Speaker::default(), 6, with_video)
-            .context("Failed to create compositor")?;
+        let mut compositor = Mixer::create(
+            None,
+            Size::HD,
+            Speaker::default(),
+            6,
+            with_video,
+            clock_format,
+        )
+        .context("Failed to create compositor")?;
 
         let (tel_bin, sink, track_controller) = TelBin::new(ready_to_send, with_video).await?;
 
@@ -86,7 +99,7 @@ impl MediaPipeline {
         let events_tx_ = events_tx.clone();
 
         let pipeline_weak = pipeline.downgrade();
-        bus.add_watch(move |_, msg| {
+        let bus_watch = bus.add_watch(move |_, msg| {
             let mut do_continue = true;
 
             match msg.view() {
@@ -102,7 +115,7 @@ impl MediaPipeline {
                                 log::error!("Unable to send rtp timeout error to signaling");
                             }
 
-                            return Continue(false);
+                            return ControlFlow::Continue;
                         }
                     }
 
@@ -152,7 +165,11 @@ impl MediaPipeline {
                 _ => (),
             }
 
-            Continue(do_continue)
+            if do_continue {
+                ControlFlow::Continue
+            } else {
+                ControlFlow::Break
+            }
         })?;
 
         let this = Self {
@@ -161,6 +178,7 @@ impl MediaPipeline {
             events_rx,
             events_tx,
             compositor,
+            bus_watch,
         };
 
         Ok((this, track_controller))

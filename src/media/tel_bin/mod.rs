@@ -137,7 +137,7 @@ impl TelBin {
         ready_to_send: Arc<Notify>,
         with_video: bool,
     ) -> Result<(Self, TelBinCompositorSink, TrackController)> {
-        let bin = gst::Bin::new(None);
+        let bin = gst::Bin::new();
 
         let rtp = rtpbin_wrapper::RtpBin::new(ready_to_send).context("Failed to create RtpBin")?;
 
@@ -204,7 +204,9 @@ impl TelBin {
             .context("Failed to get static-pad 'src' of clocksync")?
             .link(&audiomixer_sink_tracksrc)?;
 
-        let audio_pad = gst::GhostPad::with_target(Some("audio-sink"), &audiomixer_sink_ghostpad)?;
+        let audio_pad = gst::GhostPad::builder_with_target(&audiomixer_sink_ghostpad)?
+            .name("audio-sink")
+            .build();
         bin.add_pad(&audio_pad)?;
 
         let rtp_bin = rtp.bin().clone();
@@ -255,7 +257,9 @@ impl TelBin {
             .static_pad("sink")
             .context("Failed to get static-pad 'sink' of videoconvert")?;
 
-        let video_pad = gst::GhostPad::with_target(Some("video-sink"), &videoconvert_sink)?;
+        let video_pad = gst::GhostPad::builder_with_target(&videoconvert_sink)?
+            .name("video-sink")
+            .build();
         self.bin.add_pad(&video_pad)?;
 
         if set_new_elements_to_playing {
@@ -628,8 +632,9 @@ impl TelBin {
             "#;
         }
 
-        let publish_bin = gst::parse_bin_from_description_with_name(&publish_bin, false, "publish")
-            .context("failed to parse webrtc-publish bin")?;
+        let publish_bin =
+            gst::parse::bin_from_description_with_name(&publish_bin, false, "publish")
+                .context("failed to parse webrtc-publish bin")?;
 
         self.bin.add(&publish_bin)?;
 
@@ -647,8 +652,9 @@ impl TelBin {
             .static_pad("sink")
             .context("Element without sink pad")?;
 
-        let webrtc_publish_audio_sink =
-            gst::GhostPad::with_target(Some("audio-sink"), &audio_input_sink)?;
+        let webrtc_publish_audio_sink = gst::GhostPad::builder_with_target(&audio_input_sink)?
+            .name("audio-sink")
+            .build();
 
         publish_bin.add_pad(&webrtc_publish_audio_sink)?;
 
@@ -683,8 +689,9 @@ impl TelBin {
                 .static_pad("sink")
                 .context("Element without sink pad")?;
 
-            let webrtc_publish_video_sink =
-                gst::GhostPad::with_target(Some("video-sink"), &video_input_sink)?;
+            let webrtc_publish_video_sink = gst::GhostPad::builder_with_target(&video_input_sink)?
+                .name("video-sink")
+                .build();
 
             publish_bin.add_pad(&webrtc_publish_video_sink)?;
 
@@ -850,7 +857,9 @@ fn rtp_on_pad_added(
             .downcast_ref::<gst::GhostPad>()
             .context("Added pad isn't a GhostPad")?;
         let target = pad.target().context("Added GhostPad has no target")?;
-        target.caps().context("Added GhostPad has no caps")?
+        target
+            .current_caps()
+            .context("Added GhostPad has no caps")?
     };
 
     let caps = caps.structure(0).context("pad caps has no entries")?;
