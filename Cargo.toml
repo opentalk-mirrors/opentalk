@@ -13,7 +13,7 @@ license = "EUPL-1.2"
 [dependencies]
 types = { package = "opentalk-types", version = "0.15.0-alpha", features = [ "rand", "serde" ] }
 
-config = { version = "0.13", default-features = false, features = ["toml"] }
+config = { version = "0.14", default-features = false, features = ["toml"] }
 
 gst = { package = "gstreamer", version = "0.22" }
 gst-audio = { package = "gstreamer-audio", version = "0.22", features = ["v1_22"] }
