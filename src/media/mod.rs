@@ -115,7 +115,7 @@ impl MediaPipeline {
                                 log::error!("Unable to send rtp timeout error to signaling");
                             }
 
-                            return ControlFlow::Continue;
+                            return ControlFlow::Break;
                         }
                     }
 
@@ -211,10 +211,7 @@ impl MediaPipeline {
                 assert_eq!(media_session_type, MediaSessionType::Video);
                 //FIXME: fix in types and remove cast
                 self.tel_bin
-                    .on_publish_sdp_candidate(
-                        candidate.sdp_m_line_index as u32,
-                        Some(candidate.candidate),
-                    )
+                    .on_publish_sdp_candidate(candidate.sdp_m_line_index, Some(candidate.candidate))
                     .await
             }
             Target::Subscribe(desc) => {
@@ -223,8 +220,7 @@ impl MediaPipeline {
                     .get_source(desc)
                     .context("Invalid StreamId for ICE candidate")?;
 
-                subscribe
-                    .receive_candidate(candidate.sdp_m_line_index as u32, &candidate.candidate);
+                subscribe.receive_candidate(candidate.sdp_m_line_index, &candidate.candidate);
 
                 Ok(())
             }
