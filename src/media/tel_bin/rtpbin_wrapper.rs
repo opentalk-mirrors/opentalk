@@ -14,6 +14,7 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::Notify;
 
 /// Convenience wrapper around gstreamer's rtpbin element which manages sending an receiving rtp/rtcp over the network
@@ -53,11 +54,13 @@ impl Drop for Session {
 
 struct Sender {
     ghost_pad: gst::GhostPad,
+    watchdog: gst::Element,
     rtp_udpsink: gst::Element,
 }
 
 struct Receiver {
     rtp_udpsrc: gst::Element,
+    watchdog: gst::Element,
     rtpbin_recv_rtp_sink: gst::Pad,
 }
 
@@ -290,10 +293,6 @@ impl RtpBin {
         rtp_udpsink.set_property("host", remote_rtp_addr.ip().to_string());
         rtp_udpsink.set_property("port", remote_rtp_addr.port() as i32);
 
-        self_bin
-            .add(&rtp_udpsink)
-            .context("Failed to add rtp-udpsink to bin")?;
-
         // ghost-pad -> rtpbin.send_rtp_sink_%u
         let rtp_sink = self_rtpbin
             .request_pad_simple("send_rtp_sink_%u")
@@ -305,21 +304,35 @@ impl RtpBin {
             .add_pad(&ghost_pad)
             .context("Failed to add GhostPad to bin")?;
 
-        // rtpbin.send_rtp_src_%u -> udpsink
+        // rtpbin.send_rtp_src_%u -> watchdog [-> srtpenc] -> udpsink
         let rtp_src = self_rtpbin
             .pads()
             .into_iter()
             .find(|p| p.name().starts_with("send_rtp_src_") && p.peer().is_none())
             .context("Failed to find 'send_rtp_src_%u' pad in rtpbin")?;
 
+        let watchdog = gst::ElementFactory::make("watchdog")
+            .name(format!("send-rtp-watchdog-{remote_rtp_addr}"))
+            .property("timeout", Duration::from_secs(10).as_millis() as i32)
+            .build()
+            .context("Failed to build rtp sender watchdog")?;
+
         session.sender = Some(Sender {
             ghost_pad: ghost_pad.clone(),
+            watchdog: watchdog.clone(),
             rtp_udpsink: rtp_udpsink.clone(),
         });
 
-        let rtp_udpsink_sink = rtp_udpsink
+        self_bin
+            .add_many([&watchdog, &rtp_udpsink])
+            .context("Failed to add watchdog & rtp-udpsink to bin")?;
+
+        let watchdog_sink = watchdog
             .static_pad("sink")
-            .context("Failed to get static-pad sink in rtp-udpsink")?;
+            .context("Failed to get static-pad sink in watchdog")?;
+        rtp_src
+            .link(&watchdog_sink)
+            .context("Failed to link rtpbin.send_rtp_src_%u to watchdog.sink")?;
 
         if let Some(srtp) = &session.srtp {
             let srtpenc_rtp_sink = srtp
@@ -327,7 +340,9 @@ impl RtpBin {
                 .request_pad_simple(&format!("rtp_sink_{session_id}"))
                 .context("Failed to request pad 'rtp_sink_%u'")?;
 
-            rtp_src
+            watchdog
+                .static_pad("src")
+                .context("Failed to get static-pad 'src' from watchdog")?
                 .link(&srtpenc_rtp_sink)
                 .context("Failed to link rtp_src to srtpenc.rtp_sink")?;
 
@@ -339,14 +354,17 @@ impl RtpBin {
                 .context("Failed to find pad 'rtp_src_%u'")?;
 
             srtpenc_send_rtp_src
-                .link(&rtp_udpsink_sink)
+                .link(
+                    &rtp_udpsink
+                        .static_pad("sink")
+                        .context("Failed to get static-pad 'sink' on udpsink")?,
+                )
                 .context("Failed to link srtpenc.send_rtp_src to rtp_udpsink")?;
         } else {
-            rtp_src
-                .link(&rtp_udpsink_sink)
-                .context("Failed to link rtpbin.send_rtp_src_%u to rtp-udpsink.sink")?;
+            watchdog.link(&rtp_udpsink)?;
         }
 
+        watchdog.set_state_async(gst::State::Playing).await?;
         rtp_udpsink.set_state_async(gst::State::Playing).await?;
 
         Ok(ghost_pad)
@@ -380,9 +398,18 @@ impl RtpBin {
             "Tried to create a second receiver for the same session_id ({session_id})"
         );
 
+        // link udpsrc -> watchdog [-> srtpdec] -> rtpbin.recv_rtp_sink_%u
+        let watchdog = gst::ElementFactory::make("watchdog")
+            .name(format!("receive-rtp-watchdog-{remote_rtcp_addr}"))
+            .property("timeout", Duration::from_secs(10).as_millis() as i32)
+            .build()
+            .context("Failed to build rtp sender watchdog")?;
+
         self_bin
-            .add(&rtp_udpsrc)
-            .context("Failed to add rtp-udpsrc to bin")?;
+            .add_many([&watchdog, &rtp_udpsrc])
+            .context("Failed to add watchdog & rtp-udpsrc to bin")?;
+
+        rtp_udpsrc.link(&watchdog)?;
 
         let rtp_sink = self_rtpbin
             .request_pad_simple("recv_rtp_sink_%u")
@@ -398,9 +425,9 @@ impl RtpBin {
                 .static_pad("rtp_src")
                 .context("Failed to get static-pad rtp_src")?;
 
-            rtp_udpsrc
+            watchdog
                 .static_pad("src")
-                .context("Failed to get static-pad 'src' of udpsrc")?
+                .context("Failed to get static-pad 'src' of watchdog")?
                 .link(&srtpdec_rtp_sink)
                 .context("Failed to link udpsrc.src to srtpdec.rtp_sink")?;
 
@@ -408,17 +435,19 @@ impl RtpBin {
                 .link(&rtp_sink)
                 .context("Failed to link srtpdec.rtp_src to rtpbin.recv_rtp_sink_%u")?;
         } else {
-            rtp_udpsrc
+            watchdog
                 .static_pad("src")
-                .context("Failed to get static pad 'src' from rtp-udpsrc")?
+                .context("Failed to get static pad 'src' from watchdog")?
                 .link(&rtp_sink)
                 .context("Failed to link rtp-udpsrc to rtpbin.recv_rtp_sink_%u")?;
         }
 
         rtp_udpsrc.set_state_async(gst::State::Playing).await?;
+        watchdog.set_state_async(gst::State::Playing).await?;
 
         session.receiver = Some(Receiver {
             rtp_udpsrc,
+            watchdog,
             rtpbin_recv_rtp_sink: rtp_sink,
         });
 
@@ -505,20 +534,24 @@ impl RtpBin {
 
         // Remove rtpudpsink
         if let Some(srtp) = &session.srtp {
+            sender.watchdog.unlink(&srtp.srtpenc);
             srtp.srtpenc.unlink(&sender.rtp_udpsink);
         }
 
+        // Remove (rtpbin !) watchdog ! rtpudpsink
         let rtp_udpsink_pad = sender
-            .rtp_udpsink
+            .watchdog
             .static_pad("sink")
-            .context("Failed to get static-pad sink of udpsink")?;
+            .context("Failed to get static-pad sink of watchdog")?;
         assert!(
             rtp_udpsink_pad.peer().is_none(),
             "send_rtp_sink_%u was released, so this cannot be linked anymore"
         );
 
+        sender.watchdog.set_state_async(gst::State::Null).await?;
         sender.rtp_udpsink.set_state_async(gst::State::Null).await?;
-        self.bin.remove(&sender.rtp_udpsink)?;
+        self.bin
+            .remove_many([&sender.watchdog, &sender.rtp_udpsink])?;
 
         if session.receiver.is_none() {
             self.remove_session(session_id)
@@ -540,12 +573,14 @@ impl RtpBin {
             .take()
             .context("Tried to non-existing receiver from existing session")?;
 
-        // Remove udpsrc [-> srtpdec] -> rtpbin.recv_rtp_sink_%u
+        // Remove udpsrc -> watchdog -> [-> srtpdec] -> rtpbin.recv_rtp_sink_%u
         if let Some(srtp) = &session.srtp {
-            receiver.rtp_udpsrc.unlink(&srtp.srtpdec);
+            receiver.rtp_udpsrc.unlink(&receiver.watchdog);
+            receiver.watchdog.unlink(&srtp.srtpdec);
             srtp.srtpdec.unlink(&self.rtpbin);
         } else {
-            receiver.rtp_udpsrc.unlink(&self.rtpbin);
+            receiver.rtp_udpsrc.unlink(&receiver.watchdog);
+            receiver.watchdog.unlink(&self.rtpbin);
         }
 
         self.rtpbin
@@ -554,7 +589,10 @@ impl RtpBin {
             .rtp_udpsrc
             .set_state_async(gst::State::Null)
             .await?;
+        receiver.watchdog.set_state_async(gst::State::Null).await?;
+
         self.bin.remove(&receiver.rtp_udpsrc)?;
+        self.bin.remove(&receiver.watchdog)?;
 
         if session.sender.is_none() {
             self.remove_session(session_id)
