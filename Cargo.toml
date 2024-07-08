@@ -52,6 +52,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 uuid = { version = "1", features = ["serde"] }
+base64 = "0.22"
 
 reqwest = { version = "0.11", default-features = false, features = [
     "rustls-tls-native-roots",
@@ -64,12 +65,12 @@ tt = { package = "tokio-tungstenite", version = "0.20", features = [
 
 chrono = { version = "0.4", features = ["serde"] }
 
-sdp-types = { version = "0.1", package = "ezk-sdp-types" }
-sip-types = { version = "0.1", package = "ezk-sip-types" }
-sip-core = { version = "0.2", package = "ezk-sip-core", features = [
+sdp-types = { version = "0.3", package = "ezk-sdp-types" }
+sip-types = { version = "0.2", package = "ezk-sip-types" }
+sip-core = { version = "0.3", package = "ezk-sip-core", features = [
     "tls-native-tls",
 ] }
-sip-ua = { version = "0.3.1", package = "ezk-sip-ua" }
+sip-ua = { version = "0.4", package = "ezk-sip-ua" }
 sip-auth = { version = "0.1", package = "ezk-sip-auth" }
 stun-types = { version = "0.1", package = "ezk-stun-types" }
 

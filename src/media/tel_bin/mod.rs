@@ -6,7 +6,7 @@ use super::codec::{Codec, MediaType};
 use super::track::create_track_src;
 use super::util::ElementConvenienceExt;
 use super::{MediaEvent, Target, TrackController};
-use crate::sip::GstCodecInfo;
+use crate::sip::{GstCodecInfo, SrtpInfo};
 use anyhow::{bail, Context, Result};
 use gio::prelude::*;
 use gst::{glib, prelude::*};
@@ -276,6 +276,7 @@ impl TelBin {
     pub async fn add_sender(
         &mut self,
         session_id: u32,
+        srtp_info: Option<&SrtpInfo>,
         codec_info: &GstCodecInfo,
         rtp_udpsink: gst::Element,
         rtcp_udpsrc: gst::Element,
@@ -290,6 +291,7 @@ impl TelBin {
             .rtp
             .add_sender(
                 session_id,
+                srtp_info,
                 rtp_udpsink,
                 rtcp_udpsrc,
                 rtcp_udpsink,
@@ -404,6 +406,7 @@ impl TelBin {
     pub async fn add_receiver(
         &mut self,
         session_id: u32,
+        srtp_info: Option<&SrtpInfo>,
         codec: Codec,
         pt: u32,
         rtp_udpsrc: gst::Element,
@@ -422,6 +425,7 @@ impl TelBin {
         self.rtp
             .add_receiver(
                 session_id,
+                srtp_info,
                 rtp_udpsrc,
                 rtcp_udpsrc,
                 rtcp_udpsink,

@@ -153,11 +153,9 @@ deny = [
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
   { name = "base64", version = "=0.13" },
-  { name = "spin", version = "0.5" },
   { name = "syn", version = "1" },
   { name = "idna", version = "=0.4.0" },
   { name = "toml_edit", version = "0.21" },
-  { name = "multimap", version = "=0.9.1" },
   { name = "heck", version = "0.4.1" },
   { name = "base64", version = "0.21.7" },
   { name = "itertools", version = "0.10.5" },

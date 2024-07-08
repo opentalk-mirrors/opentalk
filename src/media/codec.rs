@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use gst::element_factory::ElementBuilder;
-use sdp_types::media::MediaType as SdpMediaType;
+use sdp_types::MediaType as SdpMediaType;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MediaType {
