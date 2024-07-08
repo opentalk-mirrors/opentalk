@@ -145,15 +145,20 @@ impl AppLayer {
 
         // Create a media pipeline
         let ready_to_send = Arc::new(Notify::new());
-        let (mut handle, track_controller) =
-            match MediaPipeline::new(ready_to_send.clone(), media_session.has_video()).await {
-                Ok(answer) => answer,
-                Err(e) => {
-                    log::error!("Failed to create GStreamer pipeline, {e:?}");
+        let (mut handle, track_controller) = match MediaPipeline::new(
+            ready_to_send.clone(),
+            media_session.has_video(),
+            &self.settings.clock_format,
+        )
+        .await
+        {
+            Ok(answer) => answer,
+            Err(e) => {
+                log::error!("Failed to create GStreamer pipeline, {e:?}");
 
-                    return self.internal_server_error(acceptor).await;
-                }
-            };
+                return self.internal_server_error(acceptor).await;
+            }
+        };
 
         update::apply_changes(&mut handle, &mut media_session, changes).await?;
 

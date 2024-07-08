@@ -137,7 +137,7 @@ impl TelBin {
         ready_to_send: Arc<Notify>,
         with_video: bool,
     ) -> Result<(Self, TelBinCompositorSink, TrackController)> {
-        let bin = gst::Bin::new(None);
+        let bin = gst::Bin::new();
 
         let rtp = rtpbin_wrapper::RtpBin::new(ready_to_send).context("Failed to create RtpBin")?;
 
@@ -187,7 +187,7 @@ impl TelBin {
             .property("allow-not-linked", true)
             .build()?;
 
-        bin.add_many(&[&tracksrc, &clocksync, &subscriber_audio_mixer, &audio_tee])?;
+        bin.add_many([&tracksrc, &clocksync, &subscriber_audio_mixer, &audio_tee])?;
 
         subscriber_audio_mixer.link(&audio_tee)?;
 
@@ -198,13 +198,15 @@ impl TelBin {
             .request_pad_simple("sink_%u")
             .context("Failed to request pad 'sink_%u' from audiomixer")?;
 
-        gst::Element::link_many(&[&tracksrc, &clocksync])?;
+        gst::Element::link_many([&tracksrc, &clocksync])?;
         clocksync
             .static_pad("src")
             .context("Failed to get static-pad 'src' of clocksync")?
             .link(&audiomixer_sink_tracksrc)?;
 
-        let audio_pad = gst::GhostPad::with_target(Some("audio-sink"), &audiomixer_sink_ghostpad)?;
+        let audio_pad = gst::GhostPad::builder_with_target(&audiomixer_sink_ghostpad)?
+            .name("audio-sink")
+            .build();
         bin.add_pad(&audio_pad)?;
 
         let rtp_bin = rtp.bin().clone();
@@ -247,15 +249,16 @@ impl TelBin {
             .property("drop-only", true)
             .build()?;
 
-        self.bin
-            .add_many(&[&videoconvert, &videorate, &video_tee])?;
-        gst::Element::link_many(&[&videoconvert, &videorate, &video_tee])?;
+        self.bin.add_many([&videoconvert, &videorate, &video_tee])?;
+        gst::Element::link_many([&videoconvert, &videorate, &video_tee])?;
 
         let videoconvert_sink = videoconvert
             .static_pad("sink")
             .context("Failed to get static-pad 'sink' of videoconvert")?;
 
-        let video_pad = gst::GhostPad::with_target(Some("video-sink"), &videoconvert_sink)?;
+        let video_pad = gst::GhostPad::builder_with_target(&videoconvert_sink)?
+            .name("video-sink")
+            .build();
         self.bin.add_pad(&video_pad)?;
 
         if set_new_elements_to_playing {
@@ -322,7 +325,7 @@ impl TelBin {
             .build()?;
         let queue2 = gst::ElementFactory::make("queue").build()?;
 
-        self.bin.add_many(&[
+        self.bin.add_many([
             &queue1,
             &convert,
             &scale,
@@ -333,7 +336,7 @@ impl TelBin {
             &queue2,
         ])?;
 
-        gst::Element::link_many(&[
+        gst::Element::link_many([
             &queue1,
             &convert,
             &scale,
@@ -457,7 +460,7 @@ impl TelBin {
                 .release_request_pad(&tee_pad),
         }
 
-        gst::Element::unlink_many(&[
+        gst::Element::unlink_many([
             &queue1,
             &convert,
             &scale,
@@ -477,7 +480,7 @@ impl TelBin {
                 payload.set_state(gst::State::Null)?;
                 queue2.set_state(gst::State::Null)?;
 
-                bin.remove_many(&[
+                bin.remove_many([
                     &queue1,
                     &convert,
                     &scale,
@@ -526,7 +529,7 @@ impl TelBin {
                         bail!("No audiomixer set")
                     };
 
-                    gst::Element::unlink_many(&[&queue, &depay, &decode]);
+                    gst::Element::unlink_many([&queue, &depay, &decode]);
                     decode
                         .static_pad("src")
                         .context("Failed to get static-pad 'src' of decode")?
@@ -538,7 +541,7 @@ impl TelBin {
                             queue.set_state(gst::State::Null)?;
                             depay.set_state(gst::State::Null)?;
                             decode.set_state(gst::State::Null)?;
-                            bin.remove_many(&[&queue, &depay, &decode])?;
+                            bin.remove_many([&queue, &depay, &decode])?;
                             Ok(())
                         })
                         .await?;
@@ -557,7 +560,7 @@ impl TelBin {
                         bail!("No audiomixer set")
                     };
 
-                    gst::Element::unlink_many(&[&queue, &depay, &decode, &convert]);
+                    gst::Element::unlink_many([&queue, &depay, &decode, &convert]);
                     convert
                         .static_pad("src")
                         .context("Failed to get static-pad 'src' from decode element")?
@@ -570,7 +573,7 @@ impl TelBin {
                             depay.set_state(gst::State::Null)?;
                             decode.set_state(gst::State::Null)?;
                             convert.set_state(gst::State::Null)?;
-                            bin.remove_many(&[&queue, &depay, &decode, &convert])?;
+                            bin.remove_many([&queue, &depay, &decode, &convert])?;
                             Ok(())
                         })
                         .await?;
@@ -628,8 +631,9 @@ impl TelBin {
             "#;
         }
 
-        let publish_bin = gst::parse_bin_from_description_with_name(&publish_bin, false, "publish")
-            .context("failed to parse webrtc-publish bin")?;
+        let publish_bin =
+            gst::parse::bin_from_description_with_name(&publish_bin, false, "publish")
+                .context("failed to parse webrtc-publish bin")?;
 
         self.bin.add(&publish_bin)?;
 
@@ -647,8 +651,9 @@ impl TelBin {
             .static_pad("sink")
             .context("Element without sink pad")?;
 
-        let webrtc_publish_audio_sink =
-            gst::GhostPad::with_target(Some("audio-sink"), &audio_input_sink)?;
+        let webrtc_publish_audio_sink = gst::GhostPad::builder_with_target(&audio_input_sink)?
+            .name("audio-sink")
+            .build();
 
         publish_bin.add_pad(&webrtc_publish_audio_sink)?;
 
@@ -683,8 +688,9 @@ impl TelBin {
                 .static_pad("sink")
                 .context("Element without sink pad")?;
 
-            let webrtc_publish_video_sink =
-                gst::GhostPad::with_target(Some("video-sink"), &video_input_sink)?;
+            let webrtc_publish_video_sink = gst::GhostPad::builder_with_target(&video_input_sink)?
+                .name("video-sink")
+                .build();
 
             publish_bin.add_pad(&webrtc_publish_video_sink)?;
 
@@ -850,7 +856,9 @@ fn rtp_on_pad_added(
             .downcast_ref::<gst::GhostPad>()
             .context("Added pad isn't a GhostPad")?;
         let target = pad.target().context("Added GhostPad has no target")?;
-        target.caps().context("Added GhostPad has no caps")?
+        target
+            .current_caps()
+            .context("Added GhostPad has no caps")?
     };
 
     let caps = caps.structure(0).context("pad caps has no entries")?;
@@ -886,8 +894,8 @@ fn rtp_on_pad_added(
     let depay = gst::ElementFactory::make(codec.depayload_element()).build()?;
     let decode = gst::ElementFactory::make(codec.decode_element()).build()?;
 
-    bin.add_many(&[&queue, &depay, &decode])?;
-    gst::Element::link_many(&[&queue, &depay, &decode])?;
+    bin.add_many([&queue, &depay, &decode])?;
+    gst::Element::link_many([&queue, &depay, &decode])?;
     pad.link(
         &queue
             .static_pad("sink")
@@ -911,8 +919,8 @@ fn rtp_on_pad_added(
                         .property("drop", true)
                         .build()?;
 
-                    bin.add_many(&[&publish_audio_mixer, &publish_audio_mixer_valve])?;
-                    gst::Element::link_many(&[&publish_audio_mixer, &publish_audio_mixer_valve])?;
+                    bin.add_many([&publish_audio_mixer, &publish_audio_mixer_valve])?;
+                    gst::Element::link_many([&publish_audio_mixer, &publish_audio_mixer_valve])?;
 
                     publish_audio_mixer.set_state(gst::State::Playing)?;
                     publish_audio_mixer_valve.set_state(gst::State::Playing)?;
@@ -970,7 +978,7 @@ fn rtp_on_pad_added(
                         .build()
                         .context("Failed to build valve for video streams")?;
 
-                    bin.add_many(&[&videotestsrc, &input_selector, &input_selector_valve])?;
+                    bin.add_many([&videotestsrc, &input_selector, &input_selector_valve])?;
 
                     videotestsrc
                         .static_pad("src")

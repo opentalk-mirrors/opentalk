@@ -56,6 +56,9 @@ This file can be found in the source code distribution under `extra/example.toml
 #
 # SPDX-License-Identifier: EUPL-1.2
 
+# The clock format of the timestamp displayed inside the stream.
+clock_format = "%x %X %Z"
+
 # Obelisk OIDC authentication
 #
 # The Client requires a service account with the `opentalk-call-in` realm-role set.
@@ -82,10 +85,15 @@ addr = "0.0.0.0"
 # Port to bind to (5060 is SIP default)
 port = 5060
 
-# ID of this SIP endpoint
-# When not set, it is generated as `sip:<username>@<addr>` where `addr` may be replaced by the
-# public address discovered using the stun-server
+# ID of this SIP endpoint, used for creating the From/To header in SIP REGISTER messages
+# When not set, it is generated as `sip:<username>@<regisrar-host>` if a registrar is configured.
+# If no registrar is configured it is generated the same way as the contact uri (see below).
 #id = "sip:alice@example.org"
+
+# Contact uri of this SIP endpoint, used for creating the SIP Contact header
+# When not set, it is generated as `sip:<username>@<addr>` where `addr` may be replaced by the
+# public address discovered using the stun-server.
+#contact = "sip:alice@example.org"
 
 # Username/Password pair.
 # Usually provided by the SIP provider
@@ -95,7 +103,7 @@ password = "mysecurepassword"
 # Realm of the given username/password pair
 realm = "example.org"
 
-# SIP URI of the registrar 
+# SIP URI of the registrar
 registrar = "sip:sip.example.org"
 
 # Specify a SIP proxy to send all requests to
@@ -108,11 +116,13 @@ registrar = "sip:sip.example.org"
 stun_server = "stun.example.org:3478"
 
 # Enforce quality of protection on SIP authentication
-# (reuse of nonce + nonce-count instead of
-#  requesting a new nonce for each request) 
-# 
+# (reuse of nonce + nonce-count instead of requesting a new nonce for each request)
+#
 # Can cause compatibility issues on older registrars.
 enforce_qop = true
+
+# Maximum video bitrate in kbits/s
+#max_video_bitrate = 6000
 
 # The port range for the SIP RTP/RTCP connections (inclusive).
 #

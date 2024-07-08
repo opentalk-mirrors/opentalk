@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use compositor::ClockFormat;
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use openidconnect::{ClientId, ClientSecret, IssuerUrl};
 use serde::Deserialize;
@@ -9,6 +10,9 @@ use std::time::Duration;
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
+    #[serde(default)]
+    pub clock_format: ClockFormat,
+
     pub auth: AuthSettings,
     pub controller: ControllerSettings,
     pub sip: SipSettings,
