@@ -342,7 +342,7 @@ impl SessionState {
                 }
 
                 let proto = if let Some(srtp) = &media_session.srtp {
-                    let key_and_salt = BASE64_STANDARD_NO_PAD.encode(&srtp.send_key);
+                    let key_and_salt = BASE64_STANDARD.encode(&srtp.send_key);
 
                     crypto.push(SrtpCrypto {
                         tag: srtp.tag,
