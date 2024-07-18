@@ -67,15 +67,9 @@ impl MediaPipeline {
     ) -> Result<(Self, TrackController)> {
         let (events_tx, events_rx) = mpsc::unbounded_channel();
 
-        let mut compositor = Mixer::create(
-            None,
-            Size::HD,
-            Speaker::default(),
-            6,
-            with_video,
-            clock_format,
-        )
-        .context("Failed to create compositor")?;
+        let mut compositor =
+            Mixer::create(Size::HD, Speaker::default(), 6, with_video, clock_format)
+                .context("Failed to create compositor")?;
 
         let (tel_bin, sink, track_controller) = TelBin::new(ready_to_send, with_video).await?;
 

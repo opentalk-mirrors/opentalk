@@ -4,10 +4,11 @@ Upstream-Name: OpenTalk Obelisk
 Upstream-Contact: OpenTalk GmbH <mail@opentalk.eu>
 
 Files:
- Cargo.lock
- CHANGELOG.md
- README.md
  .gitmodules
+ CHANGELOG.md
+ Cargo.lock
+ README.md
+ renovate.json
 Copyright: OpenTalk GmbH <mail@opentalk.eu>
 License: EUPL-1.2
 

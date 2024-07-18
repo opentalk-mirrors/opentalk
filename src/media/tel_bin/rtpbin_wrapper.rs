@@ -633,7 +633,7 @@ fn rtpbin_pad_added(
 
             let ghost_pad = gst::GhostPad::builder_with_target(pad)
                 .context("Failed to create GhostPad")?
-                .name(&pad.name())
+                .name(pad.name())
                 .build();
             parent
                 .add_pad(&ghost_pad)
