@@ -7,14 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+## [0.9.0]
 
+### <!-- 0 -->:rocket: New features
+
+- Re-add watchdog watching RTP traffic to detect interruptions and terminate calls
 - Add SRTP support for calls ([#66](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/66))
 - Add a timeout to the pin entry ([#92](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/92))
 
-### Fixed
+### <!-- 1 -->:bug: Bug fixes
 
+- *(srtp)* Add padding to base64 encoding of key
 - Handle SIP events (like hangup) while in waiting room ([#93](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/93))
+
+### <!-- 2 -->::gear: Miscellaneous Tasks
+
+- Change base image to alpine3.20
+
+### Ci
+
+- Prevent ci pipeline running on fork
+- Use image with fixed rust version
+- Call `cargo-deny` with `--deny unmatched-skip --deny license-not-encountered` ([#104](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/104))
+
 
 ## [0.8.0]
 
@@ -168,6 +183,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 initial release candidate
 
 [Unreleased]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.8.0...main
+
+[0.9.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.8.0...v0.9.0
 
 [0.8.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.7.0...v0.8.0
 
