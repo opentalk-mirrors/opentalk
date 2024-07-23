@@ -36,8 +36,8 @@ mod codec;
 mod sdp;
 mod update;
 
-pub use codec::GstCodecInfo;
-pub use sdp::{SessionState, SrtpInfo};
+pub use codec::SdpSendCodec;
+pub use sdp::{MediaSessionState, SessionState, SrtpInfo};
 pub use update::handle_reinvite;
 
 struct AppData {
@@ -96,29 +96,31 @@ impl AppLayer {
         contact: Contact,
         pub_ip: IpAddr,
     ) -> Result<()> {
-        // Save body before handing the request to the acceptor
-        let sdp_offer = request.body.clone();
-
-        let content_type: ContentType = request.headers.get_named()?;
-
-        if content_type.0 != "application/sdp" {
-            let tsx = endpoint.create_server_inv_tsx(&mut request);
-
-            let response = endpoint.create_response(
-                &request,
-                Code::NOT_ACCEPTABLE,
-                Some(BytesStr::from_static("Invalid Content Type")),
-            );
-
-            tsx.respond_failure(response).await?;
-            bail!("Invalid invite content type {:?}", content_type.0);
-        }
-
         let mut media_session = SessionState::empty(self.settings.clone(), pub_ip);
 
-        let changes = media_session
-            .receive_offer_bytes(sdp_offer)
-            .context("Failed to handle INVITE application/sdp body")?;
+        let mut changes = vec![];
+
+        if let Ok(content_type) = request.headers.get_named::<ContentType>() {
+            // Save body before handing the request to the acceptor
+            let sdp_offer = request.body.clone();
+
+            if content_type.0 != "application/sdp" {
+                let tsx = endpoint.create_server_inv_tsx(&mut request);
+
+                let response = endpoint.create_response(
+                    &request,
+                    Code::NOT_ACCEPTABLE,
+                    Some(BytesStr::from_static("Invalid Content Type")),
+                );
+
+                tsx.respond_failure(response).await?;
+                bail!("Invalid invite content type {:?}", content_type.0);
+            }
+
+            changes = media_session
+                .receive_offer(sdp_offer)
+                .context("Failed to handle INVITE application/sdp body")?;
+        }
 
         let dialog = Dialog::new_server(endpoint.clone(), self.dialog_layer, &request, contact)?;
 
@@ -143,6 +145,29 @@ impl AppLayer {
         let response = acceptor.create_response(Code::TRYING, None).await?;
         acceptor.respond_provisional(response).await?;
 
+        // Respond with 200 OK
+        let mut response = acceptor.create_response(Code::OK, None).await?;
+        response
+            .msg
+            .headers
+            .insert(Name::CONTENT_TYPE, "application/sdp");
+
+        if changes.is_empty() {
+            media_session
+                .setup_offer()
+                .context("Failed to setup media offer")?;
+        }
+
+        response.msg.body = media_session.build_sdp().to_string().into();
+
+        let (mut session, ack) = acceptor.respond_success(response).await?;
+
+        if changes.is_empty() {
+            changes = media_session
+                .receive_answer(ack.body)
+                .context("Failed to handle SDP answer")?;
+        }
+
         // Create a media pipeline
         let ready_to_send = Arc::new(Notify::new());
         let (mut handle, track_controller) = match MediaPipeline::new(
@@ -156,22 +181,13 @@ impl AppLayer {
             Err(e) => {
                 log::error!("Failed to create GStreamer pipeline, {e:?}");
 
-                return self.internal_server_error(acceptor).await;
+                session.terminate().await?;
+
+                return Ok(());
             }
         };
 
         update::apply_changes(&mut handle, &mut media_session, changes).await?;
-
-        // Respond with 200 OK
-        let mut response = acceptor.create_response(Code::OK, None).await?;
-
-        response.msg.body = media_session.build_sdp().to_string().into();
-        response
-            .msg
-            .headers
-            .insert(Name::CONTENT_TYPE, "application/sdp");
-
-        let (session, _) = acceptor.respond_success(response).await?;
 
         // SIP Call established -> loop and handle events
 
@@ -196,17 +212,6 @@ impl AppLayer {
         );
 
         signaling.run().await?;
-
-        Ok(())
-    }
-
-    /// Consume the acceptor by terminating the transaction with an 500 Internal Server Error
-    async fn internal_server_error(&self, acceptor: Acceptor) -> Result<()> {
-        let response = acceptor
-            .create_response(Code::SERVER_INTERNAL_ERROR, None)
-            .await?;
-
-        acceptor.respond_failure(response).await?;
 
         Ok(())
     }

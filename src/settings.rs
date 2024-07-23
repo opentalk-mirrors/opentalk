@@ -106,6 +106,9 @@ pub struct SipSettings {
     #[serde(default)]
     pub rtp_port_range: RtpPortRange,
 
+    #[serde(default)]
+    pub offer_srtp: bool,
+
     /// Maximum video bitrate in kilobits/s
     #[serde(default = "default_max_video_bitrate")]
     pub max_video_bitrate: u32,
@@ -121,11 +124,10 @@ pub struct SipRegistrarSettings {
     pub realm: Option<String>,
 
     pub registrar: String,
+    pub outbound_proxy: Option<String>,
 
     #[serde(default)]
     pub enforce_qop: bool,
-
-    pub outbound_proxy: Option<String>,
 
     #[serde(default = "default_nat_ping_delta", deserialize_with = "duration_secs")]
     pub nat_ping_delta: Duration,
