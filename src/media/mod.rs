@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use compositor::{
     ClockFormat, MediaDescriptor, Mixer, Size, Speaker, WebRtcSource, WebRtcSourceParams,
 };
-use gst::{bus::BusWatchGuard, glib::ControlFlow, prelude::*};
+use gst::prelude::*;
 use std::sync::Arc;
 use tel_bin::TelBin;
 use tokio::sync::{mpsc, Notify};
@@ -48,11 +48,6 @@ pub struct MediaPipeline {
 
     events_tx: mpsc::UnboundedSender<MediaEvent>,
     events_rx: mpsc::UnboundedReceiver<MediaEvent>,
-
-    // When the bus_watch is dropped the watch guard is removed. We need to keep
-    // it alive for the duration of the media pipeline.
-    #[allow(unused)]
-    bus_watch: BusWatchGuard,
 }
 
 impl MediaPipeline {
@@ -77,26 +72,10 @@ impl MediaPipeline {
             .link_sink("tel", sink)
             .context("Failed to link_sink")?;
 
-        // Ouch, get the sink pipeline by getting the bin's parent
-        // This pipeline is managed by the compositor
-        let pipeline = tel_bin
-            .bin
-            .parent()
-            .context("sink's bin has no parent after being added to compositor")?
-            .downcast::<gst::Pipeline>()
-            .ok()
-            .context("sink's parent is not a pipeline")?;
-
-        // Watch the pipeline bus
-        let bus = pipeline.bus().context("failed to get pipeline bus")?;
-
         let events_tx_ = events_tx.clone();
 
-        let pipeline_weak = pipeline.downgrade();
-        let bus_watch = bus.add_watch(move |_, msg| {
-            let mut do_continue = true;
-
-            match msg.view() {
+        compositor
+            .add_watch_to_sink("tel", move |_, msg| match msg {
                 gst::MessageView::Error(error) => {
                     if let Some(source) = error.src() {
                         if source.name().contains("rtp-watchdog") {
@@ -108,40 +87,6 @@ impl MediaPipeline {
                             if events_tx_.send(MediaEvent::Error).is_err() {
                                 log::error!("Unable to send rtp timeout error to signaling");
                             }
-
-                            return ControlFlow::Break;
-                        }
-                    }
-
-                    log::error!("Unhandled pipeline error, {:?}", error);
-                }
-                gst::MessageView::Latency(_) => {
-                    if let Some(mut src) = msg
-                        .src()
-                        .and_then(|obj| obj.downcast_ref::<gst::Element>())
-                        .and_then(|element| element.parent())
-                        .and_then(|element_parent_obj| {
-                            element_parent_obj.downcast::<gst::Bin>().ok()
-                        })
-                    {
-                        if src.recalculate_latency().is_err() {
-                            log::error!("Failed latency recalculation of {}", src.name());
-                        }
-
-                        while let Some(parent) =
-                            src.parent().and_then(|obj| obj.downcast::<gst::Bin>().ok())
-                        {
-                            if parent.recalculate_latency().is_err() {
-                                log::error!("Failed latency recalculation of {}", parent.name());
-                            }
-
-                            src = parent;
-                        }
-                    }
-
-                    if let Some(pipeline) = pipeline_weak.upgrade() {
-                        if pipeline.recalculate_latency().is_err() {
-                            log::error!("Failed latency recalculation of pipeline");
                         }
                     }
                 }
@@ -151,20 +96,14 @@ impl MediaPipeline {
                             if let Ok(digit) = structure.get::<i32>("number") {
                                 log::trace!("Got DTMF digit: {digit}");
 
-                                do_continue = events_tx_.send(MediaEvent::DtmfDigit(digit)).is_ok();
+                                let _ = events_tx_.send(MediaEvent::DtmfDigit(digit));
                             }
                         }
                     }
                 }
-                _ => (),
-            }
-
-            if do_continue {
-                ControlFlow::Continue
-            } else {
-                ControlFlow::Break
-            }
-        })?;
+                _ => {}
+            })
+            .context("Failed to add watch to tel-sink")?;
 
         let this = Self {
             tel_bin,
@@ -172,7 +111,6 @@ impl MediaPipeline {
             events_rx,
             events_tx,
             compositor,
-            bus_watch,
         };
 
         Ok((this, track_controller))
