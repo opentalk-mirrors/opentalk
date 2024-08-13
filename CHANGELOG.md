@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1]
+
+### 🐛 Bug fixes
+
+- negotiate valid DTMF digit range ([#119](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/119))
+
+### 📦 Dependencies
+
+- update openssl rust crate to 0.10.66 (fixes `RUSTSEC-2024-0357`)
+
+## [0.9.1]
+
+### 🐛 Bug fixes
+
+- negotiate valid DTMF digit range ([#119](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/119))
+
+### 📦 Dependencies
+
+- update openssl rust crate to 0.10.66 (fixes `RUSTSEC-2024-0357`)
+- update bytes rust crate 1.7.1 (1.6.0 has been yanked from crates.io)
+
 ## [0.9.0]
 
 ### <!-- 0 -->:rocket: New features
@@ -182,8 +203,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 initial release candidate
 
-[Unreleased]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.8.0...main
+[Unreleased]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.10.0...main
 
+[0.10.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.10.0...v0.10.1
+[0.10.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.9.0...v0.10.0
+
+[0.9.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.9.0...v0.9.1
 [0.9.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.8.0...v0.9.0
 
 [0.8.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.7.0...v0.8.0
