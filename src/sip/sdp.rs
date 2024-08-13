@@ -71,6 +71,7 @@ pub struct SrtpInfo {
 
 struct DtmfEvents {
     pt: u32,
+    fmtp: Option<Fmtp>,
 }
 
 pub enum MediaChange {
@@ -290,13 +291,23 @@ impl SessionState {
         let local_rtp_addr = SocketAddr::new(self.pub_ip, socket_pair.rtp_port);
         let local_rtcp_addr = SocketAddr::new(self.pub_ip, socket_pair.rtcp_port);
 
-        let dtmf_events = offer_media
-            .rtpmaps
-            .iter()
-            .find(|rtpmap| {
-                rtpmap.encoding.eq_ignore_ascii_case("telephone-event") && rtpmap.clock_rate == 8000
-            })
-            .map(|rtpmap| DtmfEvents { pt: rtpmap.payload });
+        // Find DTMF caps
+        let mut dtmf_events = None;
+
+        for rtpmap in &offer_media.rtpmaps {
+            if rtpmap.encoding.eq_ignore_ascii_case("telephone-event") && rtpmap.clock_rate == 8000
+            {
+                let fmtp = offer_media
+                    .fmtps
+                    .iter()
+                    .find(|fmtp| fmtp.format == rtpmap.payload);
+
+                dtmf_events = Some(DtmfEvents {
+                    pt: rtpmap.payload,
+                    fmtp: fmtp.cloned(),
+                });
+            }
+        }
 
         self.media_sessions.push(MediaSession {
             id,
@@ -333,10 +344,10 @@ impl SessionState {
                         params: None,
                     });
 
-                    fmtps.push(Fmtp {
-                        format: dtmf_events.pt,
-                        params: "0-12".into(),
-                    });
+                    // Copy over the fmtp field from offer for best compatibility
+                    if let Some(fmtp) = &dtmf_events.fmtp {
+                        fmtps.push(fmtp.clone());
+                    }
 
                     fmts.push(dtmf_events.pt);
                 }
