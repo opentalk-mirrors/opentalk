@@ -4,6 +4,17 @@ sidebar_position: 4
 
 # SIP
 
+### Supported codecs
+
+The Obelisk supports the following Codecs:
+
+| Codec        | Clock-Rate |
+| ------------ | ---------- |
+| G.711 (PCMA) |  8,000     |
+| G.711 (PCMU) |  8,000     |
+| G.722        |  8,000     |
+| H.264        | 90,000     |
+
 ## Configuration
 
 The section in the [configuration file](configuration.md) is called `sip`.
