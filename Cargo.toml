@@ -11,7 +11,7 @@ publish = false
 license = "EUPL-1.2"
 
 [dependencies]
-types = { package = "opentalk-types", version = "0.15.0-alpha", features = [
+types = { package = "opentalk-types", version = "0.19.0", features = [
     "rand",
     "serde",
 ] }
@@ -32,6 +32,7 @@ gst-webrtc = { package = "gstreamer-webrtc", version = "0.23", features = [
 ] }
 gst-rtp = { package = "gstreamer-rtp", version = "0.23", features = ["v1_22"] }
 gio = "0.20"
+gst-plugin-inter = "0.13.0"
 
 compositor.path = "recorder/compositor"
 

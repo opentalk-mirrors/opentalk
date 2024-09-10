@@ -320,12 +320,13 @@ version = "0.1.1"
 dependencies = [
  "anyhow",
  "glib",
+ "gst-plugin-inter",
  "gstreamer",
- "gstreamer-app",
  "gstreamer-base",
  "gstreamer-sdp",
  "gstreamer-webrtc",
  "log",
+ "once_cell",
  "opentalk-types",
  "parking_lot",
  "serde",
@@ -350,12 +351,6 @@ name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
-
-[[package]]
-name = "convert_case"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
 name = "core-foundation"
@@ -495,15 +490,23 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "0.99.18"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f33878137e4dafd7fa914ad4e259e18a4e8e532b9617a2d0150262bf53abfce"
+checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
 dependencies = [
- "convert_case",
+ "derive_more-impl",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
+dependencies = [
  "proc-macro2",
  "quote",
- "rustc_version",
  "syn 2.0.71",
+ "unicode-xid",
 ]
 
 [[package]]
@@ -1070,6 +1073,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "gst-plugin-inter"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa4ebed0349619b0a2b2f83a0859328c283e130a15efe706c8b1ba5e1013465b"
+dependencies = [
+ "anyhow",
+ "gst-plugin-version-helper",
+ "gstreamer",
+ "gstreamer-app",
+ "gstreamer-utils",
+ "once_cell",
+]
+
+[[package]]
+name = "gst-plugin-version-helper"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e5e874f1660252fd2ec81c602066df3633b3a6fcbe2b196f7f93c27cf069b2a"
+dependencies = [
+ "chrono",
+ "toml_edit 0.22.15",
+]
+
+[[package]]
 name = "gstreamer"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1235,6 +1262,50 @@ checksum = "d9c9005b55dd2b1784645963c1ec409f9d420a56f6348d0ae69c2eaff584bcc3"
 dependencies = [
  "glib-sys",
  "gobject-sys",
+ "libc",
+ "system-deps",
+]
+
+[[package]]
+name = "gstreamer-utils"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7db410e95383f8bed896f3f7c6779e265e6b5af5aa34d1716c0f7006c351302"
+dependencies = [
+ "gstreamer",
+ "gstreamer-app",
+ "gstreamer-video",
+ "once_cell",
+ "thiserror",
+]
+
+[[package]]
+name = "gstreamer-video"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57332bca1ae7825a53fe57d993b63389f132d335aed691ac76f0ffe4304548e3"
+dependencies = [
+ "cfg-if",
+ "futures-channel",
+ "glib",
+ "gstreamer",
+ "gstreamer-base",
+ "gstreamer-video-sys",
+ "libc",
+ "once_cell",
+ "thiserror",
+]
+
+[[package]]
+name = "gstreamer-video-sys"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f5c334d143384e8dc714af948c2e5d7d12cb588fdcfb56f3bf37c24daf350ef"
+dependencies = [
+ "glib-sys",
+ "gobject-sys",
+ "gstreamer-base-sys",
+ "gstreamer-sys",
  "libc",
  "system-deps",
 ]
@@ -1930,6 +2001,7 @@ dependencies = [
  "ezk-stun-types",
  "futures",
  "gio",
+ "gst-plugin-inter",
  "gstreamer",
  "gstreamer-app",
  "gstreamer-audio",
@@ -1960,9 +2032,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types"
-version = "0.15.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "700ba5977378b67ee6b46e2d54e2b5753d38b9c2356dc1cda06de0134d420d34"
+checksum = "25b5ecbc52dc66403227945617528c0286f9d2d8d59ee06c76b1892102a4fc71"
 dependencies = [
  "base64 0.22.1",
  "bincode",
@@ -1971,6 +2043,7 @@ dependencies = [
  "derive_more",
  "email_address",
  "itertools 0.13.0",
+ "log",
  "rand",
  "serde",
  "serde_json",
@@ -3247,6 +3320,12 @@ checksum = "a56d1686db2308d901306f92a263857ef59ea39678a5458e7cb17f01415101f5"
 dependencies = [
  "tinyvec",
 ]
+
+[[package]]
+name = "unicode-xid"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "229730647fbc343e3a80e463c1db7f78f3855d3f3739bee0dda773c9a037c90a"
 
 [[package]]
 name = "untrusted"
