@@ -212,7 +212,7 @@ impl Signaling {
                             participant_id: participant.id,
                             media_type: MediaSessionType::Video,
                         },
-                        true,
+                        self.media.with_video,
                     )
                     .await?;
             }
@@ -224,7 +224,7 @@ impl Signaling {
                             participant_id: participant.id,
                             media_type: MediaSessionType::Screen,
                         },
-                        true,
+                        self.media.with_video,
                     )
                     .await?;
             }
@@ -449,7 +449,7 @@ impl Signaling {
                                 participant_id: participant.id,
                                 media_type: MediaSessionType::Video,
                             },
-                            true,
+                            self.media.with_video,
                         )
                         .await?;
                 }
@@ -461,7 +461,7 @@ impl Signaling {
                                 participant_id: participant.id,
                                 media_type: MediaSessionType::Screen,
                             },
-                            true,
+                            self.media.with_video,
                         )
                         .await?;
                 }
@@ -595,7 +595,7 @@ impl Signaling {
                             participant_id: current.id,
                             media_type: media_session_type,
                         },
-                        true,
+                        media.with_video,
                     )
                     .await?;
             }
