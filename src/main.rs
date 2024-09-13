@@ -79,6 +79,7 @@ async fn main() -> Result<()> {
     }
 
     gst::init()?;
+    gstrsinter::plugin_register_static()?;
     media::init_custom_rtpdtmfdepay()?;
 
     check_plugins()?;
