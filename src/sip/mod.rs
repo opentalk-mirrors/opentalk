@@ -14,7 +14,7 @@ use sip_core::transport::tcp::TcpConnector;
 use sip_core::transport::udp::Udp;
 use sip_core::transport::{TargetTransportInfo, TpHandle};
 use sip_core::{Endpoint, IncomingRequest, Layer, LayerKey, MayTake};
-use sip_types::header::typed::{Contact, ContentType};
+use sip_types::header::typed::{Contact, ContentType, FromTo};
 use sip_types::print::AppendCtx;
 use sip_types::uri::sip::{SipUri, UserPart};
 use sip_types::uri::{NameAddr, Uri};
@@ -533,6 +533,9 @@ async fn register(
     loop {
         let mut request = registration.create_register(remove_binding);
         request.headers.insert_named(endpoint.allowed());
+        request
+            .headers
+            .edit(Name::TO, |to: &mut FromTo| to.tag = None)?;
 
         auth_sess.authorize_request(&mut request.headers);
 
