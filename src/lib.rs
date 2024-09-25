@@ -20,8 +20,8 @@ pub enum Error {
     KeyCloak,
     #[snafu(display("Invalid credentials"))]
     InvalidCredentials,
-    #[snafu(display("Given base URL is not a base"))]
-    NotBaseUrl,
+    #[snafu(display("Given base URL is not a base: {}", url))]
+    NotBaseUrl { url: Url },
 }
 
 #[derive(Serialize)]
@@ -32,9 +32,10 @@ struct Credentials {
 
 /// HTTP client to access some Keycloak admin APIs
 pub struct KeycloakAdminClient {
-    base_url: Url,
-    realm: String,
     credentials: Credentials,
+
+    api_base_url: Url,
+    auth_base_url: Url,
 
     client: reqwest::Client,
 
@@ -44,22 +45,25 @@ pub struct KeycloakAdminClient {
 impl KeycloakAdminClient {
     /// Create a new client from all required configurations
     pub fn new(
-        base_url: Url,
-        realm: String,
+        api_base_url: Url,
+        auth_base_url: Url,
         client_id: String,
         client_secret: String,
     ) -> Result<Self, Error> {
-        if base_url.cannot_be_a_base() {
-            return Err(Error::NotBaseUrl);
+        if api_base_url.cannot_be_a_base() {
+            return Err(Error::NotBaseUrl { url: api_base_url });
+        }
+        if auth_base_url.cannot_be_a_base() {
+            return Err(Error::NotBaseUrl { url: auth_base_url });
         }
 
         Ok(Self {
-            base_url,
-            realm,
             credentials: Credentials {
                 client_id,
                 client_secret,
             },
+            api_base_url,
+            auth_base_url,
             client: reqwest::Client::new(),
             token: RwLock::new(None),
         })
@@ -69,7 +73,7 @@ impl KeycloakAdminClient {
     ///
     /// Uses the `client_credentials` grant to authorize using `client_id` and `client_secret`
     async fn get_access_token(&self) -> Result<String> {
-        let url = self.url(["realms", &self.realm, "protocol", "openid-connect", "token"])?;
+        let url = self.auth_url(["protocol", "openid-connect", "token"])?;
 
         #[derive(Serialize)]
         struct RequestBody<'cred> {
@@ -157,15 +161,32 @@ impl KeycloakAdminClient {
         }
     }
 
-    /// internal url builder
-    fn url<I>(&self, path_segments: I) -> Result<Url>
+    fn api_url<I>(&self, path_segments: I) -> Result<Url>
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
     {
-        let mut url = self.base_url.clone();
+        Self::build_url(self.api_base_url.clone(), path_segments)
+    }
+
+    fn auth_url<I>(&self, path_segments: I) -> Result<Url>
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        Self::build_url(self.auth_base_url.clone(), path_segments)
+    }
+
+    /// internal url builder
+    fn build_url<I>(base_url: Url, path_segments: I) -> Result<Url>
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        let err_url = base_url.clone();
+        let mut url = base_url;
         url.path_segments_mut()
-            .map_err(|_| Error::NotBaseUrl)?
+            .map_err(|_| Error::NotBaseUrl { url: err_url })?
             .extend(path_segments);
         Ok(url)
     }

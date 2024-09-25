@@ -86,7 +86,7 @@ struct LimitQuery {
 impl KeycloakAdminClient {
     /// Query keycloak for users using the given search string
     pub async fn search_user(&self, search_str: &str, max_users: usize) -> Result<Vec<User>> {
-        let url = self.url(["admin", "realms", &self.realm, "users"])?;
+        let url = self.api_url(["users"])?;
 
         let query = SearchQuery {
             search: search_str,
@@ -129,7 +129,7 @@ impl KeycloakAdminClient {
         search_str: &str,
         max_users: usize,
     ) -> Result<Vec<User>> {
-        let url = self.url(["admin", "realms", &self.realm, "users"])?;
+        let url = self.api_url(["users"])?;
 
         // TODO: Fix this code once https://github.com/keycloak/keycloak/issues/16687 is resolved.
         // Currently we let keycloak give us MAX_NUM_KEYCLOAK_SEARCH_RESULTS users matching the search_str
@@ -178,7 +178,7 @@ impl KeycloakAdminClient {
         tenant_filter: Option<TenantFilter<'a>>,
         email: &str,
     ) -> Result<Option<User>> {
-        let url = self.url(["admin", "realms", &self.realm, "users"])?;
+        let url = self.api_url(["users"])?;
 
         let query = VerifyEmailQuery { email, exact: true };
 
@@ -215,7 +215,7 @@ impl KeycloakAdminClient {
 
     /// Query keycloak users
     pub async fn get_users_chunk(&self, offset: i32, limit: i32) -> Result<Vec<User>> {
-        let url = self.url(["admin", "realms", &self.realm, "users"])?;
+        let url = self.api_url(["users"])?;
 
         let query = LimitQuery {
             first: offset,
@@ -252,7 +252,7 @@ impl KeycloakAdminClient {
 
     /// Query keycloak users count
     pub async fn get_users_count(&self) -> Result<i32> {
-        let url = self.url(["admin", "realms", &self.realm, "users", "count"])?;
+        let url = self.api_url(["users", "count"])?;
 
         let response = self.send_authorized(move |c| c.get(url.clone())).await?;
 
