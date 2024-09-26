@@ -6,7 +6,7 @@ use super::codec::{Codec, MediaType};
 use super::track::create_track_src;
 use super::util::ElementConvenienceExt;
 use super::{MediaEvent, Target, TrackController};
-use crate::sip::{GstCodecInfo, SrtpInfo};
+use crate::sip::{SdpSendCodec, SrtpInfo};
 use anyhow::{bail, Context, Result};
 use gio::prelude::*;
 use gst::{glib, prelude::*};
@@ -277,7 +277,7 @@ impl TelBin {
         &mut self,
         session_id: u32,
         srtp_info: Option<&SrtpInfo>,
-        codec_info: &GstCodecInfo,
+        codec_info: &SdpSendCodec,
         rtp_udpsink: gst::Element,
         rtcp_udpsrc: gst::Element,
         rtcp_udpsink: gst::Element,

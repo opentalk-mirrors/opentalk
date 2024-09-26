@@ -26,7 +26,7 @@ impl PartialEq<SdpMediaType> for MediaType {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Codec {
     G711PCMA,
     G711PCMU,
@@ -40,6 +40,22 @@ impl Codec {
         match self {
             Codec::G711PCMA | Codec::G711PCMU | Codec::G722 => MediaType::Audio,
             Codec::H264 => MediaType::Video,
+        }
+    }
+
+    pub fn encoding_name(&self) -> &str {
+        match self {
+            Codec::G711PCMA => "PCMA",
+            Codec::G711PCMU => "PCMU",
+            Codec::G722 => "G722",
+            Codec::H264 => "H264",
+        }
+    }
+
+    pub fn clock_rate(&self) -> u32 {
+        match self {
+            Codec::G711PCMA | Codec::G711PCMU | Codec::G722 => 8000,
+            Codec::H264 => 90_000,
         }
     }
 
@@ -99,27 +115,15 @@ impl Codec {
     }
 
     pub fn caps(&self) -> gst::Caps {
-        match self {
-            Codec::G711PCMA => gst::Caps::builder("application/x-rtp")
-                .field("media", "audio")
-                .field("encoding-name", "PCMA")
-                .field("clock-rate", 8000i32)
-                .build(),
-            Codec::G711PCMU => gst::Caps::builder("application/x-rtp")
-                .field("media", "audio")
-                .field("encoding-name", "PCMU")
-                .field("clock-rate", 8000i32)
-                .build(),
-            Codec::G722 => gst::Caps::builder("application/x-rtp")
-                .field("media", "audio")
-                .field("encoding-name", "G722")
-                .field("clock-rate", 8000i32)
-                .build(),
-            Codec::H264 => gst::Caps::builder("application/x-rtp")
-                .field("media", "video")
-                .field("encoding-name", "H264")
-                .field("clock-rate", 90_000i32)
-                .build(),
-        }
+        let media = match self.media_type() {
+            MediaType::Audio => "audio",
+            MediaType::Video => "video",
+        };
+
+        gst::Caps::builder("application/x-rtp")
+            .field("media", media)
+            .field("encoding-name", self.encoding_name())
+            .field("clock-rate", self.clock_rate() as i32)
+            .build()
     }
 }

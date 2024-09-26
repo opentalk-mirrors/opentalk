@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use super::codec::SdpCodecInfo;
+use super::codec::{offer_all_audio_codecs, offer_all_video_codecs, SdpRecvCodec, SdpSendCodec};
 use crate::media::codec::MediaType;
 use crate::media::port_pool::{PortPool, SocketPair};
 use crate::settings::Settings;
@@ -43,8 +43,7 @@ pub struct MediaSession {
 
     // Data to match against media streams in incoming offers
     media_type: MediaType,
-    pub remote_rtp_addr: SocketAddr,
-    pub remote_rtcp_addr: SocketAddr,
+    pub state: MediaSessionState,
 
     local_rtp_addr: SocketAddr,
     local_rtcp_addr: SocketAddr,
@@ -54,10 +53,39 @@ pub struct MediaSession {
     dtmf_events: Option<DtmfEvents>,
 
     pub socket_pair: SocketPair,
-    pub codec: SdpCodecInfo,
+}
+
+pub enum MediaSessionState {
+    Offered(Offered),
+    Established(Established),
+}
+
+impl MediaSessionState {
+    fn is_offered(&self) -> bool {
+        matches!(self, Self::Offered(..))
+    }
+
+    fn is_established(&self) -> bool {
+        matches!(self, Self::Established(..))
+    }
+}
+
+pub struct Offered {
+    pub codec: Vec<SdpRecvCodec>,
+    pub srtp: Vec<SrtpInfo>,
+}
+
+pub struct Established {
+    pub remote_rtp_addr: SocketAddr,
+    pub remote_rtcp_addr: SocketAddr,
+
+    pub send_codec: SdpSendCodec,
+    pub recv_codec: SdpRecvCodec,
+
     pub srtp: Option<SrtpInfo>,
 }
 
+#[derive(Clone)]
 pub struct SrtpInfo {
     pub tag: u32,
     pub suite: SrtpSuite,
@@ -133,16 +161,169 @@ impl SessionState {
             .flat_map(|m| m.dtmf_events.as_ref().map(|e| e.pt))
     }
 
-    pub fn receive_offer_bytes(&mut self, offer: Bytes) -> Result<Vec<MediaChange>> {
+    pub fn setup_offer(&mut self) -> Result<()> {
+        let audio_rtp_pair = PortPool::instance()
+            .create_rtp_socket_pair()
+            .context("Failed to create RTP sockets")?
+            .context("No more available RTP ports")?;
+
+        let id = self.make_media_session_id();
+        self.media_sessions.push(MediaSession {
+            id,
+            media_type: MediaType::Audio,
+            state: MediaSessionState::Offered(Offered {
+                codec: offer_all_audio_codecs(),
+                srtp: if self.settings.sip.offer_srtp {
+                    offer_srtp()
+                } else {
+                    vec![]
+                },
+            }),
+            local_rtp_addr: (self.pub_ip, audio_rtp_pair.rtp_port).into(),
+            local_rtcp_addr: (self.pub_ip, audio_rtp_pair.rtcp_port).into(),
+            direction: Direction::SendRecv,
+            dtmf_events: Some(DtmfEvents {
+                pt: 101,
+                fmtp: None,
+            }),
+            socket_pair: audio_rtp_pair,
+        });
+
+        let video_rtp_pair = PortPool::instance()
+            .create_rtp_socket_pair()
+            .context("Failed to create RTP sockets")?
+            .context("No more available RTP ports")?;
+
+        let id = self.make_media_session_id();
+        self.media_sessions.push(MediaSession {
+            id,
+            media_type: MediaType::Video,
+            state: MediaSessionState::Offered(Offered {
+                codec: offer_all_video_codecs(),
+                srtp: if self.settings.sip.offer_srtp {
+                    offer_srtp()
+                } else {
+                    vec![]
+                },
+            }),
+            local_rtp_addr: (self.pub_ip, video_rtp_pair.rtp_port).into(),
+            local_rtcp_addr: (self.pub_ip, video_rtp_pair.rtcp_port).into(),
+            direction: Direction::SendRecv,
+            dtmf_events: None,
+            socket_pair: video_rtp_pair,
+        });
+
+        Ok(())
+    }
+
+    pub fn receive_answer(&mut self, answer: Bytes) -> Result<Vec<MediaChange>> {
+        let answer =
+            BytesStr::from_utf8_bytes(answer).context("SDP contains invalid UTF-8 characters")?;
+        let answer = SessionDescription::parse(&answer)
+            .with_context(|| format!("Failed to parse SDP Answer:\n{answer}"))?;
+
+        let mut changes = vec![];
+
+        for answer_media in answer.media_descriptions {
+            // Ignore inactive and invalid media
+            if answer_media.media.port == 0
+                || answer_media.media.fmts.is_empty()
+                || matches!(answer_media.direction, Direction::Inactive)
+            {
+                continue;
+            }
+
+            let (remote_rtp_addr, remote_rtcp_addr) =
+                remote_peer_addresses(answer.connection.as_ref(), &answer_media)?;
+
+            let new_direction = flip_direction(
+                answer_media.direction,
+                remote_rtp_addr.ip().is_unspecified(),
+            );
+
+            // match against existing media session
+            let media_session = self
+                .media_sessions
+                .iter_mut()
+                .find(|existing_session| {
+                    let same_media_type =
+                        existing_session.media_type == answer_media.media.media_type;
+
+                    same_media_type && existing_session.state.is_offered()
+                })
+                .context("Got media answer which wasn't offered")?;
+
+            let MediaSessionState::Offered(offered) = &media_session.state else {
+                unreachable!()
+            };
+
+            let srtp = find_matching_crypto_in_answer(&offered.srtp, &answer_media)?;
+
+            if is_sending(new_direction) {
+                changes.push(MediaChange::AddSender(media_session.id));
+            }
+            if is_receiving(new_direction) {
+                changes.push(MediaChange::AddReceiver(media_session.id));
+            }
+
+            let send_codec = match answer_media.media.media_type {
+                SdpMediaType::Audio => {
+                    choose_audio_codec(&answer_media)
+                        .context("No compatible audio codec in offer")?
+                }
+                SdpMediaType::Video => {
+                    choose_video_codec(&self.settings, &answer_media).with_context(|| {
+                        format!("No compatible video codec found (supported is: {}), continuing without video", available_video_codec())
+                    })?
+                }
+                ty =>{
+                    log::warn!("Skipping unexpected offered media {ty}");
+                    continue;
+                },
+            };
+
+            let recv_codec = offered
+                .codec
+                .iter()
+                .find(|c| c.codec == send_codec.codec)
+                .context("SDP response didn't contain matching codec in media description")?
+                .clone();
+
+            let dtmf_events = answer_media
+                .rtpmaps
+                .iter()
+                .find(|rtpmap| {
+                    rtpmap.encoding.eq_ignore_ascii_case("telephone-event")
+                        && rtpmap.clock_rate == recv_codec.codec.clock_rate()
+                })
+                .map(|rtpmap| DtmfEvents {
+                    pt: rtpmap.payload,
+                    fmtp: None,
+                });
+
+            media_session.state = MediaSessionState::Established(Established {
+                remote_rtp_addr,
+                remote_rtcp_addr,
+                send_codec,
+                recv_codec,
+                srtp,
+            });
+
+            media_session.dtmf_events = dtmf_events;
+        }
+
+        // Remove any unmatched media sessions
+        self.media_sessions.retain(|m| m.state.is_established());
+
+        Ok(changes)
+    }
+
+    pub fn receive_offer(&mut self, offer: Bytes) -> Result<Vec<MediaChange>> {
         let offer =
             BytesStr::from_utf8_bytes(offer).context("SDP contains invalid UTF-8 characters")?;
         let offer = SessionDescription::parse(&offer)
             .with_context(|| format!("Failed to parse SDP Offer:\n{offer}"))?;
 
-        self.receive_offer(offer)
-    }
-
-    pub fn receive_offer(&mut self, offer: SessionDescription) -> Result<Vec<MediaChange>> {
         // track which of the current media sessions have been already matched against the new ones
         let mut matched_media_sessions = vec![];
 
@@ -174,13 +355,18 @@ impl SessionState {
                     let same_media_type =
                         existing_session.media_type == offer_media.media.media_type;
 
+                    let MediaSessionState::Established(existing_session) = &existing_session.state
+                    else {
+                        return false;
+                    };
+
                     let addr_matches = existing_session.remote_rtp_addr == remote_rtp_addr
                         && existing_session.remote_rtcp_addr == remote_rtcp_addr;
 
                     let negotiated_codec_still_available = offer_media
                         .media
                         .fmts
-                        .contains(&existing_session.codec.gst_elements.payload);
+                        .contains(&existing_session.send_codec.payload);
 
                     same_media_type && addr_matches && negotiated_codec_still_available
                 });
@@ -312,15 +498,22 @@ impl SessionState {
         self.media_sessions.push(MediaSession {
             id,
             media_type,
-            remote_rtp_addr,
-            remote_rtcp_addr,
+            state: MediaSessionState::Established(Established {
+                remote_rtp_addr,
+                remote_rtcp_addr,
+                // We always use the same payload number for our answers since we aren't psychos.
+                recv_codec: SdpRecvCodec {
+                    payload: codec.payload,
+                    codec: codec.codec,
+                },
+                send_codec: codec,
+                srtp,
+            }),
             local_rtp_addr,
             local_rtcp_addr,
             direction: new_direction,
             socket_pair,
             dtmf_events,
-            codec,
-            srtp,
         });
 
         Ok((id, Direction::Inactive))
@@ -331,10 +524,41 @@ impl SessionState {
             .media_sessions
             .iter()
             .map(|media_session| {
-                let mut rtpmaps = vec![media_session.codec.rtpmap.clone()];
-                let mut fmtps = Vec::from_iter(media_session.codec.fmtp.clone());
-                let mut fmts = vec![media_session.codec.gst_elements.payload];
+                let mut rtpmaps = vec![];
+                let mut fmtps = vec![];
+                let mut fmts = vec![];
                 let mut crypto = vec![];
+
+                let proto = match &media_session.state {
+                    MediaSessionState::Offered(offered) => {
+                        for codec in &offered.codec {
+                            rtpmaps.push(codec.make_rtpmap());
+                            fmts.push(codec.payload);
+                        }
+
+                        for srtp in &offered.srtp {
+                            populate_crypto_attributes(srtp, &mut crypto);
+                        }
+
+                        if offered.srtp.is_empty() {
+                            TransportProtocol::RtpAvp
+                        } else {
+                            TransportProtocol::RtpSavp
+                        }
+                    }
+                    MediaSessionState::Established(established) => {
+                        rtpmaps.push(established.recv_codec.make_rtpmap());
+                        fmts.push(established.recv_codec.payload);
+
+                        if let Some(srtp) = &established.srtp {
+                            populate_crypto_attributes(srtp, &mut crypto);
+
+                            TransportProtocol::RtpSavp
+                        } else {
+                            TransportProtocol::RtpAvp
+                        }
+                    }
+                };
 
                 if let Some(dtmf_events) = &media_session.dtmf_events {
                     rtpmaps.push(RtpMap {
@@ -351,25 +575,6 @@ impl SessionState {
 
                     fmts.push(dtmf_events.pt);
                 }
-
-                let proto = if let Some(srtp) = &media_session.srtp {
-                    let key_and_salt = BASE64_STANDARD.encode(&srtp.send_key);
-
-                    crypto.push(SrtpCrypto {
-                        tag: srtp.tag,
-                        suite: srtp.suite.clone(),
-                        keys: vec![SrtpKeyingMaterial {
-                            key_and_salt: key_and_salt.into(),
-                            lifetime: None,
-                            mki: None,
-                        }],
-                        params: vec![],
-                    });
-
-                    TransportProtocol::RtpSavp
-                } else {
-                    TransportProtocol::RtpAvp
-                };
 
                 MediaDescription {
                     media: Media {
@@ -422,6 +627,77 @@ impl SessionState {
             media_descriptions,
         }
     }
+}
+
+fn populate_crypto_attributes(srtp: &SrtpInfo, crypto: &mut Vec<SrtpCrypto>) {
+    let key_and_salt = BASE64_STANDARD.encode(&srtp.send_key);
+
+    crypto.push(SrtpCrypto {
+        tag: srtp.tag,
+        suite: srtp.suite.clone(),
+        keys: vec![SrtpKeyingMaterial {
+            key_and_salt: key_and_salt.into(),
+            lifetime: None,
+            mki: None,
+        }],
+        params: vec![],
+    });
+}
+
+fn offer_srtp() -> Vec<SrtpInfo> {
+    use SrtpSuite::*;
+
+    // key_len, suite, gst_auth, gst_cipher
+    let suites = [
+        (46, AES_256_CM_HMAC_SHA1_80, "hmac-sha1-80", "aes-256-icm"),
+        (46, AES_256_CM_HMAC_SHA1_32, "hmac-sha1-32", "aes-256-icm"),
+        (30, AES_CM_128_HMAC_SHA1_80, "hmac-sha1-80", "aes-128-icm"),
+        (30, AES_CM_128_HMAC_SHA1_32, "hmac-sha1-32", "aes-128-icm"),
+    ];
+
+    suites
+        .into_iter()
+        .enumerate()
+        .map(|(tag, (key_len, suite, gst_auth, gst_cipher))| {
+            let mut send_key = vec![0u8; key_len];
+            rand::thread_rng().fill_bytes(&mut send_key);
+
+            SrtpInfo {
+                tag: tag as u32,
+                suite,
+                gst_auth,
+                gst_cipher,
+                send_key,
+                recv_key: vec![],
+            }
+        })
+        .collect()
+}
+
+fn find_matching_crypto_in_answer(
+    offered: &[SrtpInfo],
+    answer: &MediaDescription,
+) -> Result<Option<SrtpInfo>> {
+    for offered_srtp in offered {
+        let Some(crypto) = answer
+            .crypto
+            .iter()
+            .find(|attr| attr.tag == offered_srtp.tag && attr.suite == offered_srtp.suite)
+        else {
+            continue;
+        };
+
+        let recv_key = BASE64_STANDARD
+            .decode(&crypto.keys[0].key_and_salt)
+            .context("Failed to base64 decode key_and_salt of crypto")?;
+
+        let mut srtp = offered_srtp.clone();
+        srtp.recv_key = recv_key;
+
+        return Ok(Some(srtp));
+    }
+
+    Ok(None)
 }
 
 fn setup_srtp(offer_media: &MediaDescription) -> Result<Option<SrtpInfo>> {

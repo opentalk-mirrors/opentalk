@@ -5,104 +5,31 @@
 use crate::media::codec::Codec;
 use crate::settings::Settings;
 use h264_profile_level_id::Profile;
-use sdp_types::{Fmtp, MediaDescription, RtpMap};
+use sdp_types::{MediaDescription, RtpMap};
 use std::str::FromStr;
 
-struct CodecEntry {
-    static_payload: Option<u32>,
-    name: &'static str,
-    create: fn(rtpmap: Option<&RtpMap>, fmtp: Option<&Fmtp>) -> Option<SdpCodecInfo>,
+#[derive(Debug, Clone)]
+pub struct SdpRecvCodec {
+    pub payload: u32,
+    pub codec: Codec,
 }
 
-/// List of all codecs and their constructor function sorted by priority
-static AUDIO_CODEC_LIST: &[CodecEntry] = &[
-    CodecEntry {
-        static_payload: Some(9),
-        name: "G722",
-        create: g722_create,
-    },
-    CodecEntry {
-        static_payload: Some(8),
-        name: "PCMA",
-        create: pcma_create,
-    },
-    CodecEntry {
-        static_payload: Some(0),
-        name: "PCMU",
-        create: pcmu_create,
-    },
-];
-
-fn g722_create(rtpmap: Option<&RtpMap>, _: Option<&Fmtp>) -> Option<SdpCodecInfo> {
-    let rtpmap = rtpmap?.clone();
-
-    Some(SdpCodecInfo {
-        rtpmap,
-        fmtp: None,
-        gst_elements: GstCodecInfo {
-            payload: 9,
-            pre_encode_caps: gst::Caps::new_any(),
-            post_encode_caps: gst::Caps::new_any(),
-            codec_params: Vec::new(),
-            codec: Codec::G722,
-        },
-    })
-}
-
-fn pcma_create(rtpmap: Option<&RtpMap>, _: Option<&Fmtp>) -> Option<SdpCodecInfo> {
-    let rtpmap = rtpmap.cloned().unwrap_or_else(|| RtpMap {
-        payload: 8,
-        encoding: "PCMA".into(),
-        clock_rate: 8000,
-        params: None,
-    });
-
-    Some(SdpCodecInfo {
-        rtpmap,
-        fmtp: None,
-        gst_elements: GstCodecInfo {
-            payload: 8,
-            pre_encode_caps: gst::Caps::new_any(),
-            post_encode_caps: gst::Caps::new_any(),
-            codec_params: Vec::new(),
-            codec: Codec::G711PCMA,
-        },
-    })
-}
-
-fn pcmu_create(rtpmap: Option<&RtpMap>, _: Option<&Fmtp>) -> Option<SdpCodecInfo> {
-    let rtpmap = rtpmap.cloned().unwrap_or_else(|| RtpMap {
-        payload: 0,
-        encoding: "PCMU".into(),
-        clock_rate: 8000,
-        params: None,
-    });
-
-    Some(SdpCodecInfo {
-        rtpmap,
-        fmtp: None,
-        gst_elements: GstCodecInfo {
-            payload: 0,
-            pre_encode_caps: gst::Caps::new_any(),
-            post_encode_caps: gst::Caps::new_any(),
-            codec_params: Vec::new(),
-            codec: Codec::G711PCMU,
-        },
-    })
-}
-
-pub struct SdpCodecInfo {
-    pub rtpmap: RtpMap,
-    pub fmtp: Option<Fmtp>,
-
-    pub gst_elements: GstCodecInfo,
+impl SdpRecvCodec {
+    pub fn make_rtpmap(&self) -> RtpMap {
+        RtpMap {
+            payload: self.payload,
+            encoding: self.codec.encoding_name().into(),
+            clock_rate: self.codec.clock_rate(),
+            params: None,
+        }
+    }
 }
 
 /// Information about the codec used in the gstreamer pipeline
 ///
 /// Most of it are strings that name the elements which are used to encode & payload / unpack & decode.
-#[derive(Clone)]
-pub struct GstCodecInfo {
+#[derive(Debug, Clone)]
+pub struct SdpSendCodec {
     /// RTP payload number to recognize the codec by
     pub payload: u32,
 
@@ -118,34 +45,20 @@ pub struct GstCodecInfo {
     pub codec: Codec,
 }
 
-pub fn choose_audio_codec(offer: &MediaDescription) -> Option<SdpCodecInfo> {
-    for entry in AUDIO_CODEC_LIST {
+pub fn choose_audio_codec(offer: &MediaDescription) -> Option<SdpSendCodec> {
+    let codecs = [(9, Codec::G722), (8, Codec::G711PCMA), (0, Codec::G711PCMU)];
+
+    for (pt, codec) in codecs {
         // first check all payload numbers in the m= line
-        for payload in &offer.media.fmts {
-            let static_pt_matches = if let Some(static_payload) = entry.static_payload {
-                static_payload == *payload
-            } else {
-                false
-            };
-
-            if static_pt_matches {
-                let rtpmap = offer.rtpmaps.iter().find(|x| x.payload == *payload);
-                let fmtp = offer.fmtps.iter().find(|x| x.format == *payload);
-
-                if let Some(info) = (entry.create)(rtpmap, fmtp) {
-                    return Some(info);
-                }
-            }
-        }
-
-        // if no static payloads matches try matching by name
-        for rtpmap in &offer.rtpmaps {
-            if rtpmap.encoding.eq_ignore_ascii_case(entry.name) {
-                let fmtp = offer.fmtps.iter().find(|x| x.format == rtpmap.payload);
-
-                if let Some(info) = (entry.create)(Some(rtpmap), fmtp) {
-                    return Some(info);
-                }
+        for &payload in &offer.media.fmts {
+            if pt == payload {
+                return Some(SdpSendCodec {
+                    payload: pt,
+                    pre_encode_caps: gst::Caps::new_any(),
+                    post_encode_caps: gst::Caps::new_any(),
+                    codec_params: vec![],
+                    codec,
+                });
             }
         }
     }
@@ -153,11 +66,35 @@ pub fn choose_audio_codec(offer: &MediaDescription) -> Option<SdpCodecInfo> {
     None
 }
 
+pub fn offer_all_audio_codecs() -> Vec<SdpRecvCodec> {
+    vec![
+        SdpRecvCodec {
+            payload: 9,
+            codec: Codec::G722,
+        },
+        SdpRecvCodec {
+            payload: 8,
+            codec: Codec::G711PCMA,
+        },
+        SdpRecvCodec {
+            payload: 0,
+            codec: Codec::G711PCMU,
+        },
+    ]
+}
+
+pub fn offer_all_video_codecs() -> Vec<SdpRecvCodec> {
+    vec![SdpRecvCodec {
+        payload: 96,
+        codec: Codec::H264,
+    }]
+}
+
 pub fn available_video_codec() -> &'static str {
     "H264"
 }
 
-pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Option<SdpCodecInfo> {
+pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Option<SdpSendCodec> {
     let rtpmap = offer
         .rtpmaps
         .iter()
@@ -244,16 +181,12 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
         }
     }
 
-    Some(SdpCodecInfo {
-        rtpmap: rtpmap.clone(),
-        fmtp: None,
-        gst_elements: GstCodecInfo {
-            payload: rtpmap.payload,
-            pre_encode_caps,
-            post_encode_caps,
-            codec_params,
-            codec: Codec::H264,
-        },
+    Some(SdpSendCodec {
+        payload: rtpmap.payload,
+        pre_encode_caps,
+        post_encode_caps,
+        codec_params,
+        codec: Codec::H264,
     })
 }
 
@@ -297,58 +230,19 @@ fn calculate_best_resolution_and_fps(
         fps = (max_macro_blocks_per_second / max_fs).max(1);
     }
 
-    // Common resolutions
-    // from ITU-T H.264 (08/2021) Annex A.3.4 page 301 Table A-6 'Maximum frame rates'
-    const ALLOWED_RESOLUTIONS: [(u32, u32); 34] = [
-        (128, 96),
-        (176, 144),
-        (320, 240),
-        (352, 240),
-        (352, 288),
-        (352, 480),
-        (352, 576),
-        (640, 480),
-        (704, 480),
-        (720, 480),
-        (704, 576),
-        (720, 576),
-        (800, 600),
-        (1024, 768),
-        (1280, 720),
-        (1280, 960),
-        (1280, 1024),
-        (1408, 960),
-        (1408, 1152),
-        (1600, 1200),
-        (1920, 1088),
-        (2048, 1024),
-        (2048, 1088),
-        (2048, 1536),
-        (2560, 1920),
-        (3616, 1536),
-        (3680, 1536),
-        (3840, 2160),
-        (4096, 2048),
-        (4096, 2160),
-        (4096, 2304),
-        (7680, 4320),
-        (8192, 4096),
-        (8192, 4320),
-    ];
-
     // 1 macroblock is 16x16 pixels
     let max_pixels = max_macro_blocks_per_second * 256 / fps;
 
-    for (width, height) in ALLOWED_RESOLUTIONS.into_iter().rev() {
-        if width < height {
-            continue;
-        }
+    // Try to find the largest up to 1920x1080 (which is the magic number 30)
+    for i in 1..30 {
+        let width = i * 16 * 4;
+        let height = i * 9 * 4;
 
-        if width * height <= max_pixels {
-            return ((width, height), fps);
+        if width * height > max_pixels {
+            return ((width - 4, height - 4), fps);
         }
     }
 
-    // All resolutions are too large, fall back to the lowest and pray
-    (ALLOWED_RESOLUTIONS[0], fps)
+    // All resolutions are too small, fall back to 1080p
+    ((1920, 1080), fps)
 }

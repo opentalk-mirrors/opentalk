@@ -2,10 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use super::sdp::{MediaChange, SessionState};
+use super::{
+    sdp::{MediaChange, SessionState},
+    MediaSessionState,
+};
 use crate::media::MediaPipeline;
 use anyhow::{bail, Context, Result};
-use sip_types::{header::typed::ContentType, Code};
+use sip_types::{header::typed::ContentType, Code, Name};
 use sip_ua::invite::session::ReInviteReceived;
 
 pub async fn apply_changes(
@@ -28,36 +31,42 @@ pub async fn apply_changes(
         match change {
             MediaChange::AddReceiver(id) => {
                 let media = media_session.media_by_id(id);
+                let MediaSessionState::Established(established) = &media.state else {
+                    unreachable!("Cannot receive changes for not-established media sessions");
+                };
 
                 handle
                     .tel_bin
                     .add_receiver(
                         id,
-                        media.srtp.as_ref(),
-                        media.codec.gst_elements.codec,
-                        media.codec.gst_elements.payload,
+                        established.srtp.as_ref(),
+                        established.recv_codec.codec,
+                        established.recv_codec.payload,
                         media.socket_pair.rtp_udpsrc.clone(),
                         media.socket_pair.rtcp_udpsrc.clone(),
                         media.socket_pair.rtcp_udpsink.clone(),
-                        media.remote_rtcp_addr,
+                        established.remote_rtcp_addr,
                     )
                     .await
                     .with_context(|| format!("Failed to add receiver for session {id}"))?;
             }
             MediaChange::AddSender(id) => {
                 let media = media_session.media_by_id(id);
+                let MediaSessionState::Established(established) = &media.state else {
+                    unreachable!("Cannot receive changes for not-established media sessions");
+                };
 
                 handle
                     .tel_bin
                     .add_sender(
                         id,
-                        media.srtp.as_ref(),
-                        &media.codec.gst_elements,
+                        established.srtp.as_ref(),
+                        &established.send_codec,
                         media.socket_pair.rtp_udpsink.clone(),
                         media.socket_pair.rtcp_udpsrc.clone(),
                         media.socket_pair.rtcp_udpsink.clone(),
-                        media.remote_rtp_addr,
-                        media.remote_rtcp_addr,
+                        established.remote_rtp_addr,
+                        established.remote_rtcp_addr,
                     )
                     .await
                     .with_context(|| format!("Failed to add sender for session {id}"))?;
@@ -108,7 +117,7 @@ pub async fn handle_reinvite(
 
     let body = request.body.clone();
 
-    let changes = media_session.receive_offer_bytes(body)?;
+    let changes = media_session.receive_offer(body)?;
 
     // Check if video has been added but currently disabled in the media pipeline
     if !handle.with_video && media_session.has_video() {
@@ -124,8 +133,13 @@ pub async fn handle_reinvite(
 
     let mut response = event
         .session
-        .endpoint
-        .create_response(request, Code::OK, None);
+        .dialog
+        .create_response(request, Code::OK, None)
+        .context("Failed to create 200 OK response to INVITE")?;
+    response
+        .msg
+        .headers
+        .insert(Name::CONTENT_TYPE, "application/sdp");
 
     response.msg.body = sdp_response.into();
 

@@ -71,6 +71,9 @@ enforce_qop = true
 # Maximum video bitrate in kbits/s
 #max_video_bitrate = 6000
 
+# Offer SRTP as media transport when obelisk is creating the initial SDP offer
+#offer_srtp = false
+
 # The port range for the SIP RTP/RTCP connections (inclusive).
 #
 # Defaults to 40000 - 49999
