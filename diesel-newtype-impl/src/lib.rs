@@ -23,17 +23,18 @@ fn try_derive_diesel_newtype(ast: syn::DeriveInput) -> Result<TokenStream, syn::
     let err_msg =
         "#[derive(DieselNewtype)] can only be used on anonymous structs with a single field.";
 
-    let reexports = match crate_name("opentalk-diesel-newtype")
+    let this_crate = match crate_name("opentalk-diesel-newtype")
         .map_err(|_| syn::Error::new(Span::call_site(), err_msg))?
     {
         FoundCrate::Itself => {
-            quote!(crate::__exports)
+            quote!(crate)
         }
         FoundCrate::Name(name) => {
             let ident = syn::Ident::new(&name, Span::call_site());
-            quote!(#ident::__exports)
+            quote!(#ident)
         }
     };
+    let reexports = quote!(#this_crate::__exports);
 
     let syn::Data::Struct(data_struct) = ast.data else {
         return Err(syn::Error::new(Span::call_site(), err_msg));
@@ -55,7 +56,7 @@ fn try_derive_diesel_newtype(ast: syn::DeriveInput) -> Result<TokenStream, syn::
     let sql_type = get_sql_type_from_attributes(&ast.attrs)?;
 
     let expanded = quote! {
-        impl DieselNewtype<#sql_type> for #ident {}
+        impl #this_crate::DieselNewtype<#sql_type> for #ident {}
 
         impl<DB> #reexports::diesel::serialize::ToSql<#sql_type, DB> for #ident
         where
