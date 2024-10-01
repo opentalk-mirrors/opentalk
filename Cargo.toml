@@ -21,9 +21,9 @@ license = "EUPL-1.2"
 name = "opentalk-diesel-newtype"
 publish = true
 repository.workspace = true
-version = "0.12.0"
+version = "0.13.0"
 
 [dependencies]
-opentalk-diesel-newtype-impl = { path = "diesel-newtype-impl", version = "0.12.0" }
+opentalk-diesel-newtype-impl = { path = "diesel-newtype-impl", version = "0.13.0" }
 diesel = { version = "2", features = ["postgres"] }
 serde = { version = "1", features = ["derive"] }

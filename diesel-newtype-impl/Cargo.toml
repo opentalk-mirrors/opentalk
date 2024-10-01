@@ -12,7 +12,7 @@ license = "EUPL-1.2"
 name = "opentalk-diesel-newtype-impl"
 publish = true
 repository.workspace = true
-version = "0.12.0"
+version = "0.13.0"
 
 [lib]
 proc-macro = true
