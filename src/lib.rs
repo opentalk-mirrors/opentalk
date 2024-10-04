@@ -24,6 +24,8 @@ pub enum Error {
     InvalidCredentials,
     #[snafu(display("Given base URL is not a base: {}", url))]
     NotBaseUrl { url: Url },
+    #[snafu(display("The OIDC metadata couldn't be fetched from this URL: {}", url))]
+    OidcMetadataError { url: Url },
 }
 
 /// HTTP client to access some Keycloak admin APIs

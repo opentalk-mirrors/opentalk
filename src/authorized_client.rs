@@ -2,12 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use openidconnect::{core::CoreProviderMetadata, reqwest::async_http_client, IssuerUrl};
 use reqwest::{header::AUTHORIZATION, Client, RequestBuilder, Response, StatusCode};
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use url::Url;
 
-use crate::{Error, Result};
+use crate::{Error, Error::OidcMetadataError, Result};
 
 #[derive(Debug, Serialize)]
 struct Credentials {
@@ -67,7 +68,16 @@ impl AuthorizedClient {
     ///
     /// Uses the `client_credentials` grant to authorize using `client_id` and `client_secret`
     async fn get_access_token(&self) -> Result<String> {
-        let url = self.auth_url(["protocol", "openid-connect", "token"])?;
+        let issuer_url =
+            IssuerUrl::new(self.base_url.to_string()).map_err(|_| OidcMetadataError {
+                url: self.base_url.clone(),
+            })?;
+
+        let metadata = CoreProviderMetadata::discover_async(issuer_url, async_http_client)
+            .await
+            .map_err(|_| OidcMetadataError {
+                url: self.base_url.clone(),
+            })?;
 
         #[derive(Serialize)]
         struct RequestBody<'cred> {
@@ -80,6 +90,14 @@ impl AuthorizedClient {
         struct ResponseBody {
             access_token: String,
         }
+
+        let url = metadata
+            .token_endpoint()
+            .cloned()
+            .map(|t| t.url().clone())
+            .ok_or_else(|| OidcMetadataError {
+                url: self.base_url.clone(),
+            })?;
 
         let response = self
             .client
@@ -98,14 +116,6 @@ impl AuthorizedClient {
         let response: ResponseBody = response.json().await?;
 
         Ok(response.access_token)
-    }
-
-    fn auth_url<I>(&self, path_segments: I) -> Result<Url>
-    where
-        I: IntoIterator,
-        I::Item: AsRef<str>,
-    {
-        super::build_url(self.base_url.clone(), path_segments)
     }
 
     /// Internal function to send a request by passing a closure which constructs the request to send
