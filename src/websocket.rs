@@ -21,11 +21,11 @@ use tt::tungstenite::protocol::CloseFrame;
 use tt::tungstenite::Message;
 use tt::MaybeTlsStream;
 use tt::WebSocketStream;
-use types::core::ParticipantId;
 use types::signaling::control::state::ControlState;
 use types::signaling::control::AssociatedParticipant;
 use types::signaling::media::event::{MediaEvent, MediaStatus, RequestMute};
 use types::signaling::media::{MediaSessionState, MediaSessionType, TrickleCandidate};
+use types_signaling::ParticipantId;
 
 /// Newtype wrapper for the signaling ticket
 pub struct Ticket(pub String);

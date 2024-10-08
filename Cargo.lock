@@ -318,25 +318,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3fd119d74b830634cea2a0f58bbd0d54540518a14397557951e79340abc28c0"
 
 [[package]]
-name = "compositor"
-version = "0.1.1"
-dependencies = [
- "anyhow",
- "glib",
- "gst-plugin-inter",
- "gstreamer",
- "gstreamer-base",
- "gstreamer-sdp",
- "gstreamer-webrtc",
- "log",
- "once_cell",
- "opentalk-types",
- "parking_lot",
- "serde",
- "tokio",
-]
-
-[[package]]
 name = "config"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1964,6 +1945,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-compositor"
+version = "0.0.0-dev"
+dependencies = [
+ "anyhow",
+ "glib",
+ "gst-plugin-inter",
+ "gstreamer",
+ "gstreamer-base",
+ "gstreamer-sdp",
+ "gstreamer-webrtc",
+ "log",
+ "once_cell",
+ "opentalk-types",
+ "opentalk-types-signaling",
+ "parking_lot",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "opentalk-obelisk"
 version = "0.0.0-dev"
 dependencies = [
@@ -1976,7 +1977,6 @@ dependencies = [
  "bytes",
  "bytesstr",
  "chrono",
- "compositor",
  "config",
  "env_logger",
  "ezk-sdp-types",
@@ -2002,7 +2002,9 @@ dependencies = [
  "native-tls",
  "once_cell",
  "openidconnect",
+ "opentalk-compositor",
  "opentalk-types",
+ "opentalk-types-signaling",
  "owo-colors",
  "parking_lot",
  "rand",
@@ -2018,27 +2020,59 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types"
-version = "0.19.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25b5ecbc52dc66403227945617528c0286f9d2d8d59ee06c76b1892102a4fc71"
+checksum = "3cb66ab4a6890cdb07cba7a31f33c5f3eedf94c7d8e179543801fc8b9ebf7b2a"
 dependencies = [
  "base64 0.22.1",
  "bincode",
  "chrono",
  "chrono-tz",
  "derive_more",
- "email_address",
  "itertools 0.13.0",
  "log",
- "rand",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
  "serde",
  "serde_json",
- "serde_with",
  "snafu",
  "strum",
  "url",
  "uuid",
  "validator",
+]
+
+[[package]]
+name = "opentalk-types-common"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffe5bf22e14e28cbd1e4c057a064b2803692a0565cbb16d39f3655385ad110f3"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "derive_more",
+ "email_address",
+ "itertools 0.13.0",
+ "rand",
+ "serde",
+ "serde_with",
+ "snafu",
+ "strum",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "opentalk-types-signaling"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a52ff1b01d42a95472573bdf9a0204b9d2e0f5995023edcd9b8de999e2ea5c8"
+dependencies = [
+ "derive_more",
+ "opentalk-types-common",
+ "serde",
+ "strum",
+ "uuid",
 ]
 
 [[package]]
