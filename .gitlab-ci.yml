@@ -73,6 +73,14 @@ lint:licensing:
   script:
     - reuse lint
 
+lint:justfile:
+  stage: lint
+  <<: *default_job_condition
+  before_script: if ! just --version; then cargo install --root /usr/local just; fi
+  script:
+    # The `--fmt` command-line parameter is still unstable, but valuable anyway.
+    - just --unstable --fmt --check
+
 test:cargo_test:
   stage: test
   <<: *default_job_condition
