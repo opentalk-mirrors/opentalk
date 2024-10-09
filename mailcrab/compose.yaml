@@ -1,0 +1,13 @@
+services:
+  mailcrab:
+    image: marlonb/mailcrab:v1.3.0
+    environment:
+      MAILCRAB_PREFIX: /adm/mailcrab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailcrab.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/adm/mailcrab`)"
+      - "traefik.http.routers.mailcrab.entrypoints=websecure"
+      - "traefik.http.routers.mailcrab.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.mailcrab.middlewares=mailcrab-strip"
+      - "traefik.http.middlewares.mailcrab-strip.stripprefix.prefixes=/adm/mailcrab"
+      - "traefik.http.services.mailcrab.loadbalancer.server.port=1080"

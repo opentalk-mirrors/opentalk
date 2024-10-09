@@ -1,0 +1,14 @@
+services:
+  mailer:
+    image: registry.opencode.de/opentalk/smtp-mailer:v0.8.1
+    profiles: [ "standard", "full", "mailer"]
+    restart: always
+    volumes:
+      - ./config/mailer.toml:/opt/smtp-mailer/config.toml
+    depends_on:
+      cforge:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+
+

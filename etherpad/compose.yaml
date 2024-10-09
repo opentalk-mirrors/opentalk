@@ -1,0 +1,20 @@
+services:
+  etherpad:
+    image: registry.opencode.de/opentalk/etherpad:v1.0.2
+    profiles: ["full", "pad"]
+    restart: always
+    environment:
+      EP_APIKEY: ${EP_APIKEY:-secret}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      DEFAULT_PAD_TEXT: ${DEFAULT_PAD_TEXT:-Welcome to OpenTalk}
+      SUPPRESS_ERRORS_IN_PAD_TEXT: ${SUPPRESS_ERRORS_IN_PAD_TEXT:-true}
+    labels:
+      - "traefik.enable=true"
+      #- "traefik.http.routers.etherpad.rule=Host(`${OT_DOMAIN}`) && (PathPrefix(`/api/1`) || PathPrefix(`/auth_session`))"
+      - "traefik.http.routers.etherpad.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/etherpad`)"
+      - "traefik.http.routers.etherpad.entrypoints=websecure"
+      - "traefik.http.routers.etherpad.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.etherpad.priority=100"
+      - "traefik.http.routers.etherpad.middlewares=etherpad-strip"
+      - "traefik.http.middlewares.etherpad-strip.stripprefix.prefixes=/etherpad"
+      - "traefik.http.services.etherpad.loadbalancer.server.port=9001"

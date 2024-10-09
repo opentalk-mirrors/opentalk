@@ -1,0 +1,20 @@
+services:
+  livekit:
+    image: livekit/livekit-server:v1.7
+    profiles: ["core", "standard", "full", "livekit"]
+    command: "--config /livekit.yaml"
+    network_mode: host
+    restart: always
+    volumes:
+      - ./config/livekit.yaml:/livekit.yaml
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.livekit.rule=Host(`${OT_DOMAIN}`) && (PathPrefix(`/livekit`) || PathPrefix(`/twirp`))"
+      - "traefik.http.routers.livekit.entrypoints=websecure"
+      - "traefik.http.routers.livekit.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.livekit.middlewares=livekit-strip"
+      - "traefik.http.middlewares.livekit-strip.stripprefix.prefixes=/livekit"
+      - "traefik.http.services.livekit.loadbalancer.server.port=7880"
+    depends_on:
+      cforge:
+        condition: service_completed_successfully

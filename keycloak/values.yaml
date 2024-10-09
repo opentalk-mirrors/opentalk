@@ -1,0 +1,37 @@
+---
+keycloak:
+  hostname: "livekit-test-anfi.opentalk.run"
+  db: postgres
+  dbUsername: ot
+  dbPassword: password
+  #dbUrl: "jdbc:postgresql://keycloak-db:5432/keycloak"
+  dbUrlDatabase: keycloak
+  dbUrlHost: keycloak-db
+  dbUrlPort: 5432
+  healthEnabled: true
+  metricsEnabled: true
+  proxy: edge
+  proxyHeaders: xforwarded
+  httpRelativePath: "/auth"
+  httpsCertificateFile: "${kc.home.dir}conf/server.crt.pem"
+  httpsCertificateKeyFile: "${kc.home.dir}conf/server.key.pem"
+  spiStickySessionEncoderInfinispanShouldAttachRoute: false
+  jsonFile:
+    realmId: opentalk
+    realmName: opentalk
+    realmDisplayname: opentalk
+    domain: "livekit-test-anfi.opentalk.run"
+    hostname: "livekit-test-anfi.opentalk.run"
+    testUserEnable: true
+    client:
+      controller:
+        clientId: Controller
+        secret: secret
+      frontend:
+        clientId: Frontend
+      obelisk:
+        clientId: Obelisk
+        secret: secret
+      recorder:
+        clientId: Recorder
+        secret: secret

@@ -1,0 +1,38 @@
+# replace
+#### https://github.com/traefik/traefik/issues/5853#issuecomment-2053572387
+
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+# Log settings
+log:
+  level: DEBUG
+  filePath: "/data/traefik.log"
+
+accessLog:
+  filePath: "/data/access.log"
+  bufferingSize: 100
+
+api:
+  dashboard: true
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: a.fischer@opentalk.eu
+      storage: /data/acme.json
+      #caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      httpChallenge:
+        entryPoint: web
+
+providers:
+  docker:
+    exposedByDefault: false

@@ -1,0 +1,49 @@
+services:
+  web-app:
+    image: git.opentalk.dev:5050/opentalk/frontend/web/web-app:v2.0.0-alpha.3
+    profiles: ["core", "standard", "full", "web-app"]
+    restart: always
+    ports:
+      - ${OT_FRONTEND_EXP_PORT:-8080}:80
+    environment:
+      CONTROLLER_HOST: ${OT_DOMAIN}/controller
+      BASE_URL: https://${OT_DOMAIN}
+      OIDC_ISSUER: https://${OT_DOMAIN}/auth/realms/opentalk
+      OIDC_CLIENT_ID: Frontend
+      LIVEKIT_SERVER_URL: https://${OT_DOMAIN}/livekit
+      NDT_SERVER: ${NDT_SERVER:-ndt.example.com}
+      CHANGE_PASSWORD_URL: https://${OT_DOMAIN}/auth/realms/opentalk/account/
+      ERROR_REPORT_ADDRESS: ${ERROR_REPORT_ADDRESS:-reports@example.com}
+      LIBRAVATAR_DEFAULT_IMAGE: ${LIBRAVATAR_DEFAULT_IMAGE:-identicon}
+      VIDEO_BACKGROUNDS: >-
+        [{
+          altText: 'OpenTalk',
+          url: '/assets/videoBackgrounds/elevate-bg.png',
+          thumb: '/assets/videoBackgrounds/thumbs/elevate-bg-thumb.png',
+        }]
+      IS_BETA_RELEASE: ${IS_BETA_RELEASE:-false}
+      FEATURE_USER_SEARCH: ${FEATURE_USER_SEARCH:-true}
+      FEATURE_TIMER: ${FEATURE_TIMER:-true}
+      FEATURE_WHITEBOARD: ${FEATURE_WHITEBOARD:-true}
+      FEATURE_PROTOCOL: ${FEATURE_PROTOCOL:-true}
+      FEATURE_RECORDING: ${FEATURE_RECORDING:-false}
+      WAITING_ROOM_DEFAULT_VALUE: ${WAITING_ROOM_DEFAULT_VALUE:-false}
+      PRODUCT_VERSION: "v24.11.0-rc.2"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web-app.rule=Host(`${OT_DOMAIN}`)"
+      - "traefik.http.routers.web-app.priority=10" 
+      - "traefik.http.routers.web-app.entrypoints=websecure"
+      - "traefik.http.routers.web-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.web-app.loadbalancer.server.port=80"
+      - "traefik.http.routers.web-app-callback.rule=Host(`${OT_DOMAIN}`) && Path(`/auth/callback`)"
+      - "traefik.http.routers.web-app-callback.priority=100"
+      - "traefik.http.routers.web-app-callback.entrypoints=websecure"
+      - "traefik.http.routers.web-app-callback.tls.certresolver=letsencrypt"
+    depends_on:
+      controller:
+        condition: service_started
+      keycloak:
+        condition: service_started
+      livekit:
+        condition: service_started

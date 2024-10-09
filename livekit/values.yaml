@@ -1,0 +1,32 @@
+livekit:
+  port: 7880
+  bindAdress: ["0.0.0.0"]
+  rtc:
+    tcpPort: 7881
+    portRangeStart: 50000
+    portRangeEnd: 60000
+    useExternalIp: true
+    enableLoopbackCandidate: false
+  #redis:
+    #address: ""
+    #username: ""
+    #password: ""
+    #db: 
+    #useTls: 
+    #sentinelMasterName: ""
+    #sentinelUsername: ""
+    #sentinelPassword: ""
+    #sentinelAddresses: 
+    #clusterAddresses: 
+    #maxRedirects: 
+  turn: 
+    enabled: false
+    #domain: "turn.livekit-test.opentalk.run"
+    #tlsPort: 5349
+    #udpPort: 3478
+    #externalTls: true
+  keys:
+    controller: 1111-aaaa-2222-bbbb-3333-cccc-4444
+  logging:
+    json: false
+    level: debug

@@ -1,0 +1,53 @@
+include:
+  - path: cforge/compose.yaml
+    env_file: cforge/.env
+
+  - path: controller/compose.yaml
+    env_file: controller/.env
+
+  - path: webapp/compose.yaml
+    env_file: webapp/.env
+
+  - path: mailer/compose.yaml
+    env_file: mailer/.env
+
+  - path: recorder/compose.yaml
+    env_file: recorder/.env
+
+  - path: obelisk/compose.yaml
+    env_file: obelisk/.env
+
+  - path: etherpad/compose.yaml
+    env_file: etherpad/.env
+
+  - path: spacedeck/compose.yaml
+    env_file: spacedeck/.env
+
+# 3rd party
+  - path: traefik/compose.yaml
+    
+  - path: postgres/compose.yaml
+    env_file: postgres/.env
+
+  - path: minio/compose.yaml
+    env_file: minio/.env
+
+  - path: rabbitmq/compose.yaml
+    env_file: rabbitmq/.env
+
+  - path: redis/compose.yaml
+    env_file: redis/.env
+
+  - path: keycloak/compose.yaml
+    env_file: keycloak/.env
+
+  - path: livekit/compose.yaml
+    env_file: livekit/.env
+
+  - path: mailcrab/compose.yaml
+    env_file: mailcrab/.env
+
+
+
+
+

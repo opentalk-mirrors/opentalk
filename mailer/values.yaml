@@ -1,0 +1,34 @@
+---
+mailer:
+  rabbitMq:
+    url: "amqp://guest:guest@rabbitmq/%2F"
+    mailTaskQueue: "opentalk_mailer"
+  smtp:
+    smtpServer: "smtp://mailcrab:1025?disable_starttls=true"
+    fromName: "OpenTalk"
+    fromEmail: "no-reply@example.org"
+  templateBuilder:
+    joinLinkBuilder: "{base_url}/lobby/{room_id}"
+    guestLinkBuilder: "{base_url}/invite/{invite_id}"
+    dashboardEventLinkBuilder: "{base_url}/dashboard/meetings/{event_id}"
+  frontend:
+    baseUrl: "https://opentalk.example.org"
+    dataProtectionUrl: "https://opentalk.example.org/dataprotection"
+  templates:
+    registeredInvite: '{html = "resources/templates/registered_invite.html", txt = "resources/templates/registered_invite.txt"}'
+    unregisteredInvite: '{html = "resources/templates/unregistered_invite.html", txt = "resources/templates/unregistered_invite.txt"}'
+    externalInvite: '{html = "resources/templates/external_invite.html", txt = "resources/templates/external_invite.txt"}'
+    registeredEventUpdate: '{html = "resources/templates/registered_event_update.html", txt = "resources/templates/registered_event_update.txt"}'
+    unregisteredEventUpdate: '{html = "resources/templates/unregistered_event_update.html", txt = "resources/templates/unregistered_event_update.txt"}'
+    externalEventUpdate: '{html = "resources/templates/external_event_update.html", txt = "resources/templates/external_event_update.txt"}'
+    registeredEventCancellation: '{html = "resources/templates/registered_event_cancellation.html", txt = "resources/templates/registered_event_cancellation.txt"}'
+    unregisteredEventCancellation: '{html = "resources/templates/unregistered_event_cancellation.html", txt = "resources/templates/unregistered_event_cancellation.txt"}'
+    externalEventCancellation: '{html = "resources/templates/external_event_cancellation.html", txt = "resources/templates/external_event_cancellation.txt"}'
+    registeredUninvite: '{html = "resources/templates/registered_uninvite.html", txt = "resources/templates/registered_uninvite.txt"}'
+    unregisteredUninvite: '{html = "resources/templates/unregistered_uninvite.html", txt = "resources/templates/unregistered_uninvite.txt"}'
+    externalUninvite: '{html = "resources/templates/external_uninvite.html", txt = "resources/templates/external_uninvite.txt"}'
+  languages:
+    defaultLanguage: 'de-DE'
+  supportContact:
+    phone: "+49123321123"
+    mail: "support@example.com"

@@ -1,0 +1,22 @@
+services:
+  rabbitmq:
+    image: rabbitmq:4.0-management-alpine
+    profiles: ["core", "standard", "full", "rabbitmq"]
+    restart: always
+    environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: '-rabbitmq_management path_prefix "/adm/rabbitmq"'
+    #  RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit consumer_timeout 30000
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q status && rabbitmq-diagnostics -q alarms
+      interval: 30s
+      timeout: 15s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rabbitmq.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/adm/rabbitmq`)"
+      - "traefik.http.routers.rabbitmq.entrypoints=websecure"
+      - "traefik.http.routers.rabbitmq.tls.certresolver=letsencrypt"
+      #- "traefik.http.routers.rabbitmq.middlewares=rabbitmq-strip"
+      #- "traefik.http.middlewares.rabbitmq-strip.stripprefix.prefixes=/adm/rabbitmq"
+      #- "traefik.http.middlewares.rabbitmq-strip.stripprefix.forceSlash=true"
+      - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"

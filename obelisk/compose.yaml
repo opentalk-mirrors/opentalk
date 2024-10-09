@@ -1,0 +1,22 @@
+services:
+  obelisk:
+    image: registry.opencode.de/opentalk/obelisk:v0.10.0
+    profiles: [ "standard", "full", "obelisk"]
+    network_mode: host
+    restart: always
+    environment:
+      RUST_LOG: ${RUST_LOG:-info}
+      GST_DEBUG: ${GST_DEBUG:-2}
+      OPENTALK_OBLSK__CLIENT_SECRET: "${OPENTALK_OBLSK__CLIENT_SECRET:-}"
+    volumes:
+      - ./config/obelisk.toml:/obelisk/config.toml
+    depends_on:
+      cforge:
+        condition: service_completed_successfully
+      controller:
+        condition: service_started
+      keycloak:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+
