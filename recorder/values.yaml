@@ -1,12 +1,11 @@
 ---
-recorder:
-  auth:
-    issuer: "https://livekit-test-anfi.opentalk.run/auth/realms/opentalk"
-    clientId: "Recorder"
-    clientSecret: secret
-  controller:
-    domain: "controller:1311"
-    insecure: false
-  rabbitmq:
-    uri: "amqp://guest:guest@rabbitmq/%2F"
-    queue: "opentalk_recorder"
+auth:
+  issuer: "https://livekit-test-anfi.opentalk.run/auth/realms/opentalk"
+  clientId: "Recorder"
+  clientSecret: secret
+controller:
+  domain: "controller:1311"
+  insecure: false
+rabbitmq:
+  uri: "amqp://guest:guest@rabbitmq/%2F"
+  queue: "opentalk_recorder"

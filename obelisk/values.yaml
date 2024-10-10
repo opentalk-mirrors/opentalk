@@ -1,22 +1,21 @@
 ---
-obelisk:
-  auth:
-    issuer: "https://livekit-test-anfi.opentalk.run/auth/realms/opentalk"
-    clientId: Obelisk
-    clientSecret: secret
-  controller:
-    domain: "https://livekit-test-anfi.opentalk.run/controller"
-  sip:
-    addr: "0.0.0.0"
-    port: 5060
-    id: sip:alice@example.org
-    username: "9947"
-    password: "rZAMrsoCpFGkbsLhTmN0G95eo3PqXPNF"
-    realm: "opentalk"
-    registrar: "sip:sip01.opentalk.eu"
-    natPingDelta: 30
-    stunServer: stun.example.org:3478
-    enforceQop: true
-  sipRtpPortRange:
-    start: 40000
-    end: 49999
+auth:
+  issuer: "https://livekit-test-anfi.opentalk.run/auth/realms/opentalk"
+  clientId: Obelisk
+  clientSecret: secret
+controller:
+  domain: "https://livekit-test-anfi.opentalk.run/controller"
+sip:
+  addr: "0.0.0.0"
+  port: 5060
+  id: sip:alice@example.org
+  username: "9947"
+  password: "rZAMrsoCpFGkbsLhTmN0G95eo3PqXPNF"
+  realm: "opentalk"
+  registrar: "sip:sip01.opentalk.eu"
+  natPingDelta: 30
+  stunServer: stun.example.org:3478
+  enforceQop: true
+sipRtpPortRange:
+  start: 40000
+  end: 49999

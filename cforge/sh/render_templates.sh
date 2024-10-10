@@ -1,12 +1,15 @@
 #!/bin/bash
 
 generate_config() {
-  local output_path=$1
-  local template_path=$2
-  local base_dir=$(echo "$output_path" | cut -d'/' -f1)
+  local output_path
+  local template_path
+  local service_name
+  output_path=$1
+  template_path=$2
+  service_name=$(echo "$output_path" | cut -d'/' -f1)
   
   echo "[INFO] Write $output_path"
-  yq -nM "load(\"$base_dir/values.yaml\") * load(\"values.yaml\")" | yq eval '{"Values": .}' - \
+  yq -nM "{\"$service_name\": load(\"$service_name/values.yaml\")} * load(\"values.yaml\")" | yq eval '{"Values": .}' - \
   	| tpl -d yaml --file "$template_path" > "$output_path" --option missingkey="$MISSING_KEY_BEHAVIOR"
 }
 
@@ -17,3 +20,4 @@ generate_config "livekit/config/livekit.yaml" "livekit/templates/livekit.yaml.tp
 generate_config "mailer/config/mailer.toml" "mailer/templates/mailer.toml.tpl"
 generate_config "recorder/config/recorder.toml" "recorder/templates/recorder.toml.tpl"
 generate_config "obelisk/config/obelisk.toml" "obelisk/templates/obelisk.toml.tpl"
+
