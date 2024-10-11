@@ -33,7 +33,17 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
-ignore = []
+ignore = [
+  # Marvin Attack: potential key recovery through timing sidechannels
+  # in `rsa 0.9.3`.
+  # Solution: No safe upgrade is available!
+  #
+  # This library is used as a dependency of `openidconnect 3.4.0`, so unless we
+  # want to replace that no further action is available until either:
+  # - openidconnect switches to a different dependency
+  # - rsa releases a fixed version
+  "RUSTSEC-2023-0071",
+]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
 # will still output a note when they are encountered.
@@ -53,9 +63,12 @@ ignore = []
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
 allow = [
   "Apache-2.0",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
   "ISC",
   "MIT",
   "Unicode-DFS-2016",
+  "Zlib",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
@@ -120,7 +133,17 @@ allow = []
 # List of crates to deny
 deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
-skip = []
+skip = [
+  { name = "base64", version = "0.13" },
+  { name = "base64", version = "0.21" },
+  { name = "http", version = "0.2" },
+  { name = "http-body", version = "0.4" },
+  { name = "hyper", version = "0.14" },
+  { name = "hyper-tls", version = "0.5" },
+  { name = "reqwest", version = "0.11" },
+  { name = "rustls-pemfile", version = "1.0" },
+  { name = "sync_wrapper", version = "0.1" },
+]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
 # dependencies starting at the specified crate, up to a certain depth, which is
