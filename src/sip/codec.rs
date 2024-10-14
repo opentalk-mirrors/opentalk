@@ -8,9 +8,10 @@ use h264_profile_level_id::Profile;
 use sdp_types::{MediaDescription, RtpMap};
 use std::str::FromStr;
 
+/// Describes the codec used to receive audio/video
 #[derive(Debug, Clone)]
 pub struct SdpRecvCodec {
-    pub payload: u32,
+    pub payload: u8,
     pub codec: Codec,
 }
 
@@ -25,28 +26,32 @@ impl SdpRecvCodec {
     }
 }
 
-/// Information about the codec used in the gstreamer pipeline
-///
-/// Most of it are strings that name the elements which are used to encode & payload / unpack & decode.
+/// Describes the codec used to send audio/video and how to packetize it
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // TODO: required for video support
 pub struct SdpSendCodec {
     /// RTP payload number to recognize the codec by
-    pub payload: u32,
-
-    /// Caps that are enforced right before the encode element
-    pub pre_encode_caps: gst::Caps,
-
-    /// Caps that are enforced right after the encode element
-    pub post_encode_caps: gst::Caps,
-
-    /// Parameters for gstreamer encode element
-    pub codec_params: Vec<(String, String)>,
-
+    pub payload: u8,
     pub codec: Codec,
+    pub codec_params: SdpSendCodecParams,
+    // bits/s
+    pub bitrate: Option<u32>,
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)] // TODO: required for video support
+pub enum SdpSendCodecParams {
+    None,
+    H264 {
+        width: u32,
+        height: u32,
+        fps: u32,
+        profile: String,
+    },
 }
 
 pub fn choose_audio_codec(offer: &MediaDescription) -> Option<SdpSendCodec> {
-    let codecs = [(9, Codec::G722), (8, Codec::G711PCMA), (0, Codec::G711PCMU)];
+    let codecs = [(8, Codec::G711PCMA), (0, Codec::G711PCMU)];
 
     for (pt, codec) in codecs {
         // first check all payload numbers in the m= line
@@ -54,10 +59,9 @@ pub fn choose_audio_codec(offer: &MediaDescription) -> Option<SdpSendCodec> {
             if pt == payload {
                 return Some(SdpSendCodec {
                     payload: pt,
-                    pre_encode_caps: gst::Caps::new_any(),
-                    post_encode_caps: gst::Caps::new_any(),
-                    codec_params: vec![],
                     codec,
+                    codec_params: SdpSendCodecParams::None,
+                    bitrate: None,
                 });
             }
         }
@@ -68,10 +72,6 @@ pub fn choose_audio_codec(offer: &MediaDescription) -> Option<SdpSendCodec> {
 
 pub fn offer_all_audio_codecs() -> Vec<SdpRecvCodec> {
     vec![
-        SdpRecvCodec {
-            payload: 9,
-            codec: Codec::G722,
-        },
         SdpRecvCodec {
             payload: 8,
             codec: Codec::G711PCMA,
@@ -105,9 +105,8 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
         .iter()
         .find(|fmtp| fmtp.format == rtpmap.payload);
 
-    let mut pre_encode_caps = gst::Caps::new_any();
-    let mut post_encode_caps = gst::Caps::new_any();
-    let mut codec_params = vec![];
+    let mut codec_params = SdpSendCodecParams::None;
+    let mut bitrate = None;
 
     if let Some(fmtp) = fmtp {
         let params = fmtp.params.split(';');
@@ -141,8 +140,8 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
                 "max-br" => {
                     let value = value.min(settings.sip.max_video_bitrate);
 
-                    // openh264enc takes bitrate in bits/s, so multiply by 1000
-                    codec_params.push(("bitrate".to_owned(), (value * 1000).to_string()));
+                    // convert from kbit/s to bits/s
+                    bitrate = Some(value * 1000);
                 }
                 _ => continue,
             }
@@ -153,15 +152,8 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
             let ((width, height), fps) =
                 calculate_best_resolution_and_fps(level.level(), max_mbps, max_fs);
 
-            let caps = format!("video/x-raw,width={width},height={height},framerate={fps}/1");
-
-            match gst::Caps::from_str(&caps) {
-                Ok(caps) => pre_encode_caps = caps,
-                Err(e) => log::warn!("Failed to parse caps '{caps}', {e}"),
-            }
-
             // Calculate post encode caps
-            let openh264_profile_string = match level.profile() {
+            let h264_profile = match level.profile() {
                 Profile::ConstrainedBaseline => "constrained-baseline",
                 Profile::Baseline => "baseline",
                 Profile::Main => "main",
@@ -173,20 +165,20 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
                 }
             };
 
-            post_encode_caps = gst::Caps::builder("video/x-h264")
-                .field("stream-format", "byte-stream")
-                .field("alignment", "au")
-                .field("profile", openh264_profile_string)
-                .build();
+            codec_params = SdpSendCodecParams::H264 {
+                width,
+                height,
+                fps,
+                profile: h264_profile.into(),
+            }
         }
     }
 
     Some(SdpSendCodec {
         payload: rtpmap.payload,
-        pre_encode_caps,
-        post_encode_caps,
-        codec_params,
         codec: Codec::H264,
+        codec_params,
+        bitrate,
     })
 }
 

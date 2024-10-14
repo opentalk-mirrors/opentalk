@@ -1,4 +1,0 @@
-[submodule "recorder"]
-	path = recorder
-	# url = ssh://git@git.opentalk.dev:222/opentalk/backend/services/recorder.git
-	url = ../recorder.git

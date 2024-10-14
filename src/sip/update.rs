@@ -12,59 +12,48 @@ use sip_types::{header::typed::ContentType, Code, Name};
 use sip_ua::invite::session::ReInviteReceived;
 
 pub async fn apply_changes(
-    handle: &mut MediaPipeline,
-    media_session: &mut SessionState,
+    media: &mut MediaPipeline,
+    session_state: &mut SessionState,
     changes: Vec<MediaChange>,
 ) -> Result<()> {
-    for dtmf_pt in media_session.all_dtmf_payloads() {
-        handle.tel_bin.rtp.set_pt_caps(
-            dtmf_pt,
-            gst::Caps::builder("application/x-rtp")
-                .field("media", "audio")
-                .field("encoding-name", "TELEPHONE-EVENT")
-                .field("clock-rate", 8000)
-                .build(),
-        );
-    }
-
     for change in changes {
         match change {
             MediaChange::AddReceiver(id) => {
-                let media = media_session.media_by_id(id);
-                let MediaSessionState::Established(established) = &media.state else {
+                let media_session = session_state.media_by_id(id);
+                let MediaSessionState::Established(established) = &media_session.state else {
                     unreachable!("Cannot receive changes for not-established media sessions");
                 };
 
-                handle
-                    .tel_bin
+                media
                     .add_receiver(
                         id,
                         established.srtp.as_ref(),
-                        established.recv_codec.codec,
-                        established.recv_codec.payload,
-                        media.socket_pair.rtp_udpsrc.clone(),
-                        media.socket_pair.rtcp_udpsrc.clone(),
-                        media.socket_pair.rtcp_udpsink.clone(),
+                        &established.recv_codec,
+                        media_session
+                            .dtmf_events
+                            .as_ref()
+                            .map(|e| (e.pt, media.events_tx.clone())),
+                        media_session.socket_pair.rtp_socket.clone(),
+                        media_session.socket_pair.rtcp_socket.clone(),
+                        established.remote_rtp_addr,
                         established.remote_rtcp_addr,
                     )
                     .await
-                    .with_context(|| format!("Failed to add receiver for session {id}"))?;
+                    .with_context(|| format!("Failed to add receiver for session_id={id}"))?;
             }
             MediaChange::AddSender(id) => {
-                let media = media_session.media_by_id(id);
-                let MediaSessionState::Established(established) = &media.state else {
+                let media_session = session_state.media_by_id(id);
+                let MediaSessionState::Established(established) = &media_session.state else {
                     unreachable!("Cannot receive changes for not-established media sessions");
                 };
 
-                handle
-                    .tel_bin
+                media
                     .add_sender(
                         id,
                         established.srtp.as_ref(),
                         &established.send_codec,
-                        media.socket_pair.rtp_udpsink.clone(),
-                        media.socket_pair.rtcp_udpsrc.clone(),
-                        media.socket_pair.rtcp_udpsink.clone(),
+                        media_session.socket_pair.rtp_socket.clone(),
+                        media_session.socket_pair.rtcp_socket.clone(),
                         established.remote_rtp_addr,
                         established.remote_rtcp_addr,
                     )
@@ -72,15 +61,13 @@ pub async fn apply_changes(
                     .with_context(|| format!("Failed to add sender for session {id}"))?;
             }
             MediaChange::RemoveReceiver(id) => {
-                handle
-                    .tel_bin
+                media
                     .remove_receiver(id)
                     .await
                     .with_context(|| format!("Failed to remove receiver for session {id}"))?;
             }
             MediaChange::RemoveSender(id) => {
-                handle
-                    .tel_bin
+                media
                     .remove_sender(id)
                     .await
                     .with_context(|| format!("Failed to remove sender for session {id}"))?;
@@ -88,11 +75,13 @@ pub async fn apply_changes(
         }
     }
 
+    media.post_update_cleanup();
+
     Ok(())
 }
 
 pub async fn handle_reinvite(
-    handle: &mut MediaPipeline,
+    media: &mut MediaPipeline,
     media_session: &mut SessionState,
     event: ReInviteReceived<'_>,
 ) -> Result<()> {
@@ -117,17 +106,9 @@ pub async fn handle_reinvite(
 
     let body = request.body.clone();
 
-    let changes = media_session.receive_offer(body)?;
+    let changes = media_session.receive_offer(body).await?;
 
-    // Check if video has been added but currently disabled in the media pipeline
-    if !handle.with_video && media_session.has_video() {
-        handle
-            .enable_video()
-            .await
-            .context("Failed to enable video in media pipeline")?;
-    }
-
-    apply_changes(handle, media_session, changes).await?;
+    apply_changes(media, media_session, changes).await?;
 
     let sdp_response = media_session.build_sdp().to_string();
 

@@ -2,51 +2,81 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use crate::sip::{SdpRecvCodec, SdpSendCodec, SrtpInfo};
 use anyhow::{Context, Result};
-use compositor::{
-    ClockFormat, MediaDescriptor, Mixer, Size, Speaker, WebRtcSource, WebRtcSourceParams,
+use codec::Codec;
+use dtmf_filter::DtmfFilter;
+use ezk::{
+    nodes::{Access, AccessHandle},
+    ConfigRange, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange,
 };
-use gst::prelude::*;
-use std::sync::Arc;
-use tel_bin::TelBin;
-use tokio::sync::{mpsc, Notify};
-use types::signaling::media::{MediaSessionState, MediaSessionType, TrickleCandidate};
+use ezk_audio::{
+    Channels, Format, RawAudio, RawAudioConfig, RawAudioConfigRange, SampleRate, Samples,
+};
+use ezk_audio_nodes::{AudioConvert, AudioMixer};
+use ezk_g711::{PCMADecoder, PCMAEncoder, PCMUDecoder, PCMUEncoder};
+use ezk_rtp::{DePacketizer, Packetizer};
+use opentalk_compositor::{
+    audio::Silence,
+    livekit::{
+        self,
+        options::TrackPublishOptions,
+        track::{LocalAudioTrack, LocalTrack},
+        webrtc::{
+            audio_source::native::NativeAudioSource,
+            prelude::{AudioFrame, AudioSourceOptions, RtcAudioSource},
+        },
+    },
+    Mixer,
+};
+use rtp::{RtpMpscSource, RtpSessions};
+use std::{collections::HashMap, future::Future, net::SocketAddr, sync::Arc};
+use tokio::{
+    net::UdpSocket,
+    sync::{mpsc, Mutex},
+    task::JoinHandle,
+};
 
 pub mod codec;
-mod custom_rtpdtmfdepay;
-pub mod port_pool;
-mod tel_bin;
-pub mod track;
-mod util;
+mod dtmf_filter;
+mod port_pool;
+mod rtp;
+mod track;
 
-pub use custom_rtpdtmfdepay::init_custom_rtpdtmfdepay;
-pub use track::{Track, TrackController};
+pub(crate) use port_pool::{PortPool, SocketPair};
+pub(crate) use track::{Track, TrackController, TrackSource};
 
-/// Webrtc session of an event
-#[derive(Clone, Copy)]
-pub enum Target {
-    Publish(MediaSessionType),
-    Subscribe(MediaDescriptor),
-}
+const RAW_AUDIO_CONFIG_RANGE: RawAudioConfigRange = RawAudioConfigRange {
+    sample_rate: ValueRange::Value(SampleRate(48000)),
+    channels: ValueRange::Value(Channels::NotPositioned(2)),
+    format: ValueRange::Value(ezk_audio::Format::I16),
+};
+const RAW_AUDIO_CONFIG: RawAudioConfig = RawAudioConfig {
+    sample_rate: SampleRate(48000),
+    channels: Channels::NotPositioned(2),
+    format: Format::I16,
+};
 
 /// Asynchronous events emitted by the media pipeline
 pub enum MediaEvent {
     Error,
-    DtmfDigit(i32),
-    IceCandidate {
-        target: Target,
-        candidate: String,
-        mline_index: u32,
-    },
-    NoMoreIceCandidates(Target),
+    DtmfDigit(u8),
 }
 
 pub struct MediaPipeline {
-    pub tel_bin: TelBin,
-    pub with_video: bool,
-    pub compositor: Mixer<WebRtcSource>,
+    pub compositor: Option<Mixer>,
 
-    events_tx: mpsc::UnboundedSender<MediaEvent>,
+    rtp_sessions: RtpSessions,
+
+    subscriber_audio_mixer: AccessHandle<AudioMixer>,
+    subscriber_audio_tx: Arc<Mutex<HashMap<u32, mpsc::Sender<Frame<RawAudio>>>>>,
+    subscriber_audio_mixer_task: JoinHandle<()>,
+
+    publish_audio_mixer: AccessHandle<AudioMixer>,
+    publish_audio_tx: Arc<Mutex<Option<NativeAudioSource>>>,
+    publish_audio_mixer_task: JoinHandle<()>,
+
+    pub(crate) events_tx: mpsc::UnboundedSender<MediaEvent>,
     events_rx: mpsc::UnboundedReceiver<MediaEvent>,
 }
 
@@ -55,205 +85,387 @@ impl MediaPipeline {
     ///
     /// - Self
     /// - track controller to play different audio tracks
-    pub async fn new(
-        ready_to_send: Arc<Notify>,
-        with_video: bool,
-        clock_format: &ClockFormat,
-    ) -> Result<(Self, TrackController)> {
+    pub async fn new() -> Result<(Self, TrackController)> {
         let (events_tx, events_rx) = mpsc::unbounded_channel();
 
-        let mut compositor =
-            Mixer::create(Size::HD, Speaker::default(), 6, with_video, clock_format)
-                .context("Failed to create compositor")?;
+        // [compositor + ] obelisk -> phone
+        let track_source = TrackSource::new();
+        let track_controller = track_source.controller();
 
-        let (tel_bin, sink, track_controller) = TelBin::new(ready_to_send, with_video).await?;
+        let (subscriber_audio_mixer, subscriber_audio_mixer_access_handle) =
+            Access::new(AudioMixer::new(track_source));
 
-        compositor
-            .link_sink("tel", sink)
-            .context("Failed to link_sink")?;
+        let subscriber_audio_tx: Arc<Mutex<HashMap<u32, mpsc::Sender<Frame<RawAudio>>>>> =
+            Arc::default();
+        let subscriber_audio_tx_ = subscriber_audio_tx.clone();
+        let subscriber_audio_mixer_task =
+            tokio::spawn(audio_mixer_task(subscriber_audio_mixer, move |frame| {
+                let x = subscriber_audio_tx_.clone();
 
-        let events_tx_ = events_tx.clone();
-
-        compositor
-            .add_watch_to_sink("tel", move |_, msg| match msg {
-                gst::MessageView::Error(error) => {
-                    if let Some(source) = error.src() {
-                        if source.name().contains("rtp-watchdog") {
-                            log::error!(
-                                "Detected Problems with sending or receiving RTP ({} triggered)",
-                                source.name()
-                            );
-
-                            if events_tx_.send(MediaEvent::Error).is_err() {
-                                log::error!("Unable to send rtp timeout error to signaling");
-                            }
+                async move {
+                    for tx in x.lock().await.values() {
+                        if let Err(e) = tx.send(frame.clone()).await {
+                            log::error!("Failed to forward subscriber audio frame, {e}");
                         }
                     }
                 }
-                gst::MessageView::Element(element) => {
-                    if let Some(structure) = element.structure() {
-                        if structure.name() == "dtmf-event" {
-                            if let Ok(digit) = structure.get::<i32>("number") {
-                                log::trace!("Got DTMF digit: {digit}");
+            }));
 
-                                let _ = events_tx_.send(MediaEvent::DtmfDigit(digit));
-                            }
+        // phone -> obelisk -> conference
+        let (publish_audio_mixer, publish_audio_mixer_access_handle) =
+            Access::new(AudioMixer::new(Silence::default()));
+        let publish_audio_tx: Arc<Mutex<Option<NativeAudioSource>>> = Arc::default();
+        let publish_audio_tx_ = publish_audio_tx.clone();
+        let publish_audio_mixer_task = tokio::spawn(audio_mixer_task(
+            publish_audio_mixer,
+            move |frame| {
+                let publish_audio_tx_ = publish_audio_tx_.clone();
+
+                async move {
+                    if let Some(source) = &*publish_audio_tx_.lock().await {
+                        let Samples::I16(samples) = frame.into_data().samples else {
+                            unreachable!("Cannot receive non-i16 audio samples in audio_mixer_task's on_frame")
+                        };
+
+                        let frame = AudioFrame {
+                            samples_per_channel: (samples.len() / 2) as u32,
+                            data: samples.into(),
+                            sample_rate: 48_000,
+                            num_channels: 2,
+                        };
+
+                        if let Err(e) = source.capture_frame(&frame).await {
+                            log::error!("Failed to send audio frame to livekit, {e}");
                         }
                     }
                 }
-                _ => {}
-            })
-            .context("Failed to add watch to tel-sink")?;
+            },
+        ));
+
+        let rtp_sessions = RtpSessions::new({
+            let events_tx = events_tx.clone();
+
+            move || {
+                let _ = events_tx.send(MediaEvent::Error);
+            }
+        });
 
         let this = Self {
-            tel_bin,
-            with_video,
-            events_rx,
+            compositor: None,
+
+            rtp_sessions,
+
+            subscriber_audio_mixer: subscriber_audio_mixer_access_handle,
+            subscriber_audio_tx,
+            subscriber_audio_mixer_task,
+
+            publish_audio_mixer: publish_audio_mixer_access_handle,
+            publish_audio_tx,
+            publish_audio_mixer_task,
+
             events_tx,
-            compositor,
+            events_rx,
         };
 
         Ok((this, track_controller))
     }
 
-    pub async fn wait_for_event(&mut self) -> MediaEvent {
-        self.events_rx
-            .recv()
-            .await
-            .expect("self also holds the sender side of the channel, so this should never fail")
-    }
+    pub async fn add_compositor(&mut self, mut compositor: Mixer) -> Result<()> {
+        // Setup subscription
+        let (audio_tx, audio_rx) = mpsc::channel(8);
 
-    pub async fn enable_video(&mut self) -> Result<()> {
-        self.with_video = true;
-        self.tel_bin.enable_video(true).await?;
-        self.compositor
-            .enable_video()
-            .context("Failed to enable video in compositor")?;
+        compositor
+            .link_sink(
+                "obelisk",
+                Box::new(CompositorObeliskBridgeSink { audio_tx }),
+            )
+            .await
+            .context("Failed to add obelisk sink to compositor")?;
+
+        self.subscriber_audio_mixer
+            .access(|audio_mixer| {
+                audio_mixer.add_source(AudioMpscSource { rx: audio_rx });
+            })
+            .await
+            .context("Failed to add compositor's audio stream to subscriber_audio_mixer")?;
+
+        // Setup publish
+        let local_participant = compositor.local_participant();
+
+        let audio_source = NativeAudioSource::new(AudioSourceOptions::default(), 48_000, 2, 100);
+        let local_audio_track = LocalAudioTrack::create_audio_track(
+            "audio",
+            RtcAudioSource::Native(audio_source.clone()),
+        );
+
+        local_participant
+            .publish_track(
+                LocalTrack::Audio(local_audio_track.clone()),
+                TrackPublishOptions {
+                    source: livekit::track::TrackSource::Microphone,
+                    ..Default::default()
+                },
+            )
+            .await
+            .context("Failed to publish audio track")?;
+
+        *self.publish_audio_tx.lock().await = Some(audio_source);
+
+        self.compositor = Some(compositor);
 
         Ok(())
     }
 
-    pub async fn on_sdp_candidate(
-        &mut self,
-        candidate: TrickleCandidate,
-        target: Target,
-    ) -> Result<()> {
-        match target {
-            Target::Publish(media_session_type) => {
-                assert_eq!(media_session_type, MediaSessionType::Video);
-                //FIXME: fix in types and remove cast
-                self.tel_bin
-                    .on_publish_sdp_candidate(candidate.sdp_m_line_index, Some(candidate.candidate))
-                    .await
-            }
-            Target::Subscribe(desc) => {
-                let subscribe = self
-                    .compositor
-                    .get_source(desc)
-                    .context("Invalid StreamId for ICE candidate")?;
-
-                subscribe.receive_candidate(candidate.sdp_m_line_index, &candidate.candidate);
-
-                Ok(())
-            }
-        }
-    }
-
-    pub async fn on_sdp_end_of_candidates(&mut self, target: Target) -> Result<()> {
-        match target {
-            Target::Publish(media_session_type) => {
-                assert_eq!(media_session_type, MediaSessionType::Video);
-                self.tel_bin.on_publish_sdp_candidate(0, None).await
-            }
-            Target::Subscribe(desc) => {
-                let subscribe = self
-                    .compositor
-                    .get_source(desc)
-                    .context("Invalid StreamId for ICE candidate")?;
-
-                subscribe.receive_end_of_candidates(0);
-
-                Ok(())
-            }
-        }
-    }
-
-    pub async fn create_publish(&mut self) -> Result<String> {
-        self.tel_bin.create_publish(self.events_tx.clone()).await
-    }
-
-    pub async fn on_publish_response(&mut self, response: String) -> Result<()> {
-        self.tel_bin.on_publish_response(response).await
-    }
-
-    pub async fn create_subscribe(
-        &mut self,
-        desc: MediaDescriptor,
-        display_name: &str,
-        offer: String,
-        has_audio: bool,
-        has_video: bool,
-    ) -> Result<String> {
-        let events_tx = self.events_tx.clone();
-        let params =
-            WebRtcSourceParams::new(true).on_ice_candidate(move |mline_index, candidate| {
-                if let Some(candidate) = candidate {
-                    events_tx
-                        .send(MediaEvent::IceCandidate {
-                            target: Target::Subscribe(desc),
-                            candidate,
-                            mline_index,
-                        })
-                        .ok();
-                } else {
-                    events_tx
-                        .send(MediaEvent::NoMoreIceCandidates(Target::Subscribe(desc)))
-                        .ok();
+    pub async fn wait_for_event(&mut self) -> MediaEvent {
+        if let Some(compositor) = &mut self.compositor {
+            tokio::select! {
+                event = self.events_rx.recv() => {
+                    event.expect("self also holds the sender side of the channel, so this should never fail")
                 }
-            });
-
-        self.compositor
-            .add_stream(
-                desc,
-                display_name.into(),
-                params,
-                MediaSessionState {
-                    audio: has_audio,
-                    video: has_video,
-                },
-            )
-            .context("Failed to add stream")?;
-
-        self.compositor
-            .set_speaker(desc.participant_id)
-            .context("Failed to set_speaker")?;
-
-        let webrtc = self
-            .compositor
-            .get_source(desc)
-            .expect("get_source must return some because the source was just added");
-
-        let answer = webrtc.receive_offer(offer).await?;
-
-        Ok(answer)
+                result = compositor.run() => {
+                    match result {
+                        Ok(()) => unreachable!("compositor's run function never returns unless an error occurs"),
+                        Err(e) => {
+                            log::error!("compositor run failed with, {e}");
+                            MediaEvent::Error
+                        }
+                    }
+                }
+            }
+        } else {
+            self.events_rx
+                .recv()
+                .await
+                .expect("self also holds the sender side of the channel, so this should never fail")
+        }
     }
 
-    pub fn update_subscribe(
+    #[allow(clippy::too_many_arguments)]
+    pub async fn add_sender(
         &mut self,
-        desc: MediaDescriptor,
-        has_audio: bool,
-        has_video: bool,
+        session_id: u32,
+        srtp: Option<&SrtpInfo>,
+        codec: &SdpSendCodec,
+        rtp_socket: Arc<UdpSocket>,
+        rtcp_socket: Arc<UdpSocket>,
+        remote_rtp_addr: SocketAddr,
+        remote_rtcp_addr: SocketAddr,
     ) -> Result<()> {
-        self.compositor.set_status(
-            desc,
-            MediaSessionState {
-                audio: has_audio,
-                video: has_video,
-            },
-        )
+        log::trace!("add sender session_id={session_id} {codec:?}");
+
+        let source = match codec.codec.media_type() {
+            codec::MediaType::Audio => {
+                let (tx, rx) = mpsc::channel(8);
+
+                self.subscriber_audio_tx.lock().await.insert(session_id, tx);
+
+                let audio_source = AudioConvert::new(AudioMpscSource { rx });
+
+                match codec.codec {
+                    Codec::G711PCMA => {
+                        Packetizer::new(PCMAEncoder::new(audio_source)).boxed_cancel_safe()
+                    }
+                    Codec::G711PCMU => {
+                        Packetizer::new(PCMUEncoder::new(audio_source)).boxed_cancel_safe()
+                    }
+                    Codec::H264 => unreachable!(),
+                }
+            }
+            codec::MediaType::Video => unimplemented!("video support is not yet implemented"),
+        };
+
+        self.rtp_sessions
+            .add_sender(
+                session_id,
+                srtp,
+                codec.codec.clock_rate(),
+                codec.payload,
+                rtp_socket,
+                rtcp_socket,
+                remote_rtp_addr,
+                remote_rtcp_addr,
+                source,
+            )
+            .await
+            .context("Failed to add sender to rtp_sessions")
     }
 
-    pub async fn remove_subscribe(&mut self, desc: MediaDescriptor) -> Result<()> {
-        self.compositor.remove_stream(desc)
+    pub async fn remove_sender(&mut self, session_id: u32) -> Result<()> {
+        log::debug!("remove sender session_id={session_id}");
+
+        // TODO: also remove video tx
+
+        self.subscriber_audio_tx.lock().await.remove(&session_id);
+        self.rtp_sessions
+            .remove_sender(session_id)
+            .await
+            .context("Failed to remove sender from rtp-sessions")
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn add_receiver(
+        &mut self,
+        session_id: u32,
+        srtp: Option<&SrtpInfo>,
+        codec: &SdpRecvCodec,
+        dtmf: Option<(u8, mpsc::UnboundedSender<MediaEvent>)>,
+        rtp_socket: Arc<UdpSocket>,
+        rtcp_socket: Arc<UdpSocket>,
+        remote_rtp_addr: SocketAddr,
+        remote_rtcp_addr: SocketAddr,
+    ) -> Result<()> {
+        log::debug!("add receiver session_id={session_id} {codec:?}");
+
+        let rtp_source = self
+            .rtp_sessions
+            .add_receiver(
+                session_id,
+                srtp,
+                codec.codec.clock_rate(),
+                codec.payload,
+                rtp_socket,
+                rtcp_socket,
+                remote_rtp_addr,
+                remote_rtcp_addr,
+            )
+            .await
+            .context("Failed to add receiver to rtp-sessions")?;
+
+        let rtp_source = DtmfFilter {
+            source: rtp_source,
+            media_pt: codec.payload,
+            dtmf,
+            last_dtmf_timestamp: None,
+        };
+
+        let audio_source = match codec.codec {
+            Codec::G711PCMA => PCMADecoder::new(DePacketizer::new(rtp_source)).boxed_cancel_safe(),
+            Codec::G711PCMU => PCMUDecoder::new(DePacketizer::new(rtp_source)).boxed_cancel_safe(),
+            Codec::H264 => unimplemented!("video is not yet supported"),
+        };
+
+        self.publish_audio_mixer
+            .access(|mixer| {
+                mixer.add_source(AudioConvert::new(audio_source));
+            })
+            .await
+            .context("Failed to add receiver to audio mixer")
+    }
+
+    pub async fn remove_receiver(&mut self, session_id: u32) -> Result<()> {
+        log::debug!("remove receiver session_id={session_id}");
+
+        self.rtp_sessions
+            .remove_receiver(session_id)
+            .await
+            .context("Failed to remove sender from rtp-sessions")
+    }
+
+    pub fn post_update_cleanup(&mut self) {
+        log::debug!("run post update cleanup");
+
+        self.rtp_sessions
+            .cleanup_sessions_without_sender_and_receiver();
     }
 }
+
+impl Drop for MediaPipeline {
+    fn drop(&mut self) {
+        self.publish_audio_mixer_task.abort();
+        self.subscriber_audio_mixer_task.abort();
+    }
+}
+
+async fn audio_mixer_task<Fn, Fut>(audio_mixer: Access<AudioMixer>, on_frame: Fn)
+where
+    Fn: FnMut(Frame<RawAudio>) -> Fut,
+    Fut: Future<Output = ()>,
+{
+    if let Err(e) = audio_mixer_task_inner(audio_mixer, on_frame).await {
+        log::error!("audio mixer task failed, {e:?}");
+    }
+}
+
+async fn audio_mixer_task_inner<Fn, Fut>(
+    mut audio_mixer: Access<AudioMixer>,
+    mut on_frame: Fn,
+) -> Result<()>
+where
+    Fn: FnMut(Frame<RawAudio>) -> Fut,
+    Fut: Future<Output = ()>,
+{
+    'negotiate: loop {
+        audio_mixer
+            .negotiate_config(vec![RAW_AUDIO_CONFIG_RANGE])
+            .await
+            .context("Failed to negotiate config")?;
+
+        loop {
+            let event = audio_mixer
+                .next_event()
+                .await
+                .context("unable to poll next event")?;
+
+            match event {
+                SourceEvent::Frame(frame) => on_frame(frame).await,
+                SourceEvent::EndOfData => {
+                    // No more audio sources, this task quits now.
+                    log::debug!("audio mixer task exiting");
+                    return Ok(());
+                }
+                SourceEvent::RenegotiationNeeded => {
+                    continue 'negotiate;
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+struct CompositorObeliskBridgeSink {
+    audio_tx: mpsc::Sender<Frame<RawAudio>>,
+}
+
+impl opentalk_compositor::Sink for CompositorObeliskBridgeSink {
+    fn on_audio_frame(&mut self, frame: Frame<RawAudio>) -> Result<()> {
+        if let Err(e) = self.audio_tx.try_send(frame) {
+            log::debug!("Failed to send audio sample from compositor to audiomixer, {e}");
+        }
+
+        Ok(())
+    }
+
+    fn on_video_frame(&mut self, _buffer: Vec<u8>) -> Result<()> {
+        Ok(())
+    }
+}
+
+struct AudioMpscSource {
+    rx: mpsc::Receiver<Frame<RawAudio>>,
+}
+
+impl Source for AudioMpscSource {
+    type MediaType = RawAudio;
+
+    async fn capabilities(&mut self) -> ezk::Result<Vec<RawAudioConfigRange>> {
+        Ok(vec![RAW_AUDIO_CONFIG_RANGE])
+    }
+
+    async fn negotiate_config(
+        &mut self,
+        available: Vec<RawAudioConfigRange>,
+    ) -> ezk::Result<RawAudioConfig> {
+        assert!(available.iter().any(|r| r.contains(&RAW_AUDIO_CONFIG)));
+        Ok(RAW_AUDIO_CONFIG)
+    }
+
+    async fn next_event(&mut self) -> ezk::Result<SourceEvent<RawAudio>> {
+        if let Some(frame) = self.rx.recv().await {
+            Ok(SourceEvent::Frame(frame))
+        } else {
+            Ok(SourceEvent::EndOfData)
+        }
+    }
+}
+
+impl NextEventIsCancelSafe for AudioMpscSource {}

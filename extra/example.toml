@@ -43,8 +43,9 @@ port = 5060
 
 # Username/Password pair.
 # Usually provided by the SIP provider
-password = "mysecurepassword"
 username = "alice"
+
+password = "mysecurepassword"
 
 # Realm of the given username/password pair
 realm = "example.org"

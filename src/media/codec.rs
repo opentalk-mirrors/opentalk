@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use gst::element_factory::ElementBuilder;
 use sdp_types::MediaType as SdpMediaType;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,7 +29,6 @@ impl PartialEq<SdpMediaType> for MediaType {
 pub enum Codec {
     G711PCMA,
     G711PCMU,
-    G722,
 
     H264,
 }
@@ -38,7 +36,7 @@ pub enum Codec {
 impl Codec {
     pub fn media_type(&self) -> MediaType {
         match self {
-            Codec::G711PCMA | Codec::G711PCMU | Codec::G722 => MediaType::Audio,
+            Codec::G711PCMA | Codec::G711PCMU => MediaType::Audio,
             Codec::H264 => MediaType::Video,
         }
     }
@@ -47,83 +45,14 @@ impl Codec {
         match self {
             Codec::G711PCMA => "PCMA",
             Codec::G711PCMU => "PCMU",
-            Codec::G722 => "G722",
             Codec::H264 => "H264",
         }
     }
 
     pub fn clock_rate(&self) -> u32 {
         match self {
-            Codec::G711PCMA | Codec::G711PCMU | Codec::G722 => 8000,
+            Codec::G711PCMA | Codec::G711PCMU => 8000,
             Codec::H264 => 90_000,
         }
-    }
-
-    pub fn from_encoding_name(name: &str) -> Option<Self> {
-        match name {
-            "PCMA" => Some(Self::G711PCMA),
-            "PCMU" => Some(Self::G711PCMU),
-            "G722" => Some(Self::G722),
-            "H264" => Some(Self::H264),
-            _ => None,
-        }
-    }
-
-    pub fn encode_element<'a>(&self, params: &'a [(String, String)]) -> ElementBuilder<'a> {
-        let mut element = match self {
-            Codec::G711PCMA => gst::ElementFactory::make("alawenc"),
-            Codec::G711PCMU => gst::ElementFactory::make("mulawenc"),
-            Codec::G722 => gst::ElementFactory::make("avenc_g722"),
-            Codec::H264 => gst::ElementFactory::make("openh264enc")
-                .property_from_str("usage-type", "camera")
-                .property_from_str("rate-control", "bitrate"),
-        };
-
-        for (name, value) in params {
-            element = element.property_from_str(name, value);
-        }
-
-        element
-    }
-
-    pub fn decode_element(&self) -> &str {
-        match self {
-            Codec::G711PCMA => "alawdec",
-            Codec::G711PCMU => "mulawdec",
-            Codec::G722 => "avdec_g722",
-            Codec::H264 => "avdec_h264",
-        }
-    }
-
-    pub fn payload_element(&self) -> ElementBuilder<'static> {
-        match self {
-            Codec::G711PCMA => gst::ElementFactory::make("rtppcmapay"),
-            Codec::G711PCMU => gst::ElementFactory::make("rtppcmupay"),
-            Codec::G722 => gst::ElementFactory::make("rtpg722pay"),
-            Codec::H264 => gst::ElementFactory::make("rtph264pay")
-                .property_from_str("aggregate-mode", "zero-latency"),
-        }
-    }
-
-    pub fn depayload_element(&self) -> &str {
-        match self {
-            Codec::G711PCMA => "rtppcmadepay",
-            Codec::G711PCMU => "rtppcmudepay",
-            Codec::G722 => "rtpg722depay",
-            Codec::H264 => "rtph264depay",
-        }
-    }
-
-    pub fn caps(&self) -> gst::Caps {
-        let media = match self.media_type() {
-            MediaType::Audio => "audio",
-            MediaType::Video => "video",
-        };
-
-        gst::Caps::builder("application/x-rtp")
-            .field("media", media)
-            .field("encoding-name", self.encoding_name())
-            .field("clock-rate", self.clock_rate() as i32)
-            .build()
     }
 }
