@@ -153,7 +153,6 @@ impl Signaling {
                 event = websocket_receive(&mut self.websocket) => {
                     if let Err(e) = self.handle_websocket_event(event, closed_finished_channel_tx.clone()).await {
                         log::error!("failed to handle websocket event, {:?}", e);
-                        self.state = State::Quitting;
                     }
                 }
                 _ = self.timeout_receiver.recv() => {
@@ -217,7 +216,7 @@ impl Signaling {
                     .await?;
             }
 
-            if participant.media.screen.is_some() {
+            if participant.media.screen.is_some() && self.media.with_video {
                 websocket
                     .subscribe(
                         MediaDescriptor {
@@ -425,7 +424,8 @@ impl Signaling {
                             status.audio,
                             status.video,
                         )
-                        .await?;
+                        .await
+                        .context("Failed to create subscribe")?;
 
                     websocket.subscribe_answer(desc, answer).await?;
                 }
@@ -454,7 +454,7 @@ impl Signaling {
                         .await?;
                 }
 
-                if participant.media.screen.is_some() {
+                if participant.media.screen.is_some() && self.media.with_video {
                     websocket
                         .subscribe(
                             MediaDescriptor {
@@ -479,18 +479,22 @@ impl Signaling {
                         current.media.video,
                         updated.media.video,
                     )
-                    .await?;
+                    .await
+                    .context("Failed to update video subscription")?;
 
-                    Self::update_subscriptions_for_media_session_type(
-                        &mut self.media,
-                        websocket,
-                        &*current,
-                        &updated,
-                        MediaSessionType::Screen,
-                        current.media.screen,
-                        updated.media.screen,
-                    )
-                    .await?;
+                    if self.media.with_video {
+                        Self::update_subscriptions_for_media_session_type(
+                            &mut self.media,
+                            websocket,
+                            &*current,
+                            &updated,
+                            MediaSessionType::Screen,
+                            current.media.screen,
+                            updated.media.screen,
+                        )
+                        .await
+                        .context("Failed to update screen subscription")?;
+                    }
 
                     // update participant state
                     *current = updated;
@@ -511,7 +515,7 @@ impl Signaling {
                             .await?;
                     }
 
-                    if participant.media.screen.is_some() {
+                    if participant.media.screen.is_some() && self.media.with_video {
                         self.media
                             .remove_subscribe(MediaDescriptor {
                                 participant_id: assoc.id,
