@@ -78,6 +78,11 @@ async fn main() -> Result<()> {
         _ => {}
     }
 
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    if !is_x86_feature_detected!("avx") {
+        bail!("Missing CPU feature 'avx'");
+    }
+
     gst::init()?;
     gstrsinter::plugin_register_static()?;
     media::init_custom_rtpdtmfdepay()?;
