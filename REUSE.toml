@@ -9,6 +9,7 @@ SPDX-PackageDownloadLocation = "https://git.opentalk.dev/opentalk/k3k-obelisk"
 
 [[annotations]]
 path = [
+    ".commitlintrc.json",
     ".gitmodules",
     "CHANGELOG.md",
     "Cargo.lock",
