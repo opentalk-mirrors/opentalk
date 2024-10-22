@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.1]
+
+### 🐛 Bug fixes
+
+- Only subscribe screenshare when call uses video ([!166](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/166))
+
+## [0.11.0]
+
+### 🚀 New features
+
+- Offer SDP on empty INVITEs ([#102](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/102), [!144](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/144))
+
+### 🐛 Bug fixes
+
+- Use compositor's add_watch_to_sink instead of registering own watcher ([!143](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/143))
+- Use DTMF's fmtp field from SDP offer when creating SDP response ([!146](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/146))
+- Only subscribe video with video pipeline ([!156](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/156))
+- Remove to-tag from register messages ([!155](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/155))
+
+### 📦 Dependencies
+
+- (deps) Update openssl to 0.10.66 ([!149](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/149))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.81.0 ([!152](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/152))
+- (deps) Update rust crates futures-* to 0.3.31 ([!160](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/160))
+- (deps) Update opentalk-compositor and opentalk-types ([!160](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/160))
+
+### ⚙ Miscellaneous
+
+- Add documentation for supported codecs ([!150](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/150))
+- Ignore RUSTSEC-2024-0370 ([!151](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/151))
+- Update compositor submodule ([!156](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/156))
+- Run cargo update ([!156](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/156))
+- (release) Add a `justfile` with a `create-release` target for release automation ([!159](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/159))
+
 ## [0.10.1]
 
 ### 🐛 Bug fixes
@@ -201,7 +235,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 initial release candidate
 
-[Unreleased]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.10.0...main
+[0.11.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.11.0...0.11.1
+[0.11.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.10.0...0.11.0
 
 [0.10.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.10.0...v0.10.1
 [0.10.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.9.0...v0.10.0
