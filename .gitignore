@@ -1,0 +1,9 @@
+.env
+services/3rd_party/*/.*.secret
+services/*/.*.secret
+services/cforge/data/.secrets.yaml
+
+**/config/
+**/data/
+
+

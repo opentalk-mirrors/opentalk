@@ -1,0 +1,5 @@
+---
+- name: "Render controller config | services/controller/config/controller.toml"
+  ansible.builtin.template:
+    src: controller.toml.j2
+    dest: "{{ deploy_dir }}/services/controller/config/controller.toml"

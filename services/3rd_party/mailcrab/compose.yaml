@@ -1,0 +1,20 @@
+services:
+  mailcrab:
+    image: ${MAILCRAB_IMAGE_SRC}:${MAILCRAB_VERSION}
+    environment:
+      MAILCRAB_PREFIX: /adm/mailcrab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailcrab.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/adm/mailcrab`)"
+      - "traefik.http.routers.mailcrab.entrypoints=websecure"
+      - "traefik.http.routers.mailcrab.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.mailcrab.middlewares=mailcrab-strip"
+      - "traefik.http.middlewares.mailcrab-strip.stripprefix.prefixes=/adm/mailcrab"
+      - "traefik.http.services.mailcrab.loadbalancer.server.port=1080"
+    healthcheck:
+      test: wget --quiet --output-document=/dev/stdout http://127.0.0.1:1080/api/version | grep -q version_be
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 15s
+

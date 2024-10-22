@@ -1,0 +1,147 @@
+---
+logging:
+  defaultDirectives: [
+    "ERROR",
+    "opentalk=DEBUG",
+    "pinky_swear=OFF",
+    "rustls=WARN",
+    "mio=ERROR",
+    "lapin=WARN",
+    "execution_id=trace"
+  ]
+  otlpTracingEndpoint: "http://localhost:4317"
+  serviceNameSpace: opentalk
+  serviceName: controller
+  serviceInstanceId: "11111111-aaaa-2222-bbbb-33333333"
+database:
+  #url: "postgres://ot:password@controller-db:5432/controller"
+  user: ot
+  password: ''
+  host: controller-db
+  port: 5432
+  name: controller
+  maxConnections: 100
+http:
+  port: "11311"
+  corsAllowedOrigin: ["https://example.com"]
+  tls:
+    certificatePath: ''
+    privateKeyPath: ''
+keycloak:
+  baseUrl: "https://example.com/auth"
+  realm: "opentalk"
+  clientId: "Controller"
+  clientSecret: ''
+  externalIdUserAttributeName: ''
+roomServer:
+  maxVideoBitrate: 1500000
+  maxScreenBitrate: 8000000
+  speakerFocusPackets: 50
+  speakerFocusLevel: 50
+  connections:
+    - toRoutingKey: "to-janus"
+      exchange: "janus-exchange"
+      fromRoutingKey: "from-janus"
+    - toRoutingKey: "to-janus-2"
+      exchange: "janus-exchange"
+      fromRoutingKey: "from-janus-2"
+rabbitmq:
+  url: "amqp://guest:guest@rabbitmq/%2F"
+  mailTaskQueue: "opentalk_mailer"
+  recordingTaskQueue: "opentalk_recorder"
+  minConnections: 10
+  maxChannelsPerConnection: 100
+redis:
+  #url: "redis://redis:6379/"
+  host: redis
+  port: 6379
+  path: /
+turn:
+  lifetime: "86400"
+  servers:
+    - uris: [
+        "turn:127.0.0.1:3478?transport=udp",
+        "turn:127.0.0.1:3478?transport=tcp",
+        "turns:127.0.0.1:5349?transport=tcp"
+      ]
+      preSharedKey: "opentalk2"
+    - uris: [
+        "turn:127.0.0.1:3478?transport=udp",
+        "turn:127.0.0.1:3478?transport=tcp",
+        "turns:127.0.0.1:5349?transport=tcp"
+      ]
+      preSharedKey: "opentalk2"
+stun:
+  uris: ["stun:127.0.0.1:3478"]
+authz:
+  synchronizeControllers: "true"
+callIn:
+  tel: "03012345678"
+  enablePhoneMapping: "false"
+  defaultCountryCode: DE
+minio:
+  uri: "http://minio:9000"
+  bucket: "opentalk"
+  accessKey: "minioadmin"
+  secretKey: "minioadmin"
+#etcd:
+#  urls: ["localhost:2379"]
+etherpad:
+  url: "https://example.com/etherpad/"
+  apiKey: "secret"
+spacedeck:
+  url: "https://example.com/whiteboard/"
+  apiKey: "oeGh7oopohqu9oLae0naecoaT2queen3"
+reports:
+  #url: "http://terdoc:6560"
+  domain: terdoc
+  port: 6560
+  path: ''
+  protocol: http
+  template:
+    inline: |-
+      # Attendance Report
+      |  |  |
+      |--|--|
+      | Meeting | {{title}} |
+      | Description | {{description}} |
+      {% if starts_at %}| Start | {{starts_at | date(timezone=starts_at_tz, format="%Y-%m-%d %H:%M")}} {{starts_at_tz}} | {% endif %}
+      {% if ends_at %}| End | {{ends_at | date(timezone=ends_at_tz, format="%Y-%m-%d %H:%M")}} {{ends_at_tz}} | {% endif %}
+      
+      ### Participants
+      
+      | id | Name | Role | Kind | eMail | joined at | left at |
+      | -- | -- | -- | -- | -- | -- | -- |
+      {%- for participant in participants | sort(attribute = "name") | sort(attribute = "role") | reverse %}
+      | {{participant.id}} | {{participant.name}} | {{participant.role}} | {{participant.kind}} | {{participant.email}} | {{participant.joined_at | date(format="%Y-%m-%d %H:%M")}} | {% if participant.left_at %} {{participant.left_at | date(format="%Y-%m-%d %H:%M")}} {% endif %} |
+      {%- endfor %}
+sharedFolder:
+  provider: "nextcloud"
+  url: "https://nextcloud.example.org/"
+  username: "exampleuser"
+  password: "v3rys3cr3t"
+  directory: "opentalk/meetings"
+  expiry: 48
+defaults:
+  userLanguage: "en-US"
+  screenShareRequiresPermission: true
+  disabledFeatures: ["core::call_in", "integration::outlook"]
+endpoints:
+  disableUsersFind: "false"
+  usersFindUseKc: "false"
+  eventInviteExternalEmailAddress: "true"
+  disallowCustomDisplayName: "false"
+  disableOpenapi: "false"
+metrics:
+  allowList: ["127.0.0.0/24", "::ffff:0:0/96"]
+#tenants:
+#  assignment: "static"
+#  staticTenantId: "OpenTalkDefaultTenant"
+#tariffs:
+#  assignment: "static"
+#  staticTariffName: "OpenTalkDefaultTariff"
+#  tariffsStatusMapping:
+#    downgradedTariffName: "basic"
+#    default: ["default"]
+#    paid: ["paid", "all_ok"]
+#    downgraded: ["unpaid"]

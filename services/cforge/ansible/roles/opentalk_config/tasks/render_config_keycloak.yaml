@@ -1,0 +1,10 @@
+---
+- name: "Render cache-ispn.xml | services/3rd_party/keycloak/config/cache-ispn.xml"
+  ansible.builtin.template:
+    src: cache-ispn.xml.j2
+    dest: "{{ deploy_dir }}/services/3rd_party/keycloak/config/cache-ispn.xml"
+
+- name: "Render keycloak conf | services/3rd_party/keycloak/config/keycloak.conf"
+  ansible.builtin.template:
+    src: keycloak.conf.j2
+    dest: "{{ deploy_dir }}/services/3rd_party/keycloak/config/keycloak.conf"

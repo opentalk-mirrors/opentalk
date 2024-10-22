@@ -1,0 +1,45 @@
+services:
+  keycloak:
+    image: ${KEYCLOAK_IMAGE_SRC}:${KEYCLOAK_VERSION}
+    profiles: ["core", "standard", "full", "keycloak"]
+    restart: always
+    entrypoint: []
+    command:
+      - /bin/sh
+      - -c
+      - |
+          /opt/keycloak/bin/kc.sh build
+          /opt/keycloak/bin/kc.sh start --import-realm --optimized --verbose
+    user: 0:0
+    volumes:
+      - ./config:/opt/keycloak/conf:Z
+      - ./data/kc_data:/opt/keycloak/data/:Z
+      - ./data/kc_provider:/opt/keycloak/providers:Z
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.service=keycloak"
+      - "traefik.http.routers.keycloak.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/auth`)"
+      - "traefik.http.routers.keycloak.priority=50"
+      - "traefik.http.routers.keycloak.entrypoints=websecure"
+      - "traefik.http.routers.keycloak.tls.certresolver=letsencrypt"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.regex=^/adm/keycloak/(.*)"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.replacement=/auth/$$1"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.permanent=true"
+      - "traefik.http.routers.keycloak.middlewares=keycloak-redirect"
+    healthcheck:
+      start_period: 60s
+      retries: 3
+      timeout: 2m
+      interval: 30s
+      test: 
+      - "CMD-SHELL"
+      - |
+        exec 3<>/dev/tcp/localhost/9000 &&
+        echo -e 'GET /auth/health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+        cat <&3 | tee /tmp/healthcheck.log | grep -q '200 OK'
+    depends_on:
+      cforge:
+        condition: service_completed_successfully
+      keycloak-db:
+        condition: service_healthy

@@ -1,0 +1,15 @@
+services:
+  cforge:
+    image: opentalk/cforge:latest
+    build: .
+    restart: "no"
+    environment:
+      OT_DOMAIN: $OT_DOMAIN
+      ENABLE_CFORGE: ${ENABLE_CFORGE:-true}
+      FORCE_SECRETS: ${FORCE_SECRETS:-false}
+      FORCE_CONFIG: ${FORCE_CONFIG:-false}
+      MISSING_KEY_BEHAVIOR: ${MISSING_KEY_BEHAVIOR:-default}
+    volumes:
+      - ../../:/deploy_dir:z
+      - ./data:/data:z
+      - ./ansible:/ansible:z

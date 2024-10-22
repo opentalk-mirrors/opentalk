@@ -1,0 +1,50 @@
+services:
+  controller-db:
+    image: ${POSTGRES_IMAGE_SRC}:${POSTGRES_VERSION}
+    profiles: ["core", "standard", "full", "postgres", "controller-db"]
+    volumes:
+      - ./data/controller/pg_data:/var/lib/postgresql/data
+    restart: always
+    secrets:
+      - db_controller_secret
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-controller}
+      POSTGRES_USER: ${POSTGRES_USER:-ot}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_controller_secret
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    depends_on:
+      cforge:
+        condition: service_completed_successfully
+
+  keycloak-db:
+    image: ${POSTGRES_IMAGE_SRC}:${POSTGRES_VERSION}
+    profiles: ["core", "standard", "full", "postgres", "keycloak-db"]
+    volumes:
+      - ./data/keycloak/pg_data:/var/lib/postgresql/data
+    restart: always
+    secrets:
+      - db_keycloak_secret
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-keycloak}
+      POSTGRES_USER: ${POSTGRES_USER:-ot}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_keycloak_secret
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    depends_on:
+      cforge:
+        condition: service_completed_successfully
+
+secrets:
+  db_controller_secret:
+    file: ./.db_controller.secret
+  db_keycloak_secret:
+    file: ./.db_keycloak.secret

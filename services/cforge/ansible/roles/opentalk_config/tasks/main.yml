@@ -1,0 +1,35 @@
+---
+# tasks file for opentalk_config
+
+- name: Manage secrets
+  ansible.builtin.include_tasks: manage_secrets.yaml
+
+- name: Manage traefik config
+  ansible.builtin.include_tasks: render_config_traefik.yaml
+
+- name: Render keycloak config
+  ansible.builtin.include_tasks: render_config_keycloak.yaml
+
+- name: Render keycloak json import
+  ansible.builtin.include_tasks: render_config_keycloak_realm_import.yaml
+
+- name: Render controller config
+  ansible.builtin.include_tasks: render_config_controller.yaml
+
+- name: Render livekit config
+  ansible.builtin.include_tasks: render_config_livekit.yaml
+
+- name: Render minio config
+  ansible.builtin.include_tasks: render_config_minio.yaml
+
+- name: Render mailer config
+  ansible.builtin.include_tasks: render_config_mailer.yaml
+
+- name: Render obelisk config
+  ansible.builtin.include_tasks: render_config_obelisk.yaml
+
+- name: Render recorder config
+  ansible.builtin.include_tasks: render_config_recorder.yaml
+
+
+

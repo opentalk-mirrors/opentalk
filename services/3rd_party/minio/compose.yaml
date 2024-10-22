@@ -1,0 +1,35 @@
+services: 
+  minio:
+    image: ${MINIO_IMAGE_SRC}:${MINIO_VERSION}
+    profiles: ["core", "standard", "full", "minio"]
+    restart: always
+    command: server --address ":9000" --console-address ":9001" /data
+    volumes:
+      - ./data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_secret
+      MINIO_BROWSER_REDIRECT_URL: "https://${OT_DOMAIN}/adm/minio"
+    secrets:
+      - minio_root_secret
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio-console.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/adm/minio`)"
+      - "traefik.http.routers.minio-console.entrypoints=websecure"
+      - "traefik.http.routers.minio-console.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.minio-console.service=minio-console"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
+      #- "traefik.http.routers.minio-console.middlewares=keycloak-openid"
+      #- "traefik.http.routers.minio-console.middlewares=oidc-auth@file,minio-replacepathregex"
+      #- "traefik.http.routers.minio-console.middlewares=keycloak-openid@file,minio-replacepathregex"
+      - "traefik.http.middlewares.minio-replacepathregex.replacepathregex.regex=^/adm/minio/(.*)"
+      - "traefik.http.middlewares.minio-replacepathregex.replacepathregex.replacement=/$$1"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+secrets:
+  minio_root_secret:
+    file: ./.minio_root.secret

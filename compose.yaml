@@ -1,53 +1,66 @@
 include:
-  - path: cforge/compose.yaml
-    env_file: cforge/.env
+  - path: services/cforge/compose.yaml
+    env_file: 
+      - .versions
+      - services/cforge/.env
 
-  - path: controller/compose.yaml
-    env_file: controller/.env
+  - path: services/controller/compose.yaml
+    env_file: 
+      - .versions
 
-  - path: webapp/compose.yaml
-    env_file: webapp/.env
+  - path: services/webapp/compose.yaml
+    env_file: 
+      - .versions
 
-  - path: mailer/compose.yaml
-    env_file: mailer/.env
+  - path: services/mailer/compose.yaml
+    env_file: 
+      - .versions
 
-  - path: recorder/compose.yaml
-    env_file: recorder/.env
+  - path: services/recorder/compose.yaml
+    env_file: 
+      - .versions
 
-  - path: obelisk/compose.yaml
-    env_file: obelisk/.env
+  - path: services/obelisk/compose.yaml
+    env_file: 
+      - .versions
 
-  - path: etherpad/compose.yaml
-    env_file: etherpad/.env
+  - path: services/etherpad/compose.yaml
+    env_file: 
+      - .versions
 
-  - path: spacedeck/compose.yaml
-    env_file: spacedeck/.env
+  - path: services/spacedeck/compose.yaml
+    env_file: 
+      - .versions
 
 # 3rd party
-  - path: traefik/compose.yaml
+  - path: services/3rd_party/traefik/compose.yaml
+    env_file: 
+      - .versions
     
-  - path: postgres/compose.yaml
-    env_file: postgres/.env
+  - path: services/3rd_party/postgres/compose.yaml
+    env_file: 
+      - .versions
 
-  - path: minio/compose.yaml
-    env_file: minio/.env
+  - path: services/3rd_party/minio/compose.yaml
+    env_file: 
+      - .versions
 
-  - path: rabbitmq/compose.yaml
-    env_file: rabbitmq/.env
+  - path: services/3rd_party/rabbitmq/compose.yaml
+    env_file: 
+      - .versions
 
-  - path: redis/compose.yaml
-    env_file: redis/.env
+#  - path: services/3rd_party/redis/compose.yaml
+#    env_file: 
+#      - .versions
+#
+  - path: services/3rd_party/keycloak/compose.yaml
+    env_file: 
+      - .versions
 
-  - path: keycloak/compose.yaml
-    env_file: keycloak/.env
+  - path: services/3rd_party/livekit/compose.yaml
+    env_file: 
+      - .versions
 
-  - path: livekit/compose.yaml
-    env_file: livekit/.env
-
-  - path: mailcrab/compose.yaml
-    env_file: mailcrab/.env
-
-
-
-
-
+  - path: services/3rd_party/mailcrab/compose.yaml
+    env_file: 
+      - .versions

@@ -1,0 +1,14 @@
+---
+- name: "Render traefik static config | services/3rd_party/traefik/config/traefik.yaml"
+  ansible.builtin.template:
+    src: traefik.yaml.j2
+    dest: "{{ deploy_dir }}/services/3rd_party/traefik/config/traefik.yaml"
+  vars:
+    secret: "{{ KEYCLOAK_DB_PASSWORD }}"
+
+- name: "Render traefik dynamic http config | services/3rd_party/traefik/config/dynamic/http.yaml"
+  ansible.builtin.template:
+    src: traefik_dynamic_http.yaml.j2
+    dest:  "{{ deploy_dir }}/services/3rd_party/traefik/config/dynamic/http.yaml"
+  vars:
+    secret: "{{ KEYCLOAK_DB_PASSWORD }}"

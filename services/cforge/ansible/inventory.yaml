@@ -1,0 +1,7 @@
+all:
+  children:
+    default:
+      hosts:
+        localhost:
+          ansible_connection: local
+          ansible_python_interpreter: auto_silent 

@@ -1,0 +1,5 @@
+---
+- name: "Render livekit config | services/3rd_party/livekit/config/livekit.yaml"
+  ansible.builtin.template:
+    src: livekit.yaml.j2
+    dest: "{{ deploy_dir }}/services/3rd_party/livekit/config/livekit.yaml"

@@ -1,0 +1,11 @@
+---
+auth:
+  issuer: ''
+  clientId: "Recorder"
+  clientSecret: ''
+controller:
+  domain: "controller:11311"
+  insecure: false
+rabbitmq:
+  uri: "amqp://guest:guest@rabbitmq/%2F"
+  queue: "opentalk_recorder"

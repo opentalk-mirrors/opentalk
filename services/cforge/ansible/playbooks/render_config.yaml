@@ -1,0 +1,8 @@
+---
+- name: localhost
+  hosts: localhost
+  gather_facts: no
+  strategy: free
+
+  roles:
+    - opentalk_config

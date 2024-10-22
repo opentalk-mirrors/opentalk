@@ -1,0 +1,47 @@
+# Container tag versions
+## OpenTalk
+PRODUCT_VERSION=ot-compose-v25
+
+WEBAPP_VERSION=v2.2.0
+CONTROLLER_VERSION=v0.28.0
+OBELISK_VERSION=v0.18.0
+MAILER_VERSION=v0.11.0
+RECORDER_VERSION=v0.13.0
+ETHERPAD_VERSION=v1.0.2
+SPACEDECK_VERSION=v2.0.0
+CFORGE_VERSION=latest
+
+## 3rd party
+LIVEKIT_VERSION=v1.8.3
+KEYCLOAK_VERSION=26.0.7
+POSTGRES_VERSION=16-alpine
+AUTOHEAL_VERSION=latest
+RABBITMQ_VERSION=4.0-management-alpine
+REDIS_VERSION=7.4-alpine
+MINIO_VERSION=RELEASE.2024-12-18T13-15-44Z
+MAILCRAB_VERSION=v1.4.0
+TRAEFIK_VERSION=v3.3.1
+
+# Container image sources
+## OpenTalk
+WEBAPP_IMAGE_SRC=git.opentalk.dev:5050/opentalk/frontend/web/web-app
+CONTROLLER_IMAGE_SRC=git.opentalk.dev:5050/opentalk/backend/services/controller-enterprise
+OBELISK_IMAGE_SRC=registry.opencode.de/opentalk/obelisk
+MAILER_IMAGE_SRC=registry.opencode.de/opentalk/smtp-mailer
+RECORDER_IMAGE_SRC=registry.opencode.de/opentalk/recorder
+OBELISK_IMAGE_SRC=registry.opencode.de/opentalk/obelisk
+ETHERPAD_IMAGE_SRC=registry.opencode.de/opentalk/etherpad
+SPACEDECK_IMAGE_SRC=registry.opencode.de/opentalk/spacedeck
+
+## 3rd party
+LIVEKIT_IMAGE_SRC=livekit/livekit-server
+JANUS_IMAGE_SRC=registry.opencode.de/opentalk/janus-gateway
+KEYCLOAK_IMAGE_SRC=quay.io/keycloak/keycloak
+POSTGRES_IMAGE_SRC=postgres
+AUTOHEAL_IMAGE_SRC=willfarrell/autoheal
+RABBITMQ_IMAGE_SRC=rabbitmq
+REDIS_IMAGE_SRC=redis
+MINIO_IMAGE_SRC=minio/minio
+ETCD_IMAGE_SRC=quay.io/coreos/etcd
+MAILCRAB_IMAGE_SRC=marlonb/mailcrab
+TRAEFIK_IMAGE_SRC=traefik
