@@ -5,8 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
 ## [0.10.1]
 
 ### 🐛 Bug fixes
@@ -30,18 +28,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.9.0]
 
-### <!-- 0 -->:rocket: New features
+### 🚀 New features
 
 - Re-add watchdog watching RTP traffic to detect interruptions and terminate calls
 - Add SRTP support for calls ([#66](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/66))
 - Add a timeout to the pin entry ([#92](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/92))
 
-### <!-- 1 -->:bug: Bug fixes
+### 🐛 Bug fixes
 
 - *(srtp)* Add padding to base64 encoding of key
 - Handle SIP events (like hangup) while in waiting room ([#93](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/93))
 
-### <!-- 2 -->::gear: Miscellaneous Tasks
+### ⚙ Miscellaneous Tasks
 
 - Change base image to alpine3.20
 
