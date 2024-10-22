@@ -62,6 +62,12 @@ lint:yaml:
     - apk add --no-cache yamllint
   script: yamllint .
 
+lint:toml:
+  stage: lint
+  <<: *default_job_condition
+  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.82.0-bookworm
+  script: taplo fmt --check
+
 lint:licensing:
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'

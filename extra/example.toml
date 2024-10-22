@@ -43,8 +43,8 @@ port = 5060
 
 # Username/Password pair.
 # Usually provided by the SIP provider
-username = "alice"
 password = "mysecurepassword"
+username = "alice"
 
 # Realm of the given username/password pair
 realm = "example.org"
@@ -78,5 +78,5 @@ enforce_qop = true
 #
 # Defaults to 40000 - 49999
 [sip.rtp_port_range]
-start = 40000
 end = 49999
+start = 40000
