@@ -69,10 +69,8 @@ lint:toml:
   script: taplo fmt --check
 
 lint:licensing:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-    - if: $CI_PIPELINE_SOURCE == 'schedule'
   stage: lint
+  <<: *default_job_condition
   image:
     name: fsfe/reuse:latest
     entrypoint: ['']
@@ -83,7 +81,8 @@ lint:commit:
   cache: {}
   image: node:lts-alpine
   stage: lint
-  <<: *default_job_condition
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   variables:
     GIT_DEPTH: 250
   before_script:
