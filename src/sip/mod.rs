@@ -29,14 +29,14 @@ use std::pin::pin;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::lookup_host;
-use tokio::sync::{broadcast, Notify};
+use tokio::sync::broadcast;
 use tokio::time::{interval, sleep};
 
 mod codec;
 mod sdp;
 mod update;
 
-pub use codec::SdpSendCodec;
+pub use codec::{SdpRecvCodec, SdpSendCodec};
 pub use sdp::{MediaSessionState, SessionState, SrtpInfo};
 pub use update::handle_reinvite;
 
@@ -119,6 +119,7 @@ impl AppLayer {
 
             changes = media_session
                 .receive_offer(sdp_offer)
+                .await
                 .context("Failed to handle INVITE application/sdp body")?;
         }
 
@@ -155,6 +156,7 @@ impl AppLayer {
         if changes.is_empty() {
             media_session
                 .setup_offer()
+                .await
                 .context("Failed to setup media offer")?;
         }
 
@@ -169,17 +171,10 @@ impl AppLayer {
         }
 
         // Create a media pipeline
-        let ready_to_send = Arc::new(Notify::new());
-        let (mut handle, track_controller) = match MediaPipeline::new(
-            ready_to_send.clone(),
-            media_session.has_video(),
-            &self.settings.clock_format,
-        )
-        .await
-        {
+        let (mut media, track_controller) = match MediaPipeline::new().await {
             Ok(answer) => answer,
             Err(e) => {
-                log::error!("Failed to create GStreamer pipeline, {e:?}");
+                log::error!("Failed to create media pipeline, {e:?}");
 
                 session.terminate().await?;
 
@@ -187,12 +182,9 @@ impl AppLayer {
             }
         };
 
-        update::apply_changes(&mut handle, &mut media_session, changes).await?;
+        update::apply_changes(&mut media, &mut media_session, changes).await?;
 
         // SIP Call established -> loop and handle events
-
-        // Wait for the client to be ready to accept playback
-        ready_to_send.notified().await;
 
         // Sleep about 1 second to wait for the media session
         // to work and then play the welcome track.
@@ -205,7 +197,7 @@ impl AppLayer {
             self.http_client.clone(),
             name,
             session,
-            handle,
+            media,
             media_session,
             track_controller,
             self.shutdown.subscribe(),

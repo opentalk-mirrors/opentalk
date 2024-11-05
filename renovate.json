@@ -6,16 +6,6 @@
   "packageRules": [
     {
       "matchPackagePatterns": [
-        "gio",
-        "glib",
-        "gstreamer-*",
-        "gstreamer"
-      ],
-      "groupName": "gstreamer-rs",
-      "groupSlug": "gstreamer-rs"
-    },
-    {
-      "matchPackagePatterns": [
         "ezk-*"
       ],
       "groupName": "EZK-rs",

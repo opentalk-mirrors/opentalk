@@ -4,7 +4,7 @@
 
 use super::codec::{offer_all_audio_codecs, offer_all_video_codecs, SdpRecvCodec, SdpSendCodec};
 use crate::media::codec::MediaType;
-use crate::media::port_pool::{PortPool, SocketPair};
+use crate::media::{PortPool, SocketPair};
 use crate::settings::Settings;
 use crate::sip::codec::{available_video_codec, choose_audio_codec, choose_video_codec};
 use anyhow::{bail, Context, Result};
@@ -50,7 +50,7 @@ pub struct MediaSession {
     direction: Direction,
 
     // media ession's TELEPHONE-EVENT
-    dtmf_events: Option<DtmfEvents>,
+    pub dtmf_events: Option<DtmfEvents>,
 
     pub socket_pair: SocketPair,
 }
@@ -90,15 +90,12 @@ pub struct SrtpInfo {
     pub tag: u32,
     pub suite: SrtpSuite,
 
-    pub gst_auth: &'static str,
-    pub gst_cipher: &'static str,
-
     pub send_key: Vec<u8>,
     pub recv_key: Vec<u8>,
 }
 
-struct DtmfEvents {
-    pt: u32,
+pub struct DtmfEvents {
+    pub pt: u8,
     fmtp: Option<Fmtp>,
 }
 
@@ -142,28 +139,10 @@ impl SessionState {
             .expect("Invalid media id")
     }
 
-    pub fn has_video(&self) -> bool {
-        self.media_sessions
-            .iter()
-            .any(|m| m.media_type == MediaType::Video)
-    }
-
-    pub fn receives_video(&self) -> bool {
-        self.media_sessions
-            .iter()
-            .any(|m| is_receiving(m.direction) && m.media_type == MediaType::Video)
-    }
-
-    /// Iterate over all payload numbers that may appear as dtmf tones
-    pub fn all_dtmf_payloads(&self) -> impl Iterator<Item = u32> + '_ {
-        self.media_sessions
-            .iter()
-            .flat_map(|m| m.dtmf_events.as_ref().map(|e| e.pt))
-    }
-
-    pub fn setup_offer(&mut self) -> Result<()> {
+    pub async fn setup_offer(&mut self) -> Result<()> {
         let audio_rtp_pair = PortPool::instance()
             .create_rtp_socket_pair()
+            .await
             .context("Failed to create RTP sockets")?
             .context("No more available RTP ports")?;
 
@@ -191,6 +170,7 @@ impl SessionState {
 
         let video_rtp_pair = PortPool::instance()
             .create_rtp_socket_pair()
+            .await
             .context("Failed to create RTP sockets")?
             .context("No more available RTP ports")?;
 
@@ -212,6 +192,9 @@ impl SessionState {
             dtmf_events: None,
             socket_pair: video_rtp_pair,
         });
+
+        // TODO: remove when re-adding video support
+        self.media_sessions.pop();
 
         Ok(())
     }
@@ -318,11 +301,16 @@ impl SessionState {
         Ok(changes)
     }
 
-    pub fn receive_offer(&mut self, offer: Bytes) -> Result<Vec<MediaChange>> {
+    pub async fn receive_offer(&mut self, offer: Bytes) -> Result<Vec<MediaChange>> {
         let offer =
             BytesStr::from_utf8_bytes(offer).context("SDP contains invalid UTF-8 characters")?;
-        let offer = SessionDescription::parse(&offer)
+        let mut offer = SessionDescription::parse(&offer)
             .with_context(|| format!("Failed to parse SDP Offer:\n{offer}"))?;
+
+        // TODO: remove me when re-adding video support
+        offer
+            .media_descriptions
+            .retain(|m| m.media.media_type == SdpMediaType::Audio);
 
         // track which of the current media sessions have been already matched against the new ones
         let mut matched_media_sessions = vec![];
@@ -382,13 +370,16 @@ impl SessionState {
                 } else {
                     // New media session, find suitable codec
 
-                    match self.create_new_session(
-                        &offer_media,
-                        &mut matched_media_sessions,
-                        remote_rtp_addr,
-                        remote_rtcp_addr,
-                        new_direction,
-                    ) {
+                    match self
+                        .create_new_session(
+                            &offer_media,
+                            &mut matched_media_sessions,
+                            remote_rtp_addr,
+                            remote_rtcp_addr,
+                            new_direction,
+                        )
+                        .await
+                    {
                         Ok((id, direction)) => (id, direction),
                         Err(e) => {
                             log::warn!("Failed to create new media session, {e:?}");
@@ -430,7 +421,7 @@ impl SessionState {
         Ok(changes)
     }
 
-    fn create_new_session(
+    async fn create_new_session(
         &mut self,
         offer_media: &MediaDescription,
         matched_media_sessions: &mut Vec<u32>,
@@ -471,6 +462,7 @@ impl SessionState {
 
         let socket_pair = PortPool::instance()
             .create_rtp_socket_pair()
+            .await
             .context("Failed to create RTP/RTCP sockets")?
             .context("No more RTP/RTCP ports are available")?;
 
@@ -647,26 +639,24 @@ fn populate_crypto_attributes(srtp: &SrtpInfo, crypto: &mut Vec<SrtpCrypto>) {
 fn offer_srtp() -> Vec<SrtpInfo> {
     use SrtpSuite::*;
 
-    // key_len, suite, gst_auth, gst_cipher
+    // key_len, suite
     let suites = [
-        (46, AES_256_CM_HMAC_SHA1_80, "hmac-sha1-80", "aes-256-icm"),
-        (46, AES_256_CM_HMAC_SHA1_32, "hmac-sha1-32", "aes-256-icm"),
-        (30, AES_CM_128_HMAC_SHA1_80, "hmac-sha1-80", "aes-128-icm"),
-        (30, AES_CM_128_HMAC_SHA1_32, "hmac-sha1-32", "aes-128-icm"),
+        (46, AES_256_CM_HMAC_SHA1_80),
+        (46, AES_256_CM_HMAC_SHA1_32),
+        (30, AES_CM_128_HMAC_SHA1_80),
+        (30, AES_CM_128_HMAC_SHA1_32),
     ];
 
     suites
         .into_iter()
         .enumerate()
-        .map(|(tag, (key_len, suite, gst_auth, gst_cipher))| {
+        .map(|(tag, (key_len, suite))| {
             let mut send_key = vec![0u8; key_len];
             rand::thread_rng().fill_bytes(&mut send_key);
 
             SrtpInfo {
                 tag: tag as u32,
                 suite,
-                gst_auth,
-                gst_cipher,
                 send_key,
                 recv_key: vec![],
             }
@@ -727,18 +717,6 @@ fn setup_srtp(offer_media: &MediaDescription) -> Result<Option<SrtpInfo>> {
         .or(choice4)
         .context("No crypto with compatible suite found")?;
 
-    let gst_auth = match crypto.suite {
-        AES_256_CM_HMAC_SHA1_80 | AES_CM_128_HMAC_SHA1_80 => "hmac-sha1-80",
-        AES_256_CM_HMAC_SHA1_32 | AES_CM_128_HMAC_SHA1_32 => "hmac-sha1-32",
-        _ => unreachable!(),
-    };
-
-    let gst_cipher = match crypto.suite {
-        AES_256_CM_HMAC_SHA1_80 | AES_256_CM_HMAC_SHA1_32 => "aes-256-icm",
-        AES_CM_128_HMAC_SHA1_80 | AES_CM_128_HMAC_SHA1_32 => "aes-128-icm",
-        _ => unreachable!(),
-    };
-
     let recv_key = BASE64_STANDARD
         .decode(&crypto.keys[0].key_and_salt)
         .context("Failed to base64 decode key_and_salt of crypto")?;
@@ -750,8 +728,6 @@ fn setup_srtp(offer_media: &MediaDescription) -> Result<Option<SrtpInfo>> {
     Ok(Some(SrtpInfo {
         tag: crypto.tag,
         suite: crypto.suite.clone(),
-        gst_auth,
-        gst_cipher,
         send_key,
         recv_key,
     }))

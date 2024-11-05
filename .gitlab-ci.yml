@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.82.0-alpine3.20
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.81.0-bookworm
 
 stages:
   - lint
@@ -36,10 +36,7 @@ lint:clippy:
   stage: lint
   <<: *default_job_condition
   before_script:
-    - >
-      apk add --no-cache
-      glib-dev openssl-dev
-      gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev
+    - apt-get install -y build-essential libclang-dev
   script:
     - cargo clippy --all-features --tests -- --deny warnings
 
@@ -127,11 +124,7 @@ test:cargo_test:
     RUSTFLAGS: -Ctarget-feature=-crt-static -Cinstrument-coverage -Clink-arg=-fuse-ld=lld
     LLVM_PROFILE_FILE: ./target/coverage/raw/coverage-%p-%m.profraw
   before_script:
-    - >
-      apk add --no-cache
-      glib-dev openssl-dev
-      gstreamer-dev gst-plugins-base-dev gst-plugins-bad-dev
-      gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly libnice-gstreamer gst-libav openh264
+    - apt-get install -y build-essential libclang-dev
   script:
     # tests wetc_scenario1 is ignored until fixed
     - >

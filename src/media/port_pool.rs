@@ -4,30 +4,38 @@
 
 use crate::settings::Settings;
 use anyhow::{anyhow, bail, Context, Result};
-use gio::prelude::*;
-use gio::{Cancellable, IOErrorEnum, InetSocketAddress};
 use once_cell::sync::OnceCell;
-use parking_lot::Mutex;
 use rand::prelude::IteratorRandom;
 use std::collections::BTreeSet;
-use std::net::{SocketAddr, ToSocketAddrs};
+use std::io::ErrorKind;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use stun_types::attributes::{MappedAddress, Software, XorMappedAddress};
 use stun_types::builder::MessageBuilder;
 use stun_types::header::{Class, Method};
 use stun_types::parse::ParsedMessage;
+use tokio::net::{lookup_host, UdpSocket};
+use tokio::sync::Mutex;
 
 static INSTANCE: OnceCell<PortPool> = OnceCell::new();
 
 // Contains the rtp as well as the related rtcp socket
 pub struct SocketPair {
     pub rtp_port: u16,
-    pub rtp_udpsink: gst::Element,
-    pub rtp_udpsrc: gst::Element,
+    pub rtp_socket: Arc<UdpSocket>,
 
     pub rtcp_port: u16,
-    pub rtcp_udpsink: gst::Element,
-    pub rtcp_udpsrc: gst::Element,
+    pub rtcp_socket: Arc<UdpSocket>,
+}
+
+impl Drop for SocketPair {
+    fn drop(&mut self) {
+        tokio::task::block_in_place(move || {
+            tokio::runtime::Handle::current().block_on(async move {
+                PortPool::instance().clear_port(self.rtp_port).await;
+            });
+        });
+    }
 }
 
 /// Manages the Obelisks SIP RTP/RTCP port pool
@@ -85,19 +93,17 @@ impl PortPool {
     /// This avoids contention under heavy load (many open connections)
     ///
     /// Returns Ok(None) when no more ports are available
-    pub fn create_rtp_socket_pair(&self) -> Result<Option<SocketPair>> {
-        let mut rng = rand::thread_rng();
-
+    pub async fn create_rtp_socket_pair(&self) -> Result<Option<SocketPair>> {
         let mut failed_pairs = vec![];
 
-        let mut used_pairs = self.used_pairs.lock();
+        let mut used_pairs = self.used_pairs.lock().await;
 
         loop {
             // get a random available port pair
             let pair = (0..self.port_pairs)
                 .filter(|p| !used_pairs.contains(p))
                 .filter(|p| !failed_pairs.contains(p))
-                .choose(&mut rng);
+                .choose(&mut rand::thread_rng());
 
             // return if no available ports were found
             let pair = match pair {
@@ -109,7 +115,7 @@ impl PortPool {
             let rtp_port = self.port_start + (pair * 2);
             let rtcp_port = rtp_port + 1;
 
-            let rtp_socket = match create_udp_socket(rtp_port)? {
+            let rtp_socket = match create_udp_socket(rtp_port).await? {
                 Some(rtp_socket) => rtp_socket,
                 None => {
                     failed_pairs.push(pair);
@@ -117,7 +123,7 @@ impl PortPool {
                 }
             };
 
-            let rtcp_socket = match create_udp_socket(rtcp_port)? {
+            let rtcp_socket = match create_udp_socket(rtcp_port).await? {
                 Some(rtcp_socket) => rtcp_socket,
                 None => {
                     failed_pairs.push(pair);
@@ -127,8 +133,10 @@ impl PortPool {
 
             let (rtp_port, rtcp_port) = if let Some(stun_server) = &self.settings.sip.stun_server {
                 let rtp_addr = resolve_public_addr(&rtp_socket, stun_server)
+                    .await
                     .context("Failed to discover public addr of RTP socket using STUN")?;
                 let rtcp_addr = resolve_public_addr(&rtcp_socket, stun_server)
+                    .await
                     .context("Failed to discover public addr of RTCP socket using STUN")?;
 
                 (rtp_addr.port(), rtcp_addr.port())
@@ -147,29 +155,17 @@ impl PortPool {
 
             return Ok(Some(SocketPair {
                 rtp_port,
-                rtp_udpsink: gst::ElementFactory::make("udpsink")
-                    .property("socket", rtp_socket.clone())
-                    .property("sync", false)
-                    .build()?,
-                rtp_udpsrc: gst::ElementFactory::make("udpsrc")
-                    .property("socket", rtp_socket)
-                    .build()?,
+                rtp_socket: Arc::new(rtp_socket),
 
                 rtcp_port,
-                rtcp_udpsink: gst::ElementFactory::make("udpsink")
-                    .property("socket", rtcp_socket.clone())
-                    .property("sync", false)
-                    .build()?,
-                rtcp_udpsrc: gst::ElementFactory::make("udpsrc")
-                    .property("socket", rtcp_socket)
-                    .build()?,
+                rtcp_socket: Arc::new(rtcp_socket),
             }));
         }
     }
 
     /// Removes the port-pair related to the provided port
-    pub fn clear_port(&self, port: u16) {
-        let mut used_pairs = self.used_pairs.lock();
+    pub async fn clear_port(&self, port: u16) {
+        let mut used_pairs = self.used_pairs.lock().await;
 
         let pair = (port - self.port_start) / 2;
 
@@ -182,38 +178,19 @@ impl PortPool {
 /// Creates a new udp socket with the provided port
 ///
 /// Returns Ok(None) if the provided port is already in use
-fn create_udp_socket(port: u16) -> Result<Option<gio::Socket>> {
-    let socket = gio::Socket::new(
-        gio::SocketFamily::Ipv4,
-        gio::SocketType::Datagram,
-        gio::SocketProtocol::Udp,
-    )?;
-
-    let addr = gio::InetAddress::new_any(gio::SocketFamily::Ipv4);
-
-    let addr = gio::InetSocketAddress::new(&addr, port);
-
-    if let Err(error) = socket.bind(&addr, false) {
-        if let Some(IOErrorEnum::AddressInUse) = error.kind() {
-            return Ok(None);
-        } else {
-            return Err(anyhow!(error));
-        }
+async fn create_udp_socket(port: u16) -> Result<Option<UdpSocket>> {
+    match UdpSocket::bind(format!("0.0.0.0:{port}")).await {
+        Ok(socket) => Ok(Some(socket)),
+        Err(e) if e.kind() == ErrorKind::AddrInUse => Ok(None),
+        Err(e) => Err(anyhow!(e)),
     }
-
-    Ok(Some(socket))
 }
 
-fn resolve_public_addr(sock: &gio::Socket, stun_server: &str) -> Result<SocketAddr> {
-    // Wait max 1 sec for a packet before returning an error
-    let prev_timeout = sock.timeout();
-    sock.set_timeout(1);
-
+async fn resolve_public_addr(sock: &UdpSocket, stun_server: &str) -> Result<SocketAddr> {
     // Resolve stun server address
-    let server = stun_server
-        .to_socket_addrs()
-        .with_context(|| format!("Failed to resolve stun-server {stun_server:?}"))?
-        .map(InetSocketAddress::from);
+    let server = lookup_host(stun_server)
+        .await
+        .with_context(|| format!("Failed to resolve stun-server {stun_server:?}"))?;
 
     // Build stun request
     let mut msg = MessageBuilder::new(Class::Request, Method::Binding, rand::random());
@@ -223,7 +200,7 @@ fn resolve_public_addr(sock: &gio::Socket, stun_server: &str) -> Result<SocketAd
     let mut last_err = anyhow!("hostname {stun_server:?} didn't provide any addresses");
 
     for server in server {
-        let addr = match send_and_receive_stun(sock, server, &msg) {
+        let addr = match send_and_receive_stun(sock, server, &msg).await {
             Ok(addr) => addr,
             Err(e) => {
                 log::warn!("Failed to resolve public address of created rtp/rtcp port, {e:?}");
@@ -232,30 +209,26 @@ fn resolve_public_addr(sock: &gio::Socket, stun_server: &str) -> Result<SocketAd
             }
         };
 
-        // Restore previous timeout
-        sock.set_timeout(prev_timeout);
-
         return Ok(addr);
     }
-
-    // Restore previous timeout
-    sock.set_timeout(prev_timeout);
 
     Err(last_err)
 }
 
-fn send_and_receive_stun(
-    sock: &gio::Socket,
-    server: InetSocketAddress,
-    msg: &Vec<u8>,
+async fn send_and_receive_stun(
+    sock: &UdpSocket,
+    server: SocketAddr,
+    msg: &[u8],
 ) -> Result<SocketAddr> {
     let mut recv_buffer = vec![0u8; 1500];
 
-    sock.send_to(Some(&server), msg, Cancellable::NONE)
+    sock.send_to(msg, server)
+        .await
         .context("Failed to send request")?;
 
     let len = sock
-        .receive(&mut recv_buffer, Cancellable::NONE)
+        .recv(&mut recv_buffer)
+        .await
         .context("Failed to receive response")?;
 
     recv_buffer.truncate(len);

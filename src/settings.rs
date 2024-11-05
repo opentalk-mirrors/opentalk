@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use compositor::ClockFormat;
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use openidconnect::{ClientId, ClientSecret, IssuerUrl};
+use opentalk_compositor::ClockFormat;
 use serde::Deserialize;
 use std::time::Duration;
 
