@@ -46,7 +46,7 @@ sip-types = { version = "0.3", package = "ezk-sip-types" }
 sip-ua = { version = "0.4", package = "ezk-sip-ua" }
 srtp = "0.7"
 stun-types = { version = "0.1", package = "ezk-stun-types" }
-thiserror = "1"
+thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "signal"] }
 tokio-native-tls = "0.3.1"
 tt = { package = "tokio-tungstenite", version = "0.20", features = ["rustls-tls-native-roots"] }
