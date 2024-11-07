@@ -193,9 +193,6 @@ impl SessionState {
             socket_pair: video_rtp_pair,
         });
 
-        // TODO: remove when re-adding video support
-        self.media_sessions.pop();
-
         Ok(())
     }
 
@@ -304,13 +301,8 @@ impl SessionState {
     pub async fn receive_offer(&mut self, offer: Bytes) -> Result<Vec<MediaChange>> {
         let offer =
             BytesStr::from_utf8_bytes(offer).context("SDP contains invalid UTF-8 characters")?;
-        let mut offer = SessionDescription::parse(&offer)
+        let offer = SessionDescription::parse(&offer)
             .with_context(|| format!("Failed to parse SDP Offer:\n{offer}"))?;
-
-        // TODO: remove me when re-adding video support
-        offer
-            .media_descriptions
-            .retain(|m| m.media.media_type == SdpMediaType::Audio);
 
         // track which of the current media sessions have been already matched against the new ones
         let mut matched_media_sessions = vec![];

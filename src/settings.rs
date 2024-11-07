@@ -109,13 +109,13 @@ pub struct SipSettings {
     #[serde(default)]
     pub offer_srtp: bool,
 
-    /// Maximum video bitrate in kilobits/s
+    /// Maximum video bitrate in bits/s
     #[serde(default = "default_max_video_bitrate")]
     pub max_video_bitrate: u32,
 }
 
 fn default_max_video_bitrate() -> u32 {
-    6000
+    6_000_000
 }
 
 #[derive(Debug, Clone, Deserialize)]

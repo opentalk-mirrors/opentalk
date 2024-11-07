@@ -36,7 +36,7 @@ mod codec;
 mod sdp;
 mod update;
 
-pub use codec::{SdpRecvCodec, SdpSendCodec};
+pub use codec::{SdpRecvCodec, SdpSendCodec, SdpSendCodecParams};
 pub use sdp::{MediaSessionState, SessionState, SrtpInfo};
 pub use update::handle_reinvite;
 
@@ -171,7 +171,7 @@ impl AppLayer {
         }
 
         // Create a media pipeline
-        let (mut media, track_controller) = match MediaPipeline::new().await {
+        let (mut media, track_controller) = match MediaPipeline::new(self.settings.clone()).await {
             Ok(answer) => answer,
             Err(e) => {
                 log::error!("Failed to create media pipeline, {e:?}");

@@ -70,6 +70,7 @@ yanked = "deny"
 allow = [
   "Apache-2.0 WITH LLVM-exception",
   "Apache-2.0",
+  "BSD-2-Clause",
   "BSD-3-Clause",
   "EUPL-1.2",
   "CC0-1.0",

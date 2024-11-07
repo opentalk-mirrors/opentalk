@@ -2,46 +2,67 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::sip::{SdpRecvCodec, SdpSendCodec, SrtpInfo};
+use crate::{
+    settings::Settings,
+    sip::{SdpRecvCodec, SdpSendCodec, SdpSendCodecParams, SrtpInfo},
+};
 use anyhow::{Context, Result};
 use codec::Codec;
+use core::fmt;
 use dtmf_filter::DtmfFilter;
 use ezk::{
     nodes::{Access, AccessHandle},
-    ConfigRange, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange,
+    BoxedSourceCancelSafe, ConfigRange, Frame, NextEventIsCancelSafe, Source, SourceEvent,
+    ValueRange,
 };
 use ezk_audio::{
     Channels, Format, RawAudio, RawAudioConfig, RawAudioConfigRange, SampleRate, Samples,
 };
 use ezk_audio_nodes::{AudioConvert, AudioMixer};
 use ezk_g711::{PCMADecoder, PCMAEncoder, PCMUDecoder, PCMUEncoder};
-use ezk_rtp::{DePacketizer, Packetizer};
+use ezk_image::{
+    resize::{FilterType, ResizeAlg, Resizer},
+    Image, PixelFormat, PixelFormatPlanes,
+};
+use ezk_rtp::{rtp_types::RtpPacketBuilder, DePacketizer, Packetizer, RtpPacket};
 use opentalk_compositor::{
     audio::Silence,
     livekit::{
         self,
         options::TrackPublishOptions,
-        track::{LocalAudioTrack, LocalTrack},
+        prelude::*,
         webrtc::{
             audio_source::native::NativeAudioSource,
-            prelude::{AudioFrame, AudioSourceOptions, RtcAudioSource},
+            prelude::{
+                AudioFrame, AudioSourceOptions, RtcAudioSource, RtcVideoSource, VideoResolution,
+            },
+            video_source::native::NativeVideoSource,
         },
     },
-    Mixer,
+    Mixer, HEIGHT, WIDTH,
 };
+use rand::Rng;
 use rtp::{RtpMpscSource, RtpSessions};
-use std::{collections::HashMap, future::Future, net::SocketAddr, sync::Arc};
+use std::{
+    collections::HashMap,
+    future::Future,
+    net::SocketAddr,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tokio::{
     net::UdpSocket,
-    sync::{mpsc, Mutex},
+    sync::{mpsc, Mutex, RwLock},
     task::JoinHandle,
 };
+use video::h264::{H264Decoder, H264Encoder};
 
 pub mod codec;
 mod dtmf_filter;
 mod port_pool;
 mod rtp;
 mod track;
+mod video;
 
 pub(crate) use port_pool::{PortPool, SocketPair};
 pub(crate) use track::{Track, TrackController, TrackSource};
@@ -63,7 +84,12 @@ pub enum MediaEvent {
     DtmfDigit(u8),
 }
 
+pub type VideoSinks = Arc<Mutex<HashMap<u32, Box<dyn FnMut(&[u8]) + Send>>>>;
+
+#[allow(clippy::type_complexity)]
 pub struct MediaPipeline {
+    settings: Arc<Settings>,
+
     pub compositor: Option<Mixer>,
 
     rtp_sessions: RtpSessions,
@@ -71,6 +97,16 @@ pub struct MediaPipeline {
     subscriber_audio_mixer: AccessHandle<AudioMixer>,
     subscriber_audio_tx: Arc<Mutex<HashMap<u32, mpsc::Sender<Frame<RawAudio>>>>>,
     subscriber_audio_mixer_task: JoinHandle<()>,
+
+    // pre-join UI controller
+    pub(super) ui_controller: video::ui::UiController,
+
+    // obelisk -> phone video sinks. One sink for every video sender.
+    subscriber_video_tx: VideoSinks,
+
+    // maps RTP receiver to livekit publish video sources
+    // This publishes a separate livekit track for every incoming (phone -> obelisk) video stream
+    publish_video_tx: Arc<RwLock<HashMap<u32, Option<(TrackSid, NativeVideoSource)>>>>,
 
     publish_audio_mixer: AccessHandle<AudioMixer>,
     publish_audio_tx: Arc<Mutex<Option<NativeAudioSource>>>,
@@ -85,7 +121,7 @@ impl MediaPipeline {
     ///
     /// - Self
     /// - track controller to play different audio tracks
-    pub async fn new() -> Result<(Self, TrackController)> {
+    pub async fn new(settings: Arc<Settings>) -> Result<(Self, TrackController)> {
         let (events_tx, events_rx) = mpsc::unbounded_channel();
 
         // [compositor + ] obelisk -> phone
@@ -150,7 +186,12 @@ impl MediaPipeline {
             }
         });
 
+        let video_tx = VideoSinks::default();
+        let ui_controller = video::ui::spawn_ui_thread(video_tx.clone());
+
         let this = Self {
+            settings,
+
             compositor: None,
 
             rtp_sessions,
@@ -158,6 +199,11 @@ impl MediaPipeline {
             subscriber_audio_mixer: subscriber_audio_mixer_access_handle,
             subscriber_audio_tx,
             subscriber_audio_mixer_task,
+
+            ui_controller,
+
+            subscriber_video_tx: video_tx,
+            publish_video_tx: Arc::default(),
 
             publish_audio_mixer: publish_audio_mixer_access_handle,
             publish_audio_tx,
@@ -174,10 +220,16 @@ impl MediaPipeline {
         // Setup subscription
         let (audio_tx, audio_rx) = mpsc::channel(8);
 
+        // we're about to join the conference, stop the UI thread
+        self.ui_controller.stop();
+
         compositor
             .link_sink(
                 "obelisk",
-                Box::new(CompositorObeliskBridgeSink { audio_tx }),
+                Box::new(CompositorObeliskBridgeSink {
+                    audio_tx,
+                    video_tx: self.subscriber_video_tx.clone(),
+                }),
             )
             .await
             .context("Failed to add obelisk sink to compositor")?;
@@ -192,6 +244,7 @@ impl MediaPipeline {
         // Setup publish
         let local_participant = compositor.local_participant();
 
+        // Audio
         let audio_source = NativeAudioSource::new(AudioSourceOptions::default(), 48_000, 2, 100);
         let local_audio_track = LocalAudioTrack::create_audio_track(
             "audio",
@@ -210,6 +263,14 @@ impl MediaPipeline {
             .context("Failed to publish audio track")?;
 
         *self.publish_audio_tx.lock().await = Some(audio_source);
+
+        // Video
+        let mut publish_video_tx = self.publish_video_tx.write().await;
+        for publish_video_source in publish_video_tx.values_mut() {
+            let video_source = livekit_publish_video(&local_participant).await?;
+
+            *publish_video_source = Some(video_source);
+        }
 
         self.compositor = Some(compositor);
 
@@ -271,7 +332,7 @@ impl MediaPipeline {
                     Codec::H264 => unreachable!(),
                 }
             }
-            codec::MediaType::Video => unimplemented!("video support is not yet implemented"),
+            codec::MediaType::Video => self.create_h264_sender(session_id, codec).await?,
         };
 
         self.rtp_sessions
@@ -290,12 +351,84 @@ impl MediaPipeline {
             .context("Failed to add sender to rtp_sessions")
     }
 
+    async fn create_h264_sender(
+        &mut self,
+        session_id: u32,
+        codec: &SdpSendCodec,
+    ) -> Result<BoxedSourceCancelSafe<ezk_rtp::Rtp>> {
+        assert_eq!(codec.codec, Codec::H264);
+
+        let (tx, rx) = mpsc::channel(8);
+
+        // Resizer to fit the image to the correct dimensions
+        let mut resizer =
+            ezk_image::resize::Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
+        let (target_width, target_height) = match codec.codec_params {
+            SdpSendCodecParams::None => (WIDTH, HEIGHT),
+            SdpSendCodecParams::H264 {
+                width,
+                height,
+                fps: _,     // TODO: fps limiting
+                profile: _, // TODO: h264 profiles
+            } => (width as usize, height as usize),
+        };
+        let mut staging = vec![0u8; PixelFormat::I420.buffer_size(target_width, target_height)];
+
+        let max_bitrate = self.settings.sip.max_video_bitrate;
+        let bitrate = codec.bitrate.unwrap_or(max_bitrate).min(max_bitrate);
+        let mut h264_enc = H264Encoder::create(bitrate)?;
+
+        // With a clock-rate of 90_000 a u32 timestamp can cover 47721 seconds of time, so generate a random point in that timestamp range
+        let start_timestamp =
+            Instant::now() - Duration::from_secs(rand::thread_rng().gen_range(0..45000));
+        let payload_type = codec.payload;
+        let mut sequence_number = rand::random::<u16>() / 2;
+
+        #[allow(clippy::type_complexity)]
+        let on_video_frame: Box<dyn FnMut(&[u8]) + Send + 'static> = Box::new(move |buf| {
+            let buf = maybe_resize(&mut resizer, buf, &mut staging, target_width, target_height);
+
+            let packets = h264_enc.encode_and_packetize(buf, target_width, target_height);
+
+            // Calculate the timestamp from the seconds passed since origin * clock-rate (90_000) and use only the lower 32bit
+            let timestamp = (((start_timestamp.elapsed().as_secs_f64() * 90_000.0) as u64)
+                & u64::from(u32::MAX)) as u32;
+
+            for (i, packet) in packets.iter().enumerate() {
+                // Set the marker bit for the last packet
+                let marker = i == (packets.len() - 1);
+
+                let _ = tx.blocking_send(RtpPacket::new(
+                    &RtpPacketBuilder::new()
+                        .timestamp(timestamp)
+                        .sequence_number(sequence_number)
+                        .marker_bit(marker)
+                        .payload(packet.as_ref())
+                        .payload_type(payload_type),
+                ));
+
+                sequence_number = sequence_number.wrapping_add(1);
+            }
+        });
+
+        self.subscriber_video_tx
+            .lock()
+            .await
+            .insert(session_id, on_video_frame);
+
+        Ok(RtpMpscSource {
+            rx,
+            pt: codec.payload,
+        }
+        .boxed_cancel_safe())
+    }
+
     pub async fn remove_sender(&mut self, session_id: u32) -> Result<()> {
         log::debug!("remove sender session_id={session_id}");
 
-        // TODO: also remove video tx
-
+        self.subscriber_video_tx.lock().await.remove(&session_id);
         self.subscriber_audio_tx.lock().await.remove(&session_id);
+
         self.rtp_sessions
             .remove_sender(session_id)
             .await
@@ -338,12 +471,91 @@ impl MediaPipeline {
             last_dtmf_timestamp: None,
         };
 
-        let audio_source = match codec.codec {
-            Codec::G711PCMA => PCMADecoder::new(DePacketizer::new(rtp_source)).boxed_cancel_safe(),
-            Codec::G711PCMU => PCMUDecoder::new(DePacketizer::new(rtp_source)).boxed_cancel_safe(),
-            Codec::H264 => unimplemented!("video is not yet supported"),
-        };
+        match codec.codec {
+            Codec::G711PCMA => {
+                self.add_audio_receiver(
+                    PCMADecoder::new(DePacketizer::new(rtp_source)).boxed_cancel_safe(),
+                )
+                .await
+            }
+            Codec::G711PCMU => {
+                self.add_audio_receiver(
+                    PCMUDecoder::new(DePacketizer::new(rtp_source)).boxed_cancel_safe(),
+                )
+                .await
+            }
+            Codec::H264 => self
+                .create_h264_receiver(session_id, rtp_source)
+                .await
+                .context("Failed to add H.264 receiver"),
+        }
+    }
 
+    async fn create_h264_receiver(
+        &mut self,
+        session_id: u32,
+        mut rtp_source: DtmfFilter,
+    ) -> Result<()> {
+        let mut video_sources = self.publish_video_tx.write().await;
+
+        if let Some(compositor) = &mut self.compositor {
+            video_sources.insert(
+                session_id,
+                Some(
+                    livekit_publish_video(&compositor.local_participant())
+                        .await
+                        .context("Failed to publish video track to livekit")?,
+                ),
+            );
+        } else {
+            // No compositor yet, source will be added later in `add_compositor`
+            video_sources.insert(session_id, None);
+        }
+
+        let mut h264_dec = H264Decoder::create()?;
+        let video_sources = self.publish_video_tx.clone();
+
+        tokio::spawn(async move {
+            loop {
+                let event = match rtp_source.next_event().await {
+                    Ok(event) => event,
+                    Err(e) => {
+                        log::error!("H.264 forward task failed with error, {e}");
+                        return;
+                    }
+                };
+
+                match event {
+                    SourceEvent::Frame(frame) => {
+                        let video_sources = video_sources.read().await;
+
+                        // Decode the frame, then check if there's a livekit publication yet
+                        if let Some(frame) = h264_dec.decode_packet(frame.data().get().payload()) {
+                            if let Some((_, video_source)) =
+                                video_sources.get(&session_id).and_then(|s| s.as_ref())
+                            {
+                                video_source.capture_frame(&frame);
+                            }
+                        }
+                    }
+                    SourceEvent::EndOfData => {
+                        log::debug!("exit H.264 forward task");
+                        return;
+                    }
+                    SourceEvent::RenegotiationNeeded => {
+                        unreachable!("RTP receiver sources should never need renegotiation")
+                    }
+                }
+            }
+        });
+
+        Ok(())
+    }
+
+    async fn add_audio_receiver(
+        &mut self,
+        audio_source: BoxedSourceCancelSafe<RawAudio>,
+    ) -> Result<()> {
         self.publish_audio_mixer
             .access(|mixer| {
                 mixer.add_source(AudioConvert::new(audio_source));
@@ -354,6 +566,27 @@ impl MediaPipeline {
 
     pub async fn remove_receiver(&mut self, session_id: u32) -> Result<()> {
         log::debug!("remove receiver session_id={session_id}");
+
+        if let Some((track_id, _)) = self
+            .publish_video_tx
+            .write()
+            .await
+            .remove(&session_id)
+            .flatten()
+        {
+            let compositor = &self
+                .compositor
+                .as_mut()
+                .expect("compositor must be set when publishing");
+
+            if let Err(e) = compositor
+                .local_participant()
+                .unpublish_track(&track_id)
+                .await
+            {
+                log::warn!("Failed to unpublish track {track_id:?}, {e}")
+            }
+        }
 
         self.rtp_sessions
             .remove_receiver(session_id)
@@ -369,10 +602,38 @@ impl MediaPipeline {
     }
 }
 
+async fn livekit_publish_video(
+    local_participant: &LocalParticipant,
+) -> Result<(TrackSid, NativeVideoSource)> {
+    let video_source = NativeVideoSource::new(VideoResolution {
+        // The resolution is arbitrary and doesn't really matter, since livekit adapts to any resolution we capture
+        width: 1920,
+        height: 1080,
+    });
+
+    let track = local_participant
+        .publish_track(
+            LocalTrack::Video(LocalVideoTrack::create_video_track(
+                "video",
+                RtcVideoSource::Native(video_source.clone()),
+            )),
+            TrackPublishOptions {
+                source: livekit::track::TrackSource::Camera,
+                ..Default::default()
+            },
+        )
+        .await
+        .context("Failed to publish video track")?;
+
+    Ok((track.sid(), video_source))
+}
+
 impl Drop for MediaPipeline {
     fn drop(&mut self) {
         self.publish_audio_mixer_task.abort();
         self.subscriber_audio_mixer_task.abort();
+
+        self.ui_controller.stop();
     }
 }
 
@@ -421,9 +682,15 @@ where
     }
 }
 
-#[derive(Debug)]
 struct CompositorObeliskBridgeSink {
     audio_tx: mpsc::Sender<Frame<RawAudio>>,
+    video_tx: VideoSinks,
+}
+
+impl fmt::Debug for CompositorObeliskBridgeSink {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CompositorObeliskBridgeSink").finish()
+    }
 }
 
 impl opentalk_compositor::Sink for CompositorObeliskBridgeSink {
@@ -435,7 +702,13 @@ impl opentalk_compositor::Sink for CompositorObeliskBridgeSink {
         Ok(())
     }
 
-    fn on_video_frame(&mut self, _buffer: Vec<u8>) -> Result<()> {
+    fn on_video_frame(&mut self, buffer: Vec<u8>) -> Result<()> {
+        let mut video_tx = self.video_tx.blocking_lock();
+
+        for callback in video_tx.values_mut() {
+            callback(&buffer);
+        }
+
         Ok(())
     }
 }
@@ -469,3 +742,47 @@ impl Source for AudioMpscSource {
 }
 
 impl NextEventIsCancelSafe for AudioMpscSource {}
+
+fn maybe_resize<'a>(
+    resizer: &mut Resizer,
+    src: &'a [u8],
+    dst: &'a mut [u8],
+    target_width: usize,
+    target_height: usize,
+) -> &'a [u8] {
+    if target_width == WIDTH && target_height == HEIGHT {
+        return src;
+    }
+
+    const COLOR: ezk_image::ColorInfo = ezk_image::ColorInfo::YUV(ezk_image::YuvColorInfo {
+        transfer: ezk_image::ColorTransfer::Linear,
+        primaries: ezk_image::ColorPrimaries::BT709,
+        space: ezk_image::ColorSpace::BT709,
+        full_range: false,
+    });
+
+    resizer
+        .resize(
+            Image::new(
+                PixelFormat::I420,
+                PixelFormatPlanes::infer_i420(src, WIDTH, HEIGHT),
+                WIDTH,
+                HEIGHT,
+                COLOR,
+                8,
+            )
+            .expect("src must always be a valid WIDTH * HEIGHT I420 image"),
+            Image::new(
+                PixelFormat::I420,
+                PixelFormatPlanes::infer_i420(&mut *dst, target_width, target_height),
+                target_width,
+                target_height,
+                COLOR,
+                8,
+            )
+            .expect("dst must always be a valid target_width * target_height I420 image"),
+        )
+        .expect("both inputs are I420 images");
+
+    dst
+}

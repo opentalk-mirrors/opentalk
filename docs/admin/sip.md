@@ -35,7 +35,7 @@ The section in the [configuration file](configuration.md) is called `sip`.
 | `enforce_qop`       | `bool`                            | no       | `false`       | `true` to enforce quality of protection on SIP authentication                                                                    |
 | `offer_srtp`        | `bool`                            | no       | `false`       | `true` to offer SRTP as media transport when obelisk is creating the initial SDP offer                                                                                                   |
 | `rtp_port_range`    | [RTP port range](#rtp-port-range) | no       | 40000-49999   | The port range for the SIP RTP/RTCP connections                                                                                  |
-| `max_video_bitrate` | `int`                             | no       | 6000          | Maximum allowed video bitrate to the caller in kbits/s                                                                           |
+| `max_video_bitrate` | `int`                             | no       | 6000000       | Maximum allowed video bitrate to the caller in bits/s                                                                           |
 
 If `ìd` is not set, it is generated as `sip:<username>@<registrar-host>`. If no registrar is configured it is generated just like the `contact` field.
 

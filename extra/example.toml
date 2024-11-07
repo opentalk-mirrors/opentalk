@@ -69,8 +69,8 @@ stun_server = "stun.example.org:3478"
 # Can cause compatibility issues on older registrars.
 enforce_qop = true
 
-# Maximum video bitrate in kbits/s
-#max_video_bitrate = 6000
+# Maximum video bitrate in bits/s
+#max_video_bitrate = 6000000
 
 # Offer SRTP as media transport when obelisk is creating the initial SDP offer
 #offer_srtp = false

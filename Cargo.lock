@@ -119,9 +119,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.92"
+version = "1.0.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74f37166d7d48a0284b99dd824694c26119c700b53bf0d1540cdb147dbdaaf13"
+checksum = "4c95c10ba0b00a02636238b814946408b1322d5ac4760326e6fb8ec956d85775"
 
 [[package]]
 name = "arrayvec"
@@ -249,9 +249,9 @@ dependencies = [
 
 [[package]]
 name = "bitstream-io"
-version = "2.5.3"
+version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b81e1519b0d82120d2fd469d5bfb2919a9361c48b02d82d04befc1cdd2002452"
+checksum = "6099cdc01846bc367c4e7dd630dc5966dccf36b652fae7a74e17b640411a91b2"
 
 [[package]]
 name = "block-buffer"
@@ -336,9 +336,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.1.35"
+version = "1.1.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f57c4b4da2a9d619dd035f27316d7a426305b75be93d09e92f2b9229c34feaf"
+checksum = "40545c26d092346d8a8dab71ee48e7685a7a9cba76e634790c215b41a4a7b4cf"
 dependencies = [
  "jobserver",
  "libc",
@@ -973,9 +973,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-rtp"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eaefaf38445bf8eaa38fd1062f0523b08a9a18b78846c6088f01af307d6c571c"
+checksum = "31f25a91ddbd1541876315a541e466c2feec56c13a91c0df0c647e2f1b7f6301"
 dependencies = [
  "arrayvec",
  "bytes 1.8.0",
@@ -1127,9 +1127,9 @@ dependencies = [
 
 [[package]]
 name = "fastrand"
-version = "2.1.1"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8c02a5121d4ea3eb16a80748c74f5549a5665e4c21333c6098f283870fbdea6"
+checksum = "486f806e73c5707928240ddc295403b1b93c96a02038563881c4a2fd84b81ac4"
 
 [[package]]
 name = "fdeflate"
@@ -1932,9 +1932,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.161"
+version = "0.2.162"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e9489c2807c139ffd9c1794f4af0ebe86a828db53ecdc7fea2111d0fed085d1"
+checksum = "18d287de67fe55fd7e1581fe933d965a5a9477b38e949cfa9f8574ef01506398"
 
 [[package]]
 name = "libloading"
@@ -2131,6 +2131,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
+name = "memoffset"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5de893c32cde5f383baa4c04c5d6dbdd735cfd4a794b0debdb2bb1b421da5ff4"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2174,6 +2183,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "nasm-rs"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe4d98d0065f4b1daf164b3eafb11974c94662e5e2396cf03f32d0bb5c17da51"
+
+[[package]]
 name = "native-tls"
 version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2188,6 +2203,19 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "tempfile",
+]
+
+[[package]]
+name = "nix"
+version = "0.26.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "598beaf3cc6fdd9a5dfb1630c2800c7acd31df7aaf0f565796fba2b53ca1af1b"
+dependencies = [
+ "bitflags 1.3.2",
+ "cfg-if",
+ "libc",
+ "memoffset",
+ "pin-utils",
 ]
 
 [[package]]
@@ -2308,6 +2336,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
 
 [[package]]
+name = "openh264"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75d4ba969cedf4384c325577ed9fc5d1038fe83710fa89e4931f33e7811c5aa7"
+dependencies = [
+ "openh264-sys2",
+]
+
+[[package]]
+name = "openh264-sys2"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "15b59e491ad00df70d537fcc8a7cf817faa4f033b172a5b621deb4b954542dfc"
+dependencies = [
+ "cc",
+ "nasm-rs",
+ "walkdir",
+]
+
+[[package]]
 name = "openidconnect"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2426,6 +2474,7 @@ dependencies = [
  "ezk-audio",
  "ezk-audio-nodes",
  "ezk-g711",
+ "ezk-image",
  "ezk-rtp",
  "ezk-sdp-types",
  "ezk-sip-auth",
@@ -2439,6 +2488,7 @@ dependencies = [
  "log",
  "native-tls",
  "once_cell",
+ "openh264",
  "openidconnect",
  "opentalk-compositor",
  "opentalk-types",
@@ -2446,6 +2496,7 @@ dependencies = [
  "parking_lot",
  "rand",
  "reqwest",
+ "rtp",
  "serde",
  "serde_json",
  "srtp",
@@ -2747,6 +2798,12 @@ dependencies = [
  "flate2",
  "miniz_oxide",
 ]
+
+[[package]]
+name = "portable-atomic"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc9c68a3f6da06753e9335d63e27f6b9754dd1920d941135b7ea8224f141adb2"
 
 [[package]]
 name = "powerfmt"
@@ -3109,6 +3166,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce5248489db464de29835170cd1f6e19933146b0016789effc59cb53d9f13844"
 dependencies = [
  "thiserror 1.0.68",
+]
+
+[[package]]
+name = "rtp"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6870f09b5db96f8b9e7290324673259fd15519ebb7d55acf8e7eb044a9ead6af"
+dependencies = [
+ "bytes 1.8.0",
+ "portable-atomic",
+ "rand",
+ "serde",
+ "thiserror 1.0.68",
+ "webrtc-util",
 ]
 
 [[package]]
@@ -3708,9 +3779,9 @@ dependencies = [
 
 [[package]]
 name = "tempfile"
-version = "3.13.0"
+version = "3.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0f2c9fc62d0beef6951ccffd757e241266a2c833136efbe35af6cd2567dca5b"
+checksum = "28cce251fcbc87fac86a866eeb0d6c2d536fc16d06f184bb61aeae11aa4cee0c"
 dependencies = [
  "cfg-if",
  "fastrand",
@@ -3826,9 +3897,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.41.0"
+version = "1.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "145f3413504347a2be84393cc8a7d2fb4d863b375909ea59f2158261aa258bbb"
+checksum = "22cfb5bee7a6a52939ca9224d6ac897bb669134078daa8735560897f69de4d33"
 dependencies = [
  "backtrace",
  "bytes 1.8.0",
@@ -4336,6 +4407,27 @@ dependencies = [
  "scratch",
  "semver",
  "zip",
+]
+
+[[package]]
+name = "webrtc-util"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc8d9bc631768958ed97b8d68b5d301e63054ae90b09083d43e2fefb939fd77e"
+dependencies = [
+ "async-trait",
+ "bitflags 1.3.2",
+ "bytes 1.8.0",
+ "ipnet",
+ "lazy_static",
+ "libc",
+ "log",
+ "nix",
+ "portable-atomic",
+ "rand",
+ "thiserror 1.0.68",
+ "tokio",
+ "winapi",
 ]
 
 [[package]]
