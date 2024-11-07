@@ -175,6 +175,8 @@ skip = [
   { name = "itertools", version = "0.11.0" },
   { name = "itertools", version = "0.12.1" },
   { name = "syn", version = "1" },
+  { name = "thiserror", version = "1" },
+  { name = "thiserror-impl", version = "1" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
@@ -200,7 +202,7 @@ allow-git = []
 
 [sources.allow-org]
 # 1 or more github.com organizations to allow git sources for
-github = ["kbalt"]
+github = ["kbalt", "livekit"]
 # 1 or more gitlab.com organizations to allow git sources for
 gitlab = []
 # 1 or more bitbucket.org organizations to allow git sources for
