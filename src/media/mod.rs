@@ -20,6 +20,7 @@ use ezk_audio::{
 };
 use ezk_audio_nodes::{AudioConvert, AudioMixer};
 use ezk_g711::{PCMADecoder, PCMAEncoder, PCMUDecoder, PCMUEncoder};
+use ezk_g722::{G722Decoder, G722Encoder};
 use ezk_image::{
     resize::{FilterType, ResizeAlg, Resizer},
     Image, PixelFormat, PixelFormatPlanes,
@@ -336,6 +337,9 @@ impl MediaPipeline {
                     Codec::G711PCMU => {
                         Packetizer::new(PCMUEncoder::new(audio_source)).boxed_cancel_safe()
                     }
+                    Codec::G722 => {
+                        Packetizer::new(G722Encoder::new(audio_source)).boxed_cancel_safe()
+                    }
                     Codec::H264 => unreachable!(),
                 }
             }
@@ -491,6 +495,12 @@ impl MediaPipeline {
             Codec::G711PCMU => {
                 self.add_audio_receiver(
                     PCMUDecoder::new(DePacketizer::new(rtp_source)).boxed_cancel_safe(),
+                )
+                .await
+            }
+            Codec::G722 => {
+                self.add_audio_receiver(
+                    G722Decoder::new(DePacketizer::new(rtp_source)).boxed_cancel_safe(),
                 )
                 .await
             }

@@ -940,9 +940,21 @@ dependencies = [
 
 [[package]]
 name = "ezk-g711"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c3c2be850c15a6ec8ac533cfd2df7d43a954b1af4f6f5b42d578295ba476756"
+checksum = "b8b6d1282faf8892023ba2a91e8398c12f039fa0ac12ef884dc50f0fd10f4653"
+dependencies = [
+ "bytes 1.8.0",
+ "ezk",
+ "ezk-audio",
+ "ezk-rtp",
+]
+
+[[package]]
+name = "ezk-g722"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b255b268bb31835375df113a7bd162474f4facd49027861034962e5f90a62168"
 dependencies = [
  "bytes 1.8.0",
  "ezk",
@@ -973,9 +985,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-rtp"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31f25a91ddbd1541876315a541e466c2feec56c13a91c0df0c647e2f1b7f6301"
+checksum = "c88ed6c2d251d6411e3c10df8e0a78767804894515e664a49142e53db4ac9126"
 dependencies = [
  "arrayvec",
  "bytes 1.8.0",
@@ -2474,6 +2486,7 @@ dependencies = [
  "ezk-audio",
  "ezk-audio-nodes",
  "ezk-g711",
+ "ezk-g722",
  "ezk-image",
  "ezk-rtp",
  "ezk-sdp-types",

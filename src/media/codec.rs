@@ -29,6 +29,7 @@ impl PartialEq<SdpMediaType> for MediaType {
 pub enum Codec {
     G711PCMA,
     G711PCMU,
+    G722,
 
     H264,
 }
@@ -36,7 +37,7 @@ pub enum Codec {
 impl Codec {
     pub fn media_type(&self) -> MediaType {
         match self {
-            Codec::G711PCMA | Codec::G711PCMU => MediaType::Audio,
+            Codec::G711PCMA | Codec::G711PCMU | Codec::G722 => MediaType::Audio,
             Codec::H264 => MediaType::Video,
         }
     }
@@ -45,13 +46,14 @@ impl Codec {
         match self {
             Codec::G711PCMA => "PCMA",
             Codec::G711PCMU => "PCMU",
+            Codec::G722 => "G722",
             Codec::H264 => "H264",
         }
     }
 
     pub fn clock_rate(&self) -> u32 {
         match self {
-            Codec::G711PCMA | Codec::G711PCMU => 8000,
+            Codec::G711PCMA | Codec::G711PCMU | Codec::G722 => 8000,
             Codec::H264 => 90_000,
         }
     }
