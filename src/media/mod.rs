@@ -84,9 +84,12 @@ pub enum MediaEvent {
     DtmfDigit(u8),
 }
 
-pub type VideoSinks = Arc<Mutex<HashMap<MediaSessionId, Box<dyn FnMut(&[u8]) + Send>>>>;
+pub type ToCallerVideoSinks = Arc<Mutex<HashMap<MediaSessionId, Box<dyn FnMut(&[u8]) + Send>>>>;
 
-#[allow(clippy::type_complexity)]
+/// Livekit video track for every video stream received from the caller
+pub type ToConferenceVideoTracks =
+    Arc<RwLock<HashMap<MediaSessionId, Option<(TrackSid, NativeVideoSource)>>>>;
+
 pub struct MediaPipeline {
     settings: Arc<Settings>,
 
@@ -94,23 +97,22 @@ pub struct MediaPipeline {
 
     rtp_sessions: RtpSessions,
 
-    subscriber_audio_mixer: AccessHandle<AudioMixer>,
-    subscriber_audio_tx: Arc<Mutex<HashMap<MediaSessionId, mpsc::Sender<Frame<RawAudio>>>>>,
-    subscriber_audio_mixer_task: JoinHandle<()>,
-
     // pre-join UI controller
     pub(super) ui_controller: video::ui::UiController,
 
-    // obelisk -> phone video sinks. One sink for every video sender.
-    subscriber_video_tx: VideoSinks,
+    // conference -> obelisk -> caller
+    to_caller_audio_mixer: AccessHandle<AudioMixer>,
+    to_caller_audio_mixer_task: JoinHandle<()>,
+    to_caller_audio_subscriber: Arc<Mutex<HashMap<MediaSessionId, mpsc::Sender<Frame<RawAudio>>>>>,
 
-    // maps RTP receiver to livekit publish video sources
-    // This publishes a separate livekit track for every incoming (phone -> obelisk) video stream
-    publish_video_tx: Arc<RwLock<HashMap<MediaSessionId, Option<(TrackSid, NativeVideoSource)>>>>,
+    to_caller_video_sinks: ToCallerVideoSinks,
 
-    publish_audio_mixer: AccessHandle<AudioMixer>,
-    publish_audio_tx: Arc<Mutex<Option<NativeAudioSource>>>,
-    publish_audio_mixer_task: JoinHandle<()>,
+    // caller -> obelisk -> conference
+    to_conference_audio_mixer: AccessHandle<AudioMixer>,
+    to_conference_audio_mixer_task: JoinHandle<()>,
+    to_conference_audio_track: Arc<Mutex<Option<NativeAudioSource>>>,
+
+    to_conference_video_tracks: ToConferenceVideoTracks,
 
     pub(crate) events_tx: mpsc::UnboundedSender<MediaEvent>,
     events_rx: mpsc::UnboundedReceiver<MediaEvent>,
@@ -124,20 +126,20 @@ impl MediaPipeline {
     pub async fn new(settings: Arc<Settings>) -> Result<(Self, TrackController)> {
         let (events_tx, events_rx) = mpsc::unbounded_channel();
 
-        // [compositor + ] obelisk -> phone
+        // [conference ->] obelisk -> phone
         let track_source = TrackSource::new();
         let track_controller = track_source.controller();
 
-        let (subscriber_audio_mixer, subscriber_audio_mixer_access_handle) =
+        let (subscriber_audio_mixer, to_caller_audio_mixer) =
             Access::new(AudioMixer::new(track_source));
 
-        let subscriber_audio_tx: Arc<
+        let to_caller_audio_subscriber: Arc<
             Mutex<HashMap<MediaSessionId, mpsc::Sender<Frame<RawAudio>>>>,
         > = Arc::default();
-        let subscriber_audio_tx_ = subscriber_audio_tx.clone();
-        let subscriber_audio_mixer_task =
+        let subscriber = to_caller_audio_subscriber.clone();
+        let to_caller_audio_mixer_task =
             tokio::spawn(audio_mixer_task(subscriber_audio_mixer, move |frame| {
-                let x = subscriber_audio_tx_.clone();
+                let x = subscriber.clone();
 
                 async move {
                     for tx in x.lock().await.values() {
@@ -149,17 +151,18 @@ impl MediaPipeline {
             }));
 
         // phone -> obelisk -> conference
-        let (publish_audio_mixer, publish_audio_mixer_access_handle) =
+        let (audio_mixer, to_conference_audio_mixer) =
             Access::new(AudioMixer::new(Silence::default()));
-        let publish_audio_tx: Arc<Mutex<Option<NativeAudioSource>>> = Arc::default();
-        let publish_audio_tx_ = publish_audio_tx.clone();
-        let publish_audio_mixer_task = tokio::spawn(audio_mixer_task(
-            publish_audio_mixer,
+        let to_conference_audio_track: Arc<Mutex<Option<NativeAudioSource>>> = Arc::default();
+
+        let audio_track = to_conference_audio_track.clone();
+        let to_conference_audio_mixer_task = tokio::spawn(audio_mixer_task(
+            audio_mixer,
             move |frame| {
-                let publish_audio_tx_ = publish_audio_tx_.clone();
+                let audio_track = audio_track.clone();
 
                 async move {
-                    if let Some(source) = &*publish_audio_tx_.lock().await {
+                    if let Some(source) = &*audio_track.lock().await {
                         let Samples::I16(samples) = frame.into_data().samples else {
                             unreachable!("Cannot receive non-i16 audio samples in audio_mixer_task's on_frame")
                         };
@@ -187,8 +190,8 @@ impl MediaPipeline {
             }
         });
 
-        let video_tx = VideoSinks::default();
-        let ui_controller = video::ui::spawn_ui_thread(video_tx.clone());
+        let to_caller_video_sinks = ToCallerVideoSinks::default();
+        let ui_controller = video::ui::spawn_ui_thread(to_caller_video_sinks.clone());
 
         let this = Self {
             settings,
@@ -197,18 +200,18 @@ impl MediaPipeline {
 
             rtp_sessions,
 
-            subscriber_audio_mixer: subscriber_audio_mixer_access_handle,
-            subscriber_audio_tx,
-            subscriber_audio_mixer_task,
+            to_caller_audio_mixer,
+            to_caller_audio_subscriber,
+            to_caller_audio_mixer_task,
 
             ui_controller,
 
-            subscriber_video_tx: video_tx,
-            publish_video_tx: Arc::default(),
+            to_caller_video_sinks,
+            to_conference_video_tracks: Arc::default(),
 
-            publish_audio_mixer: publish_audio_mixer_access_handle,
-            publish_audio_tx,
-            publish_audio_mixer_task,
+            to_conference_audio_mixer,
+            to_conference_audio_track,
+            to_conference_audio_mixer_task,
 
             events_tx,
             events_rx,
@@ -229,13 +232,13 @@ impl MediaPipeline {
                 "obelisk",
                 Box::new(CompositorObeliskBridgeSink {
                     audio_tx,
-                    video_tx: self.subscriber_video_tx.clone(),
+                    to_caller_video_sinks: self.to_caller_video_sinks.clone(),
                 }),
             )
             .await
             .context("Failed to add obelisk sink to compositor")?;
 
-        self.subscriber_audio_mixer
+        self.to_caller_audio_mixer
             .access(|audio_mixer| {
                 audio_mixer.add_source(AudioMpscSource { rx: audio_rx });
             })
@@ -263,14 +266,14 @@ impl MediaPipeline {
             .await
             .context("Failed to publish audio track")?;
 
-        *self.publish_audio_tx.lock().await = Some(audio_source);
+        *self.to_conference_audio_track.lock().await = Some(audio_source);
 
         // Video
-        let mut publish_video_tx = self.publish_video_tx.write().await;
-        for publish_video_source in publish_video_tx.values_mut() {
-            let video_source = livekit_publish_video(&local_participant).await?;
+        let mut to_conference_video_tracks = self.to_conference_video_tracks.write().await;
+        for video_track in to_conference_video_tracks.values_mut() {
+            let (track_sid, video_source) = livekit_publish_video(&local_participant).await?;
 
-            *publish_video_source = Some(video_source);
+            *video_track = Some((track_sid, video_source));
         }
 
         self.compositor = Some(compositor);
@@ -319,7 +322,10 @@ impl MediaPipeline {
             codec::MediaType::Audio => {
                 let (tx, rx) = mpsc::channel(8);
 
-                self.subscriber_audio_tx.lock().await.insert(session_id, tx);
+                self.to_caller_audio_subscriber
+                    .lock()
+                    .await
+                    .insert(session_id, tx);
 
                 let audio_source = AudioConvert::new(AudioMpscSource { rx });
 
@@ -412,7 +418,7 @@ impl MediaPipeline {
             }
         });
 
-        self.subscriber_video_tx
+        self.to_caller_video_sinks
             .lock()
             .await
             .insert(session_id, on_video_frame);
@@ -427,8 +433,11 @@ impl MediaPipeline {
     pub async fn remove_sender(&mut self, session_id: MediaSessionId) -> Result<()> {
         log::debug!("remove sender session_id={session_id}");
 
-        self.subscriber_video_tx.lock().await.remove(&session_id);
-        self.subscriber_audio_tx.lock().await.remove(&session_id);
+        self.to_caller_video_sinks.lock().await.remove(&session_id);
+        self.to_caller_audio_subscriber
+            .lock()
+            .await
+            .remove(&session_id);
 
         self.rtp_sessions
             .remove_sender(session_id)
@@ -497,7 +506,7 @@ impl MediaPipeline {
         session_id: MediaSessionId,
         mut rtp_source: DtmfFilter,
     ) -> Result<()> {
-        let mut video_sources = self.publish_video_tx.write().await;
+        let mut video_sources = self.to_conference_video_tracks.write().await;
 
         if let Some(compositor) = &mut self.compositor {
             video_sources.insert(
@@ -514,7 +523,7 @@ impl MediaPipeline {
         }
 
         let mut h264_dec = H264Decoder::create()?;
-        let video_sources = self.publish_video_tx.clone();
+        let video_sources = self.to_conference_video_tracks.clone();
 
         tokio::spawn(async move {
             loop {
@@ -557,7 +566,7 @@ impl MediaPipeline {
         &mut self,
         audio_source: BoxedSourceCancelSafe<RawAudio>,
     ) -> Result<()> {
-        self.publish_audio_mixer
+        self.to_conference_audio_mixer
             .access(|mixer| {
                 mixer.add_source(AudioConvert::new(audio_source));
             })
@@ -569,7 +578,7 @@ impl MediaPipeline {
         log::debug!("remove receiver session_id={session_id}");
 
         if let Some((track_id, _)) = self
-            .publish_video_tx
+            .to_conference_video_tracks
             .write()
             .await
             .remove(&session_id)
@@ -631,8 +640,8 @@ async fn livekit_publish_video(
 
 impl Drop for MediaPipeline {
     fn drop(&mut self) {
-        self.publish_audio_mixer_task.abort();
-        self.subscriber_audio_mixer_task.abort();
+        self.to_conference_audio_mixer_task.abort();
+        self.to_caller_audio_mixer_task.abort();
 
         self.ui_controller.stop();
     }
@@ -685,7 +694,7 @@ where
 
 struct CompositorObeliskBridgeSink {
     audio_tx: mpsc::Sender<Frame<RawAudio>>,
-    video_tx: VideoSinks,
+    to_caller_video_sinks: ToCallerVideoSinks,
 }
 
 impl fmt::Debug for CompositorObeliskBridgeSink {
@@ -704,9 +713,9 @@ impl opentalk_compositor::Sink for CompositorObeliskBridgeSink {
     }
 
     fn on_video_frame(&mut self, buffer: Vec<u8>) -> Result<()> {
-        let mut video_tx = self.video_tx.blocking_lock();
+        let mut video_sinks = self.to_caller_video_sinks.blocking_lock();
 
-        for callback in video_tx.values_mut() {
+        for callback in video_sinks.values_mut() {
             callback(&buffer);
         }
 

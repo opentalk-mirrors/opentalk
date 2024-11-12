@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::media::VideoSinks;
+use crate::media::ToCallerVideoSinks;
 use ezk_image::PixelFormat;
 use opentalk_compositor::{
     font::{DrawText, I420Image, Point, SimpleText},
@@ -49,7 +49,7 @@ struct UiData {
     join_handle: Option<JoinHandle<()>>,
 }
 
-pub(crate) fn spawn_ui_thread(sinks: VideoSinks) -> UiController {
+pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks) -> UiController {
     let data = Arc::new(Mutex::new(UiData {
         id: String::new(),
         pin: String::new(),
