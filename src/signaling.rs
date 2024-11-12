@@ -146,6 +146,9 @@ impl Signaling {
                         log::error!("failed to handle media event, {:?}", e);
                         self.state = State::Quitting;
                     }
+
+                    // Update pre-conference UI
+                    self.media.ui_controller.set(self.dtmf_id.clone(), self.dtmf_pw.clone());
                 }
                 event = websocket_receive(&mut self.websocket) => {
                     if let Err(e) = self.handle_websocket_event(event, closed_finished_channel_tx.clone()).await {

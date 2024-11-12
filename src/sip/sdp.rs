@@ -11,6 +11,7 @@ use anyhow::{bail, Context, Result};
 use base64::prelude::*;
 use bytes::Bytes;
 use bytesstr::BytesStr;
+use core::fmt;
 use rand::RngCore;
 use sdp_types::{
     Connection, Direction, Fmtp, Media, MediaDescription, MediaType as SdpMediaType, Origin, Rtcp,
@@ -25,12 +26,21 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MediaSessionId(u32);
+
+impl fmt::Display for MediaSessionId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 pub struct SessionState {
     settings: Arc<Settings>,
     pub_ip: IpAddr,
 
-    id: u64,
-    version: u64,
+    sdp_id: u64,
+    sdp_version: u64,
 
     next_media_session_id: Wrapping<u32>,
 
@@ -39,7 +49,7 @@ pub struct SessionState {
 
 pub struct MediaSession {
     // Internal id to avoid doubly matching a media session against a new offer
-    id: u32,
+    id: MediaSessionId,
 
     // Data to match against media streams in incoming offers
     media_type: MediaType,
@@ -100,11 +110,11 @@ pub struct DtmfEvents {
 }
 
 pub enum MediaChange {
-    AddReceiver(u32),
-    RemoveReceiver(u32),
+    AddReceiver(MediaSessionId),
+    RemoveReceiver(MediaSessionId),
 
-    AddSender(u32),
-    RemoveSender(u32),
+    AddSender(MediaSessionId),
+    RemoveSender(MediaSessionId),
 }
 
 impl SessionState {
@@ -118,21 +128,21 @@ impl SessionState {
             settings,
             pub_ip,
 
-            id: now,
-            version: now + 1,
+            sdp_id: now,
+            sdp_version: now + 1,
 
             next_media_session_id: Wrapping::default(),
             media_sessions: vec![],
         }
     }
 
-    fn make_media_session_id(&mut self) -> u32 {
+    fn make_media_session_id(&mut self) -> MediaSessionId {
         let id = self.next_media_session_id;
         self.next_media_session_id += 1;
-        id.0
+        MediaSessionId(id.0)
     }
 
-    pub fn media_by_id(&self, id: u32) -> &MediaSession {
+    pub fn media_by_id(&self, id: MediaSessionId) -> &MediaSession {
         self.media_sessions
             .iter()
             .find(|m| m.id == id)
@@ -192,9 +202,6 @@ impl SessionState {
             dtmf_events: None,
             socket_pair: video_rtp_pair,
         });
-
-        // TODO: remove when re-adding video support
-        self.media_sessions.pop();
 
         Ok(())
     }
@@ -304,13 +311,8 @@ impl SessionState {
     pub async fn receive_offer(&mut self, offer: Bytes) -> Result<Vec<MediaChange>> {
         let offer =
             BytesStr::from_utf8_bytes(offer).context("SDP contains invalid UTF-8 characters")?;
-        let mut offer = SessionDescription::parse(&offer)
+        let offer = SessionDescription::parse(&offer)
             .with_context(|| format!("Failed to parse SDP Offer:\n{offer}"))?;
-
-        // TODO: remove me when re-adding video support
-        offer
-            .media_descriptions
-            .retain(|m| m.media.media_type == SdpMediaType::Audio);
 
         // track which of the current media sessions have been already matched against the new ones
         let mut matched_media_sessions = vec![];
@@ -424,11 +426,11 @@ impl SessionState {
     async fn create_new_session(
         &mut self,
         offer_media: &MediaDescription,
-        matched_media_sessions: &mut Vec<u32>,
+        matched_media_sessions: &mut Vec<MediaSessionId>,
         remote_rtp_addr: SocketAddr,
         remote_rtcp_addr: SocketAddr,
         new_direction: Direction,
-    ) -> Result<(u32, Direction)> {
+    ) -> Result<(MediaSessionId, Direction)> {
         let (media_type, codec) = match offer_media.media.media_type {
             SdpMediaType::Audio => {
                 let codec = choose_audio_codec(offer_media)
@@ -603,8 +605,8 @@ impl SessionState {
             name: BytesStr::from_static("opentalk-obelisk"),
             origin: Origin {
                 username: BytesStr::from_static("-"),
-                session_id: self.id.to_string().into(),
-                session_version: self.version.to_string().into(),
+                session_id: self.sdp_id.to_string().into(),
+                session_version: self.sdp_version.to_string().into(),
                 address: self.pub_ip.into(),
             },
             time: Time { start: 0, stop: 0 },

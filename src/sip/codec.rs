@@ -28,7 +28,6 @@ impl SdpRecvCodec {
 
 /// Describes the codec used to send audio/video and how to packetize it
 #[derive(Debug, Clone)]
-#[allow(dead_code)] // TODO: required for video support
 pub struct SdpSendCodec {
     /// RTP payload number to recognize the codec by
     pub payload: u8,
@@ -39,13 +38,15 @@ pub struct SdpSendCodec {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)] // TODO: required for video support
+#[allow(dead_code)]
 pub enum SdpSendCodecParams {
     None,
     H264 {
         width: u32,
         height: u32,
+        #[allow(dead_code)] // TODO: fps limiting
         fps: u32,
+        #[allow(dead_code)] // TODO: h264 profiles
         profile: String,
     },
 }
