@@ -52,7 +52,7 @@ pub enum SdpSendCodecParams {
 }
 
 pub fn choose_audio_codec(offer: &MediaDescription) -> Option<SdpSendCodec> {
-    let codecs = [(8, Codec::G711PCMA), (0, Codec::G711PCMU)];
+    let codecs = [(9, Codec::G722), (8, Codec::G711PCMA), (0, Codec::G711PCMU)];
 
     for (pt, codec) in codecs {
         // first check all payload numbers in the m= line
@@ -73,6 +73,10 @@ pub fn choose_audio_codec(offer: &MediaDescription) -> Option<SdpSendCodec> {
 
 pub fn offer_all_audio_codecs() -> Vec<SdpRecvCodec> {
     vec![
+        SdpRecvCodec {
+            payload: 9,
+            codec: Codec::G722,
+        },
         SdpRecvCodec {
             payload: 8,
             codec: Codec::G711PCMA,
