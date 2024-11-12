@@ -4,7 +4,7 @@
 
 use crate::{
     settings::Settings,
-    sip::{SdpRecvCodec, SdpSendCodec, SdpSendCodecParams, SrtpInfo},
+    sip::{MediaSessionId, SdpRecvCodec, SdpSendCodec, SdpSendCodecParams, SrtpInfo},
 };
 use anyhow::{Context, Result};
 use codec::Codec;
@@ -84,7 +84,7 @@ pub enum MediaEvent {
     DtmfDigit(u8),
 }
 
-pub type VideoSinks = Arc<Mutex<HashMap<u32, Box<dyn FnMut(&[u8]) + Send>>>>;
+pub type VideoSinks = Arc<Mutex<HashMap<MediaSessionId, Box<dyn FnMut(&[u8]) + Send>>>>;
 
 #[allow(clippy::type_complexity)]
 pub struct MediaPipeline {
@@ -95,7 +95,7 @@ pub struct MediaPipeline {
     rtp_sessions: RtpSessions,
 
     subscriber_audio_mixer: AccessHandle<AudioMixer>,
-    subscriber_audio_tx: Arc<Mutex<HashMap<u32, mpsc::Sender<Frame<RawAudio>>>>>,
+    subscriber_audio_tx: Arc<Mutex<HashMap<MediaSessionId, mpsc::Sender<Frame<RawAudio>>>>>,
     subscriber_audio_mixer_task: JoinHandle<()>,
 
     // pre-join UI controller
@@ -106,7 +106,7 @@ pub struct MediaPipeline {
 
     // maps RTP receiver to livekit publish video sources
     // This publishes a separate livekit track for every incoming (phone -> obelisk) video stream
-    publish_video_tx: Arc<RwLock<HashMap<u32, Option<(TrackSid, NativeVideoSource)>>>>,
+    publish_video_tx: Arc<RwLock<HashMap<MediaSessionId, Option<(TrackSid, NativeVideoSource)>>>>,
 
     publish_audio_mixer: AccessHandle<AudioMixer>,
     publish_audio_tx: Arc<Mutex<Option<NativeAudioSource>>>,
@@ -131,8 +131,9 @@ impl MediaPipeline {
         let (subscriber_audio_mixer, subscriber_audio_mixer_access_handle) =
             Access::new(AudioMixer::new(track_source));
 
-        let subscriber_audio_tx: Arc<Mutex<HashMap<u32, mpsc::Sender<Frame<RawAudio>>>>> =
-            Arc::default();
+        let subscriber_audio_tx: Arc<
+            Mutex<HashMap<MediaSessionId, mpsc::Sender<Frame<RawAudio>>>>,
+        > = Arc::default();
         let subscriber_audio_tx_ = subscriber_audio_tx.clone();
         let subscriber_audio_mixer_task =
             tokio::spawn(audio_mixer_task(subscriber_audio_mixer, move |frame| {
@@ -304,7 +305,7 @@ impl MediaPipeline {
     #[allow(clippy::too_many_arguments)]
     pub async fn add_sender(
         &mut self,
-        session_id: u32,
+        session_id: MediaSessionId,
         srtp: Option<&SrtpInfo>,
         codec: &SdpSendCodec,
         rtp_socket: Arc<UdpSocket>,
@@ -353,7 +354,7 @@ impl MediaPipeline {
 
     async fn create_h264_sender(
         &mut self,
-        session_id: u32,
+        session_id: MediaSessionId,
         codec: &SdpSendCodec,
     ) -> Result<BoxedSourceCancelSafe<ezk_rtp::Rtp>> {
         assert_eq!(codec.codec, Codec::H264);
@@ -423,7 +424,7 @@ impl MediaPipeline {
         .boxed_cancel_safe())
     }
 
-    pub async fn remove_sender(&mut self, session_id: u32) -> Result<()> {
+    pub async fn remove_sender(&mut self, session_id: MediaSessionId) -> Result<()> {
         log::debug!("remove sender session_id={session_id}");
 
         self.subscriber_video_tx.lock().await.remove(&session_id);
@@ -438,7 +439,7 @@ impl MediaPipeline {
     #[allow(clippy::too_many_arguments)]
     pub async fn add_receiver(
         &mut self,
-        session_id: u32,
+        session_id: MediaSessionId,
         srtp: Option<&SrtpInfo>,
         codec: &SdpRecvCodec,
         dtmf: Option<(u8, mpsc::UnboundedSender<MediaEvent>)>,
@@ -493,7 +494,7 @@ impl MediaPipeline {
 
     async fn create_h264_receiver(
         &mut self,
-        session_id: u32,
+        session_id: MediaSessionId,
         mut rtp_source: DtmfFilter,
     ) -> Result<()> {
         let mut video_sources = self.publish_video_tx.write().await;
@@ -564,7 +565,7 @@ impl MediaPipeline {
             .context("Failed to add receiver to audio mixer")
     }
 
-    pub async fn remove_receiver(&mut self, session_id: u32) -> Result<()> {
+    pub async fn remove_receiver(&mut self, session_id: MediaSessionId) -> Result<()> {
         log::debug!("remove receiver session_id={session_id}");
 
         if let Some((track_id, _)) = self

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::sip::SrtpInfo;
+use crate::sip::{MediaSessionId, SrtpInfo};
 use anyhow::{ensure, Context, Result};
 use ezk::{BoxedSourceCancelSafe, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange};
 use ezk_rtp::{rtcp_types::Compound, Rtp, RtpConfig, RtpConfigRange, RtpPacket, Session};
@@ -17,7 +17,7 @@ use tokio::{
 
 pub struct RtpSessions {
     on_err: Arc<Box<dyn Fn() + Send + Sync>>,
-    sessions: HashMap<u32, Entry>,
+    sessions: HashMap<MediaSessionId, Entry>,
 }
 
 #[derive(Debug)]
@@ -38,7 +38,7 @@ impl RtpSessions {
     #[allow(clippy::too_many_arguments)]
     pub async fn add_sender(
         &mut self,
-        session_id: u32,
+        session_id: MediaSessionId,
         srtp: Option<&SrtpInfo>,
         clock_rate: u32,
         payload: u8,
@@ -80,7 +80,7 @@ impl RtpSessions {
         Ok(())
     }
 
-    pub async fn remove_sender(&mut self, session_id: u32) -> Result<()> {
+    pub async fn remove_sender(&mut self, session_id: MediaSessionId) -> Result<()> {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             session.has_sender = false;
             session
@@ -97,7 +97,7 @@ impl RtpSessions {
     #[allow(clippy::too_many_arguments)]
     pub async fn add_receiver(
         &mut self,
-        session_id: u32,
+        session_id: MediaSessionId,
         srtp: Option<&SrtpInfo>,
         clock_rate: u32,
         payload: u8,
@@ -135,7 +135,7 @@ impl RtpSessions {
         Ok(RtpMpscSource { rx, pt: payload })
     }
 
-    pub async fn remove_receiver(&mut self, session_id: u32) -> Result<()> {
+    pub async fn remove_receiver(&mut self, session_id: MediaSessionId) -> Result<()> {
         if let Some(session) = self.sessions.get_mut(&session_id) {
             session.has_receiver = false;
             session
@@ -152,7 +152,7 @@ impl RtpSessions {
     #[allow(clippy::too_many_arguments)]
     fn get_or_create_session(
         &mut self,
-        session_id: u32,
+        session_id: MediaSessionId,
         srtp: Option<&SrtpInfo>,
         clock_rate: u32,
         rtp_socket: Arc<UdpSocket>,

@@ -37,7 +37,7 @@ mod sdp;
 mod update;
 
 pub use codec::{SdpRecvCodec, SdpSendCodec, SdpSendCodecParams};
-pub use sdp::{MediaSessionState, SessionState, SrtpInfo};
+pub use sdp::{MediaSessionId, MediaSessionState, SessionState, SrtpInfo};
 pub use update::handle_reinvite;
 
 struct AppData {
