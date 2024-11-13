@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0]
+
+### 🚀 New features
+
+- Check if the host system supports avx ([!136](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/136))
+
+### 🐛 Bug fixes
+
+- Only subscribe screenshare when call uses video ([!166](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/1166))
+
+### 🔨 Refactor
+
+- Rewrite media pipeline using livekit & ezk, removing GStreamer ([!171](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/171))
+
+### 📦 Dependencies
+
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.82.0 ([!164](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/164))
+
+### ⚙ Miscellaneous
+
+- Migrate to new reuse config format ([!165](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/165))
+
+### Ci
+
+- Introduce changelog bot ([!165](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/165))
+- Enforce toml formatting ([!167](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/167))
+- (fix) Don't lint commits on main ([!170](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/170))
+
 ## [0.11.1]
 
 ### 🐛 Bug fixes
@@ -234,6 +262,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.0-internal-release.1] 2022-06-23
 
 initial release candidate
+
+[0.15.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.11.0...v0.15.0
 
 [0.11.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.11.0...0.11.1
 [0.11.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.10.0...0.11.0
