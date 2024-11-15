@@ -14,4 +14,5 @@ title: Obelisk
 
 - [Auth](auth.md)
 - [Controller](controller.md)
+- [Monitoring](configuration/monitoring.md)
 - [SIP Provider](sip.md)

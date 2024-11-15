@@ -6,7 +6,7 @@ use config::{Config, ConfigError, Environment, File, FileFormat};
 use openidconnect::{ClientId, ClientSecret, IssuerUrl};
 use opentalk_compositor::ClockFormat;
 use serde::Deserialize;
-use std::time::Duration;
+use std::{net::IpAddr, time::Duration};
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
@@ -14,6 +14,7 @@ pub struct Settings {
     pub clock_format: ClockFormat,
 
     pub auth: AuthSettings,
+    pub monitoring: Option<MonitoringSettings>,
     pub controller: ControllerSettings,
     pub sip: SipSettings,
 }
@@ -86,6 +87,22 @@ pub struct ControllerSettings {
     pub domain: String,
     #[serde(default)]
     pub insecure: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct MonitoringSettings {
+    #[serde(default = "default_monitoring_port")]
+    pub(crate) port: u16,
+    #[serde(default = "default_monitoring_addr")]
+    pub(crate) addr: IpAddr,
+}
+
+fn default_monitoring_port() -> u16 {
+    11411
+}
+
+fn default_monitoring_addr() -> IpAddr {
+    [0, 0, 0, 0].into()
 }
 
 #[derive(Debug, Deserialize)]
