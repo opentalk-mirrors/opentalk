@@ -19,9 +19,9 @@ use tt::tungstenite::protocol::CloseFrame;
 use tt::tungstenite::Message;
 use tt::MaybeTlsStream;
 use tt::WebSocketStream;
-use types::core::ParticipantId;
-use types::signaling::control::state::ControlState;
-use types::signaling::control::AssociatedParticipant;
+use types_signaling::AssociatedParticipant;
+use types_signaling::ParticipantId;
+use types_signaling_control::state::ControlState;
 
 /// Newtype wrapper for the signaling ticket
 pub struct Ticket(pub String);
