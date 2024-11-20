@@ -4,10 +4,11 @@
 
 use crate::http::HttpClient;
 use crate::media::{MediaPipeline, Track};
-use crate::settings::{Settings, SipRegistrarSettings};
+use crate::settings::{MonitoringSettings, Settings, SipRegistrarSettings};
 use crate::signaling::Signaling;
 use anyhow::{bail, Context, Result};
 use bytesstr::BytesStr;
+use service_probe::{set_service_state, start_probe, ServiceState};
 use sip_auth::digest::{DigestAuthenticator, DigestCredentials};
 use sip_auth::{CredentialStore, RequestParts, UacAuthSession};
 use sip_core::transport::tcp::TcpConnector;
@@ -216,6 +217,10 @@ impl AppLayer {
 /// On shutdown it sends a shutdown signal to all active tasks shutting down all calls gracefully
 /// and un-registering from the SIP registrar
 pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
+    if let Some(MonitoringSettings { port, addr }) = settings.monitoring {
+        start_probe(addr, port).await?;
+    }
+
     let mut builder = Endpoint::builder();
 
     let dialog_layer = builder.add_layer(DialogLayer::default());
@@ -496,6 +501,7 @@ async fn register_with_registrar(
             )
             .await
             {
+                set_service_state(ServiceState::Up);
                 log::error!("Failed to refresh binding, {e:?}");
             }
         }
@@ -511,6 +517,7 @@ async fn register_with_registrar(
         )
         .await
         {
+            set_service_state(ServiceState::Up);
             log::error!("Failed to remove binding, {e:?}")
         }
     });
@@ -547,7 +554,7 @@ async fn register(
                 if !remove_binding {
                     registration.receive_success_response(response);
                 }
-
+                set_service_state(ServiceState::Ready);
                 return Ok(());
             }
             401 | 407 => auth_sess.handle_authenticate(
