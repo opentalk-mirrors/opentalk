@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0]
+
+### 🚀 New features
+
+- Re-add H.264 video support ([!177](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/177))
+- Re-add G.722 audio codec support ([!179](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/179))
+
+### 📦 Dependencies
+
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.82.0 ([!174](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/174))
+- (deps) Update rust crate thiserror to v2 ([!176](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/176))
+
 ## [0.15.0]
 
 ### 🚀 New features
@@ -262,6 +274,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.0-internal-release.1] 2022-06-23
 
 initial release candidate
+
+[0.16.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.15.0...v0.16.0
 
 [0.15.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.11.0...v0.15.0
 
