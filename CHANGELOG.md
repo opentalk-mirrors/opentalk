@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2024-11-21
+
+[0.17.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.16.0...v0.17.0
+
+### 🚀 New features
+
+- Add an endpoint to determine the readiness of the service ([!183](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/183))
+
+### 📦 Dependencies
+
+- (deps) Update rust crate types to 0.27.0 ([!162](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/162))
+- (deps) Update rust crate `service-probe` to version 0.1.1 ([!162](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/162))
+
 ## [0.16.0]
+
+[0.16.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.15.0...v0.16.0
 
 ### 🚀 New features
 
@@ -18,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (deps) Update rust crate thiserror to v2 ([!176](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/176))
 
 ## [0.15.0]
+
+[0.15.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.11.0...v0.15.0
 
 ### 🚀 New features
 
@@ -47,11 +64,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.11.1]
 
+[0.11.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.11.0...0.11.1
+
 ### 🐛 Bug fixes
 
 - Only subscribe screenshare when call uses video ([!166](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/166))
 
 ## [0.11.0]
+
+[0.11.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.10.0...0.11.0
 
 ### 🚀 New features
 
@@ -81,6 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.10.1]
 
+[0.10.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.10.0...v0.10.1
+
 ### 🐛 Bug fixes
 
 - negotiate valid DTMF digit range ([#119](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/119))
@@ -89,7 +112,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - update openssl rust crate to 0.10.66 (fixes `RUSTSEC-2024-0357`)
 
+## [0.10.0]
+
+[0.10.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.9.0...v0.10.0
+
+### 🚀 New features
+
+- Show screen shares in video calls ([!121](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/121))
+
+### 🐛 Bug fixes
+
+- Use compositor's add_watch_to_sink instead of registering own watcher ([!143](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/143))
+
+### ⚙ Miscellaneous
+
+- Update gstreamer to 0.23
+
 ## [0.9.1]
+
+[0.9.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.9.0...v0.9.1
 
 ### 🐛 Bug fixes
 
@@ -101,6 +142,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - update bytes rust crate 1.7.1 (1.6.0 has been yanked from crates.io)
 
 ## [0.9.0]
+
+[0.9.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.8.0...v0.9.0
 
 ### 🚀 New features
 
@@ -123,8 +166,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use image with fixed rust version
 - Call `cargo-deny` with `--deny unmatched-skip --deny license-not-encountered` ([#104](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/104))
 
-
 ## [0.8.0]
+
+[0.8.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.7.0...v0.8.0
 
 ### Added
 
@@ -138,6 +182,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.2]
 
+[0.7.2]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.7.1...v0.7.2
+
 ### Fixed
 
 - RUSTSEC-2024-0019 by updating mio to 0.8.11
@@ -146,12 +192,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.1]
 
+[0.7.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.7.0...v0.7.1
+
 ### Fixed
 
 - Use generated contact instead of id in invite sessions ([#75](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/75))
 - Revert mute by default and redo usage message ([#74](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/74))
 
 ## [0.7.0]
+
+[0.7.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.5.0...v0.7.0
 
 ### Changed
 
@@ -169,6 +219,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.0] - 2023-10-30
 
+[0.5.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.4.0...v0.5.0
+
 ### Added
 
 - Add support for SIP over TCP or TLS ([!75](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/75))
@@ -181,6 +233,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Handle 423 error responses from SIP registration requests properly ([!75](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/75))
 
 ## [0.4.0] - 2023-08-24
+
+[0.4.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.3.0...v0.4.0
 
 ### Added
 
@@ -196,6 +250,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0] - 2023-06-27
 
+[0.3.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.2.0...v0.3.0
+
 ### Added
 
 - Added a config `sip.id` to allow overriding the obelisk's SIP ID
@@ -208,6 +264,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.1] - 2023-05-30
 
+[0.2.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.2.0...v0.2.1
+
 - Added a config `sip.id` to allow overriding the obelisk's SIP ID
 
 ### Added
@@ -215,6 +273,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a config `sip.id` to allow overriding the obelisk's SIP ID
 
 ## [0.2.0] - 2023-04-17
+
+[0.2.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.1.0...v0.2.0
 
 ### Added
 
@@ -228,11 +288,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.1] - 2023-03-21
 
+[0.1.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.1.0...v0.1.1
+
 ### Fixed
 
 - Fixed overlapping of room audio while welcome message is played back. ([#34](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/34))
 
 ## [0.1.0] - 2023-03-01
+
+[0.1.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/0.0.0-internal-release.4...v0.1.0
 
 ### Added
 
@@ -251,6 +315,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.0-internal-release.4] - 2022-12-02
 
+[0.0.0-internal-release.4]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/b5d50ad8882992177bbd40a828101bf3837ea8f4...a71fc807cdc848b628f1730e44df2ca7d4b11012
+
 ### Added
 
 - implement service authentication using the client_credentials flow
@@ -261,11 +327,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.0-internal-release.3] 2022-09-06
 
+[0.0.0-internal-release.3]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/bb85fa8bac24cd5fcd0a95270452d490bbb372dc...b5d50ad8882992177bbd40a828101bf3837ea8f4
+
 ### Fixed
 
 - Wait for the publish webrtc-connection to be established before announcing it on the signaling layer, resolving a race-condition where peers would try to subscribe too soon
 
 ## [0.0.0-internal-release.2] 2022-06-24
+
+[0.0.0-internal-release.2]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/98a54d32300aaf358f4e0e5cc76a2ee44aa0c10f...bb85fa8bac24cd5fcd0a95270452d490bbb372dc
 
 ### Fixed
 
@@ -273,40 +343,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.0-internal-release.1] 2022-06-23
 
-initial release candidate
-
-[0.16.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.15.0...v0.16.0
-
-[0.15.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.11.0...v0.15.0
-
-[0.11.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.11.0...0.11.1
-[0.11.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.10.0...0.11.0
-
-[0.10.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.10.0...v0.10.1
-[0.10.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.9.0...v0.10.0
-
-[0.9.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.9.0...v0.9.1
-[0.9.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.8.0...v0.9.0
-
-[0.8.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.7.0...v0.8.0
-
-[0.7.2]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.7.1...v0.7.2
-[0.7.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.7.0...v0.7.1
-[0.7.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.5.0...v0.7.0
-
-[0.5.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.4.0...v0.5.0
-
-[0.4.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.3.0...v0.4.0
-
-[0.3.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.2.0...v0.3.0
-
-[0.2.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.2.0...v0.2.1
-[0.2.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.1.0...v0.2.0
-
-[0.1.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.1.0...v0.1.1
-[0.1.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/0.0.0-internal-release.4...v0.1.0
-
-[0.0.0-internal-release.4]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/b5d50ad8882992177bbd40a828101bf3837ea8f4...a71fc807cdc848b628f1730e44df2ca7d4b11012
-[0.0.0-internal-release.3]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/bb85fa8bac24cd5fcd0a95270452d490bbb372dc...b5d50ad8882992177bbd40a828101bf3837ea8f4
-[0.0.0-internal-release.2]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/98a54d32300aaf358f4e0e5cc76a2ee44aa0c10f...bb85fa8bac24cd5fcd0a95270452d490bbb372dc
 [0.0.0-internal-release.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/commits/98a54d32300aaf358f4e0e5cc76a2ee44aa0c10f
+
+initial release candidate
