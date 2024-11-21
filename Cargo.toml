@@ -55,7 +55,8 @@ thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "signal"] }
 tokio-native-tls = "0.3.1"
 tt = { package = "tokio-tungstenite", version = "0.20", features = ["rustls-tls-native-roots"] }
-types = { package = "opentalk-types", version = "0.19.0", features = ["rand", "serde"] }
+types-signaling = { package = "opentalk-types-signaling", version = "0.27.0", features = ["serde"] }
+types-signaling-control = { package = "opentalk-types-signaling-control", version = "0.27.0", features = ["serde"] }
 webrtc-sys = "0.3"
 
 [patch.crates-io]

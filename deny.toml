@@ -41,12 +41,6 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 # The lint level for crates that have been yanked from their source registry
 ignore = [
   "RUSTSEC-2023-0071",
-
-  # proc-macro-error is unmaintained
-  #
-  # This is a transitive dependency of this project.
-  # We need to wait for our dependencies to fix this by switching themselves.
-  "RUSTSEC-2024-0370",
 ] # A list of advisory IDs to ignore. Note that ignored advisories will still
 yanked = "deny"
 # output a note when they are encountered.
@@ -174,11 +168,9 @@ skip = [
   { name = "http-body", version = "=0.4.6" },
   { name = "hyper", version = "=0.14.31" },
   { name = "idna", version = "=0.4.0" },
-  { name = "idna", version = "=0.5.0" },
   { name = "itertools", version = "0.10.5" },
   { name = "itertools", version = "0.11.0" },
   { name = "itertools", version = "0.12.1" },
-  { name = "syn", version = "1" },
   { name = "thiserror", version = "1" },
   { name = "thiserror-impl", version = "1" },
 ]
