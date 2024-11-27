@@ -8,7 +8,7 @@ use once_cell::sync::OnceCell;
 use rand::prelude::IteratorRandom;
 use std::collections::BTreeSet;
 use std::io::ErrorKind;
-use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::Arc;
 use stun_types::attributes::{MappedAddress, Software, XorMappedAddress};
 use stun_types::builder::MessageBuilder;
@@ -18,6 +18,21 @@ use tokio::net::{lookup_host, UdpSocket};
 use tokio::sync::Mutex;
 
 static INSTANCE: OnceCell<PortPool> = OnceCell::new();
+
+#[derive(Debug, Clone, Copy)]
+pub enum AddressFamily {
+    V4,
+    V6,
+}
+
+impl AddressFamily {
+    pub fn of(ip: IpAddr) -> AddressFamily {
+        match ip {
+            IpAddr::V4(_) => AddressFamily::V4,
+            IpAddr::V6(_) => AddressFamily::V6,
+        }
+    }
+}
 
 // Contains the rtp as well as the related rtcp socket
 pub struct SocketPair {
@@ -93,7 +108,10 @@ impl PortPool {
     /// This avoids contention under heavy load (many open connections)
     ///
     /// Returns Ok(None) when no more ports are available
-    pub async fn create_rtp_socket_pair(&self) -> Result<Option<SocketPair>> {
+    pub async fn create_rtp_socket_pair(
+        &self,
+        address_family: AddressFamily,
+    ) -> Result<Option<SocketPair>> {
         let mut failed_pairs = vec![];
 
         let mut used_pairs = self.used_pairs.lock().await;
@@ -115,7 +133,7 @@ impl PortPool {
             let rtp_port = self.port_start + (pair * 2);
             let rtcp_port = rtp_port + 1;
 
-            let rtp_socket = match create_udp_socket(rtp_port).await? {
+            let rtp_socket = match create_udp_socket(rtp_port, address_family).await? {
                 Some(rtp_socket) => rtp_socket,
                 None => {
                     failed_pairs.push(pair);
@@ -123,7 +141,7 @@ impl PortPool {
                 }
             };
 
-            let rtcp_socket = match create_udp_socket(rtcp_port).await? {
+            let rtcp_socket = match create_udp_socket(rtcp_port, address_family).await? {
                 Some(rtcp_socket) => rtcp_socket,
                 None => {
                     failed_pairs.push(pair);
@@ -178,8 +196,13 @@ impl PortPool {
 /// Creates a new udp socket with the provided port
 ///
 /// Returns Ok(None) if the provided port is already in use
-async fn create_udp_socket(port: u16) -> Result<Option<UdpSocket>> {
-    match UdpSocket::bind(format!("0.0.0.0:{port}")).await {
+async fn create_udp_socket(port: u16, address_family: AddressFamily) -> Result<Option<UdpSocket>> {
+    let ip = match address_family {
+        AddressFamily::V4 => Ipv4Addr::UNSPECIFIED.into(),
+        AddressFamily::V6 => Ipv6Addr::UNSPECIFIED.into(),
+    };
+
+    match UdpSocket::bind(SocketAddr::new(ip, port)).await {
         Ok(socket) => Ok(Some(socket)),
         Err(e) if e.kind() == ErrorKind::AddrInUse => Ok(None),
         Err(e) => Err(anyhow!(e)),

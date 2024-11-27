@@ -65,7 +65,7 @@ mod rtp;
 mod track;
 mod video;
 
-pub(crate) use port_pool::{PortPool, SocketPair};
+pub(crate) use port_pool::{AddressFamily, PortPool, SocketPair};
 pub(crate) use track::{Track, TrackController, TrackSource};
 
 const RAW_AUDIO_CONFIG_RANGE: RawAudioConfigRange = RawAudioConfigRange {

@@ -4,7 +4,7 @@
 
 use super::codec::{offer_all_audio_codecs, offer_all_video_codecs, SdpRecvCodec, SdpSendCodec};
 use crate::media::codec::MediaType;
-use crate::media::{PortPool, SocketPair};
+use crate::media::{AddressFamily, PortPool, SocketPair};
 use crate::settings::Settings;
 use crate::sip::codec::{available_video_codec, choose_audio_codec, choose_video_codec};
 use anyhow::{bail, Context, Result};
@@ -151,7 +151,7 @@ impl SessionState {
 
     pub async fn setup_offer(&mut self) -> Result<()> {
         let audio_rtp_pair = PortPool::instance()
-            .create_rtp_socket_pair()
+            .create_rtp_socket_pair(AddressFamily::of(self.pub_ip))
             .await
             .context("Failed to create RTP sockets")?
             .context("No more available RTP ports")?;
@@ -179,7 +179,7 @@ impl SessionState {
         });
 
         let video_rtp_pair = PortPool::instance()
-            .create_rtp_socket_pair()
+            .create_rtp_socket_pair(AddressFamily::V4)
             .await
             .context("Failed to create RTP sockets")?
             .context("No more available RTP ports")?;
@@ -463,7 +463,7 @@ impl SessionState {
         matched_media_sessions.push(id);
 
         let socket_pair = PortPool::instance()
-            .create_rtp_socket_pair()
+            .create_rtp_socket_pair(AddressFamily::of(remote_rtp_addr.ip()))
             .await
             .context("Failed to create RTP/RTCP sockets")?
             .context("No more RTP/RTCP ports are available")?;
