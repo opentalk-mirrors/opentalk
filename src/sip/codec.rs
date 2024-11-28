@@ -44,7 +44,6 @@ pub enum SdpSendCodecParams {
     H264 {
         width: u32,
         height: u32,
-        #[allow(dead_code)] // TODO: fps limiting
         fps: u32,
         #[allow(dead_code)] // TODO: h264 profiles
         profile: String,

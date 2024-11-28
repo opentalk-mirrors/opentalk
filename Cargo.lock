@@ -955,13 +955,14 @@ dependencies = [
 
 [[package]]
 name = "ezk-image"
-version = "0.1.4"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2697f22ed3a925f866c96adac688db5669275ee500197444f2768aafe0875aad"
+checksum = "24eeeb2cd039c99c2f1c1877f86cbe1be0cbada92b7d398dad6f139bec636913"
 dependencies = [
  "fast_image_resize",
  "num_cpus",
  "rayon",
+ "thiserror 2.0.0",
 ]
 
 [[package]]
@@ -1118,9 +1119,9 @@ dependencies = [
 
 [[package]]
 name = "fast_image_resize"
-version = "4.2.1"
+version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ca4b58827213977eabab8ee8d8258db8441338f3a1832a1c0f2de3372175531"
+checksum = "a66a61fbfc84ef99a839499cf9e5a7c2951d2da874ea00f29ee938bc50d1b396"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -2494,9 +2495,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-compositor"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c6af99a92d972bf6d9ae1829ca790db37191652fe903088d8017e74289d5443"
+checksum = "c9094a26144675ab5160fb69c116754f4af8ec50e11cdaf0ae1c93f2a002dcd3"
 dependencies = [
  "ab_glyph",
  "anyhow",
