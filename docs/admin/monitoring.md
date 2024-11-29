@@ -5,6 +5,7 @@ The OpenTalk Obelisk provides a simple Http-Server for monitoring purpose.
 ## Configuration
 
 The section in the [configuration file](README.md) is called `monitoring`.
+If this section is kept empty, it means that the `monitoring` is disabled.
 
 | Field  | Type     | Required | Default value | Description                            |
 | ------ | -------- | -------- | ------------- | -------------------------------------- |
