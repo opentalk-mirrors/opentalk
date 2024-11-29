@@ -409,6 +409,7 @@ impl Signaling {
         self.participants = join_result.participants;
 
         let mut compositor = Mixer::new(MixerParameters {
+            target_fps: self.media.target_fps as u16,
             clock_format: self.settings.clock_format.clone(),
             livekit_url: join_result.livekit_url,
             livekit_token: join_result.livekit_token,

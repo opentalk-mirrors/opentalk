@@ -23,7 +23,7 @@ use ezk_g711::{PCMADecoder, PCMAEncoder, PCMUDecoder, PCMUEncoder};
 use ezk_g722::{G722Decoder, G722Encoder};
 use ezk_image::{
     resize::{FilterType, ResizeAlg, Resizer},
-    Image, PixelFormat, PixelFormatPlanes,
+    Image, PixelFormat,
 };
 use ezk_rtp::{rtp_types::RtpPacketBuilder, DePacketizer, Packetizer, RtpPacket};
 use opentalk_compositor::{
@@ -94,6 +94,7 @@ pub type ToConferenceVideoTracks =
 pub struct MediaPipeline {
     settings: Arc<Settings>,
 
+    pub target_fps: u32,
     pub compositor: Option<Mixer>,
 
     rtp_sessions: RtpSessions,
@@ -199,6 +200,7 @@ impl MediaPipeline {
 
             compositor: None,
 
+            target_fps: 1,
             rtp_sessions,
 
             to_caller_audio_mixer,
@@ -379,7 +381,7 @@ impl MediaPipeline {
             SdpSendCodecParams::H264 {
                 width,
                 height,
-                fps: _,     // TODO: fps limiting
+                fps: _, // the requested framerate is achieved by setting the compositor target fps
                 profile: _, // TODO: h264 profiles
             } => (width as usize, height as usize),
         };
@@ -614,11 +616,16 @@ impl MediaPipeline {
             .context("Failed to remove sender from rtp-sessions")
     }
 
-    pub fn post_update_cleanup(&mut self) {
+    pub async fn post_update_cleanup(&mut self) {
         log::debug!("run post update cleanup");
 
         self.rtp_sessions
             .cleanup_sessions_without_sender_and_receiver();
+
+        self.ui_controller.set_target_fps(self.target_fps);
+        if let Some(compositor) = &mut self.compositor {
+            compositor.set_target_fps(self.target_fps as u16).await;
+        }
     }
 }
 
@@ -722,11 +729,11 @@ impl opentalk_compositor::Sink for CompositorObeliskBridgeSink {
         Ok(())
     }
 
-    fn on_video_frame(&mut self, buffer: Vec<u8>) -> Result<()> {
+    fn on_video_frame(&mut self, buffer: &[u8]) -> Result<()> {
         let mut video_sinks = self.to_caller_video_sinks.blocking_lock();
 
         for callback in video_sinks.values_mut() {
-            callback(&buffer);
+            callback(buffer);
         }
 
         Ok(())
@@ -781,27 +788,21 @@ fn maybe_resize<'a>(
         full_range: false,
     });
 
+    let src_img = &Image::from_buffer(PixelFormat::I420, src, None, WIDTH, HEIGHT, COLOR)
+        .expect("src must always be a valid WIDTH * HEIGHT I420 image");
+
+    let mut dst_img = Image::from_buffer(
+        PixelFormat::I420,
+        &mut *dst,
+        None,
+        target_width,
+        target_height,
+        COLOR,
+    )
+    .expect("dst must always be a valid target_width * target_height I420 image");
+
     resizer
-        .resize(
-            Image::new(
-                PixelFormat::I420,
-                PixelFormatPlanes::infer_i420(src, WIDTH, HEIGHT),
-                WIDTH,
-                HEIGHT,
-                COLOR,
-                8,
-            )
-            .expect("src must always be a valid WIDTH * HEIGHT I420 image"),
-            Image::new(
-                PixelFormat::I420,
-                PixelFormatPlanes::infer_i420(&mut *dst, target_width, target_height),
-                target_width,
-                target_height,
-                COLOR,
-                8,
-            )
-            .expect("dst must always be a valid target_width * target_height I420 image"),
-        )
+        .resize(&src_img, &mut dst_img)
         .expect("both inputs are I420 images");
 
     dst

@@ -5,7 +5,8 @@
 use crate::media::ToCallerVideoSinks;
 use ezk_image::PixelFormat;
 use opentalk_compositor::{
-    font::{DrawText, I420Image, Point, SimpleText},
+    font::{DrawText, SimpleText},
+    image::{I420Image, Point},
     HEIGHT, WIDTH,
 };
 use parking_lot::Mutex;
@@ -24,6 +25,10 @@ impl UiController {
 
         data.id = id;
         data.pin = pin;
+    }
+
+    pub(crate) fn set_target_fps(&self, target_fps: u32) {
+        self.data.lock().target_fps = target_fps;
     }
 
     pub(crate) fn stop(&self) {
@@ -46,6 +51,7 @@ struct UiData {
     id: String,
     pin: String,
     run: bool,
+    target_fps: u32,
     join_handle: Option<JoinHandle<()>>,
 }
 
@@ -54,6 +60,7 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks) -> UiController {
         id: String::new(),
         pin: String::new(),
         run: true,
+        target_fps: 1,
         join_handle: None,
     }));
 
@@ -84,6 +91,8 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks) -> UiController {
         let id_text = SimpleText::new(100.0, &format!("Id: {}", data.id));
         let pin_text = SimpleText::new(100.0, &format!("Pin: {}", data.pin));
 
+        let sleep_delta = Duration::from_secs_f32(1.0 / data.target_fps as f32);
+
         drop(data);
 
         headline.draw(
@@ -112,7 +121,7 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks) -> UiController {
             sink(&staging)
         }
 
-        thread::sleep(Duration::from_millis(33));
+        thread::sleep(sleep_delta);
     });
 
     ui_controller.data.lock().join_handle = Some(handle);

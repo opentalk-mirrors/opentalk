@@ -4,7 +4,7 @@
 
 use super::{
     sdp::{MediaChange, SessionState},
-    MediaSessionState,
+    MediaSessionState, SdpSendCodecParams,
 };
 use crate::media::MediaPipeline;
 use anyhow::{bail, Context, Result};
@@ -16,6 +16,9 @@ pub async fn apply_changes(
     session_state: &mut SessionState,
     changes: Vec<MediaChange>,
 ) -> Result<()> {
+    // Track the framerate at which the compositor should run, which will be the lowest of all video streams
+    let mut target_fps = None;
+
     for change in changes {
         match change {
             MediaChange::AddReceiver(id) => {
@@ -47,6 +50,11 @@ pub async fn apply_changes(
                     unreachable!("Cannot receive changes for not-established media sessions");
                 };
 
+                if let SdpSendCodecParams::H264 { fps, .. } = &established.send_codec.codec_params {
+                    let current_target_fps = target_fps.unwrap_or(*fps);
+                    target_fps = Some(current_target_fps.min(*fps));
+                }
+
                 media
                     .add_sender(
                         id,
@@ -75,7 +83,8 @@ pub async fn apply_changes(
         }
     }
 
-    media.post_update_cleanup();
+    media.target_fps = target_fps.unwrap_or(1);
+    media.post_update_cleanup().await;
 
     Ok(())
 }
