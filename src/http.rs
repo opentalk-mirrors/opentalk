@@ -156,11 +156,12 @@ struct StartResponse {
     ticket: String,
 }
 
+type BoxedHttpResponseFuture =
+    Box<dyn Future<Output = Result<HttpResponse, Error<reqwest::Error>>> + Send>;
+
 fn async_http_client(
     client: reqwest::Client,
-) -> impl Fn(
-    HttpRequest,
-) -> Pin<Box<dyn Future<Output = Result<HttpResponse, Error<reqwest::Error>>> + Send>> {
+) -> impl Fn(HttpRequest) -> Pin<BoxedHttpResponseFuture> {
     move |request| Box::pin(async_http_client_inner(client.clone(), request))
 }
 
