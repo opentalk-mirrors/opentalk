@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::media::codec::Codec;
+use crate::media::{codec::Codec, DEFAULT_FPS};
 use crate::settings::Settings;
-use h264_profile_level_id::Profile;
+use h264_profile_level_id::{Level, Profile};
+use openh264::encoder::{Level as OpenH264Level, Profile as OpenH264Profile};
 use sdp_types::{MediaDescription, RtpMap};
 use std::str::FromStr;
 
@@ -13,6 +14,7 @@ use std::str::FromStr;
 pub struct SdpRecvCodec {
     pub payload: u8,
     pub codec: Codec,
+    pub fmtp: Option<String>,
 }
 
 impl SdpRecvCodec {
@@ -45,8 +47,9 @@ pub enum SdpSendCodecParams {
         width: u32,
         height: u32,
         fps: u32,
-        #[allow(dead_code)] // TODO: h264 profiles
-        profile: String,
+        level: OpenH264Level,
+        profile: OpenH264Profile,
+        packetization_mode: H264PacketizationMode,
     },
 }
 
@@ -75,14 +78,17 @@ pub fn offer_all_audio_codecs() -> Vec<SdpRecvCodec> {
         SdpRecvCodec {
             payload: 9,
             codec: Codec::G722,
+            fmtp: None,
         },
         SdpRecvCodec {
             payload: 8,
             codec: Codec::G711PCMA,
+            fmtp: None,
         },
         SdpRecvCodec {
             payload: 0,
             codec: Codec::G711PCMU,
+            fmtp: None,
         },
     ]
 }
@@ -91,11 +97,20 @@ pub fn offer_all_video_codecs() -> Vec<SdpRecvCodec> {
     vec![SdpRecvCodec {
         payload: 96,
         codec: Codec::H264,
+        fmtp: Some("profile-level-id=420028;max-mbps=243000;max-fs=8100;level-asymmetry-allowed=1;packetization-mode=0".into()),
     }]
 }
 
 pub fn available_video_codec() -> &'static str {
     "H264"
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum H264PacketizationMode {
+    // https://www.rfc-editor.org/rfc/rfc6184#section-6.2
+    SingleNal,
+    // https://www.rfc-editor.org/rfc/rfc6184#section-6.3
+    NonInterleavedMode,
 }
 
 pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Option<SdpSendCodec> {
@@ -118,6 +133,7 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
         let mut level = None;
         let mut max_mbps: Option<u32> = None;
         let mut max_fs: Option<u32> = None;
+        let mut packetization_mode = H264PacketizationMode::SingleNal;
 
         for p in params {
             let Some((key, value)) = p.split_once('=') else {
@@ -147,6 +163,11 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
                     // convert from kbit/s to bits/s
                     bitrate = Some(value * 1000);
                 }
+                "packetization-mode" => match value {
+                    0 => packetization_mode = H264PacketizationMode::SingleNal,
+                    1 => packetization_mode = H264PacketizationMode::NonInterleavedMode,
+                    _ => log::warn!("Unhandled packetization mode {value}"),
+                },
                 _ => continue,
             }
         }
@@ -157,24 +178,58 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
                 calculate_best_resolution_and_fps(level.level(), max_mbps, max_fs);
 
             // Calculate post encode caps
-            let h264_profile = match level.profile() {
-                Profile::ConstrainedBaseline => "constrained-baseline",
-                Profile::Baseline => "baseline",
-                Profile::Main => "main",
-                Profile::ConstrainedHigh => "constrained-high",
-                Profile::High => "high",
-                Profile::PredictiveHigh444 => {
-                    log::warn!("Caller requested unsupported H.264 profile `PredictiveHigh444`");
-                    return None;
+            let profile = match level.profile() {
+                Profile::Baseline => OpenH264Profile::Baseline,
+                Profile::Main => OpenH264Profile::Main,
+                Profile::High => OpenH264Profile::High,
+                Profile::ConstrainedBaseline
+                | Profile::ConstrainedHigh
+                | Profile::PredictiveHigh444 => {
+                    log::warn!(
+                        "Client requested unsupported H.264 profile {:?}, falling back to baseline",
+                        level.profile()
+                    );
+                    OpenH264Profile::Baseline
                 }
+            };
+
+            let level = match level.level() {
+                Level::Level1b => OpenH264Level::Level_1_B,
+                Level::Level1 => OpenH264Level::Level_1_0,
+                Level::Level11 => OpenH264Level::Level_1_1,
+                Level::Level12 => OpenH264Level::Level_1_2,
+                Level::Level13 => OpenH264Level::Level_1_3,
+                Level::Level2 => OpenH264Level::Level_2_0,
+                Level::Level21 => OpenH264Level::Level_2_1,
+                Level::Level22 => OpenH264Level::Level_2_2,
+                Level::Level3 => OpenH264Level::Level_3_0,
+                Level::Level31 => OpenH264Level::Level_3_1,
+                Level::Level32 => OpenH264Level::Level_3_2,
+                Level::Level4 => OpenH264Level::Level_4_0,
+                Level::Level41 => OpenH264Level::Level_4_1,
+                Level::Level42 => OpenH264Level::Level_4_2,
+                Level::Level5 => OpenH264Level::Level_5_0,
+                Level::Level51 => OpenH264Level::Level_5_1,
+                Level::Level52 => OpenH264Level::Level_5_2,
             };
 
             codec_params = SdpSendCodecParams::H264 {
                 width,
                 height,
                 fps,
-                profile: h264_profile.into(),
+                level,
+                profile,
+                packetization_mode,
             }
+        }
+    }
+
+    for bandwidth in &offer.bandwidth {
+        match bandwidth.type_.as_str() {
+            // The TIAS Bandwidth Modifier
+            // https://www.rfc-editor.org/rfc/rfc3890#section-6.2
+            "TIAS" => bitrate = Some(bandwidth.bandwidth),
+            _ => continue,
         }
     }
 
@@ -194,7 +249,7 @@ fn calculate_best_resolution_and_fps(
     use h264_profile_level_id::Level::*;
 
     // Default 30 fps, which is what the compositor produces
-    let mut fps = 30;
+    let mut fps = DEFAULT_FPS;
 
     // Max macroblock processing rate MaxMBPS (MB/s)
     // from ITU-T H.264 (08/2021) Annex A.3.1 page 294 Table A-1 'Level limits'
@@ -235,7 +290,15 @@ fn calculate_best_resolution_and_fps(
         let height = i * 9 * 4;
 
         if width * height > max_pixels {
-            return ((width - 4, height - 4), fps);
+            let Some(previous_i) = i.checked_sub(1) else {
+                // Check failed in the first iteration, fall back to default
+                break;
+            };
+
+            let previous_width = previous_i * 16 * 4;
+            let previous_height = previous_i * 9 * 4;
+
+            return ((previous_width, previous_height), fps);
         }
     }
 

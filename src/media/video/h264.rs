@@ -2,12 +2,17 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use crate::sip::H264PacketizationMode;
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use livekit::webrtc::video_frame::{I420Buffer, VideoFrame};
 use openh264::{
-    encoder::EncoderConfig,
+    encoder::{
+        BitRate, Encoder, EncoderConfig, FrameRate, IntraFramePeriod, Level, Profile,
+        RateControlMode,
+    },
     formats::{YUVSlices, YUVSource},
+    nal_units, OpenH264API,
 };
 use opentalk_compositor::livekit::{self, webrtc::prelude::VideoRotation};
 use rtp::{
@@ -16,30 +21,68 @@ use rtp::{
 };
 use std::time::Instant;
 
+const MTU: u32 = 1200;
+
 pub struct H264Encoder {
     encoder: openh264::encoder::Encoder,
     payloader: H264Payloader,
     init: Instant,
+    packetization_mode: H264PacketizationMode,
 }
 
 impl H264Encoder {
-    pub fn create(bitrate: u32) -> Result<Self> {
+    pub fn create(
+        packetization_mode: H264PacketizationMode,
+        bitrate: u32,
+        profile: Option<Profile>,
+        level: Option<Level>,
+        fps: u32,
+    ) -> Result<Self> {
+        let mut encoder_config = EncoderConfig::new()
+            .bitrate(BitRate::from_bps(bitrate))
+            .intra_frame_period(IntraFramePeriod::from_num_frames(90))
+            .rate_control_mode(RateControlMode::Bitrate)
+            .max_frame_rate(FrameRate::from_hz(fps as f32));
+
+        match packetization_mode {
+            H264PacketizationMode::SingleNal => encoder_config = encoder_config.max_slice_len(MTU),
+            H264PacketizationMode::NonInterleavedMode => {}
+        }
+
+        if let Some(profile) = profile {
+            encoder_config = encoder_config.profile(profile);
+        }
+
+        if let Some(level) = level {
+            encoder_config = encoder_config.level(level);
+        }
+
+        let encoder = Encoder::with_api_config(OpenH264API::from_source(), encoder_config)
+            .context("Failed to create openh264 encoder")?;
+
         Ok(Self {
-            encoder: openh264::encoder::Encoder::with_api_config(
-                openh264::OpenH264API::from_source(),
-                EncoderConfig::new().set_bitrate_bps(bitrate),
-            )
-            .context("Failed to create openh264 encoder")?,
+            encoder,
             payloader: H264Payloader::default(),
             init: Instant::now(),
+            packetization_mode,
         })
     }
 
-    pub fn encode_and_packetize(&mut self, yuv: &[u8], width: usize, height: usize) -> Vec<Bytes> {
+    pub fn encode_and_packetize(
+        &mut self,
+        yuv: &[u8],
+        width: usize,
+        height: usize,
+        force_intra_frame: bool,
+    ) -> Vec<Bytes> {
         let (y, tmp) = yuv.split_at(width * height);
         let (u, v) = tmp.split_at((width * height) / 4);
 
         let slices = YUVSlices::new((y, u, v), (width, height), (width, width / 2, width / 2));
+
+        if force_intra_frame {
+            self.encoder.force_intra_frame();
+        }
 
         let bitstream = match self.encoder.encode_at(
             &slices,
@@ -52,11 +95,21 @@ impl H264Encoder {
             }
         };
 
-        match self.payloader.payload(1400, &Bytes::from(bitstream)) {
-            Ok(packets) => packets,
-            Err(e) => {
-                log::error!("Failed to payload openh264 bitstream, {e}");
-                vec![]
+        match self.packetization_mode {
+            H264PacketizationMode::SingleNal => nal_units(&bitstream)
+                .map(|nalu| Bytes::copy_from_slice(&nalu[3..]))
+                .collect(),
+            H264PacketizationMode::NonInterleavedMode => {
+                match self
+                    .payloader
+                    .payload(MTU as usize, &Bytes::from(bitstream))
+                {
+                    Ok(packets) => packets,
+                    Err(e) => {
+                        log::error!("Failed to payload openh264 bitstream, {e}");
+                        vec![]
+                    }
+                }
             }
         }
     }

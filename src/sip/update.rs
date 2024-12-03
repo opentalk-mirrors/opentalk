@@ -83,7 +83,10 @@ pub async fn apply_changes(
         }
     }
 
-    media.target_fps = target_fps.unwrap_or(1);
+    if let Some(target_fps) = target_fps {
+        media.target_fps = target_fps;
+    }
+
     media.post_update_cleanup().await;
 
     Ok(())
