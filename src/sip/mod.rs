@@ -218,7 +218,7 @@ impl AppLayer {
 /// and un-registering from the SIP registrar
 pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
     if let Some(MonitoringSettings { port, addr }) = settings.monitoring {
-        start_probe(addr, port).await?;
+        start_probe(addr, port, ServiceState::Up).await?;
     }
 
     let mut builder = Endpoint::builder();
