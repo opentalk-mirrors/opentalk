@@ -46,11 +46,11 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 service-probe = "0.2"
 sip-auth = { version = "0.2", package = "ezk-sip-auth" }
-sip-core = { version = "0.4", package = "ezk-sip-core", features = ["tls-native-tls"] }
+sip-core = { version = "0.5", package = "ezk-sip-core", features = ["tls-native-tls"] }
 sip-types = { version = "0.3", package = "ezk-sip-types" }
-sip-ua = { version = "0.4", package = "ezk-sip-ua" }
+sip-ua = { version = "0.5", package = "ezk-sip-ua" }
 srtp = "0.7"
-stun-types = { version = "0.1", package = "ezk-stun-types" }
+stun-types = { version = "0.2", package = "ezk-stun-types" }
 thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "signal"] }
 tokio-native-tls = "0.3.1"

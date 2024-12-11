@@ -172,7 +172,6 @@ skip = [
   { name = "http", version = "=0.2.12" },
   { name = "http-body", version = "=0.4.6" },
   { name = "hyper", version = "=0.14.31" },
-  { name = "idna", version = "=0.4.0" },
   { name = "itertools", version = "0.10.5" },
   { name = "itertools", version = "0.11.0" },
   { name = "itertools", version = "0.12.1" },
