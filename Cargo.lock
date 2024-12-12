@@ -2528,7 +2528,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-obelisk"
-version = "0.18.0-alpha"
+version = "0.18.0"
 dependencies = [
  "anstream",
  "anyhow",
