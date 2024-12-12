@@ -44,7 +44,7 @@ rtp = "0.11.0"
 sdp-types = { version = "0.4", package = "ezk-sdp-types" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-service-probe = "0.1"
+service-probe = "0.2"
 sip-auth = { version = "0.2", package = "ezk-sip-auth" }
 sip-core = { version = "0.4", package = "ezk-sip-core", features = ["tls-native-tls"] }
 sip-types = { version = "0.3", package = "ezk-sip-types" }
