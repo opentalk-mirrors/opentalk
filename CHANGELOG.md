@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2024-12-12
+
+[0.18.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.17.0...v0.18.0
+
+### 🚀 New features
+
+- Support media sessions via ipv6 ([!188](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/188))
+
+### 🐛 Bug fixes
+
+- Emit video at the caller's requested framerate ([!189](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/189))
+
+### 📚 Documentation
+
+- (monitoring) Explain behaviour when monitoring is not configured ([!187](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/187))
+
+### 📦 Dependencies
+
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.83.0 ([!191](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/191))
+- (deps) Update rust crate opentalk-compositor to 0.11 ([!195](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/195))
+- (deps) Update rust crate service-probe to 0.2 ([!194](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/194))
+- (deps) Update rust opentalk crates to 0.28.0 ([!195](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/195))
+
+### ⚙ Miscellaneous
+
+- Update dependencies ([!189](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/189))
+- Create changelog with just ([!182](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/182))
+- Ignore RUSTSEC-2024-0421 ([!194](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/194))
+- (just) Separate checks in justfile ([!197](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/197))
+
+### Ci
+
+- Group opentalk crates ([!195](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/195))
+
 ## [0.17.0] - 2024-11-21
 
 [0.17.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.16.0...v0.17.0
