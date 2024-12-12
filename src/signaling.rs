@@ -311,7 +311,7 @@ impl Signaling {
                     compositor
                         .add_participant(
                             participant.id.to_string().into(),
-                            participant.control.display_name.clone(),
+                            participant.control.display_name.to_string(),
                         )
                         .await;
                 }
@@ -330,7 +330,7 @@ impl Signaling {
                         compositor
                             .add_participant(
                                 current.id.to_string().into(),
-                                updated.control.display_name.clone(),
+                                updated.control.display_name.to_string(),
                             )
                             .await;
                     }
@@ -426,7 +426,7 @@ impl Signaling {
             compositor
                 .add_participant(
                     participant.id.to_string().into(),
-                    participant.control.display_name.clone(),
+                    participant.control.display_name.to_string(),
                 )
                 .await;
         }

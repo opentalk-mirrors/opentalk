@@ -35,7 +35,7 @@ native-tls = "0.2.11"
 once_cell = "1.18"
 openh264 = "0.6"
 openidconnect = "3"
-opentalk-compositor = { version = "0.11", default-features = false }
+opentalk-compositor = { version = "0.12", default-features = false }
 owo-colors = "4"
 parking_lot = "0.12"
 rand = "0.8"
@@ -55,8 +55,8 @@ thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "signal"] }
 tokio-native-tls = "0.3.1"
 tt = { package = "tokio-tungstenite", version = "0.20", features = ["rustls-tls-native-roots"] }
-types-signaling = { package = "opentalk-types-signaling", version = "0.27.0", features = ["serde"] }
-types-signaling-control = { package = "opentalk-types-signaling-control", version = "0.27.0", features = ["serde"] }
+types-signaling = { package = "opentalk-types-signaling", version = "0.28.0", features = ["serde"] }
+types-signaling-control = { package = "opentalk-types-signaling-control", version = "0.28.0", features = ["serde"] }
 webrtc-sys = "0.3"
 
 [patch.crates-io]

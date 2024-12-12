@@ -10,6 +10,13 @@
       ],
       "groupName": "EZK-rs",
       "groupSlug": "EZK-rs"
+    },
+    {
+      "matchPackagePatterns": [
+        "opentalk-*"
+      ],
+      "groupName": "opentalk",
+      "groupSlug": "opentalk"
     }
   ]
 }
