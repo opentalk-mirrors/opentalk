@@ -13,3 +13,6 @@ repository = "https://gitlab.opencode.de/opentalk/libs/ot-version"
 version = "0.1.0"
 
 [dependencies]
+anyhow = "1"
+vergen = { version = "9", features = ["build", "cargo", "rustc"] }
+vergen-gix = "1"
