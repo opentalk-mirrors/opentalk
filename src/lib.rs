@@ -1,11 +1,43 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 //
 // SPDX-License-Identifier: MIT OR Apache-2.0
+//! # ot-version
+//!
+//! Collect a set of build information and make it available for printing.
+//!
+//! ## Example usage:
+//!
+//! Add the following to your `build.rs`
+//!
+//! ```rust
+//! fn main() -> anyhow::Result<()> {
+//!     ot_version::collect_build_information()
+//! }
+//! ```
+//!
+//! Once this is added, you can access the build information in your crate like this:
+//!
+//! ```ignore
+//! // This adds a `build_info` module which contains a `BuildInfo` struct that
+//! // contains all collected build information.
+//! ot_version::build_info!();
+//!
+//! pub(super) fn print_version() {
+//!     println!("{}", build_info::BuildInfo::new())
+//! }
+//!
+//! ```
 
 use anyhow::Context as _;
 use vergen::{BuildBuilder, CargoBuilder, Emitter, RustcBuilder};
 use vergen_gix::GixBuilder;
 
+/// This macro will expand to a module `build_info` which contains a struct `BuildInfo`.
+/// The struct can be used to access build information.
+///
+/// # Note
+///
+/// Make sure to call [`collect_build_information`] in your [build script](https://doc.rust-lang.org/cargo/reference/build-scripts.html).
 #[macro_export]
 macro_rules! build_info {
     () => {
@@ -25,6 +57,7 @@ macro_rules! build_info {
                 }
             }
 
+            /// Build information about the crate.
             #[derive(Debug, Clone, Copy)]
             pub struct BuildInfo {
                 build_timestamp: &'static str,
@@ -41,6 +74,7 @@ macro_rules! build_info {
             }
 
             impl BuildInfo {
+                /// Returns a struct which contains build information.
                 pub fn new() -> Self {
                     Self {
                         build_timestamp: env!("VERGEN_BUILD_TIMESTAMP"),
@@ -87,6 +121,11 @@ macro_rules! build_info {
     };
 }
 
+/// Collects the information that can be used later to identify the version of this crate.
+///
+/// # Note
+///
+/// This should be used inside the build script of your crate.
 pub fn collect_build_information() -> anyhow::Result<()> {
     let mut emitter = Emitter::default();
     let builder = emitter
