@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+authors = ["OpenTalk GmbH <mail@opentalk.eu>"]
+edition = "2021"
+homepage = "https://opentalk.eu/"
+license = "MIT OR Apache-2.0"
+name = "ot-version"
+publish = true
+repository = "https://gitlab.opencode.de/opentalk/libs/ot-version"
+version = "0.1.0"
+
+[dependencies]

@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+SPDX-PackageDownloadLocation = "https://git.opentalk.dev/opentalk/backend/libs/ot-version"
+SPDX-PackageName = "ot-version"
+SPDX-PackageSupplier = "OpenTalk Team <mail@opentalk.eu>"
+version = 1
+
+[[annotations]]
+SPDX-FileCopyrightText = ["OpenTalk Team <mail@opentalk.eu>"]
+SPDX-License-Identifier = "MIT OR Apache-2.0"
+path = [
+  ".commitlintrc.json",
+  "CHANGELOG.md",
+  "Cargo.lock",
+  "README.md",
+  "docs/**.md",
+  "renovate.json",
+]
+precedence = "aggregate"
