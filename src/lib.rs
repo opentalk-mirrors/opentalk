@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 //
 // SPDX-License-Identifier: MIT OR Apache-2.0
-//! # ot-version
+//! # opentalk-version
 //!
 //! Collect a set of build information and make it available for printing.
 //!
@@ -11,7 +11,7 @@
 //!
 //! ```rust
 //! fn main() -> anyhow::Result<()> {
-//!     ot_version::collect_build_information()
+//!     opentalk_version::collect_build_information()
 //! }
 //! ```
 //!
@@ -20,7 +20,7 @@
 //! ```ignore
 //! // This adds a `build_info` module which contains a `BuildInfo` struct that
 //! // contains all collected build information.
-//! ot_version::build_info!();
+//! opentalk_version::build_info!();
 //!
 //! pub(super) fn print_version() {
 //!     println!("{}", build_info::BuildInfo::new())

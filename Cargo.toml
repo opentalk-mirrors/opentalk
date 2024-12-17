@@ -7,9 +7,9 @@ authors = ["OpenTalk GmbH <mail@opentalk.eu>"]
 edition = "2021"
 homepage = "https://opentalk.eu/"
 license = "MIT OR Apache-2.0"
-name = "ot-version"
+name = "opentalk-version"
 publish = true
-repository = "https://gitlab.opencode.de/opentalk/libs/ot-version"
+repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-version"
 version = "0.1.0"
 
 [dependencies]
