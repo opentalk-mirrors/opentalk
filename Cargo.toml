@@ -4,6 +4,7 @@
 
 [package]
 authors = ["OpenTalk GmbH <mail@opentalk.eu>"]
+description = "Collect a set of build information and make it available for printing."
 edition = "2021"
 homepage = "https://opentalk.eu/"
 license = "MIT OR Apache-2.0"
