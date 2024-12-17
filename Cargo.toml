@@ -10,7 +10,7 @@ license = "MIT OR Apache-2.0"
 name = "opentalk-version"
 publish = true
 repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-version"
-version = "0.1.0"
+version = "0.2.0-alpha"
 
 [dependencies]
 anyhow = "1"
