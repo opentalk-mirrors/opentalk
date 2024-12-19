@@ -8,6 +8,13 @@ use clap::{ArgAction, Parser};
 pub struct Args {
     #[clap(short('V'), long, action=ArgAction::SetTrue, help = "Print version information")]
     version: bool,
+    #[clap(
+        short,
+        long,
+        default_value = "config.toml",
+        help = "Specify path to configuration file"
+    )]
+    pub config: String,
 }
 
 impl Args {

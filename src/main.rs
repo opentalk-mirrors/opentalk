@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
     // Initialize libsrtp
     srtp::ensure_init();
 
-    let settings = Arc::new(settings::Settings::load("config.toml")?);
+    let settings = Arc::new(settings::Settings::load(&args.config)?);
 
     media::PortPool::init(settings.clone());
 
