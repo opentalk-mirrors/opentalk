@@ -113,8 +113,8 @@ macro_rules! build_info {
                     writeln!(f, "rustc Version: {}", self.rustc_version)?;
                     writeln!(f, "rustc Channel: {}", self.rustc_channel)?;
                     writeln!(f, "rustc Host Triple: {}", self.rustc_host_triple)?;
-                    writeln!(f, "Cargo Target Triple: {}", self.cargo_target_triple)?;
-                    write!(f, "Cargo Profile: {}", self.cargo_profile)
+                    writeln!(f, "cargo Target Triple: {}", self.cargo_target_triple)?;
+                    write!(f, "cargo Profile: {}", self.cargo_profile)
                 }
             }
         }
