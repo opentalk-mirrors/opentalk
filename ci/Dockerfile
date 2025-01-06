@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y build-essential libclang-dev
 
 WORKDIR /obelisk
 
+COPY ./build.rs ./build.rs
 COPY ./Cargo.toml ./Cargo.toml
 COPY ./Cargo.lock ./Cargo.lock
 

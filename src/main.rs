@@ -5,6 +5,7 @@
 use anyhow::Result;
 use std::sync::Arc;
 
+mod cli;
 mod http;
 mod media;
 mod settings;
@@ -29,6 +30,11 @@ async fn main() -> Result<()> {
 
     env_logger::init();
 
+    let args = cli::parse_args();
+    if !args.should_start() {
+        return Ok(());
+    }
+
     // livekit uses libwebrtc, which in turn uses libsrtp. This tells libwebrtc that we're gonna
     // initialize libsrtp. If this is not done, livekit silently fails to work properly.
     webrtc_sys::prohibit_libsrtp_initialization::ffi::ProhibitLibsrtpInitialization();
@@ -36,7 +42,7 @@ async fn main() -> Result<()> {
     // Initialize libsrtp
     srtp::ensure_init();
 
-    let settings = Arc::new(settings::Settings::load("config.toml")?);
+    let settings = Arc::new(settings::Settings::load(&args.config)?);
 
     media::PortPool::init(settings.clone());
 
