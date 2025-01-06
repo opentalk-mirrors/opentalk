@@ -88,6 +88,20 @@ lint:commit:
   script:
     - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
 
+lint:commit-signature:
+  stage: lint
+  needs: []
+  rules:
+    # Run in merge requests only.
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  script:
+    # %G? will log signature information for a commit. `N` stands for "no signature", `B` for "bad signature"
+    # refer to https://git-scm.com/docs/pretty-formats#Documentation/pretty-formats.txt-emGem
+    # grep checks that the output does not contain any "N" or "B" characters.
+    - >
+      git log --format=format:'%G?' $CI_MERGE_REQUEST_DIFF_BASE_SHA..HEAD
+      | grep --null-data --quiet --invert-match --regexp="N" --regexp="B"
+
 lint:trigger_changelog_preview:
   stage: lint
   needs: []
