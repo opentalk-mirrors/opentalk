@@ -537,9 +537,11 @@ impl MediaPipeline {
         let mut h264_dec = H264Decoder::create()?;
         let video_sources = self.to_conference_video_tracks.clone();
 
-        tokio::spawn(async move {
+        let task_handle = tokio::runtime::Handle::current();
+
+        std::thread::spawn(move || {
             loop {
-                let event = match rtp_source.next_event().await {
+                let event = match task_handle.block_on(rtp_source.next_event()) {
                     Ok(event) => event,
                     Err(e) => {
                         log::error!("H.264 forward task failed with error, {e}");
@@ -549,7 +551,7 @@ impl MediaPipeline {
 
                 match event {
                     SourceEvent::Frame(frame) => {
-                        let video_sources = video_sources.read().await;
+                        let video_sources = video_sources.blocking_read();
 
                         // Decode the frame, then check if there's a livekit publication yet
                         if let Some(frame) = h264_dec.decode_packet(frame.data().get().payload()) {
@@ -560,6 +562,7 @@ impl MediaPipeline {
                             }
                         }
                     }
+
                     SourceEvent::EndOfData => {
                         log::debug!("exit H.264 forward task");
                         return;
