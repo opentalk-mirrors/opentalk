@@ -37,7 +37,7 @@ native-tls = "0.2.11"
 once_cell = "1.18"
 openh264 = "0.7"
 openidconnect = "3"
-opentalk-compositor = { version = "0.12", default-features = false }
+opentalk-compositor = { version = "0.12.1", default-features = false }
 opentalk-version = "0.1.1"
 owo-colors = "4"
 parking_lot = "0.12"
@@ -66,12 +66,13 @@ webrtc-sys = "0.3"
 # Removes duplicate paste and therefore some compile time
 bitpattern = { git = 'https://github.com/kbalt/bitpattern', branch = 'remove-paste-010-patch' }
 
-# Until they actually push the version on crates.io this will have to do
-webrtc-sys = { git = "https://github.com/livekit/rust-sdks.git", rev = "06997356c083b01da766c4c93e8c4e8354d871ce" }
-libwebrtc = { git = "https://github.com/livekit/rust-sdks.git", rev = "06997356c083b01da766c4c93e8c4e8354d871ce" }
-livekit = { git = "https://github.com/livekit/rust-sdks.git", rev = "06997356c083b01da766c4c93e8c4e8354d871ce" }
-livekit-api = { git = "https://github.com/livekit/rust-sdks.git", rev = "06997356c083b01da766c4c93e8c4e8354d871ce" }
-livekit-runtime = { git = "https://github.com/livekit/rust-sdks.git", rev = "06997356c083b01da766c4c93e8c4e8354d871ce" }
+# Until https://github.com/livekit/rust-sdks/pull/544 and https://github.com/livekit/rust-sdks/issues/546 are resolved
+webrtc-sys = { git = "https://github.com/kbalt/rust-sdks.git", rev = "81b206f54f106d8a7b8b82a5f690c6a9a131f5d8" }
+libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "81b206f54f106d8a7b8b82a5f690c6a9a131f5d8" }
+livekit = { git = "https://github.com/kbalt/rust-sdks.git", rev = "81b206f54f106d8a7b8b82a5f690c6a9a131f5d8" }
+livekit-api = { git = "https://github.com/kbalt/rust-sdks.git", rev = "81b206f54f106d8a7b8b82a5f690c6a9a131f5d8" }
+livekit-runtime = { git = "https://github.com/kbalt/rust-sdks.git", rev = "81b206f54f106d8a7b8b82a5f690c6a9a131f5d8" }
+livekit-protocol = { git = "https://github.com/kbalt/rust-sdks.git", rev = "81b206f54f106d8a7b8b82a5f690c6a9a131f5d8" }
 
 # Update libsrtp to 2.6 & newer bindgen version until https://github.com/HyeonuPark/srtp2-sys/pull/3 is merged
 srtp2-sys = { git = "https://github.com/kbalt/srtp2-sys.git", rev = "fb3d67b5ada52d242c2ab5a06e4e6e22db31d601" }
