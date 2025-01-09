@@ -96,44 +96,64 @@ pub async fn handle_reinvite(
 ) -> Result<()> {
     let request = &event.invite;
 
-    let body_is_not_sdp = request
+    let body_is_sdp = request
         .headers
         .get_named()
-        .map(|content_type: ContentType| content_type.0 != "application/sdp")
+        .map(|content_type: ContentType| content_type.0 == "application/sdp")
         .unwrap_or_default();
 
-    if body_is_not_sdp {
-        let response = event
+    if body_is_sdp {
+        let body = request.body.clone();
+
+        let changes = media_session.receive_offer(body).await?;
+
+        apply_changes(media, media_session, changes).await?;
+
+        let sdp_response = media_session.build_sdp().to_string();
+
+        let mut response = event
             .session
-            .endpoint
-            .create_response(request, Code::NOT_ACCEPTABLE, None);
+            .dialog
+            .create_response(request, Code::OK, None)
+            .context("Failed to create 200 OK response to INVITE")?;
+        response
+            .msg
+            .headers
+            .insert(Name::CONTENT_TYPE, "application/sdp");
 
-        event.transaction.respond_failure(response).await?;
+        response.msg.body = sdp_response.into();
 
-        bail!("failed to handle re-invite unknown content-type");
+        event.respond_success(response).await?;
+    } else {
+        media_session.setup_offer().await?;
+
+        let mut response = event
+            .session
+            .dialog
+            .create_response(request, Code::OK, None)
+            .context("Failed to create 200 OK response to INVITE")?;
+        response
+            .msg
+            .headers
+            .insert(Name::CONTENT_TYPE, "application/sdp");
+        response.msg.body = media_session.build_sdp().to_string().into();
+
+        let ack = event.respond_success(response).await?;
+
+        let ack_body_is_sdp = ack
+            .headers
+            .get_named()
+            .map(|content_type: ContentType| content_type.0 == "application/sdp")
+            .unwrap_or_default();
+
+        if !ack_body_is_sdp {
+            bail!("Got ACK without SDP in body");
+        }
+
+        let changes = media_session.receive_answer(ack.body)?;
+
+        apply_changes(media, media_session, changes).await?;
     }
-
-    let body = request.body.clone();
-
-    let changes = media_session.receive_offer(body).await?;
-
-    apply_changes(media, media_session, changes).await?;
-
-    let sdp_response = media_session.build_sdp().to_string();
-
-    let mut response = event
-        .session
-        .dialog
-        .create_response(request, Code::OK, None)
-        .context("Failed to create 200 OK response to INVITE")?;
-    response
-        .msg
-        .headers
-        .insert(Name::CONTENT_TYPE, "application/sdp");
-
-    response.msg.body = sdp_response.into();
-
-    event.respond_success(response).await?;
 
     Ok(())
 }
