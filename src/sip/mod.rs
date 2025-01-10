@@ -30,6 +30,7 @@ use std::pin::pin;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::lookup_host;
+use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::broadcast;
 use tokio::time::{interval, sleep};
 
@@ -261,6 +262,12 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
 
     // Find obelisk's public address using the UDP transport, when a stun-server is configured
     let pub_addr = if let Some(stun_server) = settings.sip.stun_server.as_ref() {
+        let stun_server = if stun_server.contains(':') {
+            Cow::Borrowed(stun_server)
+        } else {
+            Cow::Owned(format!("{stun_server}:3478"))
+        };
+
         let stun_server: SocketAddr = lookup_host(stun_server.as_str())
             .await?
             .find(|addr| addr.is_ipv4() == transport.bound().is_ipv4())
@@ -310,7 +317,14 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         log::info!("Incomplete SIP registrar settings, not registering anywhere.");
     }
 
-    tokio::signal::ctrl_c().await?;
+    let mut sigterm =
+        signal(SignalKind::terminate()).context("Failed to create SIGTERM signal handler")?;
+    let ctrl_c = tokio::signal::ctrl_c();
+
+    tokio::select! {
+        _ = sigterm.recv() => {}
+        _ = ctrl_c => {}
+    }
 
     // ==== SHUTDOWN SEQUENCE
 
