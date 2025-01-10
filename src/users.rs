@@ -173,9 +173,9 @@ impl KeycloakAdminClient {
     }
 
     /// Query keycloak to get the first user that matches the given email
-    pub async fn get_user_for_email<'a>(
+    pub async fn get_user_for_email(
         &self,
-        tenant_filter: Option<TenantFilter<'a>>,
+        tenant_filter: Option<TenantFilter<'_>>,
         email: &str,
     ) -> Result<Option<User>> {
         let url = self.api_url(["users"])?;
