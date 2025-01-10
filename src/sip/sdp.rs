@@ -150,58 +150,71 @@ impl SessionState {
     }
 
     pub async fn setup_offer(&mut self) -> Result<()> {
-        let audio_rtp_pair = PortPool::instance()
-            .create_rtp_socket_pair(AddressFamily::of(self.pub_ip))
-            .await
-            .context("Failed to create RTP sockets")?
-            .context("No more available RTP ports")?;
+        let audio_session_exist = self
+            .media_sessions
+            .iter()
+            .any(|m| m.media_type == MediaType::Audio);
+        let video_session_exists = self
+            .media_sessions
+            .iter()
+            .any(|m| m.media_type == MediaType::Video);
 
-        let id = self.make_media_session_id();
-        self.media_sessions.push(MediaSession {
-            id,
-            media_type: MediaType::Audio,
-            state: MediaSessionState::Offered(Offered {
-                codec: offer_all_audio_codecs(),
-                srtp: if self.settings.sip.offer_srtp {
-                    offer_srtp()
-                } else {
-                    vec![]
-                },
-            }),
-            local_rtp_addr: (self.pub_ip, audio_rtp_pair.rtp_port).into(),
-            local_rtcp_addr: (self.pub_ip, audio_rtp_pair.rtcp_port).into(),
-            direction: Direction::SendRecv,
-            dtmf_events: Some(DtmfEvents {
-                pt: 101,
-                fmtp: None,
-            }),
-            socket_pair: audio_rtp_pair,
-        });
+        if !audio_session_exist {
+            let audio_rtp_pair = PortPool::instance()
+                .create_rtp_socket_pair(AddressFamily::of(self.pub_ip))
+                .await
+                .context("Failed to create RTP sockets")?
+                .context("No more available RTP ports")?;
 
-        let video_rtp_pair = PortPool::instance()
-            .create_rtp_socket_pair(AddressFamily::V4)
-            .await
-            .context("Failed to create RTP sockets")?
-            .context("No more available RTP ports")?;
+            let id = self.make_media_session_id();
+            self.media_sessions.push(MediaSession {
+                id,
+                media_type: MediaType::Audio,
+                state: MediaSessionState::Offered(Offered {
+                    codec: offer_all_audio_codecs(),
+                    srtp: if self.settings.sip.offer_srtp {
+                        offer_srtp()
+                    } else {
+                        vec![]
+                    },
+                }),
+                local_rtp_addr: (self.pub_ip, audio_rtp_pair.rtp_port).into(),
+                local_rtcp_addr: (self.pub_ip, audio_rtp_pair.rtcp_port).into(),
+                direction: Direction::SendRecv,
+                dtmf_events: Some(DtmfEvents {
+                    pt: 101,
+                    fmtp: None,
+                }),
+                socket_pair: audio_rtp_pair,
+            });
+        }
 
-        let id = self.make_media_session_id();
-        self.media_sessions.push(MediaSession {
-            id,
-            media_type: MediaType::Video,
-            state: MediaSessionState::Offered(Offered {
-                codec: offer_all_video_codecs(),
-                srtp: if self.settings.sip.offer_srtp {
-                    offer_srtp()
-                } else {
-                    vec![]
-                },
-            }),
-            local_rtp_addr: (self.pub_ip, video_rtp_pair.rtp_port).into(),
-            local_rtcp_addr: (self.pub_ip, video_rtp_pair.rtcp_port).into(),
-            direction: Direction::SendRecv,
-            dtmf_events: None,
-            socket_pair: video_rtp_pair,
-        });
+        if !video_session_exists {
+            let video_rtp_pair: SocketPair = PortPool::instance()
+                .create_rtp_socket_pair(AddressFamily::of(self.pub_ip))
+                .await
+                .context("Failed to create RTP sockets")?
+                .context("No more available RTP ports")?;
+
+            let id = self.make_media_session_id();
+            self.media_sessions.push(MediaSession {
+                id,
+                media_type: MediaType::Video,
+                state: MediaSessionState::Offered(Offered {
+                    codec: offer_all_video_codecs(),
+                    srtp: if self.settings.sip.offer_srtp {
+                        offer_srtp()
+                    } else {
+                        vec![]
+                    },
+                }),
+                local_rtp_addr: (self.pub_ip, video_rtp_pair.rtp_port).into(),
+                local_rtcp_addr: (self.pub_ip, video_rtp_pair.rtcp_port).into(),
+                direction: Direction::SendRecv,
+                dtmf_events: None,
+                socket_pair: video_rtp_pair,
+            });
+        }
 
         Ok(())
     }
