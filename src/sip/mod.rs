@@ -262,6 +262,12 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
 
     // Find obelisk's public address using the UDP transport, when a stun-server is configured
     let pub_addr = if let Some(stun_server) = settings.sip.stun_server.as_ref() {
+        let stun_server = if stun_server.contains(':') {
+            Cow::Borrowed(stun_server)
+        } else {
+            Cow::Owned(format!("{stun_server}:3478"))
+        };
+
         let stun_server: SocketAddr = lookup_host(stun_server.as_str())
             .await?
             .find(|addr| addr.is_ipv4() == transport.bound().is_ipv4())
