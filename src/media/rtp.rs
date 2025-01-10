@@ -6,6 +6,7 @@ use crate::sip::{MediaSessionId, SrtpInfo};
 use anyhow::{ensure, Context, Result};
 use ezk::{BoxedSourceCancelSafe, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange};
 use ezk_rtp::{rtcp_types::Compound, Rtp, RtpConfig, RtpConfigRange, RtpPacket, Session};
+use owo_colors::OwoColorize;
 use sdp_types::SrtpSuite;
 use srtp::{CryptoPolicy, StreamPolicy};
 use std::{collections::HashMap, future::pending, io, net::SocketAddr, sync::Arc, time::Duration};
@@ -541,7 +542,10 @@ impl RtpTask {
 
         for pkg in compound {
             match pkg {
-                Ok(packet) => self.session.recv_rtcp(packet),
+                Ok(packet) => {
+                    log_report(&packet);
+                    self.session.recv_rtcp(packet)
+                }
                 Err(e) => log::debug!("Encountered invalid RTCP packet in compound packet, {e:?}"),
             }
         }
@@ -596,3 +600,31 @@ impl Source for RtpMpscSource {
 }
 
 impl NextEventIsCancelSafe for RtpMpscSource {}
+
+fn log_report(packet: &ezk_rtp::rtcp_types::Packet<'_>) {
+    let report_blocks = match packet {
+        ezk_rtp::rtcp_types::Packet::Rr(receiver_report) => {
+            Some(receiver_report.report_blocks().collect::<Vec<_>>())
+        }
+        ezk_rtp::rtcp_types::Packet::Sr(sender_report) => {
+            Some(sender_report.report_blocks().collect::<Vec<_>>())
+        }
+        _ => None,
+    };
+
+    if let Some(report_blocks) = report_blocks {
+        for report_block in report_blocks {
+            log::debug!("{}{}{}\n\tfraction_lost: {}; culmulative_lost: {}; extended_sequence_number: {}; interarrival_jitter: {}; last_sender_report_timestamp: {}; delay_since_last_sender_report_timestamp: {}",
+                "[RTCP REPORT ssrc=".yellow(),
+                report_block.ssrc().bright_yellow(),
+                "]".yellow(),
+                format!("{}%", ((report_block.fraction_lost() as f32 / 255.0) * 100.0)).bright_cyan(),
+                report_block.cumulative_lost().bright_cyan(),
+                report_block.extended_sequence_number().bright_cyan(),
+                report_block.interarrival_jitter().bright_cyan(),
+                report_block.last_sender_report_timestamp().bright_cyan(),
+                report_block.delay_since_last_sender_report_timestamp().bright_cyan()
+            );
+        }
+    }
+}

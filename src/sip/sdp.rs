@@ -512,6 +512,7 @@ impl SessionState {
                 recv_codec: SdpRecvCodec {
                     payload: codec.payload,
                     codec: codec.codec,
+                    fmtp: None,
                 },
                 send_codec: codec,
                 srtp,
@@ -541,6 +542,13 @@ impl SessionState {
                         for codec in &offered.codec {
                             rtpmaps.push(codec.make_rtpmap());
                             fmts.push(codec.payload);
+
+                            if let Some(fmtp) = &codec.fmtp {
+                                fmtps.push(Fmtp {
+                                    format: codec.payload,
+                                    params: fmtp.as_str().into(),
+                                });
+                            }
                         }
 
                         for srtp in &offered.srtp {

@@ -35,10 +35,11 @@ use tokio::sync::broadcast;
 use tokio::time::{interval, sleep};
 
 mod codec;
+mod media_control;
 mod sdp;
 mod update;
 
-pub use codec::{SdpRecvCodec, SdpSendCodec, SdpSendCodecParams};
+pub use codec::{H264PacketizationMode, SdpRecvCodec, SdpSendCodec, SdpSendCodecParams};
 pub use sdp::{MediaSessionId, MediaSessionState, SessionState, SrtpInfo};
 pub use update::handle_reinvite;
 
@@ -127,6 +128,12 @@ impl AppLayer {
 
         let dialog = Dialog::new_server(endpoint.clone(), self.dialog_layer, &request, contact)?;
 
+        let fast_picture_update_notify = broadcast::Sender::new(1);
+
+        let _usage = dialog.register_usage(media_control::MediaControlUsage {
+            notify_picture_fast_update: fast_picture_update_notify.clone(),
+        });
+
         let name = if let Some(name) = &dialog.peer_contact.uri.name {
             Some(name.clone())
         } else {
@@ -173,16 +180,17 @@ impl AppLayer {
         }
 
         // Create a media pipeline
-        let (mut media, track_controller) = match MediaPipeline::new(self.settings.clone()).await {
-            Ok(answer) => answer,
-            Err(e) => {
-                log::error!("Failed to create media pipeline, {e:?}");
+        let (mut media, track_controller) =
+            match MediaPipeline::new(self.settings.clone(), fast_picture_update_notify).await {
+                Ok(answer) => answer,
+                Err(e) => {
+                    log::error!("Failed to create media pipeline, {e:?}");
 
-                session.terminate().await?;
+                    session.terminate().await?;
 
-                return Ok(());
-            }
-        };
+                    return Ok(());
+                }
+            };
 
         update::apply_changes(&mut media, &mut media_session, changes).await?;
 

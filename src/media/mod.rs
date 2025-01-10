@@ -4,7 +4,10 @@
 
 use crate::{
     settings::Settings,
-    sip::{MediaSessionId, SdpRecvCodec, SdpSendCodec, SdpSendCodecParams, SrtpInfo},
+    sip::{
+        H264PacketizationMode, MediaSessionId, SdpRecvCodec, SdpSendCodec, SdpSendCodecParams,
+        SrtpInfo,
+    },
 };
 use anyhow::{Context, Result};
 use codec::Codec;
@@ -53,7 +56,7 @@ use std::{
 };
 use tokio::{
     net::UdpSocket,
-    sync::{mpsc, Mutex, RwLock},
+    sync::{broadcast, mpsc, Mutex, RwLock},
     task::JoinHandle,
 };
 use video::h264::{H264Decoder, H264Encoder};
@@ -79,6 +82,9 @@ const RAW_AUDIO_CONFIG: RawAudioConfig = RawAudioConfig {
     format: Format::I16,
 };
 
+/// Fallback FPS for the compositor if the peer does not specify anything
+pub const DEFAULT_FPS: u32 = 30;
+
 /// Asynchronous events emitted by the media pipeline
 pub enum MediaEvent {
     Error,
@@ -93,6 +99,7 @@ pub type ToConferenceVideoTracks =
 
 pub struct MediaPipeline {
     settings: Arc<Settings>,
+    picture_fast_update_notify: broadcast::Sender<()>,
 
     pub target_fps: u32,
     pub compositor: Option<Mixer>,
@@ -125,7 +132,10 @@ impl MediaPipeline {
     ///
     /// - Self
     /// - track controller to play different audio tracks
-    pub async fn new(settings: Arc<Settings>) -> Result<(Self, TrackController)> {
+    pub async fn new(
+        settings: Arc<Settings>,
+        picture_fast_update_notify: broadcast::Sender<()>,
+    ) -> Result<(Self, TrackController)> {
         let (events_tx, events_rx) = mpsc::unbounded_channel();
 
         // [conference ->] obelisk -> phone
@@ -197,6 +207,7 @@ impl MediaPipeline {
 
         let this = Self {
             settings,
+            picture_fast_update_notify,
 
             compositor: None,
 
@@ -376,20 +387,37 @@ impl MediaPipeline {
         // Resizer to fit the image to the correct dimensions
         let mut resizer =
             ezk_image::resize::Resizer::new(ResizeAlg::Convolution(FilterType::Lanczos3));
-        let (target_width, target_height) = match codec.codec_params {
-            SdpSendCodecParams::None => (WIDTH, HEIGHT),
-            SdpSendCodecParams::H264 {
-                width,
-                height,
-                fps: _, // the requested framerate is achieved by setting the compositor target fps
-                profile: _, // TODO: h264 profiles
-            } => (width as usize, height as usize),
-        };
+        let (target_width, target_height, packetization_mode, fps, profile, level) =
+            match codec.codec_params {
+                SdpSendCodecParams::None => (
+                    WIDTH,
+                    HEIGHT,
+                    H264PacketizationMode::SingleNal,
+                    DEFAULT_FPS,
+                    None,
+                    None,
+                ),
+                SdpSendCodecParams::H264 {
+                    width,
+                    height,
+                    fps,
+                    profile,
+                    packetization_mode,
+                    level,
+                } => (
+                    width as usize,
+                    height as usize,
+                    packetization_mode,
+                    fps,
+                    Some(profile),
+                    Some(level),
+                ),
+            };
         let mut staging = vec![0u8; PixelFormat::I420.buffer_size(target_width, target_height)];
 
         let max_bitrate = self.settings.sip.max_video_bitrate;
         let bitrate = codec.bitrate.unwrap_or(max_bitrate).min(max_bitrate);
-        let mut h264_enc = H264Encoder::create(bitrate)?;
+        let mut h264_enc = H264Encoder::create(packetization_mode, bitrate, profile, level, fps)?;
 
         // With a clock-rate of 90_000 a u32 timestamp can cover 47721 seconds of time, so generate a random point in that timestamp range
         let start_timestamp =
@@ -397,11 +425,15 @@ impl MediaPipeline {
         let payload_type = codec.payload;
         let mut sequence_number = rand::random::<u16>() / 2;
 
+        let mut fast_picture_update_notify = self.picture_fast_update_notify.subscribe();
         #[allow(clippy::type_complexity)]
         let on_video_frame: Box<dyn FnMut(&[u8]) + Send + 'static> = Box::new(move |buf| {
             let buf = maybe_resize(&mut resizer, buf, &mut staging, target_width, target_height);
 
-            let packets = h264_enc.encode_and_packetize(buf, target_width, target_height);
+            let force_intra_frame = fast_picture_update_notify.try_recv().is_ok();
+
+            let packets =
+                h264_enc.encode_and_packetize(buf, target_width, target_height, force_intra_frame);
 
             // Calculate the timestamp from the seconds passed since origin * clock-rate (90_000) and use only the lower 32bit
             let timestamp = (((start_timestamp.elapsed().as_secs_f64() * 90_000.0) as u64)
