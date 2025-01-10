@@ -30,6 +30,7 @@ use std::pin::pin;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::lookup_host;
+use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::broadcast;
 use tokio::time::{interval, sleep};
 
@@ -310,7 +311,14 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         log::info!("Incomplete SIP registrar settings, not registering anywhere.");
     }
 
-    tokio::signal::ctrl_c().await?;
+    let mut sigterm =
+        signal(SignalKind::terminate()).context("Failed to create SIGTERM signal handler")?;
+    let ctrl_c = tokio::signal::ctrl_c();
+
+    tokio::select! {
+        _ = sigterm.recv() => {}
+        _ = ctrl_c => {}
+    }
 
     // ==== SHUTDOWN SEQUENCE
 
