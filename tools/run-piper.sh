@@ -73,5 +73,5 @@ rm $TMP_FILE
 # check file type
 # ffmpeg -f ffmetadata - -i $OUT_DIR/$OUT_FILE
 # playback
-#aplay $OUT_DIR/$OUT_FILE
+aplay $OUT_DIR/$OUT_FILE
 
