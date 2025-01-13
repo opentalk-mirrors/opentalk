@@ -89,6 +89,7 @@ pub const DEFAULT_FPS: u32 = 30;
 pub enum MediaEvent {
     Error,
     DtmfDigit(u8),
+    LocalTrackMuted,
 }
 
 pub type ToCallerVideoSinks = Arc<Mutex<HashMap<MediaSessionId, Box<dyn FnMut(&[u8]) + Send>>>>;
@@ -240,6 +241,15 @@ impl MediaPipeline {
 
         // we're about to join the conference, stop the UI thread
         self.ui_controller.stop();
+
+        let events_tx = self.events_tx.clone();
+        compositor.add_livekit_event_handler(move |event| {
+            if let RoomEvent::TrackMuted { participant, .. } = event {
+                if matches!(participant, Participant::Local(..)) {
+                    let _ = events_tx.send(MediaEvent::LocalTrackMuted);
+                }
+            }
+        });
 
         compositor
             .link_sink(

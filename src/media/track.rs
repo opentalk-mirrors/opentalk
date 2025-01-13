@@ -46,6 +46,7 @@ wav_file!(DE_WELCOME_USAGE => "../../audio/DE_welcome_usage.wav");
 wav_file!(DE_CONFERENCE_CLOSED => "../../audio/DE_conference_closed.wav");
 wav_file!(DE_INPUT_INVALID => "../../audio/DE_input_invalid.wav");
 wav_file!(DE_ENTERED_WAITING_ROOM => "../../audio/DE_waiting_room_entered.wav");
+wav_file!(DE_MODERATOR_MUTED => "../../audio/DE_moderator_muted.wav");
 
 // Sounds taken from
 // https://gitlab.senfcall.de/senfcall-public/mute-and-unmute-sounds/-/tree/master/
@@ -63,6 +64,7 @@ pub(crate) enum Track {
     ConferenceClosed,
     InputInvalid,
     EnteredWaitingRoom,
+    MutedByModerator,
     Muted,
     Unmuted,
     HandRaised,
@@ -100,6 +102,7 @@ impl TrackController {
             Track::ConferenceClosed => data.track = Some(DE_CONFERENCE_CLOSED.clone()),
             Track::InputInvalid => data.track = Some(DE_INPUT_INVALID.clone()),
             Track::EnteredWaitingRoom => data.track = Some(DE_ENTERED_WAITING_ROOM.clone()),
+            Track::MutedByModerator => data.track = Some(DE_MODERATOR_MUTED.clone()),
             Track::Muted => data.track = Some(DE_MUTED.clone()),
             Track::Unmuted => data.track = Some(DE_UNMUTED.clone()),
             Track::HandRaised => data.track = Some(DE_HAND_RAISED.clone()),

@@ -271,13 +271,7 @@ impl Signaling {
                 if digit == 0 {
                     self.track_controller.play_track(Track::Silence)
                 } else if digit == 1 {
-                    self.set_publish_mute(!self.muted);
-
-                    self.track_controller.play_track(if self.muted {
-                        Track::Muted
-                    } else {
-                        Track::Unmuted
-                    });
+                    self.toggle_mute();
                 } else if digit == 2 {
                     if let Some(websocket) = &mut self.websocket {
                         self.hand_raised = !self.hand_raised;
@@ -292,6 +286,15 @@ impl Signaling {
             }
             MediaEvent::Error => {
                 self.state = State::Quitting;
+            }
+            MediaEvent::LocalTrackMuted => {
+                if self.muted {
+                    return Ok(());
+                }
+
+                self.muted = true;
+
+                self.track_controller.play_track(Track::MutedByModerator);
             }
         }
 
@@ -439,9 +442,8 @@ impl Signaling {
         Ok(())
     }
 
-    fn set_publish_mute(&mut self, muted: bool) {
-        self.muted = muted;
-
+    // Toggle the mute state of our local publications
+    fn toggle_mute(&mut self) {
         if let Some(compositor) = &mut self.media.compositor {
             for track in compositor
                 .local_participant()
@@ -449,12 +451,20 @@ impl Signaling {
                 .into_values()
             {
                 if self.muted {
-                    track.mute();
-                } else {
                     track.unmute();
+                } else {
+                    track.mute();
                 }
             }
         }
+
+        self.muted = !self.muted;
+
+        self.track_controller.play_track(if self.muted {
+            Track::Muted
+        } else {
+            Track::Unmuted
+        });
     }
 }
 
