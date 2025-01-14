@@ -25,6 +25,10 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
+    -p|--playback)
+      PLAYBACK="1"
+      shift # past argument
+      ;;
     -*|--*)
       echo "Unknown option $1"
       exit 1
@@ -41,6 +45,7 @@ set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
 echo "INPUT TEXT FILE    = ${INPUT}"
 echo "OUTPUT AUDIO FILE  = ${OUTPUT}"
 echo "MODEL FILE         = ${MODEL}"
+echo "PLAYBACK AUDIO     = ${PLAYBACK:-0}"
 
 
 if [ ! -f "$MODEL" ]; then
@@ -53,7 +58,7 @@ if [ ! -f "$INPUT" ]; then
     exit 1
 fi
 
-set -x
+# set -x
 
 PIPER_BIN="${PIPER_BIN:-piper}"
 
@@ -72,6 +77,7 @@ rm $TMP_FILE
 
 # check file type
 # ffmpeg -f ffmetadata - -i $OUT_DIR/$OUT_FILE
-# playback
-aplay $OUT_DIR/$OUT_FILE
 
+if [ "$PLAYBACK" ]; then
+    aplay $OUT_DIR/$OUT_FILE
+fi

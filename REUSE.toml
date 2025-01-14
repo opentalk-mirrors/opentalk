@@ -28,5 +28,6 @@ path = [
   "audio/**.wav",
   "docs/**.md",
   "text/DE_**",
+  "text/EN_**",
 ]
 precedence = "aggregate"
