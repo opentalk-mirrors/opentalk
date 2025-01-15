@@ -58,7 +58,7 @@ macro_rules! build_info {
             }
 
             /// Build information about the crate.
-            #[derive(Debug, Clone, Copy)]
+            #[derive(Debug, Clone)]
             pub struct BuildInfo {
                 build_timestamp: &'static str,
                 build_version: &'static str,
@@ -71,6 +71,7 @@ macro_rules! build_info {
                 rustc_host_triple: &'static str,
                 cargo_target_triple: &'static str,
                 cargo_profile: &'static str,
+                license_information: Option<String>,
             }
 
             impl BuildInfo {
@@ -88,33 +89,50 @@ macro_rules! build_info {
                         rustc_host_triple: env!("VERGEN_RUSTC_HOST_TRIPLE"),
                         cargo_target_triple: env!("VERGEN_CARGO_TARGET_TRIPLE"),
                         cargo_profile: profile_human(),
+                        license_information: None,
                     }
+                }
+
+                pub fn with_license(license_information: String) -> Self {
+                    let mut this = Self::new();
+                    this.license_information = Some(license_information);
+                    this
                 }
             }
 
-            impl std::fmt::Display for BuildInfo {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    writeln!(f, "Build Timestamp: {}", self.build_timestamp)?;
-                    writeln!(f, "Build Version: {}", self.build_version)?;
+            impl BuildInfo {
+                pub fn version(&self) -> String {
+                    let mut version_text = String::new();
+                    version_text.push_str(&format!("Build Timestamp: {}\n", self.build_timestamp));
+                    version_text.push_str(&format!("Build Version: {}\n", self.build_version));
                     if let Some(sha) = self.commit_sha {
-                        write!(f, "Commit SHA: {}", sha)?;
+                        version_text.push_str(&format!("Commit SHA: {}", sha));
                         match self.commit_dirty {
-                            Some("true") => writeln!(f, "-dirty")?,
-                            _ => writeln!(f)?,
+                            Some("true") => version_text.push_str("-dirty\n"),
+                            _ => version_text.push_str("\n"),
                         }
                     }
                     if let Some(commit_date) = self.commit_date {
-                        writeln!(f, "Commit Date: {}", commit_date)?;
+                        version_text.push_str(&format!("Commit Date: {}\n", commit_date));
                     }
 
                     if let Some(commit_branch) = self.commit_branch {
-                        writeln!(f, "Commit Branch: {}", commit_branch)?;
+                        version_text.push_str(&format!("Commit Branch: {}\n", commit_branch));
                     }
-                    writeln!(f, "rustc Version: {}", self.rustc_version)?;
-                    writeln!(f, "rustc Channel: {}", self.rustc_channel)?;
-                    writeln!(f, "rustc Host Triple: {}", self.rustc_host_triple)?;
-                    writeln!(f, "cargo Target Triple: {}", self.cargo_target_triple)?;
-                    write!(f, "cargo Profile: {}", self.cargo_profile)
+                    version_text.push_str(&format!("rustc Version: {}\n", self.rustc_version));
+                    version_text.push_str(&format!("rustc Channel: {}\n", self.rustc_channel));
+                    version_text
+                        .push_str(&format!("rustc Host Triple: {}\n", self.rustc_host_triple));
+                    version_text.push_str(&format!(
+                        "cargo Target Triple: {}\n",
+                        self.cargo_target_triple
+                    ));
+                    version_text.push_str(&format!("cargo Profile: {}\n", self.cargo_profile));
+                    version_text
+                }
+
+                pub fn license(&self) -> Option<&str> {
+                    self.license_information.as_deref()
                 }
             }
         }
