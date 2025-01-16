@@ -44,7 +44,7 @@ ping:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: ops@example.com
+      email: ops@{{ OT_DOMAIN }}
       storage: /data/acme.json
       #caServer: https://acme-staging-v02.api.letsencrypt.org/directory
       httpChallenge:
