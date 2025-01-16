@@ -29,6 +29,9 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
+    depends_on:
+      cforge:
+        condition: service_completed_successfully
 
 secrets:
   minio_root_secret:
