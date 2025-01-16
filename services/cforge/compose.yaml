@@ -1,6 +1,6 @@
 services:
   cforge:
-    image: opentalk/cforge:latest
+    image: ${CFORGE_IMAGE_SRC}:${CFORGE_VERSION}
     build: .
     restart: "no"
     environment:
