@@ -11,7 +11,7 @@ cp env.sample .env
 Add your domain to the `.env` file.
 
 ```bash
-sed -i 's/OT_DOMAIN=""/OT_DOMAIN="livekit-test-anfi.opentalk.run"/g' .env
+sed -i 's/OT_DOMAIN=""/OT_DOMAIN="example.com"/g' .env
 ```
 
 Run the cforge container once to initilaze the deployment envrinonment.
