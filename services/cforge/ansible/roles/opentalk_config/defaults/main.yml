@@ -273,8 +273,8 @@ Livekit:
   port: 7880
   rtc:
     tcp_port: 7881
-    port_range_start: 20000
-    port_range_end: 39999
+    port_range_start: 50000
+    port_range_end: 64535
     use_external_ip: "true"
     enable_loopback_candidate: "false"
   api_keys:

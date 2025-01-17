@@ -32,6 +32,7 @@ docker compose up -d
 |-------------|----------|-------------------------------|
 | 80,443      | TCP      | http(s) (Traefik)             |
 | 40000-49999 | UDP      | RTP (Obelisk)                 |
-| 5060        | TCP      | SIP (Obelisk)                 |
-| 50000-64534 | UDP      | RTP (Lifekit)                 |
+| 5060        | UDP      | SIP (Obelisk)                 |
+| 50000-64535 | UDP      | RTP (Lifekit)                 |
 | 7881        | TCP      | WebRTC ICE over TCP (livekit) |
+
