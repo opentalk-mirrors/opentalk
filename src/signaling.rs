@@ -8,12 +8,15 @@ use crate::settings::Settings;
 use crate::sip::{handle_reinvite, SessionState};
 use crate::websocket::{JoinState, Participant, Websocket, WebsocketEvent};
 use anyhow::{Context, Result};
+use bytes::Bytes;
 use bytesstr::BytesStr;
 use opentalk_compositor::{Mixer, MixerParameters};
+use sip_types::{Method, Name};
 use sip_ua::invite::session::{Event, Session};
 use std::fmt::Write;
 use std::future::pending;
 use std::sync::Arc;
+use std::time::Instant;
 use tokio::sync::{broadcast, mpsc};
 use tokio::time::{sleep, Duration};
 
@@ -53,6 +56,7 @@ pub struct Signaling {
     /// Handle to the media task
     media: MediaPipeline,
     media_session: SessionState,
+    last_fast_picture_update_request_sent: Option<Instant>,
 
     /// Track controller to play audio tracks on demand to the SIP user
     track_controller: TrackController,
@@ -108,6 +112,7 @@ impl Signaling {
             websocket: None,
             media,
             media_session,
+            last_fast_picture_update_request_sent: None,
             track_controller,
             state: State::Running,
             dtmf_id: String::new(),
@@ -296,7 +301,41 @@ impl Signaling {
 
                 self.track_controller.play_track(Track::MutedByModerator);
             }
+            MediaEvent::VideoDecoderError => {
+                self.send_picture_update_request().await?;
+            }
         }
+
+        Ok(())
+    }
+
+    async fn send_picture_update_request(&mut self) -> Result<()> {
+        // Send a request at most every 5 seconds
+        let now = Instant::now();
+        if let Some(i) = self.last_fast_picture_update_request_sent {
+            if i + Duration::from_secs(5) > now {
+                return Ok(());
+            }
+        }
+        self.last_fast_picture_update_request_sent = Some(now);
+
+        let mut target_tp_info = self.sip.dialog.target_tp_info.lock().await;
+
+        let mut request = self.sip.dialog.create_request(Method::INFO);
+        request
+            .headers
+            .insert(Name::CONTENT_TYPE, "application/media_control+xml");
+        request.body = Bytes::from_static(b"<?xml version=\"1.0\" encoding=\"utf-8\"?><media_control><vc_primitive><to_encoder><picture_fast_update></picture_fast_update></to_encoder></vc_primitive></media_control>\r\n");
+
+        let mut tsx = self
+            .sip
+            .endpoint
+            .send_request(request, &mut target_tp_info)
+            .await?;
+
+        tokio::spawn(async move {
+            let _ = tsx.receive_final().await;
+        });
 
         Ok(())
     }

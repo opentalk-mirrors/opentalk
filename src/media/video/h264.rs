@@ -116,23 +116,29 @@ impl H264Encoder {
 }
 
 pub struct H264Decoder {
-    encoder: openh264::decoder::Decoder,
+    decoder: openh264::decoder::Decoder,
     init: Instant,
 }
 
 impl H264Decoder {
     pub fn create() -> Result<Self> {
         Ok(Self {
-            encoder: openh264::decoder::Decoder::new()
+            decoder: openh264::decoder::Decoder::new()
                 .context("Failed to create openh264 decoder")?,
             init: Instant::now(),
         })
     }
 
-    pub fn decode_packet(&mut self, packet: &[u8]) -> Option<VideoFrame<I420Buffer>> {
+    pub fn decode_packet(&mut self, packet: &[u8]) -> Option<Result<VideoFrame<I420Buffer>, ()>> {
         let packet = Bytes::copy_from_slice(packet);
         let packet = H264Packet::default().depacketize(&packet).ok()?;
-        let decoded_yuv = self.encoder.decode(&packet).ok()??;
+        let decoded_yuv = match self.decoder.decode(&packet) {
+            Ok(decoded_yuv) => decoded_yuv?,
+            Err(e) => {
+                log::warn!("Failed to decode packet: {e:?}");
+                return Some(Err(()));
+            }
+        };
 
         let (width, height) = decoded_yuv.dimensions();
 
@@ -150,10 +156,10 @@ impl H264Decoder {
         buffer.data_mut().1.copy_from_slice(decoded_yuv.u());
         buffer.data_mut().2.copy_from_slice(decoded_yuv.v());
 
-        Some(VideoFrame {
+        Some(Ok(VideoFrame {
             rotation: VideoRotation::VideoRotation0,
             timestamp_us: self.init.elapsed().as_micros() as i64,
             buffer,
-        })
+        }))
     }
 }

@@ -90,6 +90,7 @@ pub enum MediaEvent {
     Error,
     DtmfDigit(u8),
     LocalTrackMuted,
+    VideoDecoderError,
 }
 
 pub type ToCallerVideoSinks = Arc<Mutex<HashMap<MediaSessionId, Box<dyn FnMut(&[u8]) + Send>>>>;
@@ -580,6 +581,7 @@ impl MediaPipeline {
         let video_sources = self.to_conference_video_tracks.clone();
 
         let task_handle = tokio::runtime::Handle::current();
+        let events_tx = self.events_tx.clone();
 
         std::thread::spawn(move || {
             loop {
@@ -597,6 +599,12 @@ impl MediaPipeline {
 
                         // Decode the frame, then check if there's a livekit publication yet
                         if let Some(frame) = h264_dec.decode_packet(frame.data().get().payload()) {
+                            // If the decoder yields an error -> emit an decoder error
+                            let Ok(frame) = frame else {
+                                let _ = events_tx.send(MediaEvent::VideoDecoderError);
+                                continue;
+                            };
+
                             if let Some((_, video_source)) =
                                 video_sources.get(&session_id).and_then(|s| s.as_ref())
                             {

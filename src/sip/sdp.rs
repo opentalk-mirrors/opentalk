@@ -565,6 +565,13 @@ impl SessionState {
                         rtpmaps.push(established.recv_codec.make_rtpmap());
                         fmts.push(established.recv_codec.payload);
 
+                        if let Some(fmtp) = &established.recv_codec.fmtp {
+                            fmtps.push(Fmtp {
+                                format: established.recv_codec.payload,
+                                params: fmtp.as_str().into(),
+                            });
+                        }
+
                         if let Some(srtp) = &established.srtp {
                             populate_crypto_attributes(srtp, &mut crypto);
 
