@@ -1,11 +1,10 @@
 ---
-# https://docs.ansible.com/ansible/latest/collections/community/general/keycloak_user_module.html
-
-- name: "Create a user for testing purposes | {{ postInstall.demoUser.name }}"
+- name: "Create a user for testing purposes | name: {{ postInstall.demoUser.name }}"
   community.general.keycloak_user:
     auth_keycloak_url: "{{ Keycloak.base_url }}"
     auth_username: admin
     auth_password: "{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}"
+    auth_realm: master
     realm: "{{ Keycloak.realm }}"
     username: "{{ postInstall.demoUser.name }}"
     firstName: "{{ postInstall.demoUser.firstName }}"
@@ -17,7 +16,7 @@
         - type: password
           value: "{{ postInstall.demoUser.password }}"
           temporary: false
-    state: "{{ postInstall.demoUser.present }}"
+    state: "{{ postInstall.demoUser.state }}"
   tags:
     - postInstall
     - demoUser

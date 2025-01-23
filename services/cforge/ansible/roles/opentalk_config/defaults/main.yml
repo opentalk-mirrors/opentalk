@@ -8,13 +8,13 @@ output_path: "{{ deploy_dir }}/services/cforge/data"
 
 postInstall:
   demoUser:
-    state: present
-    enabled: True
-    name: testuser
-    password: "{{ TESTUSER_PASSWORD }}"
-    email: "test.user@{{ OT_DOMAIN }}"
-    firstName: Test
-    lastName: User
+    state: "present"
+    enabled: "True"
+    name: "demo"
+    password: "{{ DEMO_USER_PASSWORD }}"
+    email: "demo.user@{{ OT_DOMAIN }}"
+    firstName: "Test"
+    lastName: "User"
 
 Keycloak:
   realm: "opentalk"
@@ -23,7 +23,6 @@ Keycloak:
   hostname: foo
   proxy: edge
   proxy_headers: xforwarded
-  enable_testuser: true
   db:
     vendor: postgres
     username: ot

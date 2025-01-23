@@ -3,6 +3,9 @@
 
 - name: Manage secrets
   ansible.builtin.include_tasks: manage_secrets.yaml
+  tags:
+    - postInstall
+    - demoUser
 
 - name: Manage traefik config
   ansible.builtin.include_tasks: render_config_traefik.yaml
@@ -32,7 +35,7 @@
   ansible.builtin.include_tasks: render_config_recorder.yaml
 
 - name: Manage test user
-  ansible.builtin.include_tasks: manage_testuser.yaml
+  ansible.builtin.include_tasks: manage_demo_user.yaml
   tags:
     - postInstall
     - demoUser
