@@ -33,4 +33,8 @@
 
 - name: Manage test user
   ansible.builtin.include_tasks: manage_testuser.yaml
+  tags:
+    - postInstall
+    - demoUser
+    - never
 

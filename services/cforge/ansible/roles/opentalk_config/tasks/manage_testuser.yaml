@@ -18,3 +18,7 @@
           value: "{{ postInstall.demoUser.password }}"
           temporary: false
     state: "{{ postInstall.demoUser.present }}"
+  tags:
+    - postInstall
+    - demoUser
+    - never
