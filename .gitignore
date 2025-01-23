@@ -1,6 +1,10 @@
 .env
-services/3rd_party/*/.*.secret
-services/*/.*.secret
+services/3rd_party/minio/.minio_root.secret
+services/3rd_party/postgres/.db_controller.secret
+services/3rd_party/postgres/.db_keycloak.secret
+services/etherpad/.etherpad_api.secret
+services/spacedeck/.spacedeck_api.secret
+services/spacedeck/.spacedeck_invite.secret
 services/cforge/data/.secrets.yaml
 
 **/config/
