@@ -6,6 +6,16 @@ force_generate_secrets: False
 deploy_dir: /deploy_dir
 output_path: "{{ deploy_dir }}/services/cforge/data"
 
+postInstall:
+  demoUser:
+    state: present
+    enabled: True
+    name: testuser
+    password: "{{ TESTUSER_PASSWORD }}"
+    email: "test.user@{{ OT_DOMAIN }}"
+    firstName: Test
+    lastName: User
+
 Keycloak:
   realm: "opentalk"
   base_url: "https://{{ OT_DOMAIN }}/auth"
