@@ -11,12 +11,12 @@ use anyhow::{bail, Context, Result};
 use futures::{SinkExt, StreamExt};
 use reqwest::header::SEC_WEBSOCKET_PROTOCOL;
 use serde::Deserialize;
-use std::borrow::Cow;
 use tokio::net::TcpStream;
 use tt::tungstenite::client::IntoClientRequest;
 use tt::tungstenite::protocol::frame::coding::CloseCode;
 use tt::tungstenite::protocol::CloseFrame;
 use tt::tungstenite::Message;
+use tt::tungstenite::Utf8Bytes;
 use tt::MaybeTlsStream;
 use tt::WebSocketStream;
 use types_signaling::AssociatedParticipant;
@@ -81,7 +81,9 @@ impl Websocket {
     async fn send(&mut self, data: impl std::fmt::Display) -> Result<()> {
         log::trace!("sending \"{}\"", data);
 
-        self.websocket.send(Message::Text(data.to_string())).await?;
+        self.websocket
+            .send(Message::Text(Utf8Bytes::from(data.to_string())))
+            .await?;
 
         Ok(())
     }
@@ -91,7 +93,7 @@ impl Websocket {
         self.websocket
             .close(Some(CloseFrame {
                 code: CloseCode::Normal,
-                reason: Cow::Borrowed("none"),
+                reason: Utf8Bytes::from_static("none"),
             }))
             .await?;
 
@@ -195,7 +197,7 @@ impl Websocket {
             match self.websocket.next().await {
                 Some(Ok(Message::Ping(data))) => self.websocket.send(Message::Pong(data)).await?,
                 Some(Ok(Message::Close(_))) => return Ok(None),
-                Some(Ok(msg)) => return Ok(Some(msg.into_text()?)),
+                Some(Ok(msg)) => return Ok(Some(msg.into_text()?.to_string())),
                 Some(Err(e)) => return Err(e.into()),
                 None => return Ok(None),
             }
