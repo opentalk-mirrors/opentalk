@@ -16,6 +16,9 @@
 - name: Render keycloak json import
   ansible.builtin.include_tasks: render_config_keycloak_realm_import.yaml
 
+- name: Render RabbitMQ config
+  ansible.builtin.include_tasks: render_config_rabbitmq.yaml
+
 - name: Render controller config
   ansible.builtin.include_tasks: render_config_controller.yaml
 

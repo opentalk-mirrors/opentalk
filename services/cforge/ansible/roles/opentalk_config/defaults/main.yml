@@ -89,7 +89,7 @@ Controller:
     api_key: "controller"
     api_secret: "{{ LIVEKIT_API_SECRET }}"
   rabbit_mq:
-    url: "amqp://guest:guest@rabbitmq/%2F"
+    url: "amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F"
     mail_task_queue: "opentalk_mailer"
     recording_task_queue: "opentalk_recorder"
     min_connections: 10
@@ -163,10 +163,10 @@ Controller:
   #  disabled_features:
   #    - "core::call_in"
   #    - "integration::outlook"
-  #endpoints:
+  endpoints:
+    event_invite_external_email_address: "true"
   #  disable_users_find: "false"
   #  users_find_use_kc: "false"
-  #  event_invite_external_email_address: "false"
   #  disallow_custom_display_name: "false"
   #  disable_openapi: "false"
   #metrics:
@@ -224,7 +224,7 @@ Obelisk:
 
 Mailer:
   rabbit_mq:
-    url: "amqp://guest:guest@rabbitmq/%2F"
+    url: "amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F"
     mail_task_queue: "opentalk_mailer"
   smtp:
     smtp_server: "smtp://mailcrab:1025?disable_starttls=true"
@@ -268,7 +268,7 @@ Recorder:
     domain: "controller:11311"
     insecure: "true"
   rabbitmq:
-    uri: "amqp://guest:guest@rabbitmq/%2F"
+    uri: "amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F"
     queue: "opentalk_recorder"
   recorder:
     display: "true"
@@ -278,7 +278,6 @@ Recorder:
     #  device: "/dev/dri/renderD129"
   monitoring: 
     port: 11411 
-
 
 Livekit:
   port: 7880
@@ -320,3 +319,10 @@ Minio:
   rootPassword: "{{ MINIO_ROOT_PASSWORD  }}"
   console_address: ":9001"
 #  certs_dir: ".minio/certs/"
+
+RabbitMQ:
+  default_vhost: "/"
+  default_user: ot
+  default_pass: "{{ RABBITMQ_PASSWORD  }}"
+  management:
+    path_prefix: "/adm/rabbitmq"
