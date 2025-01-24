@@ -544,7 +544,9 @@
     "keycloakVersion": "26.0.5",
     "offlineSessionIdleTimeout": 2592000,
     "offlineSessionMaxLifespan": 5184000,
-    "realm": "opentalk",
+    "loginTheme" : "{{ Keycloak.login_theme }}",
+    "accountTheme" : "{{ Keycloak.account_theme }}",
+    "realm": "{{ Keycloak.realm }}",
     "roles": {
         "realm": [
             {

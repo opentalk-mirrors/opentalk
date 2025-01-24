@@ -8,6 +8,8 @@ output_path: "{{ deploy_dir }}/services/cforge/data"
 
 Keycloak:
   realm: "opentalk"
+  login_theme: "opentalk"
+  account_theme: "opentalk"
   base_url: "https://{{ OT_DOMAIN }}/auth"
   api_base_url: "https://{{ OT_DOMAIN }}/auth/admin/realms/opentalk"
   hostname: foo
