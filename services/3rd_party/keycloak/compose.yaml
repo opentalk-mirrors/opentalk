@@ -29,8 +29,8 @@ services:
       - "traefik.http.routers.keycloak.middlewares=keycloak-redirect"
     healthcheck:
       start_period: 60s
-      retries: 3
-      timeout: 2m
+      retries: 10
+      timeout: 5s
       interval: 30s
       test: 
       - "CMD-SHELL"
