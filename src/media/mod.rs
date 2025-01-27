@@ -683,6 +683,9 @@ impl MediaPipeline {
         self.ui_controller.set_target_fps(self.target_fps);
         if let Some(compositor) = &mut self.compositor {
             compositor.set_target_fps(self.target_fps as u16).await;
+
+            let video_support = !self.to_caller_video_sinks.lock().await.is_empty();
+            compositor.set_video_support(video_support);
         }
     }
 }
