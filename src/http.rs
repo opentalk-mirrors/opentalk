@@ -6,19 +6,53 @@
 
 use crate::settings::{AuthSettings, ControllerSettings};
 use crate::websocket::Ticket;
-use anyhow::{bail, Result};
-use openidconnect::reqwest::Error;
-use openidconnect::{AccessToken, OAuth2TokenResponse};
-use openidconnect::{HttpRequest, HttpResponse};
+use anyhow::{bail, Context, Result};
+use openidconnect::core::{
+    CoreAuthDisplay, CoreAuthPrompt, CoreClient, CoreErrorResponseType, CoreGenderClaim,
+    CoreJsonWebKey, CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm,
+    CoreProviderMetadata, CoreRevocableToken, CoreTokenType,
+};
+use openidconnect::{
+    AccessToken, EmptyAdditionalClaims, EmptyExtraTokenFields, EndpointNotSet, EndpointSet,
+    IdTokenFields, OAuth2TokenResponse, RevocationErrorResponseType, StandardErrorResponse,
+    StandardTokenIntrospectionResponse, StandardTokenResponse,
+};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-use std::future::Future;
-use std::pin::Pin;
 use tokio::sync::RwLock;
+
+type OidcClient = openidconnect::Client<
+    EmptyAdditionalClaims,
+    CoreAuthDisplay,
+    CoreGenderClaim,
+    CoreJweContentEncryptionAlgorithm,
+    CoreJsonWebKey,
+    CoreAuthPrompt,
+    StandardErrorResponse<CoreErrorResponseType>,
+    StandardTokenResponse<
+        IdTokenFields<
+            EmptyAdditionalClaims,
+            EmptyExtraTokenFields,
+            CoreGenderClaim,
+            CoreJweContentEncryptionAlgorithm,
+            CoreJwsSigningAlgorithm,
+        >,
+        CoreTokenType,
+    >,
+    StandardTokenIntrospectionResponse<EmptyExtraTokenFields, CoreTokenType>,
+    CoreRevocableToken,
+    StandardErrorResponse<RevocationErrorResponseType>,
+    EndpointSet,
+    EndpointNotSet,
+    EndpointNotSet,
+    EndpointNotSet,
+    EndpointSet,
+    EndpointNotSet,
+>;
 
 pub struct HttpClient {
     client: reqwest::Client,
-    oidc: openidconnect::core::CoreClient,
+    oidc: OidcClient,
     access_token: RwLock<AccessToken>,
 }
 
@@ -26,25 +60,26 @@ impl HttpClient {
     pub async fn discover(settings: &AuthSettings) -> Result<Self> {
         let client = reqwest::Client::new();
 
-        let metadata = openidconnect::core::CoreProviderMetadata::discover_async(
-            settings.issuer.clone(),
-            async_http_client(client.clone()),
-        )
-        .await?;
+        let metadata =
+            CoreProviderMetadata::discover_async(settings.issuer.clone(), &client).await?;
 
-        let oidc = openidconnect::core::CoreClient::new(
+        let oidc = CoreClient::new(
             settings.client_id.clone(),
-            Some(settings.client_secret.clone()),
             settings.issuer.clone(),
-            metadata.authorization_endpoint().clone(),
-            metadata.token_endpoint().cloned(),
-            None,
             metadata.jwks().clone(),
+        )
+        .set_client_secret(settings.client_secret.clone())
+        .set_auth_uri(metadata.authorization_endpoint().clone())
+        .set_token_uri(
+            metadata
+                .token_endpoint()
+                .context("Missing token endpoint url in OIDC metadata")?
+                .clone(),
         );
 
         let response = oidc
             .exchange_client_credentials()
-            .request_async(async_http_client(client.clone()))
+            .request_async(&client)
             .await?;
 
         Ok(Self {
@@ -64,7 +99,7 @@ impl HttpClient {
         let response = self
             .oidc
             .exchange_client_credentials()
-            .request_async(async_http_client(self.client.clone()))
+            .request_async(&self.client)
             .await?;
 
         *token = response.access_token().clone();
@@ -154,37 +189,4 @@ struct ApiError {
 #[derive(Deserialize)]
 struct StartResponse {
     ticket: String,
-}
-
-type BoxedHttpResponseFuture =
-    Box<dyn Future<Output = Result<HttpResponse, Error<reqwest::Error>>> + Send>;
-
-fn async_http_client(
-    client: reqwest::Client,
-) -> impl Fn(HttpRequest) -> Pin<BoxedHttpResponseFuture> {
-    move |request| Box::pin(async_http_client_inner(client.clone(), request))
-}
-
-async fn async_http_client_inner(
-    client: reqwest::Client,
-    request: HttpRequest,
-) -> Result<HttpResponse, Error<reqwest::Error>> {
-    let mut request_builder = client
-        .request(request.method, request.url.as_str())
-        .body(request.body);
-    for (name, value) in &request.headers {
-        request_builder = request_builder.header(name.as_str(), value.as_bytes());
-    }
-    let request = request_builder.build().map_err(Error::Reqwest)?;
-
-    let response = client.execute(request).await.map_err(Error::Reqwest)?;
-
-    let status_code = response.status();
-    let headers = response.headers().to_owned();
-    let chunks = response.bytes().await.map_err(Error::Reqwest)?;
-    Ok(HttpResponse {
-        status_code,
-        headers,
-        body: chunks.to_vec(),
-    })
 }
