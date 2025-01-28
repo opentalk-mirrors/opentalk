@@ -5,6 +5,8 @@ services:
     restart: always
     environment:
       RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: '-rabbitmq_management path_prefix "/adm/rabbitmq"'
+    volumes:
+      - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
     healthcheck:
       test: rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q status && rabbitmq-diagnostics -q alarms
       interval: 30s
