@@ -9,6 +9,8 @@ services:
       FORCE_CONFIG: ${FORCE_CONFIG:-false}
       MISSING_KEY_BEHAVIOR: ${MISSING_KEY_BEHAVIOR:-default}
     volumes:
+      - /var/opt/opentalk-compose/data:/ansible/data
+      - ../../config:/ansible/config
       - ../../:/deploy_dir:z
       - ./data:/data:z
       - ./ansible:/ansible:z

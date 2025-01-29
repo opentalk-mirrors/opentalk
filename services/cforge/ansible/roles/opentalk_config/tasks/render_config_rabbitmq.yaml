@@ -1,5 +1,5 @@
 ---
-- name: "Render RabbitMQ config | services/3rd_party/rabbitmq/config/rabbitmq.conf"
+- name: "Render RabbitMQ config | config/services-config/3rd_party/rabbitmq/rabbitmq.conf"
   ansible.builtin.template:
     src: rabbitmq.conf.j2
-    dest: "{{ deploy_dir }}/services/3rd_party/rabbitmq/config/rabbitmq.conf"
+    dest: "{{ config_dir }}/services-config/3rd_party/rabbitmq/rabbitmq.conf"

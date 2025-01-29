@@ -6,7 +6,7 @@ services:
     network_mode: host
     restart: always
     volumes:
-      - ./config/livekit.yaml:/livekit.yaml
+      - ../../../config/services-config/3rd_party/livekit/livekit.yaml:/livekit.yaml
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.livekit.rule=Host(`${OT_DOMAIN}`) && (PathPrefix(`/livekit`) || PathPrefix(`/twirp`))"

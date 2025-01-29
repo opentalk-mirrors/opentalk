@@ -49,6 +49,6 @@ services:
 
 secrets:
   spacedeck_api_secret:
-    file: ./.spacedeck_api.secret
+    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.spacedeck_api.secret
   spacedeck_invite_secret:
-    file: ./.spacedeck_invite.secret
+    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.spacedeck_invite.secret

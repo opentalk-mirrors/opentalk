@@ -1,5 +1,5 @@
 ---
-- name: "Render obelisk config | services/obelisk/config/obelisk.toml"
+- name: "Render obelisk config | config/services-config/obelisk/obelisk.toml"
   ansible.builtin.template:
     src: obelisk.toml.j2
-    dest: "{{ deploy_dir }}/services/obelisk/config/obelisk.toml"
+    dest: "{{ config_dir }}/services-config/obelisk/obelisk.toml"

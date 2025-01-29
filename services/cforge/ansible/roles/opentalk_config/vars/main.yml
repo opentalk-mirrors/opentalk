@@ -1,2 +1,6 @@
 ---
 # vars file for opentalk_config
+
+config_dir: /ansible/config
+data_dir: /ansible/data
+secrets_file: secrets.yaml

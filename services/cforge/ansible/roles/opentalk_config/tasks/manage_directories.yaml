@@ -1,0 +1,5 @@
+---
+- name: "Ensure minio bucket directory | /var/opt/opentalk-compose/minio/opentalk"
+  ansible.builtin.file:
+    path: "{{ data_dir }}/minio/opentalk"
+    state: directory

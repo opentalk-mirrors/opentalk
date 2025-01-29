@@ -1,5 +1,5 @@
 ---
-- name: "Render mailer config | services/mailer/config/mailer.toml"
+- name: "Render mailer config | config/services-config/mailer/mailer.toml"
   ansible.builtin.template:
     src: mailer.toml.j2
-    dest: "{{ deploy_dir }}/services/mailer/config/mailer.toml"
+    dest: "{{ config_dir }}/services-config/mailer/mailer.toml"

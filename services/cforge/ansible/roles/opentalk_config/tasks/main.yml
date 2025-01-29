@@ -1,6 +1,9 @@
 ---
 # tasks file for opentalk_config
 
+- name: Manage presence of required directories 
+  ansible.builtin.include_tasks: manage_directories.yaml
+
 - name: Manage secrets
   ansible.builtin.include_tasks: manage_secrets.yaml
   tags:
@@ -24,9 +27,6 @@
 
 - name: Render livekit config
   ansible.builtin.include_tasks: render_config_livekit.yaml
-
-- name: Render minio config
-  ansible.builtin.include_tasks: render_config_minio.yaml
 
 - name: Render mailer config
   ansible.builtin.include_tasks: render_config_mailer.yaml

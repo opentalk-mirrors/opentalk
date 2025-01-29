@@ -1,0 +1,59 @@
+image: ruby:slim-bookworm
+
+stages:
+  - package
+  - publish
+
+variables:
+  PACKAGE_NAME: "opentalk-compose"
+  PACKAGE_VERSION: $CI_COMMIT_TAG
+  PACKAGE_ARCH_DEB: "all"
+  SOURCE_DIR: "/tmp/src"
+  OUTPUT_DIR: "./build"
+
+build-deb:
+  stage: package
+  rules:
+    - if: $CI_COMMIT_TAG  
+  script:
+    - mkdir -p $SOURCE_DIR/opt/opentalk-compose
+    - cp -rT . $SOURCE_DIR/opt/opentalk-compose
+    - rm -rf $SOURCE_DIR/opt/opentalk-compose/{.git,.gitignore,.gitlab-ci.yml,README.md}
+    - find $SOURCE_DIR/opt/opentalk-compose -name .gitkeep -delete
+    - mv $SOURCE_DIR/opt/opentalk-compose/config/default.env.sample $SOURCE_DIR/opt/opentalk-compose/config/default.env
+    - mkdir -p $OUTPUT_DIR
+    - apt-get update && apt-get install -y squashfs-tools binutils curl
+    - gem install fpm
+    - |
+      fpm -s dir -t deb -n $PACKAGE_NAME \
+        -v $PACKAGE_VERSION \
+        -a $PACKAGE_ARCH_DEB \
+        --depends "docker | docker-ce" \
+        --depends "docker-compose-plugin" \
+        --directories /opt/$PACKAGE_NAME \
+        --directories /var/opt/$PACKAGE_NAME \
+        --config-files /opt/$PACKAGE_NAME/config \
+        -C $SOURCE_DIR \
+        --after-install $SOURCE_DIR/opt/opentalk-compose/extras/packaging/post-install.sh \
+        -p $OUTPUT_DIR/${PACKAGE_NAME}_${PACKAGE_VERSION}_${PACKAGE_ARCH_DEB}.deb
+  artifacts:
+    paths:
+      - $OUTPUT_DIR/*.deb
+    expire_in: 1 week
+
+upload_package:
+  image: curlimages/curl
+  stage: publish
+  rules:
+    - if: $CI_COMMIT_TAG  
+  script:
+    - |
+      for file in $OUTPUT_DIR/*; do
+        if [ -f "$file" ]; then
+          filename=$(basename "$file")
+          curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+               --upload-file "$file" \
+               "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
+          echo "Uploaded: $filename"
+        fi
+      done

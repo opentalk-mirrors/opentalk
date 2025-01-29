@@ -1,5 +1,0 @@
----
-- name: "Render minio config | services/3rd_party/minio/config/minio.yaml"
-  ansible.builtin.template:
-    src: minio.yaml.j2
-    dest: "{{ deploy_dir }}/services/3rd_party/minio/config/minio.yaml"

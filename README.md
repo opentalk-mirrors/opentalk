@@ -31,20 +31,20 @@ Clone the ot-compose git repo
 git clone ssh://git@git.opentalk.dev:222/opentalk/opentalk-devops/ot-compose.git
 ```
 
-Copy the `env.sample` to `.env`.
+Copy the `config/default.env.sampl` to `config/default.env`.
 
 ```bash
-cp env.sample .env
+cp config/default.env.sampl config/default.env
 ```
 
-Define your domain with the variable `OT_DOMAIN` in the `.env` file.
+Define your domain with the variable `OT_DOMAIN` in the `config/default.env` file.
 
 ```bash
-sed -i 's/OT_DOMAIN=""/OT_DOMAIN="example.com"/g' .env
+sed -i 's/#OT_DOMAIN=""/OT_DOMAIN="example.com"/g' config/default.env
 ```
 
 Run the cforge container once to initilaze the deployment environment.
-It generates the nessecary secrets. Find them in the file `services/cforge/data/.secrets.yaml`, after the first run.
+It generates the nessecary secrets. Find them in the file `config/secrets/secrets.yaml`, after the first run.
 
 ```bash
 docker compose run --rm cforge
@@ -83,7 +83,7 @@ docker compose run --rm -e "TAGS=demoUser" cforge
 Some 3rd party servicese provides web interfaces. Traefik creates routes to these HTTP endpoints.
 You can access the web interfaces behind the paths as follows.
 
-To pass the basic auth, find the **password** of the user `admin` in `services/cforge/data/.secrets.yaml` with the key `TRAEFIK_DASHBOARD_ADMIN_PASSWORD`.
+To pass the basic auth, find the **password** of the user `admin` in `config/secrets/secrets.yaml` with the key `TRAEFIK_DASHBOARD_ADMIN_PASSWORD`.
 
 #### Traefik dashboard
 
@@ -100,3 +100,4 @@ To pass the basic auth, find the **password** of the user `admin` in `services/c
 #### MailCrab Web Interface
 
 - https://`<example.com>`/adm/mailcrab/
+

@@ -1,5 +1,5 @@
 ---
-- name: "Render recorder config | services/recorder/config/recorder.toml"
+- name: "Render recorder config | config/services-config/recorder/recorder.toml"
   ansible.builtin.template:
     src: recorder.toml.j2
-    dest: "{{ deploy_dir }}/services/recorder/config/recorder.toml"
+    dest: "{{ config_dir }}/services-config/recorder/recorder.toml"

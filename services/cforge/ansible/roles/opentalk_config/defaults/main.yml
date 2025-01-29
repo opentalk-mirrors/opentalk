@@ -1,10 +1,8 @@
 ---
 # defaults file for opentalk_config
 OT_DOMAIN: "{{ lookup('ansible.builtin.env', 'OT_DOMAIN') }}"
-secrets_file: .secrets.yaml
 force_generate_secrets: False
 deploy_dir: /deploy_dir
-output_path: "{{ deploy_dir }}/services/cforge/data"
 
 postInstall:
   demoUser:
@@ -318,7 +316,7 @@ Minio:
   rootUser: "minioadmin"
   rootPassword: "{{ MINIO_ROOT_PASSWORD }}"
   console_address: ":9001"
-#  certs_dir: ".minio/certs/"
+  #certs_dir: ".minio/certs/"
 
 RabbitMQ:
   default_vhost: "/"

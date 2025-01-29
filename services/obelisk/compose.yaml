@@ -9,7 +9,7 @@ services:
       GST_DEBUG: ${GST_DEBUG:-2}
       OPENTALK_OBLSK__CLIENT_SECRET: "${OPENTALK_OBLSK__CLIENT_SECRET:-}"
     volumes:
-      - ./config/obelisk.toml:/obelisk/config.toml
+      - ../../config/services-config/obelisk/obelisk.toml:/obelisk/config.toml
     healthcheck:
       test:
       - "CMD-SHELL"

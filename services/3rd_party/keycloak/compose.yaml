@@ -12,9 +12,9 @@ services:
           /opt/keycloak/bin/kc.sh start --import-realm --optimized --verbose
     user: 0:0
     volumes:
-      - ./config:/opt/keycloak/conf:Z
-      - ./data/kc_data:/opt/keycloak/data/:Z
-      - ./data/kc_provider:/opt/keycloak/providers:Z
+      - ../../../config/services-config/3rd_party/keycloak/keycloak.conf:/opt/keycloak/conf/keycloak.conf:Z
+      - ../../../config/services-config/3rd_party/keycloak/import:/opt/keycloak/data/import:Z
+      - ./keycloak-ot-theme.jar:/opt/keycloak/providers/keycloak-ot-theme.jar:Z
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.keycloak.service=keycloak"

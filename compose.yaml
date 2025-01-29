@@ -1,52 +1,51 @@
 include:
   - path: services/cforge/compose.yaml
-    env_file: 
+    env_file:
       - .versions
-      - services/cforge/.env
 
   - path: services/controller/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
   - path: services/webapp/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
   - path: services/mailer/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
   - path: services/recorder/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
   - path: services/obelisk/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
   - path: services/etherpad/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
   - path: services/spacedeck/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
 # 3rd party
   - path: services/3rd_party/traefik/compose.yaml
-    env_file: 
+    env_file:
       - .versions
     
   - path: services/3rd_party/postgres/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
   - path: services/3rd_party/minio/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
   - path: services/3rd_party/rabbitmq/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
 #  - path: services/3rd_party/redis/compose.yaml
@@ -54,13 +53,13 @@ include:
 #      - .versions
 #
   - path: services/3rd_party/keycloak/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
   - path: services/3rd_party/livekit/compose.yaml
-    env_file: 
+    env_file:
       - .versions
 
   - path: services/3rd_party/mailcrab/compose.yaml
-    env_file: 
+    env_file:
       - .versions

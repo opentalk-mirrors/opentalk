@@ -3,7 +3,7 @@ services:
     image: ${POSTGRES_IMAGE_SRC}:${POSTGRES_VERSION}
     profiles: ["core", "standard", "full", "postgres", "controller-db"]
     volumes:
-      - ./data/controller/pg_data:/var/lib/postgresql/data
+      - /var/opt/opentalk-compose/data/controller-db:/var/lib/postgresql/data
     restart: always
     secrets:
       - db_controller_secret
@@ -25,7 +25,7 @@ services:
     image: ${POSTGRES_IMAGE_SRC}:${POSTGRES_VERSION}
     profiles: ["core", "standard", "full", "postgres", "keycloak-db"]
     volumes:
-      - ./data/keycloak/pg_data:/var/lib/postgresql/data
+      - /var/opt/opentalk-compose/data/keycloak-db:/var/lib/postgresql/data
     restart: always
     secrets:
       - db_keycloak_secret
@@ -45,6 +45,6 @@ services:
 
 secrets:
   db_controller_secret:
-    file: ./.db_controller.secret
+    file: ${CONTAINER_SECRETS_PATH:-../../../config/secrets}/.db_controller.secret
   db_keycloak_secret:
-    file: ./.db_keycloak.secret
+    file: ${CONTAINER_SECRETS_PATH:-../../../config/secrets}/.db_keycloak.secret
