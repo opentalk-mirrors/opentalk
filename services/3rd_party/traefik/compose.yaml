@@ -21,7 +21,7 @@ services:
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls=true"
       - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.middlewares=dashboard-strip"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-strip, default-auth@file"
       - "traefik.http.middlewares.dashboard-strip.stripprefix.prefixes=/adm/traefik"
     volumes:
       - ./config:/etc/traefik
