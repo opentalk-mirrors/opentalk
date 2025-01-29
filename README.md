@@ -64,7 +64,7 @@ currently availabe postInstall tasks
 
 | task      | descriptiom |
 | ----------| ----------- |
-| demoUser  | Creates a demo user in keycloak that can be used to test OpenTalk |
+| demoUser  | Creates a demo user in keycloak that can be used to test OpenTalk. The name is `demo` by default. |
 
 Run all `postinstall` tasks:
 
@@ -77,3 +77,26 @@ docker compose run --rm -e "TAGS=postInstall" cforge
 ```bash
 docker compose run --rm -e "TAGS=demoUser" cforge
 ```
+
+### Web Interfaces of 3rd party services
+
+Some 3rd party servicese provides web interfaces. Traefik creates routes to these HTTP endpoints.
+You can access the web interfaces behind the paths as follows.
+
+To pass the basic auth, find the **password** of the user `admin` in `services/cforge/data/.secrets.yaml` with the key `TRAEFIK_DASHBOARD_ADMIN_PASSWORD`.
+
+#### Traefik dashboard
+
+- https://`<example.com>`/adm/traefik/dashboard/
+
+#### RabbitMQ Management Web Interface
+
+- https://`<example.com>`/adm/rabbitmq/
+
+#### MinIO Web Console
+
+- https://`<example.com>`/adm/minio/
+
+#### MailCrab Web Interface
+
+- https://`<example.com>`/adm/mailcrab/

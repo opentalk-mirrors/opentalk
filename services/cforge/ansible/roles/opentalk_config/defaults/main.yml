@@ -316,7 +316,7 @@ Minio:
   version: v2
   address: ":9000"
   rootUser: "minioadmin"
-  rootPassword: "{{ MINIO_ROOT_PASSWORD  }}"
+  rootPassword: "{{ MINIO_ROOT_PASSWORD }}"
   console_address: ":9001"
 #  certs_dir: ".minio/certs/"
 
@@ -326,3 +326,9 @@ RabbitMQ:
   default_pass: "{{ RABBITMQ_PASSWORD  }}"
   management:
     path_prefix: "/adm/rabbitmq"
+
+Traefik:
+  basicAuth:
+    dashboard_admin: admin
+    dashboard_admin_password: "{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD }}"
+    dashboard_admin_password_salt: "{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD_SALT }}"

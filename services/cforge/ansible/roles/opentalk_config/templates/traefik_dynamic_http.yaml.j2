@@ -1,27 +1,8 @@
 ---
-#http:
-#  middlewares:
-#    keycloak-openid:
-#      plugin:
-#        keycloakopenid:
-#          KeycloakURL: "https://anfi.opentalk.run/auth"
-#          ClientID: "Traefik"
-#          ClientSecret: "GtjBYLbuG0C9uoFQIMqM6t1FuDFdbiRt"
-#          KeycloakRealm: "opentalk"
-#          #UseAuthHeader: "true"
-#          Scope: 'admin-scope'
-#          #IgnorePathPrefixes: "/adm"
-#    oidc-auth:
-#      plugin:
-#        traefik-oidc-auth:
-#          CallbackUri: "/adm/minio/callback"
-#          Provider:
-#            Url: "https://anfi.opentalk.run/auth/realms/opentalk"
-#            ClientId: "Traefik"
-#            ClientSecret: "GtjBYLbuG0C9uoFQIMqM6t1FuDFdbiRt"
-#            Scopes: [ "profile", "email"]
-#            ValidateAudience: true
-#          Authorization:
-#            AssertClaims:
-#              - Name: "roles"
-#                AnyOf: ["traefik-admin-role"]
+http:
+  middlewares:
+    default-auth:
+      basicAuth:
+        users:
+          - "{{ Traefik.basicAuth.dashboard_admin }}:{{ Traefik.basicAuth.dashboard_admin_password | password_hash(hashtype='bcrypt', salt=Traefik.basicAuth.dashboard_admin_password_salt)}}"
+
