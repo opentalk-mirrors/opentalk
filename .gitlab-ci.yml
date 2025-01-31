@@ -33,6 +33,7 @@ build-deb:
         --directories /opt/$PACKAGE_NAME \
         --directories /var/opt/$PACKAGE_NAME \
         --config-files /opt/$PACKAGE_NAME/config \
+        --config-files /opt/$PACKAGE_NAME/config/secrets \
         -C $SOURCE_DIR \
         --after-install $SOURCE_DIR/opt/opentalk-compose/extras/packaging/post-install.sh \
         -p $OUTPUT_DIR/${PACKAGE_NAME}_${PACKAGE_VERSION}_${PACKAGE_ARCH_DEB}.deb

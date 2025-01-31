@@ -1,6 +1,6 @@
 # Container tag versions
 ## OpenTalk
-PRODUCT_VERSION=compose-0.0.2
+PRODUCT_VERSION=compose-0.0.3
 
 WEBAPP_VERSION=v2.2.0
 CONTROLLER_VERSION=v0.28.0
