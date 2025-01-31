@@ -10,5 +10,5 @@ services:
       MISSING_KEY_BEHAVIOR: ${MISSING_KEY_BEHAVIOR:-default}
     volumes:
       - ./ansible:/ansible
-      - /var/opt/opentalk-compose/data:/ansible/data
-      - ../../config:/ansible/config
+      - /var/opt/opentalk-compose/data:/data
+      - ../../config:/config
