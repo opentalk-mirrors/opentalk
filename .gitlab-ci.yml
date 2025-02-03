@@ -28,7 +28,7 @@ build-deb:
       fpm -s dir -t deb -n $PACKAGE_NAME \
         -v $PACKAGE_VERSION \
         -a $PACKAGE_ARCH_DEB \
-        --depends "docker | docker-ce" \
+        --depends "docker-ce | docker-ee" \
         --depends "docker-compose-plugin" \
         --directories /opt/$PACKAGE_NAME \
         --directories /var/opt/$PACKAGE_NAME \
