@@ -2,8 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use openidconnect::{core::CoreProviderMetadata, reqwest::async_http_client, IssuerUrl};
-use reqwest::{header::AUTHORIZATION, Client, RequestBuilder, Response, StatusCode};
+use openidconnect::{core::CoreProviderMetadata, IssuerUrl};
+use reqwest::{
+    header::AUTHORIZATION, redirect::Policy, Client, ClientBuilder, RequestBuilder, Response,
+    StatusCode,
+};
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use url::Url;
@@ -33,6 +36,10 @@ impl AuthorizedClient {
             return Err(Error::NotBaseUrl { url: base_url });
         }
 
+        // Using Policy::none() to prevent SSRF vulnerabilities, see
+        // https://github.com/ramosbugs/openidconnect-rs/blob/main/UPGRADE.md#use-stateful-http-clients
+        let client = ClientBuilder::new().redirect(Policy::none()).build()?;
+
         Ok(Self {
             credentials: Credentials {
                 client_id,
@@ -40,7 +47,7 @@ impl AuthorizedClient {
             },
             token: RwLock::new(None),
             base_url,
-            client: reqwest::Client::new(),
+            client,
         })
     }
 
@@ -73,7 +80,7 @@ impl AuthorizedClient {
                 url: self.base_url.clone(),
             })?;
 
-        let metadata = CoreProviderMetadata::discover_async(issuer_url, async_http_client)
+        let metadata = CoreProviderMetadata::discover_async(issuer_url, &self.client)
             .await
             .map_err(|_| OidcMetadataError {
                 url: self.base_url.clone(),

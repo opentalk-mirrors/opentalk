@@ -132,17 +132,7 @@ allow = []
 # List of crates to deny
 deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
-skip = [
-  { name = "base64", version = "0.13" },
-  { name = "base64", version = "0.21" },
-  { name = "http", version = "0.2" },
-  { name = "http-body", version = "0.4" },
-  { name = "hyper", version = "0.14" },
-  { name = "hyper-tls", version = "0.5" },
-  { name = "reqwest", version = "0.11" },
-  { name = "rustls-pemfile", version = "1.0" },
-  { name = "sync_wrapper", version = "0.1" },
-]
+skip = [{ name = "base64", version = "0.21" }]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
 # dependencies starting at the specified crate, up to a certain depth, which is
