@@ -1,6 +1,6 @@
 # Container tag versions
 ## OpenTalk
-PRODUCT_VERSION=ot-compose-v25
+PRODUCT_VERSION=0.0.0
 
 WEBAPP_VERSION=v2.2.0
 CONTROLLER_VERSION=v0.28.0
@@ -24,8 +24,8 @@ TRAEFIK_VERSION=v3.3.1
 
 # Container image sources
 ## OpenTalk
-WEBAPP_IMAGE_SRC=git.opentalk.dev:5050/opentalk/frontend/web/web-app
-CONTROLLER_IMAGE_SRC=git.opentalk.dev:5050/opentalk/backend/services/controller-enterprise
+WEBAPP_IMAGE_SRC=registry.opencode.de/opentalk/web-frontend
+CONTROLLER_IMAGE_SRC=registry.opencode.de/opentalk/controller
 OBELISK_IMAGE_SRC=registry.opencode.de/opentalk/obelisk
 MAILER_IMAGE_SRC=registry.opencode.de/opentalk/smtp-mailer
 RECORDER_IMAGE_SRC=registry.opencode.de/opentalk/recorder

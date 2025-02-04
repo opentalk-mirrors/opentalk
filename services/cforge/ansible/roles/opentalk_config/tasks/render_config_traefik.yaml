@@ -1,10 +1,10 @@
 ---
-- name: "Render traefik static config | services/3rd_party/traefik/config/traefik.yaml"
+- name: "Render traefik static config | config/services-config/3rd_party/traefik/traefik.yaml"
   ansible.builtin.template:
     src: traefik.yaml.j2
-    dest: "{{ deploy_dir }}/services/3rd_party/traefik/config/traefik.yaml"
+    dest: "{{ config_dir }}/services-config/3rd_party/traefik/traefik.yaml"
 
-- name: "Render traefik dynamic http config | services/3rd_party/traefik/config/dynamic/http.yaml"
+- name: "Render traefik dynamic http config | config/services-config/3rd_party/traefik/dynamic/http.yaml"
   ansible.builtin.template:
     src: traefik_dynamic_http.yaml.j2
-    dest:  "{{ deploy_dir }}/services/3rd_party/traefik/config/dynamic/http.yaml"
+    dest:  "{{ config_dir }}/services-config/3rd_party/traefik/dynamic/http.yaml"

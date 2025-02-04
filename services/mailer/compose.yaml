@@ -4,7 +4,7 @@ services:
     profiles: [ "standard", "full", "mailer"]
     restart: always
     volumes:
-      - ./config/mailer.toml:/opt/smtp-mailer/config.toml
+      - ../../config/services-config/mailer/mailer.toml:/opt/smtp-mailer/config.toml
     healthcheck:
       test:
       - "CMD-SHELL"

@@ -27,4 +27,4 @@ services:
 
 secrets:
   etherpad_api_secret:
-    file: ./.etherpad_api.secret
+    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.etherpad_api.secret

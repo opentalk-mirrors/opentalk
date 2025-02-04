@@ -5,7 +5,7 @@ services:
     restart: always
     command: server --address ":9000" --console-address ":9001" /data
     volumes:
-      - ./data:/data
+      - /var/opt/opentalk-compose/data/minio:/data
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_secret
@@ -35,4 +35,4 @@ services:
 
 secrets:
   minio_root_secret:
-    file: ./.minio_root.secret
+    file: ${CONTAINER_SECRETS_PATH:-../../../config/secrets}/.minio_root.secret
