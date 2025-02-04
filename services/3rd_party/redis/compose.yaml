@@ -1,7 +1,7 @@
 services:
   redis:
     image: ${REDIS_IMAGE_SRC}:${REDIS_VERSION}
-    profiles: ["core", "standard", "full", "redis"]
+    profiles: ["full", "redis"]
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]

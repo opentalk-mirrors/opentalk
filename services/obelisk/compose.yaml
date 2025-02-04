@@ -1,7 +1,7 @@
 services:
   obelisk:
     image: ${OBELISK_IMAGE_SRC}:${OBELISK_VERSION}
-    profiles: [ "standard", "full", "obelisk"]
+    profiles: [ "standard", "obelisk"]
     network_mode: host
     restart: always
     environment:
