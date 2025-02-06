@@ -427,7 +427,12 @@ impl MediaPipeline {
         let mut staging = vec![0u8; PixelFormat::I420.buffer_size(target_width, target_height)];
 
         let max_bitrate = self.settings.sip.max_video_bitrate;
-        let bitrate = codec.bitrate.unwrap_or(max_bitrate).min(max_bitrate);
+        let mut bitrate = codec.bitrate.unwrap_or(max_bitrate).min(max_bitrate);
+
+        if self.settings.sip.encode_video_at_half_bitrate {
+            bitrate /= 2;
+        }
+
         let mut h264_enc = H264Encoder::create(packetization_mode, bitrate, profile, level, fps)?;
 
         // With a clock-rate of 90_000 a u32 timestamp can cover 47721 seconds of time, so generate a random point in that timestamp range

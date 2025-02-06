@@ -129,6 +129,9 @@ pub struct SipSettings {
     /// Maximum video bitrate in bits/s
     #[serde(default = "default_max_video_bitrate")]
     pub max_video_bitrate: u32,
+
+    #[serde(default)]
+    pub encode_video_at_half_bitrate: bool,
 }
 
 fn default_max_video_bitrate() -> u32 {
