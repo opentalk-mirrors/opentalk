@@ -7,7 +7,6 @@ services:
       ENABLE_CFORGE: ${ENABLE_CFORGE:-true}
       FORCE_SECRETS: ${FORCE_SECRETS:-false}
       FORCE_CONFIG: ${FORCE_CONFIG:-false}
-      MISSING_KEY_BEHAVIOR: ${MISSING_KEY_BEHAVIOR:-default}
     volumes:
       - ./ansible:/ansible
       - /var/opt/opentalk-compose/data:/data
