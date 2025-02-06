@@ -43,6 +43,8 @@ build:community-deb:
         --category $PACKAGE_CATEGORY \
         --depends "docker-ce | docker-ee" \
         --depends "docker-compose-plugin" \
+        --provides "$PACKAGE_NAME-ce" \
+        --conflicts "$PACKAGE_NAME-ee (>= 0)" \
         --directories /opt/$PACKAGE_NAME \
         --directories /var/opt/$PACKAGE_NAME \
         --config-files /opt/$PACKAGE_NAME/config \
@@ -82,6 +84,8 @@ build:enterprise-deb:
         --category $PACKAGE_CATEGORY \
         --depends "docker-ce | docker-ee" \
         --depends "docker-compose-plugin" \
+        --provides "$PACKAGE_NAME-ee" \
+        --conflicts "$PACKAGE_NAME-ce (>= 0)" \
         --directories /opt/$PACKAGE_NAME \
         --directories /var/opt/$PACKAGE_NAME \
         --config-files /opt/$PACKAGE_NAME/config \

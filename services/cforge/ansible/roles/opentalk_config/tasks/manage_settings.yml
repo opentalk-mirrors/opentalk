@@ -1,0 +1,33 @@
+---
+- name: Check if file is present | conf/settings.yml
+  ansible.builtin.stat:
+    path: "{{config_dir}}/settings.yml"
+  register: settings_file
+
+- name: Slurp | defaults/main.yml
+  ansible.builtin.slurp:
+    src: "{{ role_path }}/defaults/main.yml"
+  register: defaults_main_yml
+  when: not settings_file.stat.exists
+  
+- name: Create settings file | conf/settings.yml
+  ansible.builtin.copy:
+    dest: "{{config_dir}}/settings.yml"
+    content: |
+      {% set decoded_content = defaults_main_yml['content'] | b64decode %}
+      {% set lines = decoded_content.split('\n') %}
+      {{ lines[0] }}
+      {% for line in lines[1:] %}
+      {% if not line.startswith('#') %}
+      #{{ line }}
+      {% else %}
+      {{ line }}
+      {% endif %}
+      {% endfor %}
+  when: not settings_file.stat.exists and defaults_main_yml['content'] is defined
+
+- name: Load values from settings file and override defaults/main.yml
+  include_vars:
+    file: "{{config_dir}}/settings.yml"
+    hash_behaviour: merge
+  when: settings_file.stat.exists

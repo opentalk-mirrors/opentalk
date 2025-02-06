@@ -1,9 +1,4 @@
 ---
-# defaults file for opentalk_config
-OT_DOMAIN: "{{ lookup('ansible.builtin.env', 'OT_DOMAIN') }}"
-force_generate_secrets: False
-deploy_dir: /deploy_dir
-
 postInstall:
   demoUser:
     state: "present"
@@ -51,36 +46,36 @@ Controller:
       - "mio=ERROR"
       - "lapin=WARN"
       - "execution_id=trace"
-    #otlp_tracing_endpoint: "http://localhost:4317"
-    #service_name: "controller"
-    #service_namespace: "opentalk"
-    #service_instance_id: "627cc493-f310-47de-96bd-71410b7dec09"
+#    otlp_tracing_endpoint: "http://localhost:4317"
+#    service_name: "controller"
+#    service_namespace: "opentalk"
+#    service_instance_id: "627cc493-f310-47de-96bd-71410b7dec09"
   database:
     name: controller
     user: ot
     host: controller-db
     port: 5432
-    #max_connections: 100
+#    max_connections: 100
   monitoring:
-     #addr: "0.0.0.0"
+#    addr: "0.0.0.0"
     port: 11411
   http:
     port: 11311
   oidc:
     authority: "{{ Keycloak.base_url }}/realms/{{ Keycloak.realm }}"
     frontend:
-      #authority: "{{ Keycloak.base_url }}/realms/{{ Keycloak.realm }}"
+#    authority: "{{ Keycloak.base_url }}/realms/{{ Keycloak.realm }}"
       client_id: "Webapp"
     controller:
-      #authority: "{{ Keycloak.base_url }}/realms/{{ Keycloak.realm }}"
+#      authority: "{{ Keycloak.base_url }}/realms/{{ Keycloak.realm }}"
       client_id: "OIDC"
       client_secret: "{{ OIDC_CONTROLLER_CLIENT_SECRET }}"
   user_search:
     backend: "keycloak_webapi"
     api_base_url: "{{ Keycloak.api_base_url }}"
     users_find_behavior: "from_user_search_backend"
-    #client_id: "Controller"
-    #client_secret: "{{ OIDC_CONTROLLER_CLIENT_SECRET }}"
+#    client_id: "Controller"
+#    client_secret: "{{ OIDC_CONTROLLER_CLIENT_SECRET }}"
   livekit:
     public_url: "wss://{{ OT_DOMAIN }}/livekit"
     service_url: "http://host.docker.internal:7880"
@@ -92,101 +87,101 @@ Controller:
     recording_task_queue: "opentalk_recorder"
     min_connections: 10
     max_channels_per_connection: 100
-  #redis:
-  #  url: "redis://localhost:6379/"
-  #turn:
-  #  lifetime: 86400
-  #  servers:
-  #    uris:
-  #      - "turn:127.0.0.1:3478?transport=udp"
-  #      - "turn:127.0.0.1:3478?transport=tcp"
-  #      - "turns:127.0.0.1:5349?transport=tcp"
-  #    pre_shared_key: opentalk2
-  #stun:
-  #  uris:
-  #    - stun:127.0.0.1:3478
-  #authz:
-  #  synchronize_controllers: "true"
-  #call_in:
-  #  tel: "03012345678"
-  #  enable_phone_mapping: "false"
-  #  default_country_code: "DE"
+#  redis:
+#    url: "redis://localhost:6379/"
+#  turn:
+#    lifetime: 86400
+#    servers:
+#      uris:
+#        - "turn:127.0.0.1:3478?transport=udp"
+#        - "turn:127.0.0.1:3478?transport=tcp"
+#        - "turns:127.0.0.1:5349?transport=tcp"
+#      pre_shared_key: opentalk2
+#  stun:
+#    uris:
+#      - stun:127.0.0.1:3478
+#  authz:
+#    synchronize_controllers: "true"
+#  call_in:
+#    tel: "03012345678"
+#    enable_phone_mapping: "false"
+#    default_country_code: "DE"
   minio:
     uri: "http://minio:9000"
     bucket: "opentalk"
-    #access_key: "{{ MINIO_ACC_KEY }}"
+#    access_key: "{{ MINIO_ACC_KEY }}"
     access_key: "minioadmin"
     secret_key: "{{ MINIO_SECRET_KEY }}"
-  #etcd:
-  #  urls:
-  #    - "etcd:2379"
+#  etcd:
+#    urls:
+#      - "etcd:2379"
   etherpad:
     url: "https://{{ OT_DOMAIN }}/etherpad/"  # do not forget trailing slash
     api_key: "{{ ETHERPAD_API_KEY }}"
   spacedeck:
     url: "https://{{ OT_DOMAIN }}/whiteboard/" # do not forget trailing slash
     api_key: "{{ SPACEDECK_API_KEY }}"
-  #reports:
-  #  template:
-  #    inline: |
-  #      # Attendance Report
-  #
-  #      {%- raw %}
-  #      #|  |  |
-  #      #|--|--|
-  #      #| Meeting | {{title}} |
-  #      #| Description | {{description}} |
-  #      #{% if starts_at %}| Start | {{starts_at | date(timezone=starts_at_tz, format="%Y-%m-%d %H:%M")}} {{starts_at_tz}} | {% endif %}
-  #      #{% if ends_at %}| End | {{ends_at | date(timezone=ends_at_tz, format="%Y-%m-%d %H:%M")}} {{ends_at_tz}} | {% endif %}
-  #
-  #      ### Participants
-  #
-  #      #| id | Name | Role | Kind | eMail | joined at | left at |
-  #      #| -- | -- | -- | -- | -- | -- | -- |
-  #      #{%- for participant in participants | sort(attribute = "name") | sort(attribute = "role") | reverse %}
-  #      #| {{participant.id}} | {{participant.name}} | {{participant.role}} | {{participant.kind}} | {{participant.email}} | {{participant.joined_at | date(format="%Y-%m-%d %H:%M")}} | {% if participant.left_at %} {{participant.left_at | date(format="%Y-%m-%d %H:%M")}} {% endif %} |
-  #      #{%- endfor %}
-  #      {%- endraw -%}
-  #  url: "http://localhost:6560"
-  #shared_folder:
-  #  provider: "nextcloud"
-  #  url: "https://nextcloud.example.org/"
-  #  username: "exampleuser"
-  #  password: "v3rys3cr3t"
-  #  directory: "opentalk/meetings"
-  #  expiry: 48
-  #defaults:
-  #  user_language: "en-US"
-  #  screen_share_requires_permission: "true"
-  #  disabled_features:
-  #    - "core::call_in"
-  #    - "integration::outlook"
+#  reports:
+#    template:
+#      inline: |
+#        # Attendance Report
+#  
+#        {%- raw %}
+#        #|  |  |
+#        #|--|--|
+#        #| Meeting | {{title}} |
+#        #| Description | {{description}} |
+#        #{% if starts_at %}| Start | {{starts_at | date(timezone=starts_at_tz, format="%Y-%m-%d %H:%M")}} {{starts_at_tz}} | {% endif %}
+#        #{% if ends_at %}| End | {{ends_at | date(timezone=ends_at_tz, format="%Y-%m-%d %H:%M")}} {{ends_at_tz}} | {% endif %}
+#  
+#        ### Participants
+#  
+#        #| id | Name | Role | Kind | eMail | joined at | left at |
+#        #| -- | -- | -- | -- | -- | -- | -- |
+#        #{%- for participant in participants | sort(attribute = "name") | sort(attribute = "role") | reverse %}
+#        #| {{participant.id}} | {{participant.name}} | {{participant.role}} | {{participant.kind}} | {{participant.email}} | {{participant.joined_at | date(format="%Y-%m-%d %H:%M")}} | {% if participant.left_at %} {{participant.left_at | date(format="%Y-%m-%d %H:%M")}} {% endif %} |
+#        #{%- endfor %}
+#        {%- endraw -%}
+#    url: "http://localhost:6560"
+#  shared_folder:
+#    provider: "nextcloud"
+#    url: "https://nextcloud.example.org/"
+#    username: "exampleuser"
+#    password: "v3rys3cr3t"
+#    directory: "opentalk/meetings"
+#    expiry: 48
+#  defaults:
+#    user_language: "en-US"
+#    screen_share_requires_permission: "true"
+#    disabled_features:
+#      - "core::call_in"
+#      - "integration::outlook"
   endpoints:
     event_invite_external_email_address: "true"
-  #  disable_users_find: "false"
-  #  users_find_use_kc: "false"
-  #  disallow_custom_display_name: "false"
-  #  disable_openapi: "false"
-  #metrics:
-  #  allowlist:
-  #    - "127.0.0.0/24"
-  #    - "::ffff:0:0/96"
-  #tenants:
-  #  assignment: "static"
-  #  static_tenant_id: "OpenTalkDefaultTenant"
-  #  external_tenant_id_user_attribute_name: "tenant_id"
-  #tariffs:
-  #  assignment: "static"
-  #  static_tariff_name: "OpenTalkDefaultTariff"
-  #  status_mapping:
-  #    downgraded_tariff_name: "basic"
-  #    default:
-  #      - "default"
-  #    paid:
-  #      - "paid"
-  #      - "all_ok"
-  #    downgraded:
-  #      - "unpaid"
+#    disable_users_find: "false"
+#    users_find_use_kc: "false"
+#    disallow_custom_display_name: "false"
+#    disable_openapi: "false"
+#  metrics:
+#    allowlist:
+#      - "127.0.0.0/24"
+#      - "::ffff:0:0/96"
+#  tenants:
+#    assignment: "static"
+#    static_tenant_id: "OpenTalkDefaultTenant"
+#    external_tenant_id_user_attribute_name: "tenant_id"
+#  tariffs:
+#    assignment: "static"
+#    static_tariff_name: "OpenTalkDefaultTariff"
+#    status_mapping:
+#      downgraded_tariff_name: "basic"
+#      default:
+#        - "default"
+#      paid:
+#        - "paid"
+#        - "all_ok"
+#      downgraded:
+#        - "unpaid"
 
 Obelisk:
   clock_format: "%d.%m.%y %X %Z"
@@ -200,23 +195,23 @@ Obelisk:
   sip:
     addr: "{{ OT_DOMAIN }}"
     port: 5060
-    #id: "sip:alice@example.org"
+#    id: "sip:alice@example.org"
     contact: "sip:alice@127.0.0.1"
     username: "0000"
     password: "<sipProviderPassword>"
     realm: "asterisk"
     registrar: "sip:127.0.0.1"
-    #outbound_proxy: "sip:someotherserver.example.org"
-    #nat_ping_delta: 30
+#    outbound_proxy: "sip:someotherserver.example.org"
+#    nat_ping_delta: 30
     stun_server: "turn.example.com:443"
     enforce_qop: "true"
-    #max_video_bitrate: 6000000
-    #offer_srtp: "false"
+#    max_video_bitrate: 6000000
+#    offer_srtp: "false"
     rtp_port_range:
       start: 40000
       end: 49999
   monitoring:
-    #addr: "0.0.0.0"
+#    addr: "0.0.0.0"
     port: 11411
 
 
@@ -229,29 +224,29 @@ Mailer:
     from_name: "OpenTalk - {{ OT_DOMAIN }}"
     from_email: "no-reply@{{ OT_DOMAIN }}"
   template_builder:
-    #join_link_builder: '{base_url}lobby/{room_id}'
-    #guest_link_builder: '{base_url}/invite/{invite_id}'
-    #dashboard_event_link_builder: '{base_url}/dashboard/meetings/view/{event_id}'
+#    join_link_builder: '{base_url}lobby/{room_id}'
+#    guest_link_builder: '{base_url}/invite/{invite_id}'
+#    dashboard_event_link_builder: '{base_url}/dashboard/meetings/view/{event_id}'
   templates:
-    #registered_invite: '{html = "resources/templates/registered_invite.html", txt = "resources/templates/registered_invite.txt"}'
-    #unregistered_invite: '{html = "resources/templates/unregistered_invite.html", txt = "resources/templates/unregistered_invite.txt"}'
-    #external_invite: '{html = "resources/templates/external_invite.html", txt = "resources/templates/external_invite.txt"}'
-    #registered_event_update: '{html = "resources/templates/registered_event_update.html", txt = "resources/templates/registered_event_update.txt"}'
-    #unregistered_event_update: ' {html = "resources/templates/unregistered_event_update.html", txt = "resources/templates/unregistered_event_update.txt"}'
-    #external_event_update: '{html = "resources/templates/external_event_update.html", txt = "resources/templates/external_event_update.txt"}'
-    #registered_event_cancellation: '{html = "resources/templates/registered_event_cancellation.html", txt = "resources/templates/registered_event_cancellation.txt"}'
-    #unregistered_event_cancellation: '{html = "resources/templates/unregistered_event_cancellation.html", txt = "resources/templates/unregistered_event_cancellation.txt"}'
-    #external_event_cancellation: '{html = "resources/templates/external_event_cancellation.html", txt = "resources/templates/external_event_cancellation.txt"}'
-    #registered_uninvite: '{html = "resources/templates/registered_uninvite.html", txt = "resources/templates/registered_uninvite.txt"}'
-    #unregistered_uninvite: '{html = "resources/templates/unregistered_uninvite.html", txt = "resources/templates/unregistered_uninvite.txt"}'
-    #external_uninvite: '{html = "resources/templates/external_uninvite.html", txt = "resources/templates/external_uninvite.txt"}'
+#    registered_invite: '{html = "resources/templates/registered_invite.html", txt = "resources/templates/registered_invite.txt"}'
+#    unregistered_invite: '{html = "resources/templates/unregistered_invite.html", txt = "resources/templates/unregistered_invite.txt"}'
+#    external_invite: '{html = "resources/templates/external_invite.html", txt = "resources/templates/external_invite.txt"}'
+#    registered_event_update: '{html = "resources/templates/registered_event_update.html", txt = "resources/templates/registered_event_update.txt"}'
+#    unregistered_event_update: ' {html = "resources/templates/unregistered_event_update.html", txt = "resources/templates/unregistered_event_update.txt"}'
+#    external_event_update: '{html = "resources/templates/external_event_update.html", txt = "resources/templates/external_event_update.txt"}'
+#    registered_event_cancellation: '{html = "resources/templates/registered_event_cancellation.html", txt = "resources/templates/registered_event_cancellation.txt"}'
+#    unregistered_event_cancellation: '{html = "resources/templates/unregistered_event_cancellation.html", txt = "resources/templates/unregistered_event_cancellation.txt"}'
+#    external_event_cancellation: '{html = "resources/templates/external_event_cancellation.html", txt = "resources/templates/external_event_cancellation.txt"}'
+#    registered_uninvite: '{html = "resources/templates/registered_uninvite.html", txt = "resources/templates/registered_uninvite.txt"}'
+#    unregistered_uninvite: '{html = "resources/templates/unregistered_uninvite.html", txt = "resources/templates/unregistered_uninvite.txt"}'
+#    external_uninvite: '{html = "resources/templates/external_uninvite.html", txt = "resources/templates/external_uninvite.txt"}'
   frontend:
-    #base_url: "https://livekit-test.opentalk.run"
-    #data_protection_url: "https://opentalk.eu/dataprotection"
+#    base_url: "https://livekit-test.opentalk.run"
+#    data_protection_url: "https://opentalk.eu/dataprotection"
   languages:
     default_language: "de-DE"
   monitoring:
-    #addr: "0.0.0.0"
+#    addr: "0.0.0.0"
     port: 11411
   support_contact:
     phone: "+49123321123"
@@ -271,9 +266,9 @@ Recorder:
   recorder:
     display: "true"
     clock_format: "%d.%m.%y %X %Z"
-    #hardware_acceleration:
-    #  manufacturer: "intel"
-    #  device: "/dev/dri/renderD129"
+#    hardware_acceleration:
+#      manufacturer: "intel"
+#      device: "/dev/dri/renderD129"
   monitoring: 
     port: 11411 
 
@@ -287,28 +282,28 @@ Livekit:
     enable_loopback_candidate: "false"
   api_keys:
     controller: "{{ LIVEKIT_API_SECRET  }}"
-  #stun_servers: 
-  #  - turn.opentalk.run:443
-  #turn_servers:
-  #  - host: turn.opentalk.run
-  #    port: 443
-  #    protocol: tls
-  #    username: "opentalk"
-  #    credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
-  #  - host: turn.opentalk.run
-  #    port: 443
-  #    protocol: tcp
-  #    username: "opentalk"
-  #    credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
-  #  - host: turn.opentalk.run
-  #    port: 443
-  #    protocol: udp
-  #    username: "opentalk"
-  #    credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
-  #prometheus_port: 6789
-  #logging:
-  #  json: "false"
-  #  level: info
+#  stun_servers: 
+#    - turn.opentalk.run:443
+#  turn_servers:
+#    - host: turn.opentalk.run
+#      port: 443
+#      protocol: tls
+#      username: "opentalk"
+#      credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
+#    - host: turn.opentalk.run
+#      port: 443
+#      protocol: tcp
+#      username: "opentalk"
+#      credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
+#    - host: turn.opentalk.run
+#      port: 443
+#      protocol: udp
+#      username: "opentalk"
+#      credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
+#  prometheus_port: 6789
+#  logging:
+#    json: "false"
+#    level: info
 
 Minio:
   version: v2
@@ -316,7 +311,7 @@ Minio:
   rootUser: "minioadmin"
   rootPassword: "{{ MINIO_ROOT_PASSWORD }}"
   console_address: ":9001"
-  #certs_dir: ".minio/certs/"
+#  certs_dir: ".minio/certs/"
 
 RabbitMQ:
   default_vhost: "/"
