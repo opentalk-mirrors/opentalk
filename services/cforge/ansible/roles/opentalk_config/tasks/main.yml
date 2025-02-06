@@ -1,8 +1,10 @@
 ---
 # tasks file for opentalk_config
-
 - name: Manage presence of required directories 
   ansible.builtin.include_tasks: manage_directories.yaml
+
+- name: Manage and load settings.yml file
+  ansible.builtin.include_tasks: manage_settings.yml
 
 - name: Manage secrets
   ansible.builtin.include_tasks: manage_secrets.yaml
