@@ -350,12 +350,10 @@ impl Signaling {
                 log::debug!("Participant {} joined!", participant.id);
 
                 if let Some(compositor) = &mut self.media.compositor {
-                    compositor
-                        .add_participant(
-                            participant.id.to_string().into(),
-                            participant.control.display_name.to_string(),
-                        )
-                        .await;
+                    compositor.add_participant(
+                        &participant.id.to_string().into(),
+                        participant.control.display_name.to_string(),
+                    );
                 }
 
                 self.participants.push(participant);
@@ -369,12 +367,10 @@ impl Signaling {
 
                 if let Some(compositor) = &mut self.media.compositor {
                     if current.control.display_name != updated.control.display_name {
-                        compositor
-                            .add_participant(
-                                current.id.to_string().into(),
-                                updated.control.display_name.to_string(),
-                            )
-                            .await;
+                        compositor.add_participant(
+                            &current.id.to_string().into(),
+                            updated.control.display_name.to_string(),
+                        );
                     }
                 }
 
@@ -465,12 +461,10 @@ impl Signaling {
                 continue;
             };
 
-            compositor
-                .add_participant(
-                    participant.id.to_string().into(),
-                    participant.control.display_name.to_string(),
-                )
-                .await;
+            compositor.add_participant(
+                &participant.id.to_string().into(),
+                participant.control.display_name.to_string(),
+            );
         }
 
         self.media

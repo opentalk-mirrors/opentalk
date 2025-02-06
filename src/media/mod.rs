@@ -437,7 +437,7 @@ impl MediaPipeline {
 
         // With a clock-rate of 90_000 a u32 timestamp can cover 47721 seconds of time, so generate a random point in that timestamp range
         let start_timestamp =
-            Instant::now() - Duration::from_secs(rand::thread_rng().gen_range(0..45000));
+            Instant::now() - Duration::from_secs(rand::rng().random_range(0..45000));
         let payload_type = codec.payload;
         let mut sequence_number = rand::random::<u16>() / 2;
 
