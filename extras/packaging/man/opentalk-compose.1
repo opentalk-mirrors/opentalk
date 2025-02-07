@@ -1,0 +1,137 @@
+.TH OPENTALK-COMPOSE 1 "February 2025" "Version 1.0" "EXPERIMENTAL User Manual"
+
+.SH NAME
+opentalk-compose \- Compose and orchestrate OpenTalk services.
+
+.SH SYNOPSIS
+.B cd /opt/opentalk-compose 
+.RS
+IMPORTANT: all commands needs to be executed from /opt/opentalk-compose
+.RE
+
+.B docker compose run --rm cforge
+.RS
+Runs the cforge container, which initializes and manages the service configuration. It must be run at least once before the services can be started.
+After initialization cforge will also run together with docker compose automatically.
+.RE
+
+.B docker compose up -d
+.RS
+Starts the entire OpenTalk stack in the background.
+.RE
+
+.B docker compose restart <service name>
+.RS
+Restarts a single OpenTalk service.
+.RE
+
+.RS
+Example:
+.EX
+docker compose restart controller
+.EE
+.RE
+
+.B docker compose run -e TAGS=<task> --rm cforge
+.RS
+Executes a post-installation task.
+.RE
+
+.RS
+Example:
+.EX
+docker compose run -e TAGS=demoUser --rm cforge
+.EE
+.RE
+
+.SH DESCRIPTION
+The package opentalk-compose contains compose.yaml files to run a complete OpenTalk instance on a single node.
+It is primarily intended to be used with Docker Compose to orchestrate the services and configuration.
+You must ensure that the Docker container engine and the Docker Compose plugin are properly installed and functioning.
+
+The cforge container is specifically responsible for configuration management. Manual configuration is not recommended, as the application stack consists of many interdependent services.
+
+All commands must be executed from the directory /opt/opentalk-compose.
+
+.SH INSTALLATION
+After installing the package opentalk-compose, the installation can be continued in three phases: preparation, initialization, and optionally post-install. Follow the instructions below to successfully complete the installation of OpenTalk.
+
+.SS Preparation:
+It must be ensured that the following preparations have been made befor the initialization can run.
+
+.B 1. The host has a valid domain name record pointing to the public IP address.
+
+.B 2. The following ports are used by default and must be accessible on the public interface if the respective services are utilized:
+.RS
+* 80,443/tcp (HTTP, HTTPS)
+.RE
+.RS
+* 40000-49999/udp (RTP Obelisk)
+.RE
+.RS
+* 5060/udp (SIP Obelisk)
+.RE
+.RS
+* 50000-64535/udp (RTP LiveKit)
+.RE
+.RS
+* 7881/tcp (WebRTC ICE over TCP, LiveKit)
+.RE
+
+.SS Initialization:
+During initialization, cforge generates configuration files for the services to be started. Therefore, it is crucial that the domain
+is correctly set as the value for 'OT_DOMAIN' in config/default.env. Secrets for the individual services are also generated and stored in config/secrets/ and in
+the corresponding configuration files. 
+
+.B 1. Change to the directory /opt/opentalk-compose
+.RS
+cd /opt/opentalk-compose
+.RE
+
+.B 2. Add the domain name record (e.g., opentalk.example.com) to the variable 'OT_DOMAIN' in the configuration file config/default.env
+.RS
+sed -i 's/#OT_DOMAIN=""/OT_DOMAIN="opentalk.example.com"/g' config/default.env
+.RE
+
+.B 3. Run the initialization using cforge
+.RS
+docker compose run --rm cforge
+.RE
+
+.B 4. Start the OpenTalk application stack
+.RS
+docker compose up -d
+.RE
+
+.SS Post-Install:
+Some configurations can only be performed once certain services have successfully started.
+These are handled as post-install tasks and can only be executed after the initialization has
+been successfully completed and all services have started.
+
+.B Post-Install Tasks can be executed as follows:
+.RS
+docker compose run -e TAGS=<task> --rm cforge
+.RE
+
+.B Currently available post-install tasks that can be set as TAGS:
+.RS
+.EX
+
++-------------|--------------------------------------------------+
+| Task Name   | Task Description                                 |
++-------------|--------------------------------------------------+
+| demoUser    | create a user in keycloak for testing purposes.  |
++-------------+--------------------------------------------------+
+.EE
+.RE
+
+.SH STATUS
+This man page is still in progress and provides only a basic description.
+
+
+.SH SEE ALSO
+.BR docker (1),
+.BR docker-compose (1)
+
+.SH AUTHOR
+OpenTalk Development Team
