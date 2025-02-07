@@ -8,6 +8,7 @@ chown root:root /var/opt/opentalk-compose/backups
 
 ANSIBLE_DEFAULT_FILE=/opt/opentalk-compose/services/cforge/ansible/roles/opentalk_config/defaults/main.yml
 SETTINGS_FILE=/opt/opentalk-compose/config/settings.yml
+MAN_FILE=/usr/share/man/man1/opentalk-compose.1
 
 if [ ! -f $SETTINGS_FILE ]; then
 awk 'NR==1 {print $0} 
@@ -28,4 +29,8 @@ awk 'NR==1 {print $0}
              print $0
          }
      }' "$ANSIBLE_DEFAULT_FILE" > "$SETTINGS_FILE"
+fi
+
+if [ ! -f $MAN_FILE ]; then
+  ln -s /opt/opentalk-compose/extras/packaging/man/opentalk-compose.1 /usr/share/man/man1/opentalk-compose.1
 fi
