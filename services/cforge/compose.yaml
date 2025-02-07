@@ -9,5 +9,7 @@ services:
       FORCE_CONFIG: ${FORCE_CONFIG:-false}
     volumes:
       - ./ansible:/ansible
-      - /var/opt/opentalk-compose/data:/data
       - ../../config:/config
+      - /var/opt/opentalk-compose/data:/data
+      - /var/opt/opentalk-compose/backups:/backups
+

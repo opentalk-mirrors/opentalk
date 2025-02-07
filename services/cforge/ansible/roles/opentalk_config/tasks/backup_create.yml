@@ -1,0 +1,104 @@
+---
+- block:
+    - ansible.builtin.set_fact:
+        backup_timestamp: "{{ lookup('pipe', 'date +%Y%m%d%H%M%SZ') }}"
+    - name: "Ensure backup tmp dir | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}"
+      ansible.builtin.file:
+        path: "{{ backups_dir }}/{{ item }}"
+        state: directory
+      loop:
+        - tmp
+        - "tmp/{{ backup_timestamp }}"
+        - "tmp/{{ backup_timestamp }}/minio"
+  tags:
+    - postInstall
+    - createBackup
+    - createBackupControllerDB
+    - createBackupKeycloakDB
+    - createBackupConfig
+    - createBackupTraefik
+    - createBackupMinio
+    - never
+
+- name: "Dump controller DB | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/controller-db_dump.sql"
+  community.postgresql.postgresql_db:
+    name: "{{ Controller.database.name }}"
+    login_host: "{{ Controller.database.host }}"
+    login_user: "{{ Controller.database.user }}"
+    login_password: "{{ Controller.database.password }}"
+    port: "{{ Controller.database.port }}"
+    state: dump
+    target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/controller-db_dump.sql"
+  tags:
+    - postInstall
+    - createBackup
+    - createBackupControllerDB
+    - never
+
+- name: "Dump Keycloak DB | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/keycloak-db_dump.sql"
+  community.postgresql.postgresql_db:
+    name: "{{ Keycloak.db.url.database }}"
+    login_host: "{{ Keycloak.db.url.host }}"
+    login_user: "{{ Keycloak.db.username }}"
+    login_password: "{{ Keycloak.db.password }}"
+    port: "{{ Keycloak.db.url.port }}"
+    state: dump
+    target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/keycloak-db_dump.sql"
+  tags:
+    - postInstall
+    - createBackup
+    - createBackupKeycloakDB
+    - never
+
+- name: "Backup config | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/config"
+  ansible.posix.synchronize:
+    src: "{{ config_dir }}/"
+    dest: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/config"
+  tags:
+    - postInstall
+    - createBackup
+    - createBackupConfig
+    - never
+
+- name: "Backup traefik data | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/traefik"
+  ansible.posix.synchronize:
+    src: "{{ data_dir }}/traefik/"
+    dest: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/traefik"
+  tags:
+    - postInstall
+    - createBackup
+    - createBackupTraefik
+    - never
+
+- block: 
+    - name: "Backup MinIO bucket {{ Controller.minio.bucket }} | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/minio/{{ Controller.minio.bucket }}"
+      ansible.builtin.command:
+        cmd: "/usr/bin/mcli mirror {{ data_dir }}/minio/{{ Controller.minio.bucket }} {{ backups_dir }}/tmp/{{ backup_timestamp }}/{{ Controller.minio.bucket }}"
+      register: mcli
+    - name: MinIO mcli stdout
+      ansible.builtin.debug:
+        var: mcli.stdout
+  tags:
+    - postInstall
+    - createBackup
+    - createBackupMinio
+    - never
+
+- block:
+    - name: Compress OpenTalk backup | /var/opt/opentalk-compose/backups/{{ backup_timestamp }}_opentalk-backup.tgz
+      community.general.archive:
+        path: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/"
+        dest: "{{ backups_dir }}/{{ backup_timestamp }}_opentalk-backup.tgz"
+    - name: Clean up | /var/opt/opentalk-compose/backups/tmp
+      ansible.builtin.file:
+        path: "{{ backups_dir }}/tmp"
+        state: absent
+  tags:
+    - postInstall
+    - createBackup
+    - createBackupControllerDB
+    - createBackupKeycloakDB
+    - createBackupConfig
+    - createBackupTraefik
+    - createBackupMinio
+    - never

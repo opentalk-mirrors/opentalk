@@ -9,8 +9,7 @@
 - name: Manage secrets
   ansible.builtin.include_tasks: manage_secrets.yaml
   tags:
-    - postInstall
-    - demoUser
+    - always
 
 - name: Manage traefik config
   ansible.builtin.include_tasks: render_config_traefik.yaml
@@ -39,10 +38,33 @@
 - name: Render recorder config
   ansible.builtin.include_tasks: render_config_recorder.yaml
 
-- name: Manage test user
+- name: PostInstall Task - Manage test user
   ansible.builtin.include_tasks: manage_demo_user.yaml
   tags:
     - postInstall
     - demoUser
     - never
 
+- name: PostInstall Task - Create backup
+  ansible.builtin.include_tasks: backup_create.yml
+  tags:
+    - postInstall
+    - createBackup
+    - createBackupControllerDB
+    - createBackupKeycloakDB
+    - createBackupConfig
+    - createBackupTraefik
+    - createBackupMinio
+    - never
+
+- name: PostInstall Task - Restore backup
+  ansible.builtin.include_tasks: backup_restore.yml
+  tags:
+    - postInstall
+    - restoreBackup
+    - restoreBackupControllerDB
+    - restoreBackupKeycloakDB
+    - restoreBackupConfig
+    - restoreBackupTraefik
+    - restoreBackupMinio
+    - never
