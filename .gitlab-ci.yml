@@ -117,5 +117,6 @@ upload_package:
           echo "Uploaded to gitlab: $filename"
           openrepo --debug upload $file -r debian
           echo "Uploaded to openrepo: $filename"
+          sleep 2
         fi
       done

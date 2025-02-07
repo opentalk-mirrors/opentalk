@@ -46,43 +46,90 @@
     - never
 
 - block:
+    - name: Check if MinIO bucket directoy is not empty
+      ansible.builtin.find:
+        paths: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/minio/{{ Controller.minio.bucket }}"
+        file_type: any
+      register: minio_directory_content
     - name: "Restore MinIO bucket {{ Controller.minio.bucket }} | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/minio/{{ Controller.minio.bucket }}"
       ansible.builtin.command:
-        cmd: "/usr/bin/mcli mirror {{ backups_dir }}/tmp/{{ backup_timestamp }}/{{ Controller.minio.bucket }} {{ data_dir }}/minio/{{ Controller.minio.bucket }}"
+        cmd: "/usr/bin/mcli mirror {{ backups_dir }}/tmp/{{ backup_timestamp }}/minio/{{ Controller.minio.bucket }} {{ data_dir }}/minio/{{ Controller.minio.bucket }}"
+      when: minio_directory_content.matched > 0
       register: mcli
     - name: MinIO mcli stdout
       ansible.builtin.debug:
         var: mcli.stdout
+      when: minio_directory_content.matched > 0
   tags:
     - postInstall
     - restoreBackup
     - restoreBackupMinio
     - never
 
-- name: "Restore controller DB | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/controller-db_dump.sql"
-  community.postgresql.postgresql_db:
-    name: "{{ Controller.database.name }}"
-    login_host: "{{ Controller.database.host }}"
-    login_user: "{{ Controller.database.user }}"
-    login_password: "{{ Controller.database.password }}"
-    port: "{{ Controller.database.port }}"
-    state: restore
-    target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/controller-db_dump.sql"
+- block:
+    - name: "Drop controller DB"
+      community.postgresql.postgresql_db:
+        name: "{{ Controller.database.name }}"
+        login_host: "{{ Controller.database.host }}"
+        login_user: "{{ Controller.database.user }}"
+        login_password: "{{ Controller.database.password }}"
+        port: "{{ Controller.database.port }}"
+        state: absent
+        force: true
+        target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/controller-db_dump.sql.gz"
+    - name: "Create controller DB"
+      community.postgresql.postgresql_db:
+        name: "{{ Controller.database.name }}"
+        login_host: "{{ Controller.database.host }}"
+        login_user: "{{ Controller.database.user }}"
+        login_password: "{{ Controller.database.password }}"
+        port: "{{ Controller.database.port }}"
+        state: present
+        target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/controller-db_dump.sql.gz"
+    - name: "Restore controller DB | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/controller-db_dump.sql.gz"
+      community.postgresql.postgresql_db:
+        name: "{{ Controller.database.name }}"
+        login_host: "{{ Controller.database.host }}"
+        login_user: "{{ Controller.database.user }}"
+        login_password: "{{ Controller.database.password }}"
+        port: "{{ Controller.database.port }}"
+        state: restore
+        target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/controller-db_dump.sql.gz"
   tags:
     - postInstall
     - restoreBackup
     - restoreBackupControllerDB
     - never
 
-- name: "Restore Keycloak DB | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/keycloak-db_dump.sql"
-  community.postgresql.postgresql_db:
-    name: "{{ Keycloak.db.url.database }}"
-    login_host: "{{ Keycloak.db.url.host }}"
-    login_user: "{{ Keycloak.db.username }}"
-    login_password: "{{ Keycloak.db.password }}"
-    port: "{{ Keycloak.db.url.port }}"
-    state: restore
-    target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/keycloak-db_dump.sql"
+- block:
+    - name: "Drop Keycloak DB"
+      community.postgresql.postgresql_db:
+        name: "{{ Keycloak.db.url.database }}"
+        login_host: "{{ Keycloak.db.url.host }}"
+        login_user: "{{ Keycloak.db.username }}"
+        login_password: "{{ Keycloak.db.password }}"
+        port: "{{ Keycloak.db.url.port }}"
+        state: absent
+        force: true
+        target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/controller-db_dump.sql.gz"
+    - name: "Create Keycloak DB"
+      community.postgresql.postgresql_db:
+        name: "{{ Keycloak.db.url.database }}"
+        login_host: "{{ Keycloak.db.url.host }}"
+        login_user: "{{ Keycloak.db.username }}"
+        login_password: "{{ Keycloak.db.password }}"
+        port: "{{ Keycloak.db.url.port }}"
+        state: present
+        target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/controller-db_dump.sql.gz"
+    - name: "Restore Keycloak DB | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/keycloak-db_dump.sql.gz"
+      community.postgresql.postgresql_db:
+        name: "{{ Keycloak.db.url.database }}"
+        login_host: "{{ Keycloak.db.url.host }}"
+        login_user: "{{ Keycloak.db.username }}"
+        login_password: "{{ Keycloak.db.password }}"
+        port: "{{ Keycloak.db.url.port }}"
+        state: restore
+        target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/keycloak-db_dump.sql.gz"
   tags:
     - postInstall
     - restoreBackup

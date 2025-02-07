@@ -20,7 +20,7 @@
     - createBackupMinio
     - never
 
-- name: "Dump controller DB | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/controller-db_dump.sql"
+- name: "Dump controller DB | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/controller-db_dump.sql.gz"
   community.postgresql.postgresql_db:
     name: "{{ Controller.database.name }}"
     login_host: "{{ Controller.database.host }}"
@@ -28,14 +28,15 @@
     login_password: "{{ Controller.database.password }}"
     port: "{{ Controller.database.port }}"
     state: dump
-    target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/controller-db_dump.sql"
+    target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/controller-db_dump.sql.gz"
+    dump_extra_args: "--create --clean"
   tags:
     - postInstall
     - createBackup
     - createBackupControllerDB
     - never
 
-- name: "Dump Keycloak DB | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/keycloak-db_dump.sql"
+- name: "Dump Keycloak DB | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/keycloak-db_dump.sql.gz"
   community.postgresql.postgresql_db:
     name: "{{ Keycloak.db.url.database }}"
     login_host: "{{ Keycloak.db.url.host }}"
@@ -43,7 +44,8 @@
     login_password: "{{ Keycloak.db.password }}"
     port: "{{ Keycloak.db.url.port }}"
     state: dump
-    target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/keycloak-db_dump.sql"
+    target: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/keycloak-db_dump.sql.gz"
+    dump_extra_args: "--create --clean"
   tags:
     - postInstall
     - createBackup
@@ -70,14 +72,21 @@
     - createBackupTraefik
     - never
 
-- block: 
+- block:
+    - name: Check if MinIO bucket directoy is not empty
+      ansible.builtin.find:
+        paths: "{{ data_dir }}/minio/{{ Controller.minio.bucket }}"
+        file_type: any
+      register: minio_directory_content
     - name: "Backup MinIO bucket {{ Controller.minio.bucket }} | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}/minio/{{ Controller.minio.bucket }}"
       ansible.builtin.command:
-        cmd: "/usr/bin/mcli mirror {{ data_dir }}/minio/{{ Controller.minio.bucket }} {{ backups_dir }}/tmp/{{ backup_timestamp }}/{{ Controller.minio.bucket }}"
+        cmd: "/usr/bin/mcli mirror {{ data_dir }}/minio/{{ Controller.minio.bucket }} {{ backups_dir }}/tmp/{{ backup_timestamp }}/minio/{{ Controller.minio.bucket }}"
       register: mcli
+      when: minio_directory_content.matched > 0
     - name: MinIO mcli stdout
       ansible.builtin.debug:
         var: mcli.stdout
+      when: minio_directory_content.matched > 0
   tags:
     - postInstall
     - createBackup
