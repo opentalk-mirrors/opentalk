@@ -27,7 +27,6 @@ SPDX-License-Identifier = "CC-BY-NC-ND-4.0"
 path = [
   "audio/**.wav",
   "docs/**.md",
-  "text/DE_**",
-  "text/EN_**",
+  "text/**",
 ]
 precedence = "aggregate"

@@ -12,11 +12,21 @@ use std::{net::IpAddr, time::Duration};
 pub struct Settings {
     #[serde(default)]
     pub clock_format: ClockFormat,
+    #[serde(default)]
+    pub language: Language,
 
     pub auth: AuthSettings,
     pub monitoring: Option<MonitoringSettings>,
     pub controller: ControllerSettings,
     pub sip: SipSettings,
+}
+
+#[derive(Default, Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Language {
+    EN,
+    #[default]
+    DE,
 }
 
 #[derive(Debug, Clone)]

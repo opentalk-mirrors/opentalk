@@ -3589,6 +3589,7 @@ dependencies = [
  "opentalk-compositor",
  "opentalk-types-signaling",
  "opentalk-types-signaling-control",
+ "opentalk-types-signaling-recording",
  "opentalk-version",
  "owo-colors",
  "parking_lot",
@@ -3676,6 +3677,19 @@ dependencies = [
  "opentalk-types-signaling",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "opentalk-types-signaling-recording"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05487ea42052be7a5ae92b25bd341491f71f26048b975acf269d47cfac7c73de"
+dependencies = [
+ "derive_more",
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "serde",
+ "url",
 ]
 
 [[package]]

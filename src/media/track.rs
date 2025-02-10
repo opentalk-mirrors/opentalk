@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use crate::media::{RAW_AUDIO_CONFIG, RAW_AUDIO_CONFIG_RANGE};
+use crate::settings::Language;
 use ezk::{ConfigRange, Frame, NextEventIsCancelSafe, Source, SourceEvent};
 use ezk_audio::{
     Channels, RawAudio, RawAudioConfig, RawAudioConfigRange, RawAudioFrame, SampleRate,
@@ -23,7 +24,7 @@ const SAMPLES_PER_CHANNEL: u64 = SAMPLE_RATE / BUFFERS_PER_SECOND;
 const SAMPLES_PER_BUF: u64 = SAMPLES_PER_CHANNEL * CHANNELS;
 
 macro_rules! wav_file {
-    ($ident:ident=>$file:literal) => {
+    ($ident:ident => $file:expr) => {
         static $ident: Lazy<Arc<[i16]>> = Lazy::new(|| {
             let bytes: &[u8] = include_bytes!($file);
 
@@ -39,36 +40,77 @@ macro_rules! wav_file {
 
 // Statically load all audio files as WAV and decode them lazily
 // WAV files must be 48000Hz 2 channel interleaved (and optimally i16/S16LE) audio
+macro_rules! audio_files {
+    ($($name:literal, $ident:ident;)*) => {
+        #[allow(unused)]
+        pub(crate) enum Track {
+            $($ident,)*
+        }
 
-wav_file!(DE_WELCOME_CONFERENCE_ID => "../../audio/DE_welcome_conference_id.wav");
-wav_file!(DE_WELCOME_PASSCODE => "../../audio/DE_welcome_passcode.wav");
-wav_file!(DE_WELCOME_USAGE => "../../audio/DE_welcome_usage.wav");
-wav_file!(DE_CONFERENCE_CLOSED => "../../audio/DE_conference_closed.wav");
-wav_file!(DE_INPUT_INVALID => "../../audio/DE_input_invalid.wav");
-wav_file!(DE_ENTERED_WAITING_ROOM => "../../audio/DE_waiting_room_entered.wav");
-wav_file!(DE_MODERATOR_MUTED => "../../audio/DE_moderator_muted.wav");
+        impl Track {
+            fn data(&self, lang: Language) -> Arc<[i16]> {
+                match lang {
+                    Language::EN => {
+                        match self {
+                            $(
+                            Self::$ident => {
+                                wav_file!(FILE => concat!("../../audio/en/", $name, ".wav"));
+                                FILE.clone()
+                            }
+                            )*
+                        }
+                    }
+                    Language::DE => {
+                        match self {
+                            $(
+                            Self::$ident => {
+                                wav_file!(FILE => concat!("../../audio/de/", $name, ".wav"));
+                                FILE.clone()
+                            }
+                            )*
+                        }
+                    }
+                }
+            }
+        }
 
-// Sounds taken from
-// https://gitlab.senfcall.de/senfcall-public/mute-and-unmute-sounds/-/tree/master/
-wav_file!(DE_MUTED => "../../audio/DE_muted.wav");
-wav_file!(DE_UNMUTED => "../../audio/DE_unmuted.wav");
-wav_file!(DE_HAND_RAISED => "../../audio/DE_hand_raised.wav");
-wav_file!(DE_HAND_LOWERED => "../../audio/DE_hand_lowered.wav");
+        #[test]
+        fn all_wav_files_are_valid() {
+            $(
+                let _ = Track::$ident.data(Language::EN);
+                let _ = Track::$ident.data(Language::DE);
+            )*
+        }
+    };
+}
 
-/// Track to play
-pub(crate) enum Track {
-    Silence,
-    WelcomeConferenceId,
-    WelcomePasscode,
-    WelcomeUsage,
-    ConferenceClosed,
-    InputInvalid,
-    EnteredWaitingRoom,
-    MutedByModerator,
-    Muted,
-    Unmuted,
-    HandRaised,
-    HandLowered,
+audio_files! {
+    "conference_closed", ConferenceClosed;
+    "conference_timelimit", ConferenceTimelimit;
+    "conference_userlimit", ConferenceUserlimit;
+    "consent_accept", ConsentAccept;
+    "consent_info", ConsentInfo;
+    "consent_invalid", ConsentInvalid;
+    "consent_reject", ConsentReject;
+    "input_invalid", InputInvalid;
+    "input_timeout", InputTimeout;
+    "moderator_kicked", ModeratorKicked;
+    "moderator_lowered_hand", ModeratorLoweredHand;
+    "moderator_muted", ModeratorMuted;
+    "moderator_paused", ModeratorPaused;
+    "moderator_resumed", ModeratorResumed;
+    "moderator_send_waiting_room", ModeratorSendWaitingRoom;
+    "waiting_room_entered", WaitingRoomEntered;
+    "welcome_conference_id", WelcomeConferenceId;
+    "welcome_passcode", WelcomePasscode;
+    "welcome_refused", WelcomeRefused;
+    "welcome_time", WelcomeTime;
+    "welcome_unavailable", WelcomeUnavailable;
+    "welcome_usage", WelcomeUsage;
+
+    // Not generated! Used for mute/unmute, raise/lower hand
+    "on", On;
+    "off", Off;
 }
 
 /// Handle to the elements element data
@@ -79,35 +121,32 @@ pub(crate) struct TrackController {
 }
 
 impl TrackController {
-    pub fn play_track_and_respond(&self, track: Track, responder: broadcast::Sender<()>) {
-        self.play_track_int(track, Some(responder));
+    pub fn play_track_and_respond(
+        &self,
+        language: Language,
+        track: Option<Track>,
+        responder: broadcast::Sender<()>,
+    ) {
+        self.play_track_int(language, track, Some(responder));
     }
 
-    pub fn play_track(&self, track: Track) {
-        self.play_track_int(track, None);
+    pub fn play_track(&self, language: Language, track: Option<Track>) {
+        self.play_track_int(language, track, None);
     }
 
     /// Set the track to play, stopping any track currently playing
-    fn play_track_int(&self, track: Track, responder: Option<broadcast::Sender<()>>) {
+    fn play_track_int(
+        &self,
+        language: Language,
+        track: Option<Track>,
+        responder: Option<broadcast::Sender<()>>,
+    ) {
         let mut data = self.data.lock();
 
         data.stop_playback();
         data.playback_finished_responder = responder;
 
-        match track {
-            Track::Silence => data.track = None,
-            Track::WelcomeConferenceId => data.track = Some(DE_WELCOME_CONFERENCE_ID.clone()),
-            Track::WelcomePasscode => data.track = Some(DE_WELCOME_PASSCODE.clone()),
-            Track::WelcomeUsage => data.track = Some(DE_WELCOME_USAGE.clone()),
-            Track::ConferenceClosed => data.track = Some(DE_CONFERENCE_CLOSED.clone()),
-            Track::InputInvalid => data.track = Some(DE_INPUT_INVALID.clone()),
-            Track::EnteredWaitingRoom => data.track = Some(DE_ENTERED_WAITING_ROOM.clone()),
-            Track::MutedByModerator => data.track = Some(DE_MODERATOR_MUTED.clone()),
-            Track::Muted => data.track = Some(DE_MUTED.clone()),
-            Track::Unmuted => data.track = Some(DE_UNMUTED.clone()),
-            Track::HandRaised => data.track = Some(DE_HAND_RAISED.clone()),
-            Track::HandLowered => data.track = Some(DE_HAND_LOWERED.clone()),
-        }
+        data.track = track.map(|t| t.data(language));
     }
 }
 
@@ -204,20 +243,3 @@ impl Source for TrackSource {
 }
 
 impl NextEventIsCancelSafe for TrackSource {}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn verify_wav_files() {
-        Lazy::force(&DE_WELCOME_CONFERENCE_ID);
-        Lazy::force(&DE_WELCOME_PASSCODE);
-        Lazy::force(&DE_WELCOME_USAGE);
-        Lazy::force(&DE_CONFERENCE_CLOSED);
-        Lazy::force(&DE_INPUT_INVALID);
-        Lazy::force(&DE_ENTERED_WAITING_ROOM);
-        Lazy::force(&DE_MUTED);
-        Lazy::force(&DE_UNMUTED);
-    }
-}

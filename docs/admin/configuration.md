@@ -21,6 +21,15 @@ Functionality that can be configured through the configuration file:
 - [Controller](controller.md)
 - [SIP](sip.md)
 
+## General configuration
+
+Configuration values found at the root of the TOML file
+
+| Field          | Type     | Required | Default value | Description                                                                     |
+| -------------- | -------- | -------- | ------------- | ------------------------------------------------------------------------------- |
+| `language`     | `string` | no       | `"de"`        | Language of the audio cue to be played to the callee. (Either `"de"` or `"en"`) |
+| `clock-format` | `string` | no       | `"%x %X %Z"`  | The time format for the clock when using video, see `man strftime` for details    |
+
 ## Environment variables
 
 Settings in the configuration file can be overwritten by environment variables,
@@ -58,6 +67,9 @@ This file can be found in the source code distribution under `extra/example.toml
 
 # The clock format of the timestamp displayed inside the stream.
 clock_format = "%x %X %Z"
+
+# Language of the audio cue to be played to the callee
+language = "de"
 
 # Obelisk OIDC authentication
 #

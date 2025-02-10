@@ -13,15 +13,17 @@ SCRIPT="$SRC_ROOT/tools/run-piper.sh"
 
 TEXT_DIR="$SRC_ROOT/text"
 
-ARGS="-p" # playback results
-set -x
+# ARGS="-p" # playback results
+# set -x
 
-for f in $( ls -t $TEXT_DIR/DE_* ); do \
+mkdir -p $SRC_ROOT/audio/de $SRC_ROOT/audio/en
+
+for f in $( ls -t $TEXT_DIR/de/* ); do \
     NAME=$(basename $f)
-    $SCRIPT -m $MODEL_DE -i $f -o $SRC_ROOT/audio/$NAME.wav $ARGS
+    $SCRIPT -m $MODEL_DE -i $TEXT_DIR/de/$NAME -o $SRC_ROOT/audio/de/$NAME.wav $ARGS
 done
 
-for f in $( ls -t $TEXT_DIR/EN_* ); do \
+for f in $( ls -t $TEXT_DIR/en/* ); do \
     NAME=$(basename $f)
-    $SCRIPT -m $MODEL_EN -i $f -o $SRC_ROOT/audio/$NAME.wav $ARGS
+    $SCRIPT -m $MODEL_EN -i $TEXT_DIR/en/$NAME -o $SRC_ROOT/audio/en/$NAME.wav $ARGS
 done
