@@ -11,13 +11,30 @@ postInstall:
 
 Ofelia:
   jobs:
-    - fullBackup:
-        type: "run"
-        schedule: "@"
-        image: "{{ lookup('ansible.builtin.env', 'CFORGE_IMAGE_SRC') }}:{{ lookup('ansible.builtin.env', 'CFORGE_VERSION') }}"
-        command: "ansible-playbook -i inventory.yaml playbooks/render_config.yaml -t createBackup"
+    createBackup:
+      name: full_backup
+      type: run
+      network: opentalk_default
+      schedule: "@daily"
+      image: "{{ CFORGE_IMAGE_SRC }}:{{ CFORGE_VERSION }}"
+      command: "ansible-playbook -i inventory.yaml playbooks/render_config.yaml -t createBackup"
+      volumes:
+        - /opt/opentalk-compose/services/cforge/ansible:/ansible
+        - /opt/opentalk-compose/config:/config
+        - /var/opt/opentalk-compose/data:/data
+        - /var/opt/opentalk-compose/backups:/backups
+      environment:
+        - ENABLE_CFORGE=true
+    cleanBackup:
+      name: backup_retention
+      type: run
+      schedule: "@daily"
+      image: "{{ CFORGE_IMAGE_SRC }}:{{ CFORGE_VERSION }}"
+      command: "find /backups -maxdepth 1 -mtime +6 -type f -delete"
+      volumes:
+        - /var/opt/opentalk-compose/backups:/backups
   global:
-    smtpHost: "mailcrab:1025?disable_starttls=true"
+    smtpHost: "mailcrab"
     smtpPort: "1025"
 #    smtpUser: ""
 #    smtpPassword: ""

@@ -63,3 +63,7 @@ include:
   - path: services/3rd_party/mailcrab/compose.yaml
     env_file:
       - .versions
+
+  - path: services/3rd_party/ofelia/compose.yaml
+    env_file:
+      - .versions

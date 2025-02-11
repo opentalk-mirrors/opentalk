@@ -17,9 +17,6 @@ services:
       - "traefik.http.routers.controller.middlewares=controller-strip"
       - "traefik.http.middlewares.controller-strip.stripprefix.prefixes=/controller"
       - "traefik.http.services.controller.loadbalancer.server.port=11311"
-      - ofelia.enabled=false
-      - ofelia.job-exec.test-exec-job.schedule="* 3 * * *"
-      - ofelia.job-exec.test-exec-job.command="/controller/opentalk-controller -c /controller/config.toml fix-acl"
     healthcheck:
       test:
       - "CMD-SHELL"

@@ -30,20 +30,22 @@ save-folder = {{ Ofelia.global.saveFolder }}
 save-only-on-error = {{ Ofelia.global.saveOnlyOnError }}
 {% endif %}
 
-# available trypes exec,run,local,service-run
-{% for job in Ofelia.jobs %}
-[job-{{ job.type }} "{{ job }}"]
-schedule = {{ job.schedule }}
-command = {{ job.command }}
-{% if job.type == "exec" %}
-container = {{ job.container }}
-{% endif %}
-{% if job.type == "run" %}
-image = {{ job.image }}
-{% endif %}
-{% if job.type == "service-run" %}
-image = {{ job.image }}
-network = {{ job.network }}
-{% endif %}
+[job-{{ Ofelia.jobs.createBackup.type }} "{{ Ofelia.jobs.createBackup.name }}"]
+schedule = {{ Ofelia.jobs.createBackup.schedule }}
+image = {{ Ofelia.jobs.createBackup.image }}
+network= {{ Ofelia.jobs.createBackup.network }}
+command = {{ Ofelia.jobs.createBackup.command }}
+{% for volume in Ofelia.jobs.createBackup.volumes %}
+volume = {{ volume }}
+{% endfor %}
+{% for environment in Ofelia.jobs.createBackup.environment %}
+environment = {{ environment }}
+{% endfor %}
 
+[job-{{ Ofelia.jobs.cleanBackup.type }} "{{ Ofelia.jobs.cleanBackup.name }}"]
+schedule = {{ Ofelia.jobs.cleanBackup.schedule }}
+image = {{ Ofelia.jobs.cleanBackup.image }}
+command = {{ Ofelia.jobs.cleanBackup.command }}
+{% for volume in Ofelia.jobs.cleanBackup.volumes %}
+volume = {{ volume }}
 {% endfor %}
