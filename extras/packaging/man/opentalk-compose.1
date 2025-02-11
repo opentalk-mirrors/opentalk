@@ -104,9 +104,9 @@ docker compose up -d
 .RE
 
 .SS Post-Install:
-Some configurations can only be performed once certain services have successfully started.
+Some configurations or tasks can only be performed once certain services have successfully started.
 These are handled as post-install tasks and can only be executed after the initialization has
-been successfully completed and all services have started.
+been successfully completed and services have started.
 
 .B Post-Install Tasks can be executed as follows:
 .RS
@@ -117,11 +117,78 @@ docker compose run -e TAGS=<task> --rm cforge
 .RS
 .EX
 
-+-------------|--------------------------------------------------+
-| Task Name   | Task Description                                 |
-+-------------|--------------------------------------------------+
-| demoUser    | create a user in keycloak for testing purposes.  |
-+-------------+--------------------------------------------------+
++----------------------------+--------------------------------------------------------+
+| Task Name                  | Task Description                                       |
++----------------------------|--------------------------------------------------------+
+| demoUser                   | Creates a user in Keycloak for testing purposes.       |
+|                            |                                                        |
+| createBackup               | Creates full backup of all services                    |
+|   createBackupConfig       | Creates backup of the config directory                 |
+|   createBackupControllerDB | Creates backup of the Controller database              |
+|   createBackupKeycloakDB   | Creates backup of the Keycloak database                |
+|   createBackupTraefik      | Creates backup of the Traefik data directory           |
+|   createBackupMinio        | Creates backup of MinIO bucket                         |
+|                            |                                                        |
+| restoreBackup              | Restore OpenTalk from a given timestamp. A full backup |
+|                            |   archive is required                                  |
+|   restoreBackupConfig      | Restores the config directory from a given timestamp   |
+|   restoreBackupControllerDB| Restores Controller database from a given timestamp    |
+|   restoreBackupKeycloakDB  | Restores Keycloak database from a given timestamp      |
+|   restoreBackupTraefik     | Restores Traefik data directory from a given timestamp |
+|   restoreBackupMinio       | Restores MinIO bucket from a given timestamp           |
++----------------------------+--------------------------------------------------------+
+.EE
+.RE
+
+.SH BACKUPS:
+Backups can be created as post-install tasks describes above. The backup task bundels all files
+as '.tgz' archive with the current timestamp in the directory '/var/opt/opentalk-compose/backups'.
+When you run a single node setup, the 'restoreBackup' task is recommended.
+
+.RS
+Example:
+.EX
+docker compose run --rm -e TAGS=createBackup cforge
+.EE
+.RE
+
+
+
+.SH RESTORE:
+A Restore is also performed as post-install task. But the variable BACKUP_TIMESTAMP defined with
+the timestamp of the backup archive to restore is required. The backup archive will be extracted
+in /var/opt/opentalk-compose/backups/tmp/<timestamp> and the files will synced back and database 
+dumps will be improrted.
+
+.B IMPORTANT!
+A restore will overwrite existing data!
+
+.SS Scenario 1 - Restore a running OpenTalk instance
+Your OpenTalk installation is functioning but you want to rollback to an earlier release or restore
+deleted files.
+
+.RS
+Example:
+.EX
+docker compose run --rm -e TAGS=restoreBackup -e BACKUP_TIMESTAMP="20250207144600Z" cforge
+d
+.EE
+.RE
+
+.SS Scenario 2 - Desaster recovery or move to a new server
+You are running an new machine or a fresh environment and your OpenTalk installation is not
+initialized. To Restore in this Scenario, you need to sync back the configuration files first
+using the task 'restoreBackupConfig'. After that initialze OpenTalk and bring it into a
+functioning state. When OpenTalk is running, you can import databases and other persistant data.
+
+.RS
+Example:
+.EX
+docker compose run --rm -e OT_DOMAIN=opentalk.example.com -e TAGS=restoreBackupConfig -e BACKUP_TIMESTAMP="20250207144600Z" cforge
+docker compose run --rm cforge
+docker compose up -d
+docker compose run --rm -e TAGS=restoreBackup -e BACKUP_TIMESTAMP="20250207144600Z" cforge
+docker compose up -d --force-recreate 
 .EE
 .RE
 

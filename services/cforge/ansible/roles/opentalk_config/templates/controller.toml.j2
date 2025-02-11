@@ -31,7 +31,7 @@ service_instance_id = "{{ Controller.logging.service_instance_id }}"
 
 [database]
 {% if Controller.database is defined and Controller.database %}
-url = "postgres://{{ Controller.database.user }}:{{ CONTROLLER_DB_PASSWORD }}@{{ Controller.database.host }}:{{ Controller.database.port }}/{{ Controller.database.name }}"
+url = "postgres://{{ Controller.database.user }}:{{ Controller.database.password }}@{{ Controller.database.host }}:{{ Controller.database.port }}/{{ Controller.database.name }}"
 {% else %}
 url = "postgres://postgres:password123@localhost:5432/opentalk"
 {% endif %}

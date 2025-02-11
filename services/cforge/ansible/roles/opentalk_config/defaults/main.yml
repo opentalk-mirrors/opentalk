@@ -53,6 +53,7 @@ Controller:
   database:
     name: controller
     user: ot
+    password: "{{ CONTROLLER_DB_PASSWORD  }}"
     host: controller-db
     port: 5432
 #    max_connections: 100
