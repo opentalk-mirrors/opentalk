@@ -132,7 +132,7 @@ docker compose run -e TAGS=<task> --rm cforge
 | restoreBackup              | Restore OpenTalk from a given timestamp. A full backup |
 |                            |   archive is required                                  |
 |   restoreBackupConfig      | Restores the config directory from a given timestamp   |
-|   createBackupControllerDB | Restores Controller database from a given timestamp    |
+|   restoreBackupControllerDB| Restores Controller database from a given timestamp    |
 |   restoreBackupKeycloakDB  | Restores Keycloak database from a given timestamp      |
 |   restoreBackupTraefik     | Restores Traefik data directory from a given timestamp |
 |   restoreBackupMinio       | Restores MinIO bucket from a given timestamp           |
@@ -171,7 +171,7 @@ deleted files.
 Example:
 .EX
 docker compose run --rm -e TAGS=restoreBackup -e BACKUP_TIMESTAMP="20250207144600Z" cforge
-docker compose up -d --force-recreate 
+d
 .EE
 .RE
 
