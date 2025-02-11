@@ -1,6 +1,7 @@
 services:
   mailcrab:
     image: ${MAILCRAB_IMAGE_SRC}:${MAILCRAB_VERSION}
+    profiles: ["mailcrab"]
     environment:
       MAILCRAB_PREFIX: /adm/mailcrab
     labels:
