@@ -11,9 +11,7 @@ use std::io::ErrorKind;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::Arc;
 use stun_types::attributes::{MappedAddress, Software, XorMappedAddress};
-use stun_types::builder::MessageBuilder;
-use stun_types::header::{Class, Method};
-use stun_types::parse::ParsedMessage;
+use stun_types::{Class, Message, MessageBuilder, Method, TransactionId};
 use tokio::net::{lookup_host, UdpSocket};
 use tokio::sync::Mutex;
 
@@ -121,7 +119,7 @@ impl PortPool {
             let pair = (0..self.port_pairs)
                 .filter(|p| !used_pairs.contains(p))
                 .filter(|p| !failed_pairs.contains(p))
-                .choose(&mut rand::thread_rng());
+                .choose(&mut rand::rng());
 
             // return if no available ports were found
             let pair = match pair {
@@ -216,8 +214,8 @@ async fn resolve_public_addr(sock: &UdpSocket, stun_server: &str) -> Result<Sock
         .with_context(|| format!("Failed to resolve stun-server {stun_server:?}"))?;
 
     // Build stun request
-    let mut msg = MessageBuilder::new(Class::Request, Method::Binding, rand::random());
-    msg.add_attr(&Software::new("opentalk-obelisk")).unwrap();
+    let mut msg = MessageBuilder::new(Class::Request, Method::Binding, TransactionId::random());
+    msg.add_attr(Software::new("opentalk-obelisk"));
     let msg = msg.finish();
 
     let mut last_err = anyhow!("hostname {stun_server:?} didn't provide any addresses");
@@ -256,13 +254,13 @@ async fn send_and_receive_stun(
 
     recv_buffer.truncate(len);
 
-    let mut msg = ParsedMessage::parse(recv_buffer).context("Failed to parse response")?;
+    let mut msg = Message::parse(recv_buffer).context("Failed to parse response")?;
 
-    if let Some(Ok(attr)) = msg.get_attr::<XorMappedAddress>() {
+    if let Some(Ok(attr)) = msg.attribute::<XorMappedAddress>() {
         return Ok(attr.0);
     }
 
-    if let Some(Ok(attr)) = msg.get_attr::<MappedAddress>() {
+    if let Some(Ok(attr)) = msg.attribute::<MappedAddress>() {
         return Ok(attr.0);
     }
 

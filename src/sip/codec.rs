@@ -115,14 +115,11 @@ pub enum H264PacketizationMode {
 
 pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Option<SdpSendCodec> {
     let rtpmap = offer
-        .rtpmaps
+        .rtpmap
         .iter()
         .find(|rtpmap| rtpmap.encoding == "H264" && rtpmap.clock_rate == 90000)?;
 
-    let fmtp = offer
-        .fmtps
-        .iter()
-        .find(|fmtp| fmtp.format == rtpmap.payload);
+    let fmtp = offer.fmtp.iter().find(|fmtp| fmtp.format == rtpmap.payload);
 
     let mut codec_params = SdpSendCodecParams::None;
     let mut bitrate = None;

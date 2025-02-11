@@ -293,7 +293,7 @@ impl SessionState {
                 .clone();
 
             let dtmf_events = answer_media
-                .rtpmaps
+                .rtpmap
                 .iter()
                 .find(|rtpmap| {
                     rtpmap.encoding.eq_ignore_ascii_case("telephone-event")
@@ -487,11 +487,11 @@ impl SessionState {
         // Find DTMF caps
         let mut dtmf_events = None;
 
-        for rtpmap in &offer_media.rtpmaps {
+        for rtpmap in &offer_media.rtpmap {
             if rtpmap.encoding.eq_ignore_ascii_case("telephone-event") && rtpmap.clock_rate == 8000
             {
                 let fmtp = offer_media
-                    .fmtps
+                    .fmtp
                     .iter()
                     .find(|fmtp| fmtp.format == rtpmap.payload);
 
@@ -606,45 +606,57 @@ impl SessionState {
                         proto,
                         fmts,
                     },
-                    direction: media_session.direction,
                     connection: Some(Connection {
                         address: media_session.local_rtp_addr.ip().into(),
                         ttl: None,
                         num: None,
                     }),
                     bandwidth: vec![],
-                    rtcp_attr: Some(Rtcp {
+                    direction: media_session.direction,
+                    rtcp: Some(Rtcp {
                         port: media_session.local_rtcp_addr.port(),
                         address: None,
                     }),
-                    rtpmaps,
-                    fmtps,
+                    rtcp_mux: false,
+                    mid: None,
+                    rtpmap: rtpmaps,
+                    fmtp: fmtps,
                     ice_ufrag: None,
                     ice_pwd: None,
                     ice_candidates: vec![],
                     ice_end_of_candidates: false,
                     crypto,
+                    extmap: vec![],
+                    extmap_allow_mixed: false,
+                    ssrc: vec![],
+                    setup: None,
+                    fingerprint: vec![],
                     attributes: vec![],
                 }
             })
             .collect();
 
         SessionDescription {
-            name: BytesStr::from_static("opentalk-obelisk"),
             origin: Origin {
                 username: BytesStr::from_static("-"),
                 session_id: self.sdp_id.to_string().into(),
                 session_version: self.sdp_version.to_string().into(),
                 address: self.pub_ip.into(),
             },
-            time: Time { start: 0, stop: 0 },
-            direction: Direction::SendRecv,
+            name: BytesStr::from_static("opentalk-obelisk"),
             connection: None,
             bandwidth: vec![],
-            ice_options: Default::default(),
+            time: Time { start: 0, stop: 0 },
+            direction: Direction::SendRecv,
+            group: vec![],
+            extmap: vec![],
+            extmap_allow_mixed: false,
             ice_lite: false,
+            ice_options: Default::default(),
             ice_ufrag: None,
             ice_pwd: None,
+            setup: None,
+            fingerprint: vec![],
             attributes: vec![],
             media_descriptions,
         }
@@ -682,7 +694,7 @@ fn offer_srtp() -> Vec<SrtpInfo> {
         .enumerate()
         .map(|(tag, (key_len, suite))| {
             let mut send_key = vec![0u8; key_len];
-            rand::thread_rng().fill_bytes(&mut send_key);
+            rand::rng().fill_bytes(&mut send_key);
 
             SrtpInfo {
                 tag: tag as u32,
@@ -753,7 +765,7 @@ fn setup_srtp(offer_media: &MediaDescription) -> Result<Option<SrtpInfo>> {
 
     // Make our own key for sending data
     let mut send_key = vec![0; recv_key.len()];
-    rand::thread_rng().fill_bytes(&mut send_key);
+    rand::rng().fill_bytes(&mut send_key);
 
     Ok(Some(SrtpInfo {
         tag: crypto.tag,
@@ -788,7 +800,7 @@ fn remote_peer_addresses(
 ) -> Result<(SocketAddr, SocketAddr)> {
     let peer_rtp_port = media_desc.media.port;
     let peer_rtcp_port = media_desc
-        .rtcp_attr
+        .rtcp
         .as_ref()
         .map(|rtcp| rtcp.port)
         .unwrap_or_else(|| peer_rtp_port + 1);
