@@ -1,0 +1,49 @@
+[global]
+{% if Ofelia.global.smtpHost is defined and Ofelia.global.smtpHost %}
+smtp-host = {{ Ofelia.global.smtpHost }}
+{% endif %}
+{% if Ofelia.global.smtpPort is defined and Ofelia.global.smtpPort %}
+smtp-port = {{ Ofelia.global.smtpPort }}
+{% endif %}
+{% if Ofelia.global.smtpUser is defined and Ofelia.global.smtpUser %}
+smtp-user = {{ Ofelia.global.smtpUser }}
+{% endif %}
+{% if Ofelia.global.smtpPassword is defined and Ofelia.global.smtpPassword %}
+smtp-password = {{ Ofelia.global.smtpPassword }}
+{% endif %}
+{% if Ofelia.global.smtpTlsSkipVerify is defined and Ofelia.global.smtpTlsSkipVerify %}
+smtp-tls-skip-verify = {{ Ofelia.global.smtpTlsSkipVerify }}
+{% endif %}
+{% if Ofelia.global.emailTo is defined and Ofelia.global.emailTo %}
+email-to = {{ Ofelia.global.emailTo }}
+{% endif %}
+{% if Ofelia.global.emailFrom is defined and Ofelia.global.emailFrom %}
+email-from = {{ Ofelia.global.emailFrom }}
+{% endif %}
+{% if Ofelia.global.mailOnlyOnError is defined and Ofelia.global.mailOnlyOnError %}
+mail-only-on-error = {{ Ofelia.global.mailOnlyOnError }}
+{% endif %}
+{% if Ofelia.global.saveFolder is defined and Ofelia.global.saveFolder %}
+save-folder = {{ Ofelia.global.saveFolder }}
+{% endif %}
+{% if Ofelia.global.saveOnlyOnError is defined and Ofelia.global.saveOnlyOnError %}
+save-only-on-error = {{ Ofelia.global.saveOnlyOnError }}
+{% endif %}
+
+# available trypes exec,run,local,service-run
+{% for job in Ofelia.jobs %}
+[job-{{ job.type }} "{{ job }}"]
+schedule = {{ job.schedule }}
+command = {{ job.command }}
+{% if job.type == "exec" %}
+container = {{ job.container }}
+{% endif %}
+{% if job.type == "run" %}
+image = {{ job.image }}
+{% endif %}
+{% if job.type == "service-run" %}
+image = {{ job.image }}
+network = {{ job.network }}
+{% endif %}
+
+{% endfor %}

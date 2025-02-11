@@ -9,6 +9,25 @@ postInstall:
     firstName: "Test"
     lastName: "User"
 
+Ofelia:
+  jobs:
+    - fullBackup:
+        type: "run"
+        schedule: "@"
+        image: "{{ lookup('ansible.builtin.env', 'CFORGE_IMAGE_SRC') }}:{{ lookup('ansible.builtin.env', 'CFORGE_VERSION') }}"
+        command: "ansible-playbook -i inventory.yaml playbooks/render_config.yaml -t createBackup"
+  global:
+    smtpHost: "mailcrab:1025?disable_starttls=true"
+    smtpPort: "1025"
+#    smtpUser: ""
+#    smtpPassword: ""
+    smtpTlsSkipVerify: true
+    emailTo: "admin@{{ OT_DOMAIN }}"
+    emailFrom: "no-reply@{{ OT_DOMAIN }}"
+    mailOnlyOnError: false
+#    saveFolder: directory in which the reports shall be written (must already exist).
+#    saveOnlyOnError: only save a report if the execution was not successful.
+
 Keycloak:
   realm: "opentalk"
   login_theme: "opentalk"

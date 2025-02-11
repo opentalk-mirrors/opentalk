@@ -38,7 +38,10 @@
 - name: Render recorder config
   ansible.builtin.include_tasks: render_config_recorder.yaml
 
-- name: PostInstall Task - Manage test user
+- name: Render ofelia config
+  ansible.builtin.include_tasks: render_config_ofelia.yml
+
+- name: Manage test user
   ansible.builtin.include_tasks: manage_demo_user.yaml
   tags:
     - postInstall

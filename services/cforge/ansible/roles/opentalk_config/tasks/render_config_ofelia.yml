@@ -1,0 +1,6 @@
+---
+- name: "Render ofelia config | config/services-config/3rd_party/ofelia/ofelia.ini"
+  ansible.builtin.template:
+    src: ofelia.ini.j2
+    dest: "{{ config_dir }}/services-config/3rd_party/ofelia/ofelia.ini"
+
