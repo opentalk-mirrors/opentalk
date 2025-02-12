@@ -67,12 +67,12 @@ webrtc-sys = "0.3"
 bitpattern = { git = 'https://github.com/kbalt/bitpattern', branch = 'remove-paste-010-patch' }
 
 # Until https://github.com/livekit/rust-sdks/pull/544 and https://github.com/livekit/rust-sdks/issues/546 are resolved
-webrtc-sys = { git = "https://github.com/kbalt/rust-sdks.git", rev = "f76037b0a5852de7b519a7fe84fbeb22a9e2990d" }
-libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "f76037b0a5852de7b519a7fe84fbeb22a9e2990d" }
-livekit = { git = "https://github.com/kbalt/rust-sdks.git", rev = "f76037b0a5852de7b519a7fe84fbeb22a9e2990d" }
-livekit-api = { git = "https://github.com/kbalt/rust-sdks.git", rev = "f76037b0a5852de7b519a7fe84fbeb22a9e2990d" }
-livekit-runtime = { git = "https://github.com/kbalt/rust-sdks.git", rev = "f76037b0a5852de7b519a7fe84fbeb22a9e2990d" }
-livekit-protocol = { git = "https://github.com/kbalt/rust-sdks.git", rev = "f76037b0a5852de7b519a7fe84fbeb22a9e2990d" }
+webrtc-sys = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
+libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
+livekit = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
+livekit-api = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
+livekit-runtime = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
+livekit-protocol = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
 
 # Update libsrtp to 2.6 & newer bindgen version until https://github.com/HyeonuPark/srtp2-sys/pull/3 is merged
 srtp2-sys = { git = "https://github.com/kbalt/srtp2-sys.git", rev = "fb3d67b5ada52d242c2ab5a06e4e6e22db31d601" }
