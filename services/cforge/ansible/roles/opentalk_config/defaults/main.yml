@@ -34,14 +34,14 @@ Ofelia:
       volumes:
         - /var/opt/opentalk-compose/backups:/backups
   global:
-    smtpHost: "mailcrab"
-    smtpPort: "1025"
+#    smtpHost: ""
+#    smtpPort: ""
 #    smtpUser: ""
 #    smtpPassword: ""
-    smtpTlsSkipVerify: true
-    emailTo: "admin@{{ OT_DOMAIN }}"
-    emailFrom: "no-reply@{{ OT_DOMAIN }}"
-    mailOnlyOnError: false
+#    smtpTlsSkipVerify: true
+#    emailTo: "admin@{{ OT_DOMAIN }}"
+#    emailFrom: "no-reply@{{ OT_DOMAIN }}"
+#    mailOnlyOnError: false
 #    saveFolder: directory in which the reports shall be written (must already exist).
 #    saveOnlyOnError: only save a report if the execution was not successful.
 
