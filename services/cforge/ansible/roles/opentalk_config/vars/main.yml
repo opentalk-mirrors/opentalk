@@ -2,6 +2,8 @@
 # vars file for opentalk_config
 OT_DOMAIN: "{{ lookup('ansible.builtin.env', 'OT_DOMAIN') }}"
 BACKUP_TIMESTAMP: "{{ lookup('ansible.builtin.env', 'BACKUP_TIMESTAMP') }}"
+CFORGE_VERSION: "{{ lookup('ansible.builtin.env', 'CFORGE_VERSION') }}"
+CFORGE_IMAGE_SRC: "{{ lookup('ansible.builtin.env', 'CFORGE_IMAGE_SRC') }}"
 force_generate_secrets: False
 
 deploy_dir: /deploy_dir

@@ -7,6 +7,8 @@ services:
       ENABLE_CFORGE: ${ENABLE_CFORGE:-true}
       FORCE_SECRETS: ${FORCE_SECRETS:-false}
       FORCE_CONFIG: ${FORCE_CONFIG:-false}
+      CFORGE_IMAGE_SRC: ${CFORGE_IMAGE_SRC}
+      CFORGE_VERSION: ${CFORGE_VERSION}
     volumes:
       - ./ansible:/ansible
       - ../../config:/config

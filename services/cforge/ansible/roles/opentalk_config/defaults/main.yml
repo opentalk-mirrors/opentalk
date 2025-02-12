@@ -9,6 +9,42 @@ postInstall:
     firstName: "Test"
     lastName: "User"
 
+Ofelia:
+  jobs:
+    createBackup:
+      name: full_backup
+      type: run
+      network: opentalk_default
+      schedule: "@daily"
+      image: "{{ CFORGE_IMAGE_SRC }}:{{ CFORGE_VERSION }}"
+      command: "ansible-playbook -i inventory.yaml playbooks/render_config.yaml -t createBackup"
+      volumes:
+        - /opt/opentalk-compose/services/cforge/ansible:/ansible
+        - /opt/opentalk-compose/config:/config
+        - /var/opt/opentalk-compose/data:/data
+        - /var/opt/opentalk-compose/backups:/backups
+      environment:
+        - ENABLE_CFORGE=true
+    cleanBackup:
+      name: backup_retention
+      type: run
+      schedule: "@daily"
+      image: "{{ CFORGE_IMAGE_SRC }}:{{ CFORGE_VERSION }}"
+      command: "find /backups -maxdepth 1 -mtime +6 -type f -delete"
+      volumes:
+        - /var/opt/opentalk-compose/backups:/backups
+  global:
+#    smtpHost: ""
+#    smtpPort: ""
+#    smtpUser: ""
+#    smtpPassword: ""
+#    smtpTlsSkipVerify: true
+#    emailTo: "admin@{{ OT_DOMAIN }}"
+#    emailFrom: "no-reply@{{ OT_DOMAIN }}"
+#    mailOnlyOnError: false
+#    saveFolder: directory in which the reports shall be written (must already exist).
+#    saveOnlyOnError: only save a report if the execution was not successful.
+
 Keycloak:
   realm: "opentalk"
   login_theme: "opentalk"
