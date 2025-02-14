@@ -27,6 +27,10 @@ impl UiController {
         data.pin = pin;
     }
 
+    pub(crate) fn set_waiting_room(&self, waiting_room: bool) {
+        self.data.lock().waiting_room = waiting_room;
+    }
+
     pub(crate) fn set_target_fps(&self, target_fps: u32) {
         self.data.lock().target_fps = target_fps;
     }
@@ -50,15 +54,17 @@ impl Drop for UiController {
 struct UiData {
     id: String,
     pin: String,
+    waiting_room: bool,
     run: bool,
     target_fps: u32,
     join_handle: Option<JoinHandle<()>>,
 }
 
-pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks) -> UiController {
+pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks, waiting_room: bool) -> UiController {
     let data = Arc::new(Mutex::new(UiData {
         id: String::new(),
         pin: String::new(),
+        waiting_room,
         run: true,
         target_fps: 1,
         join_handle: None,
@@ -75,6 +81,7 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks) -> UiController {
 
     let handle = thread::spawn(move || loop {
         let data = data.lock();
+        let sleep_delta = Duration::from_secs_f32(1.0 / data.target_fps as f32);
 
         if !data.run {
             log::debug!("ui thread exiting");
@@ -87,35 +94,42 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks) -> UiController {
         image.u.fill(128);
         image.v.fill(128);
 
-        let headline = SimpleText::new(128.0, "OpenTalk Call-In");
-        let id_text = SimpleText::new(100.0, &format!("Id: {}", data.id));
-        let pin_text = SimpleText::new(100.0, &format!("Pin: {}", data.pin));
+        if data.waiting_room {
+            let in_waiting_room = SimpleText::new(128.0, "In Waiting-Room");
 
-        let sleep_delta = Duration::from_secs_f32(1.0 / data.target_fps as f32);
+            let y = (HEIGHT / 2) - (in_waiting_room.height() / 2.0) as usize;
+            let x = (WIDTH / 2) - (in_waiting_room.width() / 2.0) as usize;
 
-        drop(data);
+            in_waiting_room.draw(Point::new(x, y), &mut image);
+        } else {
+            let headline = SimpleText::new(128.0, "OpenTalk Call-In");
+            let id_text = SimpleText::new(100.0, &format!("Id: {}", data.id));
+            let pin_text = SimpleText::new(100.0, &format!("Pin: {}", data.pin));
 
-        headline.draw(
-            Point::new((WIDTH - headline.width() as usize) / 2, TOP_OFFSET),
-            &mut image,
-        );
+            drop(data);
 
-        id_text.draw(
-            Point::new(
-                (WIDTH - dummy_id_text.width() as usize) / 2
-                    + ((dummy_pin_text.width() - dummy_id_text.width()) / 2.) as usize,
-                text_top_offset,
-            ),
-            &mut image,
-        );
+            headline.draw(
+                Point::new((WIDTH - headline.width() as usize) / 2, TOP_OFFSET),
+                &mut image,
+            );
 
-        pin_text.draw(
-            Point::new(
-                (WIDTH - dummy_pin_text.width() as usize) / 2,
-                text_top_offset + id_text.height() as usize + 10,
-            ),
-            &mut image,
-        );
+            id_text.draw(
+                Point::new(
+                    (WIDTH - dummy_id_text.width() as usize) / 2
+                        + ((dummy_pin_text.width() - dummy_id_text.width()) / 2.) as usize,
+                    text_top_offset,
+                ),
+                &mut image,
+            );
+
+            pin_text.draw(
+                Point::new(
+                    (WIDTH - dummy_pin_text.width() as usize) / 2,
+                    text_top_offset + id_text.height() as usize + 10,
+                ),
+                &mut image,
+            );
+        }
 
         for sink in sinks.blocking_lock().values_mut() {
             sink(&staging)

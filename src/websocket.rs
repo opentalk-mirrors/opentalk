@@ -40,6 +40,7 @@ pub enum WebsocketEvent {
     RecordingStarted,
     RecordingPaused,
     RecordingStopped,
+    MovedToWaitingRoom,
     Disconnected,
 }
 
@@ -260,8 +261,8 @@ impl Websocket {
                 ControlPayload::Left(participant) => Ok(Some(WebsocketEvent::Left(participant))),
             },
             Payload::Moderation { payload } => match payload {
-                ModerationPayload::InWaitingRoom => bail!("unexpected InWaitingRoom"),
-                ModerationPayload::Accepted => bail!("unexpected Accepted"),
+                ModerationPayload::InWaitingRoom => Ok(Some(WebsocketEvent::MovedToWaitingRoom)),
+                ModerationPayload::Accepted => bail!("Unexpected moderation message 'accepted'"),
                 ModerationPayload::SessionEnded(SessionEnded { issued_by }) => {
                     Ok(Some(WebsocketEvent::SessionEnded { issued_by }))
                 }
