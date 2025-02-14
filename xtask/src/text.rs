@@ -98,4 +98,12 @@ welcome_unavailable:
 welcome_usage:
     "Sie betreten nun die Konferenz. Drücken Sie 1 um sich stumm zu schalten und nochmals 1 um wieder zu sprechen. Mit der Taste 2 können sie die Hand heben und senken. Mit der 0 können Sie künftig diese Ansage überspringen.",
     "You are now entering the conference. Press 1 to mute and again 1 to speak up. You can raise your hand by pressing 2 and lower it by pressing again. Press 0 to skip this message in the future.";
+
+microphones_restriction_enabled:
+    "Der Moderator hat die Nutzung des Mikrofons eingeschränkt",
+    "The moderator has restricted the use of the microphone";
+
+microphones_restriction_lifted:
+    "Der Moderator hat die Einschränkung des Mikrofons aufgehoben",
+    "The moderator has lifted the microphone restriction";
 }

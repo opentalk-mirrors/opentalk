@@ -281,26 +281,6 @@ impl MediaPipeline {
         // Setup publish
         let local_participant = compositor.local_participant();
 
-        // Audio
-        let audio_source = NativeAudioSource::new(AudioSourceOptions::default(), 48_000, 2, 100);
-        let local_audio_track = LocalAudioTrack::create_audio_track(
-            "audio",
-            RtcAudioSource::Native(audio_source.clone()),
-        );
-
-        local_participant
-            .publish_track(
-                LocalTrack::Audio(local_audio_track.clone()),
-                TrackPublishOptions {
-                    source: livekit::track::TrackSource::Microphone,
-                    ..Default::default()
-                },
-            )
-            .await
-            .context("Failed to publish audio track")?;
-
-        *self.to_conference_audio_track.lock().await = Some(audio_source);
-
         // Video
         let mut to_conference_video_tracks = self.to_conference_video_tracks.write().await;
         for video_track in to_conference_video_tracks.values_mut() {
@@ -329,6 +309,55 @@ impl MediaPipeline {
         }
 
         self.ui_controller = ui::spawn_ui_thread(self.to_caller_video_sinks.clone(), true);
+    }
+
+    /// Wether a livekit track for the "microphone" exists
+    pub async fn is_microphone_published(&mut self) -> bool {
+        self.to_conference_audio_track.lock().await.is_some()
+    }
+
+    /// Set the current publish state of the microphone track
+    pub async fn set_microphone_publish(&mut self, enable: bool) {
+        let Some(compositor) = &mut self.compositor else {
+            return;
+        };
+
+        let mut audio_track = self.to_conference_audio_track.lock().await;
+
+        if !enable {
+            *audio_track = None;
+            return;
+        }
+
+        // Track already exists, return
+        if enable && audio_track.is_some() {
+            return;
+        }
+
+        let local_participant = compositor.local_participant();
+
+        // Audio
+        let audio_source = NativeAudioSource::new(AudioSourceOptions::default(), 48_000, 2, 100);
+        let local_audio_track = LocalAudioTrack::create_audio_track(
+            "audio",
+            RtcAudioSource::Native(audio_source.clone()),
+        );
+
+        if let Err(e) = local_participant
+            .publish_track(
+                LocalTrack::Audio(local_audio_track.clone()),
+                TrackPublishOptions {
+                    source: livekit::track::TrackSource::Microphone,
+                    ..Default::default()
+                },
+            )
+            .await
+        {
+            log::error!("Failed to publish audio track, {e:?}");
+            return;
+        }
+
+        *audio_track = Some(audio_source);
     }
 
     pub async fn wait_for_event(&mut self) -> MediaEvent {

@@ -22,6 +22,8 @@ use tt::WebSocketStream;
 use types_signaling::AssociatedParticipant;
 use types_signaling::ParticipantId;
 use types_signaling_control::state::ControlState;
+use types_signaling_livekit::event::LiveKitEvent;
+use types_signaling_livekit::state::LiveKitState;
 use types_signaling_recording::event::RecordingEvent;
 use types_signaling_recording::StreamStatus;
 
@@ -41,17 +43,18 @@ pub enum WebsocketEvent {
     RecordingPaused,
     RecordingStopped,
     MovedToWaitingRoom,
+    LiveKitEvent(LiveKitEvent),
     Disconnected,
 }
 
 /// Abstraction over the controller websocket API must call `join` before anything else
 pub struct Websocket {
-    id: Option<ParticipantId>,
+    pub(crate) id: Option<ParticipantId>,
     websocket: WebSocketStream<MaybeTlsStream<TcpStream>>,
 }
 
 pub enum JoinState {
-    Joined(JoinResult),
+    Joined(JoinSuccess),
     InWaitingRoom,
 }
 
@@ -128,11 +131,7 @@ impl Websocket {
             } => {
                 self.id = Some(join_success.id);
 
-                Ok(JoinState::Joined(JoinResult {
-                    participants: join_success.participants,
-                    livekit_url: join_success.livekit.service_url,
-                    livekit_token: join_success.livekit.token,
-                }))
+                Ok(JoinState::Joined(join_success))
             }
             Payload::Moderation {
                 payload: ModerationPayload::InWaitingRoom,
@@ -141,7 +140,7 @@ impl Websocket {
         }
     }
 
-    pub async fn wait_until_accepted_into_waiting_room(&mut self) -> Result<JoinResult> {
+    pub async fn wait_until_accepted_into_waiting_room(&mut self) -> Result<JoinSuccess> {
         loop {
             match self.receive_payload().await? {
                 Some(Payload::Moderation {
@@ -155,7 +154,7 @@ impl Websocket {
         }
     }
 
-    pub async fn enter_from_waiting_room(&mut self) -> Result<JoinResult> {
+    pub async fn enter_from_waiting_room(&mut self) -> Result<JoinSuccess> {
         self.send(serde_json::json!({
             "namespace": "control",
             "payload": {
@@ -174,11 +173,7 @@ impl Websocket {
                 payload: ControlPayload::JoinSuccess(join_success),
             } => {
                 self.id = Some(join_success.id);
-                Ok(JoinResult {
-                    participants: join_success.participants,
-                    livekit_url: join_success.livekit.service_url,
-                    livekit_token: join_success.livekit.token,
-                })
+                Ok(join_success)
             }
             _ => bail!("Unexpected response when trying to enter from waiting room"),
         }
@@ -282,32 +277,22 @@ impl Websocket {
                 RecordingEvent::Error(..) => Ok(None),
                 RecordingEvent::RecorderError(..) => Ok(None),
             },
+            Payload::LiveKit { payload } => Ok(Some(WebsocketEvent::LiveKitEvent(payload))),
         }
     }
-}
-
-pub struct JoinResult {
-    pub participants: Vec<Participant>,
-
-    pub livekit_url: String,
-    pub livekit_token: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "namespace")]
 enum Payload {
     #[serde(rename = "control")]
-    Control {
-        payload: ControlPayload,
-    },
+    Control { payload: ControlPayload },
     #[serde(rename = "moderation")]
-    Moderation {
-        payload: ModerationPayload,
-    },
-
-    Recording {
-        payload: RecordingEvent,
-    },
+    Moderation { payload: ModerationPayload },
+    #[serde(rename = "recording")]
+    Recording { payload: RecordingEvent },
+    #[serde(rename = "livekit")]
+    LiveKit { payload: LiveKitEvent },
 }
 
 #[derive(Debug, Deserialize)]
@@ -320,16 +305,10 @@ enum ControlPayload {
 }
 
 #[derive(Debug, Deserialize)]
-struct JoinSuccess {
-    id: ParticipantId,
-    participants: Vec<Participant>,
-    livekit: Livekit,
-}
-
-#[derive(Debug, Deserialize)]
-struct Livekit {
-    service_url: String,
-    token: String,
+pub(crate) struct JoinSuccess {
+    pub(crate) id: ParticipantId,
+    pub(crate) participants: Vec<Participant>,
+    pub(crate) livekit: LiveKitState,
 }
 
 #[derive(Debug, Deserialize)]
