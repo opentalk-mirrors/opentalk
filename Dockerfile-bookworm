@@ -29,16 +29,15 @@ RUN touch src/main.rs; \
 
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get full-upgrade -y && apt-get install libssl3 -y --no-install-recommends
+RUN apt-get update && \
+    apt-get full-upgrade -y && \
+    apt-get install libssl3 ca-certificates -y --no-install-recommends && \
+    update-ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /obelisk
 
 COPY --from=builder /obelisk/target/release/opentalk-obelisk .
-
-RUN apt-get install -y --no-install-recommends ca-certificates && update-ca-certificates
-# clean apt cache to reduce container size
-RUN rm -rf /var/lib/apt/lists/*
-
 RUN ln -s opentalk-obelisk k3k-obelisk
 
 ENV USERID=1000
