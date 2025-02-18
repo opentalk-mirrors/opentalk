@@ -27,16 +27,22 @@ COPY audio audio
 RUN touch src/main.rs; \
     cargo auditable build --release
 
-FROM debian:bookworm
+FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get upgrade -y && apt-get install libssl3 -y
+RUN apt-get update && apt-get full-upgrade -y && apt-get install libssl3 -y --no-install-recommends
 
 WORKDIR /obelisk
 
 COPY --from=builder /obelisk/target/release/opentalk-obelisk .
 
 RUN apt-get install -y --no-install-recommends ca-certificates && update-ca-certificates
+# clean apt cache to reduce container size
+RUN rm -rf /var/lib/apt/lists/*
 
 RUN ln -s opentalk-obelisk k3k-obelisk
+
+ENV USERID=1000
+ENV GROUPID=1000
+USER $USERID:$GROUPID
 
 ENTRYPOINT [ "./opentalk-obelisk" ]
