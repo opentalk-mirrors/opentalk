@@ -16,6 +16,11 @@ variables:
   # Enable one network per build for the test container and services
   FF_NETWORK_PER_BUILD: 'true'
   GIT_SUBMODULE_STRATEGY: recursive
+  SKOPEO_IMAGE: quay.io/skopeo/stable:v1
+  DEFAULT_FLAVOR: bookworm
+
+.template_vars:
+  FLAVORS: [bookworm, noble]
 
 .default_job_condition: &default_job_condition
   needs: []
@@ -181,30 +186,9 @@ test:container:
       /kaniko/executor
       --registry-mirror=mirror.gcr.io
       --context $CI_PROJECT_DIR
-      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile
+      --dockerfile $CI_PROJECT_DIR/Dockerfile
       --cache-repo $CI_REGISTRY_IMAGE/cache
       --no-push
-      --force
-
-package:obelisk-container-dev:
-  stage: package
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: ['']
-  script:
-    - mkdir -p /kaniko/.docker
-    - >
-      echo
-      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
-      /kaniko/.docker/config.json
-    - >
-      /kaniko/executor
-      --registry-mirror=mirror.gcr.io
-      --context $CI_PROJECT_DIR
-      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile
-      --destination $CI_REGISTRY_IMAGE:dev
       --force
 
 trigger-docs:
@@ -217,12 +201,37 @@ trigger-docs:
   trigger:
     project: opentalk/backend/docs
 
-package:obelisk-container-tag:
+package:read-tags:
+  stage: package
+  needs: []
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+  image:
+    name: alpine/git
+    entrypoint: ['']
+  artifacts:
+    reports:
+      dotenv: package.env
+  script:
+    - git fetch --tags
+    - TAGS=$(git tag --list | grep "^v[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+$" | sort -V)
+    - TAGS=$(echo "$TAGS" | sort -V | head -n -1 | tr "\n" " ")
+    - echo "TAGS=$TAGS" >> package.env
+
+package:obelisk-container-build:
+  parallel:
+    matrix:
+      - FLAVOR: !reference [.template_vars, FLAVORS]
   stage: package
   rules:
-    - if: $CI_COMMIT_TAG != null
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   image:
-    name: gcr.io/kaniko-project/executor:debug
+    name: $KANIKO_IMAGE
     entrypoint: ['']
   script:
     - mkdir -p /kaniko/.docker
@@ -234,46 +243,33 @@ package:obelisk-container-tag:
       /kaniko/executor
       --registry-mirror=mirror.gcr.io
       --context $CI_PROJECT_DIR
-      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile
-      --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+      --dockerfile $CI_PROJECT_DIR/Dockerfile-$FLAVOR
+      --destination "$CI_REGISTRY_IMAGE:$FLAVOR-${CI_COMMIT_SHA:0:8}"
       --force
 
-package:read-latest-tag:
+package:obelisk-container-create-and-push-tags:
+  parallel:
+    matrix:
+      - FLAVOR: !reference [.template_vars, FLAVORS]
   stage: package
-  rules:
-    - if: $CI_COMMIT_TAG != null
-  image:
-    name: alpine/git
-    entrypoint: ['']
-  script:
-    - git fetch --tags
-    - LATEST_TAG=$(git tag --list | grep "^v[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+$" | sort -V | tail -n1)
-    - echo "LATEST_TAG=$LATEST_TAG" >> package.env
-  artifacts:
-    reports:
-      dotenv: package.env
-
-package:obelisk-container-latest:
-  stage: package
-  rules:
-    - if: $CI_COMMIT_TAG != null
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: ['']
   needs:
-    - package:read-latest-tag
+    - job: package:read-tags
+      optional: true
+    - job: package:obelisk-container-build
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  image:
+    name: $SKOPEO_IMAGE
+    entrypoint: ['']
   script:
-    - mkdir -p /kaniko/.docker
-    - >
-      echo
-      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
-      /kaniko/.docker/config.json
+    - TAGS_TO_PUSH=$(./ci/create-container-tags.sh "${CI_COMMIT_TAG:-main}" "$TAGS" "$FLAVOR" "$DEFAULT_FLAVOR")
     - |
-      if [ "$CI_COMMIT_TAG" == "$LATEST_TAG" ]; then
-        /kaniko/executor \
-          --registry-mirror=mirror.gcr.io \
-          --context $CI_PROJECT_DIR \
-          --dockerfile $CI_PROJECT_DIR/ci/Dockerfile \
-          --destination $CI_REGISTRY_IMAGE:latest \
-          --force
-      fi
+      for tag in $TAGS_TO_PUSH; do
+        skopeo copy \
+        --src-creds="${CI_REGISTRY_USER}":"${CI_REGISTRY_PASSWORD}" \
+        --dest-creds="${CI_REGISTRY_USER}":"${CI_REGISTRY_PASSWORD}" \
+        "docker://${CI_REGISTRY_IMAGE}:$FLAVOR-${CI_COMMIT_SHA:0:8}" "docker://${CI_REGISTRY_IMAGE}:$tag"
+      done
