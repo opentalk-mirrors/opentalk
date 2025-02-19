@@ -200,7 +200,7 @@ impl AppLayer {
         // to work and then play the welcome track.
         sleep(Duration::from_secs(1)).await;
 
-        track_controller.play_track(Track::WelcomeConferenceId);
+        track_controller.play_track(self.settings.language, Some(Track::WelcomeConferenceId));
 
         let mut signaling = Signaling::new(
             self.settings.clone(),

@@ -10,6 +10,7 @@ use crate::websocket::{JoinState, Participant, Websocket, WebsocketEvent};
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use bytesstr::BytesStr;
+use opentalk_compositor::livekit::track::TrackKind;
 use opentalk_compositor::{Mixer, MixerParameters};
 use sip_types::{Method, Name};
 use sip_ua::invite::session::{Event, Session};
@@ -71,7 +72,8 @@ pub struct Signaling {
     dtmf_pw: String,
 
     /// Is the client muted
-    muted: bool,
+    audio_muted: bool,
+    video_muted: bool,
 
     /// has the client the hand raised
     hand_raised: bool,
@@ -117,7 +119,8 @@ impl Signaling {
             state: State::Running,
             dtmf_id: String::new(),
             dtmf_pw: String::new(),
-            muted: false,
+            audio_muted: false,
+            video_muted: false,
             hand_raised: false,
             participants: Vec::new(),
             shutdown,
@@ -163,7 +166,7 @@ impl Signaling {
                 _ = self.timeout_receiver.recv() => {
                     log::debug!("pin entry timed out");
                     self.dtmf_pw.clear();
-                    self.track_controller.play_track(Track::InputInvalid);
+                    self.track_controller.play_track(self.settings.language, Some(Track::InputInvalid));
                 }
                 _ = welcome_finished_channel_rx.recv() => {
                     self.join().await.context("Failed to join the room")?;
@@ -226,7 +229,10 @@ impl Signaling {
                             let _ = write!(&mut self.dtmf_id, "{}", digit);
 
                             if self.dtmf_id.len() == 10 {
-                                self.track_controller.play_track(Track::WelcomePasscode);
+                                self.track_controller.play_track(
+                                    self.settings.language,
+                                    Some(Track::WelcomePasscode),
+                                );
                             }
                         } else {
                             let _ = write!(&mut self.dtmf_pw, "{}", digit);
@@ -240,7 +246,8 @@ impl Signaling {
                                 match self.connect_websocket().await {
                                     Ok(_) => {
                                         self.track_controller.play_track_and_respond(
-                                            Track::WelcomeUsage,
+                                            self.settings.language,
+                                            Some(Track::WelcomeUsage),
                                             welcome_finished_responder,
                                         );
                                     }
@@ -248,7 +255,10 @@ impl Signaling {
                                         self.dtmf_id.clear();
                                         self.dtmf_pw.clear();
 
-                                        self.track_controller.play_track(Track::InputInvalid);
+                                        self.track_controller.play_track(
+                                            self.settings.language,
+                                            Some(Track::InputInvalid),
+                                        );
                                         return Ok(());
                                     }
                                     Err(e) => {
@@ -272,34 +282,58 @@ impl Signaling {
                     _ => {}
                 }
             }
-            MediaEvent::DtmfDigit(digit) => {
-                if digit == 0 {
-                    self.track_controller.play_track(Track::Silence)
-                } else if digit == 1 {
-                    self.toggle_mute();
-                } else if digit == 2 {
+            MediaEvent::DtmfDigit(digit) => match digit {
+                0 => self
+                    .track_controller
+                    .play_track(self.settings.language, None),
+                1 => {
+                    self.toggle_mute(TrackKind::Audio);
+                }
+                2 => {
                     if let Some(websocket) = &mut self.websocket {
                         self.hand_raised = !self.hand_raised;
-                        self.track_controller.play_track(if self.hand_raised {
-                            Track::HandRaised
-                        } else {
-                            Track::HandLowered
-                        });
+                        self.track_controller.play_track(
+                            self.settings.language,
+                            if self.hand_raised {
+                                Some(Track::On)
+                            } else {
+                                Some(Track::Off)
+                            },
+                        );
+
                         websocket.send_hand_action(self.hand_raised).await?;
                     }
                 }
-            }
+                3 => {
+                    if let Some(websocket) = &mut self.websocket {
+                        websocket.set_consent(true).await?;
+                    }
+                }
+                4 => {
+                    self.toggle_mute(TrackKind::Video);
+                }
+                6 => {
+                    if let Some(websocket) = &mut self.websocket {
+                        websocket.set_consent(false).await?;
+                    }
+                }
+                _ => {}
+            },
             MediaEvent::Error => {
                 self.state = State::Quitting;
             }
-            MediaEvent::LocalTrackMuted => {
-                if self.muted {
-                    return Ok(());
+            MediaEvent::LocalTrackMuted(kind) => {
+                let muted = match kind {
+                    TrackKind::Audio => &mut self.audio_muted,
+                    TrackKind::Video => &mut self.video_muted,
+                };
+
+                if !*muted {
+                    *muted = true;
+
+                    self.track_controller
+                        .play_track(self.settings.language, Some(Track::ModeratorMuted));
                 }
-
-                self.muted = true;
-
-                self.track_controller.play_track(Track::MutedByModerator);
             }
             MediaEvent::VideoDecoderError => {
                 self.send_picture_update_request().await?;
@@ -387,12 +421,21 @@ impl Signaling {
             }
             WebsocketEvent::SessionEnded { .. } => {
                 self.close_websocket().await?;
-                self.track_controller
-                    .play_track_and_respond(Track::ConferenceClosed, closed_finished_responder);
+                self.track_controller.play_track_and_respond(
+                    self.settings.language,
+                    Some(Track::ConferenceClosed),
+                    closed_finished_responder,
+                );
             }
             WebsocketEvent::Disconnected => {
                 self.state = State::Quitting;
             }
+            WebsocketEvent::RecordingStarted => {
+                self.track_controller
+                    .play_track(self.settings.language, Some(Track::ConsentInfo));
+            }
+            WebsocketEvent::RecordingPaused => {}
+            WebsocketEvent::RecordingStopped => {}
         }
 
         Ok(())
@@ -422,7 +465,8 @@ impl Signaling {
         let join_result = match websocket.join(name).await? {
             JoinState::Joined(join_result) => join_result,
             JoinState::InWaitingRoom => {
-                self.track_controller.play_track(Track::EnteredWaitingRoom);
+                self.track_controller
+                    .play_track(self.settings.language, Some(Track::WaitingRoomEntered));
 
                 let mut wait_until_accepted =
                     std::pin::pin!(websocket.wait_until_accepted_into_waiting_room());
@@ -476,14 +520,19 @@ impl Signaling {
     }
 
     // Toggle the mute state of our local publications
-    fn toggle_mute(&mut self) {
+    fn toggle_mute(&mut self, kind: TrackKind) {
         if let Some(compositor) = &mut self.media.compositor {
             for track in compositor
                 .local_participant()
                 .track_publications()
                 .into_values()
             {
-                if self.muted {
+                let is_muted = match kind {
+                    TrackKind::Audio => self.audio_muted,
+                    TrackKind::Video => self.video_muted,
+                };
+
+                if is_muted && track.kind() == kind {
                     track.unmute();
                 } else {
                     track.mute();
@@ -491,13 +540,25 @@ impl Signaling {
             }
         }
 
-        self.muted = !self.muted;
+        let is_muted = match kind {
+            TrackKind::Audio => {
+                self.audio_muted = !self.audio_muted;
+                self.audio_muted
+            }
+            TrackKind::Video => {
+                self.video_muted = !self.video_muted;
+                self.video_muted
+            }
+        };
 
-        self.track_controller.play_track(if self.muted {
-            Track::Muted
-        } else {
-            Track::Unmuted
-        });
+        self.track_controller.play_track(
+            self.settings.language,
+            if is_muted {
+                Some(Track::On)
+            } else {
+                Some(Track::Off)
+            },
+        );
     }
 }
 

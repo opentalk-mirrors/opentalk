@@ -22,6 +22,8 @@ use tt::WebSocketStream;
 use types_signaling::AssociatedParticipant;
 use types_signaling::ParticipantId;
 use types_signaling_control::state::ControlState;
+use types_signaling_recording::event::RecordingEvent;
+use types_signaling_recording::StreamStatus;
 
 /// Newtype wrapper for the signaling ticket
 pub struct Ticket(pub String);
@@ -35,6 +37,9 @@ pub enum WebsocketEvent {
         #[allow(dead_code)]
         issued_by: ParticipantId,
     },
+    RecordingStarted,
+    RecordingPaused,
+    RecordingStopped,
     Disconnected,
 }
 
@@ -192,6 +197,19 @@ impl Websocket {
         Ok(())
     }
 
+    pub async fn set_consent(&mut self, consent: bool) -> Result<()> {
+        self.send(serde_json::json!({
+            "namespace": "recording",
+            "payload": {
+                "action": "set_consent",
+                "consent": consent
+            }
+        }))
+        .await?;
+
+        Ok(())
+    }
+
     async fn receive_raw(&mut self) -> Result<Option<String>> {
         loop {
             match self.websocket.next().await {
@@ -248,6 +266,21 @@ impl Websocket {
                     Ok(Some(WebsocketEvent::SessionEnded { issued_by }))
                 }
             },
+            Payload::Recording { payload } => match payload {
+                RecordingEvent::StreamUpdated(stream_updated) => {
+                    let state = match stream_updated.status {
+                        StreamStatus::Starting => None,
+                        StreamStatus::Inactive => Some(WebsocketEvent::RecordingStopped),
+                        StreamStatus::Active => Some(WebsocketEvent::RecordingStarted),
+                        StreamStatus::Paused => Some(WebsocketEvent::RecordingPaused),
+                        StreamStatus::Error { .. } => Some(WebsocketEvent::RecordingStopped),
+                    };
+
+                    Ok(state)
+                }
+                RecordingEvent::Error(..) => Ok(None),
+                RecordingEvent::RecorderError(..) => Ok(None),
+            },
         }
     }
 }
@@ -263,9 +296,17 @@ pub struct JoinResult {
 #[serde(tag = "namespace")]
 enum Payload {
     #[serde(rename = "control")]
-    Control { payload: ControlPayload },
+    Control {
+        payload: ControlPayload,
+    },
     #[serde(rename = "moderation")]
-    Moderation { payload: ModerationPayload },
+    Moderation {
+        payload: ModerationPayload,
+    },
+
+    Recording {
+        payload: RecordingEvent,
+    },
 }
 
 #[derive(Debug, Deserialize)]

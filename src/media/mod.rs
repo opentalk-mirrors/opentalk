@@ -89,7 +89,7 @@ pub const DEFAULT_FPS: u32 = 30;
 pub enum MediaEvent {
     Error,
     DtmfDigit(u8),
-    LocalTrackMuted,
+    LocalTrackMuted(TrackKind),
     VideoDecoderError,
 }
 
@@ -245,9 +245,13 @@ impl MediaPipeline {
 
         let events_tx = self.events_tx.clone();
         compositor.add_livekit_event_handler(move |event| {
-            if let RoomEvent::TrackMuted { participant, .. } = event {
+            if let RoomEvent::TrackMuted {
+                participant,
+                publication,
+            } = event
+            {
                 if matches!(participant, Participant::Local(..)) {
-                    let _ = events_tx.send(MediaEvent::LocalTrackMuted);
+                    let _ = events_tx.send(MediaEvent::LocalTrackMuted(publication.kind()));
                 }
             }
         });

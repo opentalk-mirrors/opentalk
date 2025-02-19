@@ -59,6 +59,7 @@ if [ ! -f "$INPUT" ]; then
 fi
 
 # set -x
+set -e
 
 PIPER_BIN="${PIPER_BIN:-piper}"
 

@@ -5,6 +5,9 @@
 # The clock format of the timestamp displayed inside the stream.
 clock_format = "%x %X %Z"
 
+# Language of the audio cue to be played to the callee
+language = "de"
+
 # Obelisk OIDC authentication
 #
 # The Client requires a service account with the `opentalk-call-in` realm-role set.
