@@ -60,6 +60,9 @@ After installing the package opentalk-compose, the installation can be continued
 It must be ensured that the following preparations have been made befor the initialization can run.
 
 .B 1. The host has a valid domain name record pointing to the public IP address.
+.RS
+Running `getent hosts opentalk.example.com` on your server must show the public IP address.
+.RE
 
 .B 2. The following ports are used by default and must be accessible on the public interface if the respective services are utilized:
 .RS
