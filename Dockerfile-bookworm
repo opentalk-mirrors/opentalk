@@ -15,7 +15,8 @@ COPY ./Cargo.lock ./Cargo.lock
 # cache library build
 # We need a proper main.rs to make the first cargo build run
 # As we haven't copied any source files yet, this will only compile the dependencies
-RUN mkdir src; \
+RUN cargo new --bin xtask;\
+    mkdir src; \
     echo 'fn main() {println!("Hello World!");}' > src/main.rs; \
     cargo auditable build --release
 
