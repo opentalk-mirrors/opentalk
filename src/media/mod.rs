@@ -59,7 +59,10 @@ use tokio::{
     sync::{broadcast, mpsc, Mutex, RwLock},
     task::JoinHandle,
 };
-use video::h264::{H264Decoder, H264Encoder};
+use video::{
+    h264::{H264Decoder, H264Encoder},
+    ui,
+};
 
 pub mod codec;
 mod dtmf_filter;
@@ -88,6 +91,7 @@ pub const DEFAULT_FPS: u32 = 30;
 /// Asynchronous events emitted by the media pipeline
 pub enum MediaEvent {
     Error,
+    Disconnected(DisconnectReason),
     DtmfDigit(u8),
     LocalTrackMuted(TrackKind),
     VideoDecoderError,
@@ -205,7 +209,7 @@ impl MediaPipeline {
         });
 
         let to_caller_video_sinks = ToCallerVideoSinks::default();
-        let ui_controller = video::ui::spawn_ui_thread(to_caller_video_sinks.clone());
+        let ui_controller = video::ui::spawn_ui_thread(to_caller_video_sinks.clone(), false);
 
         let this = Self {
             settings,
@@ -310,20 +314,32 @@ impl MediaPipeline {
         Ok(())
     }
 
+    pub async fn remove_compositor(&mut self) {
+        let Some(_compositor) = self.compositor.take() else {
+            return;
+        };
+
+        // Remove the audio track
+        *self.to_conference_audio_track.lock().await = None;
+
+        // Remove all video tracks
+        let mut to_conference_video_tracks = self.to_conference_video_tracks.write().await;
+        for video_track in to_conference_video_tracks.values_mut() {
+            *video_track = None;
+        }
+
+        self.ui_controller = ui::spawn_ui_thread(self.to_caller_video_sinks.clone(), true);
+    }
+
     pub async fn wait_for_event(&mut self) -> MediaEvent {
         if let Some(compositor) = &mut self.compositor {
             tokio::select! {
                 event = self.events_rx.recv() => {
                     event.expect("self also holds the sender side of the channel, so this should never fail")
                 }
-                result = compositor.run() => {
-                    match result {
-                        Ok(()) => unreachable!("compositor's run function never returns unless an error occurs"),
-                        Err(e) => {
-                            log::error!("compositor run failed with, {e}");
-                            MediaEvent::Error
-                        }
-                    }
+                disconnect_reason = compositor.run() => {
+                    self.remove_compositor().await;
+                    MediaEvent::Disconnected(disconnect_reason)
                 }
             }
         } else {
@@ -686,7 +702,7 @@ impl MediaPipeline {
 
         self.ui_controller.set_target_fps(self.target_fps);
         if let Some(compositor) = &mut self.compositor {
-            compositor.set_target_fps(self.target_fps as u16).await;
+            compositor.set_target_fps(self.target_fps as u16);
 
             let video_support = !self.to_caller_video_sinks.lock().await.is_empty();
             compositor.set_video_support(video_support);

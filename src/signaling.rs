@@ -6,20 +6,22 @@ use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{MediaEvent, MediaPipeline, Track, TrackController};
 use crate::settings::Settings;
 use crate::sip::{handle_reinvite, SessionState};
-use crate::websocket::{JoinState, Participant, Websocket, WebsocketEvent};
+use crate::websocket::{JoinResult, JoinState, Participant, Websocket, WebsocketEvent};
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use bytesstr::BytesStr;
 use opentalk_compositor::livekit::track::TrackKind;
+use opentalk_compositor::livekit::DisconnectReason;
 use opentalk_compositor::{Mixer, MixerParameters};
 use sip_types::{Method, Name};
 use sip_ua::invite::session::{Event, Session};
 use std::fmt::Write;
 use std::future::pending;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::{broadcast, mpsc};
-use tokio::time::{sleep, Duration};
+use tokio::time::{sleep, Duration, Sleep};
 
 const PIN_ENTRY_TIMEOUT_INTERVAL: Duration = Duration::from_secs(5);
 
@@ -86,9 +88,12 @@ pub struct Signaling {
     shutdown: broadcast::Receiver<()>,
 
     /// Timeout handler
-    timeout_sender: tokio::sync::mpsc::Sender<()>,
-    timeout_receiver: tokio::sync::mpsc::Receiver<()>,
-    timeout_task_handle: Option<tokio::task::JoinHandle<()>>,
+    pin_entry_timeout_sender: tokio::sync::mpsc::Sender<()>,
+    pin_entry_timeout_receiver: tokio::sync::mpsc::Receiver<()>,
+    pin_entry_timeout_task_handle: Option<tokio::task::JoinHandle<()>>,
+
+    /// Grace period after being disconnected from livekit, since we might be moved into the waiting room
+    livekit_disconnection_grace_period: Option<Pin<Box<Sleep>>>,
 }
 
 impl Signaling {
@@ -124,9 +129,10 @@ impl Signaling {
             hand_raised: false,
             participants: Vec::new(),
             shutdown,
-            timeout_sender,
-            timeout_receiver,
-            timeout_task_handle: None,
+            pin_entry_timeout_sender: timeout_sender,
+            pin_entry_timeout_receiver: timeout_receiver,
+            pin_entry_timeout_task_handle: None,
+            livekit_disconnection_grace_period: None,
         }
     }
 
@@ -163,7 +169,7 @@ impl Signaling {
                         log::error!("failed to handle websocket event, {:?}", e);
                     }
                 }
-                _ = self.timeout_receiver.recv() => {
+                _ = self.pin_entry_timeout_receiver.recv() => {
                     log::debug!("pin entry timed out");
                     self.dtmf_pw.clear();
                     self.track_controller.play_track(self.settings.language, Some(Track::InputInvalid));
@@ -173,6 +179,9 @@ impl Signaling {
                 }
                 _ = closed_finished_channel_rx.recv() => {
                     self.state = State::Quitting;
+                }
+                _ = opt_timeout(&mut self.livekit_disconnection_grace_period) => {
+
                 }
                 _ = self.shutdown.recv() => {
                     self.state = State::Quitting;
@@ -238,7 +247,7 @@ impl Signaling {
                             let _ = write!(&mut self.dtmf_pw, "{}", digit);
 
                             // Cancel the previous timeout if it exists
-                            if let Some(task_handle) = self.timeout_task_handle.take() {
+                            if let Some(task_handle) = self.pin_entry_timeout_task_handle.take() {
                                 task_handle.abort();
                             }
 
@@ -268,14 +277,14 @@ impl Signaling {
                                 }
                             } else {
                                 // Start a new timeout
-                                let timeout_sender = self.timeout_sender.clone();
+                                let timeout_sender = self.pin_entry_timeout_sender.clone();
 
                                 let task_handle = tokio::spawn(async move {
                                     sleep(PIN_ENTRY_TIMEOUT_INTERVAL).await;
                                     let _ = timeout_sender.send(()).await;
                                 });
 
-                                self.timeout_task_handle = Some(task_handle);
+                                self.pin_entry_timeout_task_handle = Some(task_handle);
                             }
                         }
                     }
@@ -337,6 +346,16 @@ impl Signaling {
             }
             MediaEvent::VideoDecoderError => {
                 self.send_picture_update_request().await?;
+            }
+            MediaEvent::Disconnected(disconnect_reason) => {
+                // When the participant was removed, he probably was moved into the waiting room.
+                // Wait for the waiting room notification
+                if disconnect_reason == DisconnectReason::ParticipantRemoved.into() {
+                    self.livekit_disconnection_grace_period =
+                        Some(Box::pin(sleep(Duration::from_secs(3))));
+                } else {
+                    self.state = State::Quitting;
+                }
             }
         }
 
@@ -414,9 +433,7 @@ impl Signaling {
                 self.participants.retain(|p| p.id != assoc.id);
 
                 if let Some(compositor) = &mut self.media.compositor {
-                    compositor
-                        .remove_participant(&assoc.id.to_string().into())
-                        .await;
+                    compositor.remove_participant(&assoc.id.to_string().into());
                 }
             }
             WebsocketEvent::SessionEnded { .. } => {
@@ -426,6 +443,14 @@ impl Signaling {
                     Some(Track::ConferenceClosed),
                     closed_finished_responder,
                 );
+            }
+            WebsocketEvent::MovedToWaitingRoom => {
+                self.participants.clear();
+                self.media.remove_compositor().await;
+
+                if let Some(join_result) = self.wait_in_waiting_room_until_accepted().await? {
+                    self.handle_join_result(join_result).await?;
+                }
             }
             WebsocketEvent::Disconnected => {
                 self.state = State::Quitting;
@@ -465,29 +490,47 @@ impl Signaling {
         let join_result = match websocket.join(name).await? {
             JoinState::Joined(join_result) => join_result,
             JoinState::InWaitingRoom => {
-                self.track_controller
-                    .play_track(self.settings.language, Some(Track::WaitingRoomEntered));
-
-                let mut wait_until_accepted =
-                    std::pin::pin!(websocket.wait_until_accepted_into_waiting_room());
-
-                loop {
-                    tokio::select! {
-                        join_result = &mut wait_until_accepted => {
-                            // Participant got accepted, break out of loop
-                            break join_result?;
-                        }
-                        sip_event = self.sip.drive() => {
-                            if let Some(state) = handle_sip_event(sip_event?, &mut self.media, &mut self.media_session).await? {
-                                self.state = state;
-                                return Ok(())
-                            }
-                        }
-                    }
+                if let Some(join_result) = self.wait_in_waiting_room_until_accepted().await? {
+                    join_result
+                } else {
+                    // We hung up, return
+                    return Ok(());
                 }
             }
         };
 
+        self.handle_join_result(join_result).await
+    }
+
+    /// Wait in the waiting room until accepted or the call is hung up
+    async fn wait_in_waiting_room_until_accepted(&mut self) -> Result<Option<JoinResult>> {
+        self.media.ui_controller.set_waiting_room(true);
+
+        let websocket = self.websocket.as_mut().unwrap();
+        self.track_controller
+            .play_track(self.settings.language, Some(Track::WaitingRoomEntered));
+
+        let mut wait_until_accepted =
+            std::pin::pin!(websocket.wait_until_accepted_into_waiting_room());
+
+        loop {
+            tokio::select! {
+                join_result = &mut wait_until_accepted => {
+                    // Participant got accepted, break out of loop
+                    return Ok(Some(join_result?));
+                }
+                sip_event = self.sip.drive() => {
+                    if let Some(state) = handle_sip_event(sip_event?, &mut self.media, &mut self.media_session).await? {
+                        // Got hung up, return
+                        self.state = state;
+                        return Ok(None)
+                    }
+                }
+            }
+        }
+    }
+
+    async fn handle_join_result(&mut self, join_result: JoinResult) -> Result<()> {
         self.participants = join_result.participants;
 
         let mut compositor = Mixer::new(MixerParameters {
@@ -592,5 +635,12 @@ async fn websocket_receive(websocket: &mut Option<Websocket>) -> Result<Websocke
         websocket.receive().await
     } else {
         pending().await
+    }
+}
+
+async fn opt_timeout(timeout: &mut Option<Pin<Box<Sleep>>>) {
+    match timeout {
+        Some(sleep) => sleep.await,
+        None => pending().await,
     }
 }
