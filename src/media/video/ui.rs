@@ -13,7 +13,7 @@ use parking_lot::Mutex;
 use std::{sync::Arc, thread::JoinHandle};
 use std::{thread, time::Duration};
 
-const TOP_OFFSET: usize = 150;
+const HEADLINE_TOP_OFFSET: usize = 150;
 
 pub(crate) struct UiController {
     data: Arc<Mutex<UiData>>,
@@ -109,22 +109,34 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks, waiting_room: bool) -> 
             drop(data);
 
             headline.draw(
-                Point::new((WIDTH - headline.width() as usize) / 2, TOP_OFFSET),
-                &mut image,
-            );
-
-            id_text.draw(
                 Point::new(
-                    (WIDTH - dummy_id_text.width() as usize) / 2
-                        + ((dummy_pin_text.width() - dummy_id_text.width()) / 2.) as usize,
-                    text_top_offset,
+                    // Align the Headline in the center
+                    (WIDTH - headline.width() as usize) / 2,
+                    HEADLINE_TOP_OFFSET,
                 ),
                 &mut image,
             );
 
+            {
+                // Draw "Id: XXXXXXXXX"
+                //
+                // First align the text in the center using the dummy text
+                let align_center = (WIDTH - dummy_id_text.width() as usize) / 2;
+                // Then to align the colon of both "Id:" and "Pin:" shift the "Id:" text right,
+                // by adding the half of their width difference to x
+                let align_colons = ((dummy_pin_text.width() - dummy_id_text.width()) / 2.) as usize;
+
+                id_text.draw(
+                    Point::new(align_center + align_colons, text_top_offset),
+                    &mut image,
+                );
+            }
+
             pin_text.draw(
                 Point::new(
+                    // Align the text in the exact center using the width of the dummy pin text
                     (WIDTH - dummy_pin_text.width() as usize) / 2,
+                    // Align the text 10px below the "Id:" text
                     text_top_offset + id_text.height() as usize + 10,
                 ),
                 &mut image,
