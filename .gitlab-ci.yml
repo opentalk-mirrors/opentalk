@@ -16,6 +16,7 @@ variables:
   # Enable one network per build for the test container and services
   FF_NETWORK_PER_BUILD: 'true'
   GIT_SUBMODULE_STRATEGY: recursive
+  KANIKO_IMAGE: gcr.io/kaniko-project/executor:debug
   SKOPEO_IMAGE: quay.io/skopeo/stable:v1
   DEFAULT_FLAVOR: bookworm
 
