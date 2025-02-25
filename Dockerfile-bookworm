@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.84.0-bookworm AS builder
+
+RUN apt-get update && apt-get install -y build-essential libclang-dev
+
+WORKDIR /obelisk
+
+COPY ./build.rs ./build.rs
+COPY ./Cargo.toml ./Cargo.toml
+COPY ./Cargo.lock ./Cargo.lock
+
+# cache library build
+# We need a proper main.rs to make the first cargo build run
+# As we haven't copied any source files yet, this will only compile the dependencies
+RUN mkdir src; \
+    echo 'fn main() {println!("Hello World!");}' > src/main.rs; \
+    cargo auditable build --release
+
+# Now copy the real source over
+COPY src src
+COPY audio audio
+
+# Cargo detects changes only by mtime
+RUN touch src/main.rs; \
+    cargo auditable build --release
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && \
+    apt-get full-upgrade -y && \
+    apt-get install libssl3 ca-certificates -y --no-install-recommends && \
+    update-ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /obelisk
+
+COPY --from=builder /obelisk/target/release/opentalk-obelisk .
+RUN ln -s opentalk-obelisk k3k-obelisk
+
+ENV USERID=1000
+ENV GROUPID=1000
+USER $USERID:$GROUPID
+
+ENTRYPOINT [ "./opentalk-obelisk" ]
