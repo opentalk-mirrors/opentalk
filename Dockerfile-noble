@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
-FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.84.0-bookworm AS builder
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.85.0-bookworm AS builder
 
 RUN apt-get update && apt-get install -y build-essential libclang-dev
 
