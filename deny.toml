@@ -41,7 +41,6 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 # The lint level for crates that have been yanked from their source registry
 ignore = [
   "RUSTSEC-2023-0071",
-  "RUSTSEC-2025-0008",
 ]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
@@ -73,7 +72,6 @@ allow = [
   "ISC",
   "MIT",
   "MPL-2.0",
-  "OpenSSL",
   "Unicode-3.0",
   "Zlib",
 ]
@@ -160,6 +158,8 @@ skip = [
   { name = "base64", version = "0.21.7" },
   { name = "bitflags", version = "1.3.2" },
   { name = "bytes", version = "0.6.0" },
+  { name = "derive_more-impl", version = "1.0.0" },
+  { name = "derive_more", version = "1.0.0" },
   { name = "downcast-rs", version = "1.2.1" },
   { name = "env_logger", version = "0.10.2" },
   { name = "foreign-types-shared", version = "0.1.1" },
