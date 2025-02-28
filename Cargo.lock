@@ -885,32 +885,11 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
-dependencies = [
- "derive_more-impl 1.0.0",
-]
-
-[[package]]
-name = "derive_more"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "093242cf7570c207c83073cf82f79706fe7b8317e98620a47d5be7c3d8497678"
 dependencies = [
- "derive_more-impl 2.0.1",
-]
-
-[[package]]
-name = "derive_more-impl"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
- "unicode-xid",
+ "derive_more-impl",
 ]
 
 [[package]]
@@ -3630,13 +3609,13 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.31.1"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9094287afec968180cdd6254f63f08036271260484311ce4eb8254032dfb58b5"
+checksum = "ebc7b6f5082ce4410a8a4b483a33ac523863a974344be8ffeeb339e37624a9fd"
 dependencies = [
  "chrono",
  "chrono-tz",
- "derive_more 2.0.1",
+ "derive_more",
  "email_address",
  "itertools 0.14.0",
  "opentalk-types-common-identifiers",
@@ -3655,7 +3634,7 @@ version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab029b9f30fe933d46d389b2e1914d84a43a8810603c6373210758f87b5588d9"
 dependencies = [
- "derive_more 2.0.1",
+ "derive_more",
  "serde",
  "serde_with",
  "snafu",
@@ -3676,11 +3655,11 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling"
-version = "0.31.1"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb75194fc3050816aa64e70a18ad725ad5b3b70926b745d5f0425028a70d1577"
+checksum = "7c5b9d2ebd82755d4a939b170fbfe210fb9d5636274fb8f6bdf611e9d0b01b59"
 dependencies = [
- "derive_more 2.0.1",
+ "derive_more",
  "opentalk-types-common",
  "serde",
  "serde_json",
@@ -3690,9 +3669,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-control"
-version = "0.31.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a62fd3b5e8f4aaa3086fbd267bf96481a9fc119fa13d0320af67db2297acbba8"
+checksum = "72d792349e65059af7f4c4ea5ade54f3d084d710f7864c6a11e8217894625e32"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -3702,11 +3681,11 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-recording"
-version = "0.31.0"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05487ea42052be7a5ae92b25bd341491f71f26048b975acf269d47cfac7c73de"
+checksum = "668b6ccb34d0a67b311414c8fe09c8e0c27357db980e0cd5e5d3a29982ad0c4b"
 dependencies = [
- "derive_more 1.0.0",
+ "derive_more",
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
