@@ -85,6 +85,8 @@ macro_rules! audio_files {
 }
 
 audio_files! {
+    "consent_stopped_accept", ConsentStoppedAccept;
+    "consent_stopped_reject", ConsentStoppedReject;
     "conference_closed", ConferenceClosed;
     "conference_timelimit", ConferenceTimelimit;
     "conference_userlimit", ConferenceUserlimit;
