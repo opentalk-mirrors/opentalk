@@ -109,6 +109,8 @@ audio_files! {
     "welcome_time", WelcomeTime;
     "welcome_unavailable", WelcomeUnavailable;
     "welcome_usage", WelcomeUsage;
+    "microphones_restriction_enabled", MicrophonesRestrictionEnabled;
+    "microphones_restriction_lifted", MicrophonesRestrictionLifted;
 
     // Not generated! Used for mute/unmute, raise/lower hand
     "on", On;

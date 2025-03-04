@@ -60,6 +60,7 @@ tokio-native-tls = "0.3.1"
 tt = { package = "tokio-tungstenite", version = "0.26", features = ["rustls-tls-native-roots"] }
 types-signaling = { package = "opentalk-types-signaling", version = "0.32.0", features = ["serde"] }
 types-signaling-control = { package = "opentalk-types-signaling-control", version = "0.32.0", features = ["serde"] }
+types-signaling-livekit = { package = "opentalk-types-signaling-livekit", version = "0.32.0", features = ["serde"] }
 types-signaling-recording = { package = "opentalk-types-signaling-recording", version = "0.32.0", features = ["serde"] }
 webrtc-sys = "0.3"
 

@@ -26,7 +26,15 @@ fn main() -> Result<(), ()> {
 
     let temp_dir = temp_dir::TempDir::new().unwrap();
 
+    let filter = env::args().nth(1);
+
     for (i, [ident, text_de, text_en]) in text::TEXT.iter().enumerate() {
+        if let Some(filter) = &filter {
+            if *ident != filter.trim() {
+                continue;
+            }
+        }
+
         println!("[{:2}/{}] Generate {ident}", i + 1, text::TEXT.len(),);
 
         generate_track(

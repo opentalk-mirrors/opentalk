@@ -3589,6 +3589,7 @@ dependencies = [
  "opentalk-compositor",
  "opentalk-types-signaling",
  "opentalk-types-signaling-control",
+ "opentalk-types-signaling-livekit",
  "opentalk-types-signaling-recording",
  "opentalk-version",
  "owo-colors",
@@ -3677,6 +3678,17 @@ dependencies = [
  "opentalk-types-signaling",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "opentalk-types-signaling-livekit"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79ffdc3c937f78c1019d0c9caa318af330b810228a68363b498fbbf051c15e30"
+dependencies = [
+ "opentalk-types-common",
+ "opentalk-types-signaling",
+ "serde",
 ]
 
 [[package]]

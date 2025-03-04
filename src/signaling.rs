@@ -6,7 +6,7 @@ use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{MediaEvent, MediaPipeline, Track, TrackController};
 use crate::settings::Settings;
 use crate::sip::{handle_reinvite, SessionState};
-use crate::websocket::{JoinResult, JoinState, Participant, Websocket, WebsocketEvent};
+use crate::websocket::{JoinState, JoinSuccess, Participant, Websocket, WebsocketEvent};
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use bytesstr::BytesStr;
@@ -22,6 +22,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::{broadcast, mpsc};
 use tokio::time::{sleep, Duration, Sleep};
+use types_signaling_livekit::event::LiveKitEvent;
 
 const PIN_ENTRY_TIMEOUT_INTERVAL: Duration = Duration::from_secs(5);
 
@@ -296,7 +297,7 @@ impl Signaling {
                     .track_controller
                     .play_track(self.settings.language, None),
                 1 => {
-                    self.toggle_mute(TrackKind::Audio);
+                    self.toggle_mute(TrackKind::Audio).await;
                 }
                 2 => {
                     if let Some(websocket) = &mut self.websocket {
@@ -319,7 +320,7 @@ impl Signaling {
                     }
                 }
                 4 => {
-                    self.toggle_mute(TrackKind::Video);
+                    self.toggle_mute(TrackKind::Video).await;
                 }
                 6 => {
                     if let Some(websocket) = &mut self.websocket {
@@ -452,6 +453,35 @@ impl Signaling {
                     self.handle_join_result(join_result).await?;
                 }
             }
+            WebsocketEvent::LiveKitEvent(event) => match event {
+                LiveKitEvent::MicrophoneRestrictionsEnabled(unrestricted_participants) => {
+                    let websocket = self.websocket.as_mut().unwrap();
+
+                    let is_unrestricted = unrestricted_participants
+                        .unrestricted_participants
+                        .contains(&websocket.id.expect("id must be set"));
+
+                    // if is restricted, mute and play the track
+                    if !is_unrestricted {
+                        self.audio_muted = true;
+                        self.track_controller.play_track(
+                            self.settings.language,
+                            Some(Track::MicrophonesRestrictionEnabled),
+                        );
+                    }
+
+                    self.media.set_microphone_publish(is_unrestricted).await;
+                }
+                LiveKitEvent::MicrophoneRestrictionsDisabled => {
+                    self.track_controller.play_track(
+                        self.settings.language,
+                        Some(Track::MicrophonesRestrictionLifted),
+                    );
+
+                    self.media.set_microphone_publish(true).await;
+                }
+                _ => {}
+            },
             WebsocketEvent::Disconnected => {
                 self.state = State::Quitting;
             }
@@ -503,7 +533,7 @@ impl Signaling {
     }
 
     /// Wait in the waiting room until accepted or the call is hung up
-    async fn wait_in_waiting_room_until_accepted(&mut self) -> Result<Option<JoinResult>> {
+    async fn wait_in_waiting_room_until_accepted(&mut self) -> Result<Option<JoinSuccess>> {
         self.media.ui_controller.set_waiting_room(true);
 
         let websocket = self.websocket.as_mut().unwrap();
@@ -530,14 +560,18 @@ impl Signaling {
         }
     }
 
-    async fn handle_join_result(&mut self, join_result: JoinResult) -> Result<()> {
+    async fn handle_join_result(&mut self, join_result: JoinSuccess) -> Result<()> {
         self.participants = join_result.participants;
 
         let mut compositor = Mixer::new(MixerParameters {
             target_fps: self.media.target_fps as u16,
             clock_format: self.settings.clock_format.clone(),
-            livekit_url: join_result.livekit_url,
-            livekit_token: join_result.livekit_token,
+            livekit_url: join_result
+                .livekit
+                .credentials
+                .service_url
+                .unwrap_or(join_result.livekit.credentials.public_url),
+            livekit_token: join_result.livekit.credentials.token,
             auto_subscribe: false,
         })
         .await
@@ -559,23 +593,52 @@ impl Signaling {
             .await
             .context("Failed to add compositor to media pipeline")?;
 
+        let microphone_enable = match join_result.livekit.microphone_restriction_state {
+            types_signaling_livekit::MicrophoneRestrictionState::Disabled => true,
+            types_signaling_livekit::MicrophoneRestrictionState::Enabled {
+                unrestricted_participants,
+            } => unrestricted_participants.contains(&join_result.id),
+        };
+
+        if !microphone_enable {
+            self.track_controller.play_track(
+                self.settings.language,
+                Some(Track::MicrophonesRestrictionEnabled),
+            );
+        }
+
+        self.media.set_microphone_publish(microphone_enable).await;
+
         Ok(())
     }
 
     // Toggle the mute state of our local publications
-    fn toggle_mute(&mut self, kind: TrackKind) {
+    async fn toggle_mute(&mut self, kind: TrackKind) {
+        // Do not toggle anything if there's nothing to toggle
+        if kind == TrackKind::Audio && !self.media.is_microphone_published().await {
+            self.track_controller.play_track(
+                self.settings.language,
+                Some(Track::MicrophonesRestrictionEnabled),
+            );
+            return;
+        }
+
         if let Some(compositor) = &mut self.media.compositor {
             for track in compositor
                 .local_participant()
                 .track_publications()
                 .into_values()
             {
+                if track.kind() != kind {
+                    continue;
+                }
+
                 let is_muted = match kind {
                     TrackKind::Audio => self.audio_muted,
                     TrackKind::Video => self.video_muted,
                 };
 
-                if is_muted && track.kind() == kind {
+                if is_muted {
                     track.unmute();
                 } else {
                     track.mute();
