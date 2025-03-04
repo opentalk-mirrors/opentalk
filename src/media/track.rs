@@ -11,7 +11,7 @@ use ezk_audio::{
 use hound::WavReader;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
-use std::cmp;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::broadcast;
@@ -42,6 +42,7 @@ macro_rules! wav_file {
 // WAV files must be 48000Hz 2 channel interleaved (and optimally i16/S16LE) audio
 macro_rules! audio_files {
     ($($name:literal, $ident:ident;)*) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         #[allow(unused)]
         pub(crate) enum Track {
             $($ident,)*
@@ -128,48 +129,79 @@ impl TrackController {
     pub fn play_track_and_respond(
         &self,
         language: Language,
-        track: Option<Track>,
+        track: Track,
         responder: broadcast::Sender<()>,
     ) {
-        self.play_track_int(language, track, Some(responder));
+        self.enqueue_track(language, track, Some(responder));
     }
 
-    pub fn play_track(&self, language: Language, track: Option<Track>) {
-        self.play_track_int(language, track, None);
+    pub fn play_track(&self, language: Language, track: Track) {
+        self.enqueue_track(language, track, None);
     }
 
-    /// Set the track to play, stopping any track currently playing
-    fn play_track_int(
+    /// Stop the current track from playing
+    pub fn stop_current_track(&self) {
+        let mut data = self.data.lock();
+
+        if let Some(front) = data.queue.pop_front() {
+            if let Some(responder) = front.playback_finished_responder {
+                let _ = responder.send(());
+            }
+        }
+    }
+
+    fn enqueue_track(
         &self,
         language: Language,
-        track: Option<Track>,
+        track: Track,
         responder: Option<broadcast::Sender<()>>,
     ) {
         let mut data = self.data.lock();
 
-        data.stop_playback();
-        data.playback_finished_responder = responder;
+        // Avoid queuing the same track more than once
+        if data.queue.iter().any(|t| t.track == track) {
+            return;
+        }
 
-        data.track = track.map(|t| t.data(language));
+        data.queue.push_back(PlayingTrack {
+            track,
+            track_data: track.data(language),
+            cursor: 0,
+            playback_finished_responder: responder,
+        });
     }
 }
 
 struct ElementData {
-    track: Option<Arc<[i16]>>,
+    queue: VecDeque<PlayingTrack>,
+}
+
+struct PlayingTrack {
+    track: Track,
+    track_data: Arc<[i16]>,
     cursor: usize,
     playback_finished_responder: Option<broadcast::Sender<()>>,
 }
 
 impl ElementData {
-    fn stop_playback(&mut self) {
-        if self.track.is_some() {
-            if let Some(responder) = self.playback_finished_responder.take() {
-                let _ = responder.send(());
+    fn write_samples(&mut self, mut dst: &mut [i16]) {
+        while let Some(front) = self.queue.front_mut() {
+            let amt = dst.len().min(front.track_data.len() - front.cursor);
+            if amt == 0 {
+                return;
             }
-        };
 
-        self.track = None;
-        self.cursor = 0;
+            dst[..amt].copy_from_slice(&front.track_data[front.cursor..front.cursor + amt]);
+            dst = &mut dst[amt..];
+            front.cursor += amt;
+
+            if front.cursor == front.track_data.len() {
+                if let Some(sender) = &front.playback_finished_responder {
+                    let _ = sender.send(());
+                }
+                self.queue.pop_front();
+            }
+        }
     }
 }
 
@@ -183,9 +215,7 @@ impl TrackSource {
     pub(crate) fn new() -> Self {
         Self {
             data: Arc::new(Mutex::new(ElementData {
-                track: None,
-                cursor: 0,
-                playback_finished_responder: None,
+                queue: VecDeque::new(),
             })),
             interval: interval(Duration::from_millis(20)),
             timestamp: 0,
@@ -219,18 +249,8 @@ impl Source for TrackSource {
 
         let mut data = self.data.lock();
 
-        let mut samples_to_play = match &data.track {
-            Some(track) => track[data.cursor..].to_vec(),
-            None => vec![],
-        };
-
-        if samples_to_play.is_empty() {
-            data.stop_playback();
-        } else {
-            data.cursor += cmp::min(samples_to_play.len(), SAMPLES_PER_BUF as usize);
-        }
-
-        samples_to_play.resize(SAMPLES_PER_BUF as usize, 0i16);
+        let mut samples = vec![0i16; SAMPLES_PER_BUF as usize];
+        data.write_samples(&mut samples);
 
         let timestamp = self.timestamp;
         self.timestamp += SAMPLES_PER_BUF;
@@ -239,7 +259,7 @@ impl Source for TrackSource {
             RawAudioFrame {
                 sample_rate: SampleRate(SAMPLE_RATE as u32),
                 channels: Channels::NotPositioned(CHANNELS as u32),
-                samples: samples_to_play.into(),
+                samples: samples.into(),
             },
             timestamp,
         )))
