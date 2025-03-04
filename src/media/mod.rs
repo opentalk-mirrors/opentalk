@@ -317,7 +317,7 @@ impl MediaPipeline {
     }
 
     /// Set the current publish state of the microphone track
-    pub async fn set_microphone_publish(&mut self, enable: bool) {
+    pub async fn set_microphone_publish(&mut self, enable: bool, muted: bool) {
         let Some(compositor) = &mut self.compositor else {
             return;
         };
@@ -343,7 +343,7 @@ impl MediaPipeline {
             RtcAudioSource::Native(audio_source.clone()),
         );
 
-        if let Err(e) = local_participant
+        match local_participant
             .publish_track(
                 LocalTrack::Audio(local_audio_track.clone()),
                 TrackPublishOptions {
@@ -353,8 +353,15 @@ impl MediaPipeline {
             )
             .await
         {
-            log::error!("Failed to publish audio track, {e:?}");
-            return;
+            Ok(track) => {
+                if muted {
+                    track.mute();
+                }
+            }
+            Err(e) => {
+                log::error!("Failed to publish audio track, {e:?}");
+                return;
+            }
         }
 
         *audio_track = Some(audio_source);
