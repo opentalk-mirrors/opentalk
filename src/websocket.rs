@@ -25,6 +25,7 @@ use types_signaling_control::state::ControlState;
 use types_signaling_livekit::event::LiveKitEvent;
 use types_signaling_livekit::state::LiveKitState;
 use types_signaling_recording::event::RecordingEvent;
+use types_signaling_recording::state::RecordingState;
 use types_signaling_recording::StreamStatus;
 
 /// Newtype wrapper for the signaling ticket
@@ -309,6 +310,7 @@ pub(crate) struct JoinSuccess {
     pub(crate) id: ParticipantId,
     pub(crate) participants: Vec<Participant>,
     pub(crate) livekit: LiveKitState,
+    pub(crate) recording: RecordingState,
 }
 
 #[derive(Debug, Deserialize)]

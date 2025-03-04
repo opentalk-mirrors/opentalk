@@ -591,6 +591,11 @@ impl Signaling {
             .await
             .context("Failed to add compositor to media pipeline")?;
 
+        if !join_result.recording.targets.is_empty() {
+            self.track_controller
+                .play_track(self.settings.language, Track::ConsentInfo);
+        }
+
         let microphone_enable = match join_result.livekit.microphone_restriction_state {
             types_signaling_livekit::MicrophoneRestrictionState::Disabled => true,
             types_signaling_livekit::MicrophoneRestrictionState::Enabled {
