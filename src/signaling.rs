@@ -470,7 +470,9 @@ impl Signaling {
                         );
                     }
 
-                    self.media.set_microphone_publish(is_unrestricted).await;
+                    self.media
+                        .set_microphone_publish(is_unrestricted, self.audio_muted)
+                        .await;
                 }
                 LiveKitEvent::MicrophoneRestrictionsDisabled => {
                     self.track_controller.play_track(
@@ -478,7 +480,9 @@ impl Signaling {
                         Some(Track::MicrophonesRestrictionLifted),
                     );
 
-                    self.media.set_microphone_publish(true).await;
+                    self.media
+                        .set_microphone_publish(true, self.audio_muted)
+                        .await;
                 }
                 _ => {}
             },
@@ -607,7 +611,9 @@ impl Signaling {
             );
         }
 
-        self.media.set_microphone_publish(microphone_enable).await;
+        self.media
+            .set_microphone_publish(microphone_enable, self.audio_muted)
+            .await;
 
         Ok(())
     }
