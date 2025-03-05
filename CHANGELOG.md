@@ -5,6 +5,72 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2025-03-05
+
+[0.19.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.18.3...v0.19.0
+
+### 🚀 New features
+
+- Add cli argument parsing and implement version argument ([!199](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/199))
+- Add config argument ([!199](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/199))
+- Provide default stun port if its missing from the url ([!208](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/208), [#65](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/65))
+- Add TTS tooling and text files ([!211](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/211), [#15](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/15))
+- Add additional text messages ([!211](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/211))
+- Add english messages ([!211](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/211))
+- Send picture-fast-update INFO request on decoder error ([!213](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/213))
+- Add sip.encode_video_at_half_bitrate option ([!216](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/216), [#143](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/143))
+- Add recording support, add separate video mute binding & add english language support ([!223](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/223))
+- Add ubuntu noble based container image ([!229](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/229))
+- Add container security scanning ([!238](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/238))
+
+### 🐛 Bug fixes
+
+- Do not decode h264 on the tokio runtime ([!202](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/202))
+- Exit gracefully on SIGTERM signal (for shutdown in docker container) ([!208](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/208), [#50](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/50))
+- Avoid crash when receiving re-INVITE without SDP body ([!205](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/205), [#142](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/142))
+- Improve H.264 compatibility by properly negotiating encoder settings and video resolution ([!204](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/204))
+- Play a track when the call-in user is muted by a moderator ([!209](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/209), [#133](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/133))
+- Fix video speaker ordering by updating opentalk-compositor to 0.13.1 ([!224](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/224))
+- Disable compositor video support when there are no active video streams ([!215](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/215))
+- Gracefully handle being moved into the waiting room ([!225](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/225))
+- Reduce container size and attack surface ([!229](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/229))
+- Set KANIKO_IMAGE variable in .gitlab CI ([!233](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/233))
+- (ci) Temporary ignore RUSTSEC-2025-0008 ([!233](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/233))
+- Handle livekit microphone restrictions ([!226](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/226))
+
+### 📚 Documentation
+
+- Fix broken link ([!200](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/200))
+
+### 🔨 Refactor
+
+- (ci) Clean up install step in Dockerfiles ([!229](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/229))
+
+### 📦 Dependencies
+
+- (deps) Update rust crate config to 0.15 ([!198](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/198))
+- (deps) Update ezk-rs, fixes RUSTSEC-2024-0421 ([!193](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/193))
+- (deps) Update opentalk to 0.29.0 ([!203](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/203))
+- (deps) Lock file maintenance ([!203](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/203))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.84.0 ([!207](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/207))
+- (deps) Update opentalk to 0.30.1 ([!210](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/210))
+- (deps) Update rust crate service-probe to v0.2.1 ([!220](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/220))
+- (deps) Update rust crate openh264 to 0.8 ([!232](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/232))
+- (deps) Update opentalk to 0.32.0 ([!237](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/237))
+
+### ⚙ Miscellaneous
+
+- Update dependencies ([!202](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/202))
+- Update openidconnect, reqwest (http) and tokio-tungstenite (websocket) dependencies ([!214](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/214))
+- Update opentalk-types, ezk, rand & livekit ([!222](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/222))
+- (ci) Update rust container image to 1.85 ([!236](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/236))
+- Lock file maintenance ([!232](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/232))
+- Document resource requirements ([!239](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/239))
+
+### Ci
+
+- Verify that commits are signed ([!201](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/201))
+
 ## [0.18.0] - 2024-12-12
 
 [0.18.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.17.0...v0.18.0
