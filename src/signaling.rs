@@ -173,7 +173,7 @@ impl Signaling {
                 _ = self.pin_entry_timeout_receiver.recv() => {
                     log::debug!("pin entry timed out");
                     self.dtmf_pw.clear();
-                    self.track_controller.play_track(self.settings.language, Some(Track::InputInvalid));
+                    self.track_controller.play_track(self.settings.language, Track::InputInvalid);
                 }
                 _ = welcome_finished_channel_rx.recv() => {
                     self.join().await.context("Failed to join the room")?;
@@ -239,10 +239,8 @@ impl Signaling {
                             let _ = write!(&mut self.dtmf_id, "{}", digit);
 
                             if self.dtmf_id.len() == 10 {
-                                self.track_controller.play_track(
-                                    self.settings.language,
-                                    Some(Track::WelcomePasscode),
-                                );
+                                self.track_controller
+                                    .play_track(self.settings.language, Track::WelcomePasscode);
                             }
                         } else {
                             let _ = write!(&mut self.dtmf_pw, "{}", digit);
@@ -257,7 +255,7 @@ impl Signaling {
                                     Ok(_) => {
                                         self.track_controller.play_track_and_respond(
                                             self.settings.language,
-                                            Some(Track::WelcomeUsage),
+                                            Track::WelcomeUsage,
                                             welcome_finished_responder,
                                         );
                                     }
@@ -267,7 +265,7 @@ impl Signaling {
 
                                         self.track_controller.play_track(
                                             self.settings.language,
-                                            Some(Track::InputInvalid),
+                                            Track::InputInvalid,
                                         );
                                         return Ok(());
                                     }
@@ -293,9 +291,7 @@ impl Signaling {
                 }
             }
             MediaEvent::DtmfDigit(digit) => match digit {
-                0 => self
-                    .track_controller
-                    .play_track(self.settings.language, None),
+                0 => self.track_controller.stop_current_track(),
                 1 => {
                     self.toggle_mute(TrackKind::Audio).await;
                 }
@@ -305,9 +301,9 @@ impl Signaling {
                         self.track_controller.play_track(
                             self.settings.language,
                             if self.hand_raised {
-                                Some(Track::On)
+                                Track::On
                             } else {
-                                Some(Track::Off)
+                                Track::Off
                             },
                         );
 
@@ -342,7 +338,7 @@ impl Signaling {
                     *muted = true;
 
                     self.track_controller
-                        .play_track(self.settings.language, Some(Track::ModeratorMuted));
+                        .play_track(self.settings.language, Track::ModeratorMuted);
                 }
             }
             MediaEvent::VideoDecoderError => {
@@ -441,7 +437,7 @@ impl Signaling {
                 self.close_websocket().await?;
                 self.track_controller.play_track_and_respond(
                     self.settings.language,
-                    Some(Track::ConferenceClosed),
+                    Track::ConferenceClosed,
                     closed_finished_responder,
                 );
             }
@@ -466,7 +462,7 @@ impl Signaling {
                         self.audio_muted = true;
                         self.track_controller.play_track(
                             self.settings.language,
-                            Some(Track::MicrophonesRestrictionEnabled),
+                            Track::MicrophonesRestrictionEnabled,
                         );
                     }
 
@@ -475,10 +471,8 @@ impl Signaling {
                         .await;
                 }
                 LiveKitEvent::MicrophoneRestrictionsDisabled => {
-                    self.track_controller.play_track(
-                        self.settings.language,
-                        Some(Track::MicrophonesRestrictionLifted),
-                    );
+                    self.track_controller
+                        .play_track(self.settings.language, Track::MicrophonesRestrictionLifted);
 
                     self.media
                         .set_microphone_publish(true, self.audio_muted)
@@ -491,7 +485,7 @@ impl Signaling {
             }
             WebsocketEvent::RecordingStarted => {
                 self.track_controller
-                    .play_track(self.settings.language, Some(Track::ConsentInfo));
+                    .play_track(self.settings.language, Track::ConsentInfo);
             }
             WebsocketEvent::RecordingPaused => {}
             WebsocketEvent::RecordingStopped => {}
@@ -542,7 +536,7 @@ impl Signaling {
 
         let websocket = self.websocket.as_mut().unwrap();
         self.track_controller
-            .play_track(self.settings.language, Some(Track::WaitingRoomEntered));
+            .play_track(self.settings.language, Track::WaitingRoomEntered);
 
         let mut wait_until_accepted =
             std::pin::pin!(websocket.wait_until_accepted_into_waiting_room());
@@ -597,6 +591,11 @@ impl Signaling {
             .await
             .context("Failed to add compositor to media pipeline")?;
 
+        if !join_result.recording.targets.is_empty() {
+            self.track_controller
+                .play_track(self.settings.language, Track::ConsentInfo);
+        }
+
         let microphone_enable = match join_result.livekit.microphone_restriction_state {
             types_signaling_livekit::MicrophoneRestrictionState::Disabled => true,
             types_signaling_livekit::MicrophoneRestrictionState::Enabled {
@@ -605,10 +604,8 @@ impl Signaling {
         };
 
         if !microphone_enable {
-            self.track_controller.play_track(
-                self.settings.language,
-                Some(Track::MicrophonesRestrictionEnabled),
-            );
+            self.track_controller
+                .play_track(self.settings.language, Track::MicrophonesRestrictionEnabled);
         }
 
         self.media
@@ -622,10 +619,8 @@ impl Signaling {
     async fn toggle_mute(&mut self, kind: TrackKind) {
         // Do not toggle anything if there's nothing to toggle
         if kind == TrackKind::Audio && !self.media.is_microphone_published().await {
-            self.track_controller.play_track(
-                self.settings.language,
-                Some(Track::MicrophonesRestrictionEnabled),
-            );
+            self.track_controller
+                .play_track(self.settings.language, Track::MicrophonesRestrictionEnabled);
             return;
         }
 
@@ -665,11 +660,7 @@ impl Signaling {
 
         self.track_controller.play_track(
             self.settings.language,
-            if is_muted {
-                Some(Track::On)
-            } else {
-                Some(Track::Off)
-            },
+            if is_muted { Track::On } else { Track::Off },
         );
     }
 }
