@@ -3,7 +3,7 @@ _cforge_completion() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="--help --version --env --volume --debug"
+    opts="--help --diff --verbose --check"
 
     # Define top-level commands
     commands="init task apply up down restart pull"
