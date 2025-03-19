@@ -3,3 +3,7 @@
   ansible.builtin.template:
     src: obelisk.toml.j2
     dest: "{{ config_dir }}/services-config/obelisk/obelisk.toml"
+  notify: Restart Docker service obelisk
+  tags:
+    - init
+    - apply

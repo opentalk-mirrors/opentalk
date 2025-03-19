@@ -1,0 +1,14 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  livekit:
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.livekit.rule=Host(`localhost`) && (PathPrefix(`/livekit`) || PathPrefix(`/twirp`))"
+      - "traefik.http.routers.livekit.entrypoints=web"
+      - "traefik.http.routers.livekit.middlewares=livekit-strip"
+      - "traefik.http.middlewares.livekit-strip.stripprefix.prefixes=/livekit"
+      - "traefik.http.services.livekit.loadbalancer.server.port=7880"
+{% else %}
+services:
+  livekit:
+{% endif %}

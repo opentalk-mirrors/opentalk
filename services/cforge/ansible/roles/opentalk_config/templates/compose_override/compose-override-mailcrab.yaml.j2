@@ -1,0 +1,15 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  mailcrab:
+    profiles: ["standard", "mailcrab"]
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailcrab.rule=Host(`localhost`) && PathPrefix(`/adm/mailcrab`)"
+      - "traefik.http.routers.mailcrab.entrypoints=web"
+      - "traefik.http.routers.mailcrab.middlewares=mailcrab-strip"
+      - "traefik.http.middlewares.mailcrab-strip.stripprefix.prefixes=/adm/mailcrab"
+      - "traefik.http.services.mailcrab.loadbalancer.server.port=1080"
+{% else %}
+services:
+  mailcrab:
+{% endif %}

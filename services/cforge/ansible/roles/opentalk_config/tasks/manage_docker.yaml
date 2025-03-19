@@ -1,0 +1,24 @@
+- name: Restart all Docker compose services
+  community.docker.docker_compose_v2:
+    project_src: /opentalk
+    state: restarted
+    recreate: never
+  register: restart
+  tags:
+    - compose_restart
+    - never
+
+- debug:
+    var: restart.output
+
+- name: Pull all Docker compose images
+  community.docker.docker_compose_v2_pull:
+    project_src: /opentalk
+    policy: missing
+  register: pull
+  tags:
+    - compose_pull
+    - never
+
+- debug:
+    var: pull.output

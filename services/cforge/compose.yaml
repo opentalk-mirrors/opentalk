@@ -10,8 +10,13 @@ services:
       CFORGE_IMAGE_SRC: ${CFORGE_IMAGE_SRC}
       CFORGE_VERSION: ${CFORGE_VERSION}
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - controller-db:/data/controller-db
+      - keycloak-db:/data/keycloak-db
+      - minio:/data/minio
+      - traefik:/data/traefik
+      - backups:/backups
       - ./ansible:/ansible
       - ../../config:/config
-      - /var/opt/opentalk-compose/data:/data
-      - /var/opt/opentalk-compose/backups:/backups
+      - ../../:/opentalk
 

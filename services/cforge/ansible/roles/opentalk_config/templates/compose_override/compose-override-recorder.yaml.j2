@@ -1,0 +1,9 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  recorder:
+    extra_hosts:
+      - "keycloak.localhost:host-gateway"
+{% else %}
+services:
+  recorder:
+{% endif %}

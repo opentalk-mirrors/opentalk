@@ -28,7 +28,7 @@ accessLog:
 
 api:
   dashboard: true
-  insecure: false
+  insecure: {{ Traefik.api.insecure }}
 
 entryPoints:
   web:
@@ -41,6 +41,8 @@ entryPoints:
 ping:
   entryPoint: "ping"
 
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+{% else %}
 certificatesResolvers:
   letsencrypt:
     acme:
@@ -49,6 +51,7 @@ certificatesResolvers:
       #caServer: https://acme-staging-v02.api.letsencrypt.org/directory
       httpChallenge:
         entryPoint: web
+{% endif %}
 
 providers:
   docker:

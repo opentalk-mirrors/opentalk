@@ -35,7 +35,14 @@ http-enabled=true
 
 http-relative-path={{ Keycloak.http.relative_path }}
 
-# Hostname for the Keycloak server.
-hostname={{ lookup('ansible.builtin.env', 'OT_DOMAIN') }}
-
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+hostname=http://keycloak.localhost:8000/auth
+hostname-strict=false
+proxy=edge
 proxy-headers=xforwarded
+hostname-backchannel-dynamic=true
+{% else %}
+# Hostname for the Keycloak server.
+hostname={{ Keycloak.hostname }}
+proxy-headers=xforwarded
+{% endif %}

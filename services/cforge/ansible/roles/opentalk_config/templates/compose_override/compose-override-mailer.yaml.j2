@@ -1,0 +1,7 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  mailer:
+{% else %}
+services:
+  mailer:
+{% endif %}

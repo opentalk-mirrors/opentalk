@@ -3,8 +3,16 @@
   ansible.builtin.template:
     src: traefik.yaml.j2
     dest: "{{ config_dir }}/services-config/3rd_party/traefik/traefik.yaml"
+  notify: Restart Docker service traefik
+  tags:
+    - init
+    - apply
 
 - name: "Render traefik dynamic http config | config/services-config/3rd_party/traefik/dynamic/http.yaml"
   ansible.builtin.template:
     src: traefik_dynamic_http.yaml.j2
     dest:  "{{ config_dir }}/services-config/3rd_party/traefik/dynamic/http.yaml"
+  notify: Restart Docker service traefik
+  tags:
+    - init
+    - apply

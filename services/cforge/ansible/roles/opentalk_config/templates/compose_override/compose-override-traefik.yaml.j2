@@ -1,0 +1,19 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  traefik:
+    extra_hosts:
+      - "keycloak.localhost:host-gateway"
+    ports: !override
+      - 8080:80
+      - 7777:8080
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=(Host(`localhost`) && PathPrefix(`/adm/traefik`) || HeaderRegexp(`Referer`, `/traefik`))"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-strip"
+      - "traefik.http.middlewares.dashboard-strip.stripprefix.prefixes=/adm/traefik"
+{% else %}
+services:
+  traefik:
+{% endif %}

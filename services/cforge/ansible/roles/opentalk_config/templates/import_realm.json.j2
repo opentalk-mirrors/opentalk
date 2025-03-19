@@ -507,15 +507,7 @@
                 }
             ],
             "publicClient": true,
-            "redirectUris": [
-                "https://{{ lookup('ansible.builtin.env', 'OT_DOMAIN') }}/auth/popup_callback",
-                "https://{{ lookup('ansible.builtin.env', 'OT_DOMAIN') }}/auth/callback",
-                "https://{{ lookup('ansible.builtin.env', 'OT_DOMAIN') }}/dashboard",
-                "https://{{ lookup('ansible.builtin.env', 'OT_DOMAIN') }}/dashboard/*",
-                "https://{{ lookup('ansible.builtin.env', 'OT_DOMAIN') }}/room/*",
-                "https://{{ lookup('ansible.builtin.env', 'OT_DOMAIN') }}/join",
-                "https://{{ lookup('ansible.builtin.env', 'OT_DOMAIN') }}/"
-            ],
+            "redirectUris": {{ Keycloak.redirectUris.uris | to_json }},
             "secret": "{{ OIDC_FRONTEND_CLIENT_SECRET }}",
             "serviceAccountsEnabled": false,
             "webOrigins": [

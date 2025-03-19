@@ -1,0 +1,9 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  controller-db:
+  keycloak-db:
+{% else %}
+services:
+  controller-db:
+  keycloak-db:
+{% endif %}

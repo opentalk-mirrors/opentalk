@@ -1,4 +1,8 @@
 ---
+Deployment:
+  environment: prod
+  forece_compose_override: true
+
 postInstall:
   demoUser:
     state: "present"
@@ -51,7 +55,7 @@ Keycloak:
   account_theme: "opentalk"
   base_url: "https://{{ OT_DOMAIN }}/auth"
   api_base_url: "https://{{ OT_DOMAIN }}/auth/admin/realms/opentalk"
-  hostname: foo
+  hostname: "{{ OT_DOMAIN | default('keycloak') }}"
   proxy: edge
   proxy_headers: xforwarded
   db:
@@ -71,6 +75,15 @@ Keycloak:
     certificate_file: "${kc.home.dir}conf/server.crt.pem"
     certificate_key_file: "${kc.home.dir}conf/server.key.pem"
   spi_sticky_session_encoder_infinispan_should_attach_route: "false"
+  redirectUris:
+    uris:
+      - "https://{{ OT_DOMAIN }}/auth/popup_callback"
+      - "https://{{ OT_DOMAIN }}/auth/callback"
+      - "https://{{ OT_DOMAIN }}/dashboard"
+      - "https://{{ OT_DOMAIN }}/dashboard/*"
+      - "https://{{ OT_DOMAIN }}/room/*"
+      - "https://{{ OT_DOMAIN }}/join"
+      - "https://{{ OT_DOMAIN }}/"
 
 Controller:
   logging:
@@ -362,3 +375,5 @@ Traefik:
     dashboard_admin: admin
     dashboard_admin_password: "{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD }}"
     dashboard_admin_password_salt: "{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD_SALT }}"
+  api:
+    insecure: false

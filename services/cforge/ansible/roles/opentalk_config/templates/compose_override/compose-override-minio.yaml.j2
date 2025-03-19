@@ -1,0 +1,16 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  minio:
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio-console.rule=Host(`localhost`) && PathPrefix(`/adm/minio`)"
+      - "traefik.http.routers.minio-console.entrypoints=web"
+      - "traefik.http.routers.minio-console.service=minio-console"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
+      - "traefik.http.routers.minio-console.middlewares=default-auth@file"
+      - "traefik.http.middlewares.minio-replacepathregex.replacepathregex.regex=^/adm/minio/(.*)"
+      - "traefik.http.middlewares.minio-replacepathregex.replacepathregex.replacement=/$$1"
+{% else %}
+services:
+  minio:
+{% endif %}

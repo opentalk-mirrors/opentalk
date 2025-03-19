@@ -1,0 +1,28 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  keycloak:
+    ports: !override
+      - "8000:8080"
+      - "9000:9000"
+    entrypoint: []
+    command:
+      - /bin/sh
+      - -c
+      - |
+          /opt/keycloak/bin/kc.sh build
+          /opt/keycloak/bin/kc.sh start-dev --import-realm --optimized --verbose
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.service=keycloak"
+      - "traefik.http.routers.keycloak.rule=Host(`localhost`) && PathPrefix(`/auth`)"
+      - "traefik.http.routers.keycloak.priority=50"
+      - "traefik.http.routers.keycloak.entrypoints=web"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.regex=^/adm/keycloak/(.*)"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.replacement=/auth/$$1"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.permanent=true"
+      - "traefik.http.routers.keycloak.middlewares=keycloak-redirect"
+{% else %}
+services:
+  keycloak:
+{% endif %}

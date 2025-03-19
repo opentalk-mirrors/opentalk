@@ -3,3 +3,27 @@
   ansible.builtin.file:
     path: "{{ data_dir }}/minio/opentalk"
     state: directory
+  tags:
+    - init
+
+- name: "Ensure service-config directories | config/services-config"
+  ansible.builtin.file:
+    path: "{{ config_dir }}/services-config/{{ item }}"
+    state: directory
+  loop:
+    - 3rd_party/minio
+    - 3rd_party/livekit
+    - 3rd_party/rabbitmq
+    - 3rd_party/mailcrab
+    - 3rd_party/postgres
+    - 3rd_party/traefik
+    - 3rd_party/keycloak
+    - webapp
+    - controller
+    - mailer
+    - recorder
+    - etherpad
+    - spacedeck
+    - cforge
+  tags:
+    - init
