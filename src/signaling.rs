@@ -15,6 +15,7 @@ use opentalk_compositor::livekit::DisconnectReason;
 use opentalk_compositor::{Mixer, MixerParameters};
 use sip_types::{Method, Name};
 use sip_ua::invite::session::{Event, Session};
+use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::future::pending;
 use std::pin::Pin;
@@ -22,7 +23,18 @@ use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::{broadcast, mpsc};
 use tokio::time::{sleep, Duration, Sleep};
+use types_common::streaming::StreamingTargetId;
 use types_signaling_livekit::event::LiveKitEvent;
+use types_signaling_livekit::MicrophoneRestrictionState;
+use types_signaling_recording::{StreamKind, StreamStatus, StreamTarget};
+
+// DTMF digit bindings
+const DTMF_STOP_CURRENT_TRACK: u8 = 0;
+const DTMF_TOGGLE_AUDIO_MUTE: u8 = 1;
+const DTMF_TOGGLE_VIDEO_MUTE: u8 = 4;
+const DTMF_TOGGLE_HAND_RAISE: u8 = 2;
+const DTMF_ACCEPT_RECORDING: u8 = 3;
+const DTMF_REJECT_RECORDING: u8 = 6;
 
 const PIN_ENTRY_TIMEOUT_INTERVAL: Duration = Duration::from_secs(5);
 
@@ -81,6 +93,10 @@ pub struct Signaling {
     /// has the client the hand raised
     hand_raised: bool,
 
+    microphone_restriction: MicrophoneRestrictionState,
+    recording_consent_state: RecordingConsentState,
+    streaming_targets: BTreeMap<StreamingTargetId, StreamTarget>,
+
     /// List of participants inside the room,
     /// unused before initiating the websocket connection
     participants: Vec<Participant>,
@@ -95,6 +111,13 @@ pub struct Signaling {
 
     /// Grace period after being disconnected from livekit, since we might be moved into the waiting room
     livekit_disconnection_grace_period: Option<Pin<Box<Sleep>>>,
+}
+
+enum RecordingConsentState {
+    None,
+    WaitingForConsent,
+    Accepted,
+    Rejected,
 }
 
 impl Signaling {
@@ -128,6 +151,9 @@ impl Signaling {
             audio_muted: false,
             video_muted: false,
             hand_raised: false,
+            microphone_restriction: MicrophoneRestrictionState::Disabled,
+            recording_consent_state: RecordingConsentState::None,
+            streaming_targets: BTreeMap::new(),
             participants: Vec::new(),
             shutdown,
             pin_entry_timeout_sender: timeout_sender,
@@ -290,41 +316,81 @@ impl Signaling {
                     _ => {}
                 }
             }
-            MediaEvent::DtmfDigit(digit) => match digit {
-                0 => self.track_controller.stop_current_track(),
-                1 => {
-                    self.toggle_mute(TrackKind::Audio).await;
+            MediaEvent::DtmfDigit(digit) => {
+                // Only allow consent bindings if awaiting a decision
+                if matches!(
+                    self.recording_consent_state,
+                    RecordingConsentState::WaitingForConsent
+                ) && !matches!(digit, DTMF_ACCEPT_RECORDING | DTMF_REJECT_RECORDING)
+                {
+                    self.track_controller
+                        .play_track(self.settings.language, Track::ConsentInvalid);
+                    return Ok(());
                 }
-                2 => {
-                    if let Some(websocket) = &mut self.websocket {
-                        self.hand_raised = !self.hand_raised;
-                        self.track_controller.play_track(
-                            self.settings.language,
-                            if self.hand_raised {
-                                Track::On
-                            } else {
-                                Track::Off
-                            },
-                        );
 
-                        websocket.send_hand_action(self.hand_raised).await?;
+                match digit {
+                    DTMF_STOP_CURRENT_TRACK => self.track_controller.stop_current_track(),
+                    DTMF_TOGGLE_AUDIO_MUTE => {
+                        self.toggle_mute(TrackKind::Audio).await;
                     }
-                }
-                3 => {
-                    if let Some(websocket) = &mut self.websocket {
-                        websocket.set_consent(true).await?;
+                    DTMF_TOGGLE_VIDEO_MUTE => {
+                        // Mute/Unmute video
+                        self.toggle_mute(TrackKind::Video).await;
                     }
-                }
-                4 => {
-                    self.toggle_mute(TrackKind::Video).await;
-                }
-                6 => {
-                    if let Some(websocket) = &mut self.websocket {
-                        websocket.set_consent(false).await?;
+                    DTMF_TOGGLE_HAND_RAISE => {
+                        if let Some(websocket) = &mut self.websocket {
+                            self.hand_raised = !self.hand_raised;
+                            self.track_controller.play_track(
+                                self.settings.language,
+                                if self.hand_raised {
+                                    Track::On
+                                } else {
+                                    Track::Off
+                                },
+                            );
+
+                            websocket.send_hand_action(self.hand_raised).await?;
+                        }
                     }
+                    DTMF_REJECT_RECORDING => {
+                        // Reject recording
+                        let Some(websocket) = &mut self.websocket else {
+                            return Ok(());
+                        };
+
+                        if matches!(
+                            self.recording_consent_state,
+                            RecordingConsentState::WaitingForConsent
+                                | RecordingConsentState::Accepted
+                        ) {
+                            websocket.set_consent(true).await?;
+                            self.track_controller
+                                .play_track(self.settings.language, Track::ConsentReject);
+                            self.recording_consent_state = RecordingConsentState::Rejected;
+                            self.evaluate_microphone_publish_state().await;
+                        }
+                    }
+                    DTMF_ACCEPT_RECORDING => {
+                        // Accept recording
+                        let Some(websocket) = &mut self.websocket else {
+                            return Ok(());
+                        };
+
+                        if matches!(
+                            self.recording_consent_state,
+                            RecordingConsentState::WaitingForConsent
+                                | RecordingConsentState::Rejected
+                        ) {
+                            websocket.set_consent(false).await?;
+                            self.track_controller
+                                .play_track(self.settings.language, Track::ConsentAccept);
+                            self.recording_consent_state = RecordingConsentState::Accepted;
+                            self.evaluate_microphone_publish_state().await;
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
-            },
+            }
             MediaEvent::Error => {
                 self.state = State::Quitting;
             }
@@ -466,29 +532,72 @@ impl Signaling {
                         );
                     }
 
-                    self.media
-                        .set_microphone_publish(is_unrestricted, self.audio_muted)
-                        .await;
+                    self.microphone_restriction = MicrophoneRestrictionState::Enabled {
+                        unrestricted_participants: unrestricted_participants
+                            .unrestricted_participants
+                            .into_iter()
+                            .collect(),
+                    };
+
+                    self.evaluate_microphone_publish_state().await;
                 }
                 LiveKitEvent::MicrophoneRestrictionsDisabled => {
+                    self.microphone_restriction = MicrophoneRestrictionState::Disabled;
+
                     self.track_controller
                         .play_track(self.settings.language, Track::MicrophonesRestrictionLifted);
 
-                    self.media
-                        .set_microphone_publish(true, self.audio_muted)
-                        .await;
+                    self.evaluate_microphone_publish_state().await;
                 }
                 _ => {}
             },
             WebsocketEvent::Disconnected => {
                 self.state = State::Quitting;
             }
-            WebsocketEvent::RecordingStarted => {
-                self.track_controller
-                    .play_track(self.settings.language, Track::ConsentInfo);
+            WebsocketEvent::StreamUpdated(updated) => {
+                let prev_recording_active = self.is_any_recording_active();
+
+                // Find the streaming target and update the status of it
+                //
+                // insert a placeholder state to avoid any odd behavior where we receive unknown streaming target ids
+                self.streaming_targets
+                    .entry(updated.target_id)
+                    .or_insert_with(|| StreamTarget {
+                        name: String::new(),
+                        kind: StreamKind::Recording,
+                        status: StreamStatus::Inactive,
+                    })
+                    .status = updated.status;
+
+                let now_recording_active = self.is_any_recording_active();
+
+                // check if a recording was started
+                if !prev_recording_active && now_recording_active {
+                    self.track_controller
+                        .play_track(self.settings.language, Track::ConsentInfo);
+                    self.recording_consent_state = RecordingConsentState::WaitingForConsent;
+                }
+
+                // check if all streams are now inactive
+                if prev_recording_active && !now_recording_active {
+                    match &self.recording_consent_state {
+                        RecordingConsentState::None => {}
+                        RecordingConsentState::WaitingForConsent
+                        | RecordingConsentState::Accepted => {
+                            self.track_controller
+                                .play_track(self.settings.language, Track::RecordingStoppedAccept);
+                        }
+                        RecordingConsentState::Rejected => {
+                            self.track_controller
+                                .play_track(self.settings.language, Track::RecordingStoppedReject);
+                        }
+                    }
+
+                    self.recording_consent_state = RecordingConsentState::None;
+                }
+
+                self.evaluate_microphone_publish_state().await;
             }
-            WebsocketEvent::RecordingPaused => {}
-            WebsocketEvent::RecordingStopped => {}
         }
 
         Ok(())
@@ -591,12 +700,17 @@ impl Signaling {
             .await
             .context("Failed to add compositor to media pipeline")?;
 
-        if !join_result.recording.targets.is_empty() {
+        self.streaming_targets = join_result.recording.targets;
+
+        if self.is_any_recording_active() {
             self.track_controller
                 .play_track(self.settings.language, Track::ConsentInfo);
+            self.recording_consent_state = RecordingConsentState::WaitingForConsent;
         }
 
-        let microphone_enable = match join_result.livekit.microphone_restriction_state {
+        self.microphone_restriction = join_result.livekit.microphone_restriction_state;
+
+        let microphone_enable = match &self.microphone_restriction {
             types_signaling_livekit::MicrophoneRestrictionState::Disabled => true,
             types_signaling_livekit::MicrophoneRestrictionState::Enabled {
                 unrestricted_participants,
@@ -608,19 +722,72 @@ impl Signaling {
                 .play_track(self.settings.language, Track::MicrophonesRestrictionEnabled);
         }
 
-        self.media
-            .set_microphone_publish(microphone_enable, self.audio_muted)
-            .await;
+        self.evaluate_microphone_publish_state().await;
 
         Ok(())
+    }
+
+    fn is_any_recording_active(&mut self) -> bool {
+        self.streaming_targets.values().any(|target| {
+            matches!(
+                target.status,
+                StreamStatus::Starting | StreamStatus::Active | StreamStatus::Paused
+            )
+        })
+    }
+
+    // Evaluate if the microphone should be published or not
+    async fn evaluate_microphone_publish_state(&mut self) {
+        let websocket = self.websocket.as_mut().unwrap();
+        let participant_id = websocket.id.expect("participant id must be set");
+
+        let mut publish = match &self.microphone_restriction {
+            MicrophoneRestrictionState::Disabled => true,
+            MicrophoneRestrictionState::Enabled {
+                unrestricted_participants,
+            } => unrestricted_participants.contains(&participant_id),
+        };
+
+        if let RecordingConsentState::Rejected = self.recording_consent_state {
+            publish = false;
+            self.audio_muted = true;
+        }
+
+        // The web frontend needs a mute event on the audio track to display the microphone muted symbol, just removing audio track doesn't work.
+        if self.audio_muted {
+            if let Some(compositor) = &mut self.media.compositor {
+                for track in compositor
+                    .local_participant()
+                    .track_publications()
+                    .into_values()
+                {
+                    if track.kind() == TrackKind::Audio {
+                        track.mute();
+                    }
+                }
+            }
+        }
+
+        self.media
+            .set_microphone_publish(publish, self.audio_muted)
+            .await;
     }
 
     // Toggle the mute state of our local publications
     async fn toggle_mute(&mut self, kind: TrackKind) {
         // Do not toggle anything if there's nothing to toggle
         if kind == TrackKind::Audio && !self.media.is_microphone_published().await {
-            self.track_controller
-                .play_track(self.settings.language, Track::MicrophonesRestrictionEnabled);
+            if matches!(
+                self.recording_consent_state,
+                RecordingConsentState::Rejected
+            ) {
+                // Play the reject message again if user tries to unmute
+                self.track_controller
+                    .play_track(self.settings.language, Track::ConsentReject);
+            } else {
+                self.track_controller
+                    .play_track(self.settings.language, Track::MicrophonesRestrictionEnabled);
+            }
             return;
         }
 

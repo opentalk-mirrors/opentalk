@@ -26,7 +26,7 @@ use types_signaling_livekit::event::LiveKitEvent;
 use types_signaling_livekit::state::LiveKitState;
 use types_signaling_recording::event::RecordingEvent;
 use types_signaling_recording::state::RecordingState;
-use types_signaling_recording::StreamStatus;
+use types_signaling_recording::StreamUpdated;
 
 /// Newtype wrapper for the signaling ticket
 pub struct Ticket(pub String);
@@ -40,9 +40,7 @@ pub enum WebsocketEvent {
         #[allow(dead_code)]
         issued_by: ParticipantId,
     },
-    RecordingStarted,
-    RecordingPaused,
-    RecordingStopped,
+    StreamUpdated(StreamUpdated),
     MovedToWaitingRoom,
     LiveKitEvent(LiveKitEvent),
     Disconnected,
@@ -265,15 +263,7 @@ impl Websocket {
             },
             Payload::Recording { payload } => match payload {
                 RecordingEvent::StreamUpdated(stream_updated) => {
-                    let state = match stream_updated.status {
-                        StreamStatus::Starting => None,
-                        StreamStatus::Inactive => Some(WebsocketEvent::RecordingStopped),
-                        StreamStatus::Active => Some(WebsocketEvent::RecordingStarted),
-                        StreamStatus::Paused => Some(WebsocketEvent::RecordingPaused),
-                        StreamStatus::Error { .. } => Some(WebsocketEvent::RecordingStopped),
-                    };
-
-                    Ok(state)
+                    Ok(Some(WebsocketEvent::StreamUpdated(stream_updated)))
                 }
                 RecordingEvent::Error(..) => Ok(None),
                 RecordingEvent::RecorderError(..) => Ok(None),
