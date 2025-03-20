@@ -112,6 +112,8 @@ audio_files! {
     "welcome_usage", WelcomeUsage;
     "microphones_restriction_enabled", MicrophonesRestrictionEnabled;
     "microphones_restriction_lifted", MicrophonesRestrictionLifted;
+    "recording_stopped_accept", RecordingStoppedAccept;
+    "recording_stopped_reject", RecordingStoppedReject;
 
     // Not generated! Used for mute/unmute, raise/lower hand
     "on", On;

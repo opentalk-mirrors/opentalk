@@ -28,12 +28,12 @@ consent_accept:
     "You consented to the recording.";
 
 consent_info:
-    "Der Moderator hat die Aufzeichnung aktiviert. Drücken Sie die 3, zum Zustimmen oder die 4, zum Widersprechen.",
-    "A recording was started for this conference. Press 3 to consent or 4 to refuse.";
+    "Der Moderator hat die Aufzeichnung aktiviert. Drücken Sie die 3, zum Zustimmen oder die 6, zum Widersprechen.",
+    "A recording was started for this conference. Press 3 to consent or 6 to refuse.";
 
 consent_invalid:
-    "Ihre Eingabe wurde nicht erkannt. Drücken Sie die 3, um der Aufzeichnung zuzustimmen oder die 4, zum Widersprechen.",
-    "Your input was not recognized. Press 3 to consent to the recording or press 4 to refuse.";
+    "Ihre Eingabe wurde nicht erkannt. Drücken Sie die 3, um der Aufzeichnung zuzustimmen oder die 6, zum Widersprechen.",
+    "Your input was not recognized. Press 3 to consent to the recording or press 6 to refuse.";
 
 consent_reject:
     "Sie haben der Aufzeichnung widersprochen. Ihr Mikrofon wurde stumm geschaltet.",
@@ -106,4 +106,12 @@ microphones_restriction_enabled:
 microphones_restriction_lifted:
     "Der Moderator hat die Einschränkung des Mikrofons aufgehoben",
     "The moderator has lifted the microphone restriction";
+
+recording_stopped_accept:
+    "Die Aufzeichnung wurde gestoppt.",
+    "The recording has stopped.";
+
+recording_stopped_reject:
+    "Die Aufzeichnung wurde gestoppt. Ihr Mikrofone ist nun wieder angestellt, aber stumm geschaltet. Drücken Sie 1, um zu sprechen und nochmals 1, um sich wieder stumm zu schalten.",
+    "The recording has stopped. Your microphone is now turned on again but muted. Press 1 to unmute and 1 again to mute.";
 }

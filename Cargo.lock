@@ -3587,6 +3587,7 @@ dependencies = [
  "openh264",
  "openidconnect",
  "opentalk-compositor",
+ "opentalk-types-common",
  "opentalk-types-signaling",
  "opentalk-types-signaling-control",
  "opentalk-types-signaling-livekit",
