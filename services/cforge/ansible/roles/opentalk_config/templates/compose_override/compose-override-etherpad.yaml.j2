@@ -1,0 +1,21 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  etherpad:
+    extra_hosts:
+      - "etherpad.localhost:host-gateway"
+    ports:
+      - "9001:9001"
+    environment:
+      TRUST_PROXY: true
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.etherpad.rule=Host(`etherpad.localhost`) && PathPrefix(`/etherpad`)"
+      - "traefik.http.routers.etherpad.entrypoints=web"
+      - "traefik.http.routers.etherpad.priority=100"
+      - "traefik.http.routers.etherpad.middlewares=etherpad-strip"
+      - "traefik.http.middlewares.etherpad-strip.stripprefix.prefixes=/etherpad"
+      - "traefik.http.services.etherpad.loadbalancer.server.port=9001"
+{% else %}
+services:
+  etherpad:
+{% endif %}

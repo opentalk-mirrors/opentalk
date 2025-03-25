@@ -2,44 +2,85 @@
 # tasks file for opentalk_config
 - name: Manage presence of required directories 
   ansible.builtin.include_tasks: manage_directories.yaml
-
-- name: Manage and load settings.yml file
-  ansible.builtin.include_tasks: manage_settings.yml
+  tags:
+    - init
 
 - name: Manage secrets
   ansible.builtin.include_tasks: manage_secrets.yaml
   tags:
     - always
 
-- name: Manage traefik config
+- name: Manage and load settings.yml file
+  ansible.builtin.include_tasks: manage_settings.yml
+  tags:
+    - always 
+
+- name: Add custom compose override files
+  ansible.builtin.include_tasks: manage_compose_override.yaml
+  tags:
+    - dev
+    - init
+    - apply
+
+- name: Render traefik config
   ansible.builtin.include_tasks: render_config_traefik.yaml
+  tags:
+    - init
+    - apply
 
 - name: Render keycloak config
   ansible.builtin.include_tasks: render_config_keycloak.yaml
+  tags:
+    - init
+    - apply
 
 - name: Render keycloak json import
   ansible.builtin.include_tasks: render_config_keycloak_realm_import.yaml
+  tags:
+    - init
+    - apply
 
 - name: Render RabbitMQ config
   ansible.builtin.include_tasks: render_config_rabbitmq.yaml
+  tags:
+    - init
+    - apply
 
 - name: Render controller config
   ansible.builtin.include_tasks: render_config_controller.yaml
+  tags:
+    - init
+    - apply
 
 - name: Render livekit config
   ansible.builtin.include_tasks: render_config_livekit.yaml
+  tags:
+    - init
+    - apply
 
 - name: Render mailer config
   ansible.builtin.include_tasks: render_config_mailer.yaml
+  tags:
+    - init
+    - apply
 
 - name: Render obelisk config
   ansible.builtin.include_tasks: render_config_obelisk.yaml
+  tags:
+    - init
+    - apply
 
 - name: Render recorder config
   ansible.builtin.include_tasks: render_config_recorder.yaml
+  tags:
+    - init
+    - apply
 
 - name: Render ofelia config
   ansible.builtin.include_tasks: render_config_ofelia.yml
+  tags:
+    - init
+    - apply
 
 - name: PostInstall Task - Manage test user
   ansible.builtin.include_tasks: manage_demo_user.yaml
@@ -70,4 +111,11 @@
     - restoreBackupConfig
     - restoreBackupTraefik
     - restoreBackupMinio
+    - never
+
+- name: Manage Docker compose containers
+  ansible.builtin.include_tasks: manage_docker.yaml
+  tags:
+    - compose_restart
+    - compose_pull
     - never

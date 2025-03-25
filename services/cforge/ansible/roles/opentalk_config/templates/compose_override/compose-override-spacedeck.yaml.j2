@@ -1,0 +1,15 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  spacedeck:
+    extra_hosts:
+      - "spacedeck.localhost:host-gateway"
+    ports:
+      - "9666:9666"
+    environment:
+      SD_ENDPOINT: http://spacedeck.localhost:9666
+    labels: !override
+      - "traefik.enable=false"
+{% else %}
+services:
+  spacedeck:
+{% endif %}

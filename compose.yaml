@@ -1,21 +1,39 @@
+---
+volumes:
+  controller-db:
+  keycloak-db:
+  minio:
+  traefik:
+  backups:
+
 include:
-  - path: services/cforge/compose.yaml
+  - path: 
+      - services/cforge/compose.yaml
+      - config/services-config/cforge/compose-override-cforge.yaml
     env_file:
       - .versions
 
-  - path: services/controller/compose.yaml
+  - path:
+      - services/controller/compose.yaml
+      - config/services-config/controller/compose-override-controller.yaml
     env_file:
       - .versions
 
-  - path: services/webapp/compose.yaml
+  - path:
+      - services/webapp/compose.yaml
+      - config/services-config/webapp/compose-override-webapp.yaml
     env_file:
       - .versions
 
-  - path: services/mailer/compose.yaml
+  - path:
+      - services/mailer/compose.yaml
+      - config/services-config/mailer/compose-override-mailer.yaml
     env_file:
       - .versions
 
-  - path: services/recorder/compose.yaml
+  - path:
+      - services/recorder/compose.yaml
+      - config/services-config/recorder/compose-override-recorder.yaml
     env_file:
       - .versions
 
@@ -23,44 +41,58 @@ include:
     env_file:
       - .versions
 
-  - path: services/etherpad/compose.yaml
+  - path:
+      - services/etherpad/compose.yaml
+      - config/services-config/etherpad/compose-override-etherpad.yaml
     env_file:
       - .versions
 
-  - path: services/spacedeck/compose.yaml
+  - path:
+      - services/spacedeck/compose.yaml
+      - config/services-config/spacedeck/compose-override-spacedeck.yaml
     env_file:
       - .versions
 
-# 3rd party
-  - path: services/3rd_party/traefik/compose.yaml
-    env_file:
-      - .versions
-    
-  - path: services/3rd_party/postgres/compose.yaml
-    env_file:
-      - .versions
-
-  - path: services/3rd_party/minio/compose.yaml
+  # 3rd party
+  - path:
+      - services/3rd_party/traefik/compose.yaml
+      - config/services-config/3rd_party/traefik/compose-override-traefik.yaml
     env_file:
       - .versions
 
-  - path: services/3rd_party/rabbitmq/compose.yaml
+  - path: 
+      - services/3rd_party/postgres/compose.yaml
+      - config/services-config/3rd_party/postgres/compose-override-postgres.yaml
     env_file:
       - .versions
 
-#  - path: services/3rd_party/redis/compose.yaml
-#    env_file: 
-#      - .versions
-#
-  - path: services/3rd_party/keycloak/compose.yaml
+  - path:
+      - services/3rd_party/minio/compose.yaml
+      - config/services-config/3rd_party/minio/compose-override-minio.yaml
     env_file:
       - .versions
 
-  - path: services/3rd_party/livekit/compose.yaml
+  - path:
+      - services/3rd_party/rabbitmq/compose.yaml
+      - config/services-config/3rd_party/rabbitmq/compose-override-rabbitmq.yaml
     env_file:
       - .versions
 
-  - path: services/3rd_party/mailcrab/compose.yaml
+  - path:
+      - services/3rd_party/keycloak/compose.yaml
+      - config/services-config/3rd_party/keycloak/compose-override-keycloak.yaml
+    env_file:
+      - .versions
+
+  - path:
+      - services/3rd_party/livekit/compose.yaml
+      - config/services-config/3rd_party/livekit/compose-override-livekit.yaml
+    env_file:
+      - .versions
+
+  - path:
+      - services/3rd_party/mailcrab/compose.yaml
+      - config/services-config/3rd_party/mailcrab/compose-override-mailcrab.yaml
     env_file:
       - .versions
 

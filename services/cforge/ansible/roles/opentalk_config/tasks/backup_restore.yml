@@ -1,9 +1,9 @@
 ---
 - block:
     - ansible.builtin.set_fact:
-        backup_timestamp: "{{ BACKUP_TIMESTAMP }}"
-    - ansible.builtin.fail: msg="The variable 'BACKUP_TIMESTAMP' is not defined or empty."
-      when: (BACKUP_TIMESTAMP is undefined) or (BACKUP_TIMESTAMP|length == 0)
+        backup_timestamp: "{{ timestamp }}"
+    - ansible.builtin.fail: msg="The variable 'timestamp' is not defined or empty."
+      when: (timestamp is undefined) or (timestamp|length == 0)
     - name: "Ensure backup tmp dir | /var/opt/opentalk-compose/backups/tmp/{{ backup_timestamp }}"
       ansible.builtin.file:
         path: "{{ backups_dir }}/{{ item }}"

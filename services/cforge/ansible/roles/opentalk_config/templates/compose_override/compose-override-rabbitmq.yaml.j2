@@ -1,0 +1,12 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  rabbitmq:
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.rabbitmq.rule=Host(`localhost`) && PathPrefix(`/adm/rabbitmq`)"
+      - "traefik.http.routers.rabbitmq.entrypoints=web"
+      - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
+{% else %}
+services:
+  rabbitmq:
+{% endif %}

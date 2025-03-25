@@ -1,2 +1,109 @@
 ---
 # handlers file for opentalk_config
+- name: "Restart Docker service controller"
+  community.docker.docker_compose_v2:
+    project_src: /opentalk
+    state: restarted
+    recreate: never
+    services: 
+      - controller
+  register: output
+  when: ('init' not in ansible_run_tags)
+  tags:
+    - apply
+
+- name: "Restart Docker service keycloak"
+  community.docker.docker_compose_v2:
+    project_src: /opentalk
+    state: restarted
+    recreate: never
+    services: 
+      - keycloak
+  register: output
+  when: ('init' not in ansible_run_tags)
+  tags:
+    - apply
+
+- name: "Restart Docker service livekit"
+  community.docker.docker_compose_v2:
+    project_src: /opentalk
+    state: restarted
+    recreate: never
+    services: 
+      - livekit
+  register: output
+  when: ('init' not in ansible_run_tags)
+  tags:
+    - apply
+
+- name: "Restart Docker service mailer"
+  community.docker.docker_compose_v2:
+    project_src: /opentalk
+    state: restarted
+    recreate: never
+    services: 
+      - mailer
+  register: output
+  when: ('init' not in ansible_run_tags)
+  tags:
+    - apply
+
+- name: "Restart Docker service obelisk"
+  community.docker.docker_compose_v2:
+    project_src: /opentalk
+    state: restarted
+    recreate: never
+    services: 
+      - obelisk
+  register: output
+  when: ('init' not in ansible_run_tags)
+  tags:
+    - apply
+
+- name: "Restart Docker service ofelia"
+  community.docker.docker_compose_v2:
+    project_src: /opentalk
+    state: restarted
+    recreate: never
+    services: 
+      - ofelia
+  register: output
+  when: ('init' not in ansible_run_tags)
+  tags:
+    - apply
+
+- name: "Restart Docker service rabbitmq"
+  community.docker.docker_compose_v2:
+    project_src: /opentalk
+    state: restarted
+    recreate: never
+    services: 
+      - rabbitmq
+  register: output
+  when: ('init' not in ansible_run_tags)
+  tags:
+    - apply
+
+- name: "Restart Docker service recorder"
+  community.docker.docker_compose_v2:
+    project_src: /opentalk
+    state: restarted
+    recreate: never
+    services: 
+      - recorder
+  register: output
+  when: ('init' not in ansible_run_tags)
+  tags:
+    - apply
+
+- name: "Restart Docker service traefik"
+  community.docker.docker_compose_v2:
+    project_src: /opentalk
+    state: restarted
+    recreate: never
+    services: 
+      - traefik
+  register: output
+  when: ('init' not in ansible_run_tags)
+  tags:
+    - apply

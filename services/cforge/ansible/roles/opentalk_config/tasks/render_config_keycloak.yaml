@@ -3,8 +3,16 @@
   ansible.builtin.template:
     src: cache-ispn.xml.j2
     dest: "{{ config_dir }}/services-config/3rd_party/keycloak/cache-ispn.xml"
+  notify: Restart Docker service keycloak
+  tags:
+    - init
+    - apply
 
 - name: "Render keycloak conf | config/services-config/3rd_party/keycloak/keycloak.conf"
   ansible.builtin.template:
     src: keycloak.conf.j2
     dest: "{{ config_dir }}/services-config/3rd_party/keycloak/keycloak.conf"
+  notify: Restart Docker service keycloak
+  tags:
+    - init
+    - apply

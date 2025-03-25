@@ -3,6 +3,8 @@ services:
   ofelia:
     image: ${OFELIA_IMAGE_SRC}:${OFELIA_VERSION}
     profiles: ["core", "standard", "full", "cron", "ofelia"]
+    environment:
+      TZ: Europe/Berlin
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../../../config/services-config/3rd_party/ofelia/ofelia.ini:/etc/ofelia/config.ini

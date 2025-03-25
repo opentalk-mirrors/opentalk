@@ -1,0 +1,34 @@
+---
+- block:
+  - name: "Manage custom compose override files for 3rd_party servces | config/services-config/3rd_party/*/compose-override-*.yaml"
+    ansible.builtin.template:
+      src: compose_override/compose-override-{{ item }}.yaml.j2
+      dest: "{{ config_dir }}/services-config/3rd_party/{{ item }}/compose-override-{{ item }}.yaml"
+      force: "{{ Deployment.force_compose_override }}"
+    loop:
+      - traefik
+      - keycloak
+      - minio
+      - livekit
+      - rabbitmq
+      - mailcrab
+      - postgres
+
+  - name: "Manage custom compose override files for OpenTalk services | config/services-config/*/compose-override-*.yaml"
+    ansible.builtin.template:
+      src: compose_override/compose-override-{{ item }}.yaml.j2
+      dest: "{{ config_dir }}/services-config/{{ item }}/compose-override-{{ item }}.yaml"
+      force: "{{ Deployment.force_compose_override }}"
+    loop:
+      - cforge
+      - controller
+      - webapp
+      - mailer
+      - recorder
+      - etherpad
+      - spacedeck
+  tags:
+    - dev
+    - init
+    - apply
+    - skip_task

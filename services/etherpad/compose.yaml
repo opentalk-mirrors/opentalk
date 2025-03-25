@@ -1,7 +1,7 @@
 services:
   etherpad:
     image: ${ETHERPAD_IMAGE_SRC}:${ETHERPAD_VERSION}
-    profiles: ["full", "pad"]
+    profiles: [ "standard", "full", "pad"]
     restart: always
     environment:
       EP_APIKEY_FILE: /run/secrets/etherpad_api_secret
@@ -21,9 +21,6 @@ services:
       - "traefik.http.routers.etherpad.middlewares=etherpad-strip"
       - "traefik.http.middlewares.etherpad-strip.stripprefix.prefixes=/etherpad"
       - "traefik.http.services.etherpad.loadbalancer.server.port=9001"
-    depends_on:
-      cforge:
-        condition: service_completed_successfully
 
 secrets:
   etherpad_api_secret:

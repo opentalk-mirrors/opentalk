@@ -1,7 +1,7 @@
 services:
   spacedeck:
     image: ${SPACEDECK_IMAGE_SRC}:${SPACEDECK_VERSION}
-    profiles: ["full", "spacedeck"]
+    profiles: ["standard", "full", "spacedeck"]
     restart: always
     environment:
       SD_HOST: 0.0.0.0

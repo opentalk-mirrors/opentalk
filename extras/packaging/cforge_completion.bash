@@ -6,7 +6,7 @@ _cforge_completion() {
     opts="--help --diff --verbose --check"
 
     # Define top-level commands
-    commands="init task apply up down restart pull"
+    commands="init task apply pull"
 
     # Define tasks
     tasks="demoUser createBackup createBackupConfig createBackupControllerDB createBackupKeycloakDB createBackupTraefik createBackupMinio restoreBackup restoreBackupConfig restoreBackupControllerDB restoreBackupKeycloakDB restoreBackupTraefik restoreBackupMinio"

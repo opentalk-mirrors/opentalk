@@ -1,14 +1,18 @@
 ---
-- name: Check if file is present | conf/settings.yml
+- name: Check if settings file is present | conf/settings.yml
   ansible.builtin.stat:
     path: "{{config_dir}}/settings.yml"
   register: settings_file
+  tags:
+    - always
 
 - name: Slurp | defaults/main.yml
   ansible.builtin.slurp:
     src: "{{ role_path }}/defaults/main.yml"
   register: defaults_main_yml
   when: not settings_file.stat.exists
+  tags:
+    - init
   
 - name: Create settings file | conf/settings.yml
   ansible.builtin.copy:
@@ -25,9 +29,37 @@
       {% endif %}
       {% endfor %}
   when: not settings_file.stat.exists and defaults_main_yml['content'] is defined
+  tags:
+    - init
+    - skip_task
 
-- name: Load values from settings file and override defaults/main.yml
+- name: Create settings override | conf/settings.override.yaml
+  ansible.builtin.copy:
+    src: files/settings.override.dev.yaml
+    dest: "{{ config_dir }}/settings.override.yaml"
+  tags:
+    - dev
+    - skip_task
+
+- name: Load values from settings file and override ansible defaults/main.yml
   include_vars:
     file: "{{config_dir}}/settings.yml"
     hash_behaviour: merge
   when: settings_file.stat.exists
+  tags:
+    - always
+
+- name: Check if settings override file is present | conf/settings.override.yaml
+  ansible.builtin.stat:
+    path: "{{ config_dir }}/settings.override.yaml"
+  register: settings_override_file
+  tags:
+    - always
+
+- name: Load values from override settings file {{ config_dir }}/settings.override.yaml and override {{ config_dir }}/settings.yaml
+  include_vars:
+    file: "{{ config_dir }}/settings.override.yaml"
+    hash_behaviour: merge
+  when: settings_override_file.stat.exists
+  tags:
+    - always

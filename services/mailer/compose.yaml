@@ -15,8 +15,6 @@ services:
       timeout: 5s
       retries: 3
     depends_on:
-      cforge:
-        condition: service_completed_successfully
       rabbitmq:
         condition: service_started
 
