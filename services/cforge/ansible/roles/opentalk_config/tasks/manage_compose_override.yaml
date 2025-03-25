@@ -4,7 +4,7 @@
     ansible.builtin.template:
       src: compose_override/compose-override-{{ item }}.yaml.j2
       dest: "{{ config_dir }}/services-config/3rd_party/{{ item }}/compose-override-{{ item }}.yaml"
-      force: "{{ Deployment.forece_compose_override }}"
+      force: "{{ Deployment.force_compose_override }}"
     loop:
       - traefik
       - keycloak
@@ -18,7 +18,7 @@
     ansible.builtin.template:
       src: compose_override/compose-override-{{ item }}.yaml.j2
       dest: "{{ config_dir }}/services-config/{{ item }}/compose-override-{{ item }}.yaml"
-      force: "{{ Deployment.forece_compose_override }}"
+      force: "{{ Deployment.force_compose_override }}"
     loop:
       - cforge
       - controller

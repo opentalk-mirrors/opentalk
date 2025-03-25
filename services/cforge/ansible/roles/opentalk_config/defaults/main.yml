@@ -1,7 +1,7 @@
 ---
 Deployment:
   environment: prod
-  forece_compose_override: true
+  force_compose_override: true
 
 postInstall:
   demoUser:
