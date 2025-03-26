@@ -29,15 +29,15 @@ consent_accept:
 
 consent_info:
     "Der Moderator hat die Aufzeichnung aktiviert. Drücken Sie die 3, zum Zustimmen oder die 6, zum Widersprechen.",
-    "A recording was started for this conference. Press 3 to consent or 6 to refuse.";
+    "A recording was started for this conference. Press 3 to consent, or 6 to decline.";
 
 consent_invalid:
     "Ihre Eingabe wurde nicht erkannt. Drücken Sie die 3, um der Aufzeichnung zuzustimmen oder die 6, zum Widersprechen.",
-    "Your input was not recognized. Press 3 to consent to the recording or press 6 to refuse.";
+    "Your input was not recognized. Press 3 to consent to the recording, or press 6 to decline.";
 
 consent_reject:
     "Sie haben der Aufzeichnung widersprochen. Ihr Mikrofon wurde stumm geschaltet.",
-    "You refused being recorded in this conference.";
+    "You declined to be recorded in this conference.";
 
 input_invalid:
     "Ihre Eingabe wurde nicht erkannt, bitte versuchen Sie es erneut.",
@@ -49,15 +49,15 @@ input_timeout:
 
 moderator_kicked:
     "Der Moderator hat Sie von der Konferenz ausgeschlossen.",
-    "You have been excluded you from the conference by the moderator.";
+    "You have been excluded from the conference by the moderator.";
 
 moderator_lowered_hand:
     "Der Moderator hat Ihre Hand gesenkt.",
-    "The moderator has lowered your hand.";
+    "The moderator lowered all hands.";
 
 moderator_muted:
     "Der Moderator hat Sie stumm geschaltet.",
-    "You where muted by the moderator. Press 1 when you want to speak again.";
+    "You were muted by the moderator. Press 1 when you want to speak again.";
 
 moderator_paused:
     "Der Moderator hat die Konferenz pausiert.",
@@ -65,7 +65,7 @@ moderator_paused:
 
 moderator_resumed:
     "Die Konferenz wird fortgesetzt.",
-    "The conference is resumed.";
+    "The conference was resumed.";
 
 moderator_send_waiting_room:
     "Der Moderator hat Sie in den Warteraum geschickt. Bitte warten Sie, bis Sie wieder eingelassen werden.",
@@ -85,7 +85,7 @@ welcome_passcode:
 
 welcome_refused:
     "Der Zugang zur Konferenz wurde abgelehnt. Bitte kontaktieren Sie den Moderator der Konferenz.",
-    "The access to this conference has been refused. Please contact the moderator of this conference.";
+    "The access to this conference was declined. Please contact the moderator of this conference.";
 
 welcome_time:
     "Die Konferenz hat noch nicht begonnen, oder wurde bereits beendet. Bitte überprüfen Sie Ihre Einladung.",
