@@ -3,6 +3,9 @@
   "extends": [
     "config:recommended"
   ],
+  "reviewers": [
+    "@opentalk/tools/renovate-reviewers/media"
+  ],
   "packageRules": [
     {
       "matchPackagePatterns": [
