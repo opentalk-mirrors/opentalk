@@ -18,14 +18,35 @@ pub use authorized_client::AuthorizedClient;
 pub enum Error {
     #[snafu(display("Reqwest error: {}", source), context(false))]
     Reqwest { source: reqwest::Error },
-    #[snafu(display("Keycloak error response"))]
-    KeyCloak,
+    #[snafu(display("Keycloak error response: {status} - {response}"))]
+    KeyCloak { status: u16, response: String },
     #[snafu(display("Invalid credentials"))]
     InvalidCredentials,
     #[snafu(display("Given base URL is not a base: {}", url))]
     NotBaseUrl { url: Url },
     #[snafu(display("The OIDC metadata couldn't be fetched from this URL: {}", url))]
     OidcMetadataError { url: Url },
+}
+
+impl Error {
+    /// Generate an [Error] from a keycloak response.
+    async fn from_keycloak_response(response: Response, message: &str) -> Self {
+        let status = response.status();
+        let error_response = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "<failed to receive body>".to_string());
+        log::error!(
+            "{} (status: {}, response: '{}'",
+            message,
+            status.as_u16(),
+            error_response,
+        );
+        Self::KeyCloak {
+            status: status.as_u16(),
+            response: error_response,
+        }
+    }
 }
 
 /// HTTP client to access some Keycloak admin APIs

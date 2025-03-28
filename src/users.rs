@@ -99,12 +99,11 @@ impl KeycloakAdminClient {
 
         let status = response.status();
         if !status.is_success() {
-            log::warn!(
-                "Received unsuccessful status code {} from KeyCloak when attempting to search for a user",
-                status.as_u16(),
-            );
-            log::warn!("{}", response.text().await?);
-            return Err(Error::KeyCloak);
+            return Err(Error::from_keycloak_response(
+                response,
+                "Error when attempting to search for a user",
+            )
+            .await);
         }
 
         let found_results = response.json::<Vec<ParseResult>>().await?;
@@ -148,12 +147,11 @@ impl KeycloakAdminClient {
 
         let status = response.status();
         if !status.is_success() {
-            log::warn!(
-                "Received unsuccessful status code {} from KeyCloak when attempting to search for a user in a tenant",
-                status.as_u16(),
-            );
-            log::warn!("{}", response.text().await?);
-            return Err(Error::KeyCloak);
+            return Err(Error::from_keycloak_response(
+                response,
+                "Error when attempting to search for a user in a tenant",
+            )
+            .await);
         }
 
         let found_results = response.json::<Vec<ParseResult>>().await?;
@@ -188,12 +186,11 @@ impl KeycloakAdminClient {
 
         let status = response.status();
         if !status.is_success() {
-            log::warn!(
-                "Received unsuccessful status code {} from KeyCloak when attempting to get the user for an e-mail address",
-                status.as_u16(),
-            );
-            log::warn!("{}", response.text().await?);
-            return Err(Error::KeyCloak);
+            return Err(Error::from_keycloak_response(
+                response,
+                "Error when attempting to get the user for an e-mail address",
+            )
+            .await);
         }
 
         let found_users: Vec<User> = response.json().await?;
@@ -228,12 +225,11 @@ impl KeycloakAdminClient {
 
         let status = response.status();
         if !status.is_success() {
-            log::warn!(
-                "Received unsuccessful status code {} from KeyCloak when attempting to list users",
-                status.as_u16(),
-            );
-            log::warn!("{}", response.text().await?);
-            return Err(Error::KeyCloak);
+            return Err(Error::from_keycloak_response(
+                response,
+                "Error when attempting to list users",
+            )
+            .await);
         }
 
         let found_results = response.json::<Vec<ParseResult>>().await?;
@@ -258,12 +254,11 @@ impl KeycloakAdminClient {
 
         let status = response.status();
         if !status.is_success() {
-            log::warn!(
-                "Received unsuccessful status code {} from KeyCloak when attempting to list users",
-                status.as_u16(),
-            );
-            log::warn!("{}", response.text().await?);
-            return Err(Error::KeyCloak);
+            return Err(Error::from_keycloak_response(
+                response,
+                "Error when attempting to query user count",
+            )
+            .await);
         }
 
         let users_count = response.json::<i32>().await?;
