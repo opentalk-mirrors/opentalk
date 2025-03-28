@@ -275,44 +275,33 @@ package:obelisk-container-create-and-push-tags:
         "docker://${CI_REGISTRY_IMAGE}:$FLAVOR-${CI_COMMIT_SHA:0:8}" "docker://${CI_REGISTRY_IMAGE}:$tag"
       done
 
+package:obelisk-read-trivy-ignore-file:
+  parallel:
+    matrix:
+      - FLAVOR: !reference [.template_vars, FLAVORS]
+  stage: package
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+  script:
+    - echo "TRIVY_IGNORE_FILE_STR_$FLOVOR=$(cat $CI_PROJECT_DIR/.trivyignore-$FLAVOR)" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
 package:obelisk-container-scanning:
   parallel:
     matrix:
       - FLAVOR: !reference [.template_vars, FLAVORS]
-  image:
-    name: docker.io/aquasec/trivy:latest
-    entrypoint: ['']
-  rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
-      when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  stage: package
   needs:
-    - package:obelisk-container-create-and-push-tags
+    - package:obelisk-container-build
+    - package:obelisk-read-trivy-ignore-file
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+  stage: package
   variables:
-    SECURE_LOG_LEVEL: debug
-    GIT_STRATEGY: none
-    TRIVY_USERNAME: $CI_REGISTRY_USER
-    TRIVY_PASSWORD: $CI_REGISTRY_PASSWORD
-    TRIVY_AUTH_URL: $CI_REGISTRY
-    FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE:$FLAVOR-${CI_COMMIT_SHA:0:8}
-  script:
-    - trivy --version
-    - trivy clean --scan-cache
-    - time trivy image --exit-code 0 --cache-dir .trivycache/ --format template
-        --template "@/contrib/gitlab.tpl" --no-progress
-        --output "$CI_PROJECT_DIR/gl-container-scanning-report.json" "$CI_REGISTRY_IMAGE:$FLAVOR-${CI_COMMIT_SHA:0:8}"
-    # Prints full report
-    - time trivy image --exit-code 0 --no-progress
-        --cache-dir .trivycache/ "$CI_REGISTRY_IMAGE:$FLAVOR-${CI_COMMIT_SHA:0:8}"
-    # Fail on critical vulnerabilities
-    - time trivy image --exit-code 1 --cache-dir .trivycache/ --no-progress
-        --severity CRITICAL "$CI_REGISTRY_IMAGE:$FLAVOR-${CI_COMMIT_SHA:0:8}"
-  cache:
-    paths:
-      - .trivycache/
-  artifacts:
-    when: always
-    reports:
-      container_scanning: gl-container-scanning-report.json
+    PIPELINE_FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE:latest-$FLAVOR
+    PIPELINE_PROJECT_WITH_NAMESPACE: $CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME
+    TRIVY_IGNORE_FILE_STR: TRIVY_IGNORE_FILE_STR_$FLAVOR
+  trigger:
+    project: opentalk/opentalk-devops/scan-container
+    strategy: depend
