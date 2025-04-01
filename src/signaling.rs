@@ -5,7 +5,7 @@
 use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{MediaEvent, MediaPipeline, Track, TrackController};
 use crate::settings::Settings;
-use crate::sip::{handle_reinvite, SessionState};
+use crate::sip::{handle_reinvite, refresh_invite_session, SessionState};
 use crate::websocket::{JoinState, JoinSuccess, Participant, Websocket, WebsocketEvent};
 use anyhow::{Context, Result};
 use bytes::Bytes;
@@ -838,7 +838,12 @@ async fn handle_sip_event(
     media_session: &mut SessionState,
 ) -> Result<Option<State>> {
     match event {
-        InviteSessionEvent::RefreshNeeded(event) => event.process_default().await?,
+        InviteSessionEvent::RefreshNeeded(event) => {
+            if let Err(e) = refresh_invite_session(media, media_session, event).await {
+                log::error!("failed to refresh the INVITE session, {:?}", e);
+                return Ok(Some(State::Quitting));
+            }
+        }
         InviteSessionEvent::ReInviteReceived(event) => {
             if let Err(e) = handle_reinvite(media, media_session, event).await {
                 log::error!("failed to handle re-invite, {:?}", e);

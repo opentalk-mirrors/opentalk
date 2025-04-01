@@ -15,7 +15,7 @@ use sip_core::transport::tcp::TcpConnector;
 use sip_core::transport::udp::Udp;
 use sip_core::transport::{TargetTransportInfo, TpHandle};
 use sip_core::{Endpoint, IncomingRequest, Layer, MayTake};
-use sip_types::header::typed::{Contact, ContentType, FromTo};
+use sip_types::header::typed::{Contact, ContentType, FromTo, Refresher};
 use sip_types::print::AppendCtx;
 use sip_types::uri::{NameAddr, SipUri, SipUriUserPart};
 use sip_types::{Method, Name, StatusCode};
@@ -40,7 +40,7 @@ mod update;
 
 pub use codec::{H264PacketizationMode, SdpRecvCodec, SdpSendCodec, SdpSendCodecParams};
 pub use sdp::{MediaSessionId, MediaSessionState, SessionState, SrtpInfo};
-pub use update::handle_reinvite;
+pub use update::{handle_reinvite, refresh_invite_session};
 
 struct AppData {
     contact: Contact,
@@ -142,8 +142,9 @@ impl AppLayer {
         };
 
         let mut acceptor = InviteAcceptor::new(dialog, request);
+        acceptor.timer_config().refresher = Refresher::Uas;
 
-        // Send 100 Trying response to avoid retransmits while processing the invite's SDP.
+        // Send 100 Trying response to  avoid retransmits while processing the invite's SDP.
         let response = acceptor.create_response(StatusCode::TRYING, None).await?;
         acceptor.respond_provisional(response).await?;
 
