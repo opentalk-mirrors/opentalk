@@ -649,6 +649,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "critical-section"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
+
+[[package]]
 name = "crossbeam-channel"
 version = "0.5.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1221,9 +1227,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-sip-auth"
-version = "0.3.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cb0f7e161ffa3737ebc5c41a1fcdfdaf0cfb41a53492402ae4f738f7b6bc66d"
+checksum = "348807d452b54cf2c0bbc92edad65a4e2fdc82aedea937eef78d73c7c5ee7ba1"
 dependencies = [
  "bytesstr",
  "ezk-sip-types",
@@ -1236,9 +1242,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-sip-core"
-version = "0.6.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e9fcfaf1bfb8c38abbb716a032cfc9ab4746e6c16086cf902aa825c659dbb6b"
+checksum = "0e12d1ee32b5b69c12999eaef05157b290bf06c1096e83b65b7f43a6d90524bc"
 dependencies = [
  "async-trait",
  "bytes 1.10.0",
@@ -1264,27 +1270,25 @@ dependencies = [
 
 [[package]]
 name = "ezk-sip-types"
-version = "0.4.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ad4f5799071aa27efc43ae7186a3172a09c0c1736b00250565dce0112081e88"
+checksum = "3f93e2e32c332eb13339c4ab18cd227f7b2e541e00002a88e7d813a69324da7e"
 dependencies = [
  "anyhow",
  "bytes 1.10.0",
  "bytesstr",
- "downcast-rs 2.0.1",
  "ezk-internal",
  "lazy_static",
  "memchr",
  "nom",
  "percent-encoding",
- "thiserror 2.0.11",
 ]
 
 [[package]]
 name = "ezk-sip-ua"
-version = "0.6.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df3344a8cc9105d311be4288147bc1be3f3c47e87eeaac7e5f303f6a2443a063"
+checksum = "0ad6ca2250bf787a07d9510535ad542ebaf34aa98441c1b355537a23f9036061"
 dependencies = [
  "async-trait",
  "bytes 1.10.0",
@@ -2300,13 +2304,14 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hickory-proto"
-version = "0.25.0-alpha.5"
+version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d00147af6310f4392a31680db52a3ed45a2e0f68eb18e8c3fe5537ecc96d9e2"
+checksum = "6d844af74f7b799e41c78221be863bade11c430d46042c3b49ca8ae0c6d27287"
 dependencies = [
  "async-recursion",
  "async-trait",
  "cfg-if",
+ "critical-section",
  "data-encoding",
  "enum-as-inner",
  "futures-channel",
@@ -2316,6 +2321,7 @@ dependencies = [
  "ipnet",
  "once_cell",
  "rand 0.9.0",
+ "ring",
  "thiserror 2.0.11",
  "tinyvec",
  "tokio",
@@ -2325,9 +2331,9 @@ dependencies = [
 
 [[package]]
 name = "hickory-resolver"
-version = "0.25.0-alpha.5"
+version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5762f69ebdbd4ddb2e975cd24690bf21fe6b2604039189c26acddbc427f12887"
+checksum = "a128410b38d6f931fcc6ca5c107a3b02cabd6c05967841269a4ad65d23c44331"
 dependencies = [
  "cfg-if",
  "futures-util",
@@ -3428,6 +3434,10 @@ name = "once_cell"
 version = "1.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "945462a4b81e43c4e3ba96bd7b49d834c6f61198356aa858733bc4acf3cbe62e"
+dependencies = [
+ "critical-section",
+ "portable-atomic",
+]
 
 [[package]]
 name = "openh264"
@@ -4102,7 +4112,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes 1.10.0",
- "heck 0.5.0",
+ "heck 0.4.1",
  "itertools 0.12.1",
  "log",
  "multimap",
@@ -5073,7 +5083,7 @@ version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03c3c6b7927ffe7ecaa769ee0e3994da3b8cafc8f444578982c83ecb161af917"
 dependencies = [
- "heck 0.5.0",
+ "heck 0.4.1",
  "proc-macro2",
  "quote",
  "syn",

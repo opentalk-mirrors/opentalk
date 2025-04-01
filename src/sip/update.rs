@@ -8,7 +8,7 @@ use super::{
 };
 use crate::media::MediaPipeline;
 use anyhow::{bail, Context, Result};
-use sip_types::{header::typed::ContentType, Code, Name};
+use sip_types::{header::typed::ContentType, Name, StatusCode};
 use sip_ua::invite::session::ReInviteReceived;
 
 pub async fn apply_changes(
@@ -117,7 +117,7 @@ pub async fn handle_reinvite(
         let mut response = event
             .session
             .dialog
-            .create_response(request, Code::OK, None)
+            .create_response(request, StatusCode::OK, None)
             .context("Failed to create 200 OK response to INVITE")?;
         response
             .msg
@@ -133,7 +133,7 @@ pub async fn handle_reinvite(
         let mut response = event
             .session
             .dialog
-            .create_response(request, Code::OK, None)
+            .create_response(request, StatusCode::OK, None)
             .context("Failed to create 200 OK response to INVITE")?;
         response
             .msg
