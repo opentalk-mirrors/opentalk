@@ -29,6 +29,7 @@
 //! ```
 
 use anyhow::Context as _;
+use clap::ArgAction;
 use vergen::{BuildBuilder, CargoBuilder, Emitter, RustcBuilder};
 use vergen_gix::GixBuilder;
 
@@ -137,6 +138,16 @@ macro_rules! build_info {
             }
         }
     };
+}
+
+#[derive(clap::Args, Debug, Clone)]
+pub struct InfoArgs {
+    /// Print long version description and exit.
+    #[arg(short('V'), long, action=ArgAction::SetTrue, help = "Print version information")]
+    pub version: bool,
+    /// Print license information and exit.
+    #[arg(short, long, action=ArgAction::SetTrue, help = "Print license information")]
+    pub license: bool,
 }
 
 /// Collects the information that can be used later to identify the version of this crate.
