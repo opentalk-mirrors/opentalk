@@ -46,7 +46,13 @@ lint:dependency_check:
         - Cargo.lock
         - deny.toml
     - if: $CI_PIPELINE_SOURCE == 'schedule'
-  script: cargo-deny --workspace check --deny unmatched-skip --deny license-not-encountered
+  script:
+    - >
+      cargo-deny --all-features --workspace check
+      --deny unmatched-skip
+      --deny license-not-encountered
+      --deny license-exception-not-encountered
+      --deny advisory-not-detected
 
 lint:unnecessary_dependencies:
   stage: lint
