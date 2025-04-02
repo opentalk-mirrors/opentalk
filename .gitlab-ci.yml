@@ -71,6 +71,13 @@ lint:toml:
   image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.85.0-bookworm
   script: taplo fmt --check
 
+lint:markdown:
+  stage: lint
+  <<: *default_job_condition
+  image: registry.gitlab.com/pipeline-components/markdownlint:latest
+  script:
+    - mdl --style .markdown_style.rb  --warnings .
+
 lint:licensing:
   stage: lint
   <<: *default_job_condition
