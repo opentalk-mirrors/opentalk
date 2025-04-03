@@ -63,6 +63,8 @@ lint:dependency_check:
       --deny unmatched-skip
       --deny license-not-encountered
       --deny license-exception-not-encountered
+      --deny advisory-not-detected
+      --hide-inclusion-graph
 
 lint:unnecessary_dependencies:
   stage: lint
