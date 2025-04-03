@@ -293,7 +293,7 @@ package:obelisk-read-trivy-ignore-file:
     - echo "TRIVY_IGNORE_FILE_STR_$FLOVOR=$(cat $CI_PROJECT_DIR/.trivyignore-$FLAVOR)" >> build.env
   artifacts:
     reports:
-      dotenv: build.env
+      dotenv: package.env
 
 package:obelisk-container-scanning:
   parallel:
