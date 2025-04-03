@@ -1,0 +1,84 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# For setup instructions see the backend onboarding doc.
+# https://git.opentalk.dev/a.weiche/the-knowledge/-/blob/main/backend-onboarding.md?ref_type=heads#pre-commit
+exclude: target/|.*\.snap|.*.sql
+
+repos:
+  # These are "general" hooks provided by the pre-commit devs
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-added-large-files
+  # A repo containing hooks for certain cargo subcommands
+  # Used for tools that don't bring official hooks
+  # Maybe we should create such a "dummy" project ourselves
+  - repo: https://github.com/AndrejOrsula/pre-commit-cargo
+    rev: 0.4.0
+    hooks:
+      - id: cargo-fmt
+      - id: cargo-clippy
+        args:
+          - --workspace
+          - --all-features
+          - --tests
+          - --
+          - --deny
+          - warnings
+      - id: cargo-doc
+        args:
+          - --workspace
+          - --no-deps
+  - repo: https://github.com/EmbarkStudios/cargo-deny
+    rev: 0.18.2
+    hooks:
+      - id: cargo-deny
+        args:
+          - --all-features
+          - --workspace
+          - check
+          - --deny
+          - unmatched-skip
+          - --deny
+          - license-not-encountered
+          - --deny
+          - license-exception-not-encountered
+          - --deny
+          - advisory-not-detected
+          - --hide-inclusion-graph
+  # There currently is no official taplo hook, but this one got recommended in the corresponding issue
+  - repo: https://github.com/ComPWA/taplo-pre-commit
+    rev: v0.9.3
+    hooks:
+      - id: taplo-format
+      - id: taplo-lint
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.29.0
+    hooks:
+      - id: yamllint
+        exclude: ^api/docs/openapi\.yml$
+        args:
+          - .
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v5.0.2
+    hooks:
+      - id: reuse-lint-file
+  - repo: https://github.com/markdownlint/markdownlint
+    rev: v0.13.0
+    hooks:
+      - id: markdownlint
+        args:
+          - --style
+          - .markdown_style.rb
+          - --warnings
+  # No official hooks for commitlint available, this one seems actively maintained
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.22.0
+    hooks:
+      - id: commitlint
+        stages: [commit-msg]
