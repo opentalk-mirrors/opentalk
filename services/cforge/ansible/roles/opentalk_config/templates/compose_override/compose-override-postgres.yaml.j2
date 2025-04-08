@@ -1,6 +1,8 @@
 {% if Deployment.environment is defined and 'dev' in Deployment.environment %}
 services:
   controller-db:
+    ports:
+      - 127.0.0.1:5432:5432
   keycloak-db:
 {% else %}
 services:

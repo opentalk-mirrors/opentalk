@@ -1,6 +1,8 @@
 {% if Deployment.environment is defined and 'dev' in Deployment.environment %}
 services:
   minio:
+    ports:
+      - 127.0.0.1:9000:9000
     labels: !override
       - "traefik.enable=true"
       - "traefik.http.routers.minio-console.rule=Host(`localhost`) && PathPrefix(`/adm/minio`)"
