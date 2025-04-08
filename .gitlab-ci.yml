@@ -74,7 +74,7 @@ lint:toml:
 lint:markdown:
   stage: lint
   <<: *default_job_condition
-  image: registry.gitlab.com/pipeline-components/markdownlint:latest
+  image: registry.gitlab.com/pipeline-components/markdownlint:0.14.0
   script:
     - mdl --style .markdown_style.rb  --warnings .
 
@@ -308,6 +308,8 @@ package:obelisk-container-scanning:
   variables:
     PIPELINE_FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE:latest-$FLAVOR
     PIPELINE_PROJECT_WITH_NAMESPACE: $CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME
+    PIPELINE_MINIMAL_SEVERITY: MEDIUM
+    PIPELINE_ADDITIONAL_LABELS: team::media integration
     TRIVY_IGNORE_FILE_STR: TRIVY_IGNORE_FILE_STR_$FLAVOR
   trigger:
     project: opentalk/opentalk-devops/scan-container
