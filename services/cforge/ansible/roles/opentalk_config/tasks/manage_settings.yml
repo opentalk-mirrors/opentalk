@@ -17,6 +17,7 @@
 - name: Create settings file | conf/settings.yml
   ansible.builtin.copy:
     dest: "{{config_dir}}/settings.yml"
+    mode: "666"
     content: |
       {% set decoded_content = defaults_main_yml['content'] | b64decode %}
       {% set lines = decoded_content.split('\n') %}
@@ -37,6 +38,7 @@
   ansible.builtin.copy:
     src: files/settings.override.dev.yaml
     dest: "{{ config_dir }}/settings.override.yaml"
+    mode: "666"
   tags:
     - dev
     - skip_task

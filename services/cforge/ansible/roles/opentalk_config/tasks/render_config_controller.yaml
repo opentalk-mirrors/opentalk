@@ -3,6 +3,7 @@
   ansible.builtin.template:
     src: controller.toml.j2
     dest: "{{ config_dir }}/services-config/controller/controller.toml"
+    mode: "666"
     force: true
   notify: Restart Docker service controller
   tags:

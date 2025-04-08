@@ -3,6 +3,7 @@
   ansible.builtin.template:
     src: recorder.toml.j2
     dest: "{{ config_dir }}/services-config/recorder/recorder.toml"
+    mode: "666"
   notify: Restart Docker service recorder
   tags:
     - init

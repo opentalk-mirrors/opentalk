@@ -6,6 +6,7 @@
       ansible.builtin.file:
         path: "{{ backups_dir }}/{{ item }}"
         state: directory
+        mode: "777"
       loop:
         - tmp
         - "tmp/{{ backup_timestamp }}"
@@ -98,6 +99,7 @@
       community.general.archive:
         path: "{{ backups_dir }}/tmp/{{ backup_timestamp }}/"
         dest: "{{ backups_dir }}/{{ backup_timestamp }}_opentalk-backup.tgz"
+        mode: "666"
     - name: Clean up | /var/opt/opentalk-compose/backups/tmp
       ansible.builtin.file:
         path: "{{ backups_dir }}/tmp"
