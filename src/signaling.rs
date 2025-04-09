@@ -363,7 +363,7 @@ impl Signaling {
                             RecordingConsentState::WaitingForConsent
                                 | RecordingConsentState::Accepted
                         ) {
-                            websocket.set_consent(true).await?;
+                            websocket.set_consent(false).await?;
                             self.track_controller
                                 .play_track(self.settings.language, Track::ConsentReject);
                             self.recording_consent_state = RecordingConsentState::Rejected;
@@ -381,7 +381,7 @@ impl Signaling {
                             RecordingConsentState::WaitingForConsent
                                 | RecordingConsentState::Rejected
                         ) {
-                            websocket.set_consent(false).await?;
+                            websocket.set_consent(true).await?;
                             self.track_controller
                                 .play_track(self.settings.language, Track::ConsentAccept);
                             self.recording_consent_state = RecordingConsentState::Accepted;
