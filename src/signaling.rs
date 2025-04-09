@@ -5,7 +5,7 @@
 use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{MediaEvent, MediaPipeline, Track, TrackController};
 use crate::settings::Settings;
-use crate::sip::{handle_reinvite, SessionState};
+use crate::sip::{handle_reinvite, refresh_invite_session, SessionState};
 use crate::websocket::{JoinState, JoinSuccess, Participant, Websocket, WebsocketEvent};
 use anyhow::{Context, Result};
 use bytes::Bytes;
@@ -14,7 +14,7 @@ use opentalk_compositor::livekit::track::TrackKind;
 use opentalk_compositor::livekit::DisconnectReason;
 use opentalk_compositor::{Mixer, MixerParameters};
 use sip_types::{Method, Name};
-use sip_ua::invite::session::{Event, Session};
+use sip_ua::invite::session::{InviteSession, InviteSessionEvent};
 use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::future::pending;
@@ -63,7 +63,7 @@ pub struct Signaling {
     name: Option<BytesStr>,
 
     /// The SIP session
-    sip: Session,
+    sip: InviteSession,
     /// The websocket connection to the controller
     /// Will be initialized once the user typed in
     /// the correct digits to enter a room
@@ -127,7 +127,7 @@ impl Signaling {
         settings: Arc<Settings>,
         http_client: Arc<HttpClient>,
         name: Option<BytesStr>,
-        sip: Session,
+        sip: InviteSession,
         media: MediaPipeline,
         media_session: SessionState,
         track_controller: TrackController,
@@ -833,23 +833,28 @@ impl Signaling {
 }
 
 async fn handle_sip_event(
-    event: Event<'_>,
+    event: InviteSessionEvent<'_>,
     media: &mut MediaPipeline,
     media_session: &mut SessionState,
 ) -> Result<Option<State>> {
     match event {
-        Event::RefreshNeeded(event) => event.process_default().await?,
-        Event::ReInviteReceived(event) => {
+        InviteSessionEvent::RefreshNeeded(event) => {
+            if let Err(e) = refresh_invite_session(media, media_session, event).await {
+                log::error!("failed to refresh the INVITE session, {:?}", e);
+                return Ok(Some(State::Quitting));
+            }
+        }
+        InviteSessionEvent::ReInviteReceived(event) => {
             if let Err(e) = handle_reinvite(media, media_session, event).await {
                 log::error!("failed to handle re-invite, {:?}", e);
                 return Ok(Some(State::Quitting));
             }
         }
-        Event::Bye(event) => {
+        InviteSessionEvent::Bye(event) => {
             event.process_default().await?;
             return Ok(Some(State::Terminated));
         }
-        Event::Terminated => {
+        InviteSessionEvent::Terminated => {
             return Ok(Some(State::Terminated));
         }
     }

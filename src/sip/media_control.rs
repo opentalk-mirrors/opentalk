@@ -4,7 +4,7 @@
 
 use async_trait::async_trait;
 use sip_core::{Endpoint, IncomingRequest, MayTake};
-use sip_types::{header::typed::ContentType, Code, Method};
+use sip_types::{header::typed::ContentType, Method, StatusCode};
 use sip_ua::dialog::Usage;
 use std::str::from_utf8;
 use tokio::sync::broadcast;
@@ -50,11 +50,11 @@ impl MediaControlUsage {
             .unwrap_or_default();
 
         let code = if !is_picture_fast_update {
-            Code::NOT_FOUND
+            StatusCode::NOT_FOUND
         } else if self.notify_picture_fast_update.send(()).is_ok() {
-            Code::OK
+            StatusCode::OK
         } else {
-            Code::NOT_FOUND
+            StatusCode::NOT_FOUND
         };
 
         let mut request = request.take();

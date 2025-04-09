@@ -41,6 +41,12 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 # The lint level for crates that have been yanked from their source registry
 ignore = [
   "RUSTSEC-2023-0071",
+
+  # paste - no longer maintained
+  "RUSTSEC-2024-0436",
+
+  # gix-features - SHA-1 collision attacks are not detected
+  "RUSTSEC-2025-0021",
 ]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
@@ -173,10 +179,12 @@ skip = [
   { name = "itertools", version = "0.11.0" },
   { name = "itertools", version = "0.12.1" },
   { name = "itertools", version = "0.13.0" },
+  { name = "linux-raw-sys", version = "0.4.15" },
   { name = "rand_chacha", version = "0.3.1" },
   { name = "rand_core", version = "0.6.4" },
   { name = "rand", version = "0.8.5" },
   { name = "reqwest", version = "0.11.27" },
+  { name = "rustix", version = "0.38.44" },
   { name = "rustls-native-certs", version = "0.6.3" },
   { name = "rustls-pemfile", version = "1.0.4" },
   { name = "rustls-webpki", version = "0.101.7" },
