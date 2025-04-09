@@ -290,7 +290,7 @@ package:obelisk-read-trivy-ignore-file:
   rules:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
   script:
-    - echo "TRIVY_IGNORE_FILE_STR_$FLOVOR=$(cat $CI_PROJECT_DIR/.trivyignore-$FLAVOR)" >> build.env
+    - echo "TRIVY_IGNORE_FILE_STR_$FLOVOR=$(cat $CI_PROJECT_DIR/.trivyignore-$FLAVOR)" >> package.env
   artifacts:
     reports:
       dotenv: package.env
