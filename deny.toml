@@ -27,10 +27,7 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
-ignore = [
-  # | gitoxide uses SHA-1 hash implementations without any collision detection, leaving it vulnerable to hash collision attacks.
-  "RUSTSEC-2025-0021",
-]
+ignore = []
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
 # will still output a note when they are encountered.
@@ -49,7 +46,7 @@ version = 2
 # List of explictly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
-allow = ["Apache-2.0", "BSD-3-Clause", "MIT", "Unicode-3.0"]
+allow = ["Apache-2.0", "BSD-3-Clause", "MIT", "Unicode-3.0", "Zlib"]
 
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
@@ -110,6 +107,7 @@ allow = []
 deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
+  { name = "hashbrown", version = "0.14" },
   { name = "linux-raw-sys", version = "0.4" },
   { name = "rustix", version = "0.38" },
 ]
