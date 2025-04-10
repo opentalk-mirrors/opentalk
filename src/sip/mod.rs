@@ -9,19 +9,18 @@ use crate::signaling::Signaling;
 use anyhow::{bail, Context, Result};
 use bytesstr::BytesStr;
 use service_probe::{set_service_state, start_probe, ServiceState};
-use sip_auth::digest::{DigestAuthenticator, DigestCredentials};
-use sip_auth::{CredentialStore, RequestParts, UacAuthSession};
+use sip_auth::{ClientAuthenticator, DigestUser, RequestParts, ResponseParts};
+use sip_auth::{DigestAuthenticator, DigestCredentials};
 use sip_core::transport::tcp::TcpConnector;
 use sip_core::transport::udp::Udp;
 use sip_core::transport::{TargetTransportInfo, TpHandle};
-use sip_core::{Endpoint, IncomingRequest, Layer, LayerKey, MayTake};
-use sip_types::header::typed::{Contact, ContentType, FromTo};
+use sip_core::{Endpoint, IncomingRequest, Layer, MayTake};
+use sip_types::header::typed::{Contact, ContentType, FromTo, Refresher};
 use sip_types::print::AppendCtx;
-use sip_types::uri::sip::{SipUri, UserPart};
-use sip_types::uri::{NameAddr, Uri};
-use sip_types::{Code, Method, Name};
+use sip_types::uri::{NameAddr, SipUri, SipUriUserPart};
+use sip_types::{Method, Name, StatusCode};
 use sip_ua::dialog::{Dialog, DialogLayer};
-use sip_ua::invite::acceptor::Acceptor;
+use sip_ua::invite::acceptor::InviteAcceptor;
 use sip_ua::invite::InviteLayer;
 use sip_ua::register::Registration;
 use std::borrow::Cow;
@@ -41,7 +40,7 @@ mod update;
 
 pub use codec::{H264PacketizationMode, SdpRecvCodec, SdpSendCodec, SdpSendCodecParams};
 pub use sdp::{MediaSessionId, MediaSessionState, SessionState, SrtpInfo};
-pub use update::handle_reinvite;
+pub use update::{handle_reinvite, refresh_invite_session};
 
 struct AppData {
     contact: Contact,
@@ -54,8 +53,6 @@ struct AppLayer {
     http_client: Arc<HttpClient>,
     shutdown: broadcast::Sender<()>,
     app_data: parking_lot::RwLock<Option<AppData>>,
-    dialog_layer: LayerKey<DialogLayer>,
-    invite_layer: LayerKey<InviteLayer>,
 }
 
 impl AppLayer {
@@ -112,7 +109,7 @@ impl AppLayer {
 
                 let response = endpoint.create_response(
                     &request,
-                    Code::NOT_ACCEPTABLE,
+                    StatusCode::NOT_ACCEPTABLE,
                     Some(BytesStr::from_static("Invalid Content Type")),
                 );
 
@@ -126,7 +123,7 @@ impl AppLayer {
                 .context("Failed to handle INVITE application/sdp body")?;
         }
 
-        let dialog = Dialog::new_server(endpoint.clone(), self.dialog_layer, &request, contact)?;
+        let dialog = Dialog::new_server(endpoint.clone(), &request, contact)?;
 
         let fast_picture_update_notify = broadcast::Sender::new(1);
 
@@ -137,26 +134,22 @@ impl AppLayer {
         let name = if let Some(name) = &dialog.peer_contact.uri.name {
             Some(name.clone())
         } else {
-            dialog
-                .peer_contact
-                .uri
-                .uri
-                .downcast_ref::<SipUri>()
-                .and_then(|uri| match &uri.user_part {
-                    UserPart::Empty => None,
-                    UserPart::User(user) => Some(user.clone()),
-                    UserPart::UserPw(_) => None,
-                })
+            match &dialog.peer_contact.uri.uri.user_part {
+                SipUriUserPart::Empty => None,
+                SipUriUserPart::User(user) => Some(user.clone()),
+                SipUriUserPart::UserPw(_) => None,
+            }
         };
 
-        let mut acceptor = Acceptor::new(dialog, self.invite_layer, request)?;
+        let mut acceptor = InviteAcceptor::new(dialog, request);
+        acceptor.timer_config().refresher = Refresher::Uas;
 
-        // Send 100 Trying response to avoid retransmits while processing the invite's SDP.
-        let response = acceptor.create_response(Code::TRYING, None).await?;
+        // Send 100 Trying response to  avoid retransmits while processing the invite's SDP.
+        let response = acceptor.create_response(StatusCode::TRYING, None).await?;
         acceptor.respond_provisional(response).await?;
 
         // Respond with 200 OK
-        let mut response = acceptor.create_response(Code::OK, None).await?;
+        let mut response = acceptor.create_response(StatusCode::OK, None).await?;
         response
             .msg
             .headers
@@ -232,8 +225,8 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
 
     let mut builder = Endpoint::builder();
 
-    let dialog_layer = builder.add_layer(DialogLayer::default());
-    let invite_layer = builder.add_layer(InviteLayer::default());
+    builder.add_layer(DialogLayer::default());
+    builder.add_layer(InviteLayer::default());
 
     let (shutdown, _) = broadcast::channel(1);
 
@@ -241,13 +234,11 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         .await
         .context("failed to discover oidc issuer")?;
 
-    let app_layer = builder.add_layer(AppLayer {
+    builder.add_layer(AppLayer {
         settings: settings.clone(),
         http_client: Arc::new(http_client),
         shutdown: shutdown.clone(),
         app_data: parking_lot::RwLock::new(None),
-        dialog_layer,
-        invite_layer,
     });
 
     // Create a UDP socket to receive messages
@@ -299,13 +290,12 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         pub_addr
     };
 
-    let id =
-        generate_id_uri(&settings, &endpoint, pub_addr).context("Failed to generate id uri")?;
-    let contact = generate_contact_uri(&settings, &endpoint, pub_addr)
-        .context("Failed to generate contact uri")?;
+    let id = generate_id_uri(&settings, pub_addr).context("Failed to generate id uri")?;
+    let contact =
+        generate_contact_uri(&settings, pub_addr).context("Failed to generate contact uri")?;
 
     // set app data
-    endpoint[app_layer].set_app_data(AppData {
+    endpoint.layer::<AppLayer>().set_app_data(AppData {
         pub_ip: pub_addr.ip(),
         contact: Contact::new(NameAddr::uri(contact.clone())),
     });
@@ -355,16 +345,12 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
     Ok(())
 }
 
-fn generate_id_uri(
-    settings: &Arc<Settings>,
-    endpoint: &Endpoint,
-    pub_addr: SocketAddr,
-) -> Result<Box<dyn Uri>> {
+fn generate_id_uri(settings: &Arc<Settings>, pub_addr: SocketAddr) -> Result<SipUri> {
     // Overridden by config
     if let Some(id) = &settings.sip.id {
-        return endpoint
-            .parse_uri(id)
-            .with_context(|| format!("Failed to parse configured id uri {id:?}"));
+        return id
+            .parse()
+            .context("Configured SIP id is an invalid SIP uri");
     }
 
     let host = if let Some(registrar_settings) = &settings.sip.registrar {
@@ -383,21 +369,16 @@ fn generate_id_uri(
         format!("sip:{}", host)
     };
 
-    endpoint
-        .parse_uri(&uri)
+    uri.parse()
         .with_context(|| format!("Failed to parse generated id uri {uri:?}"))
 }
 
-fn generate_contact_uri(
-    settings: &Arc<Settings>,
-    endpoint: &Endpoint,
-    pub_addr: SocketAddr,
-) -> Result<Box<dyn Uri>> {
+fn generate_contact_uri(settings: &Arc<Settings>, pub_addr: SocketAddr) -> Result<SipUri> {
     // Overridden by config
     if let Some(contact) = &settings.sip.contact {
-        return endpoint
-            .parse_uri(contact)
-            .with_context(|| format!("Failed to parse configured contact uri {contact:?}"));
+        return contact
+            .parse()
+            .context("Configured SIP Contact is an invalid SIP uri");
     }
 
     let uri = if let Some(username) = &settings.sip.username {
@@ -406,8 +387,7 @@ fn generate_contact_uri(
         format!("sip:{}", pub_addr)
     };
 
-    endpoint
-        .parse_uri(&uri)
+    uri.parse()
         .with_context(|| format!("Failed to parse generated contact uri {uri:?}"))
 }
 
@@ -415,24 +395,23 @@ fn generate_contact_uri(
 async fn register_with_registrar(
     endpoint: Endpoint,
     pub_addr: SocketAddr,
-    id: Box<dyn Uri>,
-    contact: Box<dyn Uri>,
+    id: SipUri,
+    contact: SipUri,
     username: Option<String>,
     settings: SipRegistrarSettings,
     mut shutdown: broadcast::Receiver<()>,
 ) -> Result<()> {
     const REGISTRATION_EXPIRY: Duration = Duration::from_secs(300);
 
-    let registrar_uri = maybe_add_sip_scheme(&settings.registrar);
-    let registrar_uri = endpoint
-        .parse_uri(&registrar_uri)
-        .context("Failed to parse registrar URI")?;
+    let registrar_uri: SipUri = maybe_add_sip_scheme(&settings.registrar)
+        .parse()
+        .context("Failed to parse registrar SIP uri")?;
 
     // Check if we send the request to an outbound proxy or directly to the registrar uri
     let target_uri = if let Some(outbound_proxy) = settings.outbound_proxy {
-        let outbound_proxy = maybe_add_sip_scheme(&outbound_proxy);
-
-        endpoint.parse_uri(&outbound_proxy)?
+        maybe_add_sip_scheme(&outbound_proxy)
+            .parse()
+            .context("Failed to parse outbound_proxy SIP uri")?
     } else {
         registrar_uri.clone()
     };
@@ -440,7 +419,7 @@ async fn register_with_registrar(
     // Select a transport for the URI to which to send the REGISTER to
     let (transport, target_addr) =
         endpoint
-            .select_transport(&*target_uri)
+            .select_transport(&target_uri)
             .await
             .with_context(|| {
                 format!(
@@ -451,20 +430,16 @@ async fn register_with_registrar(
 
     let mut registration = Registration::new(
         NameAddr::uri(id),
-        NameAddr::uri(contact),
+        Contact::new(NameAddr::uri(contact)),
         registrar_uri,
         REGISTRATION_EXPIRY,
     );
 
-    let mut authenticator = DigestAuthenticator::default();
-    authenticator.enforce_qop = settings.enforce_qop;
-
-    let mut auth_sess = UacAuthSession::new(authenticator);
-    let mut credentials = CredentialStore::new();
+    let mut credentials = DigestCredentials::new();
 
     // Add username & password credentials if both are set
     if let Some((username, password)) = username.zip(settings.password) {
-        let credential = DigestCredentials::new(username, password);
+        let credential = DigestUser::new(username, password);
 
         if let Some(realm) = settings.realm {
             credentials.add_for_realm(realm, credential);
@@ -472,6 +447,9 @@ async fn register_with_registrar(
             credentials.set_default(credential);
         }
     }
+
+    let mut authenticator = DigestAuthenticator::new(credentials);
+    authenticator.enforce_qop = settings.enforce_qop;
 
     // Create binding
     let mut target = TargetTransportInfo {
@@ -483,8 +461,7 @@ async fn register_with_registrar(
         &endpoint,
         &mut target,
         &mut registration,
-        &mut auth_sess,
-        &credentials,
+        &mut authenticator,
         false,
     )
     .await?;
@@ -517,8 +494,7 @@ async fn register_with_registrar(
                 &endpoint,
                 &mut target,
                 &mut registration,
-                &mut auth_sess,
-                &credentials,
+                &mut authenticator,
                 false,
             )
             .await
@@ -533,8 +509,7 @@ async fn register_with_registrar(
             &endpoint,
             &mut target,
             &mut registration,
-            &mut auth_sess,
-            &credentials,
+            &mut authenticator,
             true,
         )
         .await
@@ -552,8 +527,7 @@ async fn register(
     endpoint: &Endpoint,
     target: &mut TargetTransportInfo,
     registration: &mut Registration,
-    auth_sess: &mut UacAuthSession,
-    credentials: &CredentialStore,
+    authenticator: &mut DigestAuthenticator,
     remove_binding: bool,
 ) -> Result<()> {
     loop {
@@ -563,7 +537,7 @@ async fn register(
             .headers
             .edit(Name::TO, |to: &mut FromTo| to.tag = None)?;
 
-        auth_sess.authorize_request(&mut request.headers);
+        authenticator.authorize_request(&mut request.headers);
 
         let mut transaction = endpoint.send_request(request, target).await?;
 
@@ -579,13 +553,16 @@ async fn register(
                 set_service_state(ServiceState::Ready);
                 return Ok(());
             }
-            401 | 407 => auth_sess.handle_authenticate(
-                &response.headers,
-                credentials,
+            401 | 407 => authenticator.handle_rejection(
                 RequestParts {
                     line: &transaction.request().msg.line,
                     headers: &transaction.request().msg.headers,
                     body: &transaction.request().msg.body,
+                },
+                ResponseParts {
+                    line: &response.line,
+                    headers: &response.headers,
+                    body: &response.body,
                 },
             )?,
             400..=499 if !remove_binding => {

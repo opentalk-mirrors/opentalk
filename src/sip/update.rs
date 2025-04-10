@@ -8,8 +8,11 @@ use super::{
 };
 use crate::media::MediaPipeline;
 use anyhow::{bail, Context, Result};
-use sip_types::{header::typed::ContentType, Code, Name};
-use sip_ua::invite::session::ReInviteReceived;
+use sip_types::{header::typed::ContentType, CodeKind, Method, Name, StatusCode};
+use sip_ua::invite::{
+    create_ack,
+    session::{ReInviteReceived, RefreshNeeded},
+};
 
 pub async fn apply_changes(
     media: &mut MediaPipeline,
@@ -117,7 +120,7 @@ pub async fn handle_reinvite(
         let mut response = event
             .session
             .dialog
-            .create_response(request, Code::OK, None)
+            .create_response(request, StatusCode::OK, None)
             .context("Failed to create 200 OK response to INVITE")?;
         response
             .msg
@@ -133,7 +136,7 @@ pub async fn handle_reinvite(
         let mut response = event
             .session
             .dialog
-            .create_response(request, Code::OK, None)
+            .create_response(request, StatusCode::OK, None)
             .context("Failed to create 200 OK response to INVITE")?;
         response
             .msg
@@ -156,6 +159,78 @@ pub async fn handle_reinvite(
         let changes = media_session.receive_answer(ack.body)?;
 
         apply_changes(media, media_session, changes).await?;
+    }
+
+    Ok(())
+}
+
+/// Related to the SIP `timer` extension, send an INVITE request inside an existing session to refresh it
+pub async fn refresh_invite_session(
+    media: &mut MediaPipeline,
+    media_session: &mut SessionState,
+    event: RefreshNeeded<'_>,
+) -> Result<()> {
+    let invite_session = event.session;
+
+    invite_session.session_timer.reset();
+
+    let mut invite = invite_session.dialog.create_request(Method::INVITE);
+    invite_session.session_timer.populate_refresh(&mut invite);
+
+    let mut target_tp_info = invite_session.dialog.target_tp_info.lock().await;
+    let mut transaction = invite_session
+        .endpoint
+        .send_invite(invite, &mut target_tp_info)
+        .await?;
+    drop(target_tp_info);
+
+    while let Some(response) = transaction.receive().await? {
+        match response.line.code.kind() {
+            CodeKind::Provisional => { /* ignore */ }
+            CodeKind::Success => {
+                let mut ack =
+                    create_ack(&invite_session.dialog, response.base_headers.cseq.cseq).await?;
+
+                // If the response to the INVITE contains SDP, handle it
+                if let Ok(content_type) = response.headers.get_named::<ContentType>() {
+                    if content_type.0 == "application/sdp" {
+                        let changes = media_session
+                            .receive_offer(response.body)
+                            .await
+                            .context("Failed to handle SDP offer")?;
+
+                        apply_changes(media, media_session, changes).await?;
+
+                        let sdp_offer = media_session.build_sdp();
+
+                        ack.msg.body = sdp_offer.to_string().into();
+                        ack.msg
+                            .headers
+                            .insert(Name::CONTENT_TYPE, "application/sdp");
+                    }
+                }
+
+                let endpoint = invite_session.endpoint.clone();
+
+                endpoint
+                    .send_outgoing_request(&mut ack)
+                    .await
+                    .map_err(sip_core::Error::from)?;
+
+                // Resend ACK if the transaction receives additional responses
+                tokio::spawn(async move {
+                    while let Ok(Some(_)) = transaction.receive().await {
+                        let _ = endpoint.send_outgoing_request(&mut ack).await;
+                    }
+                });
+
+                return Ok(());
+            }
+            _ => bail!(
+                "Got unexpected status code while refreshing INVITE session {:?}",
+                response.line.code
+            ),
+        }
     }
 
     Ok(())

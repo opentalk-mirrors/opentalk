@@ -79,7 +79,7 @@ impl PortPool {
         let port_start = settings.sip.rtp_port_range.start;
         let port_end = settings.sip.rtp_port_range.end;
 
-        let port_pairs = (port_end - port_start + 1) / 2;
+        let port_pairs = (port_end - port_start).div_ceil(2);
 
         log::trace!(
             "Obelisk will use port {} - {} for SIP RTP/RTCP connections, {} available pairs",
