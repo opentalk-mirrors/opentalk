@@ -77,11 +77,11 @@ impl Source for DtmfFilter {
 fn read_dtmf_event(payload: &[u8]) -> Result<u8> {
     let mut reader = BitReader::endian(Cursor::new(payload), BigEndian);
 
-    let event: u8 = reader.read(8).context("Failed to read event")?;
+    let event: u8 = reader.read::<8, _>().context("Failed to read event")?;
     let _is_end: bool = reader.read_bit().context("Failed to read is_end")?;
     reader.skip(1).context("Failed to skip 1 bit")?;
-    let _volume: u8 = reader.read(6).context("Failed to read volume")?;
-    let _duration: u16 = reader.read(16).context("Failed to read duration")?;
+    let _volume: u8 = reader.read::<6, _>().context("Failed to read volume")?;
+    let _duration: u16 = reader.read::<16, _>().context("Failed to read duration")?;
 
     Ok(event)
 }
