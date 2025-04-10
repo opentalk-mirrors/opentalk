@@ -282,7 +282,7 @@ package:obelisk-container-create-and-push-tags:
         "docker://${CI_REGISTRY_IMAGE}:$FLAVOR-${CI_COMMIT_SHA:0:8}" "docker://${CI_REGISTRY_IMAGE}:$tag"
       done
 
-package:obelisk-read-trivy-ignore-file:
+read-trivy-ignore-file:
   parallel:
     matrix:
       - FLAVOR: !reference [.template_vars, FLAVORS]
@@ -290,27 +290,30 @@ package:obelisk-read-trivy-ignore-file:
   rules:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
   script:
-    - echo "TRIVY_IGNORE_FILE_STR_$FLOVOR=$(cat $CI_PROJECT_DIR/.trivyignore-$FLAVOR)" >> package.env
+    - echo "TRIVY_IGNORE_STR_$FLAVOR=$(
+         cat $CI_PROJECT_DIR/.trivyignore-$FLAVOR | sed -n 'H;${x;s/^\n//;s/\n/\\n/g;p}'
+      )"  > package.env
   artifacts:
     reports:
       dotenv: package.env
 
-package:obelisk-container-scanning:
+container-scanning:
   parallel:
     matrix:
       - FLAVOR: !reference [.template_vars, FLAVORS]
   needs:
     - package:obelisk-container-build
-    - package:obelisk-read-trivy-ignore-file
+    - read-trivy-ignore-file
   rules:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
   stage: package
   variables:
     PIPELINE_FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE:latest-$FLAVOR
     PIPELINE_PROJECT_WITH_NAMESPACE: $CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME
-    PIPELINE_MINIMAL_SEVERITY: MEDIUM
     PIPELINE_ADDITIONAL_LABELS: team::media integration
-    TRIVY_IGNORE_FILE_STR: TRIVY_IGNORE_FILE_STR_$FLAVOR
+    PIPELINE_TRIVY_IGNORE_FILE_STR_VAR: TRIVY_IGNORE_STR_${FLAVOR}
   trigger:
     project: opentalk/opentalk-devops/scan-container
     strategy: depend
+    forward:
+      pipeline_variables: true
