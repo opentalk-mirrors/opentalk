@@ -16,7 +16,7 @@ anstream = "0.6"
 anyhow = "1"
 async-trait = "0.1"
 base64 = "0.22"
-bitstream-io = "2.2"
+bitstream-io = "3.0"
 bytes = "1"
 bytesstr = "1"
 clap = { version = "4.5.23", features = ["derive"] }
