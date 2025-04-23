@@ -102,38 +102,51 @@ macro_rules! build_info {
             }
 
             impl BuildInfo {
-                pub fn version(&self) -> String {
-                    let mut version_text = String::new();
-                    version_text.push_str(&format!("Build Timestamp: {}\n", self.build_timestamp));
-                    version_text.push_str(&format!("Build Version: {}\n", self.build_version));
+                pub fn format(&self, args: &opentalk_version::InfoArgs) -> Option<String> {
+                    if !args.should_print() {
+                        return None;
+                    }
+                    let mut text = String::new();
+                    if (args.version) {
+                        self.version(&mut text);
+                    }
+                    if (args.license) {
+                        self.license(&mut text);
+                    }
+                    Some(text)
+                }
+
+                fn version(&self, text: &mut String) {
+                    text.push_str(&format!("Build Timestamp: {}\n", self.build_timestamp));
+                    text.push_str(&format!("Build Version: {}\n", self.build_version));
                     if let Some(sha) = self.commit_sha {
-                        version_text.push_str(&format!("Commit SHA: {}", sha));
+                        text.push_str(&format!("Commit SHA: {}", sha));
                         match self.commit_dirty {
-                            Some("true") => version_text.push_str("-dirty\n"),
-                            _ => version_text.push_str("\n"),
+                            Some("true") => text.push_str("-dirty\n"),
+                            _ => text.push_str("\n"),
                         }
                     }
                     if let Some(commit_date) = self.commit_date {
-                        version_text.push_str(&format!("Commit Date: {}\n", commit_date));
+                        text.push_str(&format!("Commit Date: {}\n", commit_date));
                     }
 
                     if let Some(commit_branch) = self.commit_branch {
-                        version_text.push_str(&format!("Commit Branch: {}\n", commit_branch));
+                        text.push_str(&format!("Commit Branch: {}\n", commit_branch));
                     }
-                    version_text.push_str(&format!("rustc Version: {}\n", self.rustc_version));
-                    version_text.push_str(&format!("rustc Channel: {}\n", self.rustc_channel));
-                    version_text
-                        .push_str(&format!("rustc Host Triple: {}\n", self.rustc_host_triple));
-                    version_text.push_str(&format!(
+                    text.push_str(&format!("rustc Version: {}\n", self.rustc_version));
+                    text.push_str(&format!("rustc Channel: {}\n", self.rustc_channel));
+                    text.push_str(&format!("rustc Host Triple: {}\n", self.rustc_host_triple));
+                    text.push_str(&format!(
                         "cargo Target Triple: {}\n",
                         self.cargo_target_triple
                     ));
-                    version_text.push_str(&format!("cargo Profile: {}\n", self.cargo_profile));
-                    version_text
+                    text.push_str(&format!("cargo Profile: {}\n", self.cargo_profile));
                 }
 
-                pub fn license(&self) -> Option<&str> {
-                    self.license_information.as_deref()
+                fn license(&self, text: &mut String) {
+                    if let Some(license) = self.license_information.as_deref() {
+                        text.push_str(license);
+                    }
                 }
             }
         }
@@ -148,6 +161,12 @@ pub struct InfoArgs {
     /// Print license information and exit.
     #[arg(short, long, action=ArgAction::SetTrue, help = "Print license information")]
     pub license: bool,
+}
+
+impl InfoArgs {
+    pub fn should_print(&self) -> bool {
+        self.version || self.license
+    }
 }
 
 /// Collects the information that can be used later to identify the version of this crate.
