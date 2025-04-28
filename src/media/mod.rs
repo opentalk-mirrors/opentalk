@@ -289,6 +289,9 @@ impl MediaPipeline {
             *video_track = Some((track_sid, video_source));
         }
 
+        let video_support = !self.to_caller_video_sinks.lock().await.is_empty();
+        compositor.set_video_support(video_support);
+
         self.compositor = Some(compositor);
 
         Ok(())
