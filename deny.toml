@@ -110,6 +110,13 @@ skip = [
   { name = "hashbrown", version = "0.14" },
   { name = "linux-raw-sys", version = "0.4" },
   { name = "rustix", version = "0.38" },
+
+  { name = "faster-hex", version = "0.9" },
+  { name = "gix-features", version = "0.41" },
+  { name = "gix-fs", version = "0.14" },
+  { name = "gix-hash", version = "0.17" },
+  { name = "gix-utils", version = "0.2" },
+  { name = "gix-validate", version = "0.9.4" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
