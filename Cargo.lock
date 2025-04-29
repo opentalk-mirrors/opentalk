@@ -3746,11 +3746,12 @@ dependencies = [
 
 [[package]]
 name = "opentalk-version"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "400926474bcd8fe12aed187053575f27f3d2890391b61fccda18be777ff8d6ba"
+checksum = "e9bc696ab6ed740156a13bc86d96454d682a90cde44a473278a3d10ddf61badc"
 dependencies = [
  "anyhow",
+ "clap",
  "vergen",
  "vergen-gix",
 ]

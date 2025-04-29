@@ -38,7 +38,7 @@ once_cell = "1.18"
 openh264 = "0.8"
 openidconnect = "4"
 opentalk-compositor = { version = "0.14.0", default-features = false }
-opentalk-version = "0.1.1"
+opentalk-version = "0.2.0"
 owo-colors = "4"
 parking_lot = "0.12"
 rand = "0.9"
@@ -82,7 +82,7 @@ srtp2-sys = { git = "https://github.com/kbalt/srtp2-sys.git", rev = "fb3d67b5ada
 
 [build-dependencies]
 anyhow = "1"
-opentalk-version = "0.1.1"
+opentalk-version = "0.2.0"
 
 [workspace]
 members = [".", "xtask"]
