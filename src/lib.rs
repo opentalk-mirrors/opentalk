@@ -197,21 +197,17 @@ pub fn collect_build_information() -> anyhow::Result<()> {
 /// Checks whether the current or one of the parent directories contains a `.git` entry.
 fn is_contained_in_git() -> anyhow::Result<bool> {
     let current_dir = std::env::current_dir().context("Failed to get current dir")?;
-    let mut parents = vec![];
     let mut path = &*current_dir
         .canonicalize()
         .context("Failed to canonicalize path")?;
-    parents.push(path);
-    while let Some(parent) = path.parent() {
-        parents.push(parent);
-        path = parent;
-    }
-    for parent in parents.into_iter().rev() {
-        if parent.join(".git").exists() {
+    loop {
+        if path.join(".git").exists() {
             return Ok(true);
         }
+        let Some(parent) = path.parent() else {
+            println!("cargo::warning=No .git directory found");
+            return Ok(false);
+        };
+        path = parent;
     }
-
-    println!("cargo::warning=No .git directory found");
-    Ok(false)
 }
