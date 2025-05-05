@@ -4,6 +4,7 @@
 
 ### Local config
 config.toml
+obelisk.toml
 .env
 
 ### Rust template

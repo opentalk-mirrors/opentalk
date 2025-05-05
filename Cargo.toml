@@ -21,6 +21,7 @@ bytes = "1"
 bytesstr = "1"
 clap = { version = "4.5.23", features = ["derive"] }
 config = { version = "0.15", default-features = false, features = ["toml"] }
+directories = "6.0.0"
 env_logger = "0.11"
 ezk = "0.1"
 ezk-audio = "0.1"

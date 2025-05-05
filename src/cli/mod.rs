@@ -12,13 +12,8 @@ mod license;
 pub struct Args {
     #[command(flatten)]
     info: InfoArgs,
-    #[clap(
-        short,
-        long,
-        default_value = "config.toml",
-        help = "Specify path to configuration file"
-    )]
-    pub config: String,
+    #[clap(short, long, help = "Specify path to configuration file")]
+    pub config: Option<String>,
 }
 
 impl Args {
