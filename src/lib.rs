@@ -18,6 +18,11 @@ pub use authorized_client::AuthorizedClient;
 pub enum Error {
     #[snafu(display("Reqwest error: {}", source), context(false))]
     Reqwest { source: reqwest::Error },
+    #[snafu(display("Failed to serialize body: {source}\n {body}"))]
+    InvalidBody {
+        body: String,
+        source: serde_json::Error,
+    },
     #[snafu(display("Keycloak error response: {status} - {response}"))]
     KeyCloak { status: u16, response: String },
     #[snafu(display("Invalid credentials"))]
@@ -54,11 +59,21 @@ pub struct KeycloakAdminClient {
     api_base_url: Url,
 
     authorized_client: AuthorizedClient,
+
+    dump_failed_responses: bool,
 }
 
 impl KeycloakAdminClient {
     /// Create a new client from all required configurations
     pub fn new(api_base_url: Url, authorized_client: AuthorizedClient) -> Result<Self, Error> {
+        Self::with_dump_flag(api_base_url, authorized_client, false)
+    }
+
+    pub fn with_dump_flag(
+        api_base_url: Url,
+        authorized_client: AuthorizedClient,
+        dump_failed_responses: bool,
+    ) -> Result<Self, Error> {
         if api_base_url.cannot_be_a_base() {
             return Err(Error::NotBaseUrl { url: api_base_url });
         }
@@ -66,6 +81,7 @@ impl KeycloakAdminClient {
         Ok(Self {
             api_base_url,
             authorized_client,
+            dump_failed_responses,
         })
     }
 
