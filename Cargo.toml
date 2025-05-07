@@ -39,7 +39,7 @@ native-tls = "0.2.11"
 once_cell = "1.18"
 openh264 = "0.8"
 openidconnect = "4"
-opentalk-compositor = { version = "0.14.0", default-features = false }
+opentalk-compositor = { version = "0.15.0", default-features = false }
 opentalk-version = "0.2.0"
 owo-colors = "4"
 parking_lot = "0.12"
@@ -72,12 +72,12 @@ webrtc-sys = "0.3"
 bitpattern = { git = 'https://github.com/kbalt/bitpattern', branch = 'remove-paste-010-patch' }
 
 # Until https://github.com/livekit/rust-sdks/pull/544 and https://github.com/livekit/rust-sdks/issues/546 are resolved
-webrtc-sys = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
-libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
-livekit = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
-livekit-api = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
-livekit-runtime = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
-livekit-protocol = { git = "https://github.com/kbalt/rust-sdks.git", rev = "da42d42314fb68097575586b3722a4ba5e99eb11" }
+webrtc-sys = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
+libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
+livekit = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
+livekit-api = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
+livekit-runtime = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
+livekit-protocol = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
 
 # Update libsrtp to 2.6 & newer bindgen version until https://github.com/HyeonuPark/srtp2-sys/pull/3 is merged
 srtp2-sys = { git = "https://github.com/kbalt/srtp2-sys.git", rev = "fb3d67b5ada52d242c2ab5a06e4e6e22db31d601" }
