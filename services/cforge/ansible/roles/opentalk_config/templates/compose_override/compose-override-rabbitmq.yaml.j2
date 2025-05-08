@@ -1,6 +1,8 @@
 {% if Deployment.environment is defined and 'dev' in Deployment.environment %}
 services:
   rabbitmq:
+    ports:
+      - 127.0.0.1:5672:5672
     labels: !override
       - "traefik.enable=true"
       - "traefik.http.routers.rabbitmq.rule=Host(`localhost`) && PathPrefix(`/adm/rabbitmq`)"

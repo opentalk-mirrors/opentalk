@@ -8,6 +8,7 @@
       ansible.builtin.file:
         path: "{{ backups_dir }}/{{ item }}"
         state: directory
+        mode: "777"
       loop:
         - tmp
         - "tmp/{{ backup_timestamp }}"

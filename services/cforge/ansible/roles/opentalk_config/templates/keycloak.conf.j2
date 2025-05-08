@@ -36,7 +36,7 @@ http-enabled=true
 http-relative-path={{ Keycloak.http.relative_path }}
 
 {% if Deployment.environment is defined and 'dev' in Deployment.environment %}
-hostname=http://keycloak.localhost:8000/auth
+hostname={{ Keycloak.base_url }}
 hostname-strict=false
 proxy=edge
 proxy-headers=xforwarded

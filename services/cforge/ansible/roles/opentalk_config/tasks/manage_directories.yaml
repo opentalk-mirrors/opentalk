@@ -3,6 +3,7 @@
   ansible.builtin.file:
     path: "{{ data_dir }}/minio/opentalk"
     state: directory
+    mode: "777"
   tags:
     - init
 
@@ -10,6 +11,7 @@
   ansible.builtin.file:
     path: "{{ config_dir }}/services-config/{{ item }}"
     state: directory
+    mode: "777"
   loop:
     - 3rd_party/minio
     - 3rd_party/livekit

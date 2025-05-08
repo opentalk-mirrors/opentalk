@@ -3,6 +3,7 @@
   ansible.builtin.template:
     src: rabbitmq.conf.j2
     dest: "{{ config_dir }}/services-config/3rd_party/rabbitmq/rabbitmq.conf"
+    mode: "666"
   notify: Restart Docker service rabbitmq
   tags:
     - init

@@ -17,6 +17,7 @@
 - name: Create settings file | conf/settings.yml
   ansible.builtin.copy:
     dest: "{{config_dir}}/settings.yml"
+    mode: "666"
     content: |
       {% set decoded_content = defaults_main_yml['content'] | b64decode %}
       {% set lines = decoded_content.split('\n') %}
@@ -37,6 +38,7 @@
   ansible.builtin.copy:
     src: files/settings.override.dev.yaml
     dest: "{{ config_dir }}/settings.override.yaml"
+    mode: "666"
   tags:
     - dev
     - skip_task
@@ -63,3 +65,18 @@
   when: settings_override_file.stat.exists
   tags:
     - always
+
+- name: Check if settings override file is present | conf/settings.override.dev.yaml
+  ansible.builtin.stat:
+    path: "{{ config_dir }}/settings.override.dev.yaml"
+  register: settings_override_file
+  tags:
+    - dev
+
+- name: Load values from override settings file {{ config_dir }}/settings.override.dev.yaml and override {{ config_dir }}/settings.yaml
+  include_vars:
+    file: "{{ config_dir }}/settings.override.dev.yaml"
+    hash_behaviour: merge
+  when: settings_override_file.stat.exists
+  tags:
+    - dev

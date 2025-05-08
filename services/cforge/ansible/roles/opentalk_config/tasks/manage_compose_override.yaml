@@ -5,6 +5,7 @@
       src: compose_override/compose-override-{{ item }}.yaml.j2
       dest: "{{ config_dir }}/services-config/3rd_party/{{ item }}/compose-override-{{ item }}.yaml"
       force: "{{ Deployment.force_compose_override }}"
+      mode: "666"
     loop:
       - traefik
       - keycloak
@@ -19,6 +20,7 @@
       src: compose_override/compose-override-{{ item }}.yaml.j2
       dest: "{{ config_dir }}/services-config/{{ item }}/compose-override-{{ item }}.yaml"
       force: "{{ Deployment.force_compose_override }}"
+      mode: "666"
     loop:
       - cforge
       - controller
