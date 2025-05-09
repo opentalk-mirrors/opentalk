@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use config::{Config, ConfigError, Environment, File, FileFormat};
+use anyhow::{bail, Context, Result};
+use config::{Config, Environment, File, FileFormat, FileSourceFile};
 use openidconnect::{ClientId, ClientSecret, IssuerUrl};
 use opentalk_compositor::ClockFormat;
 use serde::Deserialize;
@@ -67,9 +68,9 @@ where
 }
 
 impl Settings {
-    pub fn load(file_name: &str) -> Result<Self, ConfigError> {
+    pub fn load(config_arg_path: &Option<String>) -> Result<Self> {
         Config::builder()
-            .add_source(File::new(file_name, FileFormat::Toml))
+            .add_source(discover_config_file(config_arg_path)?)
             .add_source(WarningSource(
                 Environment::with_prefix("K3K_OBLSK")
                     .prefix_separator("_")
@@ -82,7 +83,40 @@ impl Settings {
             )
             .build()?
             .try_deserialize()
+            .context("Failed to parse configuration")
     }
+}
+
+fn discover_config_file(
+    config_arg_path: &Option<String>,
+) -> Result<File<FileSourceFile, FileFormat>> {
+    use std::fs::exists;
+
+    if let Some(path) = config_arg_path {
+        return Ok(File::new(path, FileFormat::Toml));
+    }
+
+    if exists("obelisk.toml").unwrap_or_default() {
+        return Ok(File::new("obelisk.toml", FileFormat::Toml));
+    }
+
+    if let Some(dirs) = directories::BaseDirs::new() {
+        let config_path = dirs.config_dir().join("obelisk.toml");
+
+        if exists(&config_path).unwrap_or_default() {
+            let name = config_path
+                .to_str()
+                .context("Failed to convert config path to UTF8")?;
+
+            return Ok(File::new(name, FileFormat::Toml));
+        }
+    }
+
+    if exists("/etc/opentalk/obelisk.toml").unwrap_or_default() {
+        return Ok(File::new("/etc/opentalk/obelisk.toml", FileFormat::Toml));
+    }
+
+    bail!("Failed to find a configuration file");
 }
 
 #[derive(Debug, Deserialize)]
@@ -195,9 +229,9 @@ mod test {
     use std::env;
 
     #[test]
-    fn settings_env_vars_overwite_config() -> Result<(), ConfigError> {
+    fn settings_env_vars_overwite_config() -> anyhow::Result<()> {
         // Sanity check
-        let settings = Settings::load("./extra/example.toml")?;
+        let settings = Settings::load(&Some("./extra/example.toml".into()))?;
 
         assert_eq!(settings.controller.domain, "localhost:8000");
         assert_eq!(settings.sip.port, 5060u16);
@@ -208,7 +242,7 @@ mod test {
         env::set_var("OPENTALK_OBLSK_CONTROLLER__DOMAIN", &env_controller_domain);
         env::set_var("OPENTALK_OBLSK_SIP__PORT", env_sip_port.to_string());
 
-        let settings = Settings::load("./extra/example.toml")?;
+        let settings = Settings::load(&Some("./extra/example.toml".into()))?;
 
         assert_eq!(settings.controller.domain, env_controller_domain);
         assert_eq!(settings.sip.port, env_sip_port);
