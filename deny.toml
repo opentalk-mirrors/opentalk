@@ -7,7 +7,6 @@
 # * allow - No warning or error will be produced, though in some cases a note
 # will be
 
-
 [graph]
 # If 1 or more target triples (and optionally, target_features) are specified,
 # only the specified targets will be checked when running `cargo deny check`.
@@ -133,7 +132,10 @@ allow = []
 # List of crates to deny
 deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
-skip = [{ name = "base64", version = "0.21" }]
+skip = [
+  { name = "base64", version = "0.21" },
+  { name = "webpki-roots", version = "0.26" },
+]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
 # dependencies starting at the specified crate, up to a certain depth, which is
