@@ -4,10 +4,12 @@
 
 use anyhow::{bail, Context, Result};
 use config::{Config, Environment, File, FileFormat, FileSourceFile};
+use itertools::Itertools;
 use openidconnect::{ClientId, ClientSecret, IssuerUrl};
 use opentalk_compositor::ClockFormat;
+use owo_colors::OwoColorize as _;
 use serde::Deserialize;
-use std::{net::IpAddr, time::Duration};
+use std::{net::IpAddr, path::PathBuf, time::Duration};
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
@@ -90,33 +92,72 @@ impl Settings {
 fn discover_config_file(
     config_arg_path: &Option<String>,
 ) -> Result<File<FileSourceFile, FileFormat>> {
-    use std::fs::exists;
-
     if let Some(path) = config_arg_path {
         return Ok(File::new(path, FileFormat::Toml));
     }
 
-    if exists("obelisk.toml").unwrap_or_default() {
-        return Ok(File::new("obelisk.toml", FileFormat::Toml));
-    }
+    let mut paths = vec![
+        ConfigSearchPath {
+            path: "config.toml".into(),
+            deprecated: true,
+        },
+        ConfigSearchPath {
+            path: "obelisk.toml".into(),
+            deprecated: false,
+        },
+    ];
 
     if let Some(dirs) = directories::BaseDirs::new() {
-        let config_path = dirs.config_dir().join("obelisk.toml");
+        paths.push(ConfigSearchPath {
+            path: dirs.config_dir().join("opentalk/obelisk.toml"),
+            deprecated: false,
+        });
+    }
 
-        if exists(&config_path).unwrap_or_default() {
-            let name = config_path
-                .to_str()
-                .context("Failed to convert config path to UTF8")?;
+    paths.push(ConfigSearchPath {
+        path: "/etc/opentalk/obelisk.toml".into(),
+        deprecated: false,
+    });
 
-            return Ok(File::new(name, FileFormat::Toml));
+    for ConfigSearchPath { path, deprecated } in &paths {
+        if !path.exists() {
+            continue;
         }
+
+        if *deprecated {
+            let supported_paths = paths
+                .iter()
+                .filter_map(ConfigSearchPath::display_non_deprecated)
+                .join(", ");
+
+            anstream::eprintln!(
+                "{}: You're using the deprecated configuration path \"{}\", please use one of these instead: {}.",
+                "DEPRECATION WARNING".yellow().bold(),
+                path.to_string_lossy(),
+                supported_paths
+            );
+        }
+
+        return Ok(File::from(path.as_path()).format(FileFormat::Toml));
     }
 
-    if exists("/etc/opentalk/obelisk.toml").unwrap_or_default() {
-        return Ok(File::new("/etc/opentalk/obelisk.toml", FileFormat::Toml));
-    }
+    let searched_paths = paths.iter().map(|path| path.path.display()).join(", ");
 
-    bail!("Failed to find a configuration file");
+    bail!("Failed to find a configuration file, searched: {searched_paths}",);
+}
+
+struct ConfigSearchPath {
+    path: PathBuf,
+    deprecated: bool,
+}
+
+impl ConfigSearchPath {
+    fn display_non_deprecated(&self) -> Option<String> {
+        if self.deprecated {
+            return None;
+        }
+        Some(format!("\"{}\"", self.path.display()))
+    }
 }
 
 #[derive(Debug, Deserialize)]

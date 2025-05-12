@@ -12,7 +12,18 @@ mod license;
 pub struct Args {
     #[command(flatten)]
     info: InfoArgs,
-    #[clap(short, long, help = "Specify path to configuration file")]
+
+    /// Path of the configuration file.
+    ///
+    /// If present, exactly this config file will be used.
+    ///
+    /// If absent, `obelisk` looks for a config file in these locations and uses the first one that is found:
+    ///
+    /// - `config.toml` in the current directory (deprecated, for backwards compatibility only)
+    /// - `obelisk.toml` in the current directory
+    /// - `<XDG_CONFIG_HOME>/opentalk/obelisk.toml` (where `XDG_CONFIG_HOME` is usually `~/.config`)
+    /// - `/etc/opentalk/obelisk.toml`
+    #[clap(short, long, verbatim_doc_comment)]
     pub config: Option<String>,
 }
 
