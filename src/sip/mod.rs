@@ -225,6 +225,8 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
 
     let mut builder = Endpoint::builder();
 
+    builder.user_agent(format!("OpenTalk Obelisk {}", env!("CARGO_PKG_VERSION")));
+
     builder.add_layer(DialogLayer::default());
     builder.add_layer(InviteLayer::default());
 
