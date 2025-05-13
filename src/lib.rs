@@ -117,30 +117,27 @@ macro_rules! build_info {
                 }
 
                 fn version(&self, text: &mut String) {
-                    text.push_str(&format!("Build Timestamp: {}\n", self.build_timestamp));
-                    text.push_str(&format!("Build Version: {}\n", self.build_version));
+                    write!(&text, "Build Timestamp: {}\n", self.build_timestamp);
+                    write!(&text, "Build Version: {}\n", self.build_version);
                     if let Some(sha) = self.commit_sha {
-                        text.push_str(&format!("Commit SHA: {}", sha));
+                        write!(&text, "Commit SHA: {}", sha);
                         match self.commit_dirty {
-                            Some("true") => text.push_str("-dirty\n"),
-                            _ => text.push_str("\n"),
+                            Some("true") => write!(&text, "-dirty\n"),
+                            _ => write!(&text, "\n"),
                         }
                     }
                     if let Some(commit_date) = self.commit_date {
-                        text.push_str(&format!("Commit Date: {}\n", commit_date));
+                        write!(&text, "Commit Date: {}\n", commit_date);
                     }
 
                     if let Some(commit_branch) = self.commit_branch {
-                        text.push_str(&format!("Commit Branch: {}\n", commit_branch));
+                        write!(&text, "Commit Branch: {}\n", commit_branch);
                     }
-                    text.push_str(&format!("rustc Version: {}\n", self.rustc_version));
-                    text.push_str(&format!("rustc Channel: {}\n", self.rustc_channel));
-                    text.push_str(&format!("rustc Host Triple: {}\n", self.rustc_host_triple));
-                    text.push_str(&format!(
-                        "cargo Target Triple: {}\n",
-                        self.cargo_target_triple
-                    ));
-                    text.push_str(&format!("cargo Profile: {}\n", self.cargo_profile));
+                    write!(&text, "rustc Version: {}\n", self.rustc_version);
+                    write!(&text, "rustc Channel: {}\n", self.rustc_channel);
+                    write!(&text, "rustc Host Triple: {}\n", self.rustc_host_triple);
+                    write!(&text, "cargo Target Triple: {}\n", self.cargo_target_triple);
+                    write!(&text, "cargo Profile: {}\n", self.cargo_profile);
                 }
 
                 fn license(&self, text: &mut String) {
