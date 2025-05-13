@@ -3642,6 +3642,7 @@ dependencies = [
  "futures",
  "h264-profile-level-id",
  "hound",
+ "itertools 0.14.0",
  "log",
  "native-tls",
  "once_cell",
