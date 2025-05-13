@@ -60,11 +60,11 @@ thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "signal"] }
 tokio-native-tls = "0.3.1"
 tt = { package = "tokio-tungstenite", version = "0.26", features = ["rustls-tls-native-roots"] }
-types-common = { package = "opentalk-types-common", version = "0.32.0", features = ["serde"] }
-types-signaling = { package = "opentalk-types-signaling", version = "0.33.0", features = ["serde"] }
-types-signaling-control = { package = "opentalk-types-signaling-control", version = "0.33.0", features = ["serde"] }
-types-signaling-livekit = { package = "opentalk-types-signaling-livekit", version = "0.33.0", features = ["serde"] }
-types-signaling-recording = { package = "opentalk-types-signaling-recording", version = "0.33.0", features = ["serde"] }
+types-common = { package = "opentalk-types-common", version = "0.34.0", features = ["serde"] }
+types-signaling = { package = "opentalk-types-signaling", version = "0.35.0", features = ["serde"] }
+types-signaling-control = { package = "opentalk-types-signaling-control", version = "0.35.0", features = ["serde"] }
+types-signaling-livekit = { package = "opentalk-types-signaling-livekit", version = "0.35.0", features = ["serde"] }
+types-signaling-recording = { package = "opentalk-types-signaling-recording", version = "0.35.0", features = ["serde"] }
 webrtc-sys = "0.3"
 
 [patch.crates-io]
