@@ -300,7 +300,7 @@ pub(crate) struct JoinSuccess {
     pub(crate) id: ParticipantId,
     pub(crate) participants: Vec<Participant>,
     pub(crate) livekit: LiveKitState,
-    pub(crate) recording: RecordingState,
+    pub(crate) recording: Option<RecordingState>,
 }
 
 #[derive(Debug, Deserialize)]

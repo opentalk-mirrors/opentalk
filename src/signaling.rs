@@ -700,7 +700,7 @@ impl Signaling {
             .await
             .context("Failed to add compositor to media pipeline")?;
 
-        self.streaming_targets = join_result.recording.targets;
+        self.streaming_targets = join_result.recording.map(|r| r.targets).unwrap_or_default();
 
         if self.is_any_recording_active() {
             self.track_controller
