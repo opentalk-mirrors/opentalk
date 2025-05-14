@@ -55,6 +55,7 @@ update-changelog VERSION: _check_git_cliff
 
 commit-release: _check_yq
     #!/usr/bin/env bash
+    set -eu -o pipefail
     VERSION=$(cat Cargo.toml | yq -ptoml ".package.version")
     git commit -a -m "chore(release): prepare release ${VERSION}"
     git log HEAD^..HEAD
