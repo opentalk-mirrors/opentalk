@@ -37,7 +37,7 @@ prepare-release VERSION: (set-version VERSION) (update-changelog VERSION)
 # Sets the version in the Cargo.toml and updates the Cargo.lock
 set-version VERSION: _check_cargo_set_version
     # Set the version number for all packages in the workspace
-    cargo set-version --workspace {{ VERSION }}
+    cargo set-version --workspace {{ VERSION }} --exclude xtask
     # Regenerate the lockfile
     cargo check
 
@@ -55,6 +55,7 @@ update-changelog VERSION: _check_git_cliff
 
 commit-release: _check_yq
     #!/usr/bin/env bash
+    set -eu -o pipefail
     VERSION=$(cat Cargo.toml | yq -ptoml ".package.version")
     git commit -a -m "chore(release): prepare release ${VERSION}"
     git log HEAD^..HEAD
