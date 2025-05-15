@@ -3,9 +3,10 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 
 use super::Result;
-use crate::{Error, KeycloakAdminClient};
+use crate::{Error, InvalidBodySnafu, KeycloakAdminClient};
 
 const MAX_NUM_KEYCLOAK_SEARCH_RESULTS: i32 = 100;
 const MAX_USER_SEARCH_RESULTS: usize = 50;
@@ -106,7 +107,13 @@ impl KeycloakAdminClient {
             .await);
         }
 
-        let found_results = response.json::<Vec<ParseResult>>().await?;
+        let found_results = if self.dump_failed_responses {
+            let buffer = response.text().await?;
+            serde_json::from_str(&buffer).context(InvalidBodySnafu { body: buffer })?
+        } else {
+            response.json::<Vec<ParseResult>>().await?
+        };
+
         let found_results_amount = found_results.len();
         let found_users: Vec<_> = found_results
             .into_iter()
@@ -154,7 +161,13 @@ impl KeycloakAdminClient {
             .await);
         }
 
-        let found_results = response.json::<Vec<ParseResult>>().await?;
+        let found_results = if self.dump_failed_responses {
+            let buffer = response.text().await?;
+            serde_json::from_str(&buffer).context(InvalidBodySnafu { body: buffer })?
+        } else {
+            response.json::<Vec<ParseResult>>().await?
+        };
+
         let found_results_amount = found_results.len();
         let found_users: Vec<_> = found_results
             .into_iter()
@@ -232,7 +245,13 @@ impl KeycloakAdminClient {
             .await);
         }
 
-        let found_results = response.json::<Vec<ParseResult>>().await?;
+        let found_results = if self.dump_failed_responses {
+            let buffer = response.text().await?;
+            serde_json::from_str(&buffer).context(InvalidBodySnafu { body: buffer })?
+        } else {
+            response.json::<Vec<ParseResult>>().await?
+        };
+
         let found_results_amount = found_results.len();
         let found_users: Vec<_> = found_results
             .into_iter()
