@@ -3,6 +3,7 @@ services:
   ofelia:
     image: ${OFELIA_IMAGE_SRC}:${OFELIA_VERSION}
     profiles: ["core", "standard", "full", "cron", "ofelia"]
+    restart: always
     environment:
       TZ: Europe/Berlin
     volumes:
