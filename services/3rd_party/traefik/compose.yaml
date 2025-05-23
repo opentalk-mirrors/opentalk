@@ -1,8 +1,10 @@
 services:
   traefik:
     image: ${TRAEFIK_IMAGE_SRC}:${TRAEFIK_VERSION}
+    profiles: ["core", "standard", "full", "traefik"]
     extra_hosts:
       - host.docker.internal:host-gateway
+    restart: always
     ports:
       - target: 80
         published: 80
