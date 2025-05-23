@@ -8,9 +8,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../../../config/services-config/3rd_party/ofelia/ofelia.ini:/etc/ofelia/config.ini
-    #healthcheck:
-    #  test: wget --quiet --output-document=/dev/stdout http://127.0.0.1:8080/v1/ | grep -q ${OFELIA_VERSION}
-    #  interval: 30s
-    #  timeout: 15s
-    #  retries: 3
-    #  start_period: 15s
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -lx '/usr/bin/ofelia' > /dev/null || exit 1"]
+      interval: 5s
+      timeout: 1s
+      retries: 1
+      start_period: 10s
