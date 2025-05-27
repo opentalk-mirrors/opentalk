@@ -13,7 +13,7 @@ elif [ -n "${EP_APIKEY_FILE}" ]; then
 fi
 
 if [ -f "${APIKEY_FILE}" ]; then
-	node src/node/server.js
+	pnpm run prod
 else
 	echo "error: apikey not defined"
 	exit 1
