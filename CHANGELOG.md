@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2025-05-29
+
+[0.20.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.19.4...v0.20.0
+
+### 🚀 New features
+
+- Add queuing for announcements ([!241](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/241))
+- Implement recording consent flow ([!244](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/244))
+- (ci) Add container scan trigger ([!249](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/249), [#159](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/159))
+- Print license information ([!262](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/262))
+- Load config from commonly used locations ([!267](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/267))
+- Render participants without video & show cam/mic mute icons ([!269](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/269))
+
+### 🐛 Bug fixes
+
+- Play consent-info when joining into an active recording ([!241](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/241))
+- (ci) Fix shared env between ci jobs ([!253](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/253))
+- (ci) Fix fix shared env between ci jobs ([!257](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/257))
+- Avoid call cancellation after 30min with some registrars ([!250](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/250))
+- Set correct consent value for accepting/rejecting recording ([!258](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/258))
+- Properly disable video pipeline in audio-only calls ([!263](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/263))
+- Whitelist CVE-2023-31484 and CVE-2024-56406 ([!268](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/268), [##165 #174](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/#165 #174))
+- Recording field is optional ([!273](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/273))
+
+### 📦 Dependencies
+
+- (deps) Update rust crate bitstream-io to v3 ([!255](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/255))
+- (deps) Update opentalk ([!247](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/247))
+- (deps) Update opentalk-types ([!269](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/269))
+
+### ⚙ Miscellaneous
+
+- Update english voice lines ([!245](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/245))
+- Add markdownlint to ci ([!252](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/252))
+- Update ezk-sip ([!250](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/250))
+- Lock file maintenance ([!250](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/250))
+- Add pre-commit config ([!254](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/254))
+- Add exclude xtask to set-version in justfile ([!275](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/275))
+- Set pipefail for _check_yq in justfile ([!275](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/275))
+
+### Ci
+
+- Configure renovate merge request reviewers ([!246](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/246))
+- Add "team:: media integration" label to new incidents ([!256](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/256))
+- Escape multi line string ([!260](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/260))
+
 ## [0.19.0] - 2025-03-05
 
 [0.19.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.18.3...v0.19.0
