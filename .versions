@@ -27,7 +27,6 @@ OFELIA_VERSION=0.3.17
 ## OpenTalk
 WEBAPP_IMAGE_SRC=registry.opencode.de/opentalk/web-frontend
 CONTROLLER_IMAGE_SRC=registry.opencode.de/opentalk/controller
-OBELISK_IMAGE_SRC=registry.opencode.de/opentalk/obelisk
 MAILER_IMAGE_SRC=registry.opencode.de/opentalk/smtp-mailer
 RECORDER_IMAGE_SRC=registry.opencode.de/opentalk/recorder
 OBELISK_IMAGE_SRC=registry.opencode.de/opentalk/obelisk
