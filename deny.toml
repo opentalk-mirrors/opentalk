@@ -132,10 +132,7 @@ allow = []
 # List of crates to deny
 deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
-skip = [
-  { name = "base64", version = "0.21" },
-  { name = "webpki-roots", version = "0.26" },
-]
+skip = [{ name = "base64", version = "0.21" }]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
 # dependencies starting at the specified crate, up to a certain depth, which is
