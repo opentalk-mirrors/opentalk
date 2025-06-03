@@ -2895,19 +2895,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hyper-tls"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
-dependencies = [
- "bytes 1.10.1",
- "hyper 0.14.32",
- "native-tls",
- "tokio",
- "tokio-native-tls",
-]
-
-[[package]]
 name = "hyper-util"
 version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2939,7 +2926,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.61.0",
+ "windows-core",
 ]
 
 [[package]]
@@ -3176,15 +3163,6 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
@@ -3367,7 +3345,7 @@ dependencies = [
 [[package]]
 name = "libwebrtc"
 version = "0.3.10"
-source = "git+https://github.com/kbalt/rust-sdks.git?rev=702f3ffa72a6b312b66cb658709eb64595d51b84#702f3ffa72a6b312b66cb658709eb64595d51b84"
+source = "git+https://github.com/kbalt/rust-sdks.git?rev=bf5622058e2c2187436953ca13c4cc79176c0d74#bf5622058e2c2187436953ca13c4cc79176c0d74"
 dependencies = [
  "cxx",
  "jni",
@@ -3422,8 +3400,8 @@ checksum = "b4ce301924b7887e9d637144fdade93f9dfff9b60981d4ac161db09720d39aa5"
 
 [[package]]
 name = "livekit"
-version = "0.7.9"
-source = "git+https://github.com/kbalt/rust-sdks.git?rev=702f3ffa72a6b312b66cb658709eb64595d51b84#702f3ffa72a6b312b66cb658709eb64595d51b84"
+version = "0.7.11"
+source = "git+https://github.com/kbalt/rust-sdks.git?rev=bf5622058e2c2187436953ca13c4cc79176c0d74#bf5622058e2c2187436953ca13c4cc79176c0d74"
 dependencies = [
  "bmrng",
  "bytes 1.10.1",
@@ -3447,8 +3425,8 @@ dependencies = [
 
 [[package]]
 name = "livekit-api"
-version = "0.4.2"
-source = "git+https://github.com/kbalt/rust-sdks.git?rev=702f3ffa72a6b312b66cb658709eb64595d51b84#702f3ffa72a6b312b66cb658709eb64595d51b84"
+version = "0.4.3"
+source = "git+https://github.com/kbalt/rust-sdks.git?rev=bf5622058e2c2187436953ca13c4cc79176c0d74#bf5622058e2c2187436953ca13c4cc79176c0d74"
 dependencies = [
  "base64 0.21.7",
  "futures-util",
@@ -3476,8 +3454,8 @@ dependencies = [
 
 [[package]]
 name = "livekit-protocol"
-version = "0.3.9"
-source = "git+https://github.com/kbalt/rust-sdks.git?rev=702f3ffa72a6b312b66cb658709eb64595d51b84#702f3ffa72a6b312b66cb658709eb64595d51b84"
+version = "0.3.10"
+source = "git+https://github.com/kbalt/rust-sdks.git?rev=bf5622058e2c2187436953ca13c4cc79176c0d74#bf5622058e2c2187436953ca13c4cc79176c0d74"
 dependencies = [
  "futures-util",
  "livekit-runtime",
@@ -3494,7 +3472,7 @@ dependencies = [
 [[package]]
 name = "livekit-runtime"
 version = "0.4.0"
-source = "git+https://github.com/kbalt/rust-sdks.git?rev=702f3ffa72a6b312b66cb658709eb64595d51b84#702f3ffa72a6b312b66cb658709eb64595d51b84"
+source = "git+https://github.com/kbalt/rust-sdks.git?rev=bf5622058e2c2187436953ca13c4cc79176c0d74#bf5622058e2c2187436953ca13c4cc79176c0d74"
 dependencies = [
  "tokio",
  "tokio-stream",
@@ -3926,9 +3904,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-compositor"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bd3dc60998ce1c83fa9c094ea2952955995a90e1c5a712e6317de168a92bf03"
+checksum = "d035ad4536815bf4381f947bce8ed1664936176b3f4298fb7214379fbb3b33d1"
 dependencies = [
  "ab_glyph",
  "anyhow",
@@ -4516,7 +4494,7 @@ checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes 1.10.1",
  "heck 0.5.0",
- "itertools 0.12.1",
+ "itertools 0.11.0",
  "log",
  "multimap",
  "once_cell",
@@ -4536,7 +4514,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.11.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -4795,12 +4773,10 @@ dependencies = [
  "http-body 0.4.6",
  "hyper 0.14.32",
  "hyper-rustls 0.24.2",
- "hyper-tls",
  "ipnet",
  "js-sys",
  "log",
  "mime",
- "native-tls",
  "once_cell",
  "percent-encoding",
  "pin-project-lite",
@@ -4813,7 +4789,6 @@ dependencies = [
  "sync_wrapper 0.1.2",
  "system-configuration",
  "tokio",
- "tokio-native-tls",
  "tokio-rustls 0.24.1",
  "tower-service",
  "url",
@@ -6591,7 +6566,7 @@ dependencies = [
 [[package]]
 name = "webrtc-sys"
 version = "0.3.7"
-source = "git+https://github.com/kbalt/rust-sdks.git?rev=702f3ffa72a6b312b66cb658709eb64595d51b84#702f3ffa72a6b312b66cb658709eb64595d51b84"
+source = "git+https://github.com/kbalt/rust-sdks.git?rev=bf5622058e2c2187436953ca13c4cc79176c0d74#bf5622058e2c2187436953ca13c4cc79176c0d74"
 dependencies = [
  "cc",
  "cxx",
@@ -6604,7 +6579,7 @@ dependencies = [
 [[package]]
 name = "webrtc-sys-build"
 version = "0.3.6"
-source = "git+https://github.com/kbalt/rust-sdks.git?rev=702f3ffa72a6b312b66cb658709eb64595d51b84#702f3ffa72a6b312b66cb658709eb64595d51b84"
+source = "git+https://github.com/kbalt/rust-sdks.git?rev=bf5622058e2c2187436953ca13c4cc79176c0d74#bf5622058e2c2187436953ca13c4cc79176c0d74"
 dependencies = [
  "fs2",
  "regex",
@@ -6694,7 +6669,7 @@ version = "0.58.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd04d41d93c4992d421894c18c8b43496aa748dd4c081bac0dc93eb0489272b6"
 dependencies = [
- "windows-core 0.58.0",
+ "windows-core",
  "windows-targets 0.52.6",
 ]
 
@@ -6704,24 +6679,11 @@ version = "0.58.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ba6d44ec8c2591c134257ce647b7ea6b20335bf6379a27dac5f1641fcf59f99"
 dependencies = [
- "windows-implement 0.58.0",
- "windows-interface 0.58.0",
+ "windows-implement",
+ "windows-interface",
  "windows-result 0.2.0",
  "windows-strings 0.1.0",
  "windows-targets 0.52.6",
-]
-
-[[package]]
-name = "windows-core"
-version = "0.61.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4763c1de310c86d75a878046489e2e5ba02c649d185f21c67d4cf8a56d098980"
-dependencies = [
- "windows-implement 0.60.0",
- "windows-interface 0.59.1",
- "windows-link",
- "windows-result 0.3.2",
- "windows-strings 0.4.0",
 ]
 
 [[package]]
@@ -6736,32 +6698,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "windows-implement"
-version = "0.60.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a47fddd13af08290e67f4acabf4b459f647552718f683a7b415d290ac744a836"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "windows-interface"
 version = "0.58.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "053c4c462dc91d3b1504c6fe5a726dd15e216ba718e84a0e46a88fbe5ded3515"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "windows-interface"
-version = "0.59.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd9211b69f8dcdfa817bfd14bf1c97c9188afa36f4750130fcdf3f400eca9fa8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6818,15 +6758,6 @@ name = "windows-strings"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87fa48cc5d406560701792be122a10132491cff9d0aeb23583cc2dcafc847319"
-dependencies = [
- "windows-link",
-]
-
-[[package]]
-name = "windows-strings"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a2ba9642430ee452d5a7aa78d72907ebe8cfda358e8cb7918a2050581322f97"
 dependencies = [
  "windows-link",
 ]

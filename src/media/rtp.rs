@@ -348,7 +348,7 @@ impl RtpTask {
                 command = self.commands_rx.recv() => self.handle_command(command),
 
                 // Check the jitterbuffer in fixed duration
-                _ = poll_jitterbuffer_interval.tick() => self.poll_jitterbuffer().await,
+                _ = poll_jitterbuffer_interval.tick() => self.poll_jitterbuffer(),
 
                 // Wait for the application to generate RTP packets and send them out
                 event = poll_source(&mut self.rtp_sender_source) => self.handle_rtp_source_event(event).await,
@@ -392,13 +392,17 @@ impl RtpTask {
         }
     }
 
-    async fn poll_jitterbuffer(&mut self) {
-        while let Some(packet) = self.session.pop_rtp() {
-            if let Some(tx) = &self.rtp_receiver_sink {
-                if let Err(e) = tx.send(packet.clone()).await {
-                    log::error!("Failed to forward incoming rtp packet, {e}");
+    fn poll_jitterbuffer(&mut self) {
+        if let Some(tx) = &self.rtp_receiver_sink {
+            while let Ok(permit) = tx.try_reserve() {
+                if let Some(packet) = self.session.pop_rtp() {
+                    permit.send(packet);
+                } else {
+                    break;
                 }
             }
+        } else {
+            while self.session.pop_rtp().is_some() {}
         }
     }
 

@@ -29,6 +29,7 @@ use ezk_image::{
     Image, PixelFormat,
 };
 use ezk_rtp::{rtp_types::RtpPacketBuilder, DePacketizer, Packetizer, RtpPacket};
+use futures::{future::BoxFuture, FutureExt};
 use opentalk_compositor::{
     audio::Silence,
     livekit::{
@@ -841,12 +842,15 @@ impl fmt::Debug for CompositorObeliskBridgeSink {
 }
 
 impl opentalk_compositor::Sink for CompositorObeliskBridgeSink {
-    fn on_audio_frame(&mut self, frame: Frame<RawAudio>) -> Result<()> {
-        if let Err(e) = self.audio_tx.try_send(frame) {
-            log::debug!("Failed to send audio sample from compositor to audiomixer, {e}");
-        }
+    fn on_audio_frame(&mut self, frame: Frame<RawAudio>) -> BoxFuture<'_, Result<()>> {
+        async {
+            if let Err(e) = self.audio_tx.send(frame).await {
+                log::debug!("Failed to send audio sample from compositor to audiomixer, {e}");
+            }
 
-        Ok(())
+            Ok(())
+        }
+        .boxed()
     }
 
     fn on_video_frame(&mut self, buffer: &[u8]) -> Result<()> {
