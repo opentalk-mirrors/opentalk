@@ -17,7 +17,7 @@ services:
       - "traefik.http.routers.keycloak.rule=Host(`localhost`) && PathPrefix(`/auth`)"
       - "traefik.http.routers.keycloak.priority=50"
       - "traefik.http.routers.keycloak.entrypoints=web"
-      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8000"
       - "traefik.http.middlewares.keycloak-redirect.redirectregex.regex=^/adm/keycloak/(.*)"
       - "traefik.http.middlewares.keycloak-redirect.redirectregex.replacement=/auth/$$1"
       - "traefik.http.middlewares.keycloak-redirect.redirectregex.permanent=true"

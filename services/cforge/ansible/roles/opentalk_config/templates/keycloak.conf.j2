@@ -37,8 +37,8 @@ http-relative-path={{ Keycloak.http.relative_path }}
 
 {% if Deployment.environment is defined and 'dev' in Deployment.environment %}
 hostname={{ Keycloak.base_url }}
+http-port=8000
 hostname-strict=false
-proxy=edge
 proxy-headers=xforwarded
 hostname-backchannel-dynamic=true
 {% else %}
