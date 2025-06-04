@@ -15,6 +15,21 @@
       - mailcrab
       - postgres
 
+  - name: "Ensure COMPOSE_OVERRIDE entries in default.env for OpenTalk 3rd_party services"
+    ansible.builtin.lineinfile:
+      path: "{{ config_dir }}/default.env"
+      regexp: "^{{ item | upper }}_COMPOSE_OVERRIDE="
+      line: "{{ item | upper }}_COMPOSE_OVERRIDE=:config/services-config/3rd_party/{{ item }}/compose-override-{{ item }}.yaml"
+      insertbefore: '^COMPOSE_FILE='
+    loop:
+      - traefik
+      - keycloak
+      - minio
+      - livekit
+      - rabbitmq
+      - mailcrab
+      - postgres
+
   - name: "Manage custom compose override files for OpenTalk services | config/services-config/*/compose-override-*.yaml"
     ansible.builtin.template:
       src: compose_override/compose-override-{{ item }}.yaml.j2
@@ -29,8 +44,23 @@
       - recorder
       - etherpad
       - spacedeck
+
+  - name: "Ensure COMPOSE_OVERRIDE entries in default.env for OpenTalk services"
+    ansible.builtin.lineinfile:
+      path: "{{ config_dir }}/default.env"
+      regexp: "^{{ item | upper }}_COMPOSE_OVERRIDE="
+      line: "{{ item | upper }}_COMPOSE_OVERRIDE=:config/services-config/{{ item }}/compose-override-{{ item }}.yaml"
+      insertbefore: '^COMPOSE_FILE='
+    loop:
+      - cforge
+      - controller
+      - webapp
+      - mailer
+      - recorder
+      - etherpad
+      - spacedeck
   tags:
     - dev
-    - init
-    - apply
+    #- init
+    #- apply
     - skip_task
