@@ -4,9 +4,13 @@
 
 //! HTTP calls made by this library (except for websockets)
 
+use std::time::{Duration, SystemTime};
+
 use crate::settings::{AuthSettings, ControllerSettings};
 use crate::websocket::Ticket;
 use anyhow::{bail, Context, Result};
+use chrono::{serde::ts_seconds::deserialize as from_ts, DateTime, Utc};
+use jsonwebtoken::{decode, DecodingKey, Validation};
 use openidconnect::core::{
     CoreAuthDisplay, CoreAuthPrompt, CoreClient, CoreErrorResponseType, CoreGenderClaim,
     CoreJsonWebKey, CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm,
@@ -89,22 +93,24 @@ impl HttpClient {
         })
     }
 
-    async fn refresh_access_tokens(&self, invalid_token: AccessToken) -> Result<()> {
+    async fn get_valid_access_token(&self) -> Result<AccessToken> {
         let mut token = self.access_token.write().await;
 
-        if token.secret() != invalid_token.secret() {
-            return Ok(());
+        // Refresh access token if it's expired
+        if check_if_token_is_expired(token.secret())? {
+            log::trace!("stored access token has expired");
+
+            let response = self
+                .oidc
+                .exchange_client_credentials()
+                .request_async(&self.client)
+                .await
+                .context("Failed to request new access token")?;
+
+            *token = response.access_token().clone();
         }
 
-        let response = self
-            .oidc
-            .exchange_client_credentials()
-            .request_async(&self.client)
-            .await?;
-
-        *token = response.access_token().clone();
-
-        Ok(())
+        Ok(token.clone())
     }
 
     /// Request a signaling ticket with the given DTMF digits `id` and `pin`
@@ -123,51 +129,63 @@ impl HttpClient {
             format!("https://{}/v1/services/call_in/start", settings.domain)
         };
 
-        // max 10 tries
-        for _ in 0..10 {
-            let token = {
-                // Scope the access to the lock to avoid holding it for the entire loop-body
-                let l = self.access_token.read().await;
-                l.clone()
-            };
+        let token = self
+            .get_valid_access_token()
+            .await
+            .context("Failed to retrieve valid AccessToken")?;
 
-            let response = self
-                .client
-                .post(&uri)
-                .header("content-type", "application/json")
-                .bearer_auth(token.secret())
-                .json(&StartRequest { id, pin })
-                .send()
-                .await?;
+        let response = self
+            .client
+            .post(&uri)
+            .bearer_auth(token.secret())
+            .json(&StartRequest { id, pin })
+            .send()
+            .await?;
 
-            match response.status() {
-                StatusCode::OK => {
-                    let response = response.json::<StartResponse>().await?;
+        let status = response.status();
+        let response_body = response
+            .text()
+            .await
+            .context("Failed to read HTTP response body")?;
 
-                    return Ok(Ticket(response.ticket));
-                }
-                StatusCode::UNAUTHORIZED => {
-                    let ApiError { code } = response.json::<ApiError>().await?;
+        log::trace!("start response status={status} body={response_body}");
 
-                    if code == "unauthorized" {
-                        self.refresh_access_tokens(token).await?;
-                    } else {
-                        bail!(InvalidCredentials);
-                    }
-                }
-                StatusCode::BAD_REQUEST => {
-                    let ApiError { code } = response.json::<ApiError>().await?;
+        match status {
+            StatusCode::OK => {
+                let response = serde_json::from_str::<StartResponse>(&response_body)
+                    .context("Failed to parse response body")?;
 
-                    if code == "invalid_credentials" {
-                        bail!(InvalidCredentials);
-                    }
-                }
-                code => bail!("unexpected status code {code:?}"),
+                Ok(Ticket(response.ticket))
             }
+            StatusCode::BAD_REQUEST => bail!(InvalidCredentials),
+            status => bail!("unexpected status code {status:?}"),
         }
-
-        bail!("failed to authenticate")
     }
+}
+
+#[derive(Deserialize)]
+struct TokenClaims {
+    #[serde(deserialize_with = "from_ts")]
+    exp: DateTime<Utc>,
+}
+
+/// Check if the token is expired or is expiring within a minute
+fn check_if_token_is_expired(token: &str) -> Result<bool> {
+    let mut validation = Validation::default();
+    validation.insecure_disable_signature_validation();
+    validation.validate_exp = false;
+    validation.validate_aud = false;
+
+    let token = decode::<TokenClaims>(token, &DecodingKey::from_secret(&[]), &validation)?;
+
+    let now = DateTime::<Utc>::from(SystemTime::now());
+
+    log::trace!(
+        "access token is still valid for {:?}",
+        token.claims.exp.signed_duration_since(now)
+    );
+
+    Ok(now > token.claims.exp - Duration::from_secs(60))
 }
 
 /// Error returned by the `start` function when the given digits were incorrect
@@ -179,11 +197,6 @@ pub struct InvalidCredentials;
 struct StartRequest<'s> {
     id: &'s str,
     pin: &'s str,
-}
-
-#[derive(Deserialize)]
-struct ApiError {
-    code: String,
 }
 
 #[derive(Deserialize)]
