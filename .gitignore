@@ -1,0 +1,6 @@
+/target
+config.toml
+transcription.toml
+ggml-large-v3.bin
+ggml-large-v3-turbo.bin
+ggml-large-v3-turbo-q8_0.bin

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+source /opt/intel/oneapi/setvars.sh > /dev/null
+
+RUST_LOG="opentalk=debug,whisper_rs=warn,info" \
+LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/intel/oneapi/2025.1/lib" \
+LD_PRELOAD="/opt/intel/oneapi/2025.1/lib/libmkl_core.so" \
+ONEAPI_DEVICE_SELECTOR="level_zero:0" \
+cargo run --release --features sycl

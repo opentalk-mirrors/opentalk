@@ -1,0 +1,68 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors = ["OpenTalk Team <mail@opentalk.eu>"]
+edition = "2024"
+homepage = "https://opentalk.eu/"
+license = "EUPL-1.2"
+name = "opentalk-transcription"
+publish = false
+repository = "https://gitlab.opencode.de/opentalk/transcription"
+version = "0.1.0"
+build = "build.rs"
+
+[features]
+default = ["vulkan"]
+cuda = ["whisper-rs/cuda"]
+sycl = ["whisper-rs/intel-sycl"]
+vulkan = ["whisper-rs/vulkan"]
+
+[dependencies]
+anstream = "0.6"
+anyhow = { version = "1", features = ["backtrace"] }
+audio-nodes = { package = "ezk-audio-nodes", version = "0.1" }
+axum = { version = "0.8.4", features = ["http2", "ws"] }
+chrono = "0.4"
+clap = { version = "4.5", features = ["derive"] }
+config = { version = "0.15", default-features = false, features = ["toml"] }
+directories = "6.0"
+env_logger = "0.11"
+ezk = "0.1"
+ezk-audio = "0.1"
+futures = "0.3"
+itertools = "0.14"
+jsonwebtoken = "9.3"
+livekit-api = { version = "0.4", features = ["signal-client-tokio"] }
+livekit-protocol = { version = "0.3" }
+livekit = { version = "0.7", features = ["native-tls"] }
+log = "0.4"
+openidconnect = "4"
+opentalk-client-signaling = "0.1"
+opentalk-version = "0.2"
+owo-colors = "4.2"
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls-native-roots"] }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+service-probe = "0.2"
+thiserror = "2.0"
+tokio = { version = "1.45", features = ["macros", "rt-multi-thread", "signal"] }
+tt = { package = "tokio-tungstenite", version = "0.26", features = ["rustls-tls-webpki-roots"] }
+types-common = { package = "opentalk-types-common", version = "0.34", features = ["rand", "serde"] }
+types-control = { package = "opentalk-types-signaling-control", version = "0.35", features = ["serde"] }
+types-signaling-livekit = { package = "opentalk-types-signaling-livekit", version = "0.35", features = ["serde"] }
+types-signaling = { package = "opentalk-types-signaling", version = "0.35", features = ["rand", "serde"] }
+whisper-rs = { git = "https://github.com/kerkmann/whisper-rs.git", rev = "5cbca18263ac8a35b2006429d989f45986d953c5", features = ["log_backend"] }
+
+[build-dependencies]
+anyhow = "1"
+opentalk-version = "0.2"
+
+[patch.crates-io]
+libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
+livekit-api = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
+livekit = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
+livekit-protocol = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
+livekit-runtime = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
+webrtc-sys = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }

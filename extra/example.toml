@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[http]
+# An optional address to which to bind.
+# Can be either a hostname, or an IP address.
+#
+# By default, this will accept requests on both the IPv4 and IPv6 interfaces on any address.
+#
+# The exception to this rule is "::0" which will bind to both the IPv4 and the
+# IPv6 UNSPECIFIED address, accepting requests on both of them. If the operating
+# system provides no IPv6 support, or the service should not bind to an IPv6
+# interface, "0.0.0.0" can be used instead, which will only bind to the IPv4
+# UNSPECIFIED address.
+#addr = "::0"
+#
+# A hostname or fully qualified domain name will bind to whatever the name
+# resolution returns, either one or both IP protocols.
+#addr = "controller.opentalk.example.com"
+#addr = "localhost"
+#addr = "opentalkserver"
+#
+# An explicit IPv4 or IPv6 address, will bind to the corresponding IP protocol.
+#addr = "127.0.0.1"
+#addr = "::1"
+#addr = "192.0.2.0"
+#addr = "2001:0DB8::1337:DEAD:CAFE"
+
+# The port to bind the HTTP Server to (defaults to 11311).
+port = 1337
+
+[auth]
+# OIDC Credentials
+issuer = "https://example.org/auth/realms/OpenTalk"
+client_id = "Transcription"
+client_secret = "Abc123"
+
+[controller]
+domain = "localhost:11311"
+insecure = true

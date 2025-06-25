@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+RUST_LOG="opentalk=debug,whisper_rs=warn,info" \
+NVCC_PREPEND_FLAGS="--compiler-options -fPIC" \
+CMAKE_CUDA_ARCHITECTURES="89" \
+LDFLAGS="--enable-shared" \
+NVCC_CCBIN="g++-13" \
+PATH="${PATH}:/usr/local/cuda/bin" \
+cargo run --release --features cuda
