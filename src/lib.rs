@@ -334,8 +334,7 @@ impl EtherpadClient {
             StatusCode::OK => Ok(response.bytes_stream()),
             error_status => Err(EtherpadError::ApiError {
                 message: format!(
-                    "Failed to export pad as PDF document, got StatusCode :{}",
-                    error_status
+                    "Failed to export pad as PDF document, got StatusCode :{error_status}"
                 ),
             }),
         }
