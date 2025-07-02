@@ -818,7 +818,7 @@ fn tagged_to_socket_addr(tagged: &TaggedAddress, port: u16) -> io::Result<Socket
     let addr = match tagged {
         TaggedAddress::IP4(ip) => SocketAddr::new(IpAddr::V4(*ip), port),
         TaggedAddress::IP6(ip) => SocketAddr::new(IpAddr::V6(*ip), port),
-        TaggedAddress::IP4FQDN(name) | TaggedAddress::IP6FQDN(name) => format!("{}:{}", name, port)
+        TaggedAddress::IP4FQDN(name) | TaggedAddress::IP6FQDN(name) => format!("{name}:{port}")
             .to_socket_addrs()?
             .next()
             .expect("empty iterator"),

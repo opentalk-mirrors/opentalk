@@ -177,14 +177,14 @@ impl Signaling {
                         Ok(Some(state)) => self.state = state,
                         Ok(None) => {}
                         Err(e) => {
-                            log::error!("failed to handle sip event, {:?}", e);
+                            log::error!("failed to handle sip event, {e:?}");
                             self.state = State::Quitting;
                         }
                     }
                 }
                 event = self.media.wait_for_event() => {
                     if let Err(e) = self.handle_media_event(event, welcome_finished_channel_tx.clone()).await {
-                        log::error!("failed to handle media event, {:?}", e);
+                        log::error!("failed to handle media event, {e:?}");
                         self.state = State::Quitting;
                     }
 
@@ -193,7 +193,7 @@ impl Signaling {
                 }
                 event = websocket_receive(&mut self.websocket) => {
                     if let Err(e) = self.handle_websocket_event(event, closed_finished_channel_tx.clone()).await {
-                        log::error!("failed to handle websocket event, {:?}", e);
+                        log::error!("failed to handle websocket event, {e:?}");
                     }
                 }
                 _ = self.pin_entry_timeout_receiver.recv() => {
@@ -262,14 +262,14 @@ impl Signaling {
                     }
                     0..=9 => {
                         if self.dtmf_id.len() < 10 {
-                            let _ = write!(&mut self.dtmf_id, "{}", digit);
+                            let _ = write!(&mut self.dtmf_id, "{digit}");
 
                             if self.dtmf_id.len() == 10 {
                                 self.track_controller
                                     .play_track(self.settings.language, Track::WelcomePasscode);
                             }
                         } else {
-                            let _ = write!(&mut self.dtmf_pw, "{}", digit);
+                            let _ = write!(&mut self.dtmf_pw, "{digit}");
 
                             // Cancel the previous timeout if it exists
                             if let Some(task_handle) = self.pin_entry_timeout_task_handle.take() {
@@ -296,7 +296,7 @@ impl Signaling {
                                         return Ok(());
                                     }
                                     Err(e) => {
-                                        log::error!("failed to join, {}", e);
+                                        log::error!("failed to join, {e}");
                                         return Err(e);
                                     }
                                 }
@@ -840,13 +840,13 @@ async fn handle_sip_event(
     match event {
         InviteSessionEvent::RefreshNeeded(event) => {
             if let Err(e) = refresh_invite_session(media, media_session, event).await {
-                log::error!("failed to refresh the INVITE session, {:?}", e);
+                log::error!("failed to refresh the INVITE session, {e:?}");
                 return Ok(Some(State::Quitting));
             }
         }
         InviteSessionEvent::ReInviteReceived(event) => {
             if let Err(e) = handle_reinvite(media, media_session, event).await {
-                log::error!("failed to handle re-invite, {:?}", e);
+                log::error!("failed to handle re-invite, {e:?}");
                 return Ok(Some(State::Quitting));
             }
         }
