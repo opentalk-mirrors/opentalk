@@ -21,6 +21,9 @@ pub enum AuthConfig {
     /// Use the OIDC direct access credentials flow to authenticate
     DirectAccess(DirectionAccessCredentialsAuthConfig),
 
+    /// No authentication, e.g. for guest users
+    None,
+
     /// External implementation of the authentication mechanism
     Other(Box<dyn Authentication>),
 }
@@ -32,6 +35,7 @@ impl fmt::Debug for AuthConfig {
                 f.debug_tuple("ClientCredentials").field(arg0).finish()
             }
             Self::DirectAccess(arg0) => f.debug_tuple("DirectAccess").field(arg0).finish(),
+            Self::None => f.debug_tuple("None").finish(),
             Self::Other(..) => f
                 .debug_tuple("Other")
                 .field(&"Box<dyn Authentication>")

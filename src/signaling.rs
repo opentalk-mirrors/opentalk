@@ -14,10 +14,12 @@ use tt::{
     MaybeTlsStream, WebSocketStream,
     tungstenite::{Message as TtMessage, Utf8Bytes, client::IntoClientRequest},
 };
-use types_common::users::DisplayName;
-use types_control::command::{ControlCommand, Join};
+use types::{
+    common::{auth::TicketToken, users::DisplayName},
+    signaling::control::command::{ControlCommand, Join},
+};
 
-use crate::{config::ControllerConfig, http::HttpClient};
+use crate::config::ControllerConfig;
 
 #[derive(Debug)]
 pub(crate) struct Signaling {
@@ -27,18 +29,11 @@ pub(crate) struct Signaling {
 
 impl Signaling {
     pub(crate) async fn connect(
-        client: &HttpClient,
-        settings: &ControllerConfig,
+        ticket: TicketToken,
+        config: &ControllerConfig,
         display_name: DisplayName,
-        room_id: &str,
-        breakout_id: Option<&str>,
     ) -> Result<Self> {
-        let ticket = client
-            .start(settings, room_id, breakout_id)
-            .await
-            .context("Failed to send start HTTP request")?;
-
-        let mut websocket_request = settings.websocket_url().into_client_request()?;
+        let mut websocket_request = config.websocket_url().into_client_request()?;
         websocket_request.headers_mut().insert(
             SEC_WEBSOCKET_PROTOCOL,
             format!("opentalk-signaling-json-v1.0,ticket#{ticket}").try_into()?,
@@ -134,8 +129,7 @@ impl Drop for Signaling {
 
 pub(crate) mod incoming {
     use serde::{Deserialize, Serialize};
-    use types_control::event::ControlEvent;
-    use types_moderation::event::ModerationEvent;
+    use types::signaling::{control::event::ControlEvent, moderation::event::ModerationEvent};
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
@@ -148,7 +142,7 @@ pub(crate) mod incoming {
 
 pub(crate) mod outgoing {
     use serde::{Deserialize, Serialize};
-    use types_control::command::ControlCommand;
+    use types::signaling::control::command::ControlCommand;
 
     #[derive(Debug, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]

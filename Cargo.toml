@@ -13,22 +13,29 @@ jsonwebtoken = "9.3"
 livekit = { version = "0.7", features = ["native-tls"] }
 log = "0.4"
 openidconnect = "4"
-reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls-native-roots"] }
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "stream",
+    "rustls-tls-native-roots",
+] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 tokio = { version = "1.45", features = ["macros", "rt-multi-thread", "signal"] }
-tt = { package = "tokio-tungstenite", version = "0.26", features = ["rustls-tls-webpki-roots"] }
-types-common = { package = "opentalk-types-common", version = "0.34", features = ["rand", "serde"] }
-types-control = { package = "opentalk-types-signaling-control", version = "0.35", features = ["serde"] }
-types-moderation = { package = "opentalk-types-signaling-moderation", version = "0.35", features = ["serde"] }
-types-signaling-livekit = { package = "opentalk-types-signaling-livekit", version = "0.35", features = ["serde"] }
-types-signaling = { package = "opentalk-types-signaling", version = "0.35", features = ["rand", "serde"] }
+tt = { package = "tokio-tungstenite", version = "0.27", features = [
+    "rustls-tls-webpki-roots",
+] }
+types = { package = "opentalk-types", version = "0.43", default-features = false, features = [
+    "serde",
+    "api",
+    "signaling-control",
+    "signaling-moderation",
+    "signaling-livekit",
+] }
 async-trait = "0.1.88"
 
 [build-dependencies]
 anyhow = "1"
-opentalk-version = "0.2"
 
 [patch.crates-io]
 libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }

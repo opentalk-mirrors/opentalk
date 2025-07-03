@@ -1,7 +1,7 @@
 use std::time::{Duration, SystemTime};
 
 use crate::config::{ClientCredentialsAuthConfig, DirectionAccessCredentialsAuthConfig};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc, serde::ts_seconds::deserialize as from_ts};
 use jsonwebtoken::{DecodingKey, Validation, decode};
@@ -50,6 +50,15 @@ type OidcClient = openidconnect::Client<
 #[async_trait]
 pub trait Authentication: Send {
     async fn access_token(&self) -> Result<AccessToken>;
+}
+
+pub(crate) struct NoAuthentication;
+
+#[async_trait]
+impl Authentication for NoAuthentication {
+    async fn access_token(&self) -> Result<AccessToken> {
+        bail!("no authentication available")
+    }
 }
 
 pub(crate) struct ClientCredentialsAuthentication {

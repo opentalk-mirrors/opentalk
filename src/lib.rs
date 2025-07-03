@@ -4,20 +4,22 @@ use anyhow::{Context, Result, bail};
 use livekit::{Room as LiveKitRoom, RoomEvent as LiveKitEvent, RoomOptions as LiveKitRoomOptions};
 use signaling::{Signaling, incoming};
 use tokio::{select, sync::mpsc::UnboundedReceiver};
-use types_control::{
-    command::ControlCommand,
-    event::{ControlEvent, JoinSuccess, Left},
-    state::ControlState,
+use types::signaling::{
+    Participant as OpenTalkParticipant, ParticipantId,
+    control::{
+        command::ControlCommand,
+        event::{ControlEvent, JoinSuccess, Left},
+        state::ControlState,
+    },
+    livekit::state::LiveKitState,
+    moderation::event::ModerationEvent,
 };
-use types_moderation::event::ModerationEvent;
-use types_signaling::{Participant as OpenTalkParticipant, ParticipantId};
-use types_signaling_livekit::state::LiveKitState;
 
+pub mod authentication;
 pub mod client;
 pub mod config;
 pub mod http;
 pub mod signaling;
-pub mod authentication;
 
 pub use client::OpenTalkClient;
 pub use config::{AuthConfig, ControllerConfig};
@@ -135,7 +137,7 @@ impl Room {
     }
 
     pub async fn wait_until_accepted(&mut self) -> Result<()> {
-        log::debug!("wait until accpeted");
+        log::debug!("wait until accepted");
         loop {
             match self.signaling.recv().await? {
                 incoming::Event::Moderation(ModerationEvent::Accepted) => {
@@ -160,7 +162,7 @@ impl Room {
                 }
 
                 if self.use_livekit {
-                    self.connect_livekit(join_success).await?;
+                    self.connect_livekit(*join_success).await?;
                 }
             }
             Ok(incoming::Event::Moderation(ModerationEvent::Accepted)) => {
