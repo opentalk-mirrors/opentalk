@@ -24,6 +24,7 @@ types-control = { package = "opentalk-types-signaling-control", version = "0.35"
 types-moderation = { package = "opentalk-types-signaling-moderation", version = "0.35", features = ["serde"] }
 types-signaling-livekit = { package = "opentalk-types-signaling-livekit", version = "0.35", features = ["serde"] }
 types-signaling = { package = "opentalk-types-signaling", version = "0.35", features = ["rand", "serde"] }
+async-trait = "0.1.88"
 
 [build-dependencies]
 anyhow = "1"

@@ -17,6 +17,7 @@ pub mod client;
 pub mod config;
 pub mod http;
 pub mod signaling;
+pub mod authentication;
 
 pub use client::OpenTalkClient;
 pub use config::{AuthConfig, ControllerConfig};
@@ -142,7 +143,7 @@ impl Room {
 
                     return Ok(());
                 }
-                _ => {}
+                event => log::warn!("Received unexpected event {event:?} while in waiting room"),
             }
         }
     }

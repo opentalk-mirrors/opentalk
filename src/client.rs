@@ -1,23 +1,26 @@
 use std::collections::HashMap;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use types_common::users::DisplayName;
 
 use crate::config::ClientConfig;
 use crate::http::HttpClient;
 use crate::signaling::Signaling;
-use crate::{Room, WaitingRoomState};
+use crate::{ControllerConfig, Room, WaitingRoomState};
 
 pub struct OpenTalkClient {
-    settings: ClientConfig,
+    controller_config: ControllerConfig,
     http: HttpClient,
 }
 
 impl OpenTalkClient {
-    pub async fn create(settings: ClientConfig) -> Result<Self> {
-        let http = HttpClient::discover(&settings.auth).await?;
+    pub async fn create(config: ClientConfig) -> Result<Self> {
+        let http = HttpClient::create(config.auth).await?;
 
-        Ok(Self { settings, http })
+        Ok(Self {
+            controller_config: config.controller,
+            http,
+        })
     }
 
     pub async fn connect(
@@ -28,12 +31,12 @@ impl OpenTalkClient {
     ) -> Result<JoinResult> {
         let signaling = Signaling::connect(
             &self.http,
-            &self.settings.controller,
+            &self.controller_config,
             display_name,
             room_id,
             None,
         )
-        .await?;
+        .await.context("Failed to connect to signaling")?;
 
         let mut room = Room {
             use_livekit,
