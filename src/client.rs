@@ -3,18 +3,18 @@ use std::collections::HashMap;
 use anyhow::Result;
 use types_common::users::DisplayName;
 
+use crate::config::ClientConfig;
 use crate::http::HttpClient;
-use crate::settings::Settings;
 use crate::signaling::Signaling;
 use crate::{Room, WaitingRoomState};
 
 pub struct OpenTalkClient {
-    settings: Settings,
+    settings: ClientConfig,
     http: HttpClient,
 }
 
 impl OpenTalkClient {
-    pub async fn create(settings: Settings) -> Result<Self> {
+    pub async fn create(settings: ClientConfig) -> Result<Self> {
         let http = HttpClient::discover(&settings.auth).await?;
 
         Ok(Self { settings, http })

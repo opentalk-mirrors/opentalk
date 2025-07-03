@@ -24,7 +24,7 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
-use crate::settings::{AuthSettings, ControllerSettings};
+use crate::config::{AuthConfig, ControllerConfig};
 
 type OidcClient = openidconnect::Client<
     EmptyAdditionalClaims,
@@ -63,7 +63,7 @@ pub(crate) struct HttpClient {
 }
 
 impl HttpClient {
-    pub(crate) async fn discover(settings: &AuthSettings) -> Result<Self> {
+    pub(crate) async fn discover(settings: &AuthConfig) -> Result<Self> {
         let client = reqwest::Client::new();
 
         let metadata =
@@ -103,7 +103,7 @@ impl HttpClient {
 
     pub(crate) async fn start(
         &self,
-        settings: &ControllerSettings,
+        settings: &ControllerConfig,
         room_id: &str,
         breakout_room: Option<&str>,
     ) -> Result<String> {

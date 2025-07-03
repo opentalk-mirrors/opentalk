@@ -14,12 +14,12 @@ use types_signaling::{Participant as OpenTalkParticipant, ParticipantId};
 use types_signaling_livekit::state::LiveKitState;
 
 pub mod client;
+pub mod config;
 pub mod http;
-pub mod settings;
 pub mod signaling;
 
 pub use client::OpenTalkClient;
-pub use settings::{AuthSettings, ControllerSettings};
+pub use config::{AuthConfig, ControllerConfig};
 
 #[derive(Debug)]
 pub struct Room {
@@ -40,6 +40,7 @@ enum WaitingRoomState {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum Event {
     OpenTalk(OpenTalkEvent),
     LiveKit(LiveKitEvent),

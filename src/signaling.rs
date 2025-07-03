@@ -17,7 +17,7 @@ use tt::{
 use types_common::users::DisplayName;
 use types_control::command::{ControlCommand, Join};
 
-use crate::{http::HttpClient, settings::ControllerSettings};
+use crate::{config::ControllerConfig, http::HttpClient};
 
 #[derive(Debug)]
 pub(crate) struct Signaling {
@@ -28,7 +28,7 @@ pub(crate) struct Signaling {
 impl Signaling {
     pub(crate) async fn connect(
         client: &HttpClient,
-        settings: &ControllerSettings,
+        settings: &ControllerConfig,
         display_name: DisplayName,
         room_id: &str,
         breakout_id: Option<&str>,
@@ -136,6 +136,7 @@ pub(crate) mod incoming {
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
+    #[allow(clippy::large_enum_variant)]
     pub(crate) enum Event {
         Control(ControlEvent),
         Moderation(ModerationEvent),
