@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use anyhow::{Context, Result};
 use types::common::{
     auth::TicketToken,
@@ -8,10 +6,9 @@ use types::common::{
     users::DisplayName,
 };
 
-use crate::config::ClientConfig;
-use crate::http::HttpClient;
-use crate::signaling::Signaling;
-use crate::{ControllerConfig, Room, WaitingRoomState};
+use crate::{
+    ControllerConfig, config::ClientConfig, http::HttpClient, room::Room, signaling::Signaling,
+};
 
 pub struct OpenTalkClient {
     controller_config: ControllerConfig,
@@ -94,14 +91,7 @@ impl OpenTalkClient {
             .await
             .context("Failed to connect to signaling")?;
 
-        let mut room = Room {
-            use_livekit,
-            waiting_room_state: WaitingRoomState::None,
-            signaling,
-            livekit_room: None,
-            livekit_events: None,
-            participants: HashMap::new(),
-        };
+        let mut room = Room::new(use_livekit, signaling);
 
         room.join().await?;
 

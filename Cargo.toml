@@ -25,14 +25,16 @@ tokio = { version = "1.45", features = ["macros", "rt-multi-thread", "signal"] }
 tt = { package = "tokio-tungstenite", version = "0.27", features = [
     "rustls-tls-webpki-roots",
 ] }
-types = { package = "opentalk-types", version = "0.43", default-features = false, features = [
+types = { package = "opentalk-types", version = "0.44", default-features = false, features = [
     "serde",
     "api",
     "signaling-control",
     "signaling-moderation",
     "signaling-livekit",
+    "signaling-recording",
 ] }
 async-trait = "0.1.88"
+slotmap = "1.0.7"
 
 [build-dependencies]
 anyhow = "1"

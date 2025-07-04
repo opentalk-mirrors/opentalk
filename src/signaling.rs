@@ -12,7 +12,11 @@ use reqwest::header::SEC_WEBSOCKET_PROTOCOL;
 use tokio::net::TcpStream;
 use tt::{
     MaybeTlsStream, WebSocketStream,
-    tungstenite::{Message as TtMessage, Utf8Bytes, client::IntoClientRequest},
+    tungstenite::{
+        Message as TtMessage, Utf8Bytes,
+        client::IntoClientRequest,
+        protocol::{CloseFrame, frame::coding::CloseCode},
+    },
 };
 use types::{
     common::{auth::TicketToken, users::DisplayName},
@@ -57,7 +61,7 @@ impl Signaling {
     }
 
     /// Run the signaling task until terminated via the shutdown signal
-    pub async fn recv(&mut self) -> Result<incoming::Event> {
+    pub(crate) async fn recv(&mut self) -> Result<incoming::Event> {
         while let Some(data) = self.pending_pings.front() {
             self.websocket
                 .as_mut()
@@ -104,7 +108,7 @@ impl Signaling {
         }
     }
 
-    pub async fn send(&mut self, payload: impl Into<outgoing::Command>) -> Result<()> {
+    pub(crate) async fn send(&mut self, payload: impl Into<outgoing::Command>) -> Result<()> {
         self.websocket
             .as_mut()
             .unwrap()
@@ -114,6 +118,18 @@ impl Signaling {
             .await?;
 
         Ok(())
+    }
+
+    pub(crate) async fn close(&mut self) -> Result<()> {
+        let mut websocket = self.websocket.take().unwrap();
+
+        websocket
+            .close(Some(CloseFrame {
+                code: CloseCode::Normal,
+                reason: Utf8Bytes::default(),
+            }))
+            .await
+            .context("Failed to send websocket close frame")
     }
 }
 
@@ -129,7 +145,10 @@ impl Drop for Signaling {
 
 pub(crate) mod incoming {
     use serde::{Deserialize, Serialize};
-    use types::signaling::{control::event::ControlEvent, moderation::event::ModerationEvent};
+    use types::signaling::{
+        control::event::ControlEvent, livekit::event::LiveKitEvent,
+        moderation::event::ModerationEvent, recording::event::RecordingEvent,
+    };
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
@@ -137,23 +156,33 @@ pub(crate) mod incoming {
     pub(crate) enum Event {
         Control(ControlEvent),
         Moderation(ModerationEvent),
+        LiveKit(LiveKitEvent),
+        Recording(RecordingEvent),
     }
 }
 
 pub(crate) mod outgoing {
     use serde::{Deserialize, Serialize};
-    use types::signaling::control::command::ControlCommand;
+    use types::signaling::{
+        control::command::ControlCommand, recording::command::RecordingCommand,
+    };
 
     #[derive(Debug, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
     pub(crate) enum Command {
-        #[allow(unused)]
         Control(ControlCommand),
+        Recording(RecordingCommand),
     }
 
     impl From<ControlCommand> for Command {
         fn from(command: ControlCommand) -> Self {
             Self::Control(command)
+        }
+    }
+
+    impl From<RecordingCommand> for Command {
+        fn from(command: RecordingCommand) -> Self {
+            Self::Recording(command)
         }
     }
 }
