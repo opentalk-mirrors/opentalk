@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use anyhow::{Context, Result, bail};
 use reqwest::StatusCode;
 use types::{
     api::v1::{
@@ -26,13 +25,49 @@ use crate::{
     config::{AuthConfig, ControllerConfig},
 };
 
+#[derive(Debug, thiserror::Error)]
+pub enum StartAuthorizedError {
+    #[error("Failed to get access token from authentication backend")]
+    FailedToGetAccessToken(#[source] anyhow::Error),
+    #[error("Failed to make the HTTP request")]
+    HttpFailure(#[from] reqwest::Error),
+    #[error("Failed to parse HTTP response body")]
+    InvalidResponseBody(#[from] serde_json::Error),
+    #[error("Received an unexpected status: {0}")]
+    UnexpectedStatusCode(StatusCode),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum StartInvitedError {
+    #[error("Failed to make the HTTP request")]
+    HttpFailure(#[from] reqwest::Error),
+    #[error("Failed to parse HTTP response body")]
+    InvalidResponseBody(#[from] serde_json::Error),
+    #[error("Received an unexpected status: {0}")]
+    UnexpectedStatusCode(StatusCode),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum StartCallInError {
+    #[error("Failed to get access token from authentication backend")]
+    FailedToGetAccessToken(#[source] anyhow::Error),
+    #[error("Failed to make the HTTP request")]
+    HttpFailure(#[from] reqwest::Error),
+    #[error("Failed to parse HTTP response body")]
+    InvalidResponseBody(#[from] serde_json::Error),
+    #[error("Given id or pin is invalid")]
+    InvalidIdOrPin,
+    #[error("Received an unexpected status: {0}")]
+    UnexpectedStatusCode(StatusCode),
+}
+
 pub(crate) struct HttpClient {
     http_client: reqwest::Client,
     authentication: Box<dyn Authentication>,
 }
 
 impl HttpClient {
-    pub(crate) async fn create(config: AuthConfig) -> Result<Self> {
+    pub(crate) async fn create(config: AuthConfig) -> Result<Self, anyhow::Error> {
         let http_client = reqwest::Client::new();
 
         let authentication: Box<dyn Authentication> = match config {
@@ -57,14 +92,14 @@ impl HttpClient {
         config: &ControllerConfig,
         room_id: RoomId,
         breakout_room: Option<BreakoutRoomId>,
-    ) -> Result<TicketToken> {
+    ) -> Result<TicketToken, StartAuthorizedError> {
         let uri = format!("{}/rooms/{room_id}/start", config.v1_api_base_url());
 
         let token = self
             .authentication
             .access_token()
             .await
-            .context("Failed to get access token from authentication backend")?;
+            .map_err(StartAuthorizedError::FailedToGetAccessToken)?;
 
         let response = self
             .http_client
@@ -78,21 +113,17 @@ impl HttpClient {
             .await?;
 
         let status = response.status();
-        let response_body = response
-            .text()
-            .await
-            .context("Failed to read HTTP response body")?;
+        let response_body = response.text().await?;
 
         log::trace!("start response status={status} body={response_body}");
 
         match status {
             StatusCode::OK => {
-                let response = serde_json::from_str::<RoomsStartResponseBody>(&response_body)
-                    .context("Failed to parse response body")?;
+                let response = serde_json::from_str::<RoomsStartResponseBody>(&response_body)?;
 
                 Ok(response.ticket)
             }
-            code => bail!("unexpected status code {code:?}"),
+            status => Err(StartAuthorizedError::UnexpectedStatusCode(status)),
         }
     }
 
@@ -103,7 +134,7 @@ impl HttpClient {
         breakout_room: Option<BreakoutRoomId>,
         invite_code: String,
         password: Option<RoomPassword>,
-    ) -> Result<TicketToken> {
+    ) -> Result<TicketToken, StartInvitedError> {
         let uri = format!("{}/rooms/{room_id}/start_invited", config.v1_api_base_url());
 
         let response = self
@@ -116,25 +147,20 @@ impl HttpClient {
                 resumption: None,
             })
             .send()
-            .await
-            .context("Failed to send start-invited request")?;
+            .await?;
 
         let status = response.status();
-        let response_body = response
-            .text()
-            .await
-            .context("Failed to read HTTP response body")?;
+        let response_body = response.text().await?;
 
         log::trace!("start-invited response status={status} body={response_body}");
 
         match status {
             StatusCode::OK => {
-                let response = serde_json::from_str::<RoomsStartResponseBody>(&response_body)
-                    .context("Failed to parse response body")?;
+                let response = serde_json::from_str::<RoomsStartResponseBody>(&response_body)?;
 
                 Ok(response.ticket)
             }
-            code => bail!("unexpected status code {code:?}"),
+            status => Err(StartInvitedError::UnexpectedStatusCode(status)),
         }
     }
 
@@ -143,14 +169,14 @@ impl HttpClient {
         config: &ControllerConfig,
         id: CallInId,
         pin: CallInPassword,
-    ) -> Result<TicketToken> {
+    ) -> Result<TicketToken, StartCallInError> {
         let uri = format!("{}/services/call_in/start", config.v1_api_base_url());
 
         let token = self
             .authentication
             .access_token()
             .await
-            .context("Failed to get access token from authentication backend")?;
+            .map_err(StartCallInError::FailedToGetAccessToken)?;
 
         let response = self
             .http_client
@@ -158,25 +184,21 @@ impl HttpClient {
             .bearer_auth(token.secret())
             .json(&PostCallInStartRequestBody { id, pin })
             .send()
-            .await
-            .context("Failed to send start-call-in request")?;
+            .await?;
 
         let status = response.status();
-        let response_body = response
-            .text()
-            .await
-            .context("Failed to read HTTP response body")?;
+        let response_body = response.text().await?;
 
         log::trace!("start-call-in response status={status} body={response_body}");
 
         match status {
             StatusCode::OK => {
-                let response = serde_json::from_str::<RoomsStartResponseBody>(&response_body)
-                    .context("Failed to parse response body")?;
+                let response = serde_json::from_str::<RoomsStartResponseBody>(&response_body)?;
 
                 Ok(response.ticket)
             }
-            code => bail!("unexpected status code {code:?}"),
+            StatusCode::BAD_REQUEST => Err(StartCallInError::InvalidIdOrPin),
+            status => Err(StartCallInError::UnexpectedStatusCode(status)),
         }
     }
 }
