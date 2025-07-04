@@ -82,10 +82,7 @@ impl PortPool {
         let port_pairs = (port_end - port_start).div_ceil(2);
 
         log::trace!(
-            "Obelisk will use port {} - {} for SIP RTP/RTCP connections, {} available pairs",
-            port_start,
-            port_end,
-            port_pairs
+            "Obelisk will use port {port_start} - {port_end} for SIP RTP/RTCP connections, {port_pairs} available pairs"
         );
 
         INSTANCE
@@ -161,10 +158,7 @@ impl PortPool {
             };
 
             log::trace!(
-                "Using port {} & {} for new RTP/RTCP connection (pair {}),",
-                rtp_port,
-                rtcp_port,
-                pair
+                "Using port {rtp_port} & {rtcp_port} for new RTP/RTCP connection (pair {pair}),"
             );
 
             used_pairs.insert(pair);
@@ -187,7 +181,7 @@ impl PortPool {
 
         used_pairs.remove(&pair);
 
-        log::trace!("Removed port {} from PortPool (pair {})", port, pair);
+        log::trace!("Removed port {port} from PortPool (pair {pair})");
     }
 }
 

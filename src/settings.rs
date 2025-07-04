@@ -59,8 +59,8 @@ where
                 anstream::eprintln!(
                     "{}: rename environment variable {} to {}",
                     "DEPRECATION WARNING".yellow().bold(),
-                    format!("K3K_OBLSK_{}", env_var).yellow(),
-                    format!("OPENTALK_OBLSK_{}", env_var).green().bold(),
+                    format!("K3K_OBLSK_{env_var}").yellow(),
+                    format!("OPENTALK_OBLSK_{env_var}").green().bold(),
                 );
             }
         }

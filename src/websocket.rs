@@ -87,7 +87,7 @@ impl Websocket {
     }
 
     async fn send(&mut self, data: impl std::fmt::Display) -> Result<()> {
-        log::trace!("sending \"{}\"", data);
+        log::trace!("sending \"{data}\"");
 
         self.websocket
             .send(Message::Text(Utf8Bytes::from(data.to_string())))

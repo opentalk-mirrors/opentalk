@@ -169,14 +169,12 @@ skip = [
   "itertools",
   "reqwest",
   "rustls-native-certs",
-  "rustls-pemfile",
   "rustls-webpki",
   "rustls",
   "sync_wrapper",
   "tokio-rustls",
   "tokio-tungstenite",
   "tungstenite",
-  "webpki-roots",
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive

@@ -82,7 +82,7 @@ impl Layer for AppLayer {
         };
 
         if let Err(e) = self.handle_invite(endpoint, request, contact, pub_ip).await {
-            log::error!("failed to handle invite {:?}", e);
+            log::error!("failed to handle invite {e:?}");
         }
     }
 }
@@ -336,7 +336,7 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         let receiver_count = shutdown.receiver_count();
 
         if receiver_count > 0 {
-            log::info!("Waiting for {} tasks to exit", receiver_count);
+            log::info!("Waiting for {receiver_count} tasks to exit");
 
             sleep(Duration::from_secs(1)).await;
         } else {
@@ -366,9 +366,9 @@ fn generate_id_uri(settings: &Arc<Settings>, pub_addr: SocketAddr) -> Result<Sip
     };
 
     let uri = if let Some(username) = &settings.sip.username {
-        format!("sip:{}@{}", username, host)
+        format!("sip:{username}@{host}")
     } else {
-        format!("sip:{}", host)
+        format!("sip:{host}")
     };
 
     uri.parse()
@@ -384,9 +384,9 @@ fn generate_contact_uri(settings: &Arc<Settings>, pub_addr: SocketAddr) -> Resul
     }
 
     let uri = if let Some(username) = &settings.sip.username {
-        format!("sip:{}@{}", username, pub_addr)
+        format!("sip:{username}@{pub_addr}")
     } else {
-        format!("sip:{}", pub_addr)
+        format!("sip:{pub_addr}")
     };
 
     uri.parse()
@@ -582,7 +582,7 @@ async fn nat_keep_alive(tp: TpHandle, target: SocketAddr, interval_delta: Durati
 
     loop {
         if let Err(e) = tp.send(b"\r\n", target).await {
-            log::error!("failed to send keep-alive, {}", e);
+            log::error!("failed to send keep-alive, {e}");
         }
 
         interval.tick().await;
