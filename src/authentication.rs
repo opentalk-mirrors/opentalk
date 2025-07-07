@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc, serde::ts_seconds::deserialize as from_ts};
 use jsonwebtoken::{DecodingKey, Validation, decode};
 use openidconnect::{
     AccessToken, EmptyAdditionalClaims, EmptyExtraTokenFields, EndpointNotSet, EndpointSet,
-    IdTokenFields, OAuth2TokenResponse, RevocationErrorResponseType, StandardErrorResponse,
+    IdTokenFields, OAuth2TokenResponse, RevocationErrorResponseType, Scope, StandardErrorResponse,
     StandardTokenIntrospectionResponse, StandardTokenResponse,
     core::{
         CoreAuthDisplay, CoreAuthPrompt, CoreClient, CoreErrorResponseType, CoreGenderClaim,
@@ -92,6 +92,7 @@ impl ClientCredentialsAuthentication {
 
         let response = oidc_client
             .exchange_client_credentials()
+            .add_scope(Scope::new(String::from("openid")))
             .request_async(&http_client)
             .await
             .context("Failed to exchange client credentials")?;
@@ -116,6 +117,7 @@ impl Authentication for ClientCredentialsAuthentication {
         let response = self
             .oidc_client
             .exchange_client_credentials()
+            .add_scope(Scope::new(String::from("openid")))
             .request_async(&self.http_client)
             .await
             .context("Failed to exchange client credentials")?;
@@ -159,6 +161,7 @@ impl DirectAccessCredentialsAuthentication {
 
         let response = oidc_client
             .exchange_password(&config.username, &config.password)
+            .add_scope(Scope::new(String::from("openid")))
             .request_async(&http_client)
             .await
             .context("Failed to exchange username & password")?;
@@ -184,6 +187,7 @@ impl Authentication for DirectAccessCredentialsAuthentication {
         let response = self
             .oidc_client
             .exchange_password(&self.config.username, &self.config.password)
+            .add_scope(Scope::new(String::from("openid")))
             .request_async(&self.http_client)
             .await
             .context("Failed to exchange username & password")?;
