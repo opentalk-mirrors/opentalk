@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime};
 
-use crate::config::{ClientCredentialsAuthConfig, DirectionAccessCredentialsAuthConfig};
+use crate::config::{ClientCredentialsAuthConfig, DirectAccessCredentialsAuthConfig};
 use anyhow::{Context, Result, bail};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc, serde::ts_seconds::deserialize as from_ts};
@@ -127,7 +127,7 @@ impl Authentication for ClientCredentialsAuthentication {
 }
 
 pub(crate) struct DirectAccessCredentialsAuthentication {
-    config: DirectionAccessCredentialsAuthConfig,
+    config: DirectAccessCredentialsAuthConfig,
 
     http_client: reqwest::Client,
     oidc_client: OidcClient,
@@ -137,7 +137,7 @@ pub(crate) struct DirectAccessCredentialsAuthentication {
 impl DirectAccessCredentialsAuthentication {
     pub async fn create(
         http_client: reqwest::Client,
-        config: DirectionAccessCredentialsAuthConfig,
+        config: DirectAccessCredentialsAuthConfig,
     ) -> Result<Self> {
         let metadata = CoreProviderMetadata::discover_async(config.issuer.clone(), &http_client)
             .await

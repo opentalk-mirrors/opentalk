@@ -1,12 +1,15 @@
 use crate::{
-    room::{livekit::RoomLiveKitState, recording::RoomRecordingState},
+    room::{
+        livekit::{OpenTalkLiveKitEvent, RoomLiveKitState},
+        recording::RoomRecordingState,
+    },
     signaling::{Signaling, incoming},
 };
 use ::livekit::{
     Room as LiveKitRoom, RoomEvent as LiveKitRoomEvent, RoomOptions as LiveKitRoomOptions,
 };
 use anyhow::{Context, Result, bail};
-use std::collections::{BTreeSet, HashMap};
+use std::{collections::HashMap, future::pending};
 use tokio::select;
 use types::signaling::{
     Participant as OpenTalkParticipant, ParticipantId,
@@ -23,7 +26,7 @@ use types::signaling::{
     },
 };
 
-mod livekit;
+pub mod livekit;
 mod recording;
 
 #[derive(Debug)]
@@ -60,12 +63,10 @@ pub enum OpenTalkEvent {
     ParticipantUpdated(Participant),
     ParticipantLeft(ParticipantId),
 
-    MicrophoneRestrictionEnabled {
-        unrestricted_participants: BTreeSet<ParticipantId>,
-    },
-    MicrophoneRestrictionDisabled,
-
     MovedToWaitingRoom,
+    AcceptedFromWaitingRoom,
+
+    LiveKit(OpenTalkLiveKitEvent),
 }
 
 #[derive(Debug, Clone)]
@@ -88,8 +89,13 @@ impl Room {
     }
 
     pub async fn recv(&mut self) -> Result<Event> {
-        if self.waiting_room_state != WaitingRoomState::None {
-            bail!("Currently in waiting room");
+        match self.waiting_room_state {
+            WaitingRoomState::InWaitingRoom => {
+                self.wait_until_accepted().await?;
+                return Ok(Event::OpenTalk(OpenTalkEvent::AcceptedFromWaitingRoom));
+            }
+            WaitingRoomState::Accepted => pending().await,
+            WaitingRoomState::None => {}
         }
 
         loop {

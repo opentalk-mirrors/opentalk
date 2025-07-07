@@ -8,4 +8,4 @@ mod room;
 
 pub use client::OpenTalkClient;
 pub use config::{AuthConfig, ControllerConfig};
-pub use room::{OpenTalkEvent, Participant, Room, Event};
+pub use room::{Event, OpenTalkEvent, Participant, Room};

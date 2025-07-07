@@ -19,7 +19,7 @@ pub enum AuthConfig {
     ClientCredentials(ClientCredentialsAuthConfig),
 
     /// Use the OIDC direct access credentials flow to authenticate
-    DirectAccess(DirectionAccessCredentialsAuthConfig),
+    DirectAccess(DirectAccessCredentialsAuthConfig),
 
     /// No authentication, e.g. for guest users
     None,
@@ -52,7 +52,7 @@ pub struct ClientCredentialsAuthConfig {
 }
 
 #[derive(Debug)]
-pub struct DirectionAccessCredentialsAuthConfig {
+pub struct DirectAccessCredentialsAuthConfig {
     pub issuer: IssuerUrl,
     pub client_id: ClientId,
     pub client_secret: ClientSecret,
