@@ -199,10 +199,10 @@ impl Room {
             Ok(incoming::Event::Control(ControlEvent::JoinSuccess(join_success))) => {
                 self.id = join_success.id;
 
-                let mut participants = HashMap::new();
+                self.participants = HashMap::new();
                 for opentalk_participant in &join_success.participants {
                     let participant = parse_participant(opentalk_participant)?;
-                    participants.insert(participant.id, participant);
+                    self.participants.insert(participant.id, participant);
                 }
 
                 if self.use_livekit {
