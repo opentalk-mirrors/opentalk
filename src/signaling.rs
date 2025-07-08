@@ -60,8 +60,7 @@ impl Signaling {
         Ok(this)
     }
 
-    /// Run the signaling task until terminated via the shutdown signal
-    pub(crate) async fn recv(&mut self) -> Result<incoming::Event> {
+    pub(crate) async fn recv(&mut self) -> Result<Option<incoming::Event>> {
         while let Some(data) = self.pending_pings.front() {
             self.websocket
                 .as_mut()
@@ -72,16 +71,19 @@ impl Signaling {
         }
 
         loop {
-            let payload = self.recv_websocket_message().await?;
+            let Some(payload) = self.recv_websocket_message().await? else {
+                return Ok(None);
+            };
 
-            if let Ok(payload) = serde_json::from_str(&payload) {
-                return Ok(payload);
+            match serde_json::from_str(&payload) {
+                Ok(payload) => return Ok(payload),
+                Err(e) => log::debug!("Failed to parse event: {e:?}"),
             }
         }
     }
 
     // Receive any text data from the websocket and handle other events silently
-    async fn recv_websocket_message(&mut self) -> Result<Utf8Bytes> {
+    async fn recv_websocket_message(&mut self) -> Result<Option<Utf8Bytes>> {
         loop {
             match self
                 .websocket
@@ -96,11 +98,11 @@ impl Signaling {
                     self.pending_pings.push_back(data);
                 }
                 Some(TtMessage::Text(data)) => {
-                    return Ok(data);
+                    return Ok(Some(data));
                 }
                 Some(TtMessage::Close(c)) => {
                     log::debug!("Received close frame: {c:?}");
-                    bail!("received close frame");
+                    return Ok(None);
                 }
                 Some(_) => {}
                 None => bail!("websocket connection closed"),

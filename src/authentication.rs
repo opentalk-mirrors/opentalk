@@ -48,7 +48,7 @@ type OidcClient = openidconnect::Client<
 >;
 
 #[async_trait]
-pub trait Authentication: Send {
+pub trait Authentication: Send + Sync {
     async fn access_token(&self) -> Result<AccessToken>;
 }
 
@@ -68,7 +68,7 @@ pub(crate) struct ClientCredentialsAuthentication {
 }
 
 impl ClientCredentialsAuthentication {
-    pub async fn create(
+    pub(crate) async fn create(
         http_client: reqwest::Client,
         config: ClientCredentialsAuthConfig,
     ) -> Result<Self> {
@@ -137,7 +137,7 @@ pub(crate) struct DirectAccessCredentialsAuthentication {
 }
 
 impl DirectAccessCredentialsAuthentication {
-    pub async fn create(
+    pub(crate) async fn create(
         http_client: reqwest::Client,
         config: DirectAccessCredentialsAuthConfig,
     ) -> Result<Self> {

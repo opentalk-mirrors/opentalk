@@ -1,13 +1,13 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, future::pending};
 
 use ::livekit::{Room as LiveKitRoom, RoomEvent as LiveKitRoomEvent};
 use tokio::sync::mpsc::UnboundedReceiver;
 use types::signaling::{
     ParticipantId,
-    livekit::{MicrophoneRestrictionState, event::LiveKitEvent, state::LiveKitState},
+    livekit::{Credentials, MicrophoneRestrictionState, event::LiveKitEvent, state::LiveKitState},
 };
 
-use crate::room::OpenTalkEvent;
+use crate::{Room, room::OpenTalkEvent};
 
 #[derive(Debug)]
 pub enum OpenTalkLiveKitEvent {
@@ -18,10 +18,30 @@ pub enum OpenTalkLiveKitEvent {
     MutedBy(ParticipantId),
 }
 
+pub struct LiveKitApi<'a> {
+    pub(super) room: &'a mut Room,
+}
+
+impl LiveKitApi<'_> {
+    fn state(&self) -> &RoomLiveKitState {
+        self.room.livekit_state.as_ref().unwrap()
+    }
+
+    pub fn credentials(&self) -> &Credentials {
+        &self.state().credentials
+    }
+
+    pub fn microphone_restriction_state(&self) -> &MicrophoneRestrictionState {
+        &self.state().microphone_restriction_state
+    }
+}
+
 #[derive(Debug)]
 pub(super) struct RoomLiveKitState {
-    pub(super) room: LiveKitRoom,
-    events: UnboundedReceiver<LiveKitRoomEvent>,
+    pub(super) room: Option<LiveKitRoom>,
+    events: Option<UnboundedReceiver<LiveKitRoomEvent>>,
+
+    pub(super) credentials: Credentials,
 
     // Set of participants that are allowed to talk, if the value is set
     microphone_restriction_state: MicrophoneRestrictionState,
@@ -29,13 +49,14 @@ pub(super) struct RoomLiveKitState {
 
 impl RoomLiveKitState {
     pub(super) fn new(
-        room: LiveKitRoom,
-        events: UnboundedReceiver<LiveKitRoomEvent>,
+        room: Option<LiveKitRoom>,
+        events: Option<UnboundedReceiver<LiveKitRoomEvent>>,
         state: LiveKitState,
     ) -> Self {
         Self {
             room,
             events,
+            credentials: state.credentials,
             microphone_restriction_state: state.microphone_restriction_state,
         }
     }
@@ -80,6 +101,9 @@ impl RoomLiveKitState {
     }
 
     pub(super) async fn recv(&mut self) -> Option<LiveKitRoomEvent> {
-        self.events.recv().await
+        match &mut self.events {
+            Some(events) => events.recv().await,
+            None => pending().await,
+        }
     }
 }

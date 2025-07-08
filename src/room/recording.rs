@@ -6,11 +6,21 @@ use types::{
     },
 };
 
-use crate::room::OpenTalkEvent;
+use crate::{Room, room::OpenTalkEvent};
+
+pub struct RecordingApi<'a> {
+    pub(super) room: &'a mut Room,
+}
+
+impl RecordingApi<'_> {
+    pub fn streams(&self) -> &BTreeMap<StreamingTargetId, StreamTarget> {
+        &self.room.recording_state.as_ref().unwrap().streams
+    }
+}
 
 #[derive(Debug)]
 pub(super) struct RoomRecordingState {
-    streams: BTreeMap<StreamingTargetId, StreamTarget>,
+    pub(super) streams: BTreeMap<StreamingTargetId, StreamTarget>,
     pub(super) current_consent: bool,
 }
 
@@ -29,13 +39,13 @@ impl RoomRecordingState {
         match event {
             RecordingEvent::StreamUpdated(StreamUpdated { target_id, status }) => {
                 let stream = self.streams.get_mut(&target_id)?;
-                stream.status = status
-            }
-            RecordingEvent::Error(..) => {}
-            RecordingEvent::RecorderError(..) => {}
-        }
+                stream.status = status;
 
-        None
+                Some(OpenTalkEvent::RecordingTargetsUpdated)
+            }
+            RecordingEvent::Error(..) => None,
+            RecordingEvent::RecorderError(..) => None,
+        }
     }
 
     pub(super) fn can_publish(&self) -> bool {

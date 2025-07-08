@@ -1,3 +1,5 @@
+#![warn(unreachable_pub)]
+
 pub mod authentication;
 pub mod client;
 pub mod config;
@@ -8,4 +10,7 @@ mod room;
 
 pub use client::OpenTalkClient;
 pub use config::{AuthConfig, ControllerConfig};
-pub use room::{Event, OpenTalkEvent, Participant, Room};
+pub use room::{
+    DisconnectReason, Event, LiveKitApi, OpenTalkEvent, OpenTalkLiveKitEvent, Participant,
+    RecordingApi, Room,
+};
