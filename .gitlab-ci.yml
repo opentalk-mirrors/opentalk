@@ -29,7 +29,7 @@ build:deb:
     - find $SOURCE_DIR/opt/opentalk-compose -name .gitkeep -delete
     - mv $SOURCE_DIR/opt/opentalk-compose/config/default.env.sample $SOURCE_DIR/opt/opentalk-compose/config/default.env
     - mkdir -p $OUTPUT_DIR
-    - sed -i "s/^PRODUCT_VERSION=.*/PRODUCT_VERSION=CE-$PACKAGE_VERSION/" $SOURCE_DIR/opt/opentalk-compose/.versions
+    - sed -i "s/^PRODUCT_VERSION=.*/PRODUCT_VERSION=$PACKAGE_VERSION/" $SOURCE_DIR/opt/opentalk-compose/.versions
     - apt-get update && apt-get install -y squashfs-tools binutils curl
     - gem install fpm
     - |
@@ -70,7 +70,7 @@ build:rpm:
     - find $SOURCE_DIR/opt/opentalk-compose -name .gitkeep -delete
     - mv -v $SOURCE_DIR/opt/opentalk-compose/config/default.env.sample $SOURCE_DIR/opt/opentalk-compose/config/default.env
     - mkdir -pv $OUTPUT_DIR
-    - sed -i "s/^PRODUCT_VERSION=.*/PRODUCT_VERSION=CE-$PACKAGE_VERSION/" $SOURCE_DIR/opt/opentalk-compose/.versions
+    - sed -i "s/^PRODUCT_VERSION=.*/PRODUCT_VERSION=$PACKAGE_VERSION/" $SOURCE_DIR/opt/opentalk-compose/.versions
     - apt-get update && apt-get install -y squashfs-tools binutils rpm curl git
     - gem install fpm
     - |
