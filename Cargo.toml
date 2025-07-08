@@ -4,27 +4,23 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = { version = "1", features = ["backtrace"] }
+anyhow = "1"
 bytes = "1.10"
 chrono = "0.4"
-env_logger = "0.11"
 futures = "0.3"
 jsonwebtoken = "9.3"
-livekit = { version = "0.7", features = ["native-tls"] }
+livekit = "0.7"
 log = "0.4"
 openidconnect = "4"
 reqwest = { version = "0.12", default-features = false, features = [
     "json",
     "stream",
-    "rustls-tls-native-roots",
 ] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
-tokio = { version = "1.45", features = ["macros", "rt-multi-thread", "signal"] }
-tt = { package = "tokio-tungstenite", version = "0.27", features = [
-    "rustls-tls-webpki-roots",
-] }
+tokio = { version = "1.45", features = ["macros"] }
+tt = { package = "tokio-tungstenite", version = "0.27" }
 types = { package = "opentalk-types", version = "0.44", default-features = false, features = [
     "serde",
     "api",
@@ -34,15 +30,6 @@ types = { package = "opentalk-types", version = "0.44", default-features = false
     "signaling-recording",
 ] }
 async-trait = "0.1.88"
-slotmap = "1.0.7"
 
 [build-dependencies]
 anyhow = "1"
-
-[patch.crates-io]
-libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
-livekit-api = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
-livekit = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
-livekit-protocol = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
-livekit-runtime = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
-webrtc-sys = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
