@@ -31,7 +31,7 @@ mod livekit;
 mod recording;
 
 pub use livekit::{LiveKitApi, OpenTalkLiveKitEvent};
-pub use recording::RecordingApi;
+pub use recording::{OpenTalkRecordingEvent, RecordingApi};
 
 #[derive(Debug)]
 pub struct Room {
@@ -61,22 +61,37 @@ pub enum Event {
     LiveKit(LiveKitRoomEvent),
 }
 
+/// Event originating from the OpenTalk signaling
 #[derive(Debug)]
 pub enum OpenTalkEvent {
+    /// A participant joined the room
     ParticipantJoined(Participant),
+
+    /// A participant's state has been updated
+    ///
+    /// The event contains the previous and updated state
     ParticipantUpdated {
         previous: Participant,
         updated: Participant,
     },
+
+    /// A participant left the room
     ParticipantLeft(ParticipantId),
 
+    /// The participant was moved to the waiting room
     MovedToWaitingRoom,
-    AcceptedFromWaitingRoom,
 
+    /// The participant was accepted from the waiting room and may now join the conference with
+    /// [`Room::enter_from_waiting_room`].
+    WaitingRoomAccepted,
+
+    /// All events from the livekit module
     LiveKit(OpenTalkLiveKitEvent),
 
-    RecordingTargetsUpdated,
+    /// All events from the recording module
+    Recording(OpenTalkRecordingEvent),
 
+    /// The participant was disconnected from the room. The [`Room`] must no longer be used.
     Disconnected(DisconnectReason),
 }
 
@@ -108,6 +123,10 @@ impl Room {
         }
     }
 
+    /// Receive the next event from the room
+    ///
+    /// This function is cancellation safe and can be called in any state the room is in,
+    /// except after being disconnected after which it may wait forever or return an error.
     pub async fn recv(&mut self) -> Result<Event> {
         async fn recv_livekit(state: &mut Option<RoomLiveKitState>) -> Option<LiveKitRoomEvent> {
             match state {
@@ -119,7 +138,7 @@ impl Room {
         match self.waiting_room_state {
             WaitingRoomState::InWaitingRoom => {
                 self.wait_until_accepted().await?;
-                return Ok(Event::OpenTalk(OpenTalkEvent::AcceptedFromWaitingRoom));
+                return Ok(Event::OpenTalk(OpenTalkEvent::WaitingRoomAccepted));
             }
             WaitingRoomState::Accepted => pending().await,
             WaitingRoomState::None => {}
@@ -208,6 +227,9 @@ impl Room {
         Ok(event)
     }
 
+    /// Wait until accepted into the room, while inside the waiting room
+    ///
+    /// If the function completes, the [`OpenTalkEvent::WaitingRoomAccepted`] will not be returned by the call to [`recv`](Self::recv).
     pub async fn wait_until_accepted(&mut self) -> Result<()> {
         log::debug!("wait until accepted");
         loop {
@@ -222,9 +244,13 @@ impl Room {
         }
     }
 
+    /// Enter the room from inside the waiting room.
+    ///
+    /// This function may only be called after receiving the [`OpenTalkEvent::WaitingRoomAccepted`] or completing the
+    /// future returned by [`wait_until_accepted`](Self::wait_until_accepted).
     pub async fn enter_from_waiting_room(&mut self) -> Result<()> {
         if self.waiting_room_state != WaitingRoomState::Accepted {
-            bail!("Not accepted yet")
+            bail!("Not in waiting room, or not yet accepted")
         }
 
         self.signaling.send(ControlCommand::EnterRoom).await?;
@@ -302,14 +328,19 @@ impl Room {
         self.id
     }
 
+    /// Check if the participant is currently inside the waiting room
     pub fn is_in_waiting_room(&self) -> bool {
         self.waiting_room_state != WaitingRoomState::None
     }
 
+    /// Returns a collection of all _other_ participants in the conference
+    ///
+    /// This is empty when inside the waiting room
     pub fn participants(&self) -> &HashMap<ParticipantId, Participant> {
         &self.participants
     }
 
+    /// Send a command to lower or raise the local participants hand
     pub async fn set_hand_raised(&mut self, raised: bool) -> Result<()> {
         let cmd = if raised {
             ControlCommand::RaiseHand
@@ -324,6 +355,8 @@ impl Room {
     }
 
     /// Returns the livekit credentials if the Room was joined and the livekit module was present
+    ///
+    /// Returns `None`` when inside the waiting room
     pub fn livekit_credentials(&self) -> Option<&Credentials> {
         self.livekit_state.as_ref().map(|state| &state.credentials)
     }
@@ -331,6 +364,8 @@ impl Room {
     /// Returns the livekit room handle if available
     ///
     /// This is always available if `use_livekit` has been set to true
+    ///
+    /// Returns `None`` when inside the waiting room
     pub fn livekit_room(&self) -> Option<&LiveKitRoom> {
         self.livekit_state
             .as_ref()
@@ -387,12 +422,18 @@ impl Room {
             .context("Failed to close websocket")
     }
 
+    /// Access the [`LiveKitApi`] which contains functions to interact with the livekit module
+    ///
+    /// Returns `None` if the livekit module is not present or while inside the waiting room
     pub fn livekit_api(&mut self) -> Option<LiveKitApi> {
         self.livekit_state
             .is_some()
             .then_some(LiveKitApi { room: self })
     }
 
+    /// Access the [`RecordingApi`] which contains functions to interact with the recording module
+    ///
+    /// Returns `None` if the recording module is not present or while inside the waiting room
     pub fn recording_api(&mut self) -> Option<RecordingApi<'_>> {
         self.recording_state
             .is_some()

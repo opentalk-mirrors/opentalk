@@ -13,6 +13,6 @@ pub use types;
 pub use client::OpenTalkClient;
 pub use config::{AuthConfig, ControllerConfig};
 pub use room::{
-    DisconnectReason, Event, LiveKitApi, OpenTalkEvent, OpenTalkLiveKitEvent, Participant,
-    RecordingApi, Room,
+    DisconnectReason, Event, LiveKitApi, OpenTalkEvent, OpenTalkLiveKitEvent,
+    OpenTalkRecordingEvent, Participant, RecordingApi, Room,
 };

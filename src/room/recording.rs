@@ -8,6 +8,18 @@ use types::{
 
 use crate::{Room, room::OpenTalkEvent};
 
+/// OpenTalk recording module events
+#[derive(Debug)]
+pub enum OpenTalkRecordingEvent {
+    /// Stream targets have been updated. This can be due to a stream starting, pausing or stopping.
+    ///
+    /// The events provides both the previous and updated state
+    StreamTargetsUpdated {
+        stream_target: StreamTarget,
+        previous_status: StreamStatus,
+    },
+}
+
 pub struct RecordingApi<'a> {
     pub(super) room: &'a mut Room,
 }
@@ -38,10 +50,17 @@ impl RoomRecordingState {
     ) -> Option<OpenTalkEvent> {
         match event {
             RecordingEvent::StreamUpdated(StreamUpdated { target_id, status }) => {
-                let stream = self.streams.get_mut(&target_id)?;
-                stream.status = status;
+                let stream_target = self.streams.get_mut(&target_id)?;
 
-                Some(OpenTalkEvent::RecordingTargetsUpdated)
+                let previous_status = stream_target.status.clone();
+                stream_target.status = status;
+
+                Some(OpenTalkEvent::Recording(
+                    OpenTalkRecordingEvent::StreamTargetsUpdated {
+                        previous_status,
+                        stream_target: stream_target.clone(),
+                    },
+                ))
             }
             RecordingEvent::Error(..) => None,
             RecordingEvent::RecorderError(..) => None,

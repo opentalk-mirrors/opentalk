@@ -26,7 +26,7 @@ use crate::{
 };
 
 #[derive(Debug, thiserror::Error)]
-pub enum StartAuthorizedError {
+pub enum StartAsUserError {
     #[error("Failed to get access token from authentication backend")]
     FailedToGetAccessToken(#[source] anyhow::Error),
     #[error("Failed to make the HTTP request")]
@@ -87,19 +87,19 @@ impl HttpClient {
         })
     }
 
-    pub(crate) async fn start_authorized(
+    pub(crate) async fn start_as_user(
         &self,
         config: &ControllerConfig,
         room_id: RoomId,
         breakout_room: Option<BreakoutRoomId>,
-    ) -> Result<TicketToken, StartAuthorizedError> {
+    ) -> Result<TicketToken, StartAsUserError> {
         let uri = format!("{}/rooms/{room_id}/start", config.v1_api_base_url());
 
         let token = self
             .authentication
             .access_token()
             .await
-            .map_err(StartAuthorizedError::FailedToGetAccessToken)?;
+            .map_err(StartAsUserError::FailedToGetAccessToken)?;
 
         let response = self
             .http_client
@@ -115,7 +115,7 @@ impl HttpClient {
         let status = response.status();
         let response_body = response.text().await?;
 
-        log::trace!("start response status={status} body={response_body}");
+        log::trace!("start-authorized response status={status} body={response_body}");
 
         match status {
             StatusCode::OK => {
@@ -123,7 +123,7 @@ impl HttpClient {
 
                 Ok(response.ticket)
             }
-            status => Err(StartAuthorizedError::UnexpectedStatusCode(status)),
+            status => Err(StartAsUserError::UnexpectedStatusCode(status)),
         }
     }
 

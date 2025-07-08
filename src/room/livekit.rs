@@ -9,12 +9,15 @@ use types::signaling::{
 
 use crate::{Room, room::OpenTalkEvent};
 
+/// OpenTalk livekit module events
 #[derive(Debug)]
 pub enum OpenTalkLiveKitEvent {
     MicrophoneRestrictionEnabled {
         unrestricted_participants: BTreeSet<ParticipantId>,
     },
     MicrophoneRestrictionDisabled,
+
+    /// Participant was muted by a moderator
     MutedBy(ParticipantId),
 }
 

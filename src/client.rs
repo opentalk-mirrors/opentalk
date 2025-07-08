@@ -25,7 +25,8 @@ impl OpenTalkClient {
         })
     }
 
-    pub async fn connect_authorized(
+    /// Connect as authenticated opentalk user
+    pub async fn connect_as_user(
         &self,
         display_name: DisplayName,
         room_id: RoomId,
@@ -34,13 +35,14 @@ impl OpenTalkClient {
     ) -> Result<JoinResult> {
         let ticket = self
             .http
-            .start_authorized(&self.controller_config, room_id, breakout_id)
+            .start_as_user(&self.controller_config, room_id, breakout_id)
             .await
             .context("Failed to send start HTTP request")?;
 
         self.connect_common(ticket, display_name, use_livekit).await
     }
 
+    /// Connect using an invite code, does not require any authentication
     pub async fn connect_invited(
         &self,
         room_id: RoomId,
@@ -65,6 +67,7 @@ impl OpenTalkClient {
         self.connect_common(ticket, display_name, use_livekit).await
     }
 
+    /// Connect as call-in service. Requires service authentication
     pub async fn connect_call_in(
         &self,
         id: CallInId,
