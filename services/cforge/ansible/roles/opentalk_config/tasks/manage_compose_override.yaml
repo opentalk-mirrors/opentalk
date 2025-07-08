@@ -61,6 +61,4 @@
       - spacedeck
   tags:
     - dev
-    #- init
-    #- apply
     - skip_task
