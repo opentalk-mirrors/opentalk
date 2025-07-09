@@ -29,7 +29,11 @@
       {{ line }}
       {% endif %}
       {% endfor %}
-  when: not settings_file.stat.exists and defaults_main_yml['content'] is defined
+  when:
+    - settings_options | length > 0
+    - not settings_file.stat.exists and defaults_main_yml['content'] is defined
+  vars:
+    settings_options: "{{ lookup('file', config_dir + '/settings.yml') | from_yaml }}"
   tags:
     - init
     - skip_task
