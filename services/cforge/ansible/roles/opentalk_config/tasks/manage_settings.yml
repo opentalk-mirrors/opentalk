@@ -1,7 +1,7 @@
 ---
 - name: Check if settings file is present | conf/settings.yml
   ansible.builtin.stat:
-    path: "{{config_dir}}/settings.yml"
+    path: "{{ config_dir }}/settings.yml"
   register: settings_file
   tags:
     - always
@@ -16,7 +16,7 @@
   
 - name: Create settings file | conf/settings.yml
   ansible.builtin.copy:
-    dest: "{{config_dir}}/settings.yml"
+    dest: "{{ config_dir }}/settings.yml"
     mode: "666"
     content: |
       {% set decoded_content = defaults_main_yml['content'] | b64decode %}
@@ -49,7 +49,7 @@
 
 - name: Load values from settings file and override ansible defaults/main.yml
   include_vars:
-    file: "{{config_dir}}/settings.yml"
+    file: "{{ config_dir }}/settings.yml"
     hash_behaviour: merge
   when: settings_file.stat.exists
   tags:
