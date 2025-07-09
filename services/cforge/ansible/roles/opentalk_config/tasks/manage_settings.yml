@@ -12,7 +12,7 @@
   register: defaults_main_yml
   when: not settings_file.stat.exists
   tags:
-    - init
+    - always
   
 - name: Create settings file | conf/settings.yml
   ansible.builtin.copy:
@@ -35,7 +35,7 @@
   vars:
     settings_options: "{{ lookup('file', config_dir + '/settings.yml') | from_yaml }}"
   tags:
-    - init
+    - always
     - skip_task
 
 - name: Create settings override | conf/settings.override.yaml
