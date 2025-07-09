@@ -8,8 +8,21 @@
 [frontend]
 base_url = "{{ Controller.frontend.base_url }}"
 
-[logging]
+{% if Controller.operator_information is defined and Controller.Controller.operator_information %}
+[operator_information]
+{% if Controller.operator_information.data_protection_url is defined and Controller.Controller.operator_information.data_protection_url %}
+data_protection_url = "{{ Controller.operator_information.data_protection_url }}"
+{% endif %}
+{% if Controller.operator_information.support_phone_number is defined and Controller.Controller.operator_information.support_phone_number %}
+support_phone_number = "{{ Controller.operator_information.support_phone_number }}"
+{% endif %}
+{% if Controller.operator_information.support_email_address is defined and Controller.Controller.operator_information.support_email_address %}
+support_email_address = "{{ Controller.operator_information.support_email_address }}"
+{% endif %}
+{% endif %}
 
+
+[logging]
 {% if Controller.logging.default_directives is defined and Controller.logging.default_directives %}
 default_directives = [
 {% for directive in Controller.logging.default_directives %}

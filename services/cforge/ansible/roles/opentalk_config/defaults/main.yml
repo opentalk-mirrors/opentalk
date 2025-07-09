@@ -88,6 +88,10 @@ Keycloak:
 Controller:
   frontend:
     base_url: "https://{{ OT_DOMAIN }}"
+  operator_information:
+    data_protection_url: "https://{{ OT_DOMAIN }}/data-protection"
+    support_phone_number: "+49 123 4567890"
+    support_email_address: "support@{{ OT_DOMAIN }}"
   logging:
     default_directives:
       - "ERROR"
