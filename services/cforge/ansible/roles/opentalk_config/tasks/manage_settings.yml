@@ -10,7 +10,6 @@
   ansible.builtin.slurp:
     src: "{{ role_path }}/defaults/main.yml"
   register: defaults_main_yml
-  when: not settings_file.stat.exists
   tags:
     - always
   
