@@ -86,6 +86,8 @@ Keycloak:
       - "https://{{ OT_DOMAIN }}/"
 
 Controller:
+  frontend:
+    base_url: "https://{{ OT_DOMAIN }}"
   logging:
     default_directives:
       - "ERROR"
