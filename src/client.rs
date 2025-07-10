@@ -12,7 +12,7 @@ use crate::{
 
 pub struct OpenTalkClient {
     controller_config: ControllerConfig,
-    http: HttpClient,
+    pub(crate) http: HttpClient,
 }
 
 impl OpenTalkClient {
@@ -82,6 +82,23 @@ impl OpenTalkClient {
             .context("Failed to send start-call-in HTTP request")?;
 
         self.connect_common(ticket, display_name, use_livekit).await
+    }
+
+    /// Connect as authenticated opentalk user
+    pub async fn connect_recorder(
+        &self,
+        room_id: RoomId,
+        breakout_id: Option<BreakoutRoomId>,
+        use_livekit: bool,
+    ) -> Result<JoinResult> {
+        let ticket = self
+            .http
+            .start_as_recorder(&self.controller_config, room_id, breakout_id)
+            .await
+            .context("Failed to send start HTTP request")?;
+
+        self.connect_common(ticket, DisplayName::from_str_lossy("recorder"), use_livekit)
+            .await
     }
 
     async fn connect_common(

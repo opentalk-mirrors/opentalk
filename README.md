@@ -6,7 +6,7 @@ Supported modules
 - [x] moderation
 - [x] livekit
 - [x] recording
-- [ ] recording-service
+- [x] recording-service
 - [ ] automod
 - [ ] breakout
 - [x] chat
@@ -27,7 +27,7 @@ Supported modules
 - [x] Connect as authorized user
 - [x] Connect as guest
 - [x] Connect as call-in user
-- [ ] Connect as recorder
+- [x] Connect as recorder
 
 ## Control
 
@@ -104,9 +104,9 @@ Supported modules
 ### Commands
 
 - [x] SetConsent
-- [ ] StartStream
-- [ ] PauseStream
-- [ ] StopStream
+- [x] StartStream
+- [x] PauseStream
+- [x] StopStream
 
 ### Events
 
@@ -118,9 +118,9 @@ Supported modules
 
 ### Commands
 
-- [ ] StartStreams
-- [ ] PauseStreams
-- [ ] StopStreams
+- [x] StartStreams
+- [x] PauseStreams
+- [x] StopStreams
 
 ### Events
 

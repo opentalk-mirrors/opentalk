@@ -6,6 +6,9 @@ pub mod config;
 pub mod http;
 pub mod signaling;
 
+#[cfg(feature = "recording-service")]
+pub mod upload;
+
 mod room;
 
 pub use types;
@@ -16,3 +19,6 @@ pub use room::{
     DisconnectReason, Event, LiveKitApi, OpenTalkEvent, OpenTalkLiveKitEvent,
     OpenTalkRecordingEvent, Participant, RecordingApi, Room,
 };
+
+#[cfg(feature = "recording-service")]
+pub use room::OpenTalkRecordingServiceEvent;

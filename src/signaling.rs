@@ -152,6 +152,9 @@ pub(crate) mod incoming {
         moderation::event::ModerationEvent, recording::event::RecordingEvent,
     };
 
+    #[cfg(feature = "recording-service")]
+    use types::signaling::recording_service::command::RecordingServiceCommand;
+
     #[derive(Debug, Clone, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
     #[allow(clippy::large_enum_variant)]
@@ -161,6 +164,9 @@ pub(crate) mod incoming {
         Moderation(ModerationEvent),
         LiveKit(LiveKitEvent),
         Recording(RecordingEvent),
+
+        #[cfg(feature = "recording-service")]
+        RecordingService(RecordingServiceCommand),
     }
 }
 
@@ -171,12 +177,17 @@ pub(crate) mod outgoing {
         recording::command::RecordingCommand,
     };
 
+    #[cfg(feature = "recording-service")]
+    use types::signaling::recording_service::event::RecordingServiceEvent;
+
     #[derive(Debug, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
     pub enum Command {
         Chat(ChatCommand),
         Control(ControlCommand),
         Recording(RecordingCommand),
+        #[cfg(feature = "recording-service")]
+        RecordingService(RecordingServiceEvent),
     }
 
     impl From<ChatCommand> for Command {
@@ -194,6 +205,13 @@ pub(crate) mod outgoing {
     impl From<RecordingCommand> for Command {
         fn from(command: RecordingCommand) -> Self {
             Self::Recording(command)
+        }
+    }
+
+    #[cfg(feature = "recording-service")]
+    impl From<RecordingServiceEvent> for Command {
+        fn from(command: RecordingServiceEvent) -> Self {
+            Self::RecordingService(command)
         }
     }
 }

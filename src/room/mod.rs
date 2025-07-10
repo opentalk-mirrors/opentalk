@@ -10,7 +10,7 @@ use chrono::{DateTime, Utc};
 use std::{collections::HashMap, future::pending};
 use tokio::select;
 use types::{
-    common::users::DisplayName,
+    common::{events::EventInfo, users::DisplayName},
     signaling::{
         Participant as OpenTalkParticipant, ParticipantId,
         control::{
@@ -22,27 +22,44 @@ use types::{
         moderation::event::{ModerationEvent, SessionEnded},
         recording::{
             command::{RecordingCommand, SetConsent},
+            peer_state::RecordingPeerState,
             state::RecordingState,
         },
     },
 };
 
+#[cfg(feature = "recording-service")]
+use recording_service::{RecordingServiceApi, RoomRecordingServiceState};
+#[cfg(feature = "recording-service")]
+use types::signaling::recording_service::state::RecordingServiceState;
+
 mod livekit;
 mod recording;
+
+#[cfg(feature = "recording-service")]
+mod recording_service;
 
 pub use livekit::{LiveKitApi, OpenTalkLiveKitEvent};
 pub use recording::{OpenTalkRecordingEvent, RecordingApi};
 
+#[cfg(feature = "recording-service")]
+pub use recording_service::OpenTalkRecordingServiceEvent;
+
 #[derive(Debug)]
 pub struct Room {
     use_livekit: bool,
-    signaling: Signaling,
+    pub(crate) signaling: Signaling,
 
     id: ParticipantId,
 
     waiting_room_state: WaitingRoomState,
     livekit_state: Option<RoomLiveKitState>,
     recording_state: Option<RoomRecordingState>,
+
+    #[cfg(feature = "recording-service")]
+    recording_service_state: Option<RoomRecordingServiceState>,
+
+    event_info: Option<EventInfo>,
 
     participants: HashMap<ParticipantId, Participant>,
 }
@@ -91,6 +108,10 @@ pub enum OpenTalkEvent {
     /// All events from the recording module
     Recording(OpenTalkRecordingEvent),
 
+    /// All events from the recording-service module
+    #[cfg(feature = "recording-service")]
+    RecordingService(OpenTalkRecordingServiceEvent),
+
     /// The participant was disconnected from the room. The [`Room`] must no longer be used.
     Disconnected(DisconnectReason),
 }
@@ -108,6 +129,7 @@ pub struct Participant {
     pub display_name: DisplayName,
     pub joined_at: DateTime<Utc>,
     pub left_at: Option<DateTime<Utc>>,
+    pub consents_recording: bool,
 }
 
 impl Room {
@@ -119,6 +141,11 @@ impl Room {
             waiting_room_state: WaitingRoomState::None,
             livekit_state: None,
             recording_state: None,
+
+            #[cfg(feature = "recording-service")]
+            recording_service_state: None,
+
+            event_info: None,
             participants: HashMap::new(),
         }
     }
@@ -147,7 +174,11 @@ impl Room {
         loop {
             let event = select! {
                 payload = self.signaling.recv() => self.parse_opentalk_event(payload?)?.map(Event::OpenTalk),
-                room_event = recv_livekit(&mut self.livekit_state) => Some(Event::LiveKit(room_event.unwrap())),
+                room_event = recv_livekit(&mut self.livekit_state) => if let Some(room_event_u) = room_event {
+                    Some(Event::LiveKit(room_event_u))
+                } else {
+                    None
+                }
             };
 
             if let Some(event) = event {
@@ -225,6 +256,14 @@ impl Room {
                     None
                 }
             }
+            #[cfg(feature = "recording-service")]
+            incoming::Event::RecordingService(recording_service_event) => {
+                if let Some(recording_service_state) = &mut self.recording_service_state {
+                    recording_service_state.handle_websocket_event(recording_service_event)
+                } else {
+                    None
+                }
+            }
             _ => None,
         };
 
@@ -287,6 +326,16 @@ impl Room {
                     self.recording_state = None;
                 }
 
+                #[cfg(feature = "recording-service")]
+                {
+                    self.recording_service_state = join_success
+                        .get_module::<RecordingServiceState>()
+                        .context("failed to parse RecordingServiceState")?
+                        .map(RoomRecordingServiceState::new);
+                }
+
+                self.event_info = join_success.event_info;
+
                 self.waiting_room_state = WaitingRoomState::None;
             }
             Ok(Some(incoming::Event::Moderation(ModerationEvent::InWaitingRoom))) => {
@@ -344,6 +393,21 @@ impl Room {
         &self.participants
     }
 
+    /// Returns a collection of all _other_ participants in the conference, that are active
+    ///
+    /// # Remarks
+    /// This function clones the filtered HashMap
+    ///
+    /// # Returns
+    /// This is empty when no participant is left or when inside the waiting room
+    pub fn active_participants(&self) -> HashMap<ParticipantId, Participant> {
+        self.participants
+            .iter()
+            .filter(|(_, p)| p.left_at.is_none())
+            .map(|(id, p)| (*id, p.clone()))
+            .collect()
+    }
+
     /// Send a command to lower or raise the local participants hand
     pub async fn set_hand_raised(&mut self, raised: bool) -> Result<()> {
         let cmd = if raised {
@@ -360,7 +424,7 @@ impl Room {
 
     /// Returns the livekit credentials if the Room was joined and the livekit module was present
     ///
-    /// Returns `None`` when inside the waiting room
+    /// Returns `None` when inside the waiting room
     pub fn livekit_credentials(&self) -> Option<&Credentials> {
         self.livekit_state.as_ref().map(|state| &state.credentials)
     }
@@ -407,6 +471,15 @@ impl Room {
         livekit_state_allows_publish && recording_state_allows_publish
     }
 
+    /// Gets the event title
+    ///
+    /// Returns `None` if there is no `EventInfo`
+    pub fn event_title(&self) -> Option<String> {
+        self.event_info
+            .as_ref()
+            .map(|state| state.title.to_string())
+    }
+
     /// Closes all connection to the room
     pub async fn close(&mut self) -> Result<()> {
         if let Some(livekit_room) = self
@@ -443,6 +516,14 @@ impl Room {
             .is_some()
             .then_some(RecordingApi { room: self })
     }
+
+    /// Access the [`RecordingServiceApi`] which contains functions to interact with the recording service module
+    #[cfg(feature = "recording-service")]
+    pub fn recording_service_api(&mut self) -> Option<RecordingServiceApi<'_>> {
+        self.recording_service_state
+            .is_some()
+            .then_some(RecordingServiceApi { room: self })
+    }
 }
 
 impl Drop for Room {
@@ -464,11 +545,20 @@ fn parse_participant(opentalk_participant: &OpenTalkParticipant) -> Result<Parti
         .get_module::<ControlState>()?
         .context("control state is missing")?;
 
+    let consents_recording = if let Ok(Some(recording_peer_state)) =
+        opentalk_participant.get_module::<RecordingPeerState>()
+    {
+        recording_peer_state.consents_recording
+    } else {
+        false
+    };
+
     Ok(Participant {
         id: opentalk_participant.id,
         hand_is_up: control_state.hand_is_up,
         display_name: control_state.display_name,
         joined_at: control_state.joined_at.into(),
         left_at: control_state.left_at.map(Into::into),
+        consents_recording,
     })
 }

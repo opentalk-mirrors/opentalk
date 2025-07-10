@@ -3,6 +3,10 @@ name = "opentalk-client"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = [ "recording-service" ]
+recording-service = [ "types/signaling-recording-service" ]
+
 [dependencies]
 anyhow = "1"
 bytes = "1.10"
