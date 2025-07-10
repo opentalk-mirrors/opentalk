@@ -6,24 +6,24 @@
   tags:
     - always
 
-- name: Create settings file if not present | conf/settings.yml
-  ansible.builtin.copy:
-    src: "{{ role_path }}/defaults/main.yml"
-    dest: "{{ config_dir }}/settings.yml"
-    mode: "666"
-  when: not settings_file.stat.exists
-  tags:
-    - always
-    - skip_task
-
-- name: Lade defaults/main.yml als defaults_vars
+- name: Load defaults/main.yml as defaults_vars
   include_vars:
     file: "{{ role_path }}/defaults/main.yml"
     name: defaults_vars
   tags:
     - always
 
-- name: Lade settings.yml als settings_vars
+- name: Create settings file from defaults_vars if not present | conf/settings.yml
+  ansible.builtin.copy:
+    dest: "{{ config_dir }}/settings.yml"
+    content: "{{ defaults_vars | to_nice_yaml }}"
+    mode: "0666"
+  when: not settings_file.stat.exists
+  tags:
+    - always
+    - skip_task
+
+- name: Load settings.yml as settings_vars
   include_vars:
     file: "{{ config_dir }}/settings.yml"
     name: settings_vars
@@ -31,56 +31,37 @@
   tags:
     - always
 
-- name: Merge defaults_vars und settings_vars
-  set_fact:
-    merged_settings: "{{ defaults_vars | combine(settings_vars, recursive=True) }}"
-  when: settings_file.stat.exists
-  tags:
-    - always
-
-- name: Schreibe gemergte YAML in Temp-Datei
-  copy:
-    dest: "{{ config_dir }}/settings.merged.tmp"
-    content: "{{ merged_settings | to_nice_yaml }}"
-    mode: "0644"
-  when: settings_file.stat.exists
-  tags:
-    - always
-
-- name: Vergleiche settings.merged.tmp und settings.yml
-  command: diff "{{ config_dir }}/settings.merged.tmp" "{{ config_dir }}/settings.yml"
-  register: diff_result
-  ignore_errors: true
+- name: Find new keys in defaults that are missing in settings.yml (recursive)
+  script: "{{ role_path }}/files/find_new_yaml_keys.py {{ role_path }}/defaults/main.yml {{ config_dir }}/settings.yml"
+  register: new_keys_check
   changed_when: false
+  failed_when: false
+  when: settings_file.stat.exists
   tags:
     - always
 
-- name: Warnung bei Unterschieden in settings.merged.tmp und settings.yml
-  debug:
-    msg: |
-      Achtung: settings.yml unterscheidet sich von den gemergten Defaults!
-      Vergleiche {{ config_dir }}/settings.merged.tmp und {{ config_dir }}/settings.yml.
-  when: diff_result.rc != 0
+- name: Parse new keys result
+  set_fact:
+    new_keys_result: "{{ new_keys_check.stdout | from_json }}"
+  when: settings_file.stat.exists and new_keys_check.stdout is defined
   tags:
     - always
 
-- name: Lösche settings.merged.tmp, wenn kein Unterschied
-  file:
-    path: "{{ config_dir }}/settings.merged.tmp"
-    state: absent
-  when: diff_result.rc == 0
+- name: Set empty result if settings file doesn't exist
+  set_fact:
+    new_keys_result: {"new_keys": [], "has_new_keys": false}
+  when: not settings_file.stat.exists
   tags:
     - always
 
-- name: "Warnung: Es gibt ungemergte neue Settings (settings.merged.tmp existiert)"
-  debug:
-    msg: |
-      Achtung: Es gibt neue oder geänderte Einstellungen!
-      Bitte prüfe und merge {{ config_dir }}/settings.merged.tmp manuell in {{ config_dir }}/settings.yml.
-  when: lookup('ansible.builtin.file', config_dir + '/settings.merged.tmp', errors='ignore') is not none
+- name: Write settings.yml.unmerged if new keys are present
+  copy:
+    dest: "{{ config_dir }}/settings.yml.unmerged"
+    content: "{{ defaults_vars | combine(settings_vars, recursive=True) | to_nice_yaml }}"
+    mode: "0644"
+  when: new_keys_result.has_new_keys
   tags:
     - always
-    - skip_task
 
 - name: Create settings override | conf/settings.override.yaml
   ansible.builtin.copy:
