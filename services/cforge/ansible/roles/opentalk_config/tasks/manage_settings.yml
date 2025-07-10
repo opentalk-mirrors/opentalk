@@ -6,33 +6,78 @@
   tags:
     - always
 
-- name: Slurp | defaults/main.yml
-  ansible.builtin.slurp:
-    src: "{{ role_path }}/defaults/main.yml"
-  register: defaults_main_yml
-  tags:
-    - always
-  
-- name: Create settings file | conf/settings.yml
+- name: Create settings file if not present | conf/settings.yml
   ansible.builtin.copy:
+    src: "{{ role_path }}/defaults/main.yml"
     dest: "{{ config_dir }}/settings.yml"
     mode: "666"
-    content: |
-      {% set decoded_content = defaults_main_yml['content'] | b64decode %}
-      {% set lines = decoded_content.split('\n') %}
-      {{ lines[0] }}
-      {% for line in lines[1:] %}
-      {% if not line.startswith('#') %}
-      #{{ line }}
-      {% else %}
-      {{ line }}
-      {% endif %}
-      {% endfor %}
-  when:
-    - settings_options | length > 0
-    - not settings_file.stat.exists and defaults_main_yml['content'] is defined
-  vars:
-    settings_options: "{{ lookup('file', config_dir + '/settings.yml') | from_yaml }}"
+  when: not settings_file.stat.exists
+  tags:
+    - always
+    - skip_task
+
+- name: Lade defaults/main.yml als defaults_vars
+  include_vars:
+    file: "{{ role_path }}/defaults/main.yml"
+    name: defaults_vars
+  tags:
+    - always
+
+- name: Lade settings.yml als settings_vars
+  include_vars:
+    file: "{{ config_dir }}/settings.yml"
+    name: settings_vars
+  when: settings_file.stat.exists
+  tags:
+    - always
+
+- name: Merge defaults_vars und settings_vars
+  set_fact:
+    merged_settings: "{{ defaults_vars | combine(settings_vars, recursive=True) }}"
+  when: settings_file.stat.exists
+  tags:
+    - always
+
+- name: Schreibe gemergte YAML in Temp-Datei
+  copy:
+    dest: "{{ config_dir }}/settings.merged.tmp"
+    content: "{{ merged_settings | to_nice_yaml }}"
+    mode: "0644"
+  when: settings_file.stat.exists
+  tags:
+    - always
+
+- name: Vergleiche settings.merged.tmp und settings.yml
+  command: diff "{{ config_dir }}/settings.merged.tmp" "{{ config_dir }}/settings.yml"
+  register: diff_result
+  ignore_errors: true
+  changed_when: false
+  tags:
+    - always
+
+- name: Warnung bei Unterschieden in settings.merged.tmp und settings.yml
+  debug:
+    msg: |
+      Achtung: settings.yml unterscheidet sich von den gemergten Defaults!
+      Vergleiche {{ config_dir }}/settings.merged.tmp und {{ config_dir }}/settings.yml.
+  when: diff_result.rc != 0
+  tags:
+    - always
+
+- name: Lösche settings.merged.tmp, wenn kein Unterschied
+  file:
+    path: "{{ config_dir }}/settings.merged.tmp"
+    state: absent
+  when: diff_result.rc == 0
+  tags:
+    - always
+
+- name: "Warnung: Es gibt ungemergte neue Settings (settings.merged.tmp existiert)"
+  debug:
+    msg: |
+      Achtung: Es gibt neue oder geänderte Einstellungen!
+      Bitte prüfe und merge {{ config_dir }}/settings.merged.tmp manuell in {{ config_dir }}/settings.yml.
+  when: lookup('ansible.builtin.file', config_dir + '/settings.merged.tmp', errors='ignore') is not none
   tags:
     - always
     - skip_task
