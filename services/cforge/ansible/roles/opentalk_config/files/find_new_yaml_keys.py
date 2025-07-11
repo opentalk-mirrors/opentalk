@@ -4,7 +4,7 @@ import yaml
 import json
 
 def find_new_keys(defaults, user, prefix=''):
-    """Recursively find new keys in defaults that are missing in user"""
+    """Recursively find new keys in YAML file A that are missing in YAML file B."""
     new_keys = []
     
     if not isinstance(defaults, dict):
@@ -25,7 +25,7 @@ def find_new_keys(defaults, user, prefix=''):
 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: find_new_yaml_keys.py <defaults.yml> <user.yml>")
+        print("Usage: find_new_yaml_keys.py <a.yml> <b.yml>")
         sys.exit(1)
     
     defaults_file = sys.argv[1]
