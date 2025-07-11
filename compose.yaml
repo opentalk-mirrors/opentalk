@@ -46,6 +46,11 @@ include:
     env_file:
       - .versions
 
+  - path:
+      - services/outlook_add-in/compose.yaml
+    env_file:
+      - .versions
+
   # 3rd party
   - path:
       - services/3rd_party/traefik/compose.yaml
