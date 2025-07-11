@@ -20,5 +20,7 @@ pub use room::{
     OpenTalkRecordingEvent, Participant, RecordingApi, Room,
 };
 
+#[cfg(feature = "chat")]
+pub use room::OpenTalkChatEvent;
 #[cfg(feature = "recording-service")]
 pub use room::OpenTalkRecordingServiceEvent;

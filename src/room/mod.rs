@@ -28,19 +28,29 @@ use types::{
     },
 };
 
+mod livekit;
+mod recording;
+
+#[cfg(feature = "chat")]
+mod chat;
+#[cfg(feature = "recording-service")]
+mod recording_service;
+
+#[cfg(feature = "chat")]
+use chat::{ChatApi, RoomChatState};
+#[cfg(feature = "chat")]
+use types::signaling::chat::state::ChatState;
+
 #[cfg(feature = "recording-service")]
 use recording_service::{RecordingServiceApi, RoomRecordingServiceState};
 #[cfg(feature = "recording-service")]
 use types::signaling::recording_service::state::RecordingServiceState;
 
-mod livekit;
-mod recording;
-
-#[cfg(feature = "recording-service")]
-mod recording_service;
-
 pub use livekit::{LiveKitApi, OpenTalkLiveKitEvent};
 pub use recording::{OpenTalkRecordingEvent, RecordingApi};
+
+#[cfg(feature = "chat")]
+pub use chat::OpenTalkChatEvent;
 
 #[cfg(feature = "recording-service")]
 pub use recording_service::OpenTalkRecordingServiceEvent;
@@ -56,12 +66,14 @@ pub struct Room {
     livekit_state: Option<RoomLiveKitState>,
     recording_state: Option<RoomRecordingState>,
 
-    #[cfg(feature = "recording-service")]
-    recording_service_state: Option<RoomRecordingServiceState>,
-
     event_info: Option<EventInfo>,
 
     participants: HashMap<ParticipantId, Participant>,
+
+    #[cfg(feature = "chat")]
+    chat_state: Option<RoomChatState>,
+    #[cfg(feature = "recording-service")]
+    recording_service_state: Option<RoomRecordingServiceState>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -108,6 +120,9 @@ pub enum OpenTalkEvent {
     /// All events from the recording module
     Recording(OpenTalkRecordingEvent),
 
+    #[cfg(feature = "chat")]
+    Chat(OpenTalkChatEvent),
+
     /// All events from the recording-service module
     #[cfg(feature = "recording-service")]
     RecordingService(OpenTalkRecordingServiceEvent),
@@ -142,11 +157,13 @@ impl Room {
             livekit_state: None,
             recording_state: None,
 
-            #[cfg(feature = "recording-service")]
-            recording_service_state: None,
-
             event_info: None,
             participants: HashMap::new(),
+
+            #[cfg(feature = "chat")]
+            chat_state: None,
+            #[cfg(feature = "recording-service")]
+            recording_service_state: None,
         }
     }
 
@@ -236,20 +253,19 @@ impl Room {
             incoming::Event::Moderation(ModerationEvent::SessionEnded(session_ended)) => Some(
                 OpenTalkEvent::Disconnected(DisconnectReason::SessionEnded(session_ended)),
             ),
-            incoming::Event::LiveKit(livekit_event) => {
-                if let Some(livekit_state) = &mut self.livekit_state {
-                    livekit_state.handle_websocket_event(livekit_event)
-                } else {
-                    None
-                }
-            }
-            incoming::Event::Recording(recording_event) => {
-                if let Some(recording_state) = &mut self.recording_state {
-                    recording_state.handle_websocket_event(recording_event)
-                } else {
-                    None
-                }
-            }
+            incoming::Event::LiveKit(livekit_event) => self
+                .livekit_state
+                .as_mut()
+                .and_then(|state| state.handle_websocket_event(livekit_event)),
+            incoming::Event::Recording(recording_event) => self
+                .recording_state
+                .as_mut()
+                .and_then(|state| state.handle_websocket_event(recording_event)),
+            #[cfg(feature = "chat")]
+            incoming::Event::Chat(chat_event) => self
+                .chat_state
+                .as_mut()
+                .and_then(|state| state.handle_websocket_event(chat_event)),
             #[cfg(feature = "recording-service")]
             incoming::Event::RecordingService(recording_service_event) => {
                 self.recording_service_state.as_mut().map(|_| {
@@ -320,6 +336,14 @@ impl Room {
                     }
                 } else {
                     self.recording_state = None;
+                }
+
+                #[cfg(feature = "chat")]
+                {
+                    self.chat_state = join_success
+                        .get_module::<ChatState>()
+                        .context("failed to parse ChatState")?
+                        .map(RoomChatState::new);
                 }
 
                 #[cfg(feature = "recording-service")]
@@ -515,6 +539,12 @@ impl Room {
         self.recording_state
             .is_some()
             .then_some(RecordingApi { room: self })
+    }
+
+    /// Access the [`ChatApi`] which contains functions to interact with the chat module
+    #[cfg(feature = "chat")]
+    pub fn chat_api(&mut self) -> Option<ChatApi<'_>> {
+        self.chat_state.is_some().then_some(ChatApi { room: self })
     }
 
     /// Access the [`RecordingServiceApi`] which contains functions to interact with the recording service module

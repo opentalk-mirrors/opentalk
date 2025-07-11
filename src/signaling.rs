@@ -148,10 +148,12 @@ impl Drop for Signaling {
 pub(crate) mod incoming {
     use serde::{Deserialize, Serialize};
     use types::signaling::{
-        chat::event::ChatEvent, control::event::ControlEvent, livekit::event::LiveKitEvent,
+        control::event::ControlEvent, livekit::event::LiveKitEvent,
         moderation::event::ModerationEvent, recording::event::RecordingEvent,
     };
 
+    #[cfg(feature = "chat")]
+    use types::signaling::chat::event::ChatEvent;
     #[cfg(feature = "recording-service")]
     use types::signaling::recording_service::command::RecordingServiceCommand;
 
@@ -159,12 +161,13 @@ pub(crate) mod incoming {
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
     #[allow(clippy::large_enum_variant)]
     pub(crate) enum Event {
-        Chat(ChatEvent),
         Control(ControlEvent),
         Moderation(ModerationEvent),
         LiveKit(LiveKitEvent),
         Recording(RecordingEvent),
 
+        #[cfg(feature = "chat")]
+        Chat(ChatEvent),
         #[cfg(feature = "recording-service")]
         RecordingService(RecordingServiceCommand),
     }
@@ -173,27 +176,23 @@ pub(crate) mod incoming {
 pub(crate) mod outgoing {
     use serde::{Deserialize, Serialize};
     use types::signaling::{
-        chat::command::ChatCommand, control::command::ControlCommand,
-        recording::command::RecordingCommand,
+        control::command::ControlCommand, recording::command::RecordingCommand,
     };
 
+    #[cfg(feature = "chat")]
+    use types::signaling::chat::command::ChatCommand;
     #[cfg(feature = "recording-service")]
     use types::signaling::recording_service::event::RecordingServiceEvent;
 
     #[derive(Debug, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
     pub enum Command {
-        Chat(ChatCommand),
         Control(ControlCommand),
         Recording(RecordingCommand),
+        #[cfg(feature = "chat")]
+        Chat(ChatCommand),
         #[cfg(feature = "recording-service")]
         RecordingService(RecordingServiceEvent),
-    }
-
-    impl From<ChatCommand> for Command {
-        fn from(command: ChatCommand) -> Self {
-            Self::Chat(command)
-        }
     }
 
     impl From<ControlCommand> for Command {
@@ -205,6 +204,13 @@ pub(crate) mod outgoing {
     impl From<RecordingCommand> for Command {
         fn from(command: RecordingCommand) -> Self {
             Self::Recording(command)
+        }
+    }
+
+    #[cfg(feature = "chat")]
+    impl From<ChatCommand> for Command {
+        fn from(command: ChatCommand) -> Self {
+            Self::Chat(command)
         }
     }
 

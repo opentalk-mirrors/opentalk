@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = [ "recording-service" ]
-recording-service = [ "types/signaling-recording-service" ]
+default = ["chat", "recording-service"]
+chat = ["types/signaling-chat"]
+recording-service = ["types/signaling-recording-service"]
 
 [dependencies]
 anyhow = "1"
@@ -25,10 +26,9 @@ serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"
 tokio = { version = "1.45", features = ["macros"] }
 tt = { package = "tokio-tungstenite", version = "0.27" }
-types = { package = "opentalk-types", version = "0.44", default-features = false, features = [
+types = { package = "opentalk-types", version = "0.43", default-features = false, features = [
     "serde",
     "api",
-    "signaling-chat",
     "signaling-control",
     "signaling-moderation",
     "signaling-livekit",
