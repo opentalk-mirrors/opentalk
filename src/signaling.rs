@@ -122,7 +122,7 @@ impl Signaling {
         Ok(())
     }
 
-    pub(crate) async fn close(mut self) -> Result<()> {
+    pub(crate) async fn close(&mut self) -> Result<()> {
         let mut websocket = self.websocket.take().unwrap();
 
         websocket
