@@ -24,6 +24,7 @@ tt = { package = "tokio-tungstenite", version = "0.27" }
 types = { package = "opentalk-types", version = "0.44", default-features = false, features = [
     "serde",
     "api",
+    "signaling-chat",
     "signaling-control",
     "signaling-moderation",
     "signaling-livekit",

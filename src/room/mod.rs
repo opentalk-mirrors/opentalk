@@ -1,6 +1,6 @@
 use crate::{
     room::{livekit::RoomLiveKitState, recording::RoomRecordingState},
-    signaling::{Signaling, incoming},
+    signaling::{Signaling, incoming, outgoing::Command},
 };
 use ::livekit::{
     Room as LiveKitRoom, RoomEvent as LiveKitRoomEvent, RoomOptions as LiveKitRoomOptions,
@@ -154,6 +154,10 @@ impl Room {
                 return Ok(event);
             }
         }
+    }
+
+    pub async fn send(&mut self, command: impl Into<Command>) -> Result<()> {
+        self.signaling.send(command).await
     }
 
     fn parse_opentalk_event(
@@ -404,7 +408,7 @@ impl Room {
     }
 
     /// Closes all connection to the room
-    pub async fn close(mut self) -> Result<()> {
+    pub async fn close(&mut self) -> Result<()> {
         if let Some(livekit_room) = self
             .livekit_state
             .as_mut()

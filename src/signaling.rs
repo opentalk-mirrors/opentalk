@@ -122,7 +122,7 @@ impl Signaling {
         Ok(())
     }
 
-    pub(crate) async fn close(&mut self) -> Result<()> {
+    pub(crate) async fn close(mut self) -> Result<()> {
         let mut websocket = self.websocket.take().unwrap();
 
         websocket
@@ -166,14 +166,22 @@ pub(crate) mod incoming {
 pub(crate) mod outgoing {
     use serde::{Deserialize, Serialize};
     use types::signaling::{
-        control::command::ControlCommand, recording::command::RecordingCommand,
+        chat::command::ChatCommand, control::command::ControlCommand,
+        recording::command::RecordingCommand,
     };
 
     #[derive(Debug, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
-    pub(crate) enum Command {
+    pub enum Command {
+        Chat(ChatCommand),
         Control(ControlCommand),
         Recording(RecordingCommand),
+    }
+
+    impl From<ChatCommand> for Command {
+        fn from(command: ChatCommand) -> Self {
+            Self::Chat(command)
+        }
     }
 
     impl From<ControlCommand> for Command {
