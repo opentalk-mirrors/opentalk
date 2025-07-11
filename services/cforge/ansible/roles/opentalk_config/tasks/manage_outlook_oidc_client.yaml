@@ -21,3 +21,6 @@
     authorization_services_enabled: true
     public_client: false
     protocol: openid-connect
+  tags:
+    - init
+    - apply
