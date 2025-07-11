@@ -112,7 +112,7 @@
     - outlookClient
     - never
 
-- name: Configure Content-Security-Policy in Keycloak realm
+- name: Configure offline session timeout and lifespan
   community.general.keycloak_realm:
     auth_keycloak_url: "{{ Keycloak.base_url }}"
     auth_username: admin
