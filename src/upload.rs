@@ -65,9 +65,6 @@ impl OpenTalkClient {
     /// Each chunk in the `receiver` must contain a `u32` for the first 4 bytes in `Big Endian`.
     ///
     /// Every chunk must be at least 5 MiB (expect for the last one) and at most 5 GiB.
-    ///
-    /// # Errors
-    /// When the uploading was not successful
     pub async fn upload_render<E>(
         &self,
         uri: String,

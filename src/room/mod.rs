@@ -174,11 +174,7 @@ impl Room {
         loop {
             let event = select! {
                 payload = self.signaling.recv() => self.parse_opentalk_event(payload?)?.map(Event::OpenTalk),
-                room_event = recv_livekit(&mut self.livekit_state) => if let Some(room_event_u) = room_event {
-                    Some(Event::LiveKit(room_event_u))
-                } else {
-                    None
-                }
+                room_event = recv_livekit(&mut self.livekit_state) => room_event.map(Event::LiveKit),
             };
 
             if let Some(event) = event {
@@ -187,6 +183,7 @@ impl Room {
         }
     }
 
+    /// Sends a signaling [`Command`]
     pub async fn send(&mut self, command: impl Into<Command>) -> Result<()> {
         self.signaling.send(command).await
     }
@@ -195,13 +192,10 @@ impl Room {
         &mut self,
         event: Option<incoming::Event>,
     ) -> Result<Option<OpenTalkEvent>> {
-        let event = match event {
-            Some(event) => event,
-            None => {
-                return Ok(Some(OpenTalkEvent::Disconnected(
-                    DisconnectReason::WebsocketClosed,
-                )));
-            }
+        let Some(event) = event else {
+            return Ok(Some(OpenTalkEvent::Disconnected(
+                DisconnectReason::WebsocketClosed,
+            )));
         };
 
         let event = match event {
@@ -258,11 +252,9 @@ impl Room {
             }
             #[cfg(feature = "recording-service")]
             incoming::Event::RecordingService(recording_service_event) => {
-                if let Some(recording_service_state) = &mut self.recording_service_state {
-                    recording_service_state.handle_websocket_event(recording_service_event)
-                } else {
-                    None
-                }
+                self.recording_service_state.as_mut().map(|_| {
+                    RoomRecordingServiceState::handle_websocket_event(recording_service_event)
+                })
             }
             _ => None,
         };
@@ -291,6 +283,10 @@ impl Room {
     ///
     /// This function may only be called after receiving the [`OpenTalkEvent::WaitingRoomAccepted`] or completing the
     /// future returned by [`wait_until_accepted`](Self::wait_until_accepted).
+    ///
+    /// # Errors
+    /// When not in waiting room
+    /// When the signaling message couldn't be sent
     pub async fn enter_from_waiting_room(&mut self) -> Result<()> {
         if self.waiting_room_state != WaitingRoomState::Accepted {
             bail!("Not in waiting room, or not yet accepted")
@@ -320,7 +316,7 @@ impl Room {
                     if let Some(room_recording_state) = &mut self.recording_state {
                         room_recording_state.update(recording_state);
                     } else {
-                        self.recording_state = Some(RoomRecordingState::new(recording_state))
+                        self.recording_state = Some(RoomRecordingState::new(recording_state));
                     }
                 } else {
                     self.recording_state = None;
@@ -441,6 +437,10 @@ impl Room {
     }
 
     /// Set the current consent to be recording in any recording or stream
+    ///
+    /// # Errors
+    /// When the recording state is missing
+    /// When the signaling message couldn't be sent
     pub async fn set_recording_consent(&mut self, consent: bool) -> Result<()> {
         let Some(recording_state) = &mut self.recording_state else {
             bail!("no recording state")
@@ -466,7 +466,7 @@ impl Room {
         let recording_state_allows_publish = self
             .recording_state
             .as_ref()
-            .is_none_or(|s| s.can_publish());
+            .is_none_or(recording::RoomRecordingState::can_publish);
 
         livekit_state_allows_publish && recording_state_allows_publish
     }

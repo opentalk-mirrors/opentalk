@@ -26,14 +26,17 @@ pub struct LiveKitApi<'a> {
 }
 
 impl LiveKitApi<'_> {
+    #[must_use]
     fn state(&self) -> &RoomLiveKitState {
         self.room.livekit_state.as_ref().unwrap()
     }
 
+    #[must_use]
     pub fn credentials(&self) -> &Credentials {
         &self.state().credentials
     }
 
+    #[must_use]
     pub fn microphone_restriction_state(&self) -> &MicrophoneRestrictionState {
         &self.state().microphone_restriction_state
     }

@@ -44,11 +44,8 @@ impl RoomRecordingServiceState {
         }
     }
 
-    pub(super) fn handle_websocket_event(
-        &mut self,
-        event: RecordingServiceCommand,
-    ) -> Option<OpenTalkEvent> {
-        Some(OpenTalkEvent::RecordingService(match event {
+    pub(super) fn handle_websocket_event(event: RecordingServiceCommand) -> OpenTalkEvent {
+        OpenTalkEvent::RecordingService(match event {
             RecordingServiceCommand::StartStreams { target_ids } => {
                 OpenTalkRecordingServiceEvent::StartStreams { target_ids }
             }
@@ -58,7 +55,7 @@ impl RoomRecordingServiceState {
             RecordingServiceCommand::StopStreams { target_ids } => {
                 OpenTalkRecordingServiceEvent::StopStreams { target_ids }
             }
-        }))
+        })
     }
 }
 
@@ -66,15 +63,14 @@ pub struct RecordingServiceApi<'a> {
     pub(super) room: &'a mut Room,
 }
 
-impl<'a> RecordingServiceApi<'a> {
+impl RecordingServiceApi<'_> {
     pub fn recording(&self) -> Option<(&StreamingTargetId, &RecorderStreamInfo)> {
         self.all_streams()
             .iter()
-            .filter(|(_, stream_info)| match stream_info {
+            .find(|(_, stream_info)| match stream_info {
                 RecorderStreamInfo::Recording(_) => true,
                 RecorderStreamInfo::Streaming(_) => false,
             })
-            .next()
     }
 
     pub fn live_streams(&self) -> BTreeMap<&StreamingTargetId, &RecorderStreamInfo> {

@@ -25,6 +25,11 @@ pub struct RecordingApi<'a> {
 }
 
 impl RecordingApi<'_> {
+    /// Returns all known streams
+    ///
+    /// # Panics
+    /// When the `recording_state` was somehow invalidated
+    #[must_use]
     pub fn streams(&self) -> &BTreeMap<StreamingTargetId, StreamTarget> {
         &self.room.recording_state.as_ref().unwrap().streams
     }
@@ -62,8 +67,7 @@ impl RoomRecordingState {
                     },
                 ))
             }
-            RecordingEvent::Error(..) => None,
-            RecordingEvent::RecorderError(..) => None,
+            RecordingEvent::Error(..) | RecordingEvent::RecorderError(..) => None,
         }
     }
 

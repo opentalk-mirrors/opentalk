@@ -16,6 +16,7 @@ pub struct OpenTalkClient {
 }
 
 impl OpenTalkClient {
+    /// Creates a new [`OpenTalkClient`]
     pub async fn create(config: ClientConfig) -> Result<Self> {
         let http = HttpClient::create(config.auth).await?;
 
@@ -131,8 +132,7 @@ pub enum JoinResult {
 impl From<JoinResult> for Room {
     fn from(join_result: JoinResult) -> Self {
         match join_result {
-            JoinResult::InRoom(room) => room,
-            JoinResult::InWaitingRoom(room) => room,
+            JoinResult::InRoom(room) | JoinResult::InWaitingRoom(room) => room,
         }
     }
 }
