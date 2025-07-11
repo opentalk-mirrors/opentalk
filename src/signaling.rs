@@ -148,7 +148,7 @@ impl Drop for Signaling {
 pub(crate) mod incoming {
     use serde::{Deserialize, Serialize};
     use types::signaling::{
-        control::event::ControlEvent, livekit::event::LiveKitEvent,
+        chat::event::ChatEvent, control::event::ControlEvent, livekit::event::LiveKitEvent,
         moderation::event::ModerationEvent, recording::event::RecordingEvent,
     };
 
@@ -156,6 +156,7 @@ pub(crate) mod incoming {
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
     #[allow(clippy::large_enum_variant)]
     pub(crate) enum Event {
+        Chat(ChatEvent),
         Control(ControlEvent),
         Moderation(ModerationEvent),
         LiveKit(LiveKitEvent),

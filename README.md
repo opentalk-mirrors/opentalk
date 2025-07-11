@@ -9,7 +9,7 @@ Supported modules
 - [ ] recording-service
 - [ ] automod
 - [ ] breakout
-- [ ] chat
+- [x] chat
 - [ ] e2ee
 - [ ] legal-vote
 - [ ] meeting-notes
