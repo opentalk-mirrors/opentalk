@@ -1,0 +1,23 @@
+---
+- name: "Create a OIDC client for OpenTalk Outlook-Add-in | name: {{ Outlook.auth.client_id }}"
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ Keycloak.base_url }}"
+    auth_username: admin
+    auth_password: "{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}"
+    auth_realm: master
+    state: present
+    enabled: true
+    realm: "{{ Keycloak.realm }}"
+    client_id: "{{ Outlook.auth.client_id }}"
+    client_authenticator_type: client-secret
+    redirect_uris:
+      - "*"
+    web_origins:
+      - "*"
+    standard_flow_enabled: false
+    implicit_flow_enabled: false
+    direct_access_grants_enabled: false
+    service_accounts_enabled: false
+    authorization_services_enabled: true
+    public_client: false
+    protocol: openid-connect

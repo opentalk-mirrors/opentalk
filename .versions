@@ -10,6 +10,7 @@ RECORDER_VERSION=v0.15.1
 ETHERPAD_VERSION=v2.0.0
 SPACEDECK_VERSION=v2.0.1
 CFORGE_VERSION=v0.0.24
+OUTLOOK_ADD_IN_VERSION=v0.1.5
 
 ## 3rd party
 LIVEKIT_VERSION=v1.9.0
@@ -33,6 +34,7 @@ OBELISK_IMAGE_SRC=registry.opencode.de/opentalk/obelisk
 ETHERPAD_IMAGE_SRC=registry.opencode.de/opentalk/etherpad
 SPACEDECK_IMAGE_SRC=registry.opencode.de/opentalk/spacedeck
 CFORGE_IMAGE_SRC=git.opentalk.dev:5050/opentalk/opentalk-devops/containers/cforge
+OUTLOOK_IMAGE_SRC=registry.opencode.de/opentalk/opentalk-outlook-add-in
 
 ## 3rd party
 LIVEKIT_IMAGE_SRC=livekit/livekit-server

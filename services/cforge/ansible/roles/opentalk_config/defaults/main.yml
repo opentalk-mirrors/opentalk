@@ -383,3 +383,9 @@ Traefik:
     dashboard_admin_password_salt: "{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD_SALT }}"
   api:
     insecure: false
+
+Outlook:
+  auth:
+    issuer: "{{ Keycloak.base_url }}/realms/{{ Keycloak.realm }}"
+    client_id: "Outlook"
+    enabled: true

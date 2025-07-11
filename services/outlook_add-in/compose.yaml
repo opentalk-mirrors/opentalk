@@ -1,0 +1,16 @@
+services:
+  outlook_add_in:
+    image: ${OUTLOOK_IMAGE_SRC}:${OUTLOOK_ADD_IN_VERSION}
+    profiles: ["full", "outlook"]
+    restart: always
+    environment:
+      OPENTALK_OUTLOOK_URL: "${OPENTALK_OUTLOOK_URL:-https://${OT_DOMAIN}/outlook}"
+      OPENTALK_OUTLOOK_WEBAPP_URL: "${OPENTALK_OUTLOOK_WEBAPP_URL:-https://${OT_DOMAIN}}"
+      OPENTALK_OUTLOOK_OIDC_CLIENT_ID: "${OPENTALK_OUTLOOK_OIDC_CLIENT_ID:-Outlook}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.outlook_add_in.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/outlook`)"
+      - "traefik.http.routers.outlook_add_in.entrypoints=websecure"
+      - "traefik.http.routers.outlook_add_in.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.outlook_add_in.priority=100"
+      - "traefik.http.services.outlook_add_in.loadbalancer.server.port=80"

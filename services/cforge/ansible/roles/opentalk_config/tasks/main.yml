@@ -82,6 +82,12 @@
     - init
     - apply
 
+- name: Manage Outlook Add-in OIDC client
+  ansible.builtin.include_tasks: manage_outlook_oidc_client.yaml
+  tags:
+    - init
+    - apply
+
 - name: PostInstall Task - Manage test user
   ansible.builtin.include_tasks: manage_demo_user.yaml
   tags:
