@@ -1,7 +1,14 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 [package]
-name = "opentalk-client"
-version = "0.1.0"
+authors = ["OpenTalk Team <mail@opentalk.eu>"]
 edition = "2024"
+homepage = "https://opentalk.eu/"
+name = "opentalk-client-signaling"
+repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-client"
+version = "0.1.0"
 
 [features]
 default = ["chat", "recording-service"]
