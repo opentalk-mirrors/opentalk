@@ -58,7 +58,7 @@ repos:
       - id: taplo-format
       - id: taplo-lint
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.29.0
+    rev: v1.37.1
     hooks:
       - id: yamllint
         exclude: ^api/docs/openapi\.yml$
