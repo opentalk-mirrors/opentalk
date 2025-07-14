@@ -1,127 +1,133 @@
-# Features
+# OpenTalk Client (Signaling)
+
+## Features
 
 Supported modules
 
-- [x] control
-- [x] moderation
-- [x] livekit
-- [x] recording
-- [x] recording-service
-- [ ] automod
-- [ ] breakout
-- [x] chat
-- [ ] e2ee
-- [ ] legal-vote
-- [ ] meeting-notes
-- [ ] meeting-report
-- [ ] polls
-- [ ] shared-folder
-- [ ] subroom-audio
-- [ ] timer
-- [ ] training-participant-report
-- [ ] whiteboard
+- ✅ chat
+- ✅ control
+- ✅ livekit
+- ✅ moderation
+- ✅ recording
+- ✅ recording-service
+- ❌ automod
+- ❌ breakout
+- ❌ e2ee
+- ❌ legal-vote
+- ❌ meeting-notes
+- ❌ meeting-report
+- ❌ polls
+- ❌ shared-folder
+- ❌ subroom-audio
+- ❌ timer
+- ❌ training-participant-report
+- ❌ whiteboard
 
 ## Core
 
-- [x] OpenID Connect authentication
-- [x] Connect as authorized user
-- [x] Connect as guest
-- [x] Connect as call-in user
-- [x] Connect as recorder
+- ✅ Connect as authorized user
+- ✅ Connect as call-in user
+- ✅ Connect as guest
+- ✅ Connect as recorder
+- ✅ OpenID Connect authentication (ClientCredentials Flow)
+- ✅ OpenID Connect authentication (Custom Flow)
+- ✅ OpenID Connect authentication (DirectAccess Flow)
+- ✅ OpenID Connect authentication (None)
+- ❌ OpenID Connect authentication (Device Flow)
 
 ## Control
 
 ### Commands
 
-- [x] Join
-- [x] Enter From Waiting Room
-- [x] Raiser/Lower Hand
-- [ ] Grant/Revoke Moderator role
+- ✅ Enter From Waiting Room
+- ✅ Join
+- ✅ Raiser/Lower Hand
+- ❌ Grant/Revoke Moderator role
 
 ### Events
 
-- [x] JoinSuccess
-- [ ] JoinBlocked
-- [x] Participant Joined/Updated/Left
-- [ ] TimeLimitQuotaElapsed
-- [ ] Hand Raised/Lowered (Is this even needed?)
-- [ ] RoleUpdated
-- [ ] RoomDeleted
-- [ ] Error
-- [ ] ModeratorRoleGranted/Revoked
+- ✅ JoinSuccess
+- ✅ Participant Joined/Updated/Left
+- ❌ Error
+- ❌ Hand Raised/Lowered (Is this even needed?)
+- ❌ JoinBlocked
+- ❌ ModeratorRoleGranted/Revoked
+- ❌ RoleUpdated
+- ❌ RoomDeleted
+- ❌ TimeLimitQuotaElapsed
 
 ## Moderation
 
 ### Commands
 
-- [ ] Kick
-- [ ] Ban
-- [ ] SendToWaitingRoom
-- [ ] Debrief
-- [ ] ChangeDisplayName
-- [ ] Enable/DisableWaitingRoom
-- [ ] Enable/DisableRaiseHands
-- [ ] Accept (waiting room)
-- [ ] ResetRaisedHands
+- ❌ Accept (waiting room)
+- ❌ Ban
+- ❌ ChangeDisplayName
+- ❌ Debrief
+- ❌ Enable/DisableRaiseHands
+- ❌ Enable/DisableWaitingRoom
+- ❌ Kick
+- ❌ ResetRaisedHands
+- ❌ SendToWaitingRoom
 
 ### Events
 
-- [ ] Kicked
-- [ ] Banned
-- [x] SentToWaitingRoom
-- [x] SessionEnded
-- [ ] DebriefingStarted
-- [x] InWaitingRoom
-- [ ] Joined/LeftWaitingRoom
-- [ ] WaitingRoomEnabled/Disabled
-- [ ] RaiseHandsEnabled/Disabled
-- [x] Accepted
-- [ ] DisplayNameChanged
-- [ ] Error
-- [ ] RaisedHandResetByModerator
+- ✅ Accepted
+- ✅ InWaitingRoom
+- ✅ SentToWaitingRoom
+- ✅ SessionEnded
+- ❌ Banned
+- ❌ DebriefingStarted
+- ❌ DisplayNameChanged
+- ❌ Error
+- ❌ Joined/LeftWaitingRoom
+- ❌ Kicked
+- ❌ RaisedHandResetByModerator
+- ❌ RaiseHandsEnabled/Disabled
+- ❌ WaitingRoomEnabled/Disabled
 
 ## Livekit
 
 ### Commands
 
-- [ ] CreateNewAccessToken
-- [ ] ForceMute
-- [ ] Grant/RevokeScreenSharePermission
-- [ ] Enable/DisableMicrophoneRestriction
-- [ ] RequestPopoutStreamAccessToken
+- ❌ CreateNewAccessToken
+- ❌ Enable/DisableMicrophoneRestriction
+- ❌ ForceMute
+- ❌ Grant/RevokeScreenSharePermission
+- ❌ RequestPopoutStreamAccessToken
 
 ### Events
 
-- [ ] Credentials
-- [x] MicrophoneRestrictionsEnabled/Disabled
-- [x] ForceMuted
-- [ ] PopoutStreamAccessToken
-- [ ] ScreenSharePermissionsUpdated
-- [ ] Error
+- ✅ ForceMuted
+- ✅ MicrophoneRestrictionsEnabled/Disabled
+- ❌ Credentials
+- ❌ Error
+- ❌ PopoutStreamAccessToken
+- ❌ ScreenSharePermissionsUpdated
 
 ## Recording
 
 ### Commands
 
-- [x] SetConsent
-- [x] StartStream
-- [x] PauseStream
-- [x] StopStream
+- ✅ PauseStream
+- ✅ SetConsent
+- ✅ StartStream
+- ✅ StopStream
 
 ### Events
 
-- [x] StreamUpdated
-- [ ] Error
-- [ ] RecorderError
+- ✅ StreamUpdated
+- ❌ Error
+- ❌ RecorderError
 
 ## Recording Service
 
 ### Commands
 
-- [x] StartStreams
-- [x] PauseStreams
-- [x] StopStreams
+- ✅ PauseStreams
+- ✅ StartStreams
+- ✅ StopStreams
 
 ### Events
 
-- [ ] StreamUpdated
+- ❌ StreamUpdated
