@@ -198,5 +198,3 @@ test:cargo_test:
 
     # Print out the coverage percentage for GitLab
     - xmllint --xpath "$COVERAGE_XML_PATH" target/coverage/cobertura.xml
-
-

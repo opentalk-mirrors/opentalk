@@ -78,4 +78,3 @@ repos:
     hooks:
       - id: commitlint
         stages: [commit-msg]
-
