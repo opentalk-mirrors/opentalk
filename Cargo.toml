@@ -11,12 +11,13 @@ repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-client"
 version = "0.1.0"
 
 [features]
-default = ["chat", "recording-service"]
 chat = ["types/signaling-chat"]
+default = ["chat", "recording-service"]
 recording-service = ["types/signaling-recording-service"]
 
 [dependencies]
 anyhow = "1"
+async-trait = "0.1"
 bytes = "1.10"
 chrono = "0.4"
 futures = "0.3"
@@ -25,23 +26,22 @@ livekit = "0.7"
 log = "0.4"
 openidconnect = "4"
 reqwest = { version = "0.12", default-features = false, features = [
-    "json",
-    "stream",
+  "json",
+  "stream",
 ] }
-serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 thiserror = "2.0"
 tokio = { version = "1.45", features = ["macros"] }
 tt = { package = "tokio-tungstenite", version = "0.27" }
 types = { package = "opentalk-types", version = "0.43", default-features = false, features = [
-    "serde",
-    "api",
-    "signaling-control",
-    "signaling-moderation",
-    "signaling-livekit",
-    "signaling-recording",
+  "api",
+  "serde",
+  "signaling-control",
+  "signaling-livekit",
+  "signaling-moderation",
+  "signaling-recording",
 ] }
-async-trait = "0.1.88"
 
 [build-dependencies]
 anyhow = "1"

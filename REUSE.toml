@@ -19,4 +19,3 @@ path = [
   "renovate.json",
 ]
 precedence = "aggregate"
-
