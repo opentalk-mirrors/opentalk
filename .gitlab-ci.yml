@@ -1,0 +1,202 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.88.0-bookworm
+
+stages:
+  - lint
+  - test
+  - build
+  - check
+  - package
+  - trigger
+
+.default_job_condition: &default_job_condition
+  needs: []
+  rules:
+    # Run in merge requests (if there is one job with this instruction, all jobs without
+    # it are ignored for the MR pipeline)
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    # Run on scheduled pipeline runs
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+
+trigger_changelog_preview:
+  stage: trigger
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  variables:
+    PIPELINE_PROJECT_PATH: $CI_PROJECT_PATH
+    PIPELINE_MERGE_REQUEST_PROJECT_PATH: $CI_MERGE_REQUEST_SOURCE_PROJECT_PATH
+    PIPELINE_MERGE_REQUEST_SOURCE_BRANCH_NAME: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+    PIPELINE_MERGE_REQUEST_IID: $CI_MERGE_REQUEST_IID
+  trigger: opentalk/tools/check-changelog
+
+lint:fmt:
+  stage: lint
+  <<: *default_job_condition
+  script:
+    - cargo +nightly fmt -- --check
+
+lint:clippy:
+  stage: lint
+  <<: *default_job_condition
+  script:
+    - cargo clippy --workspace --all-features --tests -- --deny warnings
+
+lint:doc:
+  stage: lint
+  <<: *default_job_condition
+  variables:
+    RUSTDOCFLAGS: -Dwarnings
+  script: cargo doc --workspace --no-deps
+
+lint:shellcheck:
+  image: koalaman/shellcheck-alpine:latest
+  stage: lint
+  <<: *default_job_condition
+  before_script:
+    - apk update
+    - apk add git
+  script: git ls-files "*.sh" -z | xargs -0r shellcheck
+
+lint:dependency_check:
+  stage: lint
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        - Cargo.lock
+        - deny.toml
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+  script:
+    - >
+      cargo-deny --all-features --workspace check
+      --deny unmatched-skip
+      --deny license-not-encountered
+      --deny advisory-not-detected
+
+lint:unnecessary_dependencies:
+  stage: lint
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  before_script: if ! cargo machete --version; then cargo install cargo-machete; fi
+  script: cargo machete --with-metadata
+
+lint:yaml:
+  stage: lint
+  <<: *default_job_condition
+  image: alpine:3.22
+  before_script:
+    - apk add --no-cache yamllint
+  script: yamllint .
+
+lint:toml:
+  stage: lint
+  <<: *default_job_condition
+  script: taplo fmt --check
+
+lint:markdown:
+  stage: lint
+  <<: *default_job_condition
+  image: registry.gitlab.com/pipeline-components/markdownlint:latest
+  script:
+    - mdl --style .markdown_style.rb  --warnings .
+
+lint:licensing:
+  stage: lint
+  <<: *default_job_condition
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: ['']
+  script:
+    - reuse lint
+
+lint:commit:
+  cache: {}
+  image: node:lts-alpine
+  stage: lint
+  needs: []
+  rules:
+    # Run in merge requests only.
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  before_script:
+    - apk add --no-cache git
+    - npm install -g @commitlint/cli @commitlint/config-conventional
+  script:
+    - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
+
+lint:commit-signature:
+  stage: lint
+  needs: []
+  rules:
+    # Run in merge requests only.
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  script:
+    # %G? will log signature information for a commit. `N` stands for "no signature", `B` for "bad signature"
+    # refer to https://git-scm.com/docs/pretty-formats#Documentation/pretty-formats.txt-emGem
+    # grep checks that the output does not contain any "N" or "B" characters.
+    - >
+      git log --format=format:'%G?' $CI_MERGE_REQUEST_DIFF_BASE_SHA..HEAD
+      | grep --null-data --quiet --invert-match --regexp="N" --regexp="B"
+
+lint:mod-rs-files:
+  # This job is needed until we can fully deny the `self_named_module_files` in clippy.
+  # The blocker for this is a bug in clippy that triggers false positives in some cases.
+  # https://github.com/rust-lang/rust-clippy/issues/11916
+  stage: lint
+  <<: *default_job_condition
+  variables:
+    # For getting color output from `tput`
+    TERM: xterm-256color
+  before_script: apt-get update && apt-get install -y fd-find
+  script: ./ci/lint-mod-rs-files.sh
+
+lint:justfile:
+  stage: lint
+  <<: *default_job_condition
+  before_script: if ! just --version; then cargo install just; fi
+  script:
+    # The `--fmt` command-line parameter is still unstable, but valuable anyway.
+    - just --unstable --fmt --check
+
+test:cargo_test:
+  stage: test
+  <<: *default_job_condition
+  artifacts:
+    paths:
+      - target/coverage/html
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: target/coverage/cobertura.xml
+  coverage: '/Coverage: \d+(?:\.\d+)?/'
+  variables:
+    # Used for coverage
+    COVERAGE_XML_PATH: 'concat("Coverage: ", 100 * string(//coverage/@line-rate), "%")'
+  before_script:
+    - rustup component add rustfmt llvm-tools-preview
+    # libxml2-utils contains the xmllint command used below
+    - apt-get update && apt-get install -y libxml2-utils
+  script:
+    - RUSTFLAGS="-C instrument-coverage -C link-arg=-fuse-ld=lld"
+      LLVM_PROFILE_FILE="$(pwd)/target/coverage/raw/coverage-%p-%m.profraw"
+      cargo test --workspace --locked --all-features
+
+    # Extract code coverage data
+    - grcov target/coverage/raw
+      --binary-path ./target/debug/
+      --source-dir .
+      --output-types cobertura,html
+      --branch
+      --ignore-not-existing
+      --ignore "*cargo*"
+      --output-path target/coverage
+
+    # Print out the coverage percentage for GitLab
+    - xmllint --xpath "$COVERAGE_XML_PATH" target/coverage/cobertura.xml
+
+
