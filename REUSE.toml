@@ -15,7 +15,6 @@ path = [
   "Cargo.lock",
   "README.md",
   "ci/*",
-  "crates/**/README.md",
   "renovate.json",
 ]
 precedence = "aggregate"

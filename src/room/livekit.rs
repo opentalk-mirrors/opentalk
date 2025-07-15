@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 use std::{collections::BTreeSet, future::pending};
 
 use ::livekit::{Room as LiveKitRoom, RoomEvent as LiveKitRoomEvent};
