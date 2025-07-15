@@ -4,6 +4,7 @@
 
 [package]
 name = "opentalk-client-signaling"
+description = "OpenTalk Client for conference Signaling API"
 version = "0.1.0"
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
 edition = "2024"
