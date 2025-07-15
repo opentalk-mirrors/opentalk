@@ -383,6 +383,8 @@ Traefik:
     dashboard_admin_password_salt: "{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD_SALT }}"
   api:
     insecure: false
+  log:
+    log_level: INFO
 
 Outlook:
   auth:

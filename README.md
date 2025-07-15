@@ -130,3 +130,25 @@ Apply config changes with
 ```
 docker compose run --rm cforge --diff apply
 ```
+
+## Merge new config options
+
+When ansible reconizes new config options in role opentalk_config/defaults/main.yml it notices it with a warning message:
+
+> ⚠️ WARNING ⚠️  There are new configuration options available, that are not yet in settings.yml!
+New keys found:
+Traefik.log
+Please check and manually merge settings.yml.unmerged into settings.yml.
+And delete settings.yml.unmerged afterwards."
+
+You can adjust `settings.yml.unmerged` to your needs and/or apply the diff file to add new config options.
+
+```bash
+cd /opt/opentalk
+# check config diff
+diff -u config/settings.yml config/settings.yml.unmerged
+
+# add new options to settings.yml
+diff -u config/settings.yml config/settings.yml.unmerged | patch config/settings.yml \
+&& rm -i config/settings.yml.unmerged
+```
