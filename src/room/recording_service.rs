@@ -1,17 +1,20 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{Context, Result};
-use types::common::streaming::StreamingTargetId;
-use types::signaling::recording::{StreamStatus, StreamUpdated};
-use types::signaling::recording_service::{
-    command::RecordingServiceCommand,
-    event::RecordingServiceEvent,
-    state::{RecorderStreamInfo, RecordingServiceState},
+use types::{
+    common::streaming::StreamingTargetId,
+    signaling::{
+        recording::{StreamStatus, StreamUpdated},
+        recording_service::{
+            command::RecordingServiceCommand,
+            event::RecordingServiceEvent,
+            state::{RecorderStreamInfo, RecordingServiceState},
+        },
+    },
 };
 
-use crate::signaling::outgoing;
-
 use super::{OpenTalkEvent, Room};
+use crate::signaling::outgoing;
 
 #[derive(Debug)]
 pub enum OpenTalkRecordingServiceEvent {

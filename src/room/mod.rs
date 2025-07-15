@@ -1,13 +1,10 @@
-use crate::{
-    room::{livekit::RoomLiveKitState, recording::RoomRecordingState},
-    signaling::{Signaling, incoming, outgoing::Command},
-};
+use std::{collections::HashMap, future::pending};
+
 use ::livekit::{
     Room as LiveKitRoom, RoomEvent as LiveKitRoomEvent, RoomOptions as LiveKitRoomOptions,
 };
 use anyhow::{Context, Result, bail};
 use chrono::{DateTime, Utc};
-use std::{collections::HashMap, future::pending};
 use tokio::select;
 use types::{
     common::{events::EventInfo, users::DisplayName},
@@ -28,6 +25,11 @@ use types::{
     },
 };
 
+use crate::{
+    room::{livekit::RoomLiveKitState, recording::RoomRecordingState},
+    signaling::{Signaling, incoming, outgoing::Command},
+};
+
 mod livekit;
 mod recording;
 
@@ -37,23 +39,19 @@ mod chat;
 mod recording_service;
 
 #[cfg(feature = "chat")]
-use chat::{ChatApi, RoomChatState};
+pub use chat::OpenTalkChatEvent;
 #[cfg(feature = "chat")]
-use types::signaling::chat::state::ChatState;
-
-#[cfg(feature = "recording-service")]
-use recording_service::{RecordingServiceApi, RoomRecordingServiceState};
-#[cfg(feature = "recording-service")]
-use types::signaling::recording_service::state::RecordingServiceState;
-
+use chat::{ChatApi, RoomChatState};
 pub use livekit::{LiveKitApi, OpenTalkLiveKitEvent};
 pub use recording::{OpenTalkRecordingEvent, RecordingApi};
-
-#[cfg(feature = "chat")]
-pub use chat::OpenTalkChatEvent;
-
 #[cfg(feature = "recording-service")]
 pub use recording_service::OpenTalkRecordingServiceEvent;
+#[cfg(feature = "recording-service")]
+use recording_service::{RecordingServiceApi, RoomRecordingServiceState};
+#[cfg(feature = "chat")]
+use types::signaling::chat::state::ChatState;
+#[cfg(feature = "recording-service")]
+use types::signaling::recording_service::state::RecordingServiceState;
 
 #[derive(Debug)]
 pub struct Room {

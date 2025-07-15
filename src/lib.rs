@@ -1,5 +1,7 @@
 #![warn(unreachable_pub)]
 
+mod room;
+
 pub mod authentication;
 pub mod client;
 pub mod config;
@@ -9,18 +11,14 @@ pub mod signaling;
 #[cfg(feature = "recording-service")]
 pub mod upload;
 
-mod room;
-
-pub use types;
-
 pub use client::OpenTalkClient;
 pub use config::{AuthConfig, ControllerConfig};
-pub use room::{
-    DisconnectReason, Event, LiveKitApi, OpenTalkEvent, OpenTalkLiveKitEvent,
-    OpenTalkRecordingEvent, Participant, RecordingApi, Room,
-};
-
 #[cfg(feature = "chat")]
 pub use room::OpenTalkChatEvent;
 #[cfg(feature = "recording-service")]
 pub use room::OpenTalkRecordingServiceEvent;
+pub use room::{
+    DisconnectReason, Event, LiveKitApi, OpenTalkEvent, OpenTalkLiveKitEvent,
+    OpenTalkRecordingEvent, Participant, RecordingApi, Room,
+};
+pub use types;

@@ -2,11 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::authentication::Authentication;
 use core::fmt;
+
 use openidconnect::{
     ClientId, ClientSecret, IssuerUrl, ResourceOwnerPassword, ResourceOwnerUsername,
 };
+
+use crate::authentication::Authentication;
 
 #[derive(Debug)]
 pub struct ClientConfig {

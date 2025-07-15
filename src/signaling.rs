@@ -147,15 +147,14 @@ impl Drop for Signaling {
 
 pub(crate) mod incoming {
     use serde::{Deserialize, Serialize};
-    use types::signaling::{
-        control::event::ControlEvent, livekit::event::LiveKitEvent,
-        moderation::event::ModerationEvent, recording::event::RecordingEvent,
-    };
-
     #[cfg(feature = "chat")]
     use types::signaling::chat::event::ChatEvent;
     #[cfg(feature = "recording-service")]
     use types::signaling::recording_service::command::RecordingServiceCommand;
+    use types::signaling::{
+        control::event::ControlEvent, livekit::event::LiveKitEvent,
+        moderation::event::ModerationEvent, recording::event::RecordingEvent,
+    };
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
@@ -175,14 +174,13 @@ pub(crate) mod incoming {
 
 pub(crate) mod outgoing {
     use serde::{Deserialize, Serialize};
-    use types::signaling::{
-        control::command::ControlCommand, recording::command::RecordingCommand,
-    };
-
     #[cfg(feature = "chat")]
     use types::signaling::chat::command::ChatCommand;
     #[cfg(feature = "recording-service")]
     use types::signaling::recording_service::event::RecordingServiceEvent;
+    use types::signaling::{
+        control::command::ControlCommand, recording::command::RecordingCommand,
+    };
 
     #[derive(Debug, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]

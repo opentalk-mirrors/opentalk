@@ -1,6 +1,5 @@
 use std::time::{Duration, SystemTime};
 
-use crate::config::{ClientCredentialsAuthConfig, DirectAccessCredentialsAuthConfig};
 use anyhow::{Context, Result, bail};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc, serde::ts_seconds::deserialize as from_ts};
@@ -17,6 +16,8 @@ use openidconnect::{
 };
 use serde::Deserialize;
 use tokio::sync::Mutex;
+
+use crate::config::{ClientCredentialsAuthConfig, DirectAccessCredentialsAuthConfig};
 
 type OidcClient = openidconnect::Client<
     EmptyAdditionalClaims,
