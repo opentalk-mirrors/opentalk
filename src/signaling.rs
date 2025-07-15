@@ -184,7 +184,7 @@ pub(crate) mod outgoing {
 
     #[derive(Debug, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
-    pub enum Command {
+    pub(crate) enum Command {
         Control(ControlCommand),
         Recording(RecordingCommand),
         #[cfg(feature = "chat")]

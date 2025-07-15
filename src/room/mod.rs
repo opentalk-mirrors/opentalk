@@ -31,7 +31,7 @@ use types::{
 
 use crate::{
     room::{livekit::RoomLiveKitState, recording::RoomRecordingState},
-    signaling::{Signaling, incoming, outgoing::Command},
+    signaling::{Signaling, incoming},
 };
 
 mod livekit;
@@ -200,11 +200,6 @@ impl Room {
                 return Ok(event);
             }
         }
-    }
-
-    /// Sends a signaling [`Command`]
-    pub async fn send(&mut self, command: impl Into<Command>) -> Result<()> {
-        self.signaling.send(command).await
     }
 
     fn parse_opentalk_event(
