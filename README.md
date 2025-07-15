@@ -60,11 +60,12 @@ options:
 Available Post-Install Tasks:
 
                         User Management                         
-┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Task Name ┃ Description                                      ┃
-┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ demoUser  │ Creates a user in Keycloak for testing purposes. │
-└───────────┴──────────────────────────────────────────────────┘
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Task Name     ┃ Description                                                        ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ demoUser      │ Creates a user in Keycloak for testing purposes.                   │
+│ outlookClient │ Creates a OIDC client in Keycloak for the OpenTalk Outlook Add-in. │
+└───────────────┴────────────────────────────────────────────────────────────────────┘
                                   Backup                                   
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Task Name                ┃ Description                                  ┃

@@ -9,10 +9,6 @@ services:
       FORCE_CONFIG: ${FORCE_CONFIG:-false}
       CFORGE_IMAGE_SRC: ${CFORGE_IMAGE_SRC}
       CFORGE_VERSION: ${CFORGE_VERSION}
-    entrypoint:
-      - /usr/local/bin/cforge
-      - --diff
-      - apply
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - controller-db:/data/controller-db
