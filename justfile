@@ -19,4 +19,3 @@ prepare-release VERSION: _check_cargo_set_version
     cargo set-version --workspace {{ VERSION }}
     # Regenerate the lockfile
     cargo check
-
