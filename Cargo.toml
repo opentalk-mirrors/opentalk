@@ -8,7 +8,7 @@ version = "0.1.0"
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
 edition = "2024"
 homepage = "https://opentalk.eu/"
-repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-client"
+repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-client-signaling"
 license = "EUPL-1.2"
 
 [features]
