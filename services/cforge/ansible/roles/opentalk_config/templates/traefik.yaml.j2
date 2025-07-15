@@ -19,11 +19,9 @@ global:
 
 # Log settings
 log:
-  level: DEBUG
-  filePath: "/data/traefik.log"
+  level: {{ Traefik.log.log_level }}
 
 accessLog:
-  filePath: "/data/access.log"
   bufferingSize: 100
 
 api:
