@@ -46,6 +46,22 @@ lint:clippy:
   script:
     - cargo clippy --workspace --all-features --tests -- --deny warnings
 
+lint:clippy:features:
+  stage: lint
+  # Ensures that the crate can be built with each relevant feature individually
+  variables:
+    RUSTFLAGS: -D warnings
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    # Run on scheduled pipeline runs
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+  parallel:
+    matrix:
+      - FEATURES: [chat, recording-service]
+        EXTRA_ARGS: ['', --no-default-features]
+  script:
+    - cargo clippy $EXTRA_ARGS --tests --features=$FEATURES
+
 lint:doc:
   stage: lint
   <<: *default_job_condition
