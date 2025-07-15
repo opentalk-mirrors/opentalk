@@ -43,15 +43,15 @@ mod chat;
 mod recording_service;
 
 #[cfg(feature = "chat")]
-pub use chat::OpenTalkChatEvent;
+use chat::RoomChatState;
 #[cfg(feature = "chat")]
-use chat::{ChatApi, RoomChatState};
+pub use chat::{ChatApi, Message, OpenTalkChatEvent};
 pub use livekit::{LiveKitApi, OpenTalkLiveKitEvent};
 pub use recording::{OpenTalkRecordingEvent, RecordingApi};
 #[cfg(feature = "recording-service")]
-pub use recording_service::OpenTalkRecordingServiceEvent;
+use recording_service::RoomRecordingServiceState;
 #[cfg(feature = "recording-service")]
-use recording_service::{RecordingServiceApi, RoomRecordingServiceState};
+pub use recording_service::{OpenTalkRecordingServiceEvent, RecordingServiceApi};
 #[cfg(feature = "chat")]
 use types::signaling::chat::state::ChatState;
 #[cfg(feature = "recording-service")]
