@@ -19,23 +19,23 @@ livekit = ["dep:livekit"]
 recording-service = ["types/signaling-recording-service"]
 
 [dependencies]
-anyhow = { version = "1", default-features = false }
-async-trait = { version = "0.1", default-features = false }
-bytes = { version = "1.10", default-features = false }
+anyhow = "1"
+async-trait = "0.1"
+bytes = "1.10"
 chrono = { version = "0.4", default-features = false }
 futures = { version = "0.3", default-features = false }
 jsonwebtoken = { version = "9.3", default-features = false }
-livekit = { version = "0.7", default-features = false, features = ["tokio"], optional = true }
-log = { version = "0.4", default-features = false }
-openidconnect = { version = "4", default-features = false, features = ["reqwest", "rustls-tls"] }
+livekit = { version = "0.7", optional = true }
+log = "0.4"
+openidconnect = { version = "4", default-features = false, features = ["reqwest"] }
 reqwest = { version = "0.12", default-features = false, features = [
   "json",
   "stream",
 ] }
-serde = { version = "1.0", default-features = false, features = ["derive"] }
-serde_json = { version = "1.0", default-features = false }
-thiserror = { version = "2.0", default-features = false }
-tokio = { version = "1.45", default-features = false, features = ["macros"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+tokio = { version = "1.45", features = ["macros"] }
 tt = { package = "tokio-tungstenite", version = "0.27", default-features = false, features = ["connect", "handshake"] }
 types = { package = "opentalk-types", version = "0.43", default-features = false, features = [
   "api",
@@ -47,4 +47,4 @@ types = { package = "opentalk-types", version = "0.43", default-features = false
 ] }
 
 [build-dependencies]
-anyhow = { version = "1", default-features = false }
+anyhow = "1"
