@@ -23,7 +23,7 @@ anyhow = "1"
 async-trait = "0.1"
 bytes = "1.10"
 chrono = { version = "0.4", default-features = false }
-futures = { version = "0.3", default-features = false }
+futures-util = { version = "0.3", default-features = false }
 jsonwebtoken = { version = "9.3", default-features = false }
 livekit = { version = "0.7", optional = true }
 log = "0.4"
