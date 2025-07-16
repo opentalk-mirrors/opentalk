@@ -7,7 +7,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use futures::{SinkExt, Stream, StreamExt};
+use futures_util::{SinkExt, Stream, StreamExt};
 use openidconnect::http::Response;
 use reqwest::header::HeaderValue;
 use tt::{

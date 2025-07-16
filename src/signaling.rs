@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 
 use anyhow::{Context, Result, bail};
 use bytes::Bytes;
-use futures::{SinkExt, StreamExt};
+use futures_util::{SinkExt, StreamExt};
 use reqwest::header::SEC_WEBSOCKET_PROTOCOL;
 use tokio::net::TcpStream;
 use tt::{

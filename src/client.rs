@@ -36,7 +36,7 @@ impl OpenTalkClient {
         display_name: DisplayName,
         room_id: RoomId,
         breakout_id: Option<BreakoutRoomId>,
-        use_livekit: bool,
+        #[cfg(feature = "livekit")] use_livekit: bool,
     ) -> Result<JoinResult> {
         let ticket = self
             .http
@@ -44,7 +44,13 @@ impl OpenTalkClient {
             .await
             .context("Failed to send start HTTP request")?;
 
-        self.connect_common(ticket, display_name, use_livekit).await
+        self.connect_common(
+            ticket,
+            display_name,
+            #[cfg(feature = "livekit")]
+            use_livekit,
+        )
+        .await
     }
 
     /// Connect using an invite code, does not require any authentication
@@ -55,7 +61,7 @@ impl OpenTalkClient {
         invite_code: String,
         password: Option<RoomPassword>,
         display_name: DisplayName,
-        use_livekit: bool,
+        #[cfg(feature = "livekit")] use_livekit: bool,
     ) -> Result<JoinResult> {
         let ticket = self
             .http
@@ -69,7 +75,13 @@ impl OpenTalkClient {
             .await
             .context("Failed to send start-call-in HTTP request")?;
 
-        self.connect_common(ticket, display_name, use_livekit).await
+        self.connect_common(
+            ticket,
+            display_name,
+            #[cfg(feature = "livekit")]
+            use_livekit,
+        )
+        .await
     }
 
     /// Connect as call-in service. Requires service authentication
@@ -78,7 +90,7 @@ impl OpenTalkClient {
         id: CallInId,
         pin: CallInPassword,
         display_name: DisplayName,
-        use_livekit: bool,
+        #[cfg(feature = "livekit")] use_livekit: bool,
     ) -> Result<JoinResult> {
         let ticket = self
             .http
@@ -86,7 +98,13 @@ impl OpenTalkClient {
             .await
             .context("Failed to send start-call-in HTTP request")?;
 
-        self.connect_common(ticket, display_name, use_livekit).await
+        self.connect_common(
+            ticket,
+            display_name,
+            #[cfg(feature = "livekit")]
+            use_livekit,
+        )
+        .await
     }
 
     /// Connect as authenticated opentalk user
@@ -94,7 +112,7 @@ impl OpenTalkClient {
         &self,
         room_id: RoomId,
         breakout_id: Option<BreakoutRoomId>,
-        use_livekit: bool,
+        #[cfg(feature = "livekit")] use_livekit: bool,
     ) -> Result<JoinResult> {
         let ticket = self
             .http
@@ -102,21 +120,30 @@ impl OpenTalkClient {
             .await
             .context("Failed to send start HTTP request")?;
 
-        self.connect_common(ticket, DisplayName::from_str_lossy("recorder"), use_livekit)
-            .await
+        self.connect_common(
+            ticket,
+            DisplayName::from_str_lossy("recorder"),
+            #[cfg(feature = "livekit")]
+            use_livekit,
+        )
+        .await
     }
 
     async fn connect_common(
         &self,
         ticket: TicketToken,
         display_name: DisplayName,
-        use_livekit: bool,
+        #[cfg(feature = "livekit")] use_livekit: bool,
     ) -> Result<JoinResult> {
         let signaling = Signaling::connect(ticket, &self.controller_config, display_name)
             .await
             .context("Failed to connect to signaling")?;
 
-        let mut room = Room::new(use_livekit, signaling);
+        let mut room = Room::new(
+            signaling,
+            #[cfg(feature = "livekit")]
+            use_livekit,
+        );
 
         room.join().await?;
 
