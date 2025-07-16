@@ -57,7 +57,7 @@ lint:clippy:features:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
   parallel:
     matrix:
-      - FEATURES: [chat, recording-service]
+      - FEATURES: [chat, livekit, recording-service]
         EXTRA_ARGS: ['', --no-default-features]
   script:
     - cargo clippy $EXTRA_ARGS --tests --features=$FEATURES

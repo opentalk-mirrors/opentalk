@@ -14,7 +14,8 @@ license = "EUPL-1.2"
 
 [features]
 chat = ["types/signaling-chat"]
-default = ["chat", "recording-service"]
+default = ["chat", "livekit", "recording-service"]
+livekit = ["dep:livekit"]
 recording-service = ["types/signaling-recording-service"]
 
 [dependencies]
@@ -24,7 +25,7 @@ bytes = { version = "1.10", default-features = false }
 chrono = { version = "0.4", default-features = false }
 futures = { version = "0.3", default-features = false }
 jsonwebtoken = { version = "9.3", default-features = false }
-livekit = { version = "0.7", default-features = false, features = ["tokio"] }
+livekit = { version = "0.7", default-features = false, features = ["tokio"], optional = true }
 log = { version = "0.4", default-features = false }
 openidconnect = { version = "4", default-features = false, features = ["reqwest", "rustls-tls"] }
 reqwest = { version = "0.12", default-features = false, features = [

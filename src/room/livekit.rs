@@ -2,9 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::BTreeSet, future::pending};
+use std::collections::BTreeSet;
+#[cfg(feature = "livekit")]
+use std::future::pending;
 
+#[cfg(feature = "livekit")]
 use ::livekit::{Room as LiveKitRoom, RoomEvent as LiveKitRoomEvent};
+#[cfg(feature = "livekit")]
 use tokio::sync::mpsc::UnboundedReceiver;
 use types::signaling::{
     ParticipantId,
@@ -48,7 +52,9 @@ impl LiveKitApi<'_> {
 
 #[derive(Debug)]
 pub(super) struct RoomLiveKitState {
+    #[cfg(feature = "livekit")]
     pub(super) room: Option<LiveKitRoom>,
+    #[cfg(feature = "livekit")]
     events: Option<UnboundedReceiver<LiveKitRoomEvent>>,
 
     pub(super) credentials: Credentials,
@@ -59,12 +65,14 @@ pub(super) struct RoomLiveKitState {
 
 impl RoomLiveKitState {
     pub(super) fn new(
-        room: Option<LiveKitRoom>,
-        events: Option<UnboundedReceiver<LiveKitRoomEvent>>,
+        #[cfg(feature = "livekit")] room: Option<LiveKitRoom>,
+        #[cfg(feature = "livekit")] events: Option<UnboundedReceiver<LiveKitRoomEvent>>,
         state: LiveKitState,
     ) -> Self {
         Self {
+            #[cfg(feature = "livekit")]
             room,
+            #[cfg(feature = "livekit")]
             events,
             credentials: state.credentials,
             microphone_restriction_state: state.microphone_restriction_state,
@@ -110,6 +118,7 @@ impl RoomLiveKitState {
         }
     }
 
+    #[cfg(feature = "livekit")]
     pub(super) async fn recv(&mut self) -> Option<LiveKitRoomEvent> {
         match &mut self.events {
             Some(events) => events.recv().await,
