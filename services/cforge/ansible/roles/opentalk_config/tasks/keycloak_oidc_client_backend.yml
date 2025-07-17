@@ -1,0 +1,42 @@
+---
+# Manage Keycloak client used for OpenTalk backend
+- block:
+  - name: Create or update Keycloak client {{ Controller.oidc.controller.client_id }}
+    community.general.keycloak_client:
+      auth_keycloak_url: "{{ Keycloak.base_url }}"
+      auth_realm: "{{ Keycloak.auth.realm }}"
+      auth_username: "{{ Keycloak.auth.username }}"
+      auth_password: "{{ Keycloak.auth.password }}"
+      realm: "{{ Keycloak.realm }}"
+      client_id: "{{ Controller.oidc.controller.client_id }}"
+      name: "{{ Controller.oidc.controller.client_id }}"
+      description: "OpenTalk Controller OIDC client"
+      state: present
+      enabled: true
+      public_client: false
+      direct_access_grants_enabled: false
+      service_accounts_enabled: true
+      client_authenticator_type: client-secret
+      secret: "{{ OIDC_CONTROLLER_CLIENT_SECRET }}"
+      attributes:
+        post.logout.redirect.uris: "+"
+
+  - name: "Map a client roles to service account user for client {{ Controller.oidc.controller.client_id }}"
+    community.general.keycloak_user_rolemapping:
+      auth_keycloak_url: "{{ Keycloak.base_url }}"
+      auth_realm: "{{ Keycloak.auth.realm }}"
+      auth_username: "{{ Keycloak.auth.username }}"
+      auth_password: "{{ Keycloak.auth.password }}"
+      realm: "{{ Keycloak.realm }}"
+      client_id: "realm-management"
+      service_account_user_client_id: "{{ Controller.oidc.controller.client_id }}"
+      roles:
+        - name: view-users
+        - name: query-users
+      state: present
+
+  tags:
+    - client_backend
+    - init
+    - apply
+    - keycloak

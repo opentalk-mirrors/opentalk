@@ -1,0 +1,65 @@
+---
+Deployment:
+    environment: dev
+
+Controller:
+    frontend:
+      base_url: "http://localhost:8080"
+    etherpad:
+        url: http://etherpad.localhost:8080/etherpad/
+    livekit:
+        public_url: http://livekit.localhost:7880
+        service_url: http://host.docker.internal:7880
+    logging:
+        default_directives:
+        - DEBUG
+        - opentalk=DEBUG
+        - pinky_swear=OFF
+        - rustls=WARN
+        - mio=ERROR
+        - lapin=DEBUG
+        - execution_id=trace
+    oidc:
+        authority: http://keycloak.localhost:8000/auth/realms/opentalk
+        frontend:
+            authority: http://localhost:8080/auth/realms/opentalk
+    spacedeck:
+        url: http://spacedeck.localhost:9666
+    user_search:
+        api_base_url: http://keycloak.localhost:8000/auth/admin/realms/opentalk
+
+Keycloak:
+    api_base_url: http://keycloak.localhost:8000/auth/admin/realms/opentalk
+    base_url: http://keycloak.localhost:8000/auth
+    hostname: http://keycloak.localhost:8000/auth
+    health_url: http://keycloak.localhost:8000/auth/realms/master
+    redirectUris:
+        uris:
+        - http://localhost:8080/auth/popup_callback
+        - http://localhost:8080/auth/callback
+        - http://localhost:8080/dashboard
+        - http://localhost:8080/dashboard/*
+        - http://localhost:8080/room/*
+        - http://localhost:8080/join
+        - http://localhost:8080/
+Traefik:
+    api:
+        insecure: true
+
+postInstall:
+    demoUser:
+        email: demo.user@localhost.localhost
+
+Mailer:
+  smtp:
+    smtp_server: "smtp://mailcrab:1025?disable_starttls=true"
+    from_name: "OpenTalk - localhost"
+    from_email: "no-reply@localhost.localhost"
+
+Obelisk:
+  auth:
+    issuer: http://keycloak.localhost:8000/auth/realms/opentalk
+
+Recorder:
+  auth:
+    issuer: http://keycloak.localhost:8000/auth/realms/opentalk

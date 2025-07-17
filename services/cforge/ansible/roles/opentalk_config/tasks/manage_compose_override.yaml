@@ -14,6 +14,7 @@
       - rabbitmq
       - mailcrab
       - postgres
+    register: compose_override_results_3rdparty
 
   - name: "Ensure COMPOSE_OVERRIDE entries in default.env for OpenTalk 3rd_party services"
     ansible.builtin.lineinfile:
@@ -29,6 +30,7 @@
       - rabbitmq
       - mailcrab
       - postgres
+    register: env_results_3rdparty
 
   - name: "Manage custom compose override files for OpenTalk services | config/services-config/*/compose-override-*.yaml"
     ansible.builtin.template:
@@ -42,8 +44,11 @@
       - webapp
       - mailer
       - recorder
+      - obelisk
+      - outlook
       - etherpad
       - spacedeck
+    register: compose_override_results_opentalk
 
   - name: "Ensure COMPOSE_OVERRIDE entries in default.env for OpenTalk services"
     ansible.builtin.lineinfile:
@@ -59,6 +64,26 @@
       - recorder
       - etherpad
       - spacedeck
+      - obelisk
+      - outlook
+    register: env_results
+
+  - name: "Set fact for changed services"
+    ansible.builtin.set_fact:
+      changed_services: "{{ 
+        (compose_override_results_3rdparty.results | selectattr('changed') | map(attribute='item') | list) +
+        (env_results_3rdparty.results | selectattr('changed') | map(attribute='item') | list) +
+        (env_results.results | selectattr('changed') | map(attribute='item') | list) +
+        (compose_override_results_opentalk.results | selectattr('changed') | map(attribute='item') | list) }}"
+
+  - name: "Notify if container environment changed"
+    debug:
+      msg: "Dummy task to trigger handler"
+    when: changed_services | length > 0
+    notify: "Container environment changed"
+    changed_when: true
+
   tags:
     - dev
+    - apply
     - skip_task
