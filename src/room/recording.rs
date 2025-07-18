@@ -2,12 +2,15 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use types::{
     common::streaming::StreamingTargetId,
     signaling::recording::{
-        StreamStatus, StreamTarget, StreamUpdated, event::RecordingEvent, state::RecordingState,
+        StreamStatus, StreamTarget, StreamUpdated,
+        command::{PauseStreaming, RecordingCommand, StartStreaming, StopStreaming},
+        event::RecordingEvent,
+        state::RecordingState,
     },
 };
 
@@ -25,6 +28,19 @@ pub enum OpenTalkRecordingEvent {
     },
 }
 
+#[derive(Debug)]
+pub enum RecorderAction {
+    Start,
+    Stop,
+    Pause,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum UpdateStreamingError {
+    #[error("Sending recorder command failed: {0}")]
+    SignalingCommandFailed(#[source] anyhow::Error),
+}
+
 pub struct RecordingApi<'a> {
     pub(super) room: &'a mut Room,
 }
@@ -37,6 +53,24 @@ impl RecordingApi<'_> {
     #[must_use]
     pub fn streams(&self) -> &BTreeMap<StreamingTargetId, StreamTarget> {
         &self.room.recording_state.as_ref().unwrap().streams
+    }
+
+    pub async fn update_stream(
+        &mut self,
+        action: RecorderAction,
+        target_ids: BTreeSet<StreamingTargetId>,
+    ) -> Result<(), UpdateStreamingError> {
+        let recorder_command = match action {
+            RecorderAction::Start => RecordingCommand::StartStream(StartStreaming { target_ids }),
+            RecorderAction::Stop => RecordingCommand::StopStream(StopStreaming { target_ids }),
+            RecorderAction::Pause => RecordingCommand::PauseStream(PauseStreaming { target_ids }),
+        };
+
+        self.room
+            .signaling
+            .send(recorder_command)
+            .await
+            .map_err(UpdateStreamingError::SignalingCommandFailed)
     }
 }
 

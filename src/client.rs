@@ -3,15 +3,22 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use anyhow::{Context, Result};
-use types::common::{
-    auth::TicketToken,
-    call_in::{CallInId, CallInPassword},
-    rooms::{BreakoutRoomId, RoomId, RoomPassword},
-    users::DisplayName,
+use types::{
+    api::v1::rooms::RoomResource,
+    common::{
+        auth::TicketToken,
+        call_in::{CallInId, CallInPassword},
+        rooms::{BreakoutRoomId, RoomId, RoomPassword},
+        users::DisplayName,
+    },
 };
 
 use crate::{
-    ControllerConfig, config::ClientConfig, http::HttpClient, room::Room, signaling::Signaling,
+    ControllerConfig,
+    config::ClientConfig,
+    http::{CreateRoomError, GetRoomError, HttpClient},
+    room::Room,
+    signaling::Signaling,
 };
 
 pub struct OpenTalkClient {
@@ -152,6 +159,28 @@ impl OpenTalkClient {
         } else {
             Ok(JoinResult::InRoom(room))
         }
+    }
+
+    pub async fn get_rooms(&self, max: usize) -> Result<Vec<RoomResource>, GetRoomError> {
+        self.http.get_rooms(&self.controller_config, max).await
+    }
+
+    pub async fn create_room(
+        &self,
+        password: Option<RoomPassword>,
+        enable_sip: bool,
+        waiting_room: bool,
+        e2e_encryption: bool,
+    ) -> Result<RoomResource, CreateRoomError> {
+        self.http
+            .create_room(
+                &self.controller_config,
+                password,
+                enable_sip,
+                waiting_room,
+                e2e_encryption,
+            )
+            .await
     }
 }
 
