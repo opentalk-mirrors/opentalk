@@ -43,9 +43,6 @@ services:
       - |
         perl -MIO::Socket::INET -e 'my $$sock = IO::Socket::INET->new(PeerAddr => "localhost:9666", Proto => "tcp") or exit 1; 
         print $$sock "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n"; my $$response = <$$sock>; exit ($$response =~ /200 OK/ ? 0 : 1);'
-    #depends_on:
-    #  cforge:
-    #    condition: service_completed_successfully
 
 secrets:
   spacedeck_api_secret:
