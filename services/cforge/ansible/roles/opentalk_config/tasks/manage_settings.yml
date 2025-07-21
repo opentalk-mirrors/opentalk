@@ -1,38 +1,67 @@
 ---
 - name: Check if settings file is present | conf/settings.yml
   ansible.builtin.stat:
-    path: "{{config_dir}}/settings.yml"
+    path: "{{ config_dir }}/settings.yml"
   register: settings_file
   tags:
     - always
 
-- name: Slurp | defaults/main.yml
-  ansible.builtin.slurp:
-    src: "{{ role_path }}/defaults/main.yml"
-  register: defaults_main_yml
+- name: Load defaults/main.yml as defaults_vars
+  include_vars:
+    file: "{{ role_path }}/defaults/main.yml"
+    name: defaults_vars
+  tags:
+    - always
+
+- name: Create settings file from defaults_vars if not present | conf/settings.yml
+  ansible.builtin.copy:
+    dest: "{{ config_dir }}/settings.yml"
+    content: "{{ defaults_vars | to_nice_yaml }}"
+    mode: "0666"
   when: not settings_file.stat.exists
   tags:
-    - init
-  
-- name: Create settings file | conf/settings.yml
-  ansible.builtin.copy:
-    dest: "{{config_dir}}/settings.yml"
-    mode: "666"
-    content: |
-      {% set decoded_content = defaults_main_yml['content'] | b64decode %}
-      {% set lines = decoded_content.split('\n') %}
-      {{ lines[0] }}
-      {% for line in lines[1:] %}
-      {% if not line.startswith('#') %}
-      #{{ line }}
-      {% else %}
-      {{ line }}
-      {% endif %}
-      {% endfor %}
-  when: not settings_file.stat.exists and defaults_main_yml['content'] is defined
-  tags:
-    - init
+    - always
     - skip_task
+
+- name: Load settings.yml as settings_vars
+  include_vars:
+    file: "{{ config_dir }}/settings.yml"
+    name: settings_vars
+  when: settings_file.stat.exists
+  tags:
+    - always
+
+- name: Find new keys in defaults that are missing in settings.yml (recursive)
+  script: "{{ role_path }}/files/find_new_yaml_keys.py {{ role_path }}/defaults/main.yml {{ config_dir }}/settings.yml"
+  register: new_keys_check
+  changed_when: false
+  failed_when: false
+  when: settings_file.stat.exists
+  tags:
+    - always
+
+- name: Parse new keys result
+  set_fact:
+    new_keys_result: "{{ new_keys_check.stdout | from_json }}"
+  when: settings_file.stat.exists and new_keys_check.stdout is defined
+  tags:
+    - always
+
+- name: Set empty result if settings file doesn't exist
+  set_fact:
+    new_keys_result: {"new_keys": [], "has_new_keys": false}
+  when: not settings_file.stat.exists
+  tags:
+    - always
+
+- name: Write settings.yml.unmerged if new keys are present
+  copy:
+    dest: "{{ config_dir }}/settings.yml.unmerged"
+    content: "{{ defaults_vars | combine(settings_vars, recursive=True) | to_nice_yaml }}"
+    mode: "0644"
+  when: new_keys_result.has_new_keys
+  tags:
+    - always
 
 - name: Create settings override | conf/settings.override.yaml
   ansible.builtin.copy:
@@ -45,7 +74,7 @@
 
 - name: Load values from settings file and override ansible defaults/main.yml
   include_vars:
-    file: "{{config_dir}}/settings.yml"
+    file: "{{ config_dir }}/settings.yml"
     hash_behaviour: merge
   when: settings_file.stat.exists
   tags:

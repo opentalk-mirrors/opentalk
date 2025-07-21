@@ -1,0 +1,26 @@
+services:
+  outlook_add_in:
+    image: ${OUTLOOK_IMAGE_SRC}:${OUTLOOK_ADD_IN_VERSION}
+    profiles: ["full", "outlook"]
+    restart: always
+    environment:
+      OPENTALK_OUTLOOK_URL: "${OPENTALK_OUTLOOK_URL:-https://${OT_DOMAIN}/outlook}"
+      OPENTALK_OUTLOOK_WEBAPP_URL: "${OPENTALK_OUTLOOK_WEBAPP_URL:-https://${OT_DOMAIN}}"
+      OPENTALK_OUTLOOK_OIDC_CLIENT_ID: "${OPENTALK_OUTLOOK_OIDC_CLIENT_ID:-Outlook}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.outlook_add_in.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/outlook`)"
+      - "traefik.http.routers.outlook_add_in.entrypoints=websecure"
+      - "traefik.http.routers.outlook_add_in.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.outlook_add_in.priority=100"
+      - "traefik.http.services.outlook_add_in.loadbalancer.server.port=80"
+      # Path rewrite: /outlook/(.*) -> /$1
+      - "traefik.http.middlewares.outlook_add_in-rewrite.replacePathRegex.regex=^/outlook/(.*)"
+      - "traefik.http.middlewares.outlook_add_in-rewrite.replacePathRegex.replacement=/$1"
+      - "traefik.http.routers.outlook_add_in.middlewares=outlook_add_in-rewrite@docker,outlook_add_in-cors@docker"
+      # CORS Middleware
+      - "traefik.http.middlewares.outlook_add_in-cors.headers.accessControlAllowOriginList=https://${OT_DOMAIN},https://*.${OT_DOMAIN}"
+      - "traefik.http.middlewares.outlook_add_in-cors.headers.accessControlAllowMethods=GET,OPTIONS,PUT,POST,DELETE,PATCH"
+      - "traefik.http.middlewares.outlook_add_in-cors.headers.accessControlAllowHeaders=Content-Type,Authorization,X-Requested-With"
+      - "traefik.http.middlewares.outlook_add_in-cors.headers.addVaryHeader=true"
+

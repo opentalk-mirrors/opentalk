@@ -1,0 +1,129 @@
+---
+- name: "Create a OIDC client for OpenTalk Outlook Add-in | name: {{ Outlook.auth.client_id }}"
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ Keycloak.base_url }}"
+    auth_username: admin
+    auth_password: "{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}"
+    auth_realm: master
+    state: present
+    enabled: true
+    realm: "{{ Keycloak.realm }}"
+    client_id: "{{ Outlook.auth.client_id }}"
+    name: "OpenTalk Outlook Add-in"
+    client_authenticator_type: client-secret
+    redirect_uris:
+      - "*"
+    web_origins:
+      - "*"
+    standard_flow_enabled: false
+    implicit_flow_enabled: false
+    direct_access_grants_enabled: false
+    public_client: true
+    protocol: openid-connect
+    attributes:
+      oauth2.device.authorization.grant.enabled: "true"
+      access.token.lifespan: "1800"
+      use.refresh.tokens: "true"
+  tags:
+    - postInstall
+    - outlookClient
+    - never
+
+- name: Get Keycloak admin access token
+  uri:
+    url: "{{ Keycloak.base_url }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    body:
+      grant_type: password
+      client_id: admin-cli
+      username: "{{ Keycloak.admin_user | default('admin') }}"
+      password: "{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}"
+    body_format: form-urlencoded
+    return_content: yes
+    status_code: 200
+  register: keycloak_token_response
+  tags:
+    - postInstall
+    - outlookClient
+    - never
+
+- name: Set Keycloak admin token fact
+  set_fact:
+    keycloak_token: "{{ keycloak_token_response.json.access_token }}"
+  tags:
+    - postInstall
+    - outlookClient
+    - never
+
+- name: Set CSP via Keycloak REST API
+  uri:
+    url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      attributes:
+        _browser_header.contentSecurityPolicy: "frame-src 'self'; frame-ancestors 'self' http://localhost:* https://{{ OT_DOMAIN }} https://*.{{ OT_DOMAIN }}; object-src 'none';"
+        _browser_header.xContentTypeOptions: "nosniff"
+        _browser_header.xRobotsTag: "none"
+        _browser_header.xFrameOptions: "DENY"
+        _browser_header.contentSecurityPolicyReportOnly: ""
+        _browser_header.xXSSProtection: "1; mode=block"
+        _browser_header.strictTransportSecurity: "max-age=31536000; includeSubDomains"
+    status_code: [200, 204]
+  tags:
+    - postInstall
+    - outlookClient
+    - never
+
+- name: Get current realm config
+  uri:
+    url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    return_content: yes
+  register: realm_config
+  tags:
+    - postInstall
+    - outlookClient
+    - never
+
+- name: Set client session settings in realm config
+  uri:
+    url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body: |
+      {{
+        (realm_config.json | combine({
+          "clientSessionIdleTimeout": 31536000,
+          "clientSessionMaxLifespan": 31536000
+        }))
+      }}
+    status_code: [200, 204]
+  tags:
+    - postInstall
+    - outlookClient
+    - never
+
+- name: Configure offline session timeout and lifespan
+  community.general.keycloak_realm:
+    auth_keycloak_url: "{{ Keycloak.base_url }}"
+    auth_username: admin
+    auth_password: "{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}"
+    auth_realm: master
+    realm: "{{ Keycloak.realm }}"
+    state: present
+    offline_session_idle_timeout: 31536000
+    offline_session_max_lifespan_enabled: true
+    offline_session_max_lifespan: 31536000
+  tags:
+    - postInstall
+    - outlookClient
+    - never
