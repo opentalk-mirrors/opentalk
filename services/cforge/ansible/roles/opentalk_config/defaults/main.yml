@@ -2,7 +2,10 @@
 Deployment:
   environment: prod
   force_compose_override: true
-
+  force_settings_yaml: false
+  scenario: 
+    - external_keycloak
+ 
 postInstall:
   demoUser:
     state: "present"
@@ -50,6 +53,11 @@ Ofelia:
 #    saveOnlyOnError: only save a report if the execution was not successful.
 
 Keycloak:
+  mode: external
+  auth:
+    username: admin
+    password: "{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}"
+    realm: master
   realm: "opentalk"
   login_theme: "opentalk"
   account_theme: "opentalk"
@@ -69,6 +77,7 @@ Keycloak:
       port: 5432
   health_enabled: "true"
   metrics_enabled: "true"
+  health_url: "https://{{ OT_DOMAIN }}/auth/realms/master"
   http:
     relative_path: /auth
   https:
@@ -325,8 +334,8 @@ Recorder:
 #    hardware_acceleration:
 #      manufacturer: "intel"
 #      device: "/dev/dri/renderD129"
-  monitoring: 
-    port: 11411 
+  monitoring:
+    port: 11411
 
 Livekit:
   port: 7880

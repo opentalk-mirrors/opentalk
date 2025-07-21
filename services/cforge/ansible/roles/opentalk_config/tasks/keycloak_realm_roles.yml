@@ -1,0 +1,51 @@
+- block:
+  - name: Ensure keycloak role opentalk-call-in
+    community.general.keycloak_role:
+      auth_keycloak_url: "{{ Keycloak.base_url }}"
+      auth_realm: "{{ Keycloak.auth.realm }}"
+      auth_username: "{{ Keycloak.auth.username }}"
+      auth_password: "{{ Keycloak.auth.password }}"
+      realm: "{{ Keycloak.realm }}"
+      name: opentalk-call-in
+      description: "${role_opentalk-call-in}"
+      state: present
+
+  - name: "Map a client role opentalk-call-in to service account user for client {{ Obelisk.auth.client_id }}"
+    community.general.keycloak_user_rolemapping:
+      auth_keycloak_url: "{{ Keycloak.base_url }}"
+      auth_realm: "{{ Keycloak.auth.realm }}"
+      auth_username: "{{ Keycloak.auth.username }}"
+      auth_password: "{{ Keycloak.auth.password }}"
+      realm: "{{ Keycloak.realm }}"
+      service_account_user_client_id: "{{ Obelisk.auth.client_id }}"
+      roles:
+        - name: opentalk-call-in
+      state: present
+
+  - name: Ensure keycloak role opentalk-recorder
+    community.general.keycloak_role:
+      auth_keycloak_url: "{{ Keycloak.base_url }}"
+      auth_realm: "{{ Keycloak.auth.realm }}"
+      auth_username: "{{ Keycloak.auth.username }}"
+      auth_password: "{{ Keycloak.auth.password }}"
+      realm: "{{ Keycloak.realm }}"
+      name: opentalk-recorder
+      description: "${opentalk-recorder}"
+      state: present
+
+  - name: "Map a client role opentalk-call-in to service account user for client {{ Recorder.auth.client_id }}"
+    community.general.keycloak_user_rolemapping:
+      auth_keycloak_url: "{{ Keycloak.base_url }}"
+      auth_realm: "{{ Keycloak.auth.realm }}"
+      auth_username: "{{ Keycloak.auth.username }}"
+      auth_password: "{{ Keycloak.auth.password }}"
+      realm: "{{ Keycloak.realm }}"
+      service_account_user_client_id: "{{ Recorder.auth.client_id }}"
+      roles:
+        - name: opentalk-recorder
+      state: present
+
+  tags:
+    - init
+    - apply
+    - keycloak

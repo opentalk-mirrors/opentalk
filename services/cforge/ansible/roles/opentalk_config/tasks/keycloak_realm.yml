@@ -1,0 +1,69 @@
+- name: Create or update Keycloak realm
+  community.general.keycloak_realm:
+    auth_keycloak_url: "{{ Keycloak.base_url }}"
+    auth_realm: "{{ Keycloak.auth.realm }}"
+    auth_username: "{{ Keycloak.auth.username }}"
+    auth_password: "{{ Keycloak.auth.password }}"
+    realm: "{{ Keycloak.realm }}"
+    state: present
+    enabled: true
+    display_name: "OpenTalk Realm"
+    offline_session_idle_timeout: 31536000
+    offline_session_max_lifespan_enabled: true
+    offline_session_max_lifespan: 31536000
+    login_theme: "opentalk"
+  tags:
+    - init
+    - apply
+    - keycloak
+
+- block:
+  - name: Set CSP via Keycloak REST API
+    ansible.builtin.uri:
+      url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}"
+      method: PUT
+      headers:
+        Authorization: "Bearer {{ keycloak_token }}"
+        Content-Type: "application/json"
+      body_format: json
+      body:
+        attributes:
+          _browser_header.contentSecurityPolicy: "frame-src 'self'; frame-ancestors 'self' http://localhost:* https://{{ OT_DOMAIN }} https://*.{{ OT_DOMAIN }}; object-src 'none';"
+          _browser_header.xContentTypeOptions: "nosniff"
+          _browser_header.xRobotsTag: "none"
+          _browser_header.xFrameOptions: "DENY"
+          _browser_header.contentSecurityPolicyReportOnly: ""
+          _browser_header.xXSSProtection: "1; mode=block"
+          _browser_header.strictTransportSecurity: "max-age=31536000; includeSubDomains"
+      status_code: [200, 204]
+  
+  - name: Get current realm config
+    ansible.builtin.uri:
+      url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}"
+      method: GET
+      headers:
+        Authorization: "Bearer {{ keycloak_token }}"
+      return_content: yes
+    register: realm_config
+  
+  - name: Set client session settings in realm config
+    ansible.builtin.uri:
+      url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}"
+      method: PUT
+      headers:
+        Authorization: "Bearer {{ keycloak_token }}"
+        Content-Type: "application/json"
+      body_format: json
+      body: |
+        {{
+          (realm_config.json | combine({
+            "clientSessionIdleTimeout": 31536000,
+            "clientSessionMaxLifespan": 31536000
+          }))
+        }}
+      status_code: [200, 204]
+
+  tags:
+    - init
+    - apply
+    - keycloak

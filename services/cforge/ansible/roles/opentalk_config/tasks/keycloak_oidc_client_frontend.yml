@@ -1,0 +1,25 @@
+---
+# Manage Keycloak client used for OpenTalk web-frontend
+- name: "Create or update Keycloak client {{ Controller.oidc.frontend.client_id }}"
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ Keycloak.base_url }}"
+    auth_realm: "{{ Keycloak.auth.realm }}"
+    auth_username: "{{ Keycloak.auth.username }}"
+    auth_password: "{{ Keycloak.auth.password }}"
+    realm: "{{ Keycloak.realm }}"
+    client_id: "{{ Controller.oidc.frontend.client_id }}"
+    name: "{{ Controller.oidc.frontend.client_id }}"
+    state: present
+    description: "OpenTalk Frontend OIDC client"
+    enabled: true
+    public_client: true
+    direct_access_grants_enabled: false
+    redirect_uris: "{{ Keycloak.redirectUris.uris }}"
+    web_origins: "{{ Controller.frontend.base_url }}"
+    attributes:
+      post.logout.redirect.uris: "+"
+  tags:
+    - client_frontend
+    - init
+    - apply
+    - keycloak

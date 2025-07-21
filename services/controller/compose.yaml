@@ -8,7 +8,7 @@ services:
     ports:
       - 11311:11311
     volumes:
-      - ../../config/services-config/controller/controller.toml:/controller/config.toml
+      - ../../config/services-config/controller/controller.toml:/controller/controller.toml
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.controller.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/controller`)"
@@ -27,6 +27,5 @@ services:
       timeout: 5s
       retries: 3
     depends_on:
-      keycloak:
+      controller-db:
         condition: service_healthy
-

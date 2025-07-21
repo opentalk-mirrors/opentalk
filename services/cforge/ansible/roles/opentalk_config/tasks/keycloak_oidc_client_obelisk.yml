@@ -1,0 +1,26 @@
+---
+# Manage Keycloak client used for OpenTalk obelisk
+- name: Create or update Keycloak client {{ OBELISK_CLIENT_ID | default('Obelisk') }}
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ Keycloak.base_url }}"
+    auth_realm: "{{ Keycloak.auth.realm }}"
+    auth_username: "{{ Keycloak.auth.username }}"
+    auth_password: "{{ Keycloak.auth.password }}"
+    realm: "{{ Keycloak.realm }}"
+    client_id: "{{ Obelisk.auth.client_id }}"
+    name: "{{ Obelisk.auth.client_id }}"
+    description: "Obelisk client for OpenTalk SIP Call-In"
+    enabled: true
+    state: present
+    public_client: false
+    standard_flow_enabled: false
+    direct_access_grants_enabled: false
+    service_accounts_enabled: true
+    client_authenticator_type: client-secret
+    secret: "{{ OIDC_OBELISK_CLIENT_SECRET }}"
+    
+  tags:
+    - client_obelisk
+    - init
+    - apply
+    - keycloak

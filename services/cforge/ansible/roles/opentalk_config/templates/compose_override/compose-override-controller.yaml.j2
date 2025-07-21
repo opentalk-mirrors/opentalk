@@ -1,12 +1,16 @@
-{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
 services:
   controller:
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     extra_hosts:
       - "keycloak.localhost:host-gateway"
       - "etherpad.localhost:host-gateway"
       - "spacedeck.localhost:host-gateway"
+{% endif %}
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     environment:
       RUST_LOG: debug
+{% endif %}
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     labels: !override
       - "traefik.enable=true"
       - "traefik.http.routers.controller.rule=Host(`localhost`) && PathPrefix(`/controller`)"
@@ -14,7 +18,4 @@ services:
       - "traefik.http.routers.controller.middlewares=controller-strip"
       - "traefik.http.middlewares.controller-strip.stripprefix.prefixes=/controller"
       - "traefik.http.services.controller.loadbalancer.server.port=11311"
-{% else %}
-services:
-  controller:
 {% endif %}

@@ -152,3 +152,69 @@ diff -u config/settings.yml config/settings.yml.unmerged
 diff -u config/settings.yml config/settings.yml.unmerged | patch config/settings.yml \
 && rm -i config/settings.yml.unmerged
 ```
+
+# Deployment scenario: external keycloak
+
+## local test setup
+
+- A local Keycloak running in docker
+
+the opentalk theme is mountend to `/opt/keycloak/providers/`. Keycloak is listen on e.g. 10.1.1.94:9999
+
+```bash
+KC_OT_THEME_PATH=/home/anfi/git/opentalk/devops/opentalk-compose/services/3rd_party/keycloak/
+docker run -d --name keycloak_dev -p 9999:8080 \
+        -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+        -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+        -e KC_HEALTH_ENABLED=true \
+        -e KC_HTTP_RELATIVE_PATH=/auth \
+        -v ${KC_OT_THEME_PATH}/keycloak-ot-theme.jar:/opt/keycloak/providers/keycloak-ot-theme.jar \
+        quay.io/keycloak/keycloak:latest \
+        start-dev
+```
+
+- Set `COMPOSE_PROFILES` without keycloak
+
+```bash
+COMPOSE_PROFILES=controller,webapp,recorder,mailer,pad,spacedeck,livekit,minio,traefik,rabbitmq,controller-db,ofelia
+```
+
+- initialize opentalk-compose with `dev` environment
+
+```bash
+docker compose run --rm cforge --dev init
+```
+
+### Adjust settings.yml with the target keycloak
+
+```yaml
+Deployment:
+  environment: dev
+  scenario:
+    - external_keycloak
+
+Controller:
+  oidc:
+    authority: http://10.1.1.94:9999/auth/realms/opentalk
+  frontend:
+    authority: http://10.1.1.94:9999/auth/realms/opentalk
+  user_search:
+    api_base_url: http://10.1.1.94:9999/auth/admin/realms/opentalk
+
+Keycloak:
+  api_base_url: http://10.1.1.94:9999/auth/admin/realms/opentalk
+  base_url: http://10.1.1.94:9999/auth
+  auth:
+    password: admin
+    realm: master
+    username: admin
+  health_url: http://10.1.1.94:9999/auth/realms/master
+
+Obelisk:
+  auth:
+    issuer: http://10.1.1.94:9999/auth/realms/opentalk
+
+Recorder:
+  auth:
+    issuer http://10.1.1.94:9999/auth/realms/opentalk
+```

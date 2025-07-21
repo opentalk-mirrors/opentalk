@@ -27,5 +27,7 @@
     - etherpad
     - spacedeck
     - cforge
+    - obelisk
+    - outlook
   tags:
     - init

@@ -4,7 +4,7 @@ services:
     profiles: [ "standard", "full", "mailer"]
     restart: always
     volumes:
-      - ../../config/services-config/mailer/mailer.toml:/opt/smtp-mailer/config.toml
+      - ../../config/services-config/mailer/mailer.toml:/opt/smtp-mailer/smtp-mailer.toml
     healthcheck:
       test:
       - "CMD-SHELL"
@@ -14,9 +14,9 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    depends_on:
-      rabbitmq:
-        condition: service_started
+    #depends_on:
+    #  rabbitmq:
+    #    condition: service_started
 
 
 
