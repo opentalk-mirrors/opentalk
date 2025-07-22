@@ -1,5 +1,13 @@
 ---
 
+- name: render Keycloak config
+  ansible.builtin.include_tasks: keycloak_render_config.yaml
+  when: Deployment.scenario is not defined or 'external_keycloak' not in Deployment.scenario
+  tags:
+    - init
+    - apply
+    - keycloak
+
 - block:
   - name: Wait for Keycloak to be reachable
     ansible.builtin.uri:

@@ -3,8 +3,10 @@ Deployment:
   environment: prod
   force_compose_override: true
   force_settings_yaml: false
-  scenario: 
-    - external_keycloak
+  #scenario: 
+  #  - external_keycloak
+  #  - external_livekit
+  #  - external_recorder  
  
 postInstall:
   demoUser:
