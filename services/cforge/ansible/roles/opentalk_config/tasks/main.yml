@@ -31,6 +31,7 @@
   ansible.builtin.include_tasks: keycloak_main.yml
   tags:
     - apply
+    - init
     - keycloak
     - postInstall
     - demoUser
