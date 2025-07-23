@@ -241,7 +241,7 @@ SECRET=$(pwgen -sB 12 1); echo $SECRET; livekit-server --dev --bind 0.0.0.0 --ke
 - Set `COMPOSE_PROFILES` without livekit
 
 ```bash
-COMPOSE_PROFILES=controller,webapp,recorder,mailer,pad,spacedeck,keycloak,minio,traefik,rabbitmq,controller-db,ofelia
+COMPOSE_PROFILES=controller,webapp,recorder,mailer,pad,spacedeck,keycloak,keycloak-db,minio,traefik,rabbitmq,controller-db,ofelia
 ```
 
 - initialize opentalk-compose with `dev` environment
