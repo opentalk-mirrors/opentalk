@@ -8,7 +8,7 @@
       ansible.builtin.file:
         path: "{{ backups_dir }}/{{ item }}"
         state: directory
-        mode: "777"
+        mode: "{{ '777' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '755' }}"
       loop:
         - tmp
         - "tmp/{{ backup_timestamp }}"

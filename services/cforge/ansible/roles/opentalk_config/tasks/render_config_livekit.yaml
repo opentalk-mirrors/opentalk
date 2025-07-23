@@ -3,7 +3,7 @@
   ansible.builtin.template:
     src: livekit.yaml.j2
     dest: "{{ config_dir }}/services-config/3rd_party/livekit/livekit.yaml"
-    mode: "666"
+    mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '644' }}"
   notify: Restart Docker service livekit
   tags:
     - init

@@ -17,7 +17,7 @@
   ansible.builtin.copy:
     dest: "{{ config_dir }}/settings.yml"
     content: "{{ defaults_vars | combine(defaults_dev_vars, recursive=True) | to_nice_yaml(indent=2) }}"
-    mode: "0666"
+    mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '644' }}"
     force: "{{ Deployment.force_settings_yaml | default(false) }}"
   tags:
     - dev
@@ -33,7 +33,7 @@
   ansible.builtin.copy:
     dest: "{{ config_dir }}/settings.yml"
     content: "{{ defaults_vars | to_nice_yaml(indent=2) }}"
-    mode: "0666"
+    mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '644' }}"
     force: "{{ Deployment.force_settings_yaml | default(false) }}"
   when: 
     - defaults_dev_vars is not defined
@@ -76,7 +76,7 @@
   copy:
     dest: "{{ config_dir }}/settings.yml.unmerged"
     content: "{{ defaults_vars | combine(settings_vars, recursive=True) | to_nice_yaml(indent=2) }}"
-    mode: "0644"
+    mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '644' }}"
   when: new_keys_result.has_new_keys
   notify: "Notify when new options are present"
   tags:
