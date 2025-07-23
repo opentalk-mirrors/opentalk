@@ -159,7 +159,7 @@ diff -u config/settings.yml config/settings.yml.unmerged | patch config/settings
 
 - A local Keycloak running in docker
 
-the opentalk theme is mountend to `/opt/keycloak/providers/`. Keycloak is listen on e.g. 10.1.1.94:9999
+the opentalk theme is mountend into the container under `/opt/keycloak/providers/`. Keycloak is listen on e.g. 0.0.0.0:9999
 
 ```bash
 KC_OT_THEME_PATH=/home/anfi/git/opentalk/devops/opentalk-compose/services/3rd_party/keycloak/
@@ -195,28 +195,29 @@ Deployment:
 
 Controller:
   oidc:
-    authority: http://10.1.1.94:9999/auth/realms/opentalk
+    authority: http://host.docker.internal:9999/auth/realms/opentalk
   frontend:
-    authority: http://10.1.1.94:9999/auth/realms/opentalk
+    authority: http://host.docker.internal:9999/auth/realms/opentalk
   user_search:
-    api_base_url: http://10.1.1.94:9999/auth/admin/realms/opentalk
+    api_base_url: http://host.docker.internal:9999/auth/admin/realms/opentalk
 
 Keycloak:
-  api_base_url: http://10.1.1.94:9999/auth/admin/realms/opentalk
-  base_url: http://10.1.1.94:9999/auth
+  api_base_url: http://host.docker.internal:9999/auth/admin/realms/opentalk
+  base_url: http://host.docker.internal:9999/auth
   auth:
     password: admin
     realm: master
     username: admin
-  health_url: http://10.1.1.94:9999/auth/realms/master
+  health_url: http://host.docker.internal:9999/auth/realms/master
+  hostname: http://host.docker.internal:9999/auth
 
 Obelisk:
   auth:
-    issuer: http://10.1.1.94:9999/auth/realms/opentalk
+    issuer: http://host.docker.internal:9999/auth/realms/opentalk
 
 Recorder:
   auth:
-    issuer http://10.1.1.94:9999/auth/realms/opentalk
+    issuer http://host.docker.internal:9999/auth/realms/opentalk
 ```
 
 ### Run services without keycloak
@@ -231,7 +232,7 @@ docker compose up -d
 
 - A local livekit server
 
-Livekit is listening on e.g. 10.1.1.94:{7880,7881,7882} by default. Ensure no port conflicts with running containers.
+Livekit is listening on e.g. on ports 7880,7881,7882 by default. Ensure no port conflicts with running containers.
 
 ```bash
 SECRET=$(pwgen -sB 12 1); echo $SECRET; livekit-server --dev --bind 0.0.0.0 --keys "controller: $SECRET"
@@ -246,7 +247,7 @@ COMPOSE_PROFILES=controller,webapp,recorder,mailer,pad,spacedeck,keycloak,minio,
 - initialize opentalk-compose with `dev` environment
 
 ```bash
-docker compose run --rm cforge --dev init
+docker compose run --rm cforge --diff --dev init
 ```
 
 ### Adjust settings.yml with the target livekit service
