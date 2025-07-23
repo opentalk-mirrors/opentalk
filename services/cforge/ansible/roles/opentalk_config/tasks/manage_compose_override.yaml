@@ -14,6 +14,9 @@
       - rabbitmq
       - mailcrab
       - postgres
+    when: 
+      - item != 'livekit' or (Deployment.scenario is not defined or 'external_livekit' not in Deployment.scenario)
+      - item != 'keycloak' or (Deployment.scenario is not defined or 'external_keycloak' not in Deployment.scenario)
     register: compose_override_results_3rdparty
 
   - name: "Ensure COMPOSE_OVERRIDE entries in default.env for OpenTalk 3rd_party services"
@@ -30,6 +33,9 @@
       - rabbitmq
       - mailcrab
       - postgres
+    when: 
+      - item != 'livekit' or (Deployment.scenario is not defined or 'external_livekit' not in Deployment.scenario)
+      - item != 'keycloak' or (Deployment.scenario is not defined or 'external_keycloak' not in Deployment.scenario)
     register: env_results_3rdparty
 
   - name: "Manage custom compose override files for OpenTalk services | config/services-config/*/compose-override-*.yaml"

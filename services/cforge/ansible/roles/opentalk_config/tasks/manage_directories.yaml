@@ -29,5 +29,8 @@
     - cforge
     - obelisk
     - outlook
+  when: 
+      - item != '3rd_party/livekit' or (Deployment.scenario is not defined or 'external_livekit' not in Deployment.scenario)
+      - item != '3rd_party/keycloak' or (Deployment.scenario is not defined or 'external_keycloak' not in Deployment.scenario)
   tags:
     - init

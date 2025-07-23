@@ -153,9 +153,9 @@ diff -u config/settings.yml config/settings.yml.unmerged | patch config/settings
 && rm -i config/settings.yml.unmerged
 ```
 
-# Deployment scenario: external keycloak
+## Deployment scenario: external keycloak
 
-## local test setup
+### local keycloak test setup
 
 - A local Keycloak running in docker
 
@@ -217,4 +217,54 @@ Obelisk:
 Recorder:
   auth:
     issuer http://10.1.1.94:9999/auth/realms/opentalk
+```
+
+### Run services without keycloak
+
+```bash
+docker compose up -d
+```
+
+## Deployment scenario: external Livekit server
+
+### local livekit test setup
+
+- A local livekit server
+
+Livekit is listening on e.g. 10.1.1.94:{7880,7881,7882} by default. Ensure no port conflicts with running containers.
+
+```bash
+SECRET=$(pwgen -sB 12 1); echo $SECRET; livekit-server --dev --bind 0.0.0.0 --keys "controller: $SECRET"
+```
+
+- Set `COMPOSE_PROFILES` without livekit
+
+```bash
+COMPOSE_PROFILES=controller,webapp,recorder,mailer,pad,spacedeck,keycloak,minio,traefik,rabbitmq,controller-db,ofelia
+```
+
+- initialize opentalk-compose with `dev` environment
+
+```bash
+docker compose run --rm cforge --dev init
+```
+
+### Adjust settings.yml with the target livekit service
+
+```yaml
+Deployment:
+  environment: dev
+  scenario:
+    - external_livekit
+
+Controller:
+  livekit:
+    api_key: controller
+    api_secret: yourSecret
+```
+
+### Run services without livekit
+
+```bash
+docker compose up -d
 ```
