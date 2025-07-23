@@ -17,7 +17,7 @@
   ansible.builtin.copy:
     dest: "{{ config_dir }}/settings.yml"
     content: "{{ defaults_vars | combine(defaults_dev_vars, recursive=True) | to_nice_yaml(indent=2) }}"
-    mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '644' }}"
+    mode: "666"
     force: "{{ Deployment.force_settings_yaml | default(false) }}"
   tags:
     - dev
