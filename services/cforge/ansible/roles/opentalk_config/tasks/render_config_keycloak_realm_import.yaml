@@ -3,7 +3,7 @@
   ansible.builtin.template:
     src: import_realm.json.j2
     dest: "{{ config_dir }}/services-config/3rd_party/keycloak/import/opentalk_realm.json"
-    mode: "666"
+    mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '644' }}"
   tags:
     - init
     - apply

@@ -3,7 +3,7 @@
   ansible.builtin.file:
     path: "{{ data_dir }}/minio/opentalk"
     state: directory
-    mode: "777"
+    mode: "{{ '777' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '755' }}"
   tags:
     - init
 
@@ -11,7 +11,7 @@
   ansible.builtin.file:
     path: "{{ config_dir }}/services-config/{{ item }}"
     state: directory
-    mode: "777"
+    mode: "{{ '777' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '755' }}"
   loop:
     - 3rd_party/minio
     - 3rd_party/livekit
