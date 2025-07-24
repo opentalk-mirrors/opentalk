@@ -1,0 +1,60 @@
+FROM intel/oneapi-basekit
+
+RUN apt-get update
+
+RUN apt-get install -y --no-install-recommends \
+      intel-media-va-driver intel-gpu-tools \
+      build-essential \
+      pkg-config \
+      libssl-dev \
+      curl \
+      clang \
+      libomp-dev \
+      intel-oneapi-mkl-devel intel-oneapi-mkl \
+      clinfo \
+      git \
+      libvulkan-dev glslc
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+    sh -s -- -y --default-toolchain stable
+
+ENV PATH=${PATH}:/root/.cargo/bin
+
+WORKDIR /app
+
+ENV MKLROOT=/opt/intel/oneapi/mkl/2025.2
+ENV LD_LIBRARY_PATH=${MKLROOT}/lib:${LD_LIBRARY_PATH}
+ENV ONEAPI_DEVICE_SELECTOR="level_zero:0"
+ENV RUST_LOG="opentalk=debug,whisper_rs=warn,info"
+
+RUN git clone https://github.com/ggml-org/whisper.cpp /whisper.cpp
+WORKDIR /whisper.cpp
+
+RUN mkdir -p build
+WORKDIR /whisper.cpp/build
+
+RUN cmake .. \
+    -DWHISPER_VULKAN=ON \
+    -DGGML_SYCL=ON \
+    -DGGML_VULKAN=ON \
+    -DGGML_SYCL_TARGET=INTEL \
+    -DCMAKE_C_COMPILER=icx \
+    -DCMAKE_CXX_COMPILER=icpx \
+    -DCMAKE_BUILD_TYPE=Release
+
+# Actual build job
+RUN cmake --build .
+
+RUN mkdir -p /opt/whisper.cpp/lib
+
+RUN cp /whisper.cpp/build/ggml/src/libggml-base.so /opt/whisper.cpp/lib/
+RUN cp /whisper.cpp/build/ggml/src/libggml-cpu.so /opt/whisper.cpp/lib/
+RUN cp /whisper.cpp/build/ggml/src/ggml-vulkan/libggml-vulkan.so /opt/whisper.cpp/lib/
+RUN cp /whisper.cpp/build/ggml/src/ggml-sycl/libggml-sycl.so /opt/whisper.cpp/lib/
+RUN cp /whisper.cpp/build/src/libwhisper.so.1 /opt/whisper.cpp/lib/
+
+ENV LD_LIBRARY_PATH=/opt/whisper.cpp/lib:${LD_LIBRARY_PATH}
+
+WORKDIR /app
+
+COPY . .
