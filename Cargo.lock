@@ -3618,6 +3618,7 @@ dependencies = [
  "opentalk-version",
  "owo-colors",
  "serde",
+ "service-probe",
  "tokio",
  "whisper-rs",
 ]
@@ -5113,6 +5114,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "service-probe"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fec96007b1cd082663144d5ba4afec07278a2f9b8c1336f136a5c4c30c13524c"
+dependencies = [
+ "http-body-util",
+ "hyper 1.6.0",
+ "hyper-util",
+ "log",
+ "snafu",
+ "tokio",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6145,8 +6160,9 @@ dependencies = [
 [[package]]
 name = "whisper-rs"
 version = "0.14.3"
-source = "git+https://github.com/kerkmann/whisper-rs.git?rev=5cbca18263ac8a35b2006429d989f45986d953c5#5cbca18263ac8a35b2006429d989f45986d953c5"
+source = "git+https://github.com/SoraTenshi/whisper-rs.git?rev=9d36ab752cb7c8deabf4cf1e718f0924dbcae380#9d36ab752cb7c8deabf4cf1e718f0924dbcae380"
 dependencies = [
+ "libc",
  "log",
  "whisper-rs-sys",
 ]
@@ -6154,7 +6170,7 @@ dependencies = [
 [[package]]
 name = "whisper-rs-sys"
 version = "0.13.0"
-source = "git+https://github.com/kerkmann/whisper-rs.git?rev=5cbca18263ac8a35b2006429d989f45986d953c5#5cbca18263ac8a35b2006429d989f45986d953c5"
+source = "git+https://github.com/SoraTenshi/whisper-rs.git?rev=9d36ab752cb7c8deabf4cf1e718f0924dbcae380#9d36ab752cb7c8deabf4cf1e718f0924dbcae380"
 dependencies = [
  "bindgen",
  "cfg-if",
