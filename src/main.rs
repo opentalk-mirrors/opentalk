@@ -25,6 +25,7 @@ use tokio::{
 };
 use transcription::TranscriptionSession;
 use whisper_rs::{WhisperContext, WhisperContextParameters, install_logging_hooks};
+use service_probe::{set_service_state, start_probe, ServiceState};
 
 mod audio;
 mod cli;
@@ -100,6 +101,8 @@ async fn main() -> Result<()> {
         whisper_context: Arc::new(whisper_context),
     };
 
+    start_probe(settings.monitoring.addr, settings.monitoring.port, ServiceState::Up).await?;
+
     let mut sig_term = signal(SignalKind::terminate()).expect("can not setup SIGTERM handler");
     select! {
         _ = ctrl_c() => { log::info!("received Ctrl-C"); }
@@ -132,6 +135,9 @@ where
         // TODO: Add bearer token verification
         .with_state(transcription);
     let listener = tokio::net::TcpListener::bind((address.into(), port)).await?;
+
+    // Server up and running, ready to process requests
+    set_service_state(ServiceState::Ready);
 
     axum::serve(listener, app).await?;
 

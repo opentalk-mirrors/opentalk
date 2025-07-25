@@ -38,9 +38,10 @@ openidconnect = "4"
 opentalk-client-signaling = "0.1"
 opentalk-version = "0.2"
 owo-colors = "4.2"
+service-probe = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.45", features = ["macros", "rt-multi-thread", "signal"] }
-whisper-rs = { git = "https://github.com/kerkmann/whisper-rs.git", rev = "5cbca18263ac8a35b2006429d989f45986d953c5", features = ["log_backend"] }
+whisper-rs = { git = "https://github.com/SoraTenshi/whisper-rs.git", rev = "9d36ab752cb7c8deabf4cf1e718f0924dbcae380", features = ["log_backend"] }
 
 [build-dependencies]
 anyhow = "1"

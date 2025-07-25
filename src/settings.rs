@@ -14,6 +14,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub(crate) struct Settings {
     pub(crate) http: HttpSettings,
+    pub(crate) monitoring: MonitoringSettings,
     pub(crate) auth: AuthSettings,
     pub(crate) controller: ControllerSettings,
 }
@@ -115,6 +116,22 @@ fn default_http_address() -> IpAddr {
 
 fn default_http_port() -> u16 {
     11411
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct MonitoringSettings {
+    #[serde(default = "default_monitoring_http_address")]
+    pub(crate) addr: IpAddr,
+    #[serde(default = "default_monitoring_http_port")]
+    pub(crate) port: u16,
+}
+
+fn default_monitoring_http_address() -> IpAddr {
+    [0, 0, 0, 0].into()
+}
+
+fn default_monitoring_http_port() -> u16 {
+    11412
 }
 
 #[derive(Debug, Deserialize)]
