@@ -155,6 +155,12 @@ diff -u config/settings.yml config/settings.yml.unmerged | patch config/settings
 
 ## Deployment scenario: external keycloak
 
+Ensure that no opentalk-compose deployment is already running or shut down alls services:
+
+```bash
+docker compose down
+```
+
 ### local keycloak test setup
 
 - A local Keycloak running in docker
@@ -228,6 +234,12 @@ docker compose up -d
 
 ## Deployment scenario: external Livekit server
 
+Ensure that no opentalk-compose deployment is already running or shut down alls services:
+
+```bash
+docker compose down
+```
+
 ### local livekit test setup
 
 - A local livekit server
@@ -268,4 +280,68 @@ Controller:
 
 ```bash
 docker compose up -d
+```
+
+## Deployment scenario: external recorder
+
+Ensure that no opentalk-compose deployment is already running or shut down alls services:
+
+```bash
+docker compose down
+```
+
+### local recorder test setup
+
+- Set `COMPOSE_PROFILES` without recorder
+
+```bash
+COMPOSE_PROFILES=controller,webapp,mailer,pad,spacedeck,keycloak,keycloak-db,minio,traefik,livekit,rabbitmq,controller-db,ofelia
+```
+
+- initialize opentalk-compose with `dev` environment
+
+```bash
+docker compose run --rm cforge --diff --dev init
+```
+
+### Adjust settings.yml with external_recorder as deplyoment target
+
+```yaml
+Deployment:
+  environment: dev
+  scenario:
+    - external_recorder
+```
+
+### Run services without recorder
+
+```bash
+docker compose up -d
+docker compose up -d rabbitmq  --force-recreate # recreate rabbitmq because exposed port was changed 
+```
+
+- A local recorder service
+
+create a minimal recorder config e.g. `config/ext_recorder.toml`
+
+```toml
+[auth]
+issuer = "http://host.docker.internal:9999/auth/realms/opentalk"
+client_id = "Recorder"
+client_secret = "<RecorderOIDCSecret>"
+[controller]
+domain = "host.docker.internal:11311"
+insecure = true
+[rabbitmq]
+uri = "amqp://ot:<rabbitmqSecret>@host.docker.internal/%2F"
+queue = "opentalk_recorder"
+```
+
+#### Run Recorder container 
+
+```bash
+docker run --add-host="host.docker.internal:host-gateway" \
+  -v ./config/ext_recorder.toml:/etc/opentalk/recorder.toml \
+  -e RUST_LOG=debug \
+  git.opentalk.dev:5050/opentalk/backend/services/recorder:v0.15.1
 ```

@@ -1,14 +1,13 @@
-{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
 services:
   rabbitmq:
+{% if (Deployment.environment is defined and 'dev' in Deployment.environment) or (Deployment.scenario is defined and 'external_recorder' in Deployment.scenario) %}
     ports:
-      - 127.0.0.1:5672:5672
+      - "5672:5672"
+{% endif %}
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     labels: !override
       - "traefik.enable=true"
       - "traefik.http.routers.rabbitmq.rule=Host(`localhost`) && PathPrefix(`/adm/rabbitmq`)"
       - "traefik.http.routers.rabbitmq.entrypoints=web"
       - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
-{% else %}
-services:
-  rabbitmq:
 {% endif %}

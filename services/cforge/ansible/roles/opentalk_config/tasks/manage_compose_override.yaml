@@ -54,6 +54,8 @@
       - outlook
       - etherpad
       - spacedeck
+    when: 
+      - item != 'recorder' or (Deployment.scenario is not defined or 'external_recorder' not in Deployment.scenario)
     register: compose_override_results_opentalk
 
   - name: "Ensure COMPOSE_OVERRIDE entries in default.env for OpenTalk services"
@@ -72,6 +74,8 @@
       - spacedeck
       - obelisk
       - outlook
+    when: 
+      - item != 'recorder' or (Deployment.scenario is not defined or 'external_recorder' not in Deployment.scenario)
     register: env_results
 
   - name: "Set fact for changed services"
