@@ -9,10 +9,13 @@ use std::{net::IpAddr, sync::Arc};
 use anyhow::{Context, Result};
 use axum::{
     Router,
+    body::Body,
     extract::{Path, State},
-    routing::post,
+    response::Response,
+    routing::{get, post},
 };
 use futures::future::join_all;
+use service_probe::{ServiceState, set_service_state, start_probe};
 use settings::Settings;
 use tokio::{
     select,
@@ -25,10 +28,10 @@ use tokio::{
 };
 use transcription::TranscriptionSession;
 use whisper_rs::{WhisperContext, WhisperContextParameters, install_logging_hooks};
-use service_probe::{set_service_state, start_probe, ServiceState};
 
 mod audio;
 mod cli;
+mod metrics;
 mod settings;
 mod transcription;
 
@@ -37,6 +40,7 @@ pub(crate) struct AppState {
     pub(crate) settings: Arc<Settings>,
     pub(crate) shutdown: broadcast::Receiver<()>,
     pub(crate) whisper_context: Arc<WhisperContext>,
+    pub(crate) prometheus_state: Arc<metrics::PrometheusState>,
 }
 
 impl Clone for AppState {
@@ -46,6 +50,7 @@ impl Clone for AppState {
             settings: self.settings.clone(),
             shutdown: self.shutdown.resubscribe(),
             whisper_context: self.whisper_context.clone(),
+            prometheus_state: self.prometheus_state.clone(),
         }
     }
 }
@@ -85,12 +90,12 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
+    let settings = Arc::new(Settings::load(args.config.as_ref()).context("Failed to read config")?);
+
     let whisper_context = WhisperContext::new_with_params(
-        "ggml-large-v3-turbo-q8_0.bin",
+        &settings.transcription.model,
         WhisperContextParameters::default(),
     )?;
-
-    let settings = Arc::new(Settings::load(args.config.as_ref()).context("Failed to read config")?);
 
     let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
 
@@ -99,9 +104,15 @@ async fn main() -> Result<()> {
         settings: settings.clone(),
         shutdown: shutdown_rx,
         whisper_context: Arc::new(whisper_context),
+        prometheus_state: Arc::new(metrics::PrometheusState::new()),
     };
 
-    start_probe(settings.monitoring.addr, settings.monitoring.port, ServiceState::Up).await?;
+    start_probe(
+        settings.monitoring.addr,
+        settings.monitoring.port,
+        ServiceState::Up,
+    )
+    .await?;
 
     let mut sig_term = signal(SignalKind::terminate()).expect("can not setup SIGTERM handler");
     select! {
@@ -129,8 +140,18 @@ async fn run_axum_server<A>(address: A, port: u16, transcription: AppState) -> R
 where
     A: Into<IpAddr>,
 {
+    let settings = transcription.settings.transcription.clone();
+    let prom_state = transcription.prometheus_state.clone();
     let app = Router::new()
         .route("/start/{room_id}", post(start_transcription))
+        .route(
+            "/metrics",
+            get(async move || Response::new(Body::new(prom_state.metrics()))),
+        )
+        .route(
+            "/model",
+            get(async move || Response::new(Body::new(settings.model.clone()))),
+        )
         // TODO: Add Metrics endpoint
         // TODO: Add bearer token verification
         .with_state(transcription);
