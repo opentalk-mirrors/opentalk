@@ -6,3 +6,14 @@ http:
         users:
           - "{{ Traefik.basicAuth.dashboard_admin }}:{{ Traefik.basicAuth.dashboard_admin_password | password_hash(hashtype='bcrypt', salt=Traefik.basicAuth.dashboard_admin_password_salt)}}"
 
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/ssl/{{ CustomCertificates.ssl_certificate_fullchain_file }}
+        keyFile: /etc/traefik/ssl/{{ CustomCertificates.ssl_certificate_key_file }}
+  certificates:
+    - certFile: "/etc/traefik/ssl/{{ CustomCertificates.ssl_certificate_fullchain_file }}"
+      keyFile: "/etc/traefik/ssl/{{ CustomCertificates.ssl_certificate_key_file }}"
+{% endif %}
