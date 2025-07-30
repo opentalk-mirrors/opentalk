@@ -9,40 +9,11 @@ Deployment:
   #  - external_recorder  
 
 CustomCertificates:
-  enabled: true
-  ssl_certificate_file: "server.crt.pem"
-  ssl_certificate_fullchain_file: "server_fullchain.crt.pem"
-  ssl_certificate_key_file: "server.key.pem"
-  ssl_ca_file: "ca.crt.pem"
-  certs_dir: "{{ config_dir }}/services-config/3rd_party/traefik/ssl"
-  private_tmp_ca:
-    enabled: true
-    ca: 
-      country: "DE"
-      state: "Berlin"
-      locality: "Berlin"
-      organization: "my CA"
-      organizational_unit: "CA"
-      common_name: "{{ OT_DOMAIN }}"
-      email_address: "admin@{{ OT_DOMAIN }}"
-      key_size: 4096
-      certificate_validity_days: 365
-    server:
-      country: "DE"
-      state: "Berlin"
-      locality: "Berlin"
-      organization: "my Company"
-      organizational_unit: "IT Security"
-      common_name: "{{ OT_DOMAIN }}"
-      email_address: "admin@{{ OT_DOMAIN }}"
-      key_size: 4096
-      certificate_validity_days: 365
-      san_dns:
-        - "{{ OT_DOMAIN }}"
-        - "*.{{ OT_DOMAIN }}"
-      san_ip:
-        - "127.0.0.1"
-        - "::1"
+  enabled: false
+  ssl_certificate_file: "server.crt"
+  ssl_certificate_fullchain_file: "server_fullchain.crt"
+  ssl_certificate_key_file: "server.key"
+  ssl_ca_file: "ca.crt"
 
 postInstall:
   demoUser:
@@ -92,6 +63,7 @@ Ofelia:
 
 Keycloak:
   mode: external
+  manage_enabled: true
   auth:
     username: admin
     password: "{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}"

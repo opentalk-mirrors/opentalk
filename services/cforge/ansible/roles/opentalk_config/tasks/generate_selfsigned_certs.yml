@@ -1,11 +1,5 @@
+---
 - block:
-    - name: "Create main cert directory"
-      ansible.builtin.file:
-        path: "{{ CustomCertificates.certs_dir }}"
-        state: directory
-        mode: "{{ '777' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '755' }}"
-    
-    
     - name: "Check if custom certificates exist"
       ansible.builtin.stat:
         path: "{{ item }}"
@@ -19,11 +13,11 @@
     
     - name: "Set fact for certificate existence"
       ansible.builtin.set_fact:
-        certs_exist: "{{ custom_certs_stat.results | map(attribute='stat.exists') | select | list | length == 3 }}"
+        certs_exist: "{{ custom_certs_stat.results | map(attribute='stat.exists') | select | list | length == 4 }}"
       check_mode: no
   tags:
-    - always
-    - certs
+    - selfSignedCerts
+    - never
 
 - block:
     - name: "Create private temporary CA directory structure"
@@ -40,20 +34,20 @@
     - name: "Generate temporary CA key"
       community.crypto.openssl_privatekey:
         path: "{{ CustomCertificates.certs_dir }}/ca/private/rootCA.key"
-        size: "{{ CustomCertificates['private_tmp_ca'].ca.key_size }}"
+        size: "{{ CustomCertificates['generate_selfsigned_certs'].ca.key_size }}"
         mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '600' }}"
 
     - name: "Generate temporary CA CSR"
       community.crypto.openssl_csr:
         path: "{{ CustomCertificates.certs_dir }}/ca/csr/rootCA.csr"
         privatekey_path: "{{ CustomCertificates.certs_dir }}/ca/private/rootCA.key"
-        country_name: "{{ CustomCertificates['private_tmp_ca'].ca.country }}"
-        state_or_province_name: "{{ CustomCertificates['private_tmp_ca'].ca.state }}"
-        locality_name: "{{ CustomCertificates['private_tmp_ca'].ca.locality }}"
-        organization_name: "{{ CustomCertificates['private_tmp_ca'].ca.organization }}"
-        organizational_unit_name: "{{ CustomCertificates['private_tmp_ca'].ca.organizational_unit }}"
-        common_name: "{{ CustomCertificates['private_tmp_ca'].ca.common_name | regex_replace('^(.*?)(:\\d+)?$', '\\1') }} temporary CA"
-        email_address: "{{ CustomCertificates['private_tmp_ca'].ca.email_address }}"
+        country_name: "{{ CustomCertificates['generate_selfsigned_certs'].ca.country }}"
+        state_or_province_name: "{{ CustomCertificates['generate_selfsigned_certs'].ca.state }}"
+        locality_name: "{{ CustomCertificates['generate_selfsigned_certs'].ca.locality }}"
+        organization_name: "{{ CustomCertificates['generate_selfsigned_certs'].ca.organization }}"
+        organizational_unit_name: "{{ CustomCertificates['generate_selfsigned_certs'].ca.organizational_unit }}"
+        common_name: "{{ CustomCertificates['generate_selfsigned_certs'].ca.common_name | regex_replace('^(.*?)(:\\d+)?$', '\\1') }}"
+        email_address: "{{ CustomCertificates['generate_selfsigned_certs'].ca.email_address }}"
         basic_constraints: ['CA:TRUE']
         basic_constraints_critical: true
         key_usage: ['keyCertSign', 'cRLSign']
@@ -65,38 +59,38 @@
         privatekey_path: "{{ CustomCertificates.certs_dir }}/ca/private/rootCA.key"
         csr_path: "{{ CustomCertificates.certs_dir }}/ca/csr/rootCA.csr"
         provider: selfsigned
-        selfsigned_not_after: "+{{ CustomCertificates['private_tmp_ca'].ca.certificate_validity_days }}d"
+        selfsigned_not_after: "+{{ CustomCertificates['generate_selfsigned_certs'].ca.certificate_validity_days }}d"
 
     - name: "Generate server key"
       community.crypto.openssl_privatekey:
         path: "{{ CustomCertificates.certs_dir }}/ca/newcerts/server.key.pem"
-        size: "{{ CustomCertificates['private_tmp_ca'].ca.key_size }}"
+        size: "{{ CustomCertificates['generate_selfsigned_certs'].ca.key_size }}"
         mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '600' }}"
 
     - name: "Generate server CSR"
       community.crypto.openssl_csr:
         path: "{{ CustomCertificates.certs_dir }}/ca/csr/server.csr.pem"
         privatekey_path: "{{ CustomCertificates.certs_dir }}/ca/newcerts/server.key.pem"
-        country_name: "{{ CustomCertificates['private_tmp_ca'].server.country }}"
-        state_or_province_name: "{{ CustomCertificates['private_tmp_ca'].server.state }}"
-        locality_name: "{{ CustomCertificates['private_tmp_ca'].server.locality }}"
-        organization_name: "{{ CustomCertificates['private_tmp_ca'].server.organization }}"
-        organizational_unit_name: "{{ CustomCertificates['private_tmp_ca'].server.organizational_unit }}"
-        common_name: "{{ CustomCertificates['private_tmp_ca'].server.common_name | regex_replace('^(.*?)(:\\d+)?$', '\\1') }}"
-        email_address: "{{ CustomCertificates['private_tmp_ca'].server.email_address }}"
+        country_name: "{{ CustomCertificates['generate_selfsigned_certs'].server.country }}"
+        state_or_province_name: "{{ CustomCertificates['generate_selfsigned_certs'].server.state }}"
+        locality_name: "{{ CustomCertificates['generate_selfsigned_certs'].server.locality }}"
+        organization_name: "{{ CustomCertificates['generate_selfsigned_certs'].server.organization }}"
+        organizational_unit_name: "{{ CustomCertificates['generate_selfsigned_certs'].server.organizational_unit }}"
+        common_name: "{{ CustomCertificates['generate_selfsigned_certs'].server.common_name | regex_replace('^(.*?)(:\\d+)?$', '\\1') }}"
+        email_address: "{{ CustomCertificates['generate_selfsigned_certs'].server.email_address }}"
         subject_alt_name: "{{ subject_alt_names }}"
         key_usage: ['digitalSignature', 'keyEncipherment']
         extended_key_usage: ['serverAuth', 'clientAuth']
       vars:
         subject_alt_names: |
           {% set sans = [] %}
-          {% for dns in CustomCertificates.private_tmp_ca.server.san_dns | default([]) if dns is string %}
+          {% for dns in CustomCertificates.generate_selfsigned_certs.server.san_dns | default([]) if dns is string %}
           {%   set cleaned_dns = dns | regex_replace(':\d+$', '') | trim %}
           {%   if cleaned_dns and cleaned_dns != ':' %}
           {%     set _ = sans.append('DNS:' + cleaned_dns) %}
           {%   endif %}
           {% endfor %}
-          {% for ip in CustomCertificates.private_tmp_ca.server.san_ip | default([]) if ip is string %}
+          {% for ip in CustomCertificates.generate_selfsigned_certs.server.san_ip | default([]) if ip is string %}
           {%   set cleaned_ip = ip | regex_replace(':\d+$', '') | trim %}
           {%   if cleaned_ip and cleaned_ip != ':' %}
           {%     set _ = sans.append('IP:' + cleaned_ip) %}
@@ -111,7 +105,7 @@
         ownca_path: "{{ CustomCertificates.certs_dir }}/ca/rootCA.crt"
         ownca_privatekey_path: "{{ CustomCertificates.certs_dir }}/ca/private/rootCA.key"
         provider: ownca
-        ownca_not_after: "+{{ CustomCertificates['private_tmp_ca'].ca.certificate_validity_days }}d"
+        ownca_not_after: "+{{ CustomCertificates['generate_selfsigned_certs'].ca.certificate_validity_days }}d"
 
     - name: "Create full-chain certificate"
       ansible.builtin.copy:
@@ -124,6 +118,7 @@
         dest: "{{ item.dest }}"
         mode: "{{ item.mode }}"
         remote_src: true
+        force: false
       loop:
         - { 
             src: "{{ CustomCertificates.certs_dir }}/ca/newcerts/server.key.pem", 
@@ -151,7 +146,7 @@
         path: "{{ CustomCertificates.certs_dir }}/ca"
         state: absent
 
-  when: not custom_certs_stat and CustomCertificates['private_tmp_ca'].enabled | default(false)
+  when: not certs_exist
   tags:
-    - always
-    - certs
+    - selfSignedCerts
+    - never

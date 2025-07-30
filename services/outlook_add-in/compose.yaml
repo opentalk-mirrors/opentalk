@@ -23,4 +23,6 @@ services:
       - "traefik.http.middlewares.outlook_add_in-cors.headers.accessControlAllowMethods=GET,OPTIONS,PUT,POST,DELETE,PATCH"
       - "traefik.http.middlewares.outlook_add_in-cors.headers.accessControlAllowHeaders=Content-Type,Authorization,X-Requested-With"
       - "traefik.http.middlewares.outlook_add_in-cors.headers.addVaryHeader=true"
-
+    depends_on:
+      cforge:
+        condition: service_completed_successfully

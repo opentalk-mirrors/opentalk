@@ -2,7 +2,7 @@
 
 ## Setup OpenTalk local Dev environment
 
-Clone the opentalk-compose git repo and change to the root directory of the repo. 
+Clone the opentalk-compose git repo and change to the root directory of the repo.
 e.g
 
 ```bash
@@ -60,12 +60,13 @@ options:
 Available Post-Install Tasks:
 
                         User Management                         
-┏━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Task Name     ┃ Description                                                        ┃
-┡━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ demoUser      │ Creates a user in Keycloak for testing purposes.                   │
-│ outlookClient │ Creates a OIDC client in Keycloak for the OpenTalk Outlook Add-in. │
-└───────────────┴────────────────────────────────────────────────────────────────────┘
+┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Task Name       ┃ Description                                                        ┃
+┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ demoUser        │ Creates a user in Keycloak for testing purposes.                   │
+│ outlookClient   │ Creates a OIDC client in Keycloak for the OpenTalk Outlook Add-in. │
+│ selfSignedCerts │ Creates self-signed certificates for the OpenTalk.                 │
+└─────────────────┴────────────────────────────────────────────────────────────────────┘
                                   Backup                                   
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Task Name                ┃ Description                                  ┃
@@ -118,7 +119,6 @@ You can access the web interfaces behind the paths as follows.
 #### MailCrab Web Interface
 
 - [http://localhost:8080/adm/mailcrab/](http://localhost:8080/adm/mailcrab/)
-
 
 ## Configure and `apply` service configurations
 
@@ -337,11 +337,79 @@ uri = "amqp://ot:<rabbitmqSecret>@host.docker.internal/%2F"
 queue = "opentalk_recorder"
 ```
 
-#### Run Recorder container 
+#### Run Recorder container
 
 ```bash
 docker run --add-host="host.docker.internal:host-gateway" \
   -v ./config/ext_recorder.toml:/etc/opentalk/recorder.toml \
   -e RUST_LOG=debug \
   git.opentalk.dev:5050/opentalk/backend/services/recorder:v0.15.1
+```
+
+## Default server installation procedure
+
+### Debian
+
+1. Install docker and docker compose.
+Follow the [official docker install documentation](https://docs.docker.com/engine/install/debian/#install-using-the-repository).
+
+2. add the OpenTalk deb repository
+
+```bash
+apt update && apt install -y curl gnupg
+curl http://anfi.opentalk.run:7376/deb-testing/public.gpg | gpg --yes --dearmor -o /usr/share/keyrings/openrepo-deb-testing.gpg
+echo "deb [arch=any signed-by=/usr/share/keyrings/openrepo-deb-testing.gpg] http://anfi.opentalk.run:7376/deb-testing/ stable main" > /etc/apt/sources.list.d/openrepo-deb-testing.list
+```
+
+3. Install the `opentalk-compose` package
+
+```bash
+apt update && apt install opentalk-compose -y
+```
+
+4. Set `OT_DOMAIN` in `/opt/opentalk-compose/config/default.env`
+
+```bash
+sed -i 's/^OT_DOMAIN=.*/OT_DOMAIN="example.com"/' /opt/opentalk-compose/config/default.env
+```
+
+5. Generate default OpenTalk config
+
+```bash
+cforge init
+```
+
+6. Optional: Edit settings `/opt/opentalk-compose/config/settings.yml`
+
+7. Run OpenTalk
+
+```bash
+cd /opt/opentalk-compose && docker compose up -d
+```
+
+8. Optional: Enable demo user
+
+```bash
+cforge --diff task demoUser
+```
+
+Refer `man opentalk-compose` for more information.
+
+## Server installation procedure with Custom CA
+
+Run "Default server installation procedure" steps 1-5.
+
+Copy SSL certificate files to /opt/opentalk-compose/config/ssl
+- CA certificate
+- server fullchain certifikate
+- server SSL certificate key
+
+Edit `/opt/opentalk-compose/config/` 
+
+```
+CustomCertificates:
+  enabled: true
+  ssl_ca_file: my-ca.crt
+  ssl_certificate_fullchain_file: my-server_fullchain.crt
+  ssl_certificate_key_file: my-server.key
 ```

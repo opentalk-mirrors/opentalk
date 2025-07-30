@@ -11,4 +11,13 @@ services:
 {% else %}
 services:
   livekit:
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.livekit.rule=Host(`${OT_DOMAIN}`) && (PathPrefix(`/livekit`) || PathPrefix(`/twirp`))"
+      - "traefik.http.routers.livekit.entrypoints=websecure"
+      - "traefik.http.routers.livekit.middlewares=livekit-strip"
+      - "traefik.http.middlewares.livekit-strip.stripprefix.prefixes=/livekit"
+      - "traefik.http.services.livekit.loadbalancer.server.port=7880"
+{% endif %}
 {% endif %}
