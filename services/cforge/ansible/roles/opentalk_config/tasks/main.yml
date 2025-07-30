@@ -15,6 +15,13 @@
   tags:
     - always
 
+- name: Manage custom certificates
+  ansible.builtin.include_tasks: manage_custom_certificates.yml
+  when: CustomCertificates.enabled
+  tags:
+    - always
+    - certs
+
 - name: Add custom compose override files
   ansible.builtin.include_tasks: manage_compose_override.yaml
   tags:
