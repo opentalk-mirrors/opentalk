@@ -1,8 +1,18 @@
-{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
 services:
   traefik:
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     extra_hosts:
       - "keycloak.localhost:host-gateway"
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    labels: 
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`${OT_DOMAIN}`) && (PathPrefix(`/adm/traefik`) || HeaderRegexp(`Referer`, `/traefik`))"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-strip, default-auth@file"
+      - "traefik.http.middlewares.dashboard-strip.stripprefix.prefixes=/adm/traefik"
+{% else %}
     ports: !override
       - 8080:80
       - 7777:8080
@@ -13,7 +23,5 @@ services:
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.middlewares=dashboard-strip"
       - "traefik.http.middlewares.dashboard-strip.stripprefix.prefixes=/adm/traefik"
-{% else %}
-services:
-  traefik:
+{% endif %}
 {% endif %}

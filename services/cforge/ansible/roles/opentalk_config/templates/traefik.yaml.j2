@@ -33,14 +33,17 @@ entryPoints:
     address: ":80"
   websecure:
     address: ":443"
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    http:
+      tls: {}
+{% endif %}
   ping:
     address: ":8082"
 
 ping:
   entryPoint: "ping"
 
-{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
-{% else %}
+{% if (Deployment.environment is not defined or 'dev' not in Deployment.environment) and not (CustomCertificates.enabled is defined and CustomCertificates.enabled) %}
 certificatesResolvers:
   letsencrypt:
     acme:
@@ -56,3 +59,4 @@ providers:
     exposedByDefault: false
   file:
     directory: /etc/traefik/dynamic
+    watch: true
