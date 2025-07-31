@@ -25,7 +25,7 @@ use tokio::sync::{Mutex, mpsc};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperState};
 
 use crate::{
-    AppState,
+    AppState, StartRequestBody,
     audio::{CHANNELS, NativeAudioStreamSource, SAMPLE_RATE},
 };
 
@@ -44,7 +44,7 @@ pub(crate) struct TranscriptionSession {
 impl TranscriptionSession {
     pub(crate) async fn create(
         service_context: Arc<AppState>,
-        room_id: String,
+        room_info: StartRequestBody,
     ) -> Result<TranscriptionSession> {
         let client = OpenTalkClient::create(ClientConfig {
             auth: AuthConfig::DirectAccess(DirectAccessCredentialsAuthConfig {
@@ -61,7 +61,12 @@ impl TranscriptionSession {
         })
         .await?;
         let room = client
-            .connect_as_user("transcription".parse()?, room_id.parse()?, None, true)
+            .connect_as_user(
+                "transcription".parse()?,
+                room_info.room_id,
+                room_info.breakout_room,
+                true,
+            )
             .await?
             .into();
 
