@@ -17,6 +17,7 @@ pub(crate) struct Settings {
     pub(crate) monitoring: MonitoringSettings,
     pub(crate) auth: AuthSettings,
     pub(crate) controller: ControllerSettings,
+    pub(crate) transcription: TranscriptionSettings,
 }
 
 impl Settings {
@@ -146,4 +147,14 @@ pub(crate) struct ControllerSettings {
     pub(crate) domain: String,
     #[serde(default)]
     pub(crate) insecure: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct TranscriptionSettings {
+    #[serde(default = "default_model")]
+    pub(crate) model: String,
+}
+
+fn default_model() -> String {
+    "ggml-large-v3-turbo-q8_0.bin".to_string()
 }
