@@ -10,11 +10,13 @@ use anyhow::{Context, Result};
 use axum::{
     Router,
     body::Body,
-    extract::{Path, State},
+    extract::{Json, State},
     response::Response,
     routing::{get, post},
 };
 use futures::future::join_all;
+use opentalk_client_signaling::types::common::rooms::{BreakoutRoomId, RoomId};
+use serde::Deserialize;
 use service_probe::{ServiceState, set_service_state, start_probe};
 use settings::Settings;
 use tokio::{
@@ -58,10 +60,10 @@ impl Clone for AppState {
 // TODO: 4. STT Daten -> OpenTalk Signaling senden
 // TODO: 5. Frontend
 impl AppState {
-    pub(crate) async fn spawn_session(&self, room_id: String) -> Result<()> {
+    pub(crate) async fn spawn_session(&self, room_info: StartRequestBody) -> Result<()> {
         let context = Arc::new(self.clone());
-        log::debug!("Start Transcription session {room_id:?}");
-        let mut session = TranscriptionSession::create(context, room_id)
+        log::debug!("Start Transcription session {:?}", room_info.room_id);
+        let mut session = TranscriptionSession::create(context, room_info)
             .await
             .context("transcription session failed to start")?;
 
@@ -143,7 +145,7 @@ where
     let settings = transcription.settings.transcription.clone();
     let prom_state = transcription.prometheus_state.clone();
     let app = Router::new()
-        .route("/start/{room_id}", post(start_transcription))
+        .route("/start", post(start_transcription))
         .route(
             "/metrics",
             get(async move || Response::new(Body::new(prom_state.metrics()))),
@@ -165,6 +167,15 @@ where
     Ok(())
 }
 
-async fn start_transcription(State(transcription): State<AppState>, Path(room_id): Path<String>) {
-    transcription.spawn_session(room_id).await.unwrap();
+#[derive(Debug, Deserialize)]
+struct StartRequestBody {
+    room_id: RoomId,
+    breakout_room: Option<BreakoutRoomId>,
+}
+
+async fn start_transcription(
+    State(transcription): State<AppState>,
+    Json(room_info): Json<StartRequestBody>,
+) {
+    transcription.spawn_session(room_info).await.unwrap();
 }
