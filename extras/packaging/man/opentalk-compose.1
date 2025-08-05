@@ -17,7 +17,7 @@ After initialization use docker compose to run the applications stack.
 
 .B cforge apply
 .RS
-Apply changes in settings.yaml to the service configurations. Changes also provoke a restart of a relatet service. Currently it does not include a recreation of a container.
+Apply changes in settings.yml to the service configurations. Changes also provoke a restart of a relatet service. Currently it does not include a recreation of a container.
 Changes on the compose override files needs still a `docker compose up -d` to get applied.
 .RE
 
@@ -100,7 +100,7 @@ cd /opt/opentalk-compose
 
 .B 2. Add the domain name record (e.g., opentalk.example.com) to the variable 'OT_DOMAIN' in the configuration file config/default.env
 .RS
-sed -i 's/#OT_DOMAIN=""/OT_DOMAIN="opentalk.example.com"/g' config/default.env
+sed -i 's/^OT_DOMAIN=.*/OT_DOMAIN="opentalk.example.com"/' /opt/opentalk-compose/config/default.env
 .RE
 
 .B 3. Run the initialization using cforge
@@ -131,6 +131,8 @@ cforge task <task name>
 | Task Name                  | Task Description                                       |
 +----------------------------|--------------------------------------------------------+
 | demoUser                   | Creates a user in Keycloak for testing purposes.       |
+| outlookClient              | Creates a OIDC client for the OpenTalk Outlook Add-in. |
+| selfSignedCerts            | Creates self-signed certificates for the OpenTalk.     |
 |                            |                                                        |
 | createBackup               | Creates full backup of all services                    |
 |   createBackupConfig       | Creates backup of the config directory                 |

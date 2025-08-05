@@ -46,3 +46,6 @@ services:
       timeout: 15s
       retries: 3
       start_period: 15s
+    depends_on:
+      cforge:
+        condition: service_completed_successfully

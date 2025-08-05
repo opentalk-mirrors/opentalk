@@ -18,4 +18,14 @@ services:
 {% else %}
 services:
   etherpad:
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.etherpad.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/etherpad`)"
+      - "traefik.http.routers.etherpad.entrypoints=websecure"
+      - "traefik.http.routers.etherpad.priority=100"
+      - "traefik.http.routers.etherpad.middlewares=etherpad-strip"
+      - "traefik.http.middlewares.etherpad-strip.stripprefix.prefixes=/etherpad"
+      - "traefik.http.services.etherpad.loadbalancer.server.port=9001"
+{% endif %}
 {% endif %}

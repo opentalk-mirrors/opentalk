@@ -21,7 +21,6 @@ services:
       - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
       - "traefik.http.routers.minio-console.middlewares=default-auth@file"
       #- "traefik.http.routers.minio-console.middlewares=oidc-auth@file,minio-replacepathregex"
-      #- "traefik.http.routers.minio-console.middlewares=keycloak-openid@file,minio-replacepathregex"
       - "traefik.http.middlewares.minio-replacepathregex.replacepathregex.regex=^/adm/minio/(.*)"
       - "traefik.http.middlewares.minio-replacepathregex.replacepathregex.replacement=/$$1"
     healthcheck:

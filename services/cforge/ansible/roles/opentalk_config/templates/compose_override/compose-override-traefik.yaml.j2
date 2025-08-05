@@ -23,5 +23,11 @@ services:
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.middlewares=dashboard-strip"
       - "traefik.http.middlewares.dashboard-strip.stripprefix.prefixes=/adm/traefik"
+{% else %}
+services:
+  traefik:
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    volumes:
+      - /opt/opentalk-compose/config/ssl:/etc/traefik/ssl
 {% endif %}
 {% endif %}

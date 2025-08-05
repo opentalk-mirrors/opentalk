@@ -1,9 +1,6 @@
-{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
 services:
   cforge:
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     extra_hosts:
       - "keycloak.localhost:host-gateway"
-{% else %}
-services:
-  cforge:
 {% endif %}

@@ -2,7 +2,9 @@
 
 - name: render Keycloak config
   ansible.builtin.include_tasks: keycloak_render_config.yaml
-  when: Deployment.scenario is not defined or 'external_keycloak' not in Deployment.scenario
+  when: 
+    - Deployment.scenario is not defined or 'external_keycloak' not in Deployment.scenario
+    - Keycloak.manage_enabled is true
   tags:
     - init
     - apply
@@ -59,16 +61,21 @@
   
   - name: "Manage Keycloak client {{ Recorder.auth.client_id }}"
     ansible.builtin.include_tasks: keycloak_oidc_client_recorder.yml
-  
-  - name: "Manage Keycloak client {{ Outlook.auth.client_id }}"
-    ansible.builtin.include_tasks: keycloak_oidc_client_outlook.yml
-  
+    
   - name: "Manage roles for realm {{ OPENTALK_REALM | default('master') }}"
     ansible.builtin.include_tasks: keycloak_realm_roles.yml
-
   tags:
     - apply
     - keycloak
+  when:
+    - Keycloak.manage_enabled is true
+
+- name: "Manage Keycloak client {{ Outlook.auth.client_id }}"
+  ansible.builtin.include_tasks: keycloak_oidc_client_outlook.yml
+  tags:
+    - postInstall
+    - outlookClient
+    - never
 
 - name: "Create demo user"
   ansible.builtin.include_tasks: keycloak_user_demo.yml

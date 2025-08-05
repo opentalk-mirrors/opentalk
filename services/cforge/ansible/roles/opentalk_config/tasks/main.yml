@@ -111,10 +111,15 @@
     - restoreBackupMinio
     - never
 
+- name: "PostInstall Task - Generate self-signed certificates"
+  ansible.builtin.include_tasks: generate_selfsigned_certs.yml
+  tags:
+    - selfSignedCerts
+    - never
+
 - name: Manage Docker compose containers
   ansible.builtin.include_tasks: manage_docker.yaml
   tags:
     - compose_restart
     - compose_pull
     - never
-

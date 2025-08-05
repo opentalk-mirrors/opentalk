@@ -1,16 +1,12 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
 services:
   controller:
-{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     extra_hosts:
       - "keycloak.localhost:host-gateway"
       - "etherpad.localhost:host-gateway"
       - "spacedeck.localhost:host-gateway"
-{% endif %}
-{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     environment:
       RUST_LOG: debug
-{% endif %}
-{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     labels: !override
       - "traefik.enable=true"
       - "traefik.http.routers.controller.rule=Host(`localhost`) && PathPrefix(`/controller`)"
@@ -18,4 +14,22 @@ services:
       - "traefik.http.routers.controller.middlewares=controller-strip"
       - "traefik.http.middlewares.controller-strip.stripprefix.prefixes=/controller"
       - "traefik.http.services.controller.loadbalancer.server.port=11311"
+{% else %}
+services:
+  controller:
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.controller.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/controller`)"
+      - "traefik.http.routers.controller.entrypoints=websecure"
+      - "traefik.http.routers.controller.middlewares=controller-strip"
+      - "traefik.http.middlewares.controller-strip.stripprefix.prefixes=/controller"
+      - "traefik.http.services.controller.loadbalancer.server.port=11311"
+    volumes:
+      - /opt/opentalk-compose{{ CustomCertificates.certs_dir }}/{{CustomCertificates.ssl_ca_file }}:/usr/local/share/ca-certificates/{{CustomCertificates.ssl_ca_file }}
+    entrypoint: []
+    command: >
+       /bin/bash -c "update-ca-certificates; exec /controller/opentalk-controller"
+    user: root
+{% endif %}
 {% endif %}

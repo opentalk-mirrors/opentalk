@@ -25,4 +25,17 @@ services:
 {% else %}
 services:
   keycloak:
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.service=keycloak"
+      - "traefik.http.routers.keycloak.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/auth`)"
+      - "traefik.http.routers.keycloak.priority=50"
+      - "traefik.http.routers.keycloak.entrypoints=websecure"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.regex=^/adm/keycloak/(.*)"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.replacement=/auth/$$1"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.permanent=true"
+      - "traefik.http.routers.keycloak.middlewares=keycloak-redirect"
+{% endif %}
 {% endif %}

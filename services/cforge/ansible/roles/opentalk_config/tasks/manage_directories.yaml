@@ -34,3 +34,11 @@
       - item != '3rd_party/keycloak' or (Deployment.scenario is not defined or 'external_keycloak' not in Deployment.scenario)
   tags:
     - init
+
+- name: "Create main cert directory"
+  ansible.builtin.file:
+    path: "{{ CustomCertificates.certs_dir }}"
+    state: directory
+    mode: "{{ '777' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '755' }}"
+  tags:
+    - init

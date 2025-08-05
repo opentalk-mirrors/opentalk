@@ -43,7 +43,8 @@ entryPoints:
 ping:
   entryPoint: "ping"
 
-{% if (Deployment.environment is not defined or 'dev' not in Deployment.environment) and not (CustomCertificates.enabled is defined and CustomCertificates.enabled) %}
+{% if Deployment.environment is not defined or 'dev' not in Deployment.environment %}
+{% if CustomCertificates.enabled is not defined or not CustomCertificates.enabled %}
 certificatesResolvers:
   letsencrypt:
     acme:
@@ -52,6 +53,7 @@ certificatesResolvers:
       #caServer: https://acme-staging-v02.api.letsencrypt.org/directory
       httpChallenge:
         entryPoint: web
+{% endif %}
 {% endif %}
 
 providers:

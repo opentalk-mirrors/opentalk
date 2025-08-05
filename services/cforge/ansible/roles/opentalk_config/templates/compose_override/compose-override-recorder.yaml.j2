@@ -1,6 +1,17 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
 services:
   recorder:
-{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     extra_hosts:
       - "keycloak.localhost:host-gateway"
+{% else %}
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+services:
+  recorder:
+    volumes:
+      - /opt/opentalk-compose{{ CustomCertificates.certs_dir }}/{{CustomCertificates.ssl_ca_file }}:/usr/local/share/ca-certificates/{{CustomCertificates.ssl_ca_file }}
+    entrypoint: []
+    command: >
+       /bin/bash -c "update-ca-certificates; exec /recorder/opentalk-recorder"
+    user: root
+{% endif %}
 {% endif %}

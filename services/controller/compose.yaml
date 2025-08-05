@@ -27,5 +27,5 @@ services:
       timeout: 5s
       retries: 3
     depends_on:
-      controller-db:
-        condition: service_healthy
+      cforge:
+        condition: service_completed_successfully
