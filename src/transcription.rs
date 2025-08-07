@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use anyhow::Result;
 use audio_nodes::AudioConvert;
@@ -17,9 +17,12 @@ use livekit::{
 };
 use openidconnect::{ResourceOwnerPassword, ResourceOwnerUsername};
 use opentalk_client_signaling::{
-    AuthConfig, ControllerConfig, Event, OpenTalkClient, Room,
+    AuthConfig, ControllerConfig, Event, OpenTalkClient, Room, TranscriptionSegment,
     config::{ClientConfig, DirectAccessCredentialsAuthConfig},
-    types::signaling::chat,
+    types::{
+        common::time::Timestamp,
+        signaling::{ParticipantId, chat},
+    },
 };
 use tokio::sync::{Mutex, mpsc};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperState};
@@ -37,8 +40,9 @@ pub(crate) struct TranscriptionSession {
     speakers: Vec<Participant>,
 
     whisper: Arc<Mutex<HashMap<TrackSid, Whisper>>>,
-    send_messages_rx: mpsc::Receiver<(ParticipantSid, String)>,
-    send_messages_tx: mpsc::Sender<(ParticipantSid, String)>,
+    track_to_participant: Arc<Mutex<HashMap<TrackSid, ParticipantId>>>,
+    send_messages_rx: mpsc::Receiver<(ParticipantSid, TranscriptionSegment)>,
+    send_messages_tx: mpsc::Sender<(ParticipantSid, TranscriptionSegment)>,
 }
 
 impl TranscriptionSession {
@@ -76,6 +80,7 @@ impl TranscriptionSession {
             service_context,
             room,
             speakers: Vec::new(),
+            track_to_participant: Arc::new(Mutex::new(HashMap::new())),
             whisper: Arc::new(Mutex::new(HashMap::new())),
             send_messages_rx,
             send_messages_tx,
@@ -97,19 +102,21 @@ impl TranscriptionSession {
                     };
                     match event {
                         Event::OpenTalk(event) => log::trace!("Received OpenTalk event: {event:?}"),
-                        Event::LiveKit(event) => self.handle_livekit_event(event),
+                        Event::LiveKit(event) => self.handle_livekit_event(event).await,
                     }
                 }
                 Some((participant, message)) = self.send_messages_rx.recv() => {
-                    log::debug!("send message {message}");
+                    log::debug!("send message {message:?}");
                     self
                         .room
                         .chat_api()
                         .unwrap()
                         .send_message(
-                            format!("[{participant}] said: {message}"),
+                            format!("[{}] said: {message:?}", participant.to_string()),
                             chat::Scope::Global
                         ).await?;
+
+                    self.room.transcription_service_api().send_segment(message).await?;
                 }
                 _ = shutdown_rx.recv() => {
                     break;
@@ -120,10 +127,42 @@ impl TranscriptionSession {
         Ok(())
     }
 
-    fn handle_livekit_event(&mut self, event: RoomEvent) {
+    async fn handle_livekit_event(&mut self, event: RoomEvent) {
         log::trace!("livekit event: {event:?}");
 
         match event {
+            RoomEvent::ParticipantConnected(remote_participant) => {
+                let publications = remote_participant.track_publications();
+                let mut track_to_participant = self.track_to_participant.lock().await;
+                for (track, _) in publications.iter() {
+                    track_to_participant.insert(
+                        track.clone(),
+                        ParticipantId::from_str(remote_participant.identity().as_str())
+                            .expect("ParticipantIdentity is a ParticipantId"),
+                    );
+                }
+            }
+            RoomEvent::ParticipantDisconnected(remote_participant) => {
+                let publications = remote_participant.track_publications();
+                let mut track_to_participant = self.track_to_participant.lock().await;
+                for (track, _) in publications.iter() {
+                    track_to_participant.remove(track);
+                }
+            }
+            RoomEvent::Connected {
+                participants_with_tracks,
+            } => {
+                let mut track_to_participant = self.track_to_participant.lock().await;
+                for (remote_participant, publications) in participants_with_tracks {
+                    for publication in publications {
+                        track_to_participant.insert(
+                            publication.sid(),
+                            ParticipantId::from_str(remote_participant.identity().as_str())
+                                .expect("ParticipantIdentity is a ParticipantId"),
+                        );
+                    }
+                }
+            }
             RoomEvent::ActiveSpeakersChanged { speakers } => {
                 self.handle_speaker_change(speakers);
             }
@@ -191,6 +230,7 @@ impl TranscriptionSession {
                 let track = track.clone();
                 let whisper = self.whisper.clone();
                 let send_messages_tx = self.send_messages_tx.clone();
+                let track_to_participant = self.track_to_participant.clone();
 
                 tokio::task::spawn_blocking(move || {
                     let mut whisper = whisper.blocking_lock();
@@ -198,8 +238,22 @@ impl TranscriptionSession {
                         return;
                     };
 
+                    let track_to_participant = track_to_participant.blocking_lock();
+                    let Some(participant_id) = track_to_participant.get(&track) else {
+                        return;
+                    };
+
                     if let Ok(data) = whisper.do_ai_and_clear() {
-                        send_messages_tx.blocking_send((participant, data)).unwrap();
+                        let segment = TranscriptionSegment {
+                            participant_id: *participant_id,
+                            track_id: track.to_string(),
+                            starts_at: whisper.start_point,
+                            ends_at: Timestamp::now(),
+                            text: data,
+                        };
+                        send_messages_tx
+                            .blocking_send((participant, segment))
+                            .unwrap();
                     }
                 });
             }
@@ -212,6 +266,8 @@ impl TranscriptionSession {
 struct Whisper {
     state: WhisperState,
     audio_samples: Vec<f32>,
+    pub(crate) start_point: Timestamp,
+    pub(crate) segment_number: u32,
 }
 
 impl Whisper {
@@ -222,6 +278,8 @@ impl Whisper {
         Ok(Self {
             state,
             audio_samples,
+            start_point: Timestamp::now(),
+            segment_number: 0,
         })
     }
 }
@@ -242,6 +300,7 @@ impl Whisper {
 
         let result = self.do_ai();
         self.clear_audio_frame();
+        self.segment_number += 1;
         Ok(result?.unwrap())
     }
 
