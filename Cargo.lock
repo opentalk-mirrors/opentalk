@@ -1305,9 +1305,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-sip-core"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df0997a0fd8149575da51e75583ed32fcb4898745c131342551dc11bd5975026"
+checksum = "f30d11f7b3ec8cb0cf08116de49085d00c25ae5f66e1384f21f9a40899a25f56"
 dependencies = [
  "async-trait",
  "bytes 1.10.1",
@@ -1320,7 +1320,6 @@ dependencies = [
  "hickory-resolver",
  "log",
  "multimap",
- "nom",
  "parking_lot",
  "rand 0.9.2",
  "thiserror 2.0.12",
@@ -1333,9 +1332,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-sip-types"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f93e2e32c332eb13339c4ab18cd227f7b2e541e00002a88e7d813a69324da7e"
+checksum = "59b68f8d76f9dc1d4044fc8c7b1e5c51c7024e1e3b6eb061ba6f9cd63adfc2dc"
 dependencies = [
  "anyhow",
  "bytes 1.10.1",
@@ -3234,7 +3233,7 @@ dependencies = [
  "portable-atomic",
  "portable-atomic-util",
  "serde",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4654,7 +4653,7 @@ dependencies = [
  "once_cell",
  "socket2 0.5.10",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5109,7 +5108,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5122,7 +5121,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5883,7 +5882,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.7",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6783,7 +6782,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

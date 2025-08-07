@@ -209,6 +209,7 @@ async fn resolve_public_addr(sock: &UdpSocket, stun_server: &str) -> Result<Sock
 
     // Build stun request
     let mut msg = MessageBuilder::new(Class::Request, Method::Binding, TransactionId::random());
+    msg.padding_in_value_len(true);
     msg.add_attr(Software::new("opentalk-obelisk"));
     let msg = msg.finish();
 
