@@ -9,7 +9,7 @@ _cforge_completion() {
     commands="init task apply pull"
 
     # Define tasks
-    tasks="demoUser createBackup createBackupConfig createBackupControllerDB createBackupKeycloakDB createBackupTraefik createBackupMinio restoreBackup restoreBackupConfig restoreBackupControllerDB restoreBackupKeycloakDB restoreBackupTraefik restoreBackupMinio"
+    tasks="demoUser outlookClient selfSignedCerts createBackup createBackupConfig createBackupControllerDB createBackupKeycloakDB createBackupTraefik createBackupMinio restoreBackup restoreBackupConfig restoreBackupControllerDB restoreBackupKeycloakDB restoreBackupTraefik restoreBackupMinio"
 
     # Handle opts completion
     if [[ ${cur} == -* ]]; then

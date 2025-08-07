@@ -1,13 +1,20 @@
 {% if Deployment.environment is defined and 'dev' in Deployment.environment %}
+services:
+  obelisk:
+    extra_hosts:
+      - "keycloak.localhost:host-gateway"
 {% else %}
 services:
   obelisk:
 {% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+{% if CustomCA.enabled is defined and CustomCA.enabled is true %}
     volumes:
       - /opt/opentalk-compose{{ CustomCertificates.certs_dir }}/{{CustomCertificates.ssl_ca_file }}:/usr/local/share/ca-certificates/{{CustomCertificates.ssl_ca_file }}
     entrypoint: []
     command: >
        /bin/bash -c "update-ca-certificates; exec /obelisk/opentalk-obelisk"    
     user: root
+{% else %}
+{% endif %}
 {% endif %}
 {% endif %}

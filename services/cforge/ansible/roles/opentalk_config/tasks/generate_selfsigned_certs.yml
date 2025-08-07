@@ -5,7 +5,6 @@
         path: "{{ item }}"
       loop:
         - "{{ CustomCertificates.certs_dir }}/{{ CustomCertificates.ssl_ca_file }}"
-        - "{{ CustomCertificates.certs_dir }}/{{ CustomCertificates.ssl_certificate_file }}"
         - "{{ CustomCertificates.certs_dir }}/{{ CustomCertificates.ssl_certificate_fullchain_file }}"
         - "{{ CustomCertificates.certs_dir }}/{{ CustomCertificates.ssl_certificate_key_file }}"
       register: custom_certs_stat
@@ -13,7 +12,7 @@
     
     - name: "Set fact for certificate existence"
       ansible.builtin.set_fact:
-        certs_exist: "{{ custom_certs_stat.results | map(attribute='stat.exists') | select | list | length == 4 }}"
+        certs_exist: "{{ custom_certs_stat.results | map(attribute='stat.exists') | select | list | length == 3 }}"
       check_mode: no
   tags:
     - selfSignedCerts
@@ -124,11 +123,6 @@
             src: "{{ CustomCertificates.certs_dir }}/ca/newcerts/server.key.pem", 
             dest: "{{ CustomCertificates.certs_dir }}/{{ CustomCertificates.ssl_certificate_key_file }}", 
             mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '600' }}" 
-          }
-        - { 
-            src: "{{ CustomCertificates.certs_dir }}/ca/newcerts/server.crt.pem", 
-            dest: "{{ CustomCertificates.certs_dir }}/{{ CustomCertificates.ssl_certificate_file }}", 
-            mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '644' }}" 
           }
         - { 
             src: "{{ CustomCertificates.certs_dir }}/ca/newcerts/server_full_chain.crt.pem", 
