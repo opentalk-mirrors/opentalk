@@ -13,6 +13,7 @@ services:
 services:
   spacedeck:
 {% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+{% if CustomCA.enabled is defined and CustomCA.enabled is true %}
     environment:
       NODE_EXTRA_CA_CERTS: /usr/local/share/ca-certificates/{{CustomCertificates.ssl_ca_file}}
     volumes:
@@ -26,6 +27,7 @@ services:
       SD_API_TOKEN=$(cat /run/secrets/spacedeck_api_secret)
       SD_INVITE_CODE=$(cat /run/secrets/spacedeck_invite_secret)
       node spacedeck.js'
+{% endif%}
     labels: !override
       - "traefik.enable=true"
       - "traefik.http.routers.spacedeck.rule=Host(`${OT_DOMAIN}`) \

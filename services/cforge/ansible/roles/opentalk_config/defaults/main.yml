@@ -10,9 +10,10 @@ Deployment:
 
 CustomCertificates:
   enabled: false
-  ssl_certificate_file: "server.crt"
   ssl_certificate_fullchain_file: "server_fullchain.crt"
   ssl_certificate_key_file: "server.key"
+CustomCA:
+  enabled: false
   ssl_ca_file: "ca.crt"
 
 postInstall:
@@ -90,9 +91,6 @@ Keycloak:
   health_url: "https://{{ OT_DOMAIN }}/auth/realms/master"
   http:
     relative_path: /auth
-  https:
-    certificate_file: "${kc.home.dir}conf/server.crt.pem"
-    certificate_key_file: "${kc.home.dir}conf/server.key.pem"
   spi_sticky_session_encoder_infinispan_should_attach_route: "false"
   redirectUris:
     uris:
@@ -375,6 +373,12 @@ Livekit:
 #      protocol: udp
 #      username: "opentalk"
 #      credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
+#  turn_embedded:
+#    enabled: "false"
+#    domain: meet-lk1-turn.opentalk.eu
+#    tls_port: 5349
+#    udp_port: 3478
+#    external_tls: true
 #  prometheus_port: 6789
 #  logging:
 #    json: "false"

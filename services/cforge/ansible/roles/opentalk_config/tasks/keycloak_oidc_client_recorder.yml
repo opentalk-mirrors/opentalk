@@ -1,5 +1,5 @@
 ---
-# Manage Keycloak client used for OpenTalk obelisk
+# Manage Keycloak client used for OpenTalk recorder
 - name: Create or update Keycloak client {{ Recorder.auth.client_id }}
   community.general.keycloak_client:
     auth_keycloak_url: "{{ Keycloak.base_url }}"

@@ -22,6 +22,6 @@
       access.token.lifespan: "1800"
       use.refresh.tokens: "true"
   tags:
-    - init
+    - outlookClient
     - apply
     - keycloak

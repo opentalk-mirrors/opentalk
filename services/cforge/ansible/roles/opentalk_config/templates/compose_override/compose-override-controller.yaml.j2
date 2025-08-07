@@ -25,11 +25,15 @@ services:
       - "traefik.http.routers.controller.middlewares=controller-strip"
       - "traefik.http.middlewares.controller-strip.stripprefix.prefixes=/controller"
       - "traefik.http.services.controller.loadbalancer.server.port=11311"
+{% if CustomCA.enabled is defined and CustomCA.enabled is true %}
     volumes:
       - /opt/opentalk-compose{{ CustomCertificates.certs_dir }}/{{CustomCertificates.ssl_ca_file }}:/usr/local/share/ca-certificates/{{CustomCertificates.ssl_ca_file }}
+
     entrypoint: []
     command: >
        /bin/bash -c "update-ca-certificates; exec /controller/opentalk-controller"
     user: root
+{% else %}
+{% endif %}
 {% endif %}
 {% endif %}

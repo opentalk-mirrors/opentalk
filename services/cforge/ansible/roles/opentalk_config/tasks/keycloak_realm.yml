@@ -7,10 +7,6 @@
     realm: "{{ Keycloak.realm }}"
     state: present
     enabled: true
-    display_name: "OpenTalk Realm"
-    offline_session_idle_timeout: 31536000
-    offline_session_max_lifespan_enabled: true
-    offline_session_max_lifespan: 31536000
     login_theme: "opentalk"
   tags:
     - init
@@ -18,25 +14,6 @@
     - keycloak
 
 - block:
-  - name: Set CSP via Keycloak REST API
-    ansible.builtin.uri:
-      url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}"
-      method: PUT
-      headers:
-        Authorization: "Bearer {{ keycloak_token }}"
-        Content-Type: "application/json"
-      body_format: json
-      body:
-        attributes:
-          _browser_header.contentSecurityPolicy: "frame-src 'self'; frame-ancestors 'self' http://localhost:* https://{{ OT_DOMAIN }} https://*.{{ OT_DOMAIN }}; object-src 'none';"
-          _browser_header.xContentTypeOptions: "nosniff"
-          _browser_header.xRobotsTag: "none"
-          _browser_header.xFrameOptions: "DENY"
-          _browser_header.contentSecurityPolicyReportOnly: ""
-          _browser_header.xXSSProtection: "1; mode=block"
-          _browser_header.strictTransportSecurity: "max-age=31536000; includeSubDomains"
-      status_code: [200, 204]
-  
   - name: Get current realm config
     ansible.builtin.uri:
       url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}"
@@ -46,7 +23,7 @@
       return_content: yes
     register: realm_config
   
-  - name: Set client session settings in realm config
+  - name: Update realm config with all settings
     ansible.builtin.uri:
       url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}"
       method: PUT
@@ -57,8 +34,21 @@
       body: |
         {{
           (realm_config.json | combine({
+            "displayNameHtml": '<div class="kc-logo-text"><span>OpenTalk</span></div>',
+            "offlineSessionIdleTimeout": 31536000,
+            "offlineSessionMaxLifespan": 31536000,
+            "offlineSessionMaxLifespanEnabled": true,
             "clientSessionIdleTimeout": 31536000,
-            "clientSessionMaxLifespan": 31536000
+            "clientSessionMaxLifespan": 31536000,
+            "attributes": (realm_config.json.attributes | default({}) | combine({
+              "_browser_header.contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self' http://localhost:* https://{{ OT_DOMAIN }} https://*.{{ OT_DOMAIN }}; object-src 'none';",
+              "_browser_header.xContentTypeOptions": "nosniff",
+              "_browser_header.xRobotsTag": "none",
+              "_browser_header.xFrameOptions": "DENY",
+              "_browser_header.contentSecurityPolicyReportOnly": "",
+              "_browser_header.xXSSProtection": "1; mode=block",
+              "_browser_header.strictTransportSecurity": "max-age=31536000; includeSubDomains"
+            }))
           }))
         }}
       status_code: [200, 204]
