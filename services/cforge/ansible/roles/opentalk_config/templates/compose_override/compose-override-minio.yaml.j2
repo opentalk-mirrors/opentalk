@@ -15,4 +15,16 @@ services:
 {% else %}
 services:
   minio:
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio-console.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/adm/minio`)"
+      - "traefik.http.routers.minio-console.entrypoints=websecure"
+      - "traefik.http.routers.minio-console.service=minio-console"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
+      - "traefik.http.routers.minio-console.middlewares=default-auth@file"
+      #- "traefik.http.routers.minio-console.middlewares=oidc-auth@file,minio-replacepathregex"
+      - "traefik.http.middlewares.minio-replacepathregex.replacepathregex.regex=^/adm/minio/(.*)"
+      - "traefik.http.middlewares.minio-replacepathregex.replacepathregex.replacement=/$$1"
+{% endif %}
 {% endif %}

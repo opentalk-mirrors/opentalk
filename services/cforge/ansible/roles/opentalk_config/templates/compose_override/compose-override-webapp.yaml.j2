@@ -1,6 +1,6 @@
+{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
 services:
   webapp:
-{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     extra_hosts:
       - "keycloak.localhost:host-gateway"  
     ports: !override
@@ -44,4 +44,18 @@ services:
       - "traefik.http.middlewares.webapp-cors.headers.accessControlAllowOriginList=http://localhost,http://*.localhost"
       - "traefik.http.middlewares.webapp-cors.headers.accessControlAllowCredentials=true"
       - "traefik.http.middlewares.webapp-cors.headers.accessControlAllowHeaders=Content-Type,Authorization"
+{% else %}
+services:
+  webapp:
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.webapp.rule=Host(`${OT_DOMAIN}`)"
+      - "traefik.http.routers.webapp.priority=10" 
+      - "traefik.http.routers.webapp.entrypoints=websecure"
+      - "traefik.http.services.webapp.loadbalancer.server.port=80"
+      - "traefik.http.routers.webapp-callback.rule=Host(`${OT_DOMAIN}`) && Path(`/auth/callback`)"
+      - "traefik.http.routers.webapp-callback.priority=100"
+      - "traefik.http.routers.webapp-callback.entrypoints=websecure"
+{% endif %}
 {% endif %}

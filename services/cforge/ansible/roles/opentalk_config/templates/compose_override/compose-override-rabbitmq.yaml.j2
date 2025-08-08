@@ -1,13 +1,21 @@
+{% if (Deployment.environment is defined and 'dev' in Deployment.environment) or (Deployment.scenario is defined and 'external_recorder' in Deployment.scenario) %}
 services:
   rabbitmq:
-{% if (Deployment.environment is defined and 'dev' in Deployment.environment) or (Deployment.scenario is defined and 'external_recorder' in Deployment.scenario) %}
     ports:
       - "5672:5672"
-{% endif %}
-{% if Deployment.environment is defined and 'dev' in Deployment.environment %}
     labels: !override
       - "traefik.enable=true"
       - "traefik.http.routers.rabbitmq.rule=Host(`localhost`) && PathPrefix(`/adm/rabbitmq`)"
       - "traefik.http.routers.rabbitmq.entrypoints=web"
       - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
+{% else %}
+services:
+  rabbitmq:
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.rabbitmq.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/adm/rabbitmq`)"
+      - "traefik.http.routers.rabbitmq.entrypoints=websecure"
+      - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
+{% endif %}
 {% endif %}

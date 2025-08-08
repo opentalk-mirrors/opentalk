@@ -16,4 +16,8 @@ services:
 {% else %}
 services:
   traefik:
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    volumes:
+      - /opt/opentalk-compose/config/ssl:/etc/traefik/ssl
+{% endif %}
 {% endif %}
