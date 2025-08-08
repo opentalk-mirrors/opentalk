@@ -166,6 +166,10 @@ impl RoomChatState {
 
                 None
             }
+            ChatEvent::RoomChatHistoryChunk { history: _ } => None,
+            ChatEvent::GroupChatHistoryChunk(_group_history) => None,
+            ChatEvent::PrivateChatHistoryChunk(_private_history) => None,
+            ChatEvent::SearchResults(_search_results) => None,
         }
     }
 }

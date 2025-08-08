@@ -41,6 +41,8 @@ mod recording;
 mod chat;
 #[cfg(feature = "recording-service")]
 mod recording_service;
+#[cfg(feature = "transcription")]
+mod transcription;
 
 #[cfg(feature = "chat")]
 use chat::RoomChatState;
@@ -52,6 +54,8 @@ pub use recording::{OpenTalkRecordingEvent, RecordingApi};
 use recording_service::RoomRecordingServiceState;
 #[cfg(feature = "recording-service")]
 pub use recording_service::{OpenTalkRecordingServiceEvent, RecordingServiceApi};
+#[cfg(feature = "transcription")]
+pub use transcription::TranscriptionApi;
 #[cfg(feature = "chat")]
 use types::signaling::chat::state::ChatState;
 #[cfg(feature = "recording-service")]
@@ -569,6 +573,12 @@ impl Room {
         self.recording_service_state
             .is_some()
             .then_some(RecordingServiceApi { room: self })
+    }
+
+    /// Access the [`TranscriptionServiceApi`] which contains function to interact with the transcription module
+    #[cfg(feature = "transcription")]
+    pub fn transcription_service_api(&mut self) -> TranscriptionApi<'_> {
+        TranscriptionApi { room: self }
     }
 }
 
