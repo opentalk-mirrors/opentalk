@@ -156,5 +156,5 @@ pub(crate) struct TranscriptionSettings {
 }
 
 fn default_model() -> String {
-    "ggml-large-v3-turbo-q8_0.bin".to_string()
+    "models/ggml-large-v3-turbo.bin".to_string()
 }
