@@ -34,7 +34,7 @@ repos:
           - --workspace
           - --no-deps
   - repo: https://github.com/EmbarkStudios/cargo-deny
-    rev: 0.18.3
+    rev: 0.18.4
     hooks:
       - id: cargo-deny
         name: cargo deny check bans licenses sources
