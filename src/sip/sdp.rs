@@ -178,8 +178,8 @@ impl SessionState {
                         vec![]
                     },
                 }),
-                local_rtp_addr: (self.pub_ip, audio_rtp_pair.rtp_port).into(),
-                local_rtcp_addr: (self.pub_ip, audio_rtp_pair.rtcp_port).into(),
+                local_rtp_addr: (self.pub_ip, audio_rtp_pair.public_rtp_port).into(),
+                local_rtcp_addr: (self.pub_ip, audio_rtp_pair.public_rtcp_port).into(),
                 direction: Direction::SendRecv,
                 dtmf_events: Some(DtmfEvents {
                     pt: 101,
@@ -208,8 +208,8 @@ impl SessionState {
                         vec![]
                     },
                 }),
-                local_rtp_addr: (self.pub_ip, video_rtp_pair.rtp_port).into(),
-                local_rtcp_addr: (self.pub_ip, video_rtp_pair.rtcp_port).into(),
+                local_rtp_addr: (self.pub_ip, video_rtp_pair.public_rtp_port).into(),
+                local_rtcp_addr: (self.pub_ip, video_rtp_pair.public_rtcp_port).into(),
                 direction: Direction::SendRecv,
                 dtmf_events: None,
                 socket_pair: video_rtp_pair,
@@ -481,8 +481,8 @@ impl SessionState {
             .context("Failed to create RTP/RTCP sockets")?
             .context("No more RTP/RTCP ports are available")?;
 
-        let local_rtp_addr = SocketAddr::new(self.pub_ip, socket_pair.rtp_port);
-        let local_rtcp_addr = SocketAddr::new(self.pub_ip, socket_pair.rtcp_port);
+        let local_rtp_addr = SocketAddr::new(self.pub_ip, socket_pair.public_rtp_port);
+        let local_rtcp_addr = SocketAddr::new(self.pub_ip, socket_pair.public_rtcp_port);
 
         // Find DTMF caps
         let mut dtmf_events = None;
