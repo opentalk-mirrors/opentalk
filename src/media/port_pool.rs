@@ -34,10 +34,14 @@ impl AddressFamily {
 
 // Contains the rtp as well as the related rtcp socket
 pub struct SocketPair {
-    pub rtp_port: u16,
-    pub rtp_socket: Arc<UdpSocket>,
+    /// Local UDP port on which RTP is sent/received
+    pub local_rtp_port: u16,
+    /// public RTP port resolved using the configured STUN server, or if none is set, same as `local_rtp_port`
+    pub public_rtp_port: u16,
+    /// public RTCP port, same as public_rtp_port
+    pub public_rtcp_port: u16,
 
-    pub rtcp_port: u16,
+    pub rtp_socket: Arc<UdpSocket>,
     pub rtcp_socket: Arc<UdpSocket>,
 }
 
@@ -45,7 +49,7 @@ impl Drop for SocketPair {
     fn drop(&mut self) {
         tokio::task::block_in_place(move || {
             tokio::runtime::Handle::current().block_on(async move {
-                PortPool::instance().clear_port(self.rtp_port).await;
+                PortPool::instance().clear_port(self.local_rtp_port).await;
             });
         });
     }
@@ -125,10 +129,10 @@ impl PortPool {
             };
 
             // get the actual port values for the pair
-            let rtp_port = self.port_start + (pair * 2);
-            let rtcp_port = rtp_port + 1;
+            let local_rtp_port = self.port_start + (pair * 2);
+            let local_rtcp_port = local_rtp_port + 1;
 
-            let rtp_socket = match create_udp_socket(rtp_port, address_family).await? {
+            let rtp_socket = match create_udp_socket(local_rtp_port, address_family).await? {
                 Some(rtp_socket) => rtp_socket,
                 None => {
                     failed_pairs.push(pair);
@@ -136,7 +140,7 @@ impl PortPool {
                 }
             };
 
-            let rtcp_socket = match create_udp_socket(rtcp_port, address_family).await? {
+            let rtcp_socket = match create_udp_socket(local_rtcp_port, address_family).await? {
                 Some(rtcp_socket) => rtcp_socket,
                 None => {
                     failed_pairs.push(pair);
@@ -144,30 +148,37 @@ impl PortPool {
                 }
             };
 
-            let (rtp_port, rtcp_port) = if let Some(stun_server) = &self.settings.sip.stun_server {
-                let rtp_addr = resolve_public_addr(&rtp_socket, stun_server)
-                    .await
-                    .context("Failed to discover public addr of RTP socket using STUN")?;
-                let rtcp_addr = resolve_public_addr(&rtcp_socket, stun_server)
-                    .await
-                    .context("Failed to discover public addr of RTCP socket using STUN")?;
-
-                (rtp_addr.port(), rtcp_addr.port())
-            } else {
-                (rtp_port, rtcp_port)
-            };
-
             log::trace!(
-                "Using port {rtp_port} & {rtcp_port} for new RTP/RTCP connection (pair {pair}),"
+                "Using local port {local_rtp_port} & {local_rtcp_port} for new RTP/RTCP connection (pair {pair})"
             );
+
+            let (stun_rtp_port, stun_rtcp_port) =
+                if let Some(stun_server) = &self.settings.sip.stun_server {
+                    let rtp_addr = resolve_public_addr(&rtp_socket, stun_server)
+                        .await
+                        .context("Failed to discover public addr of RTP socket using STUN")?;
+                    let rtcp_addr = resolve_public_addr(&rtcp_socket, stun_server)
+                        .await
+                        .context("Failed to discover public addr of RTCP socket using STUN")?;
+
+                    log::trace!(
+                        "Resolved public port using STUN for RTP & RTCP - ({} & {})",
+                        rtp_addr.port(),
+                        rtcp_addr.port()
+                    );
+
+                    (rtp_addr.port(), rtcp_addr.port())
+                } else {
+                    (local_rtp_port, local_rtcp_port)
+                };
 
             used_pairs.insert(pair);
 
             return Ok(Some(SocketPair {
-                rtp_port,
+                local_rtp_port,
+                public_rtp_port: stun_rtp_port,
+                public_rtcp_port: stun_rtcp_port,
                 rtp_socket: Arc::new(rtp_socket),
-
-                rtcp_port,
                 rtcp_socket: Arc::new(rtcp_socket),
             }));
         }
@@ -179,9 +190,14 @@ impl PortPool {
 
         let pair = (port - self.port_start) / 2;
 
-        used_pairs.remove(&pair);
-
-        log::trace!("Removed port {port} from PortPool (pair {pair})");
+        if used_pairs.remove(&pair) {
+            log::trace!("Removed port {port} from PortPool (pair {pair})");
+        } else {
+            log::error!(
+                "Failed to remove port pair {pair}, used_pairs={:?}",
+                used_pairs
+            );
+        }
     }
 }
 
