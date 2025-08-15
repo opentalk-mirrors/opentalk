@@ -220,9 +220,7 @@ impl Signaling {
             self.sip.terminate().await?;
         }
 
-        self.close_websocket().await?;
-
-        if let Some(compositor) = &mut self.media.compositor {
+        if let Some(compositor) = self.media.compositor.take() {
             let p = compositor.local_participant();
 
             for track in p.track_publications().into_keys() {
@@ -231,6 +229,8 @@ impl Signaling {
                 }
             }
         }
+
+        self.close_websocket().await?;
 
         Ok(())
     }
