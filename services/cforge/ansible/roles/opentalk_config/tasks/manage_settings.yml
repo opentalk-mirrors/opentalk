@@ -1,11 +1,4 @@
 ---
-- name: Check if settings file is present | conf/settings.yml
-  ansible.builtin.stat:
-    path: "{{ config_dir }}/settings.yml"
-  register: settings_file
-  tags:
-    - always
-
 - name: Load defaults/main.yml as defaults_vars
   include_vars:
     file: "{{ role_path }}/defaults/main.yml"
@@ -13,12 +6,37 @@
   tags:
     - always
 
+- name: Load defaults/main.dev.yml as defaults_dev_vars
+  include_vars:
+    file: "{{ role_path }}/defaults/main.dev.yml"
+    name: defaults_dev_vars
+  tags:
+    - dev
+
+- name: Merge dev defaults into settings | conf/settings.yml
+  ansible.builtin.copy:
+    dest: "{{ config_dir }}/settings.yml"
+    content: "{{ defaults_vars | combine(defaults_dev_vars, recursive=True) | to_nice_yaml(indent=2) }}"
+    mode: "666"
+    force: "{{ Deployment.force_settings_yaml | default(false) }}"
+  tags:
+    - dev
+
+- name: Check if settings file is present | conf/settings.yml
+  ansible.builtin.stat:
+    path: "{{ config_dir }}/settings.yml"
+  register: settings_file
+  tags:
+    - always
+
 - name: Create settings file from defaults_vars if not present | conf/settings.yml
   ansible.builtin.copy:
     dest: "{{ config_dir }}/settings.yml"
-    content: "{{ defaults_vars | to_nice_yaml }}"
-    mode: "0666"
-  when: not settings_file.stat.exists
+    content: "{{ defaults_vars | to_nice_yaml(indent=2) }}"
+    mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '644' }}"
+    force: "{{ Deployment.force_settings_yaml | default(false) }}"
+  when: 
+    - defaults_dev_vars is not defined
   tags:
     - always
     - skip_task
@@ -57,55 +75,16 @@
 - name: Write settings.yml.unmerged if new keys are present
   copy:
     dest: "{{ config_dir }}/settings.yml.unmerged"
-    content: "{{ defaults_vars | combine(settings_vars, recursive=True) | to_nice_yaml }}"
-    mode: "0644"
+    content: "{{ defaults_vars | combine(settings_vars, recursive=True) | to_nice_yaml(indent=2) }}"
+    mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '644' }}"
   when: new_keys_result.has_new_keys
+  notify: "Notify when new options are present"
   tags:
     - always
-
-- name: Create settings override | conf/settings.override.yaml
-  ansible.builtin.copy:
-    src: files/settings.override.dev.yaml
-    dest: "{{ config_dir }}/settings.override.yaml"
-    mode: "666"
-  tags:
-    - dev
-    - skip_task
 
 - name: Load values from settings file and override ansible defaults/main.yml
   include_vars:
     file: "{{ config_dir }}/settings.yml"
     hash_behaviour: merge
-  when: settings_file.stat.exists
   tags:
     - always
-
-- name: Check if settings override file is present | conf/settings.override.yaml
-  ansible.builtin.stat:
-    path: "{{ config_dir }}/settings.override.yaml"
-  register: settings_override_file
-  tags:
-    - always
-
-- name: Load values from override settings file {{ config_dir }}/settings.override.yaml and override {{ config_dir }}/settings.yaml
-  include_vars:
-    file: "{{ config_dir }}/settings.override.yaml"
-    hash_behaviour: merge
-  when: settings_override_file.stat.exists
-  tags:
-    - always
-
-- name: Check if settings override file is present | conf/settings.override.dev.yaml
-  ansible.builtin.stat:
-    path: "{{ config_dir }}/settings.override.dev.yaml"
-  register: settings_override_file
-  tags:
-    - dev
-
-- name: Load values from override settings file {{ config_dir }}/settings.override.dev.yaml and override {{ config_dir }}/settings.yaml
-  include_vars:
-    file: "{{ config_dir }}/settings.override.dev.yaml"
-    hash_behaviour: merge
-  when: settings_override_file.stat.exists
-  tags:
-    - dev

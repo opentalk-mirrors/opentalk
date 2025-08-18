@@ -6,4 +6,13 @@ services:
 {% else %}
 services:
   recorder:
+{% if CustomCA.enabled is defined and CustomCA.enabled is true %}
+    volumes:
+      - /opt/opentalk-compose{{ CustomCertificates.certs_dir }}/{{CustomCertificates.ssl_ca_file }}:/usr/local/share/ca-certificates/{{CustomCertificates.ssl_ca_file }}
+    entrypoint: []
+    command: >
+       /bin/bash -c "update-ca-certificates; exec /recorder/opentalk-recorder"
+    user: root
+{% else %}
+{% endif %}
 {% endif %}

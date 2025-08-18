@@ -3,7 +3,7 @@
   ansible.builtin.file:
     path: "{{ data_dir }}/minio/opentalk"
     state: directory
-    mode: "777"
+    mode: "{{ '777' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '755' }}"
   tags:
     - init
 
@@ -11,7 +11,7 @@
   ansible.builtin.file:
     path: "{{ config_dir }}/services-config/{{ item }}"
     state: directory
-    mode: "777"
+    mode: "{{ '777' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '755' }}"
   loop:
     - 3rd_party/minio
     - 3rd_party/livekit
@@ -27,5 +27,18 @@
     - etherpad
     - spacedeck
     - cforge
+    - obelisk
+    - outlook
+  when: 
+      - item != '3rd_party/livekit' or (Deployment.scenario is not defined or 'external_livekit' not in Deployment.scenario)
+      - item != '3rd_party/keycloak' or (Deployment.scenario is not defined or 'external_keycloak' not in Deployment.scenario)
+  tags:
+    - init
+
+- name: "Create main cert directory"
+  ansible.builtin.file:
+    path: "{{ CustomCertificates.certs_dir }}"
+    state: directory
+    mode: "{{ '777' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '755' }}"
   tags:
     - init

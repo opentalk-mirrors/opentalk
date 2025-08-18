@@ -1,9 +1,0 @@
----
-- name: "Render realm JSON | config/services-config/3rd_party/keycloak/import/opentalk_realm.json"
-  ansible.builtin.template:
-    src: import_realm.json.j2
-    dest: "{{ config_dir }}/services-config/3rd_party/keycloak/import/opentalk_realm.json"
-    mode: "666"
-  tags:
-    - init
-    - apply

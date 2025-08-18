@@ -1,0 +1,85 @@
+---
+
+- name: render Keycloak config
+  ansible.builtin.include_tasks: keycloak_render_config.yaml
+  when: 
+    - Deployment.scenario is not defined or 'external_keycloak' not in Deployment.scenario
+    - Keycloak.manage_enabled is true
+  tags:
+    - init
+    - apply
+    - keycloak
+
+- block:
+  - name: Wait for Keycloak to be reachable
+    ansible.builtin.uri:
+      url: "{{ Keycloak.health_url }}"
+      method: GET
+      status_code: 200
+      return_content: no
+      validate_certs: false
+    register: keycloak_healthcheck
+    until: keycloak_healthcheck.status == 200
+    retries: 18
+    delay: 10
+
+  - name: Get Keycloak admin access token
+    ansible.builtin.uri:
+      url: "{{ Keycloak.base_url }}/realms/master/protocol/openid-connect/token"
+      method: POST
+      body:
+        grant_type: password
+        client_id: admin-cli
+        username: "{{ Keycloak.auth.username }}"
+        password: "{{ Keycloak.auth.password }}"
+      body_format: form-urlencoded
+      return_content: yes
+      status_code: 200
+    register: keycloak_token_response
+    until: keycloak_token_response.status == 200
+    retries: 15
+    delay: 5
+
+  - name: Set Keycloak admin token fact
+    set_fact:
+      keycloak_token: "{{ keycloak_token_response.json.access_token }}"
+
+  - name: Configure keycloak realm | {{ Keycloak.realm }}
+    ansible.builtin.include_tasks: keycloak_realm.yml
+  
+  - name: Configure keycloak client scopes | {{ Keycloak.realm }}
+    ansible.builtin.include_tasks: keycloak_client_scopes.yml
+  
+  - name: "Manage Keycloak client {{ Controller.oidc.controller.client_id }}"
+    ansible.builtin.include_tasks: keycloak_oidc_client_backend.yml
+  
+  - name: "Manage Keycloak client {{ Controller.oidc.frontend.client_id }}"
+    ansible.builtin.include_tasks: keycloak_oidc_client_frontend.yml
+  
+  - name: "Manage Keycloak client {{ Obelisk.auth.client_id }}"
+    ansible.builtin.include_tasks: keycloak_oidc_client_obelisk.yml
+  
+  - name: "Manage Keycloak client {{ Recorder.auth.client_id }}"
+    ansible.builtin.include_tasks: keycloak_oidc_client_recorder.yml
+    
+  - name: "Manage roles for realm {{ OPENTALK_REALM | default('master') }}"
+    ansible.builtin.include_tasks: keycloak_realm_roles.yml
+  tags:
+    - apply
+    - keycloak
+  when:
+    - Keycloak.manage_enabled is true
+
+- name: "Manage Keycloak client {{ Outlook.auth.client_id }}"
+  ansible.builtin.include_tasks: keycloak_oidc_client_outlook.yml
+  tags:
+    - postInstall
+    - outlookClient
+    - never
+
+- name: "Create demo user"
+  ansible.builtin.include_tasks: keycloak_user_demo.yml
+  tags:
+    - postInstall
+    - demoUser
+    - never

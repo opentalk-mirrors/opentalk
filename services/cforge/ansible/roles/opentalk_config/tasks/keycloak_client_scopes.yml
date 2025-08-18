@@ -1,0 +1,143 @@
+---
+- block:
+  - name: "Create or update Keycloak client scope 'tariff'"
+    community.general.keycloak_clientscope:
+      auth_keycloak_url: "{{ Keycloak.base_url }}"
+      auth_realm: "{{ Keycloak.auth.realm }}"
+      auth_username: "{{ Keycloak.auth.username }}"
+      auth_password: "{{ Keycloak.auth.password }}"
+      realm: "{{ Keycloak.realm }}"
+      name: "tariff"
+      protocol: "openid-connect"
+      description: ""
+      attributes:
+        consent.screen.text: ""
+        display.on.consent.screen: "true"
+        gui.order: ""
+        include.in.token.scope: "true"
+      state: present
+
+  - name: "Create or update Keycloak client scope 'tenancy'"
+    community.general.keycloak_clientscope:
+      auth_keycloak_url: "{{ Keycloak.base_url }}"
+      auth_realm: "{{ Keycloak.auth.realm }}"
+      auth_username: "{{ Keycloak.auth.username }}"
+      auth_password: "{{ Keycloak.auth.password }}"
+      realm: "{{ Keycloak.realm }}"
+      name: "tenancy"
+      protocol: "openid-connect"
+      description: ""
+      attributes:
+        consent.screen.text: ""
+        display.on.consent.screen: "true"
+        gui.order: ""
+        include.in.token.scope: "true"
+      state: present
+
+  - name: "Get client scopes for default scope assignment"
+    ansible.builtin.uri:
+      url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}/client-scopes"
+      method: GET
+      headers:
+        Authorization: "Bearer {{ keycloak_token }}"
+      status_code: 200
+    register: client_scopes_response
+    vars:
+      keycloak_token: "{{ keycloak_token_response.json.access_token }}"
+
+  - name: "Extract scope IDs"
+    set_fact:
+      tariff_scope_id: "{{ (client_scopes_response.json | selectattr('name', 'equalto', 'tariff') | list | first).id }}"
+      tenancy_scope_id: "{{ (client_scopes_response.json | selectattr('name', 'equalto', 'tenancy') | list | first).id }}"
+    when: 
+      - client_scopes_response.json | selectattr('name', 'equalto', 'tariff') | list | length > 0
+      - client_scopes_response.json | selectattr('name', 'equalto', 'tenancy') | list | length > 0
+
+  - name: "Add scopes as default client scopes to realm"
+    ansible.builtin.uri:
+      url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}/default-default-client-scopes/{{ item }}"
+      method: PUT
+      headers:
+        Authorization: "Bearer {{ keycloak_token }}"
+        Content-Type: "application/json"
+      status_code: [204, 409]
+    vars:
+      keycloak_token: "{{ keycloak_token_response.json.access_token }}"
+    loop:
+      - "{{ tariff_scope_id }}"
+      - "{{ tenancy_scope_id }}"
+    when: 
+      - tariff_scope_id is defined
+      - tenancy_scope_id is defined
+
+  - name: "Create protocol mappers for tariff scope"
+    ansible.builtin.uri:
+      url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}/client-scopes/{{ tariff_scope_id }}/protocol-mappers/models"
+      method: POST
+      headers:
+        Authorization: "Bearer {{ keycloak_token }}"
+        Content-Type: "application/json"
+      body_format: json
+      body: "{{ item }}"
+      status_code: [201, 409]
+    vars:
+      keycloak_token: "{{ keycloak_token_response.json.access_token }}"
+    loop:
+      - name: "tariff_status"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-usermodel-attribute-mapper"
+        config:
+          access.token.claim: "true"
+          aggregate.attrs: "false"
+          claim.name: "tariff_status"
+          id.token.claim: "true"
+          multivalued: "false"
+          user.attribute: "tariff_status"
+          userinfo.token.claim: "true"
+        consentRequired: false
+      - name: "tariff_id"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-usermodel-attribute-mapper"
+        config:
+          access.token.claim: "true"
+          access.tokenResponse.claim: "false"
+          aggregate.attrs: "false"
+          claim.name: "tariff_id"
+          id.token.claim: "true"
+          multivalued: "false"
+          user.attribute: "tariff_id"
+          userinfo.token.claim: "true"
+        consentRequired: false
+    when: tariff_scope_id is defined
+
+  - name: "Create protocol mappers for tenancy scope"
+    ansible.builtin.uri:
+      url: "{{ Keycloak.base_url }}/admin/realms/{{ Keycloak.realm }}/client-scopes/{{ tenancy_scope_id }}/protocol-mappers/models"
+      method: POST
+      headers:
+        Authorization: "Bearer {{ keycloak_token }}"
+        Content-Type: "application/json"
+      body_format: json
+      body: "{{ item }}"
+      status_code: [201, 409]
+    vars:
+      keycloak_token: "{{ keycloak_token_response.json.access_token }}"
+    loop:
+      - name: "tenant_id"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-usermodel-attribute-mapper"
+        config:
+          access.token.claim: "true"
+          aggregate.attrs: "false"
+          claim.name: "tenant_id"
+          id.token.claim: "true"
+          multivalued: "false"
+          user.attribute: "tenant_id"
+          userinfo.token.claim: "true"
+        consentRequired: false
+    when: tenancy_scope_id is defined
+  tags:
+    - client_scopes
+    - init
+    - apply
+    - keycloak

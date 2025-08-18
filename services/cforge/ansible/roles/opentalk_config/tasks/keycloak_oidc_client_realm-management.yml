@@ -1,0 +1,119 @@
+---
+# Manage Keycloak client used for OpenTalk obelisk
+- name: Create or update Keycloak client {{ REALM_MANAGEMENT_CLIENT_ID | default('realm-management') }}
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ Keycloak.base_url }}"
+    auth_realm: "{{ Keycloak.auth.realm }}"
+    auth_username: "{{ Keycloak.auth.username }}"
+    auth_password: "{{ Keycloak.auth.password }}"
+    realm: "{{ Keycloak.realm }}"
+    client_id: "realm-management"
+    name: "${client_realm-management}"
+    description: ""
+    enabled: true
+    public_client: false
+    direct_access_grants_enabled: false
+    service_accounts_enabled: false
+    standard_flow_enabled: true
+    frontchannel_logout: false
+    protocol: openid-connect
+    client_authenticator_type: client-secret
+    not_before: 0
+    bearer_only: true
+    consent_required: false
+    implicit_flow_enabled: false
+    full_scope_allowed: false
+    node_re_registration_timeout: 0
+    attributes:
+      post.logout.redirect.uris: "+"
+    default_client_scopes:
+      - web-origins
+      - acr
+      - roles
+      - profile
+      - email
+    optional_client_scopes:
+      - address
+      - phone
+      - offline_access
+      - microprofile-jwt
+    default_roles:
+      - create-client
+    state: present
+  tags:
+    - client_realm_management
+    - init
+    - apply
+    - keycloak
+
+- name: Create Keycloak client roles
+  community.general.keycloak_role:
+    auth_keycloak_url: "{{ AUTH_KEYCLOAK_URL }}"
+    auth_realm: "{{ AUTH_REALM | default('master') }}"
+    auth_username: "{{ AUTH_USERNAME }}"
+    auth_password: "{{ AUTH_PASSWORD }}"
+    realm: "{{ OPENTALK_REALM }}"
+    name: "{{ item }}"
+    description: "${role_{{ item }}}"
+    client_id: "{{ REALM_MANAGEMENT_CLIENT_ID | default('realm-management') }}"
+    state: present
+  with_items: "{{ REALM_MANAGEMENT_ROLES_NO_COMPOSITIES }}"
+  tags:
+    - client_realm_management
+
+- name: Create Keycloak client role 'view-clients' with composites
+  community.general.keycloak_role:
+    auth_keycloak_url: "{{ AUTH_KEYCLOAK_URL }}"
+    auth_realm: "{{ AUTH_REALM | default('master') }}"
+    auth_username: "{{ AUTH_USERNAME }}"
+    auth_password: "{{ AUTH_PASSWORD }}"
+    realm: "{{ OPENTALK_REALM }}"
+    name: view-clients
+    description: ${role_view-clients}
+    client_id: "{{ REALM_MANAGEMENT_CLIENT_ID | default('realm-management') }}"
+    composite: true
+    composites:
+      - client_id: "{{ REALM_MANAGEMENT_CLIENT_ID | default('realm-management') }}"
+        name: query-clients
+    state: present
+  tags:
+    - client_realm_management
+
+- name: Create Keycloak client role 'view-users' with composites
+  community.general.keycloak_role:
+    auth_keycloak_url: "{{ AUTH_KEYCLOAK_URL }}"
+    auth_realm: "{{ AUTH_REALM | default('master') }}"
+    auth_username: "{{ AUTH_USERNAME }}"
+    auth_password: "{{ AUTH_PASSWORD }}"
+    realm: "{{ OPENTALK_REALM }}"
+    name: view-users
+    description: ${role_view-users}
+    client_id: "{{ REALM_MANAGEMENT_CLIENT_ID | default('realm-management') }}"
+    composite: true
+    composites:
+      - client_id: "{{ REALM_MANAGEMENT_CLIENT_ID | default('realm-management') }}"
+        name: query-users
+      - client_id: "{{ REALM_MANAGEMENT_CLIENT_ID | default('realm-management') }}"
+        name: query-groups
+    state: present
+  tags:
+    - client_realm_management
+
+- name: Create Keycloak client role 'realm-admin' with composites
+  community.general.keycloak_role:
+    auth_keycloak_url: "{{ AUTH_KEYCLOAK_URL }}"
+    auth_realm: "{{ AUTH_REALM | default('master') }}"
+    auth_username: "{{ AUTH_USERNAME }}"
+    auth_password: "{{ AUTH_PASSWORD }}"
+    realm: "{{ OPENTALK_REALM }}"
+    name: realm-admin
+    description: ${role_realm-admin}
+    client_id: "{{ REALM_MANAGEMENT_CLIENT_ID | default('realm-management') }}"
+    composite: true
+    composites:
+      - client_id: "{{ REALM_MANAGEMENT_CLIENT_ID | default('realm-management') }}"
+        name: "{{ item }}"
+    state: present
+  with_items: "{{ REALM_MANAGEMENT_REALM_ADMIN_ROLES }}"
+  tags:
+    - client_realm_management

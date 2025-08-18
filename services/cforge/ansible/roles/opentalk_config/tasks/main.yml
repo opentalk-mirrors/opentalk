@@ -18,7 +18,6 @@
 - name: Add custom compose override files
   ansible.builtin.include_tasks: manage_compose_override.yaml
   tags:
-    - dev
     - init
     - apply
 
@@ -28,17 +27,16 @@
     - init
     - apply
 
-- name: Render keycloak config
-  ansible.builtin.include_tasks: render_config_keycloak.yaml
+- name: manage keycloak
+  ansible.builtin.include_tasks: keycloak_main.yml
   tags:
-    - init
     - apply
-
-- name: Render keycloak json import
-  ansible.builtin.include_tasks: render_config_keycloak_realm_import.yaml
-  tags:
     - init
-    - apply
+    - keycloak
+    - postInstall
+    - demoUser
+    - never
+    - client_backend
 
 - name: Render RabbitMQ config
   ansible.builtin.include_tasks: render_config_rabbitmq.yaml
@@ -82,20 +80,6 @@
     - init
     - apply
 
-- name: Manage Outlook Add-in OIDC client
-  ansible.builtin.include_tasks: manage_outlook_oidc_client.yaml
-  tags:
-    - postInstall
-    - outlookClient
-    - never
-
-- name: PostInstall Task - Manage test user
-  ansible.builtin.include_tasks: manage_demo_user.yaml
-  tags:
-    - postInstall
-    - demoUser
-    - never
-
 - name: PostInstall Task - Create backup
   ansible.builtin.include_tasks: backup_create.yml
   tags:
@@ -120,22 +104,15 @@
     - restoreBackupMinio
     - never
 
+- name: "PostInstall Task - Generate self-signed certificates"
+  ansible.builtin.include_tasks: generate_selfsigned_certs.yml
+  tags:
+    - selfSignedCerts
+    - never
+
 - name: Manage Docker compose containers
   ansible.builtin.include_tasks: manage_docker.yaml
   tags:
     - compose_restart
     - compose_pull
     - never
-
-- name: "Notify when new options are present"
-  debug:
-    msg: |
-      ⚠️ WARNING⚠️  There are new configuration options available, that are not yet in settings.yml!
-      New keys found:
-      {{ new_keys_result.new_keys | join('\n      ') }}
-      
-      Please check and manually merge settings.yml.unmerged into settings.yml. 
-      And delete settings.yml.unmerged afterwards.
-  when: new_keys_result.has_new_keys
-  tags:
-    - always

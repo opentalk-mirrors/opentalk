@@ -2,9 +2,9 @@
 - name: "Create a user for testing purposes | name: {{ postInstall.demoUser.name }}"
   community.general.keycloak_user:
     auth_keycloak_url: "{{ Keycloak.base_url }}"
-    auth_username: admin
-    auth_password: "{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}"
-    auth_realm: master
+    auth_realm: "{{ Keycloak.auth.realm }}"
+    auth_username: "{{ Keycloak.auth.username }}"
+    auth_password: "{{ Keycloak.auth.password }}"
     realm: "{{ Keycloak.realm }}"
     username: "{{ postInstall.demoUser.name }}"
     firstName: "{{ postInstall.demoUser.firstName }}"

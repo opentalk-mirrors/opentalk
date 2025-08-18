@@ -4,14 +4,14 @@ services:
     profiles: [ "standard", "full", "pad"]
     restart: always
     environment:
-      EP_APIKEY_FILE: /run/secrets/etherpad_api_secret
       TRUST_PROXY: ${TRUST_PROXY:-true}
       DEFAULT_PAD_TEXT: ${DEFAULT_PAD_TEXT:-Welcome to OpenTalk}
       SUPPRESS_ERRORS_IN_PAD_TEXT: ${SUPPRESS_ERRORS_IN_PAD_TEXT:-true}
     secrets:
-      - etherpad_api_secret
-    volumes:
-      - ./init/entrypoint.sh:/opt/etherpad-lite/entrypoint.sh
+      - source: etherpad_api_secret
+        target: /opt/etherpad-lite/APIKEY.txt
+    entrypoint: [ "pnpm", "run", "prod"]
+    user: root
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.etherpad.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/etherpad`)"

@@ -5,7 +5,7 @@
       src: compose_override/compose-override-{{ item }}.yaml.j2
       dest: "{{ config_dir }}/services-config/3rd_party/{{ item }}/compose-override-{{ item }}.yaml"
       force: "{{ Deployment.force_compose_override }}"
-      mode: "666"
+      mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '644' }}"
     loop:
       - traefik
       - keycloak
@@ -14,6 +14,10 @@
       - rabbitmq
       - mailcrab
       - postgres
+    when: 
+      - item != 'livekit' or (Deployment.scenario is not defined or 'external_livekit' not in Deployment.scenario)
+      - item != 'keycloak' or (Deployment.scenario is not defined or 'external_keycloak' not in Deployment.scenario)
+    register: compose_override_results_3rdparty
 
   - name: "Ensure COMPOSE_OVERRIDE entries in default.env for OpenTalk 3rd_party services"
     ansible.builtin.lineinfile:
@@ -29,21 +33,30 @@
       - rabbitmq
       - mailcrab
       - postgres
+    when: 
+      - item != 'livekit' or (Deployment.scenario is not defined or 'external_livekit' not in Deployment.scenario)
+      - item != 'keycloak' or (Deployment.scenario is not defined or 'external_keycloak' not in Deployment.scenario)
+    register: env_results_3rdparty
 
   - name: "Manage custom compose override files for OpenTalk services | config/services-config/*/compose-override-*.yaml"
     ansible.builtin.template:
       src: compose_override/compose-override-{{ item }}.yaml.j2
       dest: "{{ config_dir }}/services-config/{{ item }}/compose-override-{{ item }}.yaml"
       force: "{{ Deployment.force_compose_override }}"
-      mode: "666"
+      mode: "{{ '666' if (Deployment.environment is defined and 'dev' in Deployment.environment) else '644' }}"
     loop:
       - cforge
       - controller
       - webapp
       - mailer
       - recorder
+      - obelisk
+      - outlook
       - etherpad
       - spacedeck
+    when: 
+      - item != 'recorder' or (Deployment.scenario is not defined or 'external_recorder' not in Deployment.scenario)
+    register: compose_override_results_opentalk
 
   - name: "Ensure COMPOSE_OVERRIDE entries in default.env for OpenTalk services"
     ansible.builtin.lineinfile:
@@ -59,6 +72,29 @@
       - recorder
       - etherpad
       - spacedeck
+      - obelisk
+      - outlook
+    when: 
+      - item != 'recorder' or (Deployment.scenario is not defined or 'external_recorder' not in Deployment.scenario)
+    register: env_results
+
+  - name: "Set fact for changed services"
+    ansible.builtin.set_fact:
+      changed_services: "{{ 
+        (compose_override_results_3rdparty.results | selectattr('changed') | map(attribute='item') | list) +
+        (env_results_3rdparty.results | selectattr('changed') | map(attribute='item') | list) +
+        (env_results.results | selectattr('changed') | map(attribute='item') | list) +
+        (compose_override_results_opentalk.results | selectattr('changed') | map(attribute='item') | list) }}"
+
+  - name: "Notify if container environment changed"
+    debug:
+      msg: "Dummy task to trigger handler"
+    when: changed_services | length > 0
+    notify: "Container environment changed"
+    changed_when: true
+
   tags:
     - dev
+    - apply
+    - init
     - skip_task

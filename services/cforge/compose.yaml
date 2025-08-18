@@ -4,11 +4,17 @@ services:
     restart: "no"
     environment:
       OT_DOMAIN: $OT_DOMAIN
+      COMPOSE_PROFILES: ${COMPOSE_PROFILES}
       ENABLE_CFORGE: ${ENABLE_CFORGE:-true}
       FORCE_SECRETS: ${FORCE_SECRETS:-false}
       FORCE_CONFIG: ${FORCE_CONFIG:-false}
       CFORGE_IMAGE_SRC: ${CFORGE_IMAGE_SRC}
       CFORGE_VERSION: ${CFORGE_VERSION}
+    env_file:
+      - ../../.versions
+    command:
+      - --diff
+      - apply
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - controller-db:/data/controller-db
@@ -19,4 +25,3 @@ services:
       - ./ansible:/ansible
       - ../../config:/config
       - ../../:/opentalk
-

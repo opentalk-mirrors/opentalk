@@ -2,6 +2,19 @@
 Deployment:
   environment: prod
   force_compose_override: true
+  force_settings_yaml: false
+  #scenario: 
+  #  - external_keycloak
+  #  - external_livekit
+  #  - external_recorder  
+
+CustomCertificates:
+  enabled: false
+  ssl_certificate_fullchain_file: "server_fullchain.crt"
+  ssl_certificate_key_file: "server.key"
+CustomCA:
+  enabled: false
+  ssl_ca_file: "ca.crt"
 
 postInstall:
   demoUser:
@@ -50,6 +63,12 @@ Ofelia:
 #    saveOnlyOnError: only save a report if the execution was not successful.
 
 Keycloak:
+  mode: external
+  manage_enabled: true
+  auth:
+    username: admin
+    password: "{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}"
+    realm: master
   realm: "opentalk"
   login_theme: "opentalk"
   account_theme: "opentalk"
@@ -69,11 +88,9 @@ Keycloak:
       port: 5432
   health_enabled: "true"
   metrics_enabled: "true"
+  health_url: "https://{{ OT_DOMAIN }}/auth/realms/master"
   http:
     relative_path: /auth
-  https:
-    certificate_file: "${kc.home.dir}conf/server.crt.pem"
-    certificate_key_file: "${kc.home.dir}conf/server.key.pem"
   spi_sticky_session_encoder_infinispan_should_attach_route: "false"
   redirectUris:
     uris:
@@ -325,8 +342,8 @@ Recorder:
 #    hardware_acceleration:
 #      manufacturer: "intel"
 #      device: "/dev/dri/renderD129"
-  monitoring: 
-    port: 11411 
+  monitoring:
+    port: 11411
 
 Livekit:
   port: 7880
@@ -383,6 +400,8 @@ Traefik:
     dashboard_admin_password_salt: "{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD_SALT }}"
   api:
     insecure: false
+  log:
+    log_level: INFO
 
 Outlook:
   auth:

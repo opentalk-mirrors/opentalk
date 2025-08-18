@@ -9,11 +9,27 @@ services:
       INSECURE: true
       CONTROLLER_HOST: ${OT_DOMAIN}/controller
       BASE_URL: http://${OT_DOMAIN}
-      OIDC_ISSUER: http://${OT_DOMAIN}/auth/realms/opentalk
-      OIDC_CLIENT_ID: Webapp
+      OIDC_ISSUER: {{ Keycloak.base_url }}/realms/{{ Keycloak.realm }}
+      OIDC_CLIENT_ID: {{ Controller.oidc.frontend.client_id}}
       LIVEKIT_SERVER_URL: http://${OT_DOMAIN}/livekit
       NDT_SERVER: ${NDT_SERVER:-ndt.example.com}
-      CHANGE_PASSWORD_URL: http://${OT_DOMAIN}/auth/realms/opentalk/account/
+      CHANGE_PASSWORD_URL: {{ Keycloak.base_url }}/realms/{{ Keycloak.realm }}/account/
+      ERROR_REPORT_ADDRESS: ${ERROR_REPORT_ADDRESS:-reports@example.com}
+      LIBRAVATAR_DEFAULT_IMAGE: ${LIBRAVATAR_DEFAULT_IMAGE:-identicon}
+      VIDEO_BACKGROUNDS: >-
+        [{
+          altText: 'OpenTalk',
+          url: '/assets/videoBackgrounds/elevate-bg.png',
+          thumb: '/assets/videoBackgrounds/thumbs/elevate-bg-thumb.png',
+        }]
+      IS_BETA_RELEASE: ${IS_BETA_RELEASE:-false}
+      FEATURE_USER_SEARCH: ${FEATURE_USER_SEARCH:-true}
+      FEATURE_TIMER: ${FEATURE_TIMER:-true}
+      FEATURE_WHITEBOARD: ${FEATURE_WHITEBOARD:-true}
+      FEATURE_PROTOCOL: ${FEATURE_PROTOCOL:-true}
+      FEATURE_RECORDING: ${FEATURE_RECORDING:-false}
+      WAITING_ROOM_DEFAULT_VALUE: ${WAITING_ROOM_DEFAULT_VALUE:-false}
+      PRODUCT_VERSION: {{ lookup('ansible.builtin.env', 'PRODUCT_VERSION') }}
     labels: !override
       - "traefik.enable=true"
       - "traefik.http.routers.webapp.rule=Host(`localhost`)"
@@ -31,4 +47,15 @@ services:
 {% else %}
 services:
   webapp:
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.webapp.rule=Host(`${OT_DOMAIN}`)"
+      - "traefik.http.routers.webapp.priority=10" 
+      - "traefik.http.routers.webapp.entrypoints=websecure"
+      - "traefik.http.services.webapp.loadbalancer.server.port=80"
+      - "traefik.http.routers.webapp-callback.rule=Host(`${OT_DOMAIN}`) && Path(`/auth/callback`)"
+      - "traefik.http.routers.webapp-callback.priority=100"
+      - "traefik.http.routers.webapp-callback.entrypoints=websecure"
+{% endif %}
 {% endif %}

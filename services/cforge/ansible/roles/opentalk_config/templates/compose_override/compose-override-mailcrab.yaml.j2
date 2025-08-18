@@ -12,4 +12,13 @@ services:
 {% else %}
 services:
   mailcrab:
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+    labels: !override
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailcrab.rule=Host(`${OT_DOMAIN}`) && PathPrefix(`/adm/mailcrab`)"
+      - "traefik.http.routers.mailcrab.entrypoints=websecure"
+      - "traefik.http.routers.mailcrab.middlewares=mailcrab-strip, default-auth@file"
+      - "traefik.http.middlewares.mailcrab-strip.stripprefix.prefixes=/adm/mailcrab"
+      - "traefik.http.services.mailcrab.loadbalancer.server.port=1080"
+{% endif %}
 {% endif %}

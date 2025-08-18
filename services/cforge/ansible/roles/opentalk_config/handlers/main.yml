@@ -107,3 +107,23 @@
   when: ('init' not in ansible_run_tags)
   tags:
     - apply
+
+- name: "Notify when new options are present"
+  debug:
+    msg: |
+      ⚠️  WARNING: There are new configuration options available, that are not yet in settings.yml!
+      New keys found:
+      {{ new_keys_result.new_keys | join('\n      ') }}
+      
+      Please check and manually merge settings.yml.unmerged into settings.yml. 
+      And delete settings.yml.unmerged afterwards.
+  when: new_keys_result.has_new_keys
+  tags:
+    - apply
+
+- name: "Container environment changed"
+  debug:
+    msg: |
+      ⚠️  WARNING: Container environment changed. Recreate container services: {{ changed_services | unique | join(', ') }}.
+  tags:
+    - apply
