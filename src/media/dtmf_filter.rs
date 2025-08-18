@@ -65,6 +65,8 @@ impl Source for DtmfFilter {
                 if self.last_dtmf_timestamp < Some(packet.timestamp()) {
                     self.last_dtmf_timestamp = Some(packet.timestamp());
 
+                    log::trace!("Read DTMF event digit={event}");
+
                     if let Err(e) = tx.send(MediaEvent::DtmfDigit(event)) {
                         return Err(ezk::Error::new(ezk::ErrorKind::Other, e));
                     }
