@@ -2,15 +2,16 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use super::Room;
 use anyhow::{Context, Result};
 use types::signaling::transcription::{segment::Segment, service::TranscriptionServiceCommand};
 
-pub struct TranscriptionApi<'a> {
+use super::Room;
+
+pub struct TranscriptionServiceApi<'a> {
     pub(super) room: &'a mut Room,
 }
 
-impl<'a> TranscriptionApi<'a> {
+impl<'a> TranscriptionServiceApi<'a> {
     pub async fn send_segment(&mut self, segment: Segment) -> Result<()> {
         self.room
             .signaling

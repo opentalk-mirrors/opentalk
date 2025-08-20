@@ -12,8 +12,8 @@ use types::{
         chat::{
             MessageId, Scope,
             command::{ChatCommand, SendMessage},
-            event::ChatEvent,
-            state::ChatState,
+            event::{ChatEvent, SearchResults},
+            state::{ChatChunk, ChatState, GroupHistory, PrivateHistory},
         },
     },
 };
@@ -43,6 +43,20 @@ pub enum OpenTalkChatEvent {
         /// ID of the participant that cleared chat history
         issued_by: ParticipantId,
     },
+
+    RoomChatHistoryChunk {
+        /// Room chat history chunk
+        history: ChatChunk,
+    },
+
+    /// A chunk of a groups chat history
+    GroupChatHistoryChunk(GroupHistory),
+
+    /// A chunk of a private chat history between two participants
+    PrivateChatHistoryChunk(PrivateHistory),
+
+    /// The results of a search
+    SearchResults(SearchResults),
 }
 
 #[derive(Debug, Clone)]
@@ -161,15 +175,23 @@ impl RoomChatState {
                     issued_by: history_cleared.issued_by,
                 }))
             }
+            ChatEvent::RoomChatHistoryChunk { history } => Some(OpenTalkEvent::Chat(
+                OpenTalkChatEvent::RoomChatHistoryChunk { history },
+            )),
+            ChatEvent::GroupChatHistoryChunk(group_history) => Some(OpenTalkEvent::Chat(
+                OpenTalkChatEvent::GroupChatHistoryChunk(group_history),
+            )),
+            ChatEvent::PrivateChatHistoryChunk(private_history) => Some(OpenTalkEvent::Chat(
+                OpenTalkChatEvent::PrivateChatHistoryChunk(private_history),
+            )),
+            ChatEvent::SearchResults(search_results) => Some(OpenTalkEvent::Chat(
+                OpenTalkChatEvent::SearchResults(search_results),
+            )),
             ChatEvent::Error(error) => {
                 log::error!("chat module received error: {error:?}");
 
                 None
             }
-            ChatEvent::RoomChatHistoryChunk { history: _ } => None,
-            ChatEvent::GroupChatHistoryChunk(_group_history) => None,
-            ChatEvent::PrivateChatHistoryChunk(_private_history) => None,
-            ChatEvent::SearchResults(_search_results) => None,
         }
     }
 }
