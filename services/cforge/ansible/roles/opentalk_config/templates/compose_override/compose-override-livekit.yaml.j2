@@ -11,13 +11,25 @@ services:
 {% else %}
 services:
   livekit:
-{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
     labels: !override
       - "traefik.enable=true"
       - "traefik.http.routers.livekit.rule=Host(`${OT_DOMAIN}`) && (PathPrefix(`/livekit`) || PathPrefix(`/twirp`))"
       - "traefik.http.routers.livekit.entrypoints=websecure"
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+      - "traefik.http.routers.livekit.tls.certresolver=letsencrypt"
+{% endif %}
       - "traefik.http.routers.livekit.middlewares=livekit-strip"
       - "traefik.http.middlewares.livekit-strip.stripprefix.prefixes=/livekit"
       - "traefik.http.services.livekit.loadbalancer.server.port=7880"
+
+      - "traefik.tcp.routers.livekit-turn.rule=HostSNI(`turn.${OT_DOMAIN}`)"
+      - "traefik.tcp.routers.livekit-turn.entrypoints=websecure"
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
+{% else %}
+      - "traefik.tcp.routers.livekit-turn.tls.certresolver=letsencrypt"
+{% endif %}
+      - "traefik.tcp.routers.livekit-turn.service=livekit-turn-service"
+      - "traefik.tcp.services.livekit-turn-service.loadbalancer.server.port=5349"
+      - "traefik.tcp.routers.livekit-turn.priority=100"
 {% endif %}
 {% endif %}

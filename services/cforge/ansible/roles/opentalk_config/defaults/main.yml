@@ -373,6 +373,12 @@ Livekit:
 #      protocol: udp
 #      username: "opentalk"
 #      credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
+#  turn_embedded:
+#    enabled: "false"
+#    domain: meet-lk1-turn.opentalk.eu
+#    tls_port: 5349
+#    udp_port: 3478
+#    external_tls: true
 #  prometheus_port: 6789
 #  logging:
 #    json: "false"

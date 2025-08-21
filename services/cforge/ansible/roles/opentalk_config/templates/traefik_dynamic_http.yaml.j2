@@ -6,8 +6,17 @@ http:
         users:
           - "{{ Traefik.basicAuth.dashboard_admin }}:{{ Traefik.basicAuth.dashboard_admin_password | password_hash(hashtype='bcrypt', salt=Traefik.basicAuth.dashboard_admin_password_salt)}}"
 
-{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
 tls:
+{% if Livekit.turn_embedded.enabled is defined and Livekit.turn_embedded.enabled is true %}
+  options:  
+    default:    
+      alpnProtocols:
+        - http/1.1
+        - h2
+        - acme-tls/1
+        - turn
+{% endif%}
+{% if CustomCertificates.enabled is defined and CustomCertificates.enabled is true %}
   stores:
     default:
       defaultCertificate:
