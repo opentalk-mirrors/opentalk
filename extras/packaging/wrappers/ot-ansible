@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+PREFIX="/opt/opentalk-compose"
+BIN="$PREFIX/.venv/bin/ansible"
+export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$PREFIX/ansible.cfg}"
+export ANSIBLE_COLLECTIONS_PATHS="${ANSIBLE_COLLECTIONS_PATHS:-$PREFIX/vendor/collections}"
+export PYTHONDONTWRITEBYTECODE=1
+[ -x "$BIN" ] || { echo "Embedded Ansible not found (use ot-ansible-playbook as fallback)"; exit 1; }
+exec "$BIN" "$@"#!/usr/bin/env bash
+set -euo pipefail
+# Wrapper with self-heal fallback if venv missing/broken.
+
+PREFIX="/opt/opentalk-compose"
+BIN="$PREFIX/.venv/bin/ansible"
+POSTINST="$PREFIX/extras/packaging/pkg-postinst.sh"
+
+if [ ! -x "$BIN" ] && [ -x "$POSTINST" ]; then
+  echo "[wrapper] Attempting self-heal (rebuild venv)..." >&2
+  bash "$POSTINST" || true
+fi
+
+export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$PREFIX/ansible.cfg}"
+export ANSIBLE_COLLECTIONS_PATHS="${ANSIBLE_COLLECTIONS_PATHS:-$PREFIX/vendor/collections}"
+
+[ -x "$BIN" ] || { echo "[wrapper] Ansible still unavailable." >&2; exit 1; }
+exec "$BIN" "$@"

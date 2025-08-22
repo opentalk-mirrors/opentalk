@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+PREFIX="/opt/opentalk-compose"
+BIN="$PREFIX/.venv/bin/ansible-galaxy"
+POSTINST="$PREFIX/extras/packaging/pkg-postinst.sh"
+
+if [ ! -x "$BIN" ] && [ -x "$POSTINST" ]; then
+  echo "[wrapper] Attempting self-heal..." >&2
+  bash "$POSTINST" || true
+fi
+
+export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$PREFIX/ansible.cfg}"
+export ANSIBLE_COLLECTIONS_PATHS="${ANSIBLE_COLLECTIONS_PATHS:-$PREFIX/vendor/collections}"
+export PYTHONDONTWRITEBYTECODE=1
+[ -x "$BIN" ] || { echo "[wrapper] Galaxy not available."; exit 1; }
+exec "$BIN" "$@"
