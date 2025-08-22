@@ -136,11 +136,10 @@ impl OpenTalkClient {
                     // by S3, it's defined to be 1000, but we need *some buffer* since we cannot
                     // perfectly control it to stop at exactly the upper limit
                     // so currently, the CHUNK_LIMIT is set to 950 to have some wiggle-room.
-                    if part_num > CHUNK_LIMIT {
-                        if let Some(on_chunk_limit_reached) = on_chunk_limit_reached.take() {
+                    if part_num > CHUNK_LIMIT
+                        && let Some(on_chunk_limit_reached) = on_chunk_limit_reached.take() {
                             on_chunk_limit_reached();
                         }
-                    }
                 }
             }
         }

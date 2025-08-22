@@ -542,7 +542,7 @@ impl Room {
     /// Access the [`LiveKitApi`] which contains functions to interact with the livekit module
     ///
     /// Returns `None` if the livekit module is not present or while inside the waiting room
-    pub fn livekit_api(&mut self) -> Option<LiveKitApi> {
+    pub fn livekit_api(&mut self) -> Option<LiveKitApi<'_>> {
         self.livekit_state
             .is_some()
             .then_some(LiveKitApi { room: self })
