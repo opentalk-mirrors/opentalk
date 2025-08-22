@@ -107,7 +107,7 @@ impl TranscriptionSession {
                         .chat_api()
                         .unwrap()
                         .send_message(
-                            format!("[{}] said: {message}", participant.to_string()),
+                            format!("[{participant}] said: {message}"),
                             chat::Scope::Global
                         ).await?;
                 }
@@ -164,16 +164,13 @@ impl TranscriptionSession {
                 .unwrap();
 
             while let Ok(source_event) = audio_convert.next_event().await {
-                match source_event {
-                    SourceEvent::Frame(frame) => {
-                        whisper
-                            .lock()
-                            .await
-                            .entry(publication.sid())
-                            .or_insert_with(|| Whisper::new(whisper_context.clone()).unwrap())
-                            .extend_audio_frame(frame);
-                    }
-                    _ => {}
+                if let SourceEvent::Frame(frame) = source_event {
+                    whisper
+                        .lock()
+                        .await
+                        .entry(publication.sid())
+                        .or_insert_with(|| Whisper::new(whisper_context.clone()).unwrap())
+                        .extend_audio_frame(frame);
                 }
             }
         });
@@ -260,7 +257,7 @@ impl Whisper {
 
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
-        params.set_language(Some(&"de"));
+        params.set_language(Some("de"));
 
         params.set_print_special(false);
         params.set_print_progress(false);
