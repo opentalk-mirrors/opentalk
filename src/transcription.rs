@@ -97,7 +97,7 @@ impl TranscriptionSession {
                     };
                     match event {
                         Event::OpenTalk(event) => log::trace!("Received OpenTalk event: {event:?}"),
-                        Event::LiveKit(event) => self.handle_livekit_event(event).await,
+                        Event::LiveKit(event) => self.handle_livekit_event(event),
                     }
                 }
                 Some((participant, message)) = self.send_messages_rx.recv() => {
@@ -120,23 +120,23 @@ impl TranscriptionSession {
         Ok(())
     }
 
-    async fn handle_livekit_event(&mut self, event: RoomEvent) {
+    fn handle_livekit_event(&mut self, event: RoomEvent) {
         log::trace!("livekit event: {event:?}");
 
         match event {
             RoomEvent::ActiveSpeakersChanged { speakers } => {
-                self.handle_speaker_change(speakers).await;
+                self.handle_speaker_change(speakers);
             }
             RoomEvent::TrackSubscribed {
                 track: RemoteTrack::Audio(audio_track),
                 publication,
                 participant: _,
-            } => self.handle_new_audio_track(audio_track, publication).await,
+            } => self.handle_new_audio_track(audio_track, publication),
             _ => {}
         }
     }
 
-    async fn handle_new_audio_track(
+    fn handle_new_audio_track(
         &mut self,
         audio_track: RemoteAudioTrack,
         publication: RemoteTrackPublication,
@@ -176,7 +176,7 @@ impl TranscriptionSession {
         });
     }
 
-    async fn handle_speaker_change(&mut self, speakers: Vec<Participant>) {
+    fn handle_speaker_change(&mut self, speakers: Vec<Participant>) {
         log::trace!("speaker changed: {speakers:?}");
 
         for old_speaker in &self.speakers {
