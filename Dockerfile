@@ -1,1 +1,1 @@
-Dockerfile-bookworm
+Dockerfile-trixie
