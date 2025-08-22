@@ -178,6 +178,8 @@ pub(crate) mod outgoing {
     use types::signaling::chat::command::ChatCommand;
     #[cfg(feature = "recording-service")]
     use types::signaling::recording_service::event::RecordingServiceEvent;
+    #[cfg(feature = "transcription-service")]
+    use types::signaling::transcription::service::TranscriptionServiceCommand;
     use types::signaling::{
         control::command::ControlCommand, recording::command::RecordingCommand,
     };
@@ -191,6 +193,8 @@ pub(crate) mod outgoing {
         Chat(ChatCommand),
         #[cfg(feature = "recording-service")]
         RecordingService(RecordingServiceEvent),
+        #[cfg(feature = "transcription-service")]
+        TranscriptionService(TranscriptionServiceCommand),
     }
 
     impl From<ControlCommand> for Command {
@@ -216,6 +220,13 @@ pub(crate) mod outgoing {
     impl From<RecordingServiceEvent> for Command {
         fn from(command: RecordingServiceEvent) -> Self {
             Self::RecordingService(command)
+        }
+    }
+
+    #[cfg(feature = "transcription-service")]
+    impl From<TranscriptionServiceCommand> for Command {
+        fn from(command: TranscriptionServiceCommand) -> Self {
+            Self::TranscriptionService(command)
         }
     }
 }

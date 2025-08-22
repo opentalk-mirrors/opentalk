@@ -14,9 +14,10 @@ license = "EUPL-1.2"
 
 [features]
 chat = ["types/signaling-chat"]
-default = ["chat", "livekit", "recording-service"]
+default = ["chat", "livekit", "recording-service", "transcription-service"]
 livekit = ["dep:livekit"]
 recording-service = ["types/signaling-recording-service"]
+transcription-service = ["types/signaling-transcription"]
 
 [dependencies]
 anyhow = "1"
@@ -37,13 +38,14 @@ serde_json = "1.0"
 thiserror = "2.0"
 tokio = { version = "1.45", features = ["macros"] }
 tt = { package = "tokio-tungstenite", version = "0.27", default-features = false, features = ["connect", "handshake"] }
-types = { package = "opentalk-types", version = "0.43", default-features = false, features = [
+types = { version = "0.47", package = "opentalk-types", default-features = false, features = [
   "api",
   "serde",
   "signaling-control",
   "signaling-livekit",
   "signaling-moderation",
   "signaling-recording",
+  "signaling-transcription",
 ] }
 
 [build-dependencies]
