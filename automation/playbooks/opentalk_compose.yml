@@ -1,0 +1,113 @@
+- name: Install Opentalk
+  hosts: localhost
+  gather_facts: yes
+  vars_files:
+    - ../../.versions.yml
+    - ../../config/settings.yml
+
+  pre_tasks:
+    - name: Abort if ot_domain not set
+      ansible.builtin.fail:
+        msg: "ot_domain must be set (e.g. otctl deploy -e ot_domain=example.com or in settings.yml for persistence)"
+      when: ot_domain is not defined or (ot_domain | length) == 0
+    
+    - block:
+        - name: Check for secrets vars file
+          ansible.builtin.stat:
+            path: "{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml"
+          register: secrets_file
+        - name: Load secrets
+          ansible.builtin.include_vars: "{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml"
+          when: secrets_file.stat.exists
+        - name: Warn if optional secrets file is missing
+          ansible.builtin.debug:
+            msg: "WARNING: secrets file '{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml' not found."
+          when: not secrets_file.stat.exists
+      tags: ["always"]
+
+  roles:
+    - role: opentalk_compose.docker_env
+      tags: [docker]
+
+    - role: opentalk_compose.secrets
+      tags: ["secrets"]
+
+    - role: opentalk_compose.backup
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: [backup, never]
+
+    - role: opentalk_compose.traefik
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: [traefik]
+
+    - role: opentalk_compose.keycloak
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: [keycloak,demo_user]
+
+    - role: opentalk_compose.minio
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: [minio]
+
+    - role: opentalk_compose.rabbitmq
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: [rabbitmq]
+
+    - role: opentalk_compose.mailcrab
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: [mailcrab]
+
+    - role: opentalk_compose.livekit_server
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: ["livekit-server", "livekit"]
+
+    - role: opentalk_compose.spacedeck
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: ["spacedeck"]
+
+    - role: opentalk_compose.etherpad
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: ["etherpad"]
+
+    - role: opentalk_compose.opentalk_controller
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: ["opentalk-controller", "controller"]
+
+    - role: opentalk_compose.opentalk_web_frontend
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: ["opentalk-web-frontend", "web-frontend", "webapp"]
+
+    - role: opentalk_compose.opentalk_recorder
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: ["opentalk-recorder", "recorder"]
+
+    - role: opentalk_compose.opentalk_obelisk
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: ["opentalk-obelisk", "obelisk"]
+
+    - role: opentalk_compose.opentalk_outlook_add_in
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: ["opentalk-outlook-add-in", "outlook"]
+
+    - role: opentalk_compose.opentalk_smtp_mailer
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: ["opentalk-smtp-mailer", "mailer"]
+
+    - role: opentalk_compose.ndt
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: [ndt]

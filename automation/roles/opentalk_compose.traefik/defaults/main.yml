@@ -1,0 +1,54 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for opentalk_compose.traefik
+traefik_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+traefik_docker_compose_services_state: "{{ compose_service_traefik_state | default('present') }}"
+traefik_docker_compose_services_dir: "{{ services_dir }}"
+traefik_docker_compose_project_src: "{{ deploy_dir }}"
+
+traefik_docker_image_src: "traefik"
+traefik_docker_extra_hosts: 
+  - host.docker.internal:host-gateway
+traefik_docker_ports:
+  - target: 80
+    published: 80
+    mode: host
+  - target: 443
+    published: 443
+    mode: host
+  - target: 8080
+    published: 7777
+traefik_docker_restart: always
+
+traefik_docker_label_http_routers_dashboard_middlewares: "dashboard-strip, default-auth@file"
+
+traefik_api_dashboard: true
+traefik_api_insecure: false
+
+traefik_entryPoints_web_address: ":80"
+traefik_entryPoints_websecure_address: ":443"
+traefik_entryPoints_websecure_http_tls: {}
+traefik_entryPoints_ping_address: ":8082"
+
+traefik_ping_entryPoint: "ping"
+
+traefik_log_level: INFO
+traefik_accessLog_bufferingSize: 100
+
+traefik_global_checkNewVersion: true
+traefik_global_sendAnonymousUsage: false
+
+traefik_basicAuth_dashboard_admin: admin
+traefik_basicAuth_dashboard_admin_password: "{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD }}"
+traefik_basicAuth_dashboard_admin_password_salt: "{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD_SALT }}"
+
+traefik_letsencrypt_enable: true
+traefik_letsencrypt_acme_email: ops@{{ ot_domain }}
+traefik_letsencrypt_acme_storage: /data/acme.json
+traefik_letsencrypt_acme_httpChallenge_entryPoint: web
+traefik_letsencrypt_acme_caServer: https://acme-v02.api.letsencrypt.org/directory
+#traefik_letsencrypt_acme_caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+
+traefik_providers_docker_exposedByDefault: false
+traefik_providers_file_directory: /etc/traefik/dynamic
+traefik_providers_file_watch: true

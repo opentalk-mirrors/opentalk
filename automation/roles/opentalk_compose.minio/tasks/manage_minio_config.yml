@@ -1,0 +1,10 @@
+---
+
+- name: Ensure MinIO Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ minio_docker_compose_services_dir }}"
+    - "{{ minio_docker_compose_services_dir }}/minio"
+

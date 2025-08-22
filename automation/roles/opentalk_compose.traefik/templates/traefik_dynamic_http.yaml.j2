@@ -1,0 +1,62 @@
+---
+http:
+  middlewares:
+    default-auth:
+      basicAuth:
+        users:
+          - "{{ traefik_basicAuth_dashboard_admin }}:{{ traefik_basicAuth_dashboard_admin_password | password_hash(hashtype='bcrypt', salt=traefik_basicAuth_dashboard_admin_password_salt)}}"
+{% if (custom_certificates_enabled is defined and custom_certificates_enabled is true) or (traefik_letsencrypt_enable is defined and traefik_letsencrypt_enable is true) %}
+    secure-headers:
+      headers:
+        sslRedirect: true
+        frameDeny: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 63072000
+        contentTypeNosniff: true
+        accessControlAllowMethods:
+          - GET
+          - POST
+        accessControlAllowOriginList:
+          - https://{{ ot_domain }}
+          - https://*.{{ ot_domain }}
+        accessControlMaxAge: 100
+        addVaryheader: true
+        referrerPolicy: strict-origin-when-cross-origin
+        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://seccdn.libravatar.org; connect-src 'self' wss://{{ ot_domain }} wss://*.{{ ot_domain }}; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+{% endif %}
+
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      sniStrict: true
+      cipherSuites:
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      curvePreferences:
+        - X25519
+        - CurveP256
+{% if livekit_turn_embedded_enabled is defined and livekit_turn_embedded_enabled is true %}
+      alpnProtocols:
+        - http/1.1
+        - h2
+        - acme-tls/1
+        - turn
+{% endif %}
+    tlsv13only:
+      minVersion: VersionTLS13
+{% if custom_certificates_enabled is defined and custom_certificates_enabled is true %}
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/ssl/{{ custom_certificates_ssl_certificate_fullchain_file }}
+        keyFile: /etc/traefik/ssl/{{ custom_certificates_ssl_certificate_key_file }}
+  certificates:
+    - certFile: "/etc/traefik/ssl/{{ custom_certificates_ssl_certificate_fullchain_file }}"
+      keyFile: "/etc/traefik/ssl/{{ custom_certificates_ssl_certificate_key_file }}"
+{% endif %}

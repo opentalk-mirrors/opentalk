@@ -1,0 +1,9 @@
+---
+
+- name: Ensure Spacedeck Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ spacedeck_docker_compose_services_dir }}"
+    - "{{ spacedeck_docker_compose_services_dir }}/spacedeck"

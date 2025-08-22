@@ -1,26 +1,37 @@
 #!/usr/bin/env bash
+# filepath: devops/opentalk-compose/extras/packaging/wrappers/ot-ansible
 set -euo pipefail
 PREFIX="/opt/opentalk-compose"
-BIN="$PREFIX/.venv/bin/ansible"
-export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$PREFIX/ansible.cfg}"
-export ANSIBLE_COLLECTIONS_PATHS="${ANSIBLE_COLLECTIONS_PATHS:-$PREFIX/vendor/collections}"
+RUNTIME="$PREFIX/runtime"
+AUTOMATION="$PREFIX/automation"
+VENV_BIN="$RUNTIME/venv/bin"
+BIN="$VENV_BIN/ansible"
+POSTINST="$PREFIX/bin/pkg-postinst.sh"
+VENDOR="$RUNTIME/vendor/collections"
+
+if [ ! -x "$BIN" ] || ! head -1 "$BIN" 2>/dev/null | grep -q '^#!'; then
+  [ -x "$POSTINST" ] && bash "$POSTINST" || true
+fi
+[ -x "$BIN" ] || { echo "[wrapper] ansible unavailable" >&2; exit 1; }
+
 export PYTHONDONTWRITEBYTECODE=1
-[ -x "$BIN" ] || { echo "Embedded Ansible not found (use ot-ansible-playbook as fallback)"; exit 1; }
-exec "$BIN" "$@"#!/usr/bin/env bash
-set -euo pipefail
-# Wrapper with self-heal fallback if venv missing/broken.
+export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$AUTOMATION/ansible.cfg}"
 
-PREFIX="/opt/opentalk-compose"
-BIN="$PREFIX/.venv/bin/ansible"
-POSTINST="$PREFIX/extras/packaging/pkg-postinst.sh"
-
-if [ ! -x "$BIN" ] && [ -x "$POSTINST" ]; then
-  echo "[wrapper] Attempting self-heal (rebuild venv)..." >&2
-  bash "$POSTINST" || true
+if [ -z "${ANSIBLE_COLLECTIONS_PATHS:-}" ]; then
+  cfg_paths=""
+  if [ -f "$ANSIBLE_CONFIG" ]; then
+    cfg_paths="$(awk -F= '/^[[:space:]]*collections_path[s]?[[:space:]]*=/{v=$2;gsub(/^[[:space:]]+|[[:space:]]+$/,"",v);print v;exit}' "$ANSIBLE_CONFIG")"
+  fi
+  if [ -d "$VENDOR/ansible_collections" ]; then
+    case ":$cfg_paths:" in
+      *":$VENDOR:"*) ANSIBLE_COLLECTIONS_PATHS="$cfg_paths" ;;
+      "") ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$HOME/.ansible/collections:/usr/share/ansible/collections" ;;
+      *) ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$cfg_paths" ;;
+    esac
+  else
+    [ -n "$cfg_paths" ] && ANSIBLE_COLLECTIONS_PATHS="$cfg_paths"
+  fi
+  [ -n "${ANSIBLE_COLLECTIONS_PATHS:-}" ] && export ANSIBLE_COLLECTIONS_PATHS
 fi
 
-export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$PREFIX/ansible.cfg}"
-export ANSIBLE_COLLECTIONS_PATHS="${ANSIBLE_COLLECTIONS_PATHS:-$PREFIX/vendor/collections}"
-
-[ -x "$BIN" ] || { echo "[wrapper] Ansible still unavailable." >&2; exit 1; }
 exec "$BIN" "$@"

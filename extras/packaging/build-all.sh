@@ -1,37 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Orchestrates embedded Ansible hybrid build (prebuilt + self-heal) and Debian package.
-# Steps:
-#   (optional) cleanup
-#   (optional) fetch portable Python
-#   lock (cached)
-#   wheelhouse (cached)
-#   collections download/vendor (cached, optional)
-#   venv build (cached hash-based)
-#   assemble
-#   stage
-#   build deb
+# Orchestrates embedded Ansible build and Debian package.
+# Steps: clean? -> python -> lock -> wheelhouse -> collections dl/vendor -> venv -> embed -> stage -> deb
 #
 # Options:
-#   --version X          Package version (default: 1.0.0)
-#   --offline            Skip all network dependent steps (python fetch, lock, wheelhouse, collections)
-#   --skip-collections   Skip Galaxy collections
-#   --no-package         Do not build the .deb (still builds runtime)
-#   --clean              Run cleanup (does NOT pass --all)
-#   --no-python          Do not fetch portable Python even if fallback URL exists
-#   --force              Force refresh (ignore caches; sets FORCE_REFRESH=1)
-#   --verbose            set -x
-#   -h|--help            Show help
+#   --version X
+#   --offline
+#   --skip-collections
+#   --no-package
+#   --clean
+#   --no-python
+#   --force
+#   --verbose
+#   -h|--help
 #
-# Environment:
-#   PY_URL        Portable Python URL (override fallback; set empty "" to disable)
-#   PY_FILE       Local tarball path for portable Python (alternative to PY_URL)
-#   PY_SHA256     Expected SHA256 for tarball (optional but recommended)
-#   COL_REQ       Collections requirements.yml path (default repo path)
-#   FORCE_REFRESH=1  Force all rebuilds (same as --force)
-#
-# Fallback portable Python URL (disable via --no-python or PY_URL="")
+# Env:
+#   PY_URL / PY_FILE / PY_SHA256
+#   COL_REQ (default automation/collections/requirements.yml)
+#   FORCE_REFRESH=1
+#   CLEAN=1 (alternative to --clean)
+
 FALLBACK_PY_URL="https://github.com/indygreg/python-build-standalone/releases/download/20250818/cpython-3.13.7+20250818-x86_64-unknown-linux-gnu-install_only.tar.gz"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -46,11 +35,10 @@ VERBOSE=false
 NO_PYTHON_FETCH=false
 FORCE_REFRESH=${FORCE_REFRESH:-0}
 
-# Resolve env with fallback
 PY_URL="${PY_URL:-$FALLBACK_PY_URL}"
 PY_FILE="${PY_FILE:-}"
 PY_SHA256="${PY_SHA256:-}"
-COL_REQ="${COL_REQ:-$ROOT/services/cforge/ansible/collections/requirements.yml}"
+COL_REQ="${COL_REQ:-$ROOT/automation/collections/requirements.yml}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -62,9 +50,7 @@ while [[ $# -gt 0 ]]; do
     --no-python) NO_PYTHON_FETCH=true; PY_URL=""; PY_FILE="";;
     --force) FORCE_REFRESH=1 ;;
     --verbose) VERBOSE=true ;;
-    -h|--help)
-      grep -E '^#( |$)' "$0" | sed 's/^# \{0,1\}//'
-      exit 0 ;;
+    -h|--help) grep -E '^#( |$)' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
   shift
@@ -73,14 +59,17 @@ done
 export FORCE_REFRESH
 $VERBOSE && set -x
 
-run() { echo ">>> $*"; "$@"; }
+run(){ echo ">>> $*"; "$@"; }
 
 echo "[info] Build version: $VERSION"
 $OFFLINE && echo "[mode] OFFLINE" || echo "[mode] ONLINE"
 echo "[cache] FORCE_REFRESH=$FORCE_REFRESH"
+echo "[paths] requirements.yml: $COL_REQ"
 
-# 1. Cleanup (optional)
-$DO_CLEAN && run bash "$PKGDIR/90-cleanup.sh"
+# 1. Cleanup
+if $DO_CLEAN || [[ "${CLEAN:-0}" == "1" ]]; then
+  run bash "$PKGDIR/90-cleanup.sh"
+fi
 
 # 2. Portable Python
 if ! $OFFLINE; then
@@ -89,7 +78,7 @@ if ! $OFFLINE; then
       echo "[python] Using local tarball $PY_FILE"
       PY_SHA256="$PY_SHA256" run bash "$PKGDIR/12-python-runtime-fetch.sh" --file "$PY_FILE"
     elif [[ -n "$PY_URL" ]]; then
-      echo "[python] Fetching portable runtime (override with PY_URL or disable via --no-python)"
+      echo "[python] Fetching portable runtime"
       PY_SHA256="$PY_SHA256" run bash "$PKGDIR/12-python-runtime-fetch.sh" --url "$PY_URL"
     else
       echo "[python] No portable runtime requested."
@@ -101,41 +90,57 @@ else
   echo "[python] Offline: skip runtime fetch."
 fi
 
-# 3. Requirements lock + wheelhouse
+# 3. Lock + wheelhouse
 if ! $OFFLINE; then
   run bash "$PKGDIR/10-ansible-lock.sh"
   run bash "$PKGDIR/20-ansible-wheelhouse.sh"
 else
-  echo "[deps] Offline: expecting existing requirements-ansible.txt & wheelhouse."
+  echo "[deps] Offline: expecting existing wheelhouse."
 fi
 
-# 4. Collections (optional)
+# 4. Collections
 if ! $SKIP_COLLECTIONS; then
-  if ! $OFFLINE; then
-    if command -v ansible-galaxy >/dev/null && [[ -f "$COL_REQ" ]]; then
+  if [[ -f "$COL_REQ" ]]; then
+    if command -v ansible-galaxy >/dev/null 2>&1; then
       run bash "$PKGDIR/30-ansible-collections-download.sh" "$COL_REQ"
       run bash "$PKGDIR/31-ansible-collections-vendor.sh"
+      # Verify vendor build
+      if ! find "$ROOT/build/vendor/collections" -maxdepth 3 -type d -name ansible_collections -quit 2>/dev/null; then
+        echo "[collections] ERROR: vendor layout missing after build." >&2
+        exit 1
+      fi
     else
-      echo "[collections] Skip (ansible-galaxy missing or $COL_REQ absent)"
+      echo "[collections] ERROR: ansible-galaxy not in PATH and collections requested." >&2
+      exit 1
     fi
   else
-    echo "[collections] Offline: expecting pre-vendored collections if needed."
+    echo "[collections] NOTE: requirements file missing ($COL_REQ) - skipping."
   fi
 else
   echo "[collections] Skipped (--skip-collections)."
 fi
 
-# 5. Venv build (cached) + assemble
+# 5. Venv build + embed
 run bash "$PKGDIR/40-ansible-venv-build.sh"
 run bash "$PKGDIR/50-embed-assemble.sh"
 
-# 6. Stage
-run bash "$PKGDIR/60-pkg-stage.sh"
+# 6. Stage (pass VERSION)
+run bash "$PKGDIR/60-pkg-stage.sh" "$VERSION"
 
-# 7. Build package
+# Verify vendor in staging (optional warn if intentionally skipped)
+if find "$ROOT/build/vendor/collections" -maxdepth 3 -type d -name ansible_collections -quit 2>/dev/null; then
+  if ! find "$ROOT/build/pkgroot/opt/opentalk-compose/runtime/vendor/collections" -maxdepth 3 -type d -name ansible_collections -quit 2>/dev/null; then
+    echo "[stage] ERROR: vendor missing in pkgroot but existed pre-staging." >&2
+    exit 1
+  fi
+else
+  echo "[stage] INFO: No vendor collections built (none expected)."
+fi
+
+# 7. Package
 if ! $NO_PACKAGE; then
   run bash "$PKGDIR/70-pkg-build-deb.sh" "$VERSION"
-  echo "[result] Debian package ready (build/)"
+  echo "[result] Debian package ready (artifacts/)"
 else
   echo "[result] Packaging skipped (--no-package)"
 fi

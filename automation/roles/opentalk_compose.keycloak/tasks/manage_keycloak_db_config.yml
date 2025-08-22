@@ -1,0 +1,24 @@
+---
+
+- name: Ensure Keycloak Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ services_dir }}"
+    - "{{ services_dir }}/keycloak"
+
+- name: Copy Opentalk Keycloak theme
+  ansible.builtin.copy:
+    src: keycloak-ot-theme.jar
+    dest: "{{ services_dir }}/keycloak/keycloak-ot-theme.jar"
+
+- name: Copy default Keycloak configuration
+  ansible.builtin.template:
+    src: keycloak.conf.j2
+    dest: "{{ services_dir }}/keycloak/keycloak.conf"
+
+- name: Render Keycloak compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ services_dir }}/keycloak/compose.yml"

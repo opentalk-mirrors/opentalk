@@ -1,49 +1,65 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Post-install (and self-heal) script.
-# Rebuilds the venv if missing or if requirements hash changed.
+# Rebuild / repair runtime venv offline.
 
 PREFIX="/opt/opentalk-compose"
-PY="$PREFIX/.python/bin/python3"
-REQ="$PREFIX/extras/packaging/requirements-ansible.txt"
-WHL="$PREFIX/build_assets/wheelhouse"
-MARKER="$PREFIX/.venv/.reqs.sha256"
+RUNTIME_DIR="$PREFIX/runtime"
+VENV_DIR="$RUNTIME_DIR/venv"
+ASSETS_DIR="$RUNTIME_DIR/build_assets"
+WHEELHOUSE="$ASSETS_DIR/wheelhouse"
+REQ_TXT="$ASSETS_DIR/requirements-ansible.txt"
+REQ_HASH="$ASSETS_DIR/requirements-ansible.sha256"
+PYTHON_BIN="$RUNTIME_DIR/python/bin/python3"
 
-have_python() { [[ -x "$PY" ]]; }
+log() { echo "[postinst] $*"; }
 
-compute_hash() { sha256sum "$REQ" | awk '{print $1}'; }
+export PIP_NO_INDEX=1
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+export PIP_RETRY=0
 
-need_rebuild() {
-  # Rebuild if venv missing or marker mismatch
-  [[ ! -x "$PREFIX/.venv/bin/python" ]] && return 0
-  [[ -f "$REQ" ]] || return 1
-  NEW_HASH="$(compute_hash)"
-  [[ -f "$MARKER" ]] || return 0
-  OLD_HASH="$(cat "$MARKER")"
-  [[ "$NEW_HASH" != "$OLD_HASH" ]]
-}
+[ -f "$REQ_TXT" ] || { log "Requirements file missing ($REQ_TXT) - cannot build venv."; exit 0; }
 
-if have_python; then
-  if need_rebuild; then
-    echo "[postinst] Rebuilding embedded venv..."
-    rm -rf "$PREFIX/.venv"
-    "$PY" -m venv "$PREFIX/.venv"
-    "$PREFIX/.venv/bin/pip" install --upgrade pip >/dev/null
-    if [[ -d "$WHL" && -f "$REQ" ]]; then
-      "$PREFIX/.venv/bin/pip" install --no-index --find-links "$WHL" --require-hashes -r "$REQ"
-      compute_hash > "$MARKER"
-    else
-      echo "[postinst] WARNING: wheelhouse or requirements missing – partial venv." >&2
-    fi
-  else
-    echo "[postinst] Existing venv OK."
+need_rebuild=0
+if [ ! -x "$VENV_DIR/bin/python3" ]; then
+  log "Venv incomplete/missing - rebuild."
+  need_rebuild=1
+fi
+if [ $need_rebuild -eq 0 ] && [ -f "$VENV_DIR/bin/ansible" ]; then
+  first="$(head -1 "$VENV_DIR/bin/ansible" 2>/dev/null || true)"
+  if ! grep -q '^#!' <<<"$first" || ! [ -x "${first#!}" ]; then
+    log "Shebang interpreter invalid - rebuild."
+    need_rebuild=1
   fi
-else
-  echo "[postinst] ERROR: Python runtime missing at $PY" >&2
+fi
+if [ $need_rebuild -eq 0 ] && [ -f "$VENV_DIR/pyvenv.cfg" ]; then
+  if ! grep -q "$RUNTIME_DIR/python" "$VENV_DIR/pyvenv.cfg"; then
+    log "pyvenv.cfg home mismatch - rebuild."
+    need_rebuild=1
+  fi
+fi
+if [ $need_rebuild -eq 0 ] && [ -f "$REQ_HASH" ]; then
+  EXPECTED="$(cat "$REQ_HASH")"
+  ACTUAL="$(sha256sum "$REQ_TXT" | awk '{print $1}')"
+  [ "$EXPECTED" = "$ACTUAL" ] || { log "Requirements hash mismatch - rebuild."; need_rebuild=1; }
 fi
 
-# Standard runtime dirs
-mkdir -p /var/opt/opentalk-compose/{data,backups}
-chmod 0755 /var/opt/opentalk-compose || true
+[ $need_rebuild -eq 0 ] && { log "No rebuild required."; exit 0; }
+[ -x "$PYTHON_BIN" ] || { log "Portable python missing ($PYTHON_BIN)"; exit 1; }
 
+log "Creating virtualenv..."
+rm -rf "$VENV_DIR"
+"$PYTHON_BIN" -m venv "$VENV_DIR"
+. "$VENV_DIR/bin/activate"
+
+log "Installing wheels (offline)..."
+if [ -d "$WHEELHOUSE" ]; then
+  pip install --no-index --find-links "$WHEELHOUSE" -r "$REQ_TXT"
+else
+  log "Wheelhouse missing - cannot install dependencies."
+  deactivate
+  exit 1
+fi
+
+deactivate
+log "Venv rebuild complete."
 exit 0

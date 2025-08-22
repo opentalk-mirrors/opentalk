@@ -1,0 +1,20 @@
+---
+# Manage Keycloak client used for OpenTalk recorder
+- name: Create or update Keycloak client {{ recorder_auth_client_id | default('Recorder') }}
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ keycloak_base_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_auth_username }}"
+    auth_password: "{{ keycloak_auth_password }}"
+    realm: "{{ keycloak_realm }}"
+    client_id: "{{ recorder_auth_client_id | default('Recorder') }}"
+    name: "{{ recorder_auth_client_id | default('Recorder') }}"
+    description: "OpenTalk Recorder OIDC client"
+    enabled: true
+    state: present
+    public_client: false
+    standard_flow_enabled: false
+    direct_access_grants_enabled: false
+    service_accounts_enabled: true
+    client_authenticator_type: client-secret
+    secret: "{{ OIDC_RECORDER_CLIENT_SECRET }}"

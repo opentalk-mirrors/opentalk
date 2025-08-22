@@ -1,0 +1,26 @@
+---
+- name: MinIO Compose path include
+  ansible.builtin.blockinfile:
+    path: "{{ deploy_dir }}/compose.yml"
+    insertafter: '^include:\\s*$'
+    marker: "# Ansible managed - minio include {mark}"
+    block: |
+      - path:
+          - services/minio/compose.yml
+    state: "{{ 'present' if compose_service_minio_enabled | bool else 'absent' }}"
+  when: compose_service_minio_enabled | bool
+
+- name: Render MinIO compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ minio_docker_compose_services_dir }}/minio/compose.yml"
+
+- name: Manage MinIO Docker Compose state
+  community.docker.docker_compose_v2:
+    project_src: "{{ minio_docker_compose_project_src }}"
+    project_name: "{{ minio_docker_compose_project_name }}"
+    services:
+      - minio
+    files:
+      - compose.yml
+    state: "{{ minio_docker_compose_services_state }}"

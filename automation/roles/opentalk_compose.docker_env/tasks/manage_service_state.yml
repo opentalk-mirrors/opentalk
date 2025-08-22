@@ -1,0 +1,17 @@
+
+- name: Set Docker Compose project name and desired state facts
+  ansible.builtin.set_fact:
+    compose_service_opentalk_controller_state: "{{ 'present' if compose_service_opentalk_controller_enabled else 'absent' }}"
+    compose_service_opentalk_obelisk_state: "{{ 'present' if compose_service_opentalk_obelisk_enabled else 'absent' }}"
+    compose_service_opentalk_outlook_add_in_state: "{{ 'present' if compose_service_opentalk_outlook_add_in_enabled else 'absent' }}"
+    compose_service_opentalk_recorder_state: "{{ 'present' if compose_service_opentalk_recorder_enabled else 'absent' }}"
+    compose_service_opentalk_smtp_mailer_state: "{{ 'present' if compose_service_opentalk_smtp_mailer_enabled else 'absent' }}"
+    compose_service_opentalk_web_frontend_state: "{{ 'present' if compose_service_opentalk_web_frontend_enabled else 'absent' }}"
+    compose_service_etherpad_state: "{{ 'present' if compose_service_etherpad_enabled else 'absent' }}"
+    compose_service_spacedeck_state: "{{ 'present' if compose_service_spacedeck_enabled else 'absent' }}"
+    compose_service_keycloak_state: "{{ 'present' if compose_service_keycloak_enabled else 'absent' }}"
+    compose_service_livekit_server_state: "{{ 'present' if compose_service_livekit_server_enabled else 'absent' }}"
+    compose_service_mailcrab_state: "{{ 'present' if (compose_service_mailcrab_enabled | default(false)) else 'absent' }}"
+    compose_service_minio_state: "{{ 'present' if compose_service_minio_enabled else 'absent' }}"
+    compose_service_rabbitmq_state: "{{ 'present' if compose_service_rabbitmq_enabled else 'absent' }}"
+    compose_service_traefik_state: "{{ 'present' if compose_service_traefik_enabled else 'absent' }}"

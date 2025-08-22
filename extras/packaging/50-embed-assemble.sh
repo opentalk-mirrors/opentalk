@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-EMB="$ROOT/build/embedded"
-TPL_CFG="$ROOT/extras/packaging/templates/ansible.cfg"
-VEN_COL="$ROOT/build/vendor/collections"
-[ -d "$EMB/.venv" ] || { echo "Missing venv in $EMB. Run 40-ansible-venv-build.sh"; exit 1; }
-cp -a "$TPL_CFG" "$EMB/ansible.cfg"
-mkdir -p "$EMB/vendor"
-[ -d "$VEN_COL" ] && { rm -rf "$EMB/vendor/collections"; cp -a "$VEN_COL" "$EMB/vendor/"; } || true
-mkdir -p "$EMB/wrappers"
-cp -a "$ROOT/extras/packaging/wrappers/." "$EMB/wrappers/" 2>/dev/null || true
-chmod +x "$EMB/wrappers/"* 2>/dev/null || true
-echo "Embedded assembled at $EMB"
+BUILD_DIR="$ROOT/build"
+EMB_DIR="$BUILD_DIR/embedded"
+SRC_VENDOR_DIR="$BUILD_DIR/vendor"
+ALT_VENDOR_DIR="$BUILD_DIR/collections/vendor"
+
+mkdir -p "$EMB_DIR"
+
+if [[ -d "$SRC_VENDOR_DIR/collections/ansible_collections" ]]; then
+  echo "[embed] Copy vendor from build/vendor"
+  rm -rf "$EMB_DIR/vendor"
+  cp -a "$SRC_VENDOR_DIR" "$EMB_DIR/vendor"
+elif [[ -d "$ALT_VENDOR_DIR/collections/ansible_collections" ]]; then
+  echo "[embed] Copy vendor from legacy build/collections/vendor"
+  rm -rf "$EMB_DIR/vendor"
+  cp -a "$ALT_VENDOR_DIR" "$EMB_DIR/vendor"
+else
+  echo "[embed] WARN: No vendor collections found (build/vendor)."
+fi
+
+echo "[embed] Embedded assets prepared at $EMB_DIR"

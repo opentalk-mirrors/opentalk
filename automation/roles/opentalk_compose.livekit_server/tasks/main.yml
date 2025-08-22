@@ -1,0 +1,11 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for opentalk_compose.livekit_server
+
+- name: Include manage_livekit_config.yml
+  ansible.builtin.include_tasks:
+    file: manage_livekit_config.yml
+
+- name: Include manage_docker_compose.yml
+  ansible.builtin.include_tasks:
+    file: manage_docker_compose.yml

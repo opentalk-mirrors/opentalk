@@ -1,0 +1,17 @@
+---
+- name: Ensure SQL dump backup directory
+  ansible.builtin.command: 
+    cmd: mkdir -p "{{ backup_dir_sql_dumps }}"
+    creates: "{{ backup_dir_sql_dumps }}"
+
+- name: Create SQL dump Keycloak DB
+  ansible.builtin.shell: |
+    docker run --rm \
+      --network {{ docker_network_name }} \
+      -e PGPASSWORD="$PGPASSWORD" \
+      {{ postgres_docker_image_src }}:{{ postgres_version }} \
+      pg_dump -h {{ keycloak_db_host }} -p {{ keycloak_db_port }} -U {{ keycloak_db_user }} {{ keycloak_db_name }} \
+      > {{ keycloak_db_dump_file }}
+  environment:
+    PGPASSWORD: "{{ keycloak_db_password }}"
+  tags: [keycloak_db_dump]

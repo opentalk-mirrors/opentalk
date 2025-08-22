@@ -1,0 +1,18 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for opentalk_compose.minio
+- name: "Restart Docker service minio"
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_dir }}/minio"
+    files:
+      - compose.yml
+    recreate: never
+    state: restarted
+
+- name: "Recreate Docker service minio"
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_dir }}/minio"
+    files:
+      - compose.yml
+    recreate: always
+    state: restarted

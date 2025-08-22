@@ -1,0 +1,92 @@
+---
+services:
+  keycloak:
+    image: "{{ keycloak_docker_image_src }}:{{ keycloak_version }}"
+    ports:
+      - "8000:8080"
+      - "9080:9000"
+    restart: always
+    entrypoint: []
+    command:
+      - /bin/sh
+      - -c
+      - |
+          /opt/keycloak/bin/kc.sh build
+          /opt/keycloak/bin/kc.sh start --import-realm --optimized --verbose
+    user: 0:0
+    volumes:
+      - ./import:/opt/keycloak/data/import:Z
+      - ./keycloak-ot-theme.jar:/opt/keycloak/providers/keycloak-ot-theme.jar:Z
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: {{ keycloak_bootstrap_admin_username }}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: {{ keycloak_bootstrap_admin_password }}
+      KC_HOSTNAME: {{ keycloak_hostname }}
+      KC_HTTP_RELATIVE_PATH: {{ keycloak_http_relative_path }}
+      KC_DB: {{ keycloak_db_vendor }}
+      KC_DB_URL: "jdbc:postgresql://keycloak-db:{{ keycloak_db_url_port }}/{{ keycloak_db_url_database }}"
+      KC_DB_USERNAME: {{ keycloak_db_username }}
+      KC_DB_PASSWORD: {{ keycloak_db_password }}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: {{ keycloak_proxy_headers }}
+      KC_HEALTH_ENABLED: "true"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.service=keycloak"
+      - "traefik.http.routers.keycloak.rule=Host(`{{ ot_domain | default('localhost') }}`) && PathPrefix(`/auth`)"
+      - "traefik.http.routers.keycloak.priority=50"
+      - "traefik.http.routers.keycloak.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+{% if traefik_letsencrypt_enable %}
+      - "traefik.http.routers.keycloak.tls.certresolver=letsencrypt"
+{% endif %}
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.regex=^/adm/keycloak/(.*)"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.replacement=/auth/$$1"
+      - "traefik.http.middlewares.keycloak-redirect.redirectregex.permanent=true"
+      - "traefik.http.routers.keycloak.middlewares=keycloak-redirect"
+    networks:
+      - {{ docker_network_name }}
+    healthcheck:
+      start_period: 60s
+      retries: 10
+      timeout: 5s
+      interval: 30s
+      test: 
+      - "CMD-SHELL"
+      - |
+        exec 3<>/dev/tcp/localhost/9000 &&
+        echo -e 'GET /auth/health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+        cat <&3 | tee /tmp/healthcheck.log | grep -q '200 OK'
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+
+  keycloak-db:
+    image: "{{ postgres_docker_image_src }}:{{ postgres_version }}"
+    volumes:
+      - keycloak-db:/var/lib/postgresql/data
+    restart: always
+    secrets:
+      - db_keycloak_secret
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-keycloak}
+      POSTGRES_USER: ${POSTGRES_USER:-ot}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_keycloak_secret
+    networks:
+      - {{ docker_network_name }}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+secrets:
+  db_keycloak_secret:
+    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.db_keycloak.secret
+
+volumes:
+  keycloak-db:
+
+networks:
+  {{ docker_network_name }}:
+    external: true

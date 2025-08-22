@@ -1,0 +1,18 @@
+---
+# Render docker compose file from template
+
+- name: Ensure compose target directory exists
+  ansible.builtin.file:
+    path: "{{ services_dir }}"
+    state: directory
+
+- name: Write .env from template
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ deploy_dir }}/.env"
+
+- name: Write compose.yml from template
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ deploy_dir }}/compose.yml"
+    force: false

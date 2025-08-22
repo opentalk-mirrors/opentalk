@@ -1,0 +1,17 @@
+---
+
+- name: Ensure LiveKit Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ livekit_server_docker_compose_services_dir }}"
+    - "{{ livekit_server_docker_compose_services_dir }}/livekit-server"
+    - "{{ livekit_server_docker_compose_services_dir }}/livekit-server/config"
+
+- name: "Render LiveKit static config | {{ livekit_server_docker_compose_services_dir }}/livekit-server/config/livekit.yaml"
+  ansible.builtin.template:
+    src: livekit.yaml.j2
+    dest: "{{ livekit_server_docker_compose_services_dir }}/livekit-server/config/livekit.yaml"
+    mode: 0644
+  notify: Restart Docker service LiveKit

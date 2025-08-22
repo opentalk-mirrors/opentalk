@@ -10,3 +10,14 @@ config/**
 services/**/config/
 **/data/
 
+# Build artifacts
+*.deb
+*.rpm
+*.tar.gz
+*.tar.xz
+build/
+dist/
+
+# Packaging temp files
+debroot/
+rpmbuild/

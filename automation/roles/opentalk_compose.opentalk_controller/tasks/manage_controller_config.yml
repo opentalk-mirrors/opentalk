@@ -1,0 +1,17 @@
+---
+
+- name: Ensure OpenTalk Controller Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ controller_docker_compose_services_dir }}"
+    - "{{ controller_docker_compose_services_dir }}/opentalk-controller"
+    - "{{ controller_docker_compose_services_dir }}/opentalk-controller/config"
+
+- name: "Render OpenTalk Controller static config | {{ controller_docker_compose_services_dir }}/opentalk-controller/config/controller.toml"
+  ansible.builtin.template:
+    src: controller.toml.j2
+    dest: "{{ controller_docker_compose_services_dir }}/opentalk-controller/config/controller.toml"
+    mode: 0644
+  notify: Restart Docker Service OpenTalk Controller

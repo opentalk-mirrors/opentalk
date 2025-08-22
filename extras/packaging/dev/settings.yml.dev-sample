@@ -1,0 +1,137 @@
+# Sample settings file for development environment
+# Copy to config/settings.yml and adjust as needed
+
+ot_domain: localhost
+ot_ingress_port: 8080
+ot_ingress_protocol: http
+
+compose_project_name: "opentalk"
+
+deploy_dir:  "../../"
+config_dir: "../../config"
+services_dir: "../../services"
+
+
+compose_service_opentalk_controller_enabled: true
+compose_service_opentalk_obelisk_enabled: false
+compose_service_opentalk_opentalk_outlook_add_in_enabled: true
+compose_service_opentalk_outlook_add_in_enabled: true
+compose_service_opentalk_recorder_enabled: true
+compose_service_opentalk_smtp_mailer_enabled: true
+compose_service_opentalk_web_frontend_enabled: true
+compose_service_etherpad_enabled: true
+compose_service_spacedeck_enabled: true
+compose_service_keycloak_enabled: true
+compose_service_livekit_server_enabled: true
+compose_service_minio_enabled: true
+compose_service_rabbitmq_enabled: true
+compose_service_traefik_enabled: true
+
+traefik_api_insecure: true
+traefik_letsencrypt_enable: false
+
+traefik_docker_extra_hosts: 
+  - keycloak.localhost:host-gateway
+traefik_docker_ports:
+  - target: 80
+    published: 8080
+  - target: 8080
+    published: 7777
+traefik_log_level: DEBUG
+traefik_docker_label_http_routers_dashboard_middlewares: "dashboard-strip"
+
+minio_docker_label_http_routers_minio_console_middlewares: "minio-stripprefix"
+mailcrab_docker_label_http_routers_minio_console_middlewares: "mailcrab-strip"
+
+custom_certificates_enabled: false
+#custom_certificates_enabled: true
+#custom_certificates_ssl_certificate_key_file:
+#custom_certificates_ssl_certificate_fullchain_file:
+#livekit_turn_embedded_enabled
+
+
+opentalk_web_frontend_docker_extra_hosts:
+  - "keycloak.localhost:host-gateway"  
+opentalk_web_frontend_environment_insecure: true
+
+controller_docker_extra_hosts:
+  - "keycloak.localhost:host-gateway"
+  - "etherpad.localhost:host-gateway"
+  - "spacedeck.localhost:host-gateway"
+
+controller_livekit_service_url: "http://host.docker.internal:7880"
+
+recorder_docker_extra_hosts:
+  - "keycloak.localhost:host-gateway"
+
+obelisk_docker_extra_hosts:
+  - "keycloak.localhost:host-gateway"
+obelisk_controller_domain: "localhost:8080/controller"
+obelisk_controller_insecure: true
+obelisk_sip_addr: "localhost"
+
+
+spacedeck_docker_extra_hosts:
+  - "keycloak.localhost:host-gateway"
+spacedeck_docker_ports:
+  - "9666:9666"
+spacedeck_docker_environment_sd_endpoint: http://spacedeck.localhost:9666
+spacedeck_docker_labels_traefik_enable: false
+
+etherpad_docker_extra_hosts:
+  - "etherpad.localhost:host-gateway"
+etherpad_docker_ports:
+  - "9001:9001"
+etherpad_docker_labels_traefik_http_routers_etherpad_rule: "Host(`etherpad.localhost`) && PathPrefix(`/etherpad`)"
+
+
+controller_etherpad_url: "http://etherpad.localhost:8080/etherpad/"
+controller_livekit_service_url: "http://host.docker.internal:7880"
+controller_logging_default_directives:
+  - DEBUG
+  - opentalk=DEBUG
+  - pinky_swear=OFF
+  - rustls=WARN
+  - mio=ERROR
+  - lapin=DEBUG
+  - execution_id=trace
+controller_oidc_authority: http://keycloak.localhost:8000/auth/realms/opentalk
+#controller_oidc_frontend_authority: http://localhost:8080/auth/realms/opentalk
+controller_spacedeck_url: http://spacedeck.localhost:9666
+controller_user_search_api_base_url: http://keycloak.localhost:8000/auth/admin/realms/opentalk
+
+## Only useful when running on localhost
+keycloak_local_hostname: keycloak
+keycloak_local_port: 8000
+
+postInstall_demoUser_email: demo.user@localhost.localhost
+
+mailer_smtp_smtp_server: "smtp://mailcrab:1025?disable_starttls=true"
+mailer_smtp_from_name: "OpenTalk - localhost"
+mailer_smtp_from_email: "no-reply@localhost.localhost"
+
+
+
+backup_volumes:
+  - name: etherpad-data
+  - name: keycloak_keycloak-db
+  - name: minio_minio
+  - name: opentalk-controller_controller-db
+  - name: opentalk_postgres_data
+  - name: rabbitmq_rabbitmq
+  - name: traefik_traefik
+backup_retention_days: 10
+backup_compression: gzip
+restore_volume_backups:
+  # Only set if a restore should actually be performed
+  # - volume: etherpad-data
+  #   file: etherpad-data-20250904-120000.tar.gz
+  #   purge: true
+
+
+# Directory on the host where backup archives are stored
+backup_dir: ~/tmp/backups 
+
+opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList: "{{ (ot_ingress_protocol, ot_domain, '*') | build_url }},{{ (ot_ingress_protocol, ot_domain, '*') | build_wildcard_url }}"
+
+outlook_add_in_labels_traefik_http_middlewares_outlook_add_in_cors_headers_accessControlAllowOriginList: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }},{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_wildcard_url }}"

@@ -1,0 +1,570 @@
+#!/usr/bin/env bash
+# Unified control wrapper for OpenTalk automation & compose.
+# Usage examples:
+# (raw ansible removed)
+#   otctl playbook -i inventory.yml playbooks/opentalk_compose.yml
+#   otctl galaxy collection list
+#   otctl compose up -d
+#   otctl up        (shortcut for: compose up -d)
+#   otctl down      (shortcut for: compose down)
+#   otctl ps        (shortcut for: compose ps)
+#   otctl logs controller -f  (shortcut for: compose logs controller -f)
+#   otctl restart [service ...]   (restart one or more, or all if none specified)
+#   otctl recreate [service ...]  (force recreate containers; all if none specified)
+# Environment overrides:
+#   OT_PREFIX (default /opt/opentalk-compose)
+#   OT_COMPOSE_PROJECT (project name override)
+#   OT_COMPOSE_FILES (colon-separated list of compose files; default autodetect)
+#   DOCKER_CMD (override docker executable; supports podman aliasing)
+set -euo pipefail
+
+PREFIX="${OT_PREFIX:-/opt/opentalk-compose}"
+RUNTIME="$PREFIX/runtime"
+AUTOMATION="$PREFIX/automation"
+VENV_BIN="$RUNTIME/venv/bin"
+POSTINST="$PREFIX/bin/pkg-postinst.sh"
+VENDOR="$RUNTIME/vendor/collections"
+WRAPPER_DIR="$PREFIX/bin"
+SERVICES_DIR="${OT_SERVICES_DIR:-$PREFIX/services}"
+COMPOSE_CMD="${DOCKER_CMD:-docker}"
+
+# Prefer docker; fallback to podman (compose plugin assumed installed)
+if ! command -v "$COMPOSE_CMD" >/dev/null 2>&1; then
+  if command -v docker >/dev/null 2>&1; then COMPOSE_CMD=docker; elif command -v podman >/dev/null 2>&1; then COMPOSE_CMD=podman; fi
+fi
+
+log_cmd() {
+  # Print command in reproducible shell-escaped form (avoid escaping commas for readability)
+  printf '[otctl] +'
+  for c in "$@"; do
+    if [[ "$c" == *","* ]]; then
+      printf ' %s' "$c"
+    else
+      printf ' %q' "$c"
+    fi
+  done
+  printf '\n'
+}
+
+PLAYBOOK_WRAPPER() { log_cmd "$WRAPPER_DIR/ot-ansible-playbook" "$@"; "$WRAPPER_DIR/ot-ansible-playbook" "$@"; }
+
+usage() {
+  local c_hdr="" c_dim="" c_reset=""
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ -z "${OTCTL_NO_COLOR:-}" ]; then
+    c_hdr=$'\e[1;94m'; c_dim=$'\e[2m'; c_reset=$'\e[0m'
+  fi
+  cat <<EOF
+
+                ${c_hdr}OpenTalk Control (otctl)${c_reset}
+
+Unified control wrapper for OpenTalk automation & compose.
+
+Subcommands (most used first):
+  status      Show service status summary
+  logs        Show container logs (passes remaining args to compose logs)
+  restart     Restart all or selected containers
+  recreate    Force recreate (up -d --force-recreate) all or selected containers
+  tags        List available ansible tags for main playbook
+  deploy      Run main deployment playbook
+  undeploy    Run undeploy playbook (removes deployed containers, volumes, networks)
+  backup      Run backup role (modes: backup [default], dump, cron, ls)
+              Sub-modes:
+                all           -> --tags backup
+                dump          -> run all DB dump tasks (controller + keycloak) (tags: controller_db_dump,keycloak_db_dump)
+                dump controller -> only controller DB dump (tag: controller_db_dump)
+                dump keycloak -> only keycloak DB dump (tag: keycloak_db_dump)
+                config        -> only config backup (tag: config_backup)
+                  volume [NAME] -> backup all volumes or a single volume NAME
+                ls            -> list existing backups
+                clean         -> retention prune (tag: backup_retention)
+                (no arg)      -> this help
+  up          Shortcut for compose up -d
+  down        Shortcut for compose down
+  ps          Shortcut for compose ps
+  volumes     List or remove compose project volumes (rm <v...> | prune --force)
+  version     Show detected component versions
+  compose     Run docker compose (passthrough)
+  playbook    Run ansible-playbook (advanced)
+
+Environment:
+  OT_PREFIX            Install root (default /opt/opentalk-compose)
+  OT_COMPOSE_PROJECT   Compose project name override
+  OT_COMPOSE_FILES     (Unused now; single compose.yml enforced)
+  DOCKER_CMD           Override docker/podman executable
+  NO_COLOR / OTCTL_NO_COLOR  Disable colors
+
+Examples:
+  otctl status
+  otctl restart controller
+  otctl recreate # force-recreate everything
+  otctl deploy --tags controller
+  otctl version
+  otctl compose exec controller bash
+
+EOF
+}
+
+usage_short() {
+  local c_hdr="" c_reset=""
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ -z "${OTCTL_NO_COLOR:-}" ]; then
+    c_hdr=$'\e[1;94m'; c_reset=$'\e[0m'
+  fi
+  cat <<EOF
+${c_hdr}otctl${c_reset} status|logs|restart|recreate|undeploy|tags|deploy|backup|up|down|ps|volumes|version|compose|playbook
+Hint: run 'otctl help' for details.
+EOF
+}
+
+# Ensure post-install (self-heal) if venv missing
+if [ ! -x "$VENV_BIN/ansible" ] && [ -x "$POSTINST" ]; then
+  bash "$POSTINST" || true
+fi
+[ -x "$VENV_BIN/ansible" ] || { echo "[otctl] ansible runtime missing under $VENV_BIN" >&2; exit 1; }
+
+# Collections path wiring (replicate logic from existing wrappers)
+if [ -z "${ANSIBLE_COLLECTIONS_PATHS:-}" ]; then
+  cfg_paths=""
+  if [ -f "$AUTOMATION/ansible.cfg" ]; then
+    cfg_paths="$(awk -F= '/^[[:space:]]*collections_path[s]?[[:space:]]*=/{v=$2;gsub(/^[[:space:]]+|[[:space:]]+$/,"",v);print v;exit}' "$AUTOMATION/ansible.cfg")"
+  fi
+  if [ -d "$VENDOR/ansible_collections" ]; then
+    case ":$cfg_paths:" in
+      *":$VENDOR:"*) ANSIBLE_COLLECTIONS_PATHS="$cfg_paths" ;;
+      "") ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$HOME/.ansible/collections:/usr/share/ansible/collections" ;;
+      *) ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$cfg_paths" ;;
+    esac
+  else
+    [ -n "$cfg_paths" ] && ANSIBLE_COLLECTIONS_PATHS="$cfg_paths"
+  fi
+  [ -n "${ANSIBLE_COLLECTIONS_PATHS:-}" ] && export ANSIBLE_COLLECTIONS_PATHS
+fi
+export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$AUTOMATION/ansible.cfg}"
+export PYTHONDONTWRITEBYTECODE=1
+
+subcmd="${1:-}"; shift || true
+
+resolve_compose_files() {
+  # Enforced single compose file path.
+  local f="$PREFIX/compose.yml"
+  if [ ! -f "$f" ]; then
+    echo "[otctl] compose file not found: $f" >&2
+    return 2
+  fi
+  echo "$f"
+}
+
+compose_exec() {
+  local files; read -r -a files <<<"$(resolve_compose_files)"
+  if [ ${#files[@]} -eq 0 ]; then
+    echo "[otctl] No compose files found (set OT_COMPOSE_FILES)." >&2; return 1
+  fi
+  local args=()
+  for f in "${files[@]}"; do args+=( -f "$f" ); done
+  local project_flag=()
+  [ -n "${OT_COMPOSE_PROJECT:-}" ] && project_flag=( -p "$OT_COMPOSE_PROJECT" )
+  local full=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" "$@")
+  log_cmd "${full[@]}"
+  "${full[@]}"
+}
+
+list_services() {
+  # Robust service listing supporting multiple docker compose versions.
+  local files; read -r -a files <<<"$(resolve_compose_files)" || return 1
+  local args=()
+  for f in "${files[@]}"; do args+=( -f "$f" ); done
+  local project_flag=()
+  [ -n "${OT_COMPOSE_PROJECT:-}" ] && project_flag=( -p "$OT_COMPOSE_PROJECT" )
+
+  local entries=()
+  local max=0
+
+  # 1. Try JSON format (compose v2.21+)
+  local cmd_json=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" ps --format json)
+  log_cmd "${cmd_json[@]}"
+  local out_json
+  out_json="$("${cmd_json[@]}" 2>/dev/null || true)"
+  if [ -n "$out_json" ] && [[ $out_json == \[* || $out_json == \{* ]]; then
+    if command -v jq >/dev/null 2>&1; then
+      while IFS=$'\t' read -r svc state; do
+        [ -z "$svc" ] && continue
+        entries+=("$svc" "$state")
+        local len=${#svc}; (( len>max )) && max=$len
+      done < <(echo "$out_json" | jq -r '.[] | "\(.Service)\t\(.State)"' 2>/dev/null || true)
+    else
+      # Parse minimal via python if available, else fallback later.
+      if command -v python3 >/dev/null 2>&1; then
+        while IFS=$'\t' read -r svc state; do
+          [ -z "$svc" ] && continue
+          entries+=("$svc" "$state")
+          local len=${#svc}; (( len>max )) && max=$len
+        done < <(python3 - <<'PY' "$out_json"
+import sys, json
+data=json.loads(sys.argv[1])
+for o in data:
+    print(f"{o.get('Service','')}\t{o.get('State','')}")
+PY
+        )
+      fi
+    fi
+  fi
+
+  # 2. If JSON path failed, try Go template (widely supported):
+  if [ ${#entries[@]} -eq 0 ]; then
+    local cmd_tpl=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" ps --format '{{.Service}}\t{{.State}}')
+    log_cmd "${cmd_tpl[@]}"
+    local out_tpl
+    out_tpl="$("${cmd_tpl[@]}" 2>/dev/null || true)"
+    if [ -n "$out_tpl" ]; then
+      while IFS=$'\t' read -r svc state; do
+        [ -z "$svc" ] && continue
+        entries+=("$svc" "$state")
+        local len=${#svc}; (( len>max )) && max=$len
+      done <<<"$out_tpl"
+    fi
+  fi
+
+  # 3. Fallback: parse default table output
+  if [ ${#entries[@]} -eq 0 ]; then
+    local cmd_tab=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" ps)
+    log_cmd "${cmd_tab[@]}"
+    local out_tab
+    out_tab="$("${cmd_tab[@]}" 2>/dev/null || true)"
+    # Skip header line(s); attempt to derive service from NAME (project_service_1 pattern)
+    echo "$out_tab" | awk 'NR>1 {print $1, $0}' | while read -r name rest; do
+      [ -z "$name" ] && continue
+      # Derive service: strip project prefix and numeric suffix if pattern matches
+      svc="$name"
+      if [[ $svc == *-* ]]; then
+        # docker compose often uses project-service-1
+        svc="${svc##*-}"  # naive; if more structure needed adjust
+      fi
+      # Extract state keyword from the STATUS column (search for Up/Exit/Running)
+      state="$(echo "$rest" | grep -Eo 'Up|Running|Exited|Restarting|Paused' | head -1)"
+      [ -z "$state" ] && state="unknown"
+      entries+=("$svc" "$state")
+      local len=${#svc}; (( len>max )) && max=$len
+    done
+  fi
+
+  # Output aligned
+  local i=0
+  while [ $i -lt ${#entries[@]} ]; do
+    local svc=${entries[$i]}; local state=${entries[$((i+1))]}
+    printf '%-*s  %s\n' "$max" "$svc" "$state"
+    i=$(( i + 2 ))
+  done
+}
+
+print_versions() {
+  # Show entries from .versions.yml; color only product version value.
+  local versions_file="$PREFIX/.versions.yml"
+  local color_product="" color_reset=""
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ -z "${OTCTL_NO_COLOR:-}" ]; then
+    color_product=$'\e[1;95m'
+    color_reset=$'\e[0m'
+  fi
+  echo "otctl version info:"
+  local product_version=""
+  local comp_keys=() comp_vals=()
+  if [ -f "$versions_file" ]; then
+    while IFS= read -r line; do
+      line="${line%%$(printf '\r')}"
+      case "$line" in ''|'#'*) continue ;; esac
+      [[ $line != *:* ]] && continue
+      local key="${line%%:*}" val="${line#*:}"
+      key="${key%%[[:space:]]*}"; key="${key##[[:space:]]*}" # defensive
+      # Trim spaces around val
+      val="${val# }"; val="${val%%[[:space:]]}"
+      if [[ $key == opentalk_product_version ]]; then
+        product_version="$val"; continue
+      fi
+      if [[ $key == *_version ]]; then
+        local base="${key%_version}"; base="${base//_/-}"
+        comp_keys+=("$base")
+        comp_vals+=("$val")
+      fi
+    done < "$versions_file"
+  fi
+  if [ -n "$product_version" ]; then
+    printf 'OpenTalk Product Version: %s%s%s\n' "$color_product" "$product_version" "$color_reset"
+  fi
+  # Installed Debian package version (if available)
+  local pkg_version=""
+  local pkg_arch=""
+  if command -v dpkg-query >/dev/null 2>&1; then
+    pkg_version="$(dpkg-query -W -f='${Version}' opentalk-compose 2>/dev/null || true)"
+    pkg_arch="$(dpkg-query -W -f='${Architecture}' opentalk-compose 2>/dev/null || true)"
+  fi
+  if [ -n "$pkg_version" ]; then
+    if [ -n "$pkg_arch" ]; then
+      echo "Package: opentalk-compose_${pkg_version}_${pkg_arch}"
+    else
+      echo "Package: opentalk-compose_${pkg_version}"
+    fi
+  fi
+  if [ ${#comp_keys[@]} -gt 0 ]; then
+    echo "Components:"
+    local prefixed="" others="" i k v
+    for i in "${!comp_keys[@]}"; do
+      k="${comp_keys[$i]}"; v="${comp_vals[$i]}"
+      if [[ $k == opentalk-* ]]; then
+        prefixed+="$k\t$v\n"
+      else
+        others+="$k\t$v\n"
+      fi
+    done
+    # Sort each group
+    local sorted_pref="" sorted_oth=""
+    [ -n "$prefixed" ] && sorted_pref="$(printf '%b' "$prefixed" | sort -k1,1)"
+    [ -n "$others" ] && sorted_oth="$(printf '%b' "$others" | sort -k1,1)"
+    # Ensure newline separator between groups when both present (command substitution trims trailing newlines)
+    local merged="${sorted_pref}"
+    if [ -n "$sorted_pref" ] && [ -n "$sorted_oth" ]; then
+      merged+=$'\n'
+    fi
+    merged+="$sorted_oth"
+    local max=0
+    while IFS=$'\t' read -r n v; do
+      [ -z "$n" ] && continue
+      local l=${#n}; (( l>max )) && max=$l
+    done <<<"$merged"
+    while IFS=$'\t' read -r n v; do
+      [ -z "$n" ] && continue
+      printf '  %-*s : %s\n' "$max" "$n" "$v"
+    done <<<"$merged"
+  fi
+  echo ""
+  echo "Tools:"
+  printf '  %-13s : ' ansible-core; "$VENV_BIN/ansible" --version 2>/dev/null | head -1 || echo "n/a"
+  printf '  %-13s : ' python; "$VENV_BIN/python" -V 2>/dev/null || echo "n/a"
+  printf '  %-13s : ' docker/podman; { "$COMPOSE_CMD" --version 2>/dev/null || echo "n/a"; }
+}
+
+list_tags() {
+  # List ansible playbook tags for the main deployment playbook.
+  local playbook="$AUTOMATION/playbooks/opentalk_compose.yml"
+  [ -f "$playbook" ] || { echo "[otctl] playbook not found: $playbook" >&2; return 2; }
+  # Use ansible-playbook --list-tags (fast, doesn't execute tasks)
+  local out
+  if out="$($WRAPPER_DIR/ot-ansible-playbook -i "$AUTOMATION/inventory.yml" "$playbook" --list-tags 2>/dev/null)"; then
+    # Extract lines after 'playbook: ...' containing 'TAGS:' pattern
+    # Typical format: 'playbook: ...' then '  play # tags=tag1,tag2'
+    # Newer ansible shows 'TASK TAGS: [tag1, tag2]'
+    if grep -q 'TASK TAGS' <<<"$out"; then
+      echo "$out" | awk '/TASK TAGS/ {gsub(/.*TASK TAGS: \[/,""); gsub(/].*/ , ""); gsub(/, /,"\n"); print}' | sort -u
+    else
+      echo "$out" | awk -F= '/tags=/ {gsub(/^[[:space:]]+|[[:space:]]+$/,"",$2);gsub(/,/,"\n",$2);print $2}' | sort -u
+    fi
+  else
+    echo "[otctl] failed to obtain tags" >&2
+    return 1
+  fi
+}
+
+volumes_cmd() {
+  # Manage docker volumes belonging to this compose project.
+  local project="${OT_COMPOSE_PROJECT:-opentalk}"
+  # Derive project from compose config if not set explicitly.
+  if [ -z "${OT_COMPOSE_PROJECT:-}" ]; then
+    # Try docker compose ls to guess (best effort) else default 'opentalk'
+    :
+  fi
+  local action="${1:-list}"; shift || true
+  case "$action" in
+    list)
+      log_cmd "$COMPOSE_CMD" volume ls --format '{{.Name}}\t{{.Mountpoint}}'
+      "$COMPOSE_CMD" volume ls --format '{{.Name}}\t{{.Mountpoint}}' | awk -v p="${project}" 'BEGIN{c=0} index($1,p"_")==1 {printf "%s\n", $1; c++} END{if(c==0)print "(no project volumes)"}'
+      ;;
+    rm)
+      [ $# -gt 0 ] || { echo "[otctl] specify one or more volume names after 'volumes rm'" >&2; return 2; }
+      for v in "$@"; do
+        log_cmd "$COMPOSE_CMD" volume rm "$v"
+        "$COMPOSE_CMD" volume rm "$v" || true
+      done
+      ;;
+  prune)
+      # Remove all project-prefixed volumes
+      local vols
+      vols=$( "$COMPOSE_CMD" volume ls --format '{{.Name}}' | grep -E "^${project}_" || true )
+      if [ -z "$vols" ]; then
+        echo "[otctl] no project volumes to prune"
+        return 0
+      fi
+  if [ "${1:-}" != "--force" ]; then
+        echo "Will remove volumes:" >&2
+        echo "$vols" >&2
+        echo "Re-run: otctl volumes prune --force to confirm" >&2
+        return 3
+      fi
+      echo "$vols" | while read -r v; do
+        [ -z "$v" ] && continue
+        log_cmd "$COMPOSE_CMD" volume rm "$v"
+        "$COMPOSE_CMD" volume rm "$v" || true
+      done
+      ;;
+    *)
+      echo "[otctl] unknown volumes action: $action (use list|rm|prune)" >&2; return 1 ;;
+  esac
+}
+
+backup_list() {
+  # Standard directory structure: /var/opt/opentalk-compose/backups/{dumps,volumes,config}
+  local root
+  if [ -n "${OT_BACKUP_DIR:-}" ]; then
+    root="$OT_BACKUP_DIR"
+  else
+    root="/var/opt/opentalk-compose/backups"
+    [ -d "$root" ] || root="$PREFIX/backups"
+  fi
+  if [ ! -d "$root" ]; then
+    echo "[otctl] Backup root not found: $root" >&2
+    return 3
+  fi
+  local hdr_color="" reset_color=""
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ -z "${OTCTL_NO_COLOR:-}" ]; then
+    hdr_color=$'\e[1;96m'; reset_color=$'\e[0m'
+  fi
+  echo "[otctl] Backup root: $root" >&2
+  local cat dir
+  for cat in dumps volumes config; do
+    dir="$root/$cat"
+    printf '\n%s%s%s\n' "$hdr_color" "${cat^}" "$reset_color"
+    if [ -d "$dir" ]; then
+      # List files (non-recursive) sorted by mtime desc
+      local lines
+      lines="$(find "$dir" -maxdepth 1 -type f -printf '%T@\t%f\t%s\n' 2>/dev/null | sort -nr || true)"
+      if [ -z "$lines" ]; then
+        echo '(none)'
+      else
+        while IFS=$'\t' read -r epoch fname size; do
+          [ -z "$fname" ] && continue
+          local ts size_h
+          ts="$(date -d @"${epoch%%.*}" '+%Y-%m-%d %H:%M:%S')"
+          if [ "$size" -ge 1073741824 ]; then size_h="$(( size / 1073741824 ))G"; elif [ "$size" -ge 1048576 ]; then size_h="$(( size / 1048576 ))M"; elif [ "$size" -ge 1024 ]; then size_h="$(( size / 1024 ))K"; else size_h="${size}B"; fi
+          printf '%-8s  %s  %s\n' "$size_h" "$ts" "$fname"
+        done <<<"$lines"
+      fi
+    else
+      echo '(dir missing)'
+    fi
+  done
+}
+
+case "$subcmd" in
+  status) list_services ;;
+  logs) compose_exec logs "$@" ;;
+  restart) compose_exec restart "$@" ;;
+  recreate)
+    if [ $# -eq 0 ]; then
+      compose_exec up -d --force-recreate
+    else
+      compose_exec up -d --force-recreate "$@"
+    fi
+    ;;
+  backup)
+    backup_usage() {
+      cat <<'BHELP'
+otctl backup USAGE:
+  otctl backup all            # run full backup tag (default)
+  otctl backup                # show this help
+  otctl backup dump           # controller + keycloak DB dumps
+  otctl backup dump controller# only controller DB dump
+  otctl backup dump keycloak  # only keycloak DB dump
+  otctl backup config         # only config backup
+  otctl backup volume         # all configured volumes
+  otctl backup volume opentalk_minio   # single volume by name
+  otctl backup cron           # cron-related dump tasks (if defined)
+  otctl backup clean          # apply retention policy
+  otctl backup ls             # list existing backup artifacts
+  (advanced) otctl backup --tags <custom>
+BHELP
+    }
+    mode="${1:-}"; [ $# -gt 0 ] && shift || true
+    if [ -z "$mode" ] || [[ "$mode" == help ]] || [[ "$mode" == --help ]] || [[ "$mode" == -h ]]; then
+      backup_usage; exit 0
+    fi
+    tags_arg="backup"
+    case "$mode" in
+      all|backup) tags_arg="backup" ;;
+      ls) backup_list; exit $? ;;
+      cron) tags_arg="controller_db_dump_cron" ;;
+  clean|prune) tags_arg="backup_retention" ;;
+      dump)
+        # Optional qualifier
+        qualifier="${1:-}"; if [ -n "$qualifier" ]; then
+          case "$qualifier" in
+            controller|ctrl) tags_arg="controller_db_dump"; shift || true ;;
+            keycloak|kc) tags_arg="keycloak_db_dump"; shift || true ;;
+            *) tags_arg="controller_db_dump,keycloak_db_dump" ;;
+          esac
+        else
+          tags_arg="controller_db_dump,keycloak_db_dump"
+        fi
+        ;;
+  controller|dump-controller) tags_arg="controller_db_dump" ;;
+  keycloak|dump-keycloak) tags_arg="keycloak_db_dump" ;;
+      volume)
+        # Optional single volume argument
+        if [ -n "${1:-}" ] && [[ "${1:-}" != -* ]]; then
+          single_vol="$1"; shift || true
+          # Build JSON for extra var; try to detect if already prefixed with compose project
+          if [[ "$single_vol" != ${OT_COMPOSE_PROJECT:-opentalk}_* ]]; then
+            # Accept raw provided; assume user knows full name
+            :
+          fi
+          extra_vol_json=$(printf '{"backup_docker_volume_list": ["%s"]}' "$single_vol")
+          export OTCTL_BACKUP_EXTRA_VARS="$extra_vol_json"
+        fi
+        tags_arg="docker_volumes_backup" ;;
+  config|cfg) tags_arg="config_backup" ;;
+      *)
+        # passthrough (assume user wants to supply custom args, keep mode in argv)
+        set -- "$mode" "$@"; tags_arg="backup" ;;
+    esac
+    if [ -n "${OTCTL_BACKUP_EXTRA_VARS:-}" ]; then
+      PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --tags "$tags_arg" -e "$OTCTL_BACKUP_EXTRA_VARS" "$@"
+    else
+      PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --tags "$tags_arg" "$@"
+    fi
+    ;;
+  tags) list_tags ;;
+  volumes) volumes_cmd "$@" ;;
+  deploy) PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --diff "$@" ;;
+  up) compose_exec up -d "$@" ;;
+  down) compose_exec down "$@" ;;
+  ps) compose_exec ps "$@" ;;
+  version) print_versions ;;
+  undeploy)
+    # Stop containers if compose.yml still exists
+    if [ -f "$PREFIX/compose.yml" ]; then
+      compose_exec down || true
+    else
+      echo "[otctl] compose.yml not present; skipping container shutdown" >&2
+    fi
+    # Remove compose.yml
+    if [ -f "$PREFIX/compose.yml" ]; then
+      log_cmd rm -f "$PREFIX/compose.yml"
+      rm -f "$PREFIX/compose.yml" || true
+    fi
+    # Remove services directory contents (but keep directory itself)
+    if [ -d "$SERVICES_DIR" ]; then
+      # Enable nullglob to avoid literal * when empty
+      shopt -s nullglob 2>/dev/null || true
+      svc_entries=("$SERVICES_DIR"/*)
+      if [ ${#svc_entries[@]} -gt 0 ]; then
+        log_cmd rm -rf "${svc_entries[@]}"
+        rm -rf "${svc_entries[@]}" || true
+      else
+        echo "[otctl] services directory empty: $SERVICES_DIR" >&2
+      fi
+      shopt -u nullglob 2>/dev/null || true
+    else
+      echo "[otctl] services directory not found: $SERVICES_DIR" >&2
+    fi
+    ;;
+  compose) compose_exec "$@" ;;
+  playbook) PLAYBOOK_WRAPPER "$@" ;;
+  -h|--help|help) usage; exit 0 ;;
+  "") usage_short; exit 0 ;;
+  *) echo "[otctl] Unknown subcommand: $subcmd" >&2; usage_short; exit 1 ;;
+esac

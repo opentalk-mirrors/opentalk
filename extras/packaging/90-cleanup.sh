@@ -1,104 +1,128 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-# Cleanup for build artifacts.
-# Default: removes embedded/, vendor/, collections_dist/, pkgroot/, debroot/, .lockenv, license report.
-# Keeps: wheelhouse (cache), portable python runtime (build/python), package artifacts.
+#
+# Cleanup build artifacts and temporary files
+#
+# Usage:
+#   bash extras/packaging/90-cleanup.sh [options]
 #
 # Options:
-#   --all             Remove everything under build/ (incl. wheelhouse, python, artifacts)
-#   --rm-wheelhouse   Also remove build/wheelhouse
-#   --rm-python       Also remove build/python
-#   --rm-artifacts    Remove package artifacts (*.deb, *.rpm)
-#   --dry-run         Show what would be removed
-#   -y                No confirmation prompt
-#   --verbose         Verbose output
-#   -h|--help         Show this help
+#   --all, -a          Remove everything (build + artifacts + loose files)
+#   --artifacts        Remove only artifacts directory and loose packages
+#   --build-only       Remove only build directory
+#   --help, -h         Show this help
+#   -y                 Skip confirmation prompts
+#
+# Default: Remove build directory only (preserve artifacts)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-BUILD="$ROOT/build"
+FORCE=0
+MODE="standard"
 
-ALL=false
-DRY=false
-YES=false
-VERBOSE=false
-KEEP_WHL=true
-KEEP_ARTIFACTS=true
-KEEP_PYTHON=true
+show_help() {
+  cat << EOF
+Cleanup build artifacts and temporary files
+
+Usage: $(basename "$0") [options]
+
+Options:
+  --all, -a          Remove everything (build + artifacts + loose files)
+  --artifacts        Remove only artifacts directory and loose packages
+  --build-only       Remove only build directory (default)
+  --help, -h         Show this help
+  -y                 Skip confirmation prompts
+
+Examples:
+  $(basename "$0")              # Standard cleanup (build/ only)
+  $(basename "$0") --all -y     # Remove everything without prompts
+  $(basename "$0") --artifacts  # Clean artifacts but keep build cache
+EOF
+}
+
+cleanup_artifacts() {
+  echo "[cleanup] Removing build artifacts..."
+  if [[ -d "$ROOT/artifacts" ]]; then
+    rm -rf "$ROOT/artifacts"
+    echo "[cleanup] - Removed artifacts/"
+  fi
+  
+  local found=0
+  for pattern in "*.deb" "*.rpm" "*.tar.gz" "*.tar.xz"; do
+    if compgen -G "$ROOT/$pattern" >/dev/null 2>&1; then
+      rm -f "$ROOT"/$pattern
+      echo "[cleanup] - Removed $pattern files"
+      found=1
+    fi
+  done
+  
+  [[ $found -eq 0 ]] && echo "[cleanup] - No loose package files found"
+  echo "[cleanup] Artifacts cleanup completed"
+}
+
+cleanup_build() {
+  echo "[cleanup] Removing build directory..."
+  if [[ -d "$ROOT/build" ]]; then
+    rm -rf "$ROOT/build"
+    echo "[cleanup] - Removed build/"
+  else
+    echo "[cleanup] - No build directory found"
+  fi
+  echo "[cleanup] Build cleanup completed"
+}
+
+cleanup_all() {
+  echo "[cleanup] Full cleanup (build + artifacts + loose files)..."
+  cleanup_build
+  cleanup_artifacts
+  echo "[cleanup] Full cleanup completed"
+}
+
+confirm() {
+  local message="$1"
+  if [[ $FORCE -eq 1 ]]; then
+    return 0
+  fi
+  
+  echo -n "$message [y/N]: "
+  read -r response
+  case "$response" in
+    [yY]|[yY][eE][sS]) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
 while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --all) ALL=true; KEEP_WHL=false; KEEP_ARTIFACTS=false; KEEP_PYTHON=false ;;
-    --rm-wheelhouse) KEEP_WHL=false ;;
-    --rm-python) KEEP_PYTHON=false ;;
-    --rm-artifacts) KEEP_ARTIFACTS=false ;;
-    --dry-run) DRY=true ;;
-    -y) YES=true ;;
-    --verbose) VERBOSE=true ;;
-    -h|--help)
-      grep -E '^#( |$)' "$0" | sed 's/^# \{0,1\}//'
-      exit 0
-      ;;
-    *) echo "Unknown option: $1" >&2; exit 2 ;;
+  case $1 in
+    --all|-a) MODE="all"; shift ;;
+    --artifacts) MODE="artifacts"; shift ;;
+    --build-only) MODE="build"; shift ;;
+    -y) FORCE=1; shift ;;
+    --help|-h) show_help; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; echo "Use --help for usage information" >&2; exit 1 ;;
   esac
-  shift
 done
 
-[[ -d "$BUILD" ]] || { echo "Nothing to do: $BUILD does not exist."; exit 0; }
-shopt -s nullglob
+case $MODE in
+  all)
+    echo "[cleanup] Will remove: build/ + artifacts/ + loose packages"
+    confirm "Proceed with full cleanup?" || exit 0
+    cleanup_all
+    ;;
+  artifacts)
+    echo "[cleanup] Will remove: artifacts/ + loose packages (preserving build/)"
+    confirm "Proceed with artifacts cleanup?" || exit 0
+    cleanup_artifacts
+    ;;
+  build)
+    echo "[cleanup] Will remove: build/ (preserving artifacts/)"
+    confirm "Proceed with build cleanup?" || exit 0
+    cleanup_build
+    ;;
+  standard)
+    echo "[cleanup] Standard cleanup: build/ only (preserving artifacts/)"
+    confirm "Proceed with standard cleanup?" || exit 0
+    cleanup_build
+    ;;
+esac
 
-paths=(
-  "$BUILD/embedded"
-  "$BUILD/vendor"
-  "$BUILD/collections_dist"
-  "$BUILD/pkgroot"
-  "$BUILD/debroot"
-  "$BUILD/.lockenv"
-  "$BUILD/THIRD_PARTY_LICENSES.txt"
-)
-
-# Artifacts
-if ! $KEEP_ARTIFACTS; then
-  for f in "$BUILD"/*.deb "$BUILD"/*.rpm; do
-    paths+=("$f")
-  done
-fi
-
-# Wheelhouse
-$KEEP_WHL || paths+=("$BUILD/wheelhouse")
-# Portable Python
-$KEEP_PYTHON || paths+=("$BUILD/python")
-
-to_delete=()
-for p in "${paths[@]}"; do
-  [[ -e "$p" ]] && to_delete+=("$p")
-done
-
-if [[ ${#to_delete[@]} -eq 0 ]]; then
-  echo "No paths to delete (based on options)."
-  exit 0
-fi
-
-echo "Will remove:"
-for p in "${to_delete[@]}"; do
-  echo "  - $p"
-done
-
-$DRY && { echo "(dry-run) Nothing removed."; exit 0; }
-
-if ! $YES; then
-  read -r -p "Proceed? [y/N] " ans
-  [[ "${ans,,}" =~ ^y(es)?$ ]] || { echo "Aborted."; exit 1; }
-fi
-
-for p in "${to_delete[@]}"; do
-  $VERBOSE && echo "Removing: $p"
-  rm -rf --one-file-system -- "$p"
-done
-
-if $ALL; then
-  $VERBOSE && echo "Removing remaining contents in $BUILD"
-  find "$BUILD" -mindepth 1 -maxdepth 1 -exec rm -rf --one-file-system -- {} +
-fi
-
-echo "Cleanup completed."
+echo "[cleanup] Cleanup completed successfully"

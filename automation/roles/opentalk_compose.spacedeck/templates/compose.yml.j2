@@ -1,0 +1,92 @@
+services:
+  spacedeck:
+    image: "{{ spacedeck_docker_image_src }}:{{ spacedeck_version }}"
+{% if spacedeck_docker_extra_hosts is defined and spacedeck_docker_extra_hosts %}
+    extra_hosts:
+{% for eh in spacedeck_docker_extra_hosts %}
+      - "{{ eh }}"
+{% endfor %}
+{% endif %}
+{% if spacedeck_docker_ports is defined and spacedeck_docker_ports %}
+    ports:
+{% for port in spacedeck_docker_ports %}
+      - "{{ port }}"
+{% endfor %}
+{% endif %}
+    restart: always
+    environment:
+      SD_HOST: {{ spacedeck_docker_environment_sd_host }}
+      SD_PORT: {{ spacedeck_docker_environment_sd_port }}
+      SD_ENDPOINT: {{ spacedeck_docker_environment_sd_endpoint }}
+      SD_API_TOKEN: {{ spacedeck_docker_environment_sd_api_token }}
+      SD_INVITE_CODE: {{ spacedeck_docker_environment_sd_invite_code }}
+      PREFIX: {{ spacedeck_docker_environment_prefix }}
+{% if custom_certificates_enabled is defined and custom_certificates_enabled is true %}
+{% if custom_ca_enabled is defined and custom_ca_enabled is true %}
+      NODE_EXTRA_CA_CERTS: /usr/local/share/ca-certificates/{{custom_certificates_ssl_ca_file}}
+{% endif %}
+{% endif %}
+    networks:
+      -  {{ docker_network_name }}
+    secrets:
+      - spacedeck_api_secret
+      - spacedeck_invite_secret
+{% if custom_certificates_enabled is defined and custom_certificates_enabled is true %}
+{% elif custom_ca_enabled is defined and custom_ca_enabled is true %}
+    volumes:
+      - /opt/opentalk-compose{{ custom_certificates.certs_dir }}/{{custom_certificates.ssl_ca_file }}:/usr/local/share/ca-certificates/{{custom_certificates.ssl_ca_file }}
+    command: >
+      sh -c '
+      update-ca-certificates || true;
+      apt-get update && apt-get install -y libnss3-tools;
+      node -e "require('\''puppeteer'\'').launch({args:['\''--no-sandbox'\'']}).then(async b => { try { const p = await b.newPage(); await p.goto('\''https://localhost'\''); await b.close(); } catch(e) { process.exit(0); } }).catch(() => process.exit(0))";
+      certutil -A -d sql:/root/.pki/nssdb -n custom_ca -t "C,," -i /usr/local/share/ca-certificates/{{CustomCertificates.ssl_ca_file}};
+      SD_API_TOKEN=$(cat /run/secrets/spacedeck_api_secret)
+      SD_INVITE_CODE=$(cat /run/secrets/spacedeck_invite_secret)
+      node spacedeck.js'
+{% else %}
+    command: >
+      sh -c "
+      SD_API_TOKEN=$(cat /run/secrets/spacedeck_api_secret) 
+      SD_INVITE_CODE=$(cat /run/secrets/spacedeck_invite_secret) 
+      node spacedeck.js"
+{% endif %}
+    labels:
+      - "traefik.enable={{ spacedeck_docker_labels_traefik_enable | to_json }}"
+      - "traefik.http.routers.spacedeck.rule=Host(`{{ ot_domain }}`) \
+        && (PathPrefix(`/whiteboard`) \
+        || PathPrefix(`/spaces`) \
+        || PathPrefix(`/javascripts`) \
+        || PathPrefix(`/images`) \
+        || PathPrefix(`/stylesheets`) \
+        || PathPrefix(`/socket`) \
+        || PathPrefix(`/api/users/current`) \
+        || PathPrefix(`/api/sessions/current`) \
+        || PathPrefix(`/api/spaces`) \
+        || PathPrefix(`/fonts/`))"
+      - "traefik.http.services.spacedeck.loadbalancer.server.port=9666"
+      - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/whiteboard"
+      - "traefik.http.routers.spacedeck.middlewares=strip-prefix"
+{% if custom_certificates_enabled %}
+      - "traefik.http.routers.spacedeck.tls=true"
+{% endif %}
+      - "traefik.http.routers.spacedeck.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+{% if traefik_letsencrypt_enable %}
+      - "traefik.http.routers.spacedeck.tls.certresolver=letsencrypt"
+{% endif %}     
+    healthcheck:
+      test:
+      - "CMD-SHELL"
+      - |
+        perl -MIO::Socket::INET -e 'my $$sock = IO::Socket::INET->new(PeerAddr => "localhost:9666", Proto => "tcp") or exit 1; 
+        print $$sock "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n"; my $$response = <$$sock>; exit ($$response =~ /200 OK/ ? 0 : 1);'
+
+secrets:
+  spacedeck_api_secret:
+    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.spacedeck_api.secret
+  spacedeck_invite_secret:
+    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.spacedeck_invite.secret
+
+networks:
+  {{ docker_network_name }}:
+    external: true

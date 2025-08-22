@@ -1,0 +1,10 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for opentalk_compose.opentalk_obelisk
+- name: "Restart Docker Service OpenTalk Obelisk"
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_dir }}/opentalk-obelisk"
+    files:
+      - compose.yml
+    recreate: never
+    state: restarted

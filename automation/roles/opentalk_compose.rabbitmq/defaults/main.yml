@@ -1,0 +1,14 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for opentalk_compose.rabbitmq
+rabbitmq_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+rabbitmq_docker_compose_services_state: "{{ compose_service_rabbitmq_state | default('present') }}"
+rabbitmq_docker_compose_services_dir: "{{ services_dir }}"
+rabbitmq_docker_compose_project_src: "{{ deploy_dir }}"
+
+rabbitmq_docker_image_src: rabbitmq
+
+rabbitmq_default_vhost: "/"
+rabbitmq_default_user: ot
+rabbitmq_default_pass: "{{ RABBITMQ_PASSWORD }}"
+rabbitmq_management_path_prefix: "/adm/rabbitmq"

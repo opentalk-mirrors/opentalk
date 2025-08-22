@@ -1,0 +1,146 @@
+---
+# Prune old backups according to retention policy.
+# Removes files older than backup_retention_max_age_days OR exceeding backup_retention_max_items (per category).
+
+- name: Find all backup artifacts (dumps)
+  ansible.builtin.find:
+    paths: "{{ backup_dir_sql_dumps }}"
+    patterns: "*.sql,*.sql.gz"
+    recurse: no
+  register: found_sql
+  failed_when: false
+  tags: [backup, backup_retention]
+
+- name: Find all volume archives
+  ansible.builtin.find:
+    paths: "{{ backup_dir_volumes }}"
+    patterns: "*.tar,*.tar.gz"
+    recurse: no
+  register: found_vols
+  failed_when: false
+  tags: [backup, backup_retention]
+
+- name: Find all config archives
+  ansible.builtin.find:
+    paths: "{{ backup_dir_config }}"
+    patterns: "*.tar,*.tar.gz"
+    recurse: no
+  register: found_cfg
+  failed_when: false
+  tags: [backup, backup_retention]
+
+- name: Set retention cut timestamp
+  ansible.builtin.set_fact:
+    _retention_cut: "{{ (ansible_date_time.epoch | int) - (backup_retention_max_age_days * 86400) }}"
+  tags: [backup, backup_retention]
+
+- name: Build deletion list (age based)
+  ansible.builtin.set_fact:
+    _delete_age: >-
+      {{ (found_sql.files + found_vols.files + found_cfg.files) | selectattr('mtime', '<', _retention_cut) | map(attribute='path') | list }}
+  tags: [backup, backup_retention]
+
+- name: Compute keep lists ordered by mtime desc (per dump type)
+  ansible.builtin.set_fact:
+    _keep_sql_controller: >-
+      {{ (
+          found_sql.files
+          | selectattr('path','search','controller-')
+          | sort(attribute='mtime', reverse=True)
+        )[:backup_retention_max_items] | map(attribute='path') | list }}
+    _keep_sql_keycloak: >-
+      {{ (
+          found_sql.files
+          | selectattr('path','search','keycloak-')
+          | sort(attribute='mtime', reverse=True)
+        )[:backup_retention_max_items] | map(attribute='path') | list }}
+    _keep_cfg: "{{ (found_cfg.files | sort(attribute='mtime', reverse=True))[:backup_retention_max_items] | map(attribute='path') | list }}"
+  tags: [backup, backup_retention]
+
+- name: Init volume groups map
+  ansible.builtin.set_fact:
+    vol_groups: {}
+  when: found_vols.files is defined
+  tags: [backup, backup_retention]
+
+- name: Group volume backups by volume name
+  vars:
+    fname: "{{ item.path | basename }}"
+    vol_name: "{{ fname | regex_replace('-([0-9]{14}|[0-9]{8}-[0-9]{6})\\.tar\\.gz$','') }}"
+  ansible.builtin.set_fact:
+    vol_groups: >-
+      {{ vol_groups | combine({ vol_name: ((vol_groups[vol_name] | default([])) + [ {'path': item.path, 'mtime': item.mtime } ]) }) }}
+  loop: "{{ found_vols.files | default([]) }}"
+  when: fname is match('.*-([0-9]{14}|[0-9]{8}-[0-9]{6})\\.tar\\.gz$')
+  loop_control:
+    label: "{{ vol_name }}"
+  tags: [backup, backup_retention]
+
+- name: Debug volume filenames (sample)
+  ansible.builtin.debug:
+    msg: "Volume backup basenames: {{ (found_vols.files | map(attribute='path') | map('basename') | list)[:10] }}"
+  when: found_vols.files is defined
+  tags: [backup, backup_retention]
+
+- name: Init per-volume retention lists
+  ansible.builtin.set_fact:
+    _keep_vols_list: []
+    _delete_over_vols: []
+  tags: [backup, backup_retention]
+
+- name: Compute per-volume keep & delete lists
+  ansible.builtin.set_fact:
+    _keep_vols_list: "{{ _keep_vols_list + (sorted_list[:backup_retention_max_items] | map(attribute='path') | list) }}"
+    _delete_over_vols: "{{ _delete_over_vols + (sorted_list[backup_retention_max_items:] | map(attribute='path') | list) }}"
+  vars:
+    sorted_list: "{{ (vol_groups[item] | sort(attribute='mtime', reverse=True)) }}"
+  loop: "{{ vol_groups.keys() | list }}"
+  loop_control:
+    label: "{{ item }}"
+  when: vol_groups is defined and vol_groups | length > 0
+  tags: [backup, backup_retention]
+
+- name: Debug volume group stats
+  ansible.builtin.debug:
+    msg: >-
+      Volume groups found: {{ vol_groups.keys() | list }} (total {{ vol_groups | length }})
+  when: vol_groups is defined
+  tags: [backup, backup_retention]
+
+- name: Build deletion list (exceed count per category)
+  ansible.builtin.set_fact:
+    _delete_over: >-
+      {{ (
+          (
+            found_sql.files | selectattr('path','search','controller-') | sort(attribute='mtime', reverse=True)
+          )[backup_retention_max_items:] | map(attribute='path') | list
+          + (
+            found_sql.files | selectattr('path','search','keycloak-') | sort(attribute='mtime', reverse=True)
+          )[backup_retention_max_items:] | map(attribute='path') | list
+          + (_delete_over_vols | default([]))
+          + (found_cfg.files | sort(attribute='mtime', reverse=True))[backup_retention_max_items:] | map(attribute='path') | list
+        ) }}
+  tags: [backup, backup_retention]
+
+- name: Aggregate deletion list
+  ansible.builtin.set_fact:
+    _delete_final: "{{ (_delete_age + _delete_over) | unique | list }}"
+  tags: [backup, backup_retention]
+
+- name: Remove old backups
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ _delete_final }}"
+  when: _delete_final | length > 0
+  tags: [backup, backup_retention]
+
+- name: Debug retention result
+  ansible.builtin.debug:
+    msg: |
+      Retention removed {{ _delete_final | length }} files; kept
+        controller_dumps={{ _keep_sql_controller | length }}
+        keycloak_dumps={{ _keep_sql_keycloak | length }}
+        volumes_total={{ _keep_vols_list | length }}
+        config={{ _keep_cfg | length }}
+  tags: [backup, backup_retention]

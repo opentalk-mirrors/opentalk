@@ -1,0 +1,44 @@
+---
+- name: Determine latest backup per volume
+  ansible.builtin.command: bash -c 'ls -1t {{ backup_dir_volumes }}/{{ item }}-*.tar.gz 2>/dev/null | head -n1'
+  register: volume_backups
+  loop: "{{ backup_docker_volume_list }}"
+  changed_when: false
+
+- name: Build list of volumes to restore
+  ansible.builtin.set_fact:
+    restore_items: "{{ restore_items | default([]) + [ {'volume': item.item, 'archive': (item.stdout | basename)} ] }}"
+  when: item.stdout != ''
+  loop: "{{ volume_backups.results }}"
+  changed_when: false
+
+- name: Skip if no backups present
+  ansible.builtin.meta: end_play
+  when: restore_items | default([]) | length == 0
+
+- name: Ensure Docker volumes
+  ansible.builtin.command: docker volume create {{ item.volume }}
+  loop: "{{ restore_items }}"
+  register: created_vols
+  changed_when: "'Created' in created_vols.stdout"
+
+- name: Restore volume contents from backups
+  ansible.builtin.command: >
+    docker run --rm
+    -v {{ item.volume }}:/restore
+    -v {{ backup_dir_volumes }}:/backup:ro
+    alpine sh -c "rm -rf /restore/* && tar xzf /backup/{{ item.archive }} -C /restore"
+  loop: "{{ restore_items }}"
+  changed_when: true
+
+- name: Selectively restore specified files
+  ansible.builtin.command: >
+    docker run --rm
+    -v {{ item.volume }}:/restore
+    -v {{ backup_dir_volumes }}:/backup:ro
+    alpine sh -c "rm -rf /restore/* && tar xzf /backup/{{ item.archive }} -C /restore {{ backup_docker_volume_restore_files | join(' ') }}"
+  loop: "{{ restore_items }}"
+  when:
+    - backup_docker_volume_restore_files is defined
+    - backup_docker_volume_restore_files | length > 0
+  changed_when: true

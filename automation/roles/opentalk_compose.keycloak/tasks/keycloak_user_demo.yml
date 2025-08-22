@@ -1,0 +1,22 @@
+---
+- name: "Create a user for testing purposes | name: {{ postInstall_demoUser_name | default('Test User') }}"
+  community.general.keycloak_user:
+    auth_keycloak_url: "{{ keycloak_base_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_auth_username }}"
+    auth_password: "{{ keycloak_auth_password }}"
+    realm: "{{ keycloak_realm }}"
+    username: "{{ postInstall_demoUser_name | default('demo') }}"
+    firstName: "{{ postInstall_demoUser_firstName | default('Test') }}"
+    lastName: "{{ postInstall_demoUser_lastName | default('User') }}"
+    email: "{{ postInstall_demoUser_email | default('demo.user@localhost') }}"
+    enabled: "{{ postInstall_demoUser_enabled | default(true) }}"
+    emailVerified: true
+    credentials:
+        - type: password
+          value: "{{ postInstall_demoUser_password }}"
+          temporary: false
+    state: "{{ postInstall_demoUser_state }}"
+  tags:
+    - never
+    - demo_user

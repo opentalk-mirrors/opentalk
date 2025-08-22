@@ -1,0 +1,9 @@
+collections:
+  - name: community.general
+    version: ">=11.2"
+
+  - name: community.docker
+    version: ">=4.7"
+
+  - name: ansible.posix
+    version: ">=2.1"

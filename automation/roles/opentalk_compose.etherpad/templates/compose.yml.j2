@@ -1,0 +1,46 @@
+services:
+  etherpad:
+    image: "{{ etherpad_docker_image_src }}:{{ etherpad_version }}"
+{% if etherpad_docker_extra_hosts is defined and etherpad_docker_extra_hosts %}
+    extra_hosts:
+{% for eh in etherpad_docker_extra_hosts %}
+      - "{{ eh }}"
+{% endfor %}
+{% endif %}
+{% if etherpad_docker_ports is defined and etherpad_docker_ports %}
+    ports:
+{% for port in etherpad_docker_ports %}
+      - "{{ port }}"
+{% endfor %}
+{% endif %}
+    restart: always
+    networks:
+      -  {{ docker_network_name }}
+    environment:
+      TRUST_PROXY: {{ etherpad_docker_environment_trust_proxy | to_json }}
+      DEFAULT_PAD_TEXT: {{ etherpad_docker_environment_default_pad_text }}
+      SUPPRESS_ERRORS_IN_PAD_TEXT: {{ etherpad_docker_environment_suppress_errors_in_pad_text | to_json }}
+    secrets:
+      - source: etherpad_api_secret
+        target: /opt/etherpad-lite/APIKEY.txt
+    entrypoint: [ "pnpm", "run", "prod"]
+    user: root
+    labels:
+      - "traefik.enable={{ etherpad_docker_labels_traefik_enable | to_json }}"
+      - "traefik.http.routers.etherpad.rule={{ etherpad_docker_labels_traefik_http_routers_etherpad_rule}}"
+      - "traefik.http.routers.etherpad.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+{% if traefik_letsencrypt_enable %}
+      - "traefik.http.routers.etherpad.tls.certresolver=letsencrypt"
+{% endif %} 
+      - "traefik.http.routers.etherpad.priority=100"
+      - "traefik.http.routers.etherpad.middlewares=etherpad-strip"
+      - "traefik.http.middlewares.etherpad-strip.stripprefix.prefixes=/etherpad"
+      - "traefik.http.services.etherpad.loadbalancer.server.port=9001"
+
+secrets:
+  etherpad_api_secret:
+    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.etherpad_api.secret
+
+networks:
+  {{ docker_network_name }}:
+    external: true

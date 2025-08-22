@@ -1,0 +1,35 @@
+services:
+  rabbitmq:
+    image: "{{ rabbitmq_docker_image_src }}:{{ rabbitmq_version }}"
+    restart: always
+    networks:
+      - {{ docker_network_name }}
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
+      - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q status && rabbitmq-diagnostics -q alarms
+      interval: 30s
+      timeout: 15s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rabbitmq.rule=Host(`{{ ot_domain }}`) && PathPrefix(`{{ rabbitmq_management_path_prefix }}`)"
+      - "traefik.http.routers.rabbitmq.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+{% if traefik_letsencrypt_enable %}
+      - "traefik.http.routers.rabbitmq.tls.certresolver=letsencrypt"
+{% endif %}
+      - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
+      #- "traefik.http.routers.rabbitmq.middlewares=rabbitmq-stripprefix"
+      #- "traefik.http.middlewares.rabbitmq-stripprefix.stripprefix.prefixes={{ rabbitmq_management_path_prefix }}"
+
+secrets:
+  rabbitmq_default_password:
+    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.rabbitmq_default.secret
+
+volumes:
+  rabbitmq:
+
+networks:
+  {{ docker_network_name }}:
+    external: true

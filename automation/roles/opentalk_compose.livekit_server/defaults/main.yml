@@ -1,0 +1,43 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for opentalk_compose.livekit_server
+livekit_server_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+livekit_server_docker_compose_services_state: "{{ compose_service_livekit_server_state | default('present') }}"
+livekit_server_docker_compose_services_dir: "{{ services_dir }}"
+livekit_docker_compose_project_src: "{{ deploy_dir }}"
+
+livekit_docker_image_src: livekit/livekit-server
+
+livekit_port: 7880
+livekit_rtc_tcp_port: 7881
+livekit_rtc_port_range_start: 50000
+livekit_rtc_port_range_end: 64535
+livekit_rtc_use_external_ip: "true"
+livekit_rtc_enable_loopback_candidate: "false"
+livekit_api_key_controller: "{{ LIVEKIT_API_SECRET }}"
+# livekit_stun_servers:
+#   - turn.opentalk.run:443
+# livekit_turn_servers:
+#   - host: turn.opentalk.run
+#     port: 443
+#     protocol: tls
+#     username: "opentalk"
+#     credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
+#   - host: turn.opentalk.run
+#     port: 443
+#     protocol: tcp
+#     username: "opentalk"
+#     credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
+#   - host: turn.opentalk.run
+#     port: 443
+#     protocol: udp
+#     username: "opentalk"
+#     credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
+# livekit_turn_embedded_enabled: "false"
+# livekit_turn_embedded_domain: meet-lk1-turn.opentalk.eu
+# livekit_turn_embedded_tls_port: 5349
+# livekit_turn_embedded_udp_port: 3478
+# livekit_turn_embedded_external_tls: true
+# livekit_prometheus_port: 6789
+# livekit_logging_json: "false"
+# livekit_logging_level: info

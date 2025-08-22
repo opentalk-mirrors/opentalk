@@ -1,0 +1,9 @@
+---
+
+- name: Ensure Etherpad Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ etherpad_docker_compose_services_dir }}"
+    - "{{ etherpad_docker_compose_services_dir }}/etherpad"

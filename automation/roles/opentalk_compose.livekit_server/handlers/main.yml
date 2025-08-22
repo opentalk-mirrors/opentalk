@@ -1,0 +1,11 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for opentalk_compose.livekit_server
+
+- name: "Restart Docker service LiveKit"
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_dir }}/livekit-server"
+    files:
+      - compose.yml
+    recreate: never
+    state: restarted

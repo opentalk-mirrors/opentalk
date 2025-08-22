@@ -1,0 +1,23 @@
+---
+- name: "Create a OIDC client for OpenTalk Outlook Add-in | {{ outlook_add_in_oidc_client_id | default('OutlookAddin') }}"
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ keycloak_base_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_auth_username }}"
+    auth_password: "{{ keycloak_auth_password }}"
+    realm: "{{ keycloak_realm }}"
+    client_id: "{{ outlook_add_in_oidc_client_id | default('OutlookAddin') }}"
+    name: "{{ outlook_add_in_oidc_client_id | default('OutlookAddin') }}"
+    description: "OpenTalk Outlook Add-in OIDC client"
+    enabled: true
+    state: present
+    public_client: true
+    standard_flow_enabled: false
+    direct_access_grants_enabled: false
+    client_authenticator_type: client-secret
+    implicit_flow_enabled: false
+    protocol: openid-connect
+    attributes:
+      oauth2.device.authorization.grant.enabled: "true"
+      access.token.lifespan: "1800"
+      use.refresh.tokens: "true"

@@ -19,3 +19,64 @@ For customized setups or special requirements, refer to the [Advanced Installati
 [6. Local Development Environment](docs/6-local-dev-environment.md)
 
 
+```
+/opt/opentalk-compose/
+├── bin/                           # CLI Tools (User-facing)
+│   ├── ot-stack                   # Haupt-CLI für Stack-Management
+│   ├── ot-deploy                  # Deployment-Wrapper
+│   └── ot-manage                  # Management-Befehle
+├── config -> /etc/opentalk-compose # Symlink (bleibt)
+├── automation/                    # Ansible Automation Code
+│   ├── playbooks/
+│   │   ├── site.yml               # Haupt-Deployment
+│   │   ├── deploy-stack.yml       # OpenTalk Stack Deployment
+│   │   ├── generate-compose.yml   # Compose Template Rendering
+│   │   └── manage/
+│   │       ├── backup.yml
+│   │       ├── restore.yml
+│   │       └── cleanup.yml
+│   ├── roles/                     # Ansible Roles
+│   │   ├── opentalk_stack/        # Main Stack Role
+│   │   ├── compose_generator/     # Template → compose.yaml
+│   │   ├── container_runtime/     # Docker/Podman Detection
+│   │   └── monitoring/
+│   ├── inventory/                 # Default Inventories
+│   │   ├── local.yml
+│   │   └── templates/
+│   │       ├── production.yml
+│   │       └── staging.yml
+│   ├── templates/                 # Jinja2 Templates
+│   │   ├── compose/
+│   │   │   ├── base.compose.yml.j2
+│   │   │   ├── backend.compose.yml.j2
+│   │   │   ├── frontend.compose.yml.j2
+│   │   │   └── monitoring.compose.yml.j2
+│   │   ├── config/
+│   │   │   ├── traefik.yml.j2
+│   │   │   └── env.j2
+│   │   └── systemd/
+│   │       └── opentalk-stack.service.j2
+│   └── vars/                      # Variable Files
+│       ├── defaults.yml
+│       ├── docker.yml
+│       └── podman.yml
+├── runtime/                       # Embedded Ansible Runtime
+│   ├── .venv/                     # Python Virtual Environment
+│   ├── .python/                   # Portable Python (optional)
+│   ├── collections/               # Ansible Collections
+│   ├── ansible.cfg                # Ansible Configuration
+│   └── build_assets/              # Self-heal Assets
+├── compose/                       # Generated Compose Files (Target)
+│   ├── docker-compose.yml         # Generated main file
+│   ├── docker-compose.override.yml
+│   └── .env                       # Generated environment
+├── data/                          # Persistent Data Mount Point
+│   ├── postgresql/
+│   ├── redis/
+│   └── uploads/
+├── logs/                          # Log Directory
+└── docs/                          # Documentation
+    ├── README.md
+    ├── deployment-guide.md
+    └── configuration.md
+```

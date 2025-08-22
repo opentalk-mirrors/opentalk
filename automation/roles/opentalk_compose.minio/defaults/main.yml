@@ -1,0 +1,14 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for opentalk_compose.minio
+minio_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+minio_docker_compose_services_state: "{{ compose_service_minio_state | default('present') }}"
+minio_docker_compose_services_dir: "{{ services_dir }}"
+minio_docker_compose_project_src: "{{ deploy_dir }}"
+
+minio_docker_image_src: minio/minio
+
+minio_bucket_name: opentalk
+
+#minio_docker_label_http_routers_minio_console_middlewares: "minio-stripprefix, default-auth@file"
+minio_docker_label_http_routers_minio_console_middlewares: "minio-stripprefix"

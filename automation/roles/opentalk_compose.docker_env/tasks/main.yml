@@ -1,0 +1,12 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for opentalk_compose.docker_env
+
+- name: Include manage_docker_network.yml tasks
+  import_tasks: manage_docker_network.yml
+
+- name: Include manage_main_compose.yml tasks
+  import_tasks: manage_main_compose.yml
+
+- name: Include manage_service_state.yml tasks
+  import_tasks: manage_service_state.yml

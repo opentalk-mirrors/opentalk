@@ -1,0 +1,28 @@
+---
+- name: Keycloak Compose path include
+  ansible.builtin.blockinfile:
+    path: "{{ deploy_dir }}/compose.yml"
+    insertafter: '^include:\\s*$'
+    marker: "# Ansible managed - keycloak include {mark}"
+    block: |
+      - path:
+          - services/keycloak/compose.yml
+    state: "{{ 'present' if compose_service_keycloak_enabled | bool else 'absent' }}"
+  when: compose_service_keycloak_enabled | bool
+
+- name: Render Keycloak compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ keycloak_docker_compose_services_dir }}/keycloak/compose.yml"
+  notify: "Recreate Docker service Keycloak"
+
+- name: Manage Keycloak Docker Compose state
+  community.docker.docker_compose_v2:
+    project_src: "{{ keycloak_docker_compose_project_src }}"
+    project_name: "{{ keycloak_docker_compose_project_name }}"
+    services:
+      - keycloak
+      - keycloak-db
+    files:
+      - compose.yml
+    state: "{{ keycloak_docker_compose_services_state }}"

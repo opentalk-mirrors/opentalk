@@ -1,0 +1,28 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for opentalk_compose.opentalk_recorder
+recorder_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+recorder_docker_compose_services_state: "{{ compose_service_opentalk_recorder_state | default('present') }}"
+recorder_docker_compose_services_dir: "{{ services_dir }}"
+recorder_docker_compose_project_src: "{{ deploy_dir }}"
+
+recorder_docker_image_src: registry.opencode.de/opentalk/recorder
+recorder_docker_extra_hosts:
+  - host.docker.internal:host-gateway
+
+recorder_auth_issuer: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
+recorder_auth_client_id: "Recorder"
+recorder_auth_client_secret: "{{ OIDC_RECORDER_CLIENT_SECRET }}"
+
+recorder_controller_domain: "controller:11311"
+recorder_controller_insecure: "true"
+
+recorder_rabbitmq_uri: "amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F"
+recorder_rabbitmq_queue: "opentalk_recorder"
+
+recorder_recorder_display: "true"
+recorder_recorder_clock_format: "%d.%m.%y %X %Z"
+#recorder_hardware_acceleration_manufacturer: "intel"
+#recorder_hardware_acceleration_device: "/dev/dri/renderD129"
+
+recorder_monitoring_port: 11411

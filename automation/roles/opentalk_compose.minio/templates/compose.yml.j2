@@ -1,0 +1,48 @@
+services: 
+  minio:
+    image: "{{ minio_docker_image_src }}:{{ minio_version }}"
+    restart: always
+    entrypoint: |
+      /bin/sh -c '
+      mkdir -p /data/{{ minio_bucket_name | default('opentalk') }} && \
+      exec minio server --address ":9000" --console-address ":9001" /data
+      '
+    networks:
+      - {{ docker_network_name }}
+    volumes:
+      - minio:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_root_secret
+      MINIO_BROWSER_REDIRECT_URL: "{{ 'https' if traefik_letsencrypt_enable or custom_certificates_enabled else 'http' }}://{{ ot_domain }}/adm/minio"
+      MINIO_BROWSER_CSP_URL: "https://dl.min.io"
+    secrets:
+      - minio_root_secret
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio-console.rule=Host(`{{ ot_domain }}`) && PathPrefix(`/adm/minio`)"
+      - "traefik.http.routers.minio-console.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+{% if traefik_letsencrypt_enable %}
+      - "traefik.http.routers.minio-console.tls.certresolver=letsencrypt"
+{% endif %}
+      - "traefik.http.routers.minio-console.service=minio-console"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
+      - "traefik.http.routers.minio-console.middlewares={{ minio_docker_label_http_routers_minio_console_middlewares | default('') }}"
+      - "traefik.http.routers.minio-console.middlewares=minio-stripprefix"
+      - "traefik.http.middlewares.minio-stripprefix.stripprefix.prefixes=/adm/minio"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+secrets:
+  minio_root_secret:
+    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.minio_root.secret
+
+volumes:
+  minio:
+
+networks:
+  {{ docker_network_name }}:
+    external: true

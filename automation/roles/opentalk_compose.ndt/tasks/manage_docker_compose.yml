@@ -1,0 +1,26 @@
+---
+- name: NDT Compose path include
+  ansible.builtin.blockinfile:
+    path: "{{ deploy_dir }}/compose.yml"
+    insertafter: '^include:\\s*$'
+    marker: "# Ansible managed - ndt include {mark}"
+    block: |
+      - path:
+          - services/ndt/compose.yml
+    state: "{{ 'present' if (compose_service_ndt_enabled | default(false)) | bool else 'absent' }}"
+  when: (compose_service_ndt_enabled | default(false)) | bool
+
+- name: Render NDT compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ ndt_docker_compose_services_dir }}/ndt/compose.yml"
+
+- name: Manage NDT Docker Compose state
+  community.docker.docker_compose_v2:
+    project_src: "{{ ndt_docker_compose_project_src }}"
+    project_name: "{{ ndt_docker_compose_project_name }}"
+    services:
+      - ndt
+    files:
+      - compose.yml
+    state: "{{ ndt_docker_compose_services_state }}"

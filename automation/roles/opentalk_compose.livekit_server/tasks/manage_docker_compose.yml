@@ -1,0 +1,26 @@
+---
+- name: LiveKit Server Compose path include
+  ansible.builtin.blockinfile:
+    path: "{{ deploy_dir }}/compose.yml"
+    insertafter: '^include:\\s*$'
+    marker: "# Ansible managed - livekit server include {mark}"
+    block: |
+      - path:
+          - services/livekit-server/compose.yml
+    state: "{{ 'present' if compose_service_livekit_server_enabled | bool else 'absent' }}"
+  when: compose_service_livekit_server_enabled | bool
+
+- name: Render LiveKit compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ livekit_server_docker_compose_services_dir }}/livekit-server/compose.yml"
+
+- name: Manage LiveKit Docker Compose state
+  community.docker.docker_compose_v2:
+    project_src: "{{ livekit_docker_compose_project_src }}"
+    project_name: "{{ livekit_server_docker_compose_project_name }}"
+    services:
+      - livekit-server
+    files:
+      - compose.yml
+    state: "{{ livekit_server_docker_compose_services_state }}"

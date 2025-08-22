@@ -1,0 +1,10 @@
+---
+
+- name: Ensure MailCrab Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ ndt_docker_compose_services_dir }}"
+    - "{{ ndt_docker_compose_services_dir }}/ndt"
+

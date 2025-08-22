@@ -1,0 +1,21 @@
+services:
+  smtp-mailer:
+    image: "{{ mailer_docker_image_src }}:{{ opentalk_smtp_mailer_version }}"
+    restart: always
+    volumes:
+      - ./config/smtp-mailer.toml:/etc/opentalk/smtp-mailer.toml
+    networks:
+      - {{ docker_network_name }}
+    healthcheck:
+      test:
+      - "CMD-SHELL"
+      - |
+        perl -MIO::Socket::INET -e 'my $$sock = IO::Socket::INET->new(PeerAddr => "localhost:11411", Proto => "tcp") or exit 1; 
+        print $$sock "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n"; my $$response = <$$sock>; exit ($$response =~ /200 OK/ ? 0 : 1);'
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  {{ docker_network_name }}:
+    external: true

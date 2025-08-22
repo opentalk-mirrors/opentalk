@@ -1,0 +1,95 @@
+---
+# Idempotent creation of a permanent admin with automatic fallback logic.
+
+- name: "Check permanent admin exists | '{{ keycloak_permanent_admin_username }}'"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/realms/master/protocol/openid-connect/token"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      grant_type: password
+      client_id: admin-cli
+      username: "{{ keycloak_permanent_admin_username }}"
+      password: "{{ keycloak_permanent_admin_password }}"
+    status_code: [200, 401] # Expect success (200) or failure (401)
+  register: permanent_admin_login_attempt
+  failed_when: false # Prevent task failure on 401
+
+- name: "Continue with permanent admin credentials"
+  block:
+    - name: "Set auth facts to permanent admin"
+      ansible.builtin.set_fact:
+        keycloak_auth_username: "{{ keycloak_permanent_admin_username }}"
+        keycloak_auth_password: "{{ keycloak_permanent_admin_password }}"
+        keycloak_auth_realm: "master"
+  when: permanent_admin_login_attempt.status == 200
+
+- name: "Ensure permanent admin account."
+  block:
+    - name: "Set auth facts to bootstrap admin for creation"
+      ansible.builtin.set_fact:
+        keycloak_auth_username: "{{ keycloak_bootstrap_admin_username }}"
+        keycloak_auth_password: "{{ keycloak_bootstrap_admin_password }}"
+        keycloak_auth_realm: "master"
+
+    - name: Wait for Keycloak to be reachable
+      ansible.builtin.uri:
+        url: "{{ keycloak_health_url }}"
+        method: GET
+        status_code: 200
+        return_content: no
+        validate_certs: false
+      register: keycloak_healthcheck
+      until: keycloak_healthcheck.status == 200
+      retries: 18
+      delay: 10
+
+    - name: "Create permanent global admin user in '{{ keycloak_auth_realm }} realm"
+      community.general.keycloak_user:
+        auth_keycloak_url: "{{ keycloak_base_url }}"
+        auth_realm: "{{ keycloak_auth_realm }}"
+        auth_username: "{{ keycloak_auth_username }}"
+        auth_password: "{{ keycloak_auth_password }}"
+        realm: "{{ keycloak_auth_realm }}"
+        username: "{{ keycloak_permanent_admin_username }}"
+        enabled: true
+        email: "{{ keycloak_permanent_admin_email }}"
+        firstName: "{{ keycloak_permanent_admin_firstname }}"
+        lastName: "{{ keycloak_permanent_admin_lastname }}"
+        emailVerified: true
+        credentials:
+          - type: password
+            value: "{{ keycloak_permanent_admin_password }}"
+            temporary: false
+        state: present
+
+    - name: "Assign global 'admin' role"
+      community.general.keycloak_user_rolemapping:
+        auth_keycloak_url: "{{ keycloak_base_url }}"
+        auth_realm: "{{ keycloak_auth_realm }}"
+        auth_username: "{{ keycloak_auth_username }}"
+        auth_password: "{{ keycloak_auth_password }}"
+        realm: "{{ keycloak_auth_realm }}"
+        target_username: "{{ keycloak_permanent_admin_username }}"
+        roles:
+          - name: "admin"
+        state: present
+
+    - name: "Switch auth facts to the NEW permanent admin"
+      ansible.builtin.set_fact:
+        keycloak_auth_username: "{{ keycloak_permanent_admin_username }}"
+        keycloak_auth_password: "{{ keycloak_permanent_admin_password }}"
+        keycloak_auth_realm: "master"
+
+    - name: "Optionally remove bootstrap admin"
+      community.general.keycloak_user:
+        auth_keycloak_url: "{{ keycloak_base_url }}"
+        auth_realm: "{{ keycloak_auth_realm }}"
+        auth_username: "{{ keycloak_auth_username }}"
+        auth_password: "{{ keycloak_auth_password }}"
+        realm: "{{ keycloak_auth_realm }}"
+        username: "{{ keycloak_bootstrap_admin_username }}"
+        state: absent
+      when: keycloak_bootstrap_admin_remove | default(true) | bool
+
+  when: permanent_admin_login_attempt.status != 200

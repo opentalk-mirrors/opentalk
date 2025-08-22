@@ -1,0 +1,35 @@
+backup_dir: /var/opt/opentalk-compose/backups
+backup_dir_sql_dumps: "{{ backup_dir }}/dumps"
+backup_dir_volumes: "{{ backup_dir }}/volumes"
+backup_dir_config: "{{ backup_dir }}/config"
+
+controller_db_name: "{{ controller_database_name | default('controller') }}"
+controller_db_user: "{{ controller_database_user | default('ot') }}"
+controller_db_host: "{{ controller_database_host | default('controller-db') }}"
+controller_db_port: "{{ controller_database_port | default(5432) }}"
+controller_db_password: "{{ CONTROLLER_DB_PASSWORD }}"
+controller_db_dump_file: "{{ backup_dir_sql_dumps }}/controller-{{ lookup('pipe','date +%Y%m%d-%H%M%S') }}.sql"
+controller_db_scheduled_backup_enabled: true
+controller_db_scheduled_backup_time: "02:00"  # daily at 2am
+controller_db_dump_restore_file: ""
+
+keycloak_db_name: "{{ keycloak_database_name | default('keycloak') }}"
+keycloak_db_user: "{{ keycloak_database_user | default('ot') }}"
+keycloak_db_host: "{{ keycloak_database_host | default('keycloak-db') }}"
+keycloak_db_port: "{{ keycloak_database_port | default(5432) }}"
+keycloak_db_password: "{{ KEYCLOAK_DB_PASSWORD }}"
+keycloak_db_dump_file: "{{ backup_dir_sql_dumps }}/keycloak-{{ lookup('pipe','date +%Y%m%d-%H%M%S') }}.sql"
+
+config_backup_file_name: "opentalk-compose_config_backup-{{ lookup('pipe','date +%Y%m%d-%H%M%S') }}.tar.gz"
+config_backup_restore_file: ""
+
+# Retention policy defaults
+backup_retention_max_items: 5        # keep at most this many per category
+backup_retention_max_age_days: 7     # remove items older than this (days)
+
+backup_docker_volume_list:
+  - "{{ compose_project_name }}_minio"
+  - "{{ compose_project_name }}_rabbitmq"
+  - "{{ compose_project_name }}_traefik"
+
+backup_docker_volume_restore_files: []

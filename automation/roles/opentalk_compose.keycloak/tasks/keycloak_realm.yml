@@ -1,0 +1,54 @@
+- name: Create or update Keycloak realm
+  community.general.keycloak_realm:
+    auth_keycloak_url: "{{ keycloak_base_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_auth_username }}"
+    auth_password: "{{ keycloak_auth_password }}"
+    realm: "{{ keycloak_realm }}"
+    state: present
+    enabled: true
+    login_theme: "opentalk"
+  tags:
+    - init
+    - apply
+    - keycloak
+
+- block:
+  - name: Get current realm config
+    ansible.builtin.uri:
+      url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}"
+      method: GET
+      headers:
+        Authorization: "Bearer {{ keycloak_token }}"
+      return_content: yes
+    register: realm_config
+  
+  - name: Update realm config with all settings
+    ansible.builtin.uri:
+      url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}"
+      method: PUT
+      headers:
+        Authorization: "Bearer {{ keycloak_token }}"
+        Content-Type: "application/json"
+      body_format: json
+      body: |
+        {{
+          (realm_config.json | combine({
+            "displayNameHtml": '<div class="kc-logo-text"><span>OpenTalk</span></div>',
+            "offlineSessionIdleTimeout": 31536000,
+            "offlineSessionMaxLifespan": 31536000,
+            "offlineSessionMaxLifespanEnabled": true,
+            "clientSessionIdleTimeout": 31536000,
+            "clientSessionMaxLifespan": 31536000,
+            "attributes": (realm_config_json_attributes | default({}) | combine({
+              "_browser_header_contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self' {{ (ot_ingress_protocol, ot_domain) | build_url }}:* {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }} {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_wildcard_url }}; object-src 'none';",
+              "_browser_header_xContentTypeOptions": "nosniff",
+              "_browser_header_xRobotsTag": "none",
+              "_browser_header_xFrameOptions": "DENY",
+              "_browser_header_contentSecurityPolicyReportOnly": "",
+              "_browser_header_xXSSProtection": "1; mode=block",
+              "_browser_header_strictTransportSecurity": "max-age=31536000; includeSubDomains"
+            }))
+          }))
+        }}
+      status_code: [200, 204]

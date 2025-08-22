@@ -1,0 +1,19 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for opentalk_compose.keycloak
+
+- name: Include manage_keycloak_config.yml
+  include_tasks: manage_keycloak_config.yml
+
+- name: Include manage_docker_compose.yml
+  include_tasks: manage_docker_compose.yml
+
+- name: Include keycloak_permanent_admin.yml
+  include_tasks: keycloak_permanent_admin.yml
+
+- name: Include manage_realm.yml
+  include_tasks: manage_realm.yml
+
+- name: Include manage_demo_user.yml
+  include_tasks: manage_demo_user.yml
+  when: keycloak_demo_user_enabled | default(false)

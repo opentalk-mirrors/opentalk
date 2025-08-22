@@ -1,0 +1,17 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for opentalk_compose.traefik
+
+- name: Install python3-passlib
+  ansible.builtin.package:
+    name: python3-passlib
+    state: present
+  become: true
+
+- name: Include manage_traefik_config.yml
+  ansible.builtin.include_tasks:
+    file: manage_traefik_config.yml
+
+- name: Include manage_docker_compose.yml
+  ansible.builtin.include_tasks:
+    file: manage_docker_compose.yml

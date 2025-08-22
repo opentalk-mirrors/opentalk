@@ -1,0 +1,22 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for opentalk_compose.etherpad
+etherpad_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+etherpad_docker_compose_services_state: "{{ compose_service_etherpad_state | default('present') }}"
+etherpad_docker_compose_services_dir: "{{ services_dir }}"
+etherpad_docker_compose_project_src: "{{ deploy_dir }}"
+
+etherpad_docker_image_src: registry.opencode.de/opentalk/etherpad
+
+etherpad_docker_extra_hosts: []
+
+etherpad_docker_environment_trust_proxy: true
+etherpad_docker_environment_default_pad_text: "Welcome to OpenTalk"
+etherpad_docker_environment_suppress_errors_in_pad_text: true
+
+
+etherpad_docker_ports: []
+
+etherpad_docker_labels_traefik_enable: true
+etherpad_docker_labels_traefik_http_routers_etherpad_rule: "Host(`{{ ot_domain }}`) && PathPrefix(`/etherpad`)"
+

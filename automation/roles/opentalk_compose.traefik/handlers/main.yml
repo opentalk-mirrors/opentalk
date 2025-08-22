@@ -1,0 +1,22 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for opentalk_compose.traefik
+- name: "Restart Docker service traefik"
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_dir }}/traefik"
+    files:
+      - compose.yml
+    recreate: never
+    state: restarted
+  tags:
+   - always
+
+- name: "Recreate Docker service traefik"
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_dir }}/traefik"
+    files:
+      - compose.yml
+    recreate: always
+    state: restarted
+  tags:
+   - always

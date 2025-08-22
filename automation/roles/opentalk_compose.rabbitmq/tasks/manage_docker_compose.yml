@@ -1,0 +1,26 @@
+---
+- name: RabbitMQ Compose path include
+  ansible.builtin.blockinfile:
+    path: "{{ deploy_dir }}/compose.yml"
+    insertafter: '^include:\\s*$'
+    marker: "# Ansible managed - rabbitmq include {mark}"
+    block: |
+      - path:
+          - services/rabbitmq/compose.yml
+    state: "{{ 'present' if compose_service_rabbitmq_enabled | bool else 'absent' }}"
+  when: compose_service_rabbitmq_enabled | bool
+
+- name: Render RabbitMQ compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ rabbitmq_docker_compose_services_dir }}/rabbitmq/compose.yml"
+
+- name: Manage RabbitMQ Docker Compose state
+  community.docker.docker_compose_v2:
+    project_src: "{{ rabbitmq_docker_compose_project_src }}"
+    project_name: "{{ rabbitmq_docker_compose_project_name }}"
+    services:
+      - rabbitmq
+    files:
+      - compose.yml
+    state: "{{ rabbitmq_docker_compose_services_state }}"

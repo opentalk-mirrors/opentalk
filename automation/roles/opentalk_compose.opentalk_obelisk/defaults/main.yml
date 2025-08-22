@@ -1,0 +1,39 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for opentalk_compose.opentalk_obelisk
+obelisk_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+obelisk_docker_compose_services_state: "{{ compose_service_opentalk_obelisk_state | default('present') }}"
+obelisk_docker_compose_services_dir: "{{ services_dir }}"
+obelisk_docker_compose_project_src: "{{ deploy_dir }}"
+
+obelisk_docker_image_src: registry.opencode.de/opentalk/obelisk
+obelisk_docker_extra_hosts: []
+
+obelisk_clock_format: "%d.%m.%y %X %Z"
+
+obelisk_auth_issuer: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
+obelisk_auth_client_id: "Obelisk"
+obelisk_auth_client_secret: "{{ OIDC_OBELISK_CLIENT_SECRET }}"
+
+obelisk_controller_domain: "{{ ot_domain }}/controller"
+obelisk_controller_insecure: false
+
+obelisk_sip_addr: "{{ ot_domain }}"
+obelisk_sip_port: 5060
+# obelisk_sip_id: "sip:alice@example.org"
+obelisk_sip_contact: "sip:alice@127.0.0.1"
+obelisk_sip_username: "0000"
+obelisk_sip_password: "<sipProviderPassword>"
+obelisk_sip_realm: "asterisk"
+obelisk_sip_registrar: "sip:127.0.0.1"
+# obelisk_sip_outbound_proxy: "sip:someotherserver.example.org"
+# obelisk_sip_nat_ping_delta: 30
+obelisk_sip_stun_server: "turn.example.com:443"
+obelisk_sip_enforce_qop: "true"
+# obelisk_sip_max_video_bitrate: 6000000
+# obelisk_sip_offer_srtp: "false"
+obelisk_sip_rtp_port_range_start: 40000
+obelisk_sip_rtp_port_range_end: 49999
+
+# obelisk_monitoring_addr: "0.0.0.0"
+obelisk_monitoring_port: 11411

@@ -1,0 +1,24 @@
+services:
+  livekit-server:
+    image: "{{ livekit_docker_image_src }}:{{ livekit_version }}"
+    command: "--config /livekit.yaml"
+    network_mode: host
+    restart: always
+    volumes:
+      - ./config/livekit.yaml:/livekit.yaml
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.livekit.rule=Host(`{{ ot_domain }}`) && (PathPrefix(`/livekit`) || PathPrefix(`/twirp`))"
+      - "traefik.http.routers.livekit.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+{% if traefik_letsencrypt_enable %}
+      - "traefik.http.routers.livekit.tls.certresolver=letsencrypt"
+{% endif %}
+      - "traefik.http.routers.livekit.middlewares=livekit-strip"
+      - "traefik.http.middlewares.livekit-strip.stripprefix.prefixes=/livekit"
+      - "traefik.http.services.livekit.loadbalancer.server.port=7880"
+    healthcheck:
+      test: wget --quiet --output-document=/dev/stdout http://localhost:7880 | grep -q OK
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 15s

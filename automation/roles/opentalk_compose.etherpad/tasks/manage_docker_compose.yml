@@ -1,0 +1,26 @@
+---
+- name: Etherpad Compose path include
+  ansible.builtin.blockinfile:
+    path: "{{ deploy_dir }}/compose.yml"
+    insertafter: '^include:\\s*$'
+    marker: "# Ansible managed - etherpad include {mark}"
+    block: |
+      - path:
+          - services/etherpad/compose.yml
+    state: "{{ 'present' if compose_service_etherpad_enabled | bool else 'absent' }}"
+  when: compose_service_etherpad_enabled | bool
+
+- name: Render Etherpad compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ etherpad_docker_compose_services_dir }}/etherpad/compose.yml"
+
+- name: Manage Etherpad Docker Compose state
+  community.docker.docker_compose_v2:
+    project_src: "{{ etherpad_docker_compose_project_src }}"
+    project_name: "{{ etherpad_docker_compose_project_name }}"
+    services:
+      - etherpad
+    files:
+      - compose.yml
+    state: "{{ etherpad_docker_compose_services_state }}"

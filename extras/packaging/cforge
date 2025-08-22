@@ -1,2 +1,0 @@
-#!/bin/bash
-cd /opt/opentalk-compose && docker compose run --rm cforge "$@"

@@ -1,15 +1,44 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# Called with: action (purge|remove|upgrade|abort-install|...)
-PREFIX="/opt/opentalk-compose"
-ETCDIR="/etc/opentalk-compose"
+ACTION="${1:-remove}"
 
-if [ "${1:-}" = "purge" ]; then
-  if [ -d "$PREFIX" ]; then
-    find "$PREFIX" -type f -name '*.py[co]' -delete 2>/dev/null || true
-    find "$PREFIX" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
-    rm -rf "$PREFIX" 2>/dev/null || true
+PREFIX="/opt/opentalk-compose"
+RUNTIME_DIR="$PREFIX/runtime"
+VENV_DIR="$RUNTIME_DIR/venv"
+PY_DIR="$RUNTIME_DIR/python"
+SERVICES_DIR="$PREFIX/services"
+COMPOSE_FILE="$PREFIX/compose.yml"
+COMPOSE_ENV_FILE="$PREFIX/.env"
+
+log() { echo "[postrm] $*"; }
+
+cleanup_ephemeral() {
+  rm -rf "$VENV_DIR" "$PY_DIR" "$SERVICES_DIR" "$COMPOSE_FILE" "$COMPOSE_ENV_FILE"
+  if [ -d "$RUNTIME_DIR" ]; then
+    rm -rf "$RUNTIME_DIR"
+    log "Removed runtime dir: $RUNTIME_DIR"
   fi
-  [ -d "$ETCDIR" ] && rm -rf "$ETCDIR" || true
-fi
+}
+
+remove_prefix_if_empty() {
+  if [ -d "$PREFIX" ]; then
+    if [ -z "$(find "$PREFIX" -mindepth 1 -maxdepth 1 2>/dev/null)" ]; then
+      rmdir "$PREFIX" 2>/dev/null && log "Removed empty prefix: $PREFIX" || true
+    fi
+  fi
+}
+
+case "$ACTION" in
+  remove|purge)
+    cleanup_ephemeral
+    remove_prefix_if_empty
+    ;;
+  upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    :
+    ;;
+  *)
+    cleanup_ephemeral
+    remove_prefix_if_empty
+    ;;
+esac
 exit 0

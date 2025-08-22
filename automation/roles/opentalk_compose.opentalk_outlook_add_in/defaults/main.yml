@@ -1,0 +1,15 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for opentalk_compose.opentalk_outlook_add_in
+outlook_add_in_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+outlook_add_in_docker_compose_services_state: "{{ compose_service_opentalk_outlook_add_in_state | default('present') }}"
+outlook_add_in_docker_compose_services_dir: "{{ services_dir }}"
+outlook_add_in_docker_compose_project_src: "{{ deploy_dir }}"
+
+outlook_add_in_docker_image_src: "registry.opencode.de/opentalk/opentalk-outlook-add-in"
+
+outlook_add_in_oidc_client_id: "OutlookAddin"
+outlook_add_in_outlook_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/outlook"
+outlook_add_in_outlook_webapp_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}"
+
+outlook_add_in_labels_traefik_http_middlewares_outlook_add_in_cors_headers_accessControlAllowOriginList: "{{ (ot_ingress_protocol, ot_domain, '*') | build_url }}"

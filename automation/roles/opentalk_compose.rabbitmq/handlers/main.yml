@@ -1,0 +1,10 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for opentalk_compose.rabbitmq
+- name: "Restart Docker service RabbitMQ"
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_dir }}/rabbitmq"
+    files:
+      - compose.yml
+    recreate: never
+    state: restarted

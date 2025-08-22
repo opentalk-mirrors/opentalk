@@ -1,0 +1,40 @@
+services:
+  traefik:
+    image: "{{ traefik_docker_image_src }}:{{ traefik_version }}"
+    extra_hosts:
+{% for host in traefik_docker_extra_hosts %}
+      - {{ host }}
+{% endfor %}
+    restart: {{ traefik_docker_restart }}
+    ports:
+{% for port in traefik_docker_ports %}
+      - target: {{ port.target }}
+        published: {{ port.published }}
+{% if port.mode is defined %}
+        mode: {{ port.mode }}
+{% endif %}
+{% endfor %}
+    networks:
+      - {{ docker_network_name }}
+    healthcheck:
+      test: ['CMD', 'traefik', 'healthcheck', '--ping']
+    labels:
+      - "traefik.enable=true"
+      # HeadersRegexp is needed to serve both, Api and Dashboard
+      - "traefik.http.routers.dashboard.rule=Host(`{{ ot_domain }}`) && (PathPrefix(`/adm/traefik`) || HeaderRegexp(`Referer`, `/traefik`))"
+      - "traefik.http.routers.dashboard.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+      - "traefik.http.routers.dashboard.tls={{ (traefik_letsencrypt_enable or custom_certificates_enabled) | to_json }}"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares={{ traefik_docker_label_http_routers_dashboard_middlewares }}"
+      - "traefik.http.middlewares.dashboard-strip.stripprefix.prefixes=/adm/traefik"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config:/etc/traefik
+      - traefik:/data
+
+volumes:
+  traefik:
+
+networks:
+  {{ docker_network_name }}:
+    external: true
