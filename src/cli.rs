@@ -9,7 +9,7 @@
 use clap::{ArgAction, Parser};
 
 #[derive(Parser, Debug, Clone)]
-pub struct Args {
+pub(crate) struct Args {
     #[clap(short('V'), long, action=ArgAction::SetTrue, help = "Print version information")]
     version: bool,
 
@@ -24,12 +24,12 @@ pub struct Args {
     /// - `<XDG_CONFIG_HOME>/opentalk/transcription.toml` (where `XDG_CONFIG_HOME` is usually `~/.config`)
     /// - `/etc/opentalk/transcription.toml`
     #[clap(short, long, verbatim_doc_comment)]
-    pub config: Option<String>,
+    pub(crate) config: Option<String>,
 }
 
 impl Args {
     /// Returns true if we want to startup the controller after we finished the cli part
-    pub fn should_start(&self) -> bool {
+    pub(crate) fn should_start(&self) -> bool {
         !self.version
     }
 }
@@ -37,7 +37,7 @@ impl Args {
 /// Parses the CLI-Arguments into [`Args`]
 ///
 /// Also runs (optional) cli commands if necessary
-pub fn parse_args() -> Args {
+pub(crate) fn parse_args() -> Args {
     let args = Args::parse();
     if args.version {
         print_version();

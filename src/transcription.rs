@@ -97,7 +97,7 @@ impl TranscriptionSession {
                     };
                     match event {
                         Event::OpenTalk(event) => log::trace!("Received OpenTalk event: {event:?}"),
-                        Event::LiveKit(event) => self.handle_livekit_event(event).await,
+                        Event::LiveKit(event) => self.handle_livekit_event(event),
                     }
                 }
                 Some((participant, message)) = self.send_messages_rx.recv() => {
@@ -107,7 +107,7 @@ impl TranscriptionSession {
                         .chat_api()
                         .unwrap()
                         .send_message(
-                            format!("[{}] said: {message}", participant.to_string()),
+                            format!("[{participant}] said: {message}"),
                             chat::Scope::Global
                         ).await?;
                 }
@@ -120,23 +120,23 @@ impl TranscriptionSession {
         Ok(())
     }
 
-    async fn handle_livekit_event(&mut self, event: RoomEvent) {
+    fn handle_livekit_event(&mut self, event: RoomEvent) {
         log::trace!("livekit event: {event:?}");
 
         match event {
             RoomEvent::ActiveSpeakersChanged { speakers } => {
-                self.handle_speaker_change(speakers).await;
+                self.handle_speaker_change(speakers);
             }
             RoomEvent::TrackSubscribed {
                 track: RemoteTrack::Audio(audio_track),
                 publication,
                 participant: _,
-            } => self.handle_new_audio_track(audio_track, publication).await,
+            } => self.handle_new_audio_track(audio_track, publication),
             _ => {}
         }
     }
 
-    async fn handle_new_audio_track(
+    fn handle_new_audio_track(
         &mut self,
         audio_track: RemoteAudioTrack,
         publication: RemoteTrackPublication,
@@ -164,22 +164,19 @@ impl TranscriptionSession {
                 .unwrap();
 
             while let Ok(source_event) = audio_convert.next_event().await {
-                match source_event {
-                    SourceEvent::Frame(frame) => {
-                        whisper
-                            .lock()
-                            .await
-                            .entry(publication.sid())
-                            .or_insert_with(|| Whisper::new(whisper_context.clone()).unwrap())
-                            .extend_audio_frame(frame);
-                    }
-                    _ => {}
+                if let SourceEvent::Frame(frame) = source_event {
+                    whisper
+                        .lock()
+                        .await
+                        .entry(publication.sid())
+                        .or_insert_with(|| Whisper::new(whisper_context.clone()).unwrap())
+                        .extend_audio_frame(frame);
                 }
             }
         });
     }
 
-    async fn handle_speaker_change(&mut self, speakers: Vec<Participant>) {
+    fn handle_speaker_change(&mut self, speakers: Vec<Participant>) {
         log::trace!("speaker changed: {speakers:?}");
 
         for old_speaker in &self.speakers {
@@ -260,7 +257,7 @@ impl Whisper {
 
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
-        params.set_language(Some(&"de"));
+        params.set_language(Some("de"));
 
         params.set_print_special(false);
         params.set_print_progress(false);
