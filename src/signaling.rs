@@ -334,8 +334,7 @@ impl Signaling {
                         self.toggle_audio_mute().await;
                     }
                     DTMF_TOGGLE_VIDEO_MUTE => {
-                        // Mute/Unmute video
-                        self.toggle_video_mute().await;
+                        self.toggle_video_mute(true);
                     }
                     DTMF_TOGGLE_HAND_RAISE => {
                         if let Some(websocket) = &mut self.websocket {
@@ -368,6 +367,9 @@ impl Signaling {
                                 .play_track(self.settings.language, Track::ConsentReject);
                             self.recording_consent_state = RecordingConsentState::Rejected;
                             self.evaluate_microphone_publish_state().await;
+                            if !self.video_muted {
+                                self.toggle_video_mute(false);
+                            }
                         }
                     }
                     DTMF_ACCEPT_RECORDING => {
@@ -820,7 +822,19 @@ impl Signaling {
         );
     }
 
-    async fn toggle_video_mute(&mut self) {
+    fn toggle_video_mute(&mut self, play_sound: bool) {
+        if self.video_muted
+            && matches!(
+                self.recording_consent_state,
+                RecordingConsentState::Rejected
+            )
+        {
+            // Play the reject message again if user tries to unmute
+            self.track_controller
+                .play_track(self.settings.language, Track::ConsentReject);
+            return;
+        }
+
         if let Some(compositor) = &mut self.media.compositor {
             for track in compositor
                 .local_participant()
@@ -841,14 +855,16 @@ impl Signaling {
 
         self.video_muted = !self.video_muted;
 
-        self.track_controller.play_track(
-            self.settings.language,
-            if self.video_muted {
-                Track::On
-            } else {
-                Track::Off
-            },
-        );
+        if play_sound {
+            self.track_controller.play_track(
+                self.settings.language,
+                if self.video_muted {
+                    Track::On
+                } else {
+                    Track::Off
+                },
+            );
+        }
     }
 }
 
