@@ -15,7 +15,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::broadcast;
-use tokio::time::{interval, Interval};
+use tokio::time::{Interval, interval};
 
 const SAMPLE_RATE: u64 = 48000;
 const CHANNELS: u64 = 2;
@@ -145,10 +145,10 @@ impl TrackController {
     pub fn stop_current_track(&self) {
         let mut data = self.data.lock();
 
-        if let Some(front) = data.queue.pop_front() {
-            if let Some(responder) = front.playback_finished_responder {
-                let _ = responder.send(());
-            }
+        if let Some(front) = data.queue.pop_front()
+            && let Some(responder) = front.playback_finished_responder
+        {
+            let _ = responder.send(());
         }
     }
 

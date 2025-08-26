@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use crate::sip::{MediaSessionId, SrtpInfo};
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result, ensure};
 use ezk::{BoxedSourceCancelSafe, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange};
-use ezk_rtp::{rtcp_types::Compound, Rtp, RtpConfig, RtpConfigRange, RtpPacket, Session};
+use ezk_rtp::{Rtp, RtpConfig, RtpConfigRange, RtpPacket, Session, rtcp_types::Compound};
 use owo_colors::OwoColorize;
 use sdp_types::SrtpSuite;
 use srtp::{CryptoPolicy, StreamPolicy};
@@ -13,7 +13,7 @@ use std::{collections::HashMap, future::pending, io, net::SocketAddr, sync::Arc,
 use tokio::{
     net::UdpSocket,
     sync::mpsc,
-    time::{interval, interval_at, Instant},
+    time::{Instant, interval, interval_at},
 };
 
 pub struct RtpSessions {
@@ -441,14 +441,14 @@ impl RtpTask {
         self.session.send_rtp(&packet);
 
         // Turn the packet into SRTP packet, if configured
-        if let Some((send_session, _)) = &mut self.srtp_sessions {
-            if let Err(e) = send_session.protect(&mut self.encode_buf) {
-                log::error!(
-                    "Failed to protect RTP packet of len={}, {e}",
-                    self.encode_buf.len()
-                );
-                return;
-            }
+        if let Some((send_session, _)) = &mut self.srtp_sessions
+            && let Err(e) = send_session.protect(&mut self.encode_buf)
+        {
+            log::error!(
+                "Failed to protect RTP packet of len={}, {e}",
+                self.encode_buf.len()
+            );
+            return;
         }
 
         if let Err(e) = self
@@ -478,14 +478,14 @@ impl RtpTask {
         self.encode_buf.truncate(len);
 
         // Turn the packet into SRTCP packet, if configured
-        if let Some((send_session, _)) = &mut self.srtp_sessions {
-            if let Err(e) = send_session.protect_rtcp(&mut self.encode_buf) {
-                log::error!(
-                    "Failed to protect RTCP packet of len={}, {e}",
-                    self.encode_buf.len()
-                );
-                return;
-            }
+        if let Some((send_session, _)) = &mut self.srtp_sessions
+            && let Err(e) = send_session.protect_rtcp(&mut self.encode_buf)
+        {
+            log::error!(
+                "Failed to protect RTCP packet of len={}, {e}",
+                self.encode_buf.len()
+            );
+            return;
         }
 
         if let Err(e) = self
@@ -509,11 +509,11 @@ impl RtpTask {
 
         buf.truncate(len);
 
-        if let Some((_, recv_session)) = &mut self.srtp_sessions {
-            if let Err(e) = recv_session.unprotect(buf) {
-                log::debug!("Failed to unprotect RTP, {e}");
-                return;
-            }
+        if let Some((_, recv_session)) = &mut self.srtp_sessions
+            && let Err(e) = recv_session.unprotect(buf)
+        {
+            log::debug!("Failed to unprotect RTP, {e}");
+            return;
         }
 
         match RtpPacket::parse(&buf[..]) {
@@ -529,11 +529,11 @@ impl RtpTask {
 
         buf.truncate(len);
 
-        if let Some((_, recv_session)) = &mut self.srtp_sessions {
-            if let Err(e) = recv_session.unprotect_rtcp(buf) {
-                log::debug!("Failed to unprotect RTCP, {e}");
-                return;
-            }
+        if let Some((_, recv_session)) = &mut self.srtp_sessions
+            && let Err(e) = recv_session.unprotect_rtcp(buf)
+        {
+            log::debug!("Failed to unprotect RTCP, {e}");
+            return;
         }
 
         let compound = match Compound::parse(buf) {
@@ -618,16 +618,23 @@ fn log_report(packet: &ezk_rtp::rtcp_types::Packet<'_>) {
 
     if let Some(report_blocks) = report_blocks {
         for report_block in report_blocks {
-            log::debug!("{}{}{}\n\tfraction_lost: {}; culmulative_lost: {}; extended_sequence_number: {}; interarrival_jitter: {}; last_sender_report_timestamp: {}; delay_since_last_sender_report_timestamp: {}",
+            log::debug!(
+                "{}{}{}\n\tfraction_lost: {}; culmulative_lost: {}; extended_sequence_number: {}; interarrival_jitter: {}; last_sender_report_timestamp: {}; delay_since_last_sender_report_timestamp: {}",
                 "[RTCP REPORT ssrc=".yellow(),
                 report_block.ssrc().bright_yellow(),
                 "]".yellow(),
-                format!("{}%", ((report_block.fraction_lost() as f32 / 255.0) * 100.0)).bright_cyan(),
+                format!(
+                    "{}%",
+                    ((report_block.fraction_lost() as f32 / 255.0) * 100.0)
+                )
+                .bright_cyan(),
                 report_block.cumulative_lost().bright_cyan(),
                 report_block.extended_sequence_number().bright_cyan(),
                 report_block.interarrival_jitter().bright_cyan(),
                 report_block.last_sender_report_timestamp().bright_cyan(),
-                report_block.delay_since_last_sender_report_timestamp().bright_cyan()
+                report_block
+                    .delay_since_last_sender_report_timestamp()
+                    .bright_cyan()
             );
         }
     }

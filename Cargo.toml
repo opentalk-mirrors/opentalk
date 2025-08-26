@@ -6,7 +6,7 @@
 name = "opentalk-obelisk"
 version = "0.20.0"
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
-edition = "2021"
+edition = "2024"
 license = "EUPL-1.2"
 publish = false
 build = "build.rs"

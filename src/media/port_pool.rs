@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use crate::settings::Settings;
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use once_cell::sync::OnceCell;
 use rand::prelude::IteratorRandom;
 use std::collections::BTreeSet;
@@ -12,7 +12,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::Arc;
 use stun_types::attributes::{MappedAddress, Software, XorMappedAddress};
 use stun_types::{Class, Message, MessageBuilder, Method, TransactionId};
-use tokio::net::{lookup_host, UdpSocket};
+use tokio::net::{UdpSocket, lookup_host};
 use tokio::sync::Mutex;
 
 static INSTANCE: OnceCell<PortPool> = OnceCell::new();

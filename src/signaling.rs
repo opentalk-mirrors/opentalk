@@ -5,13 +5,13 @@
 use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{MediaEvent, MediaPipeline, Track, TrackController};
 use crate::settings::Settings;
-use crate::sip::{handle_reinvite, refresh_invite_session, SessionState};
+use crate::sip::{SessionState, handle_reinvite, refresh_invite_session};
 use crate::websocket::{JoinState, JoinSuccess, Participant, Websocket, WebsocketEvent};
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use bytesstr::BytesStr;
-use opentalk_compositor::livekit::track::TrackKind;
 use opentalk_compositor::livekit::DisconnectReason;
+use opentalk_compositor::livekit::track::TrackKind;
 use opentalk_compositor::{Mixer, MixerParameters};
 use sip_types::{Method, Name};
 use sip_ua::invite::session::{InviteSession, InviteSessionEvent};
@@ -22,10 +22,10 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::{broadcast, mpsc};
-use tokio::time::{sleep, Duration, Sleep};
+use tokio::time::{Duration, Sleep, sleep};
 use types_common::streaming::StreamingTargetId;
-use types_signaling_livekit::event::LiveKitEvent;
 use types_signaling_livekit::MicrophoneRestrictionState;
+use types_signaling_livekit::event::LiveKitEvent;
 use types_signaling_recording::{StreamKind, StreamStatus, StreamTarget};
 
 // DTMF digit bindings
@@ -428,10 +428,10 @@ impl Signaling {
     async fn send_picture_update_request(&mut self) -> Result<()> {
         // Send a request at most every 5 seconds
         let now = Instant::now();
-        if let Some(i) = self.last_fast_picture_update_request_sent {
-            if i + Duration::from_secs(5) > now {
-                return Ok(());
-            }
+        if let Some(i) = self.last_fast_picture_update_request_sent
+            && i + Duration::from_secs(5) > now
+        {
+            return Ok(());
         }
         self.last_fast_picture_update_request_sent = Some(now);
 
@@ -481,13 +481,13 @@ impl Signaling {
                     return Ok(());
                 };
 
-                if let Some(compositor) = &mut self.media.compositor {
-                    if current.control.display_name != updated.control.display_name {
-                        compositor.add_participant(
-                            &current.id.to_string().into(),
-                            updated.control.display_name.to_string(),
-                        );
-                    }
+                if let Some(compositor) = &mut self.media.compositor
+                    && current.control.display_name != updated.control.display_name
+                {
+                    compositor.add_participant(
+                        &current.id.to_string().into(),
+                        updated.control.display_name.to_string(),
+                    );
                 }
 
                 *current = updated;
@@ -754,16 +754,16 @@ impl Signaling {
         }
 
         // The web frontend needs a mute event on the audio track to display the microphone muted symbol, just removing audio track doesn't work.
-        if self.audio_muted {
-            if let Some(compositor) = &mut self.media.compositor {
-                for track in compositor
-                    .local_participant()
-                    .track_publications()
-                    .into_values()
-                {
-                    if track.kind() == TrackKind::Audio {
-                        track.mute();
-                    }
+        if self.audio_muted
+            && let Some(compositor) = &mut self.media.compositor
+        {
+            for track in compositor
+                .local_participant()
+                .track_publications()
+                .into_values()
+            {
+                if track.kind() == TrackKind::Audio {
+                    track.mute();
                 }
             }
         }
