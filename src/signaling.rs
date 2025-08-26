@@ -331,11 +331,11 @@ impl Signaling {
                 match digit {
                     DTMF_STOP_CURRENT_TRACK => self.track_controller.stop_current_track(),
                     DTMF_TOGGLE_AUDIO_MUTE => {
-                        self.toggle_mute(TrackKind::Audio).await;
+                        self.toggle_audio_mute().await;
                     }
                     DTMF_TOGGLE_VIDEO_MUTE => {
                         // Mute/Unmute video
-                        self.toggle_mute(TrackKind::Video).await;
+                        self.toggle_video_mute().await;
                     }
                     DTMF_TOGGLE_HAND_RAISE => {
                         if let Some(websocket) = &mut self.websocket {
@@ -773,10 +773,9 @@ impl Signaling {
             .await;
     }
 
-    // Toggle the mute state of our local publications
-    async fn toggle_mute(&mut self, kind: TrackKind) {
+    async fn toggle_audio_mute(&mut self) {
         // Do not toggle anything if there's nothing to toggle
-        if kind == TrackKind::Audio && !self.media.is_microphone_published().await {
+        if !self.media.is_microphone_published().await {
             if matches!(
                 self.recording_consent_state,
                 RecordingConsentState::Rejected
@@ -797,16 +796,11 @@ impl Signaling {
                 .track_publications()
                 .into_values()
             {
-                if track.kind() != kind {
+                if track.kind() != TrackKind::Audio {
                     continue;
                 }
 
-                let is_muted = match kind {
-                    TrackKind::Audio => self.audio_muted,
-                    TrackKind::Video => self.video_muted,
-                };
-
-                if is_muted {
+                if self.audio_muted {
                     track.unmute();
                 } else {
                     track.mute();
@@ -814,20 +808,46 @@ impl Signaling {
             }
         }
 
-        let is_muted = match kind {
-            TrackKind::Audio => {
-                self.audio_muted = !self.audio_muted;
-                self.audio_muted
-            }
-            TrackKind::Video => {
-                self.video_muted = !self.video_muted;
-                self.video_muted
-            }
-        };
+        self.audio_muted = !self.audio_muted;
 
         self.track_controller.play_track(
             self.settings.language,
-            if is_muted { Track::On } else { Track::Off },
+            if self.audio_muted {
+                Track::On
+            } else {
+                Track::Off
+            },
+        );
+    }
+
+    async fn toggle_video_mute(&mut self) {
+        if let Some(compositor) = &mut self.media.compositor {
+            for track in compositor
+                .local_participant()
+                .track_publications()
+                .into_values()
+            {
+                if track.kind() != TrackKind::Video {
+                    continue;
+                }
+
+                if self.video_muted {
+                    track.unmute();
+                } else {
+                    track.mute();
+                }
+            }
+        }
+
+        self.video_muted = !self.video_muted;
+
+        self.track_controller.play_track(
+            self.settings.language,
+            if self.video_muted {
+                Track::On
+            } else {
+                Track::Off
+            },
         );
     }
 }
