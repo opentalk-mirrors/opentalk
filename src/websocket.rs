@@ -7,26 +7,26 @@
 //! Should be replaced by more complete implementation sometime in the future
 
 use crate::settings::ControllerSettings;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use futures::{SinkExt, StreamExt};
 use reqwest::header::SEC_WEBSOCKET_PROTOCOL;
 use serde::Deserialize;
 use tokio::net::TcpStream;
-use tt::tungstenite::client::IntoClientRequest;
-use tt::tungstenite::protocol::frame::coding::CloseCode;
-use tt::tungstenite::protocol::CloseFrame;
-use tt::tungstenite::Message;
-use tt::tungstenite::Utf8Bytes;
 use tt::MaybeTlsStream;
 use tt::WebSocketStream;
+use tt::tungstenite::Message;
+use tt::tungstenite::Utf8Bytes;
+use tt::tungstenite::client::IntoClientRequest;
+use tt::tungstenite::protocol::CloseFrame;
+use tt::tungstenite::protocol::frame::coding::CloseCode;
 use types_signaling::AssociatedParticipant;
 use types_signaling::ParticipantId;
 use types_signaling_control::state::ControlState;
 use types_signaling_livekit::event::LiveKitEvent;
 use types_signaling_livekit::state::LiveKitState;
+use types_signaling_recording::StreamUpdated;
 use types_signaling_recording::event::RecordingEvent;
 use types_signaling_recording::state::RecordingState;
-use types_signaling_recording::StreamUpdated;
 
 /// Newtype wrapper for the signaling ticket
 pub struct Ticket(pub String);

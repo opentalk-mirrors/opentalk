@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use super::codec::{offer_all_audio_codecs, offer_all_video_codecs, SdpRecvCodec, SdpSendCodec};
+use super::codec::{SdpRecvCodec, SdpSendCodec, offer_all_audio_codecs, offer_all_video_codecs};
 use crate::media::codec::MediaType;
 use crate::media::{AddressFamily, PortPool, SocketPair};
 use crate::settings::Settings;
 use crate::sip::codec::{available_video_codec, choose_audio_codec, choose_video_codec};
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use base64::prelude::*;
 use bytes::Bytes;
 use bytesstr::BytesStr;

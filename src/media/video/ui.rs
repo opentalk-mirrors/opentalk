@@ -5,9 +5,9 @@
 use crate::media::ToCallerVideoSinks;
 use ezk_image::PixelFormat;
 use opentalk_compositor::{
+    HEIGHT, WIDTH,
     font::{DrawText, SimpleText},
     image::{I420Image, Point},
-    HEIGHT, WIDTH,
 };
 use parking_lot::Mutex;
 use std::{sync::Arc, thread::JoinHandle};
@@ -79,75 +79,78 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks, waiting_room: bool) -> 
 
     let text_top_offset = HEIGHT / 2 - dummy_id_text.height() as usize;
 
-    let handle = thread::spawn(move || loop {
-        let data = data.lock();
-        let sleep_delta = Duration::from_secs_f32(1.0 / data.target_fps as f32);
+    let handle = thread::spawn(move || {
+        loop {
+            let data = data.lock();
+            let sleep_delta = Duration::from_secs_f32(1.0 / data.target_fps as f32);
 
-        if !data.run {
-            log::debug!("ui thread exiting");
-            break;
-        }
+            if !data.run {
+                log::debug!("ui thread exiting");
+                break;
+            }
 
-        let mut image = I420Image::try_from(&mut staging, Point::new(WIDTH, HEIGHT)).unwrap();
+            let mut image = I420Image::try_from(&mut staging, Point::new(WIDTH, HEIGHT)).unwrap();
 
-        image.y.fill(0);
-        image.u.fill(128);
-        image.v.fill(128);
+            image.y.fill(0);
+            image.u.fill(128);
+            image.v.fill(128);
 
-        if data.waiting_room {
-            let in_waiting_room = SimpleText::new(128.0, "In Waiting-Room");
+            if data.waiting_room {
+                let in_waiting_room = SimpleText::new(128.0, "In Waiting-Room");
 
-            let y = (HEIGHT / 2) - (in_waiting_room.height() / 2.0) as usize;
-            let x = (WIDTH / 2) - (in_waiting_room.width() / 2.0) as usize;
+                let y = (HEIGHT / 2) - (in_waiting_room.height() / 2.0) as usize;
+                let x = (WIDTH / 2) - (in_waiting_room.width() / 2.0) as usize;
 
-            in_waiting_room.draw(Point::new(x, y), &mut image);
-        } else {
-            let headline = SimpleText::new(128.0, "OpenTalk Call-In");
-            let id_text = SimpleText::new(100.0, &format!("Id: {}", data.id));
-            let pin_text = SimpleText::new(100.0, &format!("Pin: {}", data.pin));
+                in_waiting_room.draw(Point::new(x, y), &mut image);
+            } else {
+                let headline = SimpleText::new(128.0, "OpenTalk Call-In");
+                let id_text = SimpleText::new(100.0, &format!("Id: {}", data.id));
+                let pin_text = SimpleText::new(100.0, &format!("Pin: {}", data.pin));
 
-            drop(data);
+                drop(data);
 
-            headline.draw(
-                Point::new(
-                    // Align the Headline in the center
-                    (WIDTH - headline.width() as usize) / 2,
-                    HEADLINE_TOP_OFFSET,
-                ),
-                &mut image,
-            );
+                headline.draw(
+                    Point::new(
+                        // Align the Headline in the center
+                        (WIDTH - headline.width() as usize) / 2,
+                        HEADLINE_TOP_OFFSET,
+                    ),
+                    &mut image,
+                );
 
-            {
-                // Draw "Id: XXXXXXXXX"
-                //
-                // First align the text in the center using the dummy text
-                let align_center = (WIDTH - dummy_id_text.width() as usize) / 2;
-                // Then to align the colon of both "Id:" and "Pin:" shift the "Id:" text right,
-                // by adding the half of their width difference to x
-                let align_colons = ((dummy_pin_text.width() - dummy_id_text.width()) / 2.) as usize;
+                {
+                    // Draw "Id: XXXXXXXXX"
+                    //
+                    // First align the text in the center using the dummy text
+                    let align_center = (WIDTH - dummy_id_text.width() as usize) / 2;
+                    // Then to align the colon of both "Id:" and "Pin:" shift the "Id:" text right,
+                    // by adding the half of their width difference to x
+                    let align_colons =
+                        ((dummy_pin_text.width() - dummy_id_text.width()) / 2.) as usize;
 
-                id_text.draw(
-                    Point::new(align_center + align_colons, text_top_offset),
+                    id_text.draw(
+                        Point::new(align_center + align_colons, text_top_offset),
+                        &mut image,
+                    );
+                }
+
+                pin_text.draw(
+                    Point::new(
+                        // Align the text in the exact center using the width of the dummy pin text
+                        (WIDTH - dummy_pin_text.width() as usize) / 2,
+                        // Align the text 10px below the "Id:" text
+                        text_top_offset + id_text.height() as usize + 10,
+                    ),
                     &mut image,
                 );
             }
 
-            pin_text.draw(
-                Point::new(
-                    // Align the text in the exact center using the width of the dummy pin text
-                    (WIDTH - dummy_pin_text.width() as usize) / 2,
-                    // Align the text 10px below the "Id:" text
-                    text_top_offset + id_text.height() as usize + 10,
-                ),
-                &mut image,
-            );
-        }
+            for sink in sinks.blocking_lock().values_mut() {
+                sink(&staging)
+            }
 
-        for sink in sinks.blocking_lock().values_mut() {
-            sink(&staging)
+            thread::sleep(sleep_delta);
         }
-
-        thread::sleep(sleep_delta);
     });
 
     ui_controller.data.lock().join_handle = Some(handle);

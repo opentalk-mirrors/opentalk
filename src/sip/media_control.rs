@@ -4,7 +4,7 @@
 
 use async_trait::async_trait;
 use sip_core::{Endpoint, IncomingRequest, MayTake};
-use sip_types::{header::typed::ContentType, Method, StatusCode};
+use sip_types::{Method, StatusCode, header::typed::ContentType};
 use sip_ua::dialog::Usage;
 use std::str::from_utf8;
 use tokio::sync::broadcast;

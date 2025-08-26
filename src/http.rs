@@ -8,9 +8,9 @@ use std::time::{Duration, SystemTime};
 
 use crate::settings::{AuthSettings, ControllerSettings};
 use crate::websocket::Ticket;
-use anyhow::{bail, Context, Result};
-use chrono::{serde::ts_seconds::deserialize as from_ts, DateTime, Utc};
-use jsonwebtoken::{decode, DecodingKey, Validation};
+use anyhow::{Context, Result, bail};
+use chrono::{DateTime, Utc, serde::ts_seconds::deserialize as from_ts};
+use jsonwebtoken::{DecodingKey, Validation, decode};
 use openidconnect::core::{
     CoreAuthDisplay, CoreAuthPrompt, CoreClient, CoreErrorResponseType, CoreGenderClaim,
     CoreJsonWebKey, CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm,

@@ -5,13 +5,13 @@
 use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{MediaEvent, MediaPipeline, Track, TrackController};
 use crate::settings::Settings;
-use crate::sip::{handle_reinvite, refresh_invite_session, SessionState};
+use crate::sip::{SessionState, handle_reinvite, refresh_invite_session};
 use crate::websocket::{JoinState, JoinSuccess, Participant, Websocket, WebsocketEvent};
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use bytesstr::BytesStr;
-use opentalk_compositor::livekit::track::TrackKind;
 use opentalk_compositor::livekit::DisconnectReason;
+use opentalk_compositor::livekit::track::TrackKind;
 use opentalk_compositor::{Mixer, MixerParameters};
 use sip_types::{Method, Name};
 use sip_ua::invite::session::{InviteSession, InviteSessionEvent};
@@ -22,10 +22,10 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::{broadcast, mpsc};
-use tokio::time::{sleep, Duration, Sleep};
+use tokio::time::{Duration, Sleep, sleep};
 use types_common::streaming::StreamingTargetId;
-use types_signaling_livekit::event::LiveKitEvent;
 use types_signaling_livekit::MicrophoneRestrictionState;
+use types_signaling_livekit::event::LiveKitEvent;
 use types_signaling_recording::{StreamKind, StreamStatus, StreamTarget};
 
 // DTMF digit bindings
@@ -331,11 +331,10 @@ impl Signaling {
                 match digit {
                     DTMF_STOP_CURRENT_TRACK => self.track_controller.stop_current_track(),
                     DTMF_TOGGLE_AUDIO_MUTE => {
-                        self.toggle_mute(TrackKind::Audio).await;
+                        self.toggle_audio_mute().await;
                     }
                     DTMF_TOGGLE_VIDEO_MUTE => {
-                        // Mute/Unmute video
-                        self.toggle_mute(TrackKind::Video).await;
+                        self.toggle_video_mute(true);
                     }
                     DTMF_TOGGLE_HAND_RAISE => {
                         if let Some(websocket) = &mut self.websocket {
@@ -368,6 +367,9 @@ impl Signaling {
                                 .play_track(self.settings.language, Track::ConsentReject);
                             self.recording_consent_state = RecordingConsentState::Rejected;
                             self.evaluate_microphone_publish_state().await;
+                            if !self.video_muted {
+                                self.toggle_video_mute(false);
+                            }
                         }
                     }
                     DTMF_ACCEPT_RECORDING => {
@@ -428,10 +430,10 @@ impl Signaling {
     async fn send_picture_update_request(&mut self) -> Result<()> {
         // Send a request at most every 5 seconds
         let now = Instant::now();
-        if let Some(i) = self.last_fast_picture_update_request_sent {
-            if i + Duration::from_secs(5) > now {
-                return Ok(());
-            }
+        if let Some(i) = self.last_fast_picture_update_request_sent
+            && i + Duration::from_secs(5) > now
+        {
+            return Ok(());
         }
         self.last_fast_picture_update_request_sent = Some(now);
 
@@ -481,13 +483,13 @@ impl Signaling {
                     return Ok(());
                 };
 
-                if let Some(compositor) = &mut self.media.compositor {
-                    if current.control.display_name != updated.control.display_name {
-                        compositor.add_participant(
-                            &current.id.to_string().into(),
-                            updated.control.display_name.to_string(),
-                        );
-                    }
+                if let Some(compositor) = &mut self.media.compositor
+                    && current.control.display_name != updated.control.display_name
+                {
+                    compositor.add_participant(
+                        &current.id.to_string().into(),
+                        updated.control.display_name.to_string(),
+                    );
                 }
 
                 *current = updated;
@@ -754,16 +756,16 @@ impl Signaling {
         }
 
         // The web frontend needs a mute event on the audio track to display the microphone muted symbol, just removing audio track doesn't work.
-        if self.audio_muted {
-            if let Some(compositor) = &mut self.media.compositor {
-                for track in compositor
-                    .local_participant()
-                    .track_publications()
-                    .into_values()
-                {
-                    if track.kind() == TrackKind::Audio {
-                        track.mute();
-                    }
+        if self.audio_muted
+            && let Some(compositor) = &mut self.media.compositor
+        {
+            for track in compositor
+                .local_participant()
+                .track_publications()
+                .into_values()
+            {
+                if track.kind() == TrackKind::Audio {
+                    track.mute();
                 }
             }
         }
@@ -773,10 +775,9 @@ impl Signaling {
             .await;
     }
 
-    // Toggle the mute state of our local publications
-    async fn toggle_mute(&mut self, kind: TrackKind) {
+    async fn toggle_audio_mute(&mut self) {
         // Do not toggle anything if there's nothing to toggle
-        if kind == TrackKind::Audio && !self.media.is_microphone_published().await {
+        if !self.media.is_microphone_published().await {
             if matches!(
                 self.recording_consent_state,
                 RecordingConsentState::Rejected
@@ -797,16 +798,11 @@ impl Signaling {
                 .track_publications()
                 .into_values()
             {
-                if track.kind() != kind {
+                if track.kind() != TrackKind::Audio {
                     continue;
                 }
 
-                let is_muted = match kind {
-                    TrackKind::Audio => self.audio_muted,
-                    TrackKind::Video => self.video_muted,
-                };
-
-                if is_muted {
+                if self.audio_muted {
                     track.unmute();
                 } else {
                     track.mute();
@@ -814,21 +810,61 @@ impl Signaling {
             }
         }
 
-        let is_muted = match kind {
-            TrackKind::Audio => {
-                self.audio_muted = !self.audio_muted;
-                self.audio_muted
-            }
-            TrackKind::Video => {
-                self.video_muted = !self.video_muted;
-                self.video_muted
-            }
-        };
+        self.audio_muted = !self.audio_muted;
 
         self.track_controller.play_track(
             self.settings.language,
-            if is_muted { Track::On } else { Track::Off },
+            if self.audio_muted {
+                Track::On
+            } else {
+                Track::Off
+            },
         );
+    }
+
+    fn toggle_video_mute(&mut self, play_sound: bool) {
+        if self.video_muted
+            && matches!(
+                self.recording_consent_state,
+                RecordingConsentState::Rejected
+            )
+        {
+            // Play the reject message again if user tries to unmute
+            self.track_controller
+                .play_track(self.settings.language, Track::ConsentReject);
+            return;
+        }
+
+        if let Some(compositor) = &mut self.media.compositor {
+            for track in compositor
+                .local_participant()
+                .track_publications()
+                .into_values()
+            {
+                if track.kind() != TrackKind::Video {
+                    continue;
+                }
+
+                if self.video_muted {
+                    track.unmute();
+                } else {
+                    track.mute();
+                }
+            }
+        }
+
+        self.video_muted = !self.video_muted;
+
+        if play_sound {
+            self.track_controller.play_track(
+                self.settings.language,
+                if self.video_muted {
+                    Track::On
+                } else {
+                    Track::Off
+                },
+            );
+        }
     }
 }
 

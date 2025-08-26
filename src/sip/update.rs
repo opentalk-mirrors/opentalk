@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use super::{
-    sdp::{MediaChange, SessionState},
     MediaSessionState, SdpSendCodecParams,
+    sdp::{MediaChange, SessionState},
 };
 use crate::media::MediaPipeline;
-use anyhow::{bail, Context, Result};
-use sip_types::{header::typed::ContentType, CodeKind, Method, Name, StatusCode};
+use anyhow::{Context, Result, bail};
+use sip_types::{CodeKind, Method, Name, StatusCode, header::typed::ContentType};
 use sip_ua::invite::{
     create_ack,
     session::{ReInviteReceived, RefreshNeeded},
@@ -192,22 +192,22 @@ pub async fn refresh_invite_session(
                     create_ack(&invite_session.dialog, response.base_headers.cseq.cseq).await?;
 
                 // If the response to the INVITE contains SDP, handle it
-                if let Ok(content_type) = response.headers.get_named::<ContentType>() {
-                    if content_type.0 == "application/sdp" {
-                        let changes = media_session
-                            .receive_offer(response.body)
-                            .await
-                            .context("Failed to handle SDP offer")?;
+                if let Ok(content_type) = response.headers.get_named::<ContentType>()
+                    && content_type.0 == "application/sdp"
+                {
+                    let changes = media_session
+                        .receive_offer(response.body)
+                        .await
+                        .context("Failed to handle SDP offer")?;
 
-                        apply_changes(media, media_session, changes).await?;
+                    apply_changes(media, media_session, changes).await?;
 
-                        let sdp_offer = media_session.build_sdp();
+                    let sdp_offer = media_session.build_sdp();
 
-                        ack.msg.body = sdp_offer.to_string().into();
-                        ack.msg
-                            .headers
-                            .insert(Name::CONTENT_TYPE, "application/sdp");
-                    }
+                    ack.msg.body = sdp_offer.to_string().into();
+                    ack.msg
+                        .headers
+                        .insert(Name::CONTENT_TYPE, "application/sdp");
                 }
 
                 let endpoint = invite_session.endpoint.clone();

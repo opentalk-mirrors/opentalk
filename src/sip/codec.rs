@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::media::{codec::Codec, DEFAULT_FPS};
+use crate::media::{DEFAULT_FPS, codec::Codec};
 use crate::settings::Settings;
 use h264_profile_level_id::{Level, Profile};
 use openh264::encoder::{Level as OpenH264Level, Profile as OpenH264Profile};

@@ -7,12 +7,13 @@ use anyhow::{Context, Result};
 use bytes::Bytes;
 use livekit::webrtc::video_frame::{I420Buffer, VideoFrame};
 use openh264::{
+    OpenH264API,
     encoder::{
         BitRate, Encoder, EncoderConfig, FrameRate, IntraFramePeriod, Level, Profile,
         RateControlMode,
     },
     formats::{YUVSlices, YUVSource},
-    nal_units, OpenH264API,
+    nal_units,
 };
 use opentalk_compositor::livekit::{self, webrtc::prelude::VideoRotation};
 use rtp::{

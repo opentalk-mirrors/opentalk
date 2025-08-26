@@ -14,9 +14,9 @@ use codec::Codec;
 use core::fmt;
 use dtmf_filter::DtmfFilter;
 use ezk::{
-    nodes::{Access, AccessHandle},
     BoxedSourceCancelSafe, ConfigRange, Frame, NextEventIsCancelSafe, Source, SourceEvent,
     ValueRange,
+    nodes::{Access, AccessHandle},
 };
 use ezk_audio::{
     Channels, Format, RawAudio, RawAudioConfig, RawAudioConfigRange, SampleRate, Samples,
@@ -25,12 +25,13 @@ use ezk_audio_nodes::{AudioConvert, AudioMixer};
 use ezk_g711::{PCMADecoder, PCMAEncoder, PCMUDecoder, PCMUEncoder};
 use ezk_g722::{G722Decoder, G722Encoder};
 use ezk_image::{
-    resize::{FilterType, ResizeAlg, Resizer},
     Image, PixelFormat,
+    resize::{FilterType, ResizeAlg, Resizer},
 };
-use ezk_rtp::{rtp_types::RtpPacketBuilder, DePacketizer, Packetizer, RtpPacket};
-use futures::{future::BoxFuture, FutureExt};
+use ezk_rtp::{DePacketizer, Packetizer, RtpPacket, rtp_types::RtpPacketBuilder};
+use futures::{FutureExt, future::BoxFuture};
 use opentalk_compositor::{
+    HEIGHT, Mixer, WIDTH,
     audio::Silence,
     livekit::{
         self,
@@ -44,7 +45,6 @@ use opentalk_compositor::{
             video_source::native::NativeVideoSource,
         },
     },
-    Mixer, HEIGHT, WIDTH,
 };
 use rand::Rng;
 use rtp::{RtpMpscSource, RtpSessions};
@@ -57,7 +57,7 @@ use std::{
 };
 use tokio::{
     net::UdpSocket,
-    sync::{broadcast, mpsc, Mutex, RwLock},
+    sync::{Mutex, RwLock, broadcast, mpsc},
     task::JoinHandle,
 };
 use video::{
@@ -183,7 +183,9 @@ impl MediaPipeline {
                 async move {
                     if let Some(source) = &*audio_track.lock().await {
                         let Samples::I16(samples) = frame.into_data().samples else {
-                            unreachable!("Cannot receive non-i16 audio samples in audio_mixer_task's on_frame")
+                            unreachable!(
+                                "Cannot receive non-i16 audio samples in audio_mixer_task's on_frame"
+                            )
                         };
 
                         let frame = AudioFrame {
@@ -254,10 +256,9 @@ impl MediaPipeline {
                 participant,
                 publication,
             } = event
+                && matches!(participant, Participant::Local(..))
             {
-                if matches!(participant, Participant::Local(..)) {
-                    let _ = events_tx.send(MediaEvent::LocalTrackMuted(publication.kind()));
-                }
+                let _ = events_tx.send(MediaEvent::LocalTrackMuted(publication.kind()));
             }
         });
 

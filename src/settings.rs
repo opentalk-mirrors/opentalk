@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use config::{Config, Environment, File, FileFormat, FileSourceFile};
 use itertools::Itertools;
 use openidconnect::{ClientId, ClientSecret, IssuerUrl};
@@ -280,9 +280,10 @@ mod test {
         // Set environment variables to overwrite default config file
         let env_controller_domain = "localhost:8080".to_string();
         let env_sip_port: u16 = 5070;
-        env::set_var("OPENTALK_OBLSK_CONTROLLER__DOMAIN", &env_controller_domain);
-        env::set_var("OPENTALK_OBLSK_SIP__PORT", env_sip_port.to_string());
-
+        unsafe {
+            env::set_var("OPENTALK_OBLSK_CONTROLLER__DOMAIN", &env_controller_domain);
+            env::set_var("OPENTALK_OBLSK_SIP__PORT", env_sip_port.to_string());
+        }
         let settings = Settings::load(&Some("./extra/example.toml".into()))?;
 
         assert_eq!(settings.controller.domain, env_controller_domain);
