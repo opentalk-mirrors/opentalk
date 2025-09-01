@@ -1,11 +1,9 @@
 # SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 #
 # SPDX-License-Identifier: EUPL-1.2
-
-FROM intel/oneapi-basekit
+FROM intel/oneapi-basekit AS builder
 
 RUN apt-get update
-
 RUN apt-get install -y --no-install-recommends \
       intel-media-va-driver intel-gpu-tools \
       build-essential \
@@ -23,13 +21,6 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --default-toolchain stable
 
 ENV PATH=${PATH}:/root/.cargo/bin
-
-WORKDIR /app
-
-ENV MKLROOT=/opt/intel/oneapi/mkl/2025.2
-ENV LD_LIBRARY_PATH=${MKLROOT}/lib:${LD_LIBRARY_PATH}
-ENV ONEAPI_DEVICE_SELECTOR="level_zero:0"
-ENV RUST_LOG="opentalk=debug,whisper_rs=warn,info"
 
 RUN git clone https://github.com/ggml-org/whisper.cpp /whisper.cpp
 WORKDIR /whisper.cpp
@@ -49,16 +40,50 @@ RUN cmake .. \
 # Actual build job
 RUN cmake --build .
 
-RUN mkdir -p /opt/whisper.cpp/lib
-
-RUN cp /whisper.cpp/build/ggml/src/libggml-base.so /opt/whisper.cpp/lib/
-RUN cp /whisper.cpp/build/ggml/src/libggml-cpu.so /opt/whisper.cpp/lib/
-RUN cp /whisper.cpp/build/ggml/src/ggml-vulkan/libggml-vulkan.so /opt/whisper.cpp/lib/
-RUN cp /whisper.cpp/build/ggml/src/ggml-sycl/libggml-sycl.so /opt/whisper.cpp/lib/
-RUN cp /whisper.cpp/build/src/libwhisper.so.1 /opt/whisper.cpp/lib/
-
-ENV LD_LIBRARY_PATH=/opt/whisper.cpp/lib:${LD_LIBRARY_PATH}
-
 WORKDIR /app
 
-COPY . .
+COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
+COPY src src
+COPY models models
+COPY build.rs build.rs
+
+RUN cargo build --locked --release --features sycl
+
+############## Runtime container ##############
+FROM intel/oneapi-basekit
+
+ENV USERID=1000
+ENV GROUPID=1000
+
+RUN apt-get --update full-upgrade -y && apt-get install -y --no-install-recommends \
+    clinfo \
+    intel-media-va-driver intel-gpu-tools \
+    intel-oneapi-mkl \
+    libvulkan1 && \
+    groupadd --gid $GROUPID transcription 2> /dev/null || true && \
+    useradd --uid $USERID --gid $GROUPID --create-home transcription 2> /dev/null || true && \
+    mkdir /transcription
+
+WORKDIR /transcription
+
+RUN mkdir -p /opt/whisper.cpp/lib
+
+COPY --from=builder /whisper.cpp/build/ggml/src/* /opt/whisper.cpp/lib/
+COPY --from=builder /whisper.cpp/build/src/libwhisper.so.1 /opt/whisper.cpp/lib/
+
+ENV MKLROOT=/opt/intel/oneapi/mkl/2025.2
+ENV ONEAPI_DEVICE_SELECTOR="level_zero:0"
+ENV RUST_LOG="opentalk=debug,whisper_rs=warn,info"
+ENV LD_LIBRARY_PATH=/opt/whisper.cpp/lib:${MKLROOT}/lib:${LD_LIBRARY_PATH}
+
+COPY --from=builder /app/target/release/opentalk-transcription .
+COPY extra/example.toml transcription.toml
+COPY models/ models/
+
+USER $USERID:$GROUPID
+
+EXPOSE 11411
+EXPOSE 11311
+
+ENTRYPOINT [ "./opentalk-transcription" ]
