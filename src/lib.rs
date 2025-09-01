@@ -17,8 +17,6 @@ pub mod upload;
 
 pub use client::OpenTalkClient;
 pub use config::{AuthConfig, ControllerConfig};
-#[cfg(feature = "transcription-service")]
-pub use room::TranscriptionServiceApi;
 #[cfg(feature = "chat")]
 pub use room::{ChatApi, Message, OpenTalkChatEvent};
 pub use room::{
@@ -27,6 +25,8 @@ pub use room::{
 };
 #[cfg(feature = "recording-service")]
 pub use room::{OpenTalkRecordingServiceEvent, RecordingServiceApi};
+#[cfg(feature = "transcription-service")]
+pub use room::{OpenTalkTranscriptionServiceEvent, TranscriptionServiceApi};
 pub use types;
 #[cfg(feature = "transcription-service")]
 pub use types::signaling::transcription::segment::Segment as TranscriptionSegment;
