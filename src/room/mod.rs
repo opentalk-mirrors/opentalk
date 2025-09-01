@@ -42,7 +42,7 @@ mod chat;
 #[cfg(feature = "recording-service")]
 mod recording_service;
 #[cfg(feature = "transcription-service")]
-mod transcription;
+mod transcription_service;
 
 #[cfg(feature = "chat")]
 use chat::RoomChatState;
@@ -55,7 +55,7 @@ use recording_service::RoomRecordingServiceState;
 #[cfg(feature = "recording-service")]
 pub use recording_service::{OpenTalkRecordingServiceEvent, RecordingServiceApi};
 #[cfg(feature = "transcription-service")]
-pub use transcription::TranscriptionServiceApi;
+pub use transcription_service::{OpenTalkTranscriptionServiceEvent, TranscriptionServiceApi};
 #[cfg(feature = "chat")]
 use types::signaling::chat::state::ChatState;
 #[cfg(feature = "recording-service")]
@@ -134,6 +134,10 @@ pub enum OpenTalkEvent {
     /// All events from the recording-service module
     #[cfg(feature = "recording-service")]
     RecordingService(OpenTalkRecordingServiceEvent),
+
+    /// All events from the transcription-service module
+    #[cfg(feature = "transcription-service")]
+    TranscriptionService(OpenTalkTranscriptionServiceEvent),
 
     /// The participant was disconnected from the room. The [`Room`] must no longer be used.
     Disconnected(DisconnectReason),
@@ -283,6 +287,10 @@ impl Room {
                     RoomRecordingServiceState::handle_websocket_event(recording_service_event)
                 })
             }
+            #[cfg(feature = "transcription-service")]
+            incoming::Event::TranscriptionService(transcription_service_event) => Some(
+                transcription_service::map_websocket_event(transcription_service_event),
+            ),
             _ => None,
         };
 

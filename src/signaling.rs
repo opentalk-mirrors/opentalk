@@ -151,12 +151,14 @@ pub(crate) mod incoming {
     use types::signaling::chat::event::ChatEvent;
     #[cfg(feature = "recording-service")]
     use types::signaling::recording_service::command::RecordingServiceCommand;
+    #[cfg(feature = "transcription-service")]
+    use types::signaling::transcription::service::TranscriptionServiceEvent;
     use types::signaling::{
         control::event::ControlEvent, livekit::event::LiveKitEvent,
         moderation::event::ModerationEvent, recording::event::RecordingEvent,
     };
 
-    #[derive(Debug, Clone, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize)]
     #[serde(tag = "namespace", content = "payload", rename_all = "snake_case")]
     #[allow(clippy::large_enum_variant)]
     pub(crate) enum Event {
@@ -169,6 +171,8 @@ pub(crate) mod incoming {
         Chat(ChatEvent),
         #[cfg(feature = "recording-service")]
         RecordingService(RecordingServiceCommand),
+        #[cfg(feature = "transcription-service")]
+        TranscriptionService(TranscriptionServiceEvent),
     }
 }
 
