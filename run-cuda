@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 #!/usr/bin/env bash
 
 RUST_LOG="opentalk=debug,whisper_rs=warn,info" \

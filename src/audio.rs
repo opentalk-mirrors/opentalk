@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
 use ezk::{ConfigRange, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange};
 use ezk_audio::{
     Channels, Format, RawAudio, RawAudioConfig, RawAudioConfigRange, RawAudioFrame, SampleRate,

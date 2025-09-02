@@ -27,8 +27,8 @@
 #addr = "192.0.2.0"
 #addr = "2001:0DB8::1337:DEAD:CAFE"
 
-# The port to bind the HTTP Server to (defaults to 11311).
-port = 1337
+# The port to bind the HTTP Server to (defaults to 11411).
+#port = 11411
 
 [auth]
 # OIDC Credentials
@@ -39,3 +39,5 @@ client_secret = "Abc123"
 [controller]
 domain = "localhost:11311"
 insecure = true
+
+[monitoring]

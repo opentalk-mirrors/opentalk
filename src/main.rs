@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-#![allow(clippy::module_name_repetitions)]
-
 use std::{net::IpAddr, sync::Arc};
 
 use anyhow::{Context, Result};
@@ -110,12 +108,14 @@ async fn main() -> Result<()> {
             insecure: settings.controller.insecure,
         },
     })
-    .await?;
+    .await
+    .unwrap();
 
     let whisper_context = WhisperContext::new_with_params(
         &settings.transcription.model,
         WhisperContextParameters::default(),
-    )?;
+    )
+    .unwrap();
 
     let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
 
