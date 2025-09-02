@@ -9,17 +9,19 @@ use std::{net::IpAddr, sync::Arc};
 use anyhow::{Context, Result};
 use axum::{
     Router,
-    body::Body,
     extract::{Json, State},
-    response::Response,
     routing::{get, post},
 };
 use futures::future::join_all;
-use opentalk_client_signaling::types::common::rooms::{BreakoutRoomId, RoomId};
-use serde::Deserialize;
+use opentalk_client_signaling::{
+    AuthConfig, ControllerConfig, OpenTalkClient,
+    config::{ClientConfig, ClientCredentialsAuthConfig},
+    types::signaling::transcription::http::StartTranscriptionRequestBody,
+};
 use service_probe::{ServiceState, set_service_state, start_probe};
 use settings::Settings;
 use tokio::{
+    net::TcpListener,
     select,
     signal::{
         ctrl_c,
@@ -43,6 +45,7 @@ pub(crate) struct AppState {
     pub(crate) shutdown: broadcast::Receiver<()>,
     pub(crate) whisper_context: Arc<WhisperContext>,
     pub(crate) prometheus_state: Arc<metrics::PrometheusState>,
+    pub(crate) opentalk_client: Arc<OpenTalkClient>,
 }
 
 impl Clone for AppState {
@@ -53,14 +56,16 @@ impl Clone for AppState {
             shutdown: self.shutdown.resubscribe(),
             whisper_context: self.whisper_context.clone(),
             prometheus_state: self.prometheus_state.clone(),
+            opentalk_client: self.opentalk_client.clone(),
         }
     }
 }
 
-// TODO: 4. STT Daten -> OpenTalk Signaling senden
-// TODO: 5. Frontend
 impl AppState {
-    pub(crate) async fn spawn_session(&self, room_info: StartRequestBody) -> Result<()> {
+    pub(crate) async fn spawn_session(
+        &self,
+        room_info: StartTranscriptionRequestBody,
+    ) -> Result<()> {
         let context = Arc::new(self.clone());
         log::debug!("Start Transcription session {:?}", room_info.room_id);
         let mut session = TranscriptionSession::create(context, room_info)
@@ -94,6 +99,19 @@ async fn main() -> Result<()> {
 
     let settings = Arc::new(Settings::load(args.config.as_ref()).context("Failed to read config")?);
 
+    let opentalk_client = OpenTalkClient::create(ClientConfig {
+        auth: AuthConfig::ClientCredentials(ClientCredentialsAuthConfig {
+            issuer: settings.auth.issuer.clone(),
+            client_id: settings.auth.client_id.clone(),
+            client_secret: settings.auth.client_secret.clone(),
+        }),
+        controller: ControllerConfig {
+            domain: settings.controller.domain.clone(),
+            insecure: settings.controller.insecure,
+        },
+    })
+    .await?;
+
     let whisper_context = WhisperContext::new_with_params(
         &settings.transcription.model,
         WhisperContextParameters::default(),
@@ -107,6 +125,7 @@ async fn main() -> Result<()> {
         shutdown: shutdown_rx,
         whisper_context: Arc::new(whisper_context),
         prometheus_state: Arc::new(metrics::PrometheusState::new()),
+        opentalk_client: Arc::new(opentalk_client),
     };
 
     start_probe(
@@ -138,26 +157,22 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn run_axum_server<A>(address: A, port: u16, transcription: AppState) -> Result<()>
-where
-    A: Into<IpAddr>,
-{
-    let settings = transcription.settings.transcription.clone();
-    let prom_state = transcription.prometheus_state.clone();
+async fn run_axum_server(address: IpAddr, port: u16, transcription: AppState) -> Result<()> {
+    let transcription_model_name = transcription.settings.transcription.model.clone();
+    let prometheus_state = transcription.prometheus_state.clone();
+
+    // TODO: Add Metrics endpoint
+    // TODO: Add bearer token verification
     let app = Router::new()
         .route("/start", post(start_transcription))
-        .route(
-            "/metrics",
-            get(async move || Response::new(Body::new(prom_state.metrics()))),
-        )
+        .route("/metrics", get(async move || prometheus_state.metrics()))
         .route(
             "/model",
-            get(async move || Response::new(Body::new(settings.model.clone()))),
+            get(async move || transcription_model_name.clone()),
         )
-        // TODO: Add Metrics endpoint
-        // TODO: Add bearer token verification
         .with_state(transcription);
-    let listener = tokio::net::TcpListener::bind((address.into(), port)).await?;
+
+    let listener = TcpListener::bind((address, port)).await?;
 
     // Server up and running, ready to process requests
     set_service_state(ServiceState::Ready);
@@ -167,15 +182,9 @@ where
     Ok(())
 }
 
-#[derive(Debug, Deserialize)]
-struct StartRequestBody {
-    room_id: RoomId,
-    breakout_room: Option<BreakoutRoomId>,
-}
-
 async fn start_transcription(
     State(transcription): State<AppState>,
-    Json(room_info): Json<StartRequestBody>,
+    Json(room_info): Json<StartTranscriptionRequestBody>,
 ) {
     transcription.spawn_session(room_info).await.unwrap();
 }

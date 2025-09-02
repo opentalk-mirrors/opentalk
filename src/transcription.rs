@@ -10,87 +10,73 @@ use ezk::{Frame, Source, SourceEvent};
 use ezk_audio::{Format, RawAudio, RawAudioConfigRange, SampleRate};
 use livekit::{
     RoomEvent,
-    id::{ParticipantSid, TrackSid},
+    id::TrackSid,
     prelude::{Participant, RemoteTrackPublication},
     track::{RemoteAudioTrack, RemoteTrack},
     webrtc::audio_stream::native::NativeAudioStream,
 };
-use openidconnect::{ResourceOwnerPassword, ResourceOwnerUsername};
 use opentalk_client_signaling::{
-    AuthConfig, ControllerConfig, Event, OpenTalkClient, Room, TranscriptionSegment,
-    config::{ClientConfig, DirectAccessCredentialsAuthConfig},
+    Event, OpenTalkEvent, OpenTalkTranscriptionServiceEvent, Room, TranscriptionSegment,
     types::{
         common::time::Timestamp,
-        signaling::{ParticipantId, chat},
+        signaling::{ParticipantId, transcription::http::StartTranscriptionRequestBody},
     },
 };
 use tokio::sync::{Mutex, mpsc};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperState};
 
 use crate::{
-    AppState, StartRequestBody,
+    AppState,
     audio::{CHANNELS, NativeAudioStreamSource, SAMPLE_RATE},
 };
 
 pub(crate) struct TranscriptionSession {
-    service_context: Arc<AppState>,
+    app_state: Arc<AppState>,
+
+    run: bool,
 
     room: Room,
+    language: Option<String>,
 
     speakers: Vec<Participant>,
 
     whisper: Arc<Mutex<HashMap<TrackSid, Whisper>>>,
     track_to_participant: Arc<Mutex<HashMap<TrackSid, ParticipantId>>>,
-    send_messages_rx: mpsc::Receiver<(ParticipantSid, TranscriptionSegment)>,
-    send_messages_tx: mpsc::Sender<(ParticipantSid, TranscriptionSegment)>,
+
+    segments_rx: mpsc::Receiver<TranscriptionSegment>,
+    segments_tx: mpsc::Sender<TranscriptionSegment>,
 }
 
 impl TranscriptionSession {
     pub(crate) async fn create(
-        service_context: Arc<AppState>,
-        room_info: StartRequestBody,
+        app_state: Arc<AppState>,
+        room_info: StartTranscriptionRequestBody,
     ) -> Result<TranscriptionSession> {
-        let client = OpenTalkClient::create(ClientConfig {
-            auth: AuthConfig::DirectAccess(DirectAccessCredentialsAuthConfig {
-                issuer: service_context.settings.auth.issuer.clone(),
-                client_id: service_context.settings.auth.client_id.clone(),
-                client_secret: service_context.settings.auth.client_secret.clone(),
-                username: ResourceOwnerUsername::new(String::from("bob")),
-                password: ResourceOwnerPassword::new(String::from("bob")),
-            }),
-            controller: ControllerConfig {
-                domain: service_context.settings.controller.domain.clone(),
-                insecure: service_context.settings.controller.insecure,
-            },
-        })
-        .await?;
-        let room = client
-            .connect_as_user(
-                "transcription".parse()?,
-                room_info.room_id,
-                room_info.breakout_room,
-                true,
-            )
+        let room = app_state
+            .opentalk_client
+            .connect_recorder(room_info.room_id, room_info.breakout_room, true)
             .await?
             .into();
 
-        let (send_messages_tx, send_messages_rx) = mpsc::channel(1000);
+        let (segments_tx, segments_rx) = mpsc::channel(1000);
 
-        Ok(Self {
-            service_context,
+        Ok(TranscriptionSession {
+            app_state,
+            run: true,
             room,
+            language: room_info.language,
             speakers: Vec::new(),
-            track_to_participant: Arc::new(Mutex::new(HashMap::new())),
             whisper: Arc::new(Mutex::new(HashMap::new())),
-            send_messages_rx,
-            send_messages_tx,
+            track_to_participant: Arc::new(Mutex::new(HashMap::new())),
+            segments_rx,
+            segments_tx,
         })
     }
 
     pub(crate) async fn run(&mut self) -> Result<()> {
-        let mut shutdown_rx = self.service_context.shutdown.resubscribe();
+        let mut shutdown_rx = self.app_state.shutdown.resubscribe();
 
-        loop {
+        while self.run {
             tokio::select! {
                 event = self.room.recv() => {
                     let event = match event {
@@ -101,22 +87,14 @@ impl TranscriptionSession {
                         Ok(event) => event,
                     };
                     match event {
-                        Event::OpenTalk(event) => log::trace!("Received OpenTalk event: {event:?}"),
+                        Event::OpenTalk(event) => self.handle_opentalk_event(event),
                         Event::LiveKit(event) => self.handle_livekit_event(event).await,
                     }
                 }
-                Some((participant, message)) = self.send_messages_rx.recv() => {
-                    log::debug!("send message {message:?}");
-                    self
-                        .room
-                        .chat_api()
-                        .unwrap()
-                        .send_message(
-                            format!("[{}] said: {message:?}", participant.to_string()),
-                            chat::Scope::Global
-                        ).await?;
+                Some(segment) = self.segments_rx.recv() => {
+                    log::debug!("Sending segment {segment:?}");
 
-                    self.room.transcription_service_api().send_segment(message).await?;
+                    self.room.transcription_service_api().send_segment(segment).await?;
                 }
                 _ = shutdown_rx.recv() => {
                     break;
@@ -125,6 +103,23 @@ impl TranscriptionSession {
         }
 
         Ok(())
+    }
+
+    fn handle_opentalk_event(&mut self, event: OpenTalkEvent) {
+        match event {
+            OpenTalkEvent::TranscriptionService(event) => match event {
+                OpenTalkTranscriptionServiceEvent::Stop => {
+                    log::debug!("Got stop event");
+                    self.run = false;
+                }
+            },
+            OpenTalkEvent::Disconnected(..) => {
+                log::debug!("Got disconnected event");
+
+                self.run = false
+            }
+            _ => {}
+        }
     }
 
     async fn handle_livekit_event(&mut self, event: RoomEvent) {
@@ -180,7 +175,8 @@ impl TranscriptionSession {
         audio_track: RemoteAudioTrack,
         publication: RemoteTrackPublication,
     ) {
-        let whisper_context = self.service_context.whisper_context.clone();
+        let language = self.language.clone();
+        let whisper_context = self.app_state.whisper_context.clone();
         let whisper = self.whisper.clone();
 
         tokio::spawn(async move {
@@ -208,7 +204,9 @@ impl TranscriptionSession {
                         .lock()
                         .await
                         .entry(publication.sid())
-                        .or_insert_with(|| Whisper::new(whisper_context.clone()).unwrap())
+                        .or_insert_with(|| {
+                            Whisper::new(whisper_context.clone(), language.clone()).unwrap()
+                        })
                         .extend_audio_frame(frame);
                 }
             }
@@ -226,10 +224,9 @@ impl TranscriptionSession {
 
             // Stopped speaking, do ai stuff
             for track in old_speaker.track_publications().keys() {
-                let participant = old_speaker.sid().clone();
                 let track = track.clone();
                 let whisper = self.whisper.clone();
-                let send_messages_tx = self.send_messages_tx.clone();
+                let send_messages_tx = self.segments_tx.clone();
                 let track_to_participant = self.track_to_participant.clone();
 
                 tokio::task::spawn_blocking(move || {
@@ -243,7 +240,7 @@ impl TranscriptionSession {
                         return;
                     };
 
-                    if let Ok(data) = whisper.do_ai_and_clear() {
+                    if let Ok(data) = whisper.transcribe_segment() {
                         let segment = TranscriptionSegment {
                             participant_id: *participant_id,
                             track_id: track.to_string(),
@@ -251,9 +248,8 @@ impl TranscriptionSession {
                             ends_at: Timestamp::now(),
                             text: data,
                         };
-                        send_messages_tx
-                            .blocking_send((participant, segment))
-                            .unwrap();
+
+                        send_messages_tx.blocking_send(segment).unwrap();
                     }
                 });
             }
@@ -265,21 +261,21 @@ impl TranscriptionSession {
 
 struct Whisper {
     state: WhisperState,
+    language: Option<String>,
     audio_samples: Vec<f32>,
     pub(crate) start_point: Timestamp,
-    pub(crate) segment_number: u32,
 }
 
 impl Whisper {
-    fn new(context: Arc<WhisperContext>) -> Result<Self> {
+    fn new(context: Arc<WhisperContext>, language: Option<String>) -> Result<Self> {
         let state = context.create_state()?;
         let audio_samples = Vec::new();
 
-        Ok(Self {
+        Ok(Whisper {
             state,
+            language,
             audio_samples,
             start_point: Timestamp::now(),
-            segment_number: 0,
         })
     }
 }
@@ -290,33 +286,20 @@ impl Whisper {
         self.audio_samples.extend(samples);
     }
 
-    fn do_ai_and_clear(&mut self) -> Result<String> {
+    fn transcribe_segment(&mut self) -> Result<String> {
         let sample_duration =
             self.audio_samples.len() as f32 / SAMPLE_RATE as f32 / CHANNELS as f32;
+
         if sample_duration < 1.0 {
             self.audio_samples
                 .resize((SAMPLE_RATE * CHANNELS * 2) as usize, 0.0);
-        }
-
-        let result = self.do_ai();
-        self.clear_audio_frame();
-        self.segment_number += 1;
-        Ok(result?.unwrap())
-    }
-
-    fn do_ai(&mut self) -> Result<Option<String>> {
-        let sample_duration =
-            self.audio_samples.len() as f32 / SAMPLE_RATE as f32 / CHANNELS as f32;
-
-        if sample_duration < 1.0 {
-            return Ok(None);
         }
 
         let mut segments = Vec::new();
 
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
-        params.set_language(Some("de"));
+        params.set_language(self.language.as_deref());
 
         params.set_print_special(false);
         params.set_print_progress(false);
@@ -331,10 +314,8 @@ impl Whisper {
             segments.push(segment);
         }
 
-        Ok(Some(segments.join("").trim().to_owned()))
-    }
-
-    fn clear_audio_frame(&mut self) {
         self.audio_samples.clear();
+
+        Ok(segments.join("").trim().to_owned())
     }
 }
