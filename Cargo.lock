@@ -3561,9 +3561,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-client-signaling"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72c23349d2e0187477b3e8bbc7187fe7d093511143d610c7efe3a0bdfca91c7a"
+checksum = "89d50ca03974a8ea1b5e92514f4ad3e5cc053206f4ed764d3988ec76dcd809fd"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3614,9 +3614,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types"
-version = "0.47.1"
+version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "748e5159dcfe546df2d0e75b8b0c5aafbb58cc8ca36fcdb5bcd8c95a879c30ac"
+checksum = "5551d213250b4a42b30b51a965342b927029ab7a570ae58da6207fd3d38411f1"
 dependencies = [
  "opentalk-types-api-v1",
  "opentalk-types-common",
@@ -3929,9 +3929,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-transcription"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24844132aa356275155f2da9df4836f2aa7723152eecaab0674f50bd535348f3"
+checksum = "f2fa8128b4d033f38a01b08089c0f89d8ed8610f70d60112f3a71d7afc00a441"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
