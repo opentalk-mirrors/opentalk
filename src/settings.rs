@@ -14,9 +14,11 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub(crate) struct Settings {
     pub(crate) http: HttpSettings,
+    #[serde(default)]
     pub(crate) monitoring: MonitoringSettings,
     pub(crate) auth: AuthSettings,
     pub(crate) controller: ControllerSettings,
+    #[serde(default)]
     pub(crate) transcription: TranscriptionSettings,
 }
 
@@ -135,6 +137,15 @@ fn default_monitoring_http_port() -> u16 {
     11412
 }
 
+impl Default for MonitoringSettings {
+    fn default() -> Self {
+        Self {
+            addr: default_monitoring_http_address(),
+            port: default_monitoring_http_port(),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub(crate) struct AuthSettings {
     pub(crate) issuer: IssuerUrl,
@@ -157,4 +168,12 @@ pub(crate) struct TranscriptionSettings {
 
 fn default_model() -> String {
     "models/ggml-large-v3-turbo.bin".to_string()
+}
+
+impl Default for TranscriptionSettings {
+    fn default() -> Self {
+        Self {
+            model: default_model(),
+        }
+    }
 }

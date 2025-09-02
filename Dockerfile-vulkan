@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM rust:slim-trixie AS builder
+RUN mkdir /transcription
+WORKDIR /transcription
+
+ADD . /transcription
+
+RUN apt-get --update -y full-upgrade && \
+    apt-get install --no-install-recommends -y build-essential pkg-config clang libclang-dev cmake libvulkan-dev glslc libssl-dev
+
+RUN cargo build --locked --release
+
+FROM debian:trixie-slim
+
+ENV USERID=1000
+ENV GROUPID=1000
+
+RUN apt-get --update full-upgrade -y && \
+    apt-get install --no-install-recommends -y ca-certificates libvulkan1 mesa-vulkan-drivers && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --gid $GROUPID transcription && \
+    useradd --uid $USERID --gid $GROUPID --create-home transcription && \
+    mkdir /transcription
+
+WORKDIR /transcription
+
+COPY models /transcription/models
+COPY --from=builder /transcription/target/release/opentalk-transcription .
+COPY extra/example.toml /etc/opentalk/transcription.toml
+
+USER $USERID:$GROUPID
+
+EXPOSE 11411
+ENTRYPOINT [ "/transcription/opentalk-transcription" ]

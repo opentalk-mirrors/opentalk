@@ -35,7 +35,10 @@ itertools = "0.14"
 livekit = { version = "0.7", features = ["native-tls"] }
 log = "0.4"
 openidconnect = "4"
-opentalk-client-signaling = "0.1"
+opentalk-client-signaling = { version = "0.1", default-features = false, features = [
+  "livekit",
+  "transcription-service",
+] }
 opentalk-version = "0.2"
 owo-colors = "4.2"
 prometheus = { version = "0.14", default-features = false }

@@ -1,0 +1,257 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.89.0-trixie
+
+stages:
+  - lint
+  - test
+  - build
+  - trigger
+  - release
+
+variables:
+  CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
+  # Enable one network per build for the test container and services
+  FF_NETWORK_PER_BUILD: 'true'
+
+.default_job_condition: &default_job_condition
+  needs: []
+  rules:
+    # Run in merge requests (if there is one job with this instruction, all jobs without
+    # it are ignored for the MR pipeline)
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    # Run on scheduled pipeline runs
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+    # Run on feature branches if there is no MR
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+.install_deps: &install_deps
+  - apt-get update
+  - >
+    apt-get update && apt-get install -y build-essential clang libclang-dev cmake libvulkan-dev glslc
+
+lint:fmt:
+  stage: lint
+  <<: *default_job_condition
+  before_script:
+    - rustup component add rustfmt --toolchain nightly
+  script:
+    - cargo +nightly fmt -- --check
+
+lint:clippy:
+  stage: lint
+  <<: *default_job_condition
+  before_script:
+    - *install_deps
+  script:
+    - cargo clippy --tests
+
+lint:dependency_check_advisories:
+  stage: lint
+  <<: *default_job_condition
+  allow_failure: true
+  script: cargo-deny check advisories --deny unmatched-skip --deny license-not-encountered
+
+lint:dependency_check_bans_licenses_sources:
+  stage: lint
+  <<: *default_job_condition
+  script: cargo-deny check bans licenses sources --deny unmatched-skip --deny license-not-encountered
+
+lint:yaml:
+  stage: lint
+  <<: *default_job_condition
+  image: alpine:3.21
+  before_script:
+    - apk add --no-cache yamllint
+  script: yamllint .
+
+lint:unnecessary_dependencies:
+  stage: lint
+  <<: *default_job_condition
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  before_script: if ! cargo machete --version; then cargo install cargo-machete; fi
+  script: cargo machete --with-metadata
+
+lint:markdown:
+  stage: lint
+  <<: *default_job_condition
+  image: registry.gitlab.com/pipeline-components/markdownlint:latest
+  script:
+    - mdl --style .markdown_style.rb  --warnings .
+
+lint:licensing:
+  stage: lint
+  <<: *default_job_condition
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: ['']
+  script:
+    - reuse lint
+
+lint:commit:
+  cache: {}
+  image: node:lts-alpine
+  stage: lint
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  variables:
+    GIT_DEPTH: 250
+  before_script:
+    - apk add --no-cache git
+    - npm install -g @commitlint/cli @commitlint/config-conventional
+  script:
+    - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
+
+lint:commit-signature:
+  stage: lint
+  needs: []
+  rules:
+    # Run in merge requests only.
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  before_script:
+    - git config --global gpg.ssh.allowedSignersFile ~/.ssh/allowed_signers
+    - mkdir -p ~/.ssh
+    - echo "$ALLOWED_SIGNERS" > ~/.ssh/allowed_signers
+  script:
+    # %G? will log signature information for a commit. `N` stands for "no signature", `B` for "bad signature"
+    # refer to https://git-scm.com/docs/pretty-formats#Documentation/pretty-formats.txt-emGem
+    # grep checks that the output does not contain any "N" or "B" characters.
+    - >
+      git log --format=format:'%G?' $CI_MERGE_REQUEST_DIFF_BASE_SHA..HEAD
+      | grep --null-data --quiet --invert-match --regexp="N" --regexp="B"
+
+lint:trigger_changelog_preview:
+  stage: lint
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  variables:
+    PIPELINE_PROJECT_PATH: $CI_PROJECT_PATH
+    PIPELINE_MERGE_REQUEST_PROJECT_PATH: $CI_MERGE_REQUEST_SOURCE_PROJECT_PATH
+    PIPELINE_MERGE_REQUEST_SOURCE_BRANCH_NAME: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+    PIPELINE_MERGE_REQUEST_IID: $CI_MERGE_REQUEST_IID
+  trigger: opentalk/tools/check-changelog
+
+test:cargo_test:
+  stage: test
+  <<: *default_job_condition
+  artifacts:
+    paths:
+      - target/coverage/html
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: target/coverage/cobertura.xml
+  coverage: '/Coverage: \d+(?:\.\d+)?/'
+  variables:
+    COVERAGE_XML_PATH: 'concat("Coverage: ", 100 * string(//coverage/@line-rate), "%")'
+    RUSTFLAGS: -Ctarget-feature=-crt-static -Cinstrument-coverage -Clink-arg=-fuse-ld=lld
+    LLVM_PROFILE_FILE: ./target/coverage/raw/coverage-%p-%m.profraw
+  before_script:
+    - *install_deps
+  script:
+    # tests wetc_scenario1 is ignored until fixed
+    - >
+      cargo test
+      --workspace
+      --locked
+      --
+      --test-threads 1
+
+    # Extract code coverage data
+    - >
+      grcov target/coverage/raw
+      --binary-path ./target/debug/
+      --source-dir .
+      --output-types cobertura,html
+      --branch
+      --ignore-not-existing
+      --ignore "*cargo*"
+      --output-path target/coverage
+
+    # Print out the coverage percentage for GitLab
+    - xmllint --xpath "$COVERAGE_XML_PATH" target/coverage/cobertura.xml
+
+test:doc:
+  stage: test
+  <<: *default_job_condition
+  before_script:
+    - *install_deps
+  script:
+    - cargo doc --workspace --verbose
+
+trigger-docs:
+  stage: trigger
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAME !~ /^.*canary$/ || $CI_COMMIT_TAG =~ /^v.*$/
+  trigger:
+    project: opentalk/backend/docs
+
+build:container-vulkan:
+  stage: build
+  variables:
+    IMAGE_DESTINATION_ARGS: --no-push
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        IMAGE_DESTINATION_ARGS: --destination $CI_REGISTRY_IMAGE:dev
+    - if: $CI_COMMIT_TAG != null
+      variables:
+        IMAGE_DESTINATION_ARGS: >
+          --destination $CI_REGISTRY_IMAGE:latest
+          --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+    # Don't run on feature branches if there is a MR
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    # Don't run on release branches
+    - if: $CI_COMMIT_BRANCH =~ /^release\/v.*$/
+      when: never
+    - if: >
+        $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH &&
+        $CI_COMMIT_BRANCH != null
+      variables:
+        IMAGE_DESTINATION_ARGS: --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  # IMAGE_DESTINATION_ARGS will be set inside the script
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: ['']
+  script:
+    # According to https://docs.docker.com/engine/reference/commandline/tag/
+    # the tag may contain lowercase and uppercase letters, digits, underscores,
+    # periods, and hyphens, so we replace everything else by '_'. It cannot start
+    # with a period or hyphen, so we replace those if we find them at the start of a line.
+    # It must be no longer than 128 characters, so we truncate it in addition.
+    #
+    # tr -c means the same as --complement, but busybox tr doesn't have that
+    - >
+      if [ $CI_PIPELINE_SOURCE == 'merge_request_event' ]; then
+        IMAGE_TAG=$(
+          echo -n "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" |
+          tr -c '[:alnum:]_.-' '_' |
+          sed 's/^[.-]/_/' |
+          cut -c -128
+        );
+        IMAGE_DESTINATION_ARGS="--destination $CI_REGISTRY_IMAGE:$IMAGE_TAG";
+      fi
+    - mkdir -p /kaniko/.docker
+    - >
+      echo
+      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
+      /kaniko/.docker/config.json
+    - >
+      /kaniko/executor
+      --registry-mirror=mirror.gcr.io
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/Dockerfile-vulkan
+      $IMAGE_DESTINATION_ARGS
+      --force
