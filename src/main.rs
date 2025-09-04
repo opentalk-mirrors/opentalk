@@ -108,14 +108,12 @@ async fn main() -> Result<()> {
             insecure: settings.controller.insecure,
         },
     })
-    .await
-    .unwrap();
+    .await?;
 
     let whisper_context = WhisperContext::new_with_params(
         &settings.transcription.model,
         WhisperContextParameters::default(),
-    )
-    .unwrap();
+    )?;
 
     let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
 
