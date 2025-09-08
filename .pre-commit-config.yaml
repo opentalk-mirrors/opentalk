@@ -65,7 +65,7 @@ repos:
         args:
           - .
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v5.1.0
+    rev: v5.1.1
     hooks:
       - id: reuse-lint-file
   - repo: https://github.com/markdownlint/markdownlint
