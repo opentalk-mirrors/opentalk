@@ -289,6 +289,9 @@ struct RtpTask {
 
     /// Sink to dump RTP packets into, that have been received on the `rtp_socket`
     rtp_receiver_sink: Option<mpsc::Sender<RtpPacket>>,
+
+    /// Timestamp we've last received a RTP or RTCP package from the caller
+    timestamp_last_activity_from_peer: Instant,
 }
 
 enum State {
@@ -322,6 +325,7 @@ impl RtpTask {
             encode_buf: Vec::new(),
             rtp_sender_source: None,
             rtp_receiver_sink: None,
+            timestamp_last_activity_from_peer: Instant::now(),
         }
     }
 
@@ -354,7 +358,16 @@ impl RtpTask {
                 event = poll_source(&mut self.rtp_sender_source) => self.handle_rtp_source_event(event).await,
 
                 // Send out RTCP packets in a fixed interval
-                _ = rtcp_interval.tick() => self.send_rtcp().await,
+                _ = rtcp_interval.tick() => {
+                    // Use the interval to check for activity timeout
+                    if self.timestamp_last_activity_from_peer.elapsed() > Duration::from_secs(5) {
+                        log::warn!("terminating call, no media was received for some time");
+                        (self.on_err)();
+                        return;
+                    }
+
+                    self.send_rtcp().await
+                },
 
                 // Receive incoming RTP packets from the peer
                 res = self.rtp_socket.recv_from(&mut rtp_recv_buf) => self.handle_rtp_packet_recv(&mut rtp_recv_buf, res),
@@ -516,6 +529,8 @@ impl RtpTask {
             return;
         }
 
+        self.timestamp_last_activity_from_peer = Instant::now();
+
         match RtpPacket::parse(&buf[..]) {
             Ok(pkg) => self.session.recv_rtp(pkg),
             Err(e) => log::debug!("Failed to parse rtp-packet, {e:?}"),
@@ -535,6 +550,8 @@ impl RtpTask {
             log::debug!("Failed to unprotect RTCP, {e}");
             return;
         }
+
+        self.timestamp_last_activity_from_peer = Instant::now();
 
         let compound = match Compound::parse(buf) {
             Ok(compound) => compound,
