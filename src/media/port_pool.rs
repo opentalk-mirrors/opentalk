@@ -47,10 +47,10 @@ pub struct SocketPair {
 
 impl Drop for SocketPair {
     fn drop(&mut self) {
-        tokio::task::block_in_place(move || {
-            tokio::runtime::Handle::current().block_on(async move {
-                PortPool::instance().clear_port(self.local_rtp_port).await;
-            });
+        let local_rtp_port = self.local_rtp_port;
+
+        tokio::spawn(async move {
+            PortPool::instance().clear_port(local_rtp_port).await;
         });
     }
 }
