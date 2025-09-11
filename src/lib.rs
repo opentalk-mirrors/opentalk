@@ -4,7 +4,7 @@
 
 use bytes::Bytes;
 use futures::Stream;
-use reqwest::{header::COOKIE, Client, Response, StatusCode, Url};
+use reqwest::{Client, Response, StatusCode, Url, header::COOKIE};
 use serde::Deserialize;
 use serde_repr::Deserialize_repr;
 use snafu::{OptionExt, Snafu};

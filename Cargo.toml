@@ -6,7 +6,7 @@
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
 description = "Etherpad API client for use inside OpenTalk"
 documentation = "https://docs.rs/opentalk-etherpad-client"
-edition = "2021"
+edition = "2024"
 homepage = "https://opentalk.eu/"
 license = "EUPL-1.2"
 name = "opentalk-etherpad-client"
