@@ -22,12 +22,33 @@ pub struct TranscriptionServiceApi<'a> {
 }
 
 impl<'a> TranscriptionServiceApi<'a> {
+    /// Send a `Started` command indicating that transcription by the client has started
+    ///
+    /// This must be sent before sending any `Segment` commands.
+    pub async fn send_started(&mut self) -> Result<()> {
+        self.room
+            .signaling
+            .send(TranscriptionServiceCommand::Started)
+            .await
+            .context("Failed to send Started command")
+    }
+
+    /// Send a `Stopped` command indicating that transcription by the client has stopped
+    pub async fn send_stopped(&mut self) -> Result<()> {
+        self.room
+            .signaling
+            .send(TranscriptionServiceCommand::Stopped)
+            .await
+            .context("Failed to send Started command")
+    }
+
+    /// Send a `Segment` command containing a transcription segment
     pub async fn send_segment(&mut self, segment: Segment) -> Result<()> {
         self.room
             .signaling
             .send(TranscriptionServiceCommand::Segment(segment))
             .await
-            .context("sending transcription service command failed")
+            .context("Failed to send Segment command")
     }
 }
 
