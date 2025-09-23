@@ -2,7 +2,14 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    fs::File,
+    io::Write,
+    str::FromStr,
+    sync::{Arc, atomic::AtomicU32},
+    time::Duration,
+};
 
 use anyhow::Result;
 use audio_nodes::AudioConvert;
@@ -11,7 +18,7 @@ use ezk_audio::{Format, RawAudio, RawAudioConfigRange, SampleRate};
 use livekit::{
     RoomEvent,
     id::TrackSid,
-    prelude::{Participant, RemoteTrackPublication},
+    prelude::{RemoteParticipant, RemoteTrackPublication},
     track::{RemoteAudioTrack, RemoteTrack},
     webrtc::audio_stream::native::NativeAudioStream,
 };
@@ -23,12 +30,27 @@ use opentalk_client_signaling::{
     },
 };
 use tokio::sync::{Mutex, mpsc};
+use voice_activity_detector::VoiceActivityDetector;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperState};
 
 use crate::{
     AppState,
     audio::{CHANNELS, NativeAudioStreamSource, SAMPLE_RATE},
 };
+
+const SAMPLE_SIZE: usize = 512;
+/// The cutoff threshold for the power level
+const POWER_LEVEL_THRESHOLD: f32 = 0.02;
+/// The probability threshold for the voice activity detection (VAD)
+const VAD_PROBABILITY_THRESHOLD: f32 = 0.03;
+const POST_BUFFER_LENGTH: Duration = Duration::from_millis(500);
+const PRE_BUFFER_LENGTH: Duration = Duration::from_millis(200);
+const MINIMUM_SAMPLES: usize = sample_block_per_duration(SAMPLE_RATE, CHANNELS, PRE_BUFFER_LENGTH);
+
+enum SilenceBuffer {
+    HadActivity(Vec<f32>),
+    Silence,
+}
 
 pub(crate) struct TranscriptionSession {
     app_state: Arc<AppState>,
@@ -38,12 +60,17 @@ pub(crate) struct TranscriptionSession {
     room: Room,
     language: Option<String>,
 
-    speakers: Vec<Participant>,
-
     whisper: Arc<Mutex<HashMap<TrackSid, Whisper>>>,
 
     segments_rx: mpsc::Receiver<TranscriptionSegment>,
     segments_tx: mpsc::Sender<TranscriptionSegment>,
+}
+
+const fn sample_block_per_duration(sample_rate: u32, channels: u32, duration: Duration) -> usize {
+    let seconds = duration.as_secs_f64();
+    // length = sample_rate * channels * time
+    let total_samples = seconds * sample_rate as f64 * channels as f64;
+    total_samples as usize
 }
 
 impl TranscriptionSession {
@@ -66,7 +93,6 @@ impl TranscriptionSession {
             run: true,
             room,
             language: room_info.language,
-            speakers: Vec::new(),
             whisper: Arc::new(Mutex::new(HashMap::new())),
             segments_rx,
             segments_tx,
@@ -128,15 +154,66 @@ impl TranscriptionSession {
         log::trace!("livekit event: {event:?}");
 
         match event {
-            RoomEvent::ActiveSpeakersChanged { speakers } => {
-                self.handle_speaker_change(speakers);
-            }
             RoomEvent::TrackSubscribed {
                 track: RemoteTrack::Audio(audio_track),
                 publication,
-                participant: _,
-            } => self.handle_new_audio_track(audio_track, publication),
+                participant,
+            } => self.handle_new_audio_track(audio_track, publication, participant),
             _ => {}
+        }
+    }
+
+    async fn on_new_frame(
+        whisper_context: &Arc<WhisperContext>,
+        whisper: &Mutex<HashMap<TrackSid, Whisper>>,
+        language: Option<String>,
+        frame: Frame<RawAudio>,
+        publication: &RemoteTrackPublication,
+        silence_buffer: &mut SilenceBuffer,
+        send_messages_tx: &mpsc::Sender<TranscriptionSegment>,
+        participant_id: &ParticipantId,
+    ) {
+        let mut whisper_guard = whisper.lock().await;
+        let whisper_entry = whisper_guard
+            .entry(publication.sid())
+            .or_insert_with(|| Whisper::new(whisper_context.clone(), language).unwrap());
+        whisper_entry.extend_audio_frame(frame.clone());
+
+        let detected = Self::detect_speech(whisper_entry).await;
+        if detected {
+            *silence_buffer = SilenceBuffer::HadActivity(Vec::with_capacity(
+                sample_block_per_duration(SAMPLE_RATE, CHANNELS, POST_BUFFER_LENGTH),
+            ));
+        } else if let SilenceBuffer::HadActivity(activity) = silence_buffer {
+            let samples = frame.into_data().samples.into_samples::<f32>();
+            activity.extend(samples);
+        }
+
+        let SilenceBuffer::HadActivity(silence) = silence_buffer else {
+            return;
+        };
+
+        if silence.len() < sample_block_per_duration(SAMPLE_RATE, CHANNELS, POST_BUFFER_LENGTH) {
+            return;
+        }
+
+        log::debug!(
+            "silence buffer exceeded minimum size of: {}",
+            sample_block_per_duration(SAMPLE_RATE, CHANNELS, POST_BUFFER_LENGTH)
+        );
+        whisper_entry.samples.extend(silence.iter());
+        *silence_buffer = SilenceBuffer::Silence;
+
+        if let Ok(data) = whisper_entry.transcribe_segment() {
+            let segment = TranscriptionSegment {
+                participant_id: *participant_id,
+                track_id: publication.sid().to_string(),
+                starts_at: whisper_entry.start_point,
+                ends_at: Timestamp::now(),
+                text: data,
+            };
+
+            send_messages_tx.send(segment).await.unwrap();
         }
     }
 
@@ -144,123 +221,140 @@ impl TranscriptionSession {
         &mut self,
         audio_track: RemoteAudioTrack,
         publication: RemoteTrackPublication,
+        participant: RemoteParticipant,
     ) {
         let language = self.language.clone();
         let whisper_context = self.app_state.whisper_context.clone();
         let whisper = self.whisper.clone();
 
-        tokio::spawn(async move {
-            let mut audio_convert = AudioConvert::new(NativeAudioStreamSource {
-                stream: NativeAudioStream::new(
-                    audio_track.rtc_track(),
-                    SAMPLE_RATE as i32,
-                    CHANNELS as i32,
-                ),
-                timestamp: 0,
-            });
+        let Ok(participant_id) = ParticipantId::from_str(participant.identity().as_str()) else {
+            log::warn!(
+                "Got new audio track from invalid participant identity {}",
+                participant.identity()
+            );
+            return;
+        };
 
-            audio_convert
-                .negotiate_config(vec![RawAudioConfigRange {
-                    sample_rate: ezk::ValueRange::Value(SampleRate(SAMPLE_RATE)),
-                    channels: ezk::ValueRange::Value(ezk_audio::Channels::NotPositioned(CHANNELS)),
-                    format: ezk::ValueRange::Value(Format::F32),
-                }])
-                .await
-                .unwrap();
+        let send_messages_tx = self.segments_tx.clone();
 
-            while let Ok(source_event) = audio_convert.next_event().await {
-                if let SourceEvent::Frame(frame) = source_event {
-                    whisper
-                        .lock()
-                        .await
-                        .entry(publication.sid())
-                        .or_insert_with(|| {
-                            Whisper::new(whisper_context.clone(), language.clone()).unwrap()
-                        })
-                        .extend_audio_frame(frame);
+        tokio::spawn({
+            let publication = publication.clone();
+            async move {
+                let mut audio_convert = AudioConvert::new(NativeAudioStreamSource {
+                    stream: NativeAudioStream::new(
+                        audio_track.rtc_track(),
+                        SAMPLE_RATE as i32,
+                        CHANNELS as i32,
+                    ),
+                    timestamp: 0,
+                });
+
+                audio_convert
+                    .negotiate_config(vec![RawAudioConfigRange {
+                        sample_rate: ezk::ValueRange::Value(SampleRate(SAMPLE_RATE)),
+                        channels: ezk::ValueRange::Value(ezk_audio::Channels::NotPositioned(
+                            CHANNELS,
+                        )),
+                        format: ezk::ValueRange::Value(Format::F32),
+                    }])
+                    .await
+                    .unwrap();
+
+                let mut silence_buffer = SilenceBuffer::Silence;
+                loop {
+                    match audio_convert.next_event().await {
+                        Ok(SourceEvent::Frame(frame)) => {
+                            log::trace!("new raw audio frame");
+                            Self::on_new_frame(
+                                &whisper_context,
+                                &whisper,
+                                language.clone(),
+                                frame,
+                                &publication,
+                                &mut silence_buffer,
+                                &send_messages_tx,
+                                &participant_id,
+                            )
+                            .await;
+                        }
+                        Ok(source_event) => {
+                            log::warn!("Received event: {source_event:?}");
+                        }
+                        Err(err) => {
+                            log::error!("Received error on event retrieval: {err:?}");
+                        }
+                    }
                 }
             }
         });
     }
 
-    fn handle_speaker_change(&mut self, speakers: Vec<Participant>) {
-        log::trace!("speaker changed: {speakers:?}");
+    async fn detect_speech(whisper: &mut Whisper) -> bool {
+        if whisper.audio_queue.len() < SAMPLE_SIZE {
+            return false;
+        }
 
-        let livekit_room = self.room.livekit_room().unwrap();
-        let remote_participants = livekit_room.remote_participants();
+        let mut samples = Vec::with_capacity(512);
 
-        for old_speaker in &self.speakers {
-            // Still speaking, skip
-            if speakers.iter().any(|p| p.sid() == old_speaker.sid()) {
-                continue;
-            }
-
-            // Stopped speaking, do ai stuff
-            for track in old_speaker.track_publications().keys() {
-                let track = track.clone();
-                let whisper = self.whisper.clone();
-                let send_messages_tx = self.segments_tx.clone();
-
-                let identity = remote_participants
-                    .iter()
-                    .find(|(_, p)| p.track_publications().contains_key(&track));
-
-                let participant_id = if let Some((identity, _)) = identity {
-                    match ParticipantId::from_str(identity.as_str()) {
-                        Ok(participant_id) => participant_id,
-                        Err(_) => {
-                            log::warn!(
-                                "Got track event from invalid participant identity {identity}"
-                            );
-                            continue;
-                        }
-                    }
-                } else {
-                    log::warn!("Got track event for unknown participant");
-                    continue;
-                };
-
-                tokio::task::spawn_blocking(move || {
-                    let mut whisper = whisper.blocking_lock();
-                    let Some(whisper) = whisper.get_mut(&track) else {
-                        return;
-                    };
-
-                    if let Ok(data) = whisper.transcribe_segment() {
-                        let segment = TranscriptionSegment {
-                            participant_id,
-                            track_id: track.to_string(),
-                            starts_at: whisper.start_point,
-                            ends_at: Timestamp::now(),
-                            text: data,
-                        };
-
-                        send_messages_tx.blocking_send(segment).unwrap();
-                    }
-                });
+        let mut i: usize = 0;
+        while let Some(sample) = whisper.audio_queue.pop_front() {
+            samples.push(sample);
+            i += 1;
+            if i == SAMPLE_SIZE {
+                break;
             }
         }
 
-        self.speakers = speakers;
+        let samples_sum: f32 = samples.iter().map(|s| s * s).sum();
+        let power_level = (samples_sum / samples.len() as f32).sqrt();
+
+        log::trace!(
+            "Threshold hit: {}, found: {}",
+            power_level > POWER_LEVEL_THRESHOLD,
+            power_level
+        );
+        if power_level <= POWER_LEVEL_THRESHOLD {
+            return false;
+        }
+
+        let vad_probability = whisper.voice_activity_detector.predict(samples.clone());
+        log::trace!("speech probability: {:.02}", vad_probability);
+        if vad_probability > VAD_PROBABILITY_THRESHOLD {
+            whisper.samples.extend(samples);
+            return true;
+        } else {
+            let start_buffer = samples.len().saturating_sub(MINIMUM_SAMPLES);
+            whisper.samples = samples[start_buffer..].to_vec();
+        }
+
+        false
     }
 }
 
 struct Whisper {
     state: WhisperState,
     language: Option<String>,
-    audio_samples: Vec<f32>,
+    audio_queue: VecDeque<f32>,
+    samples: Vec<f32>,
+    voice_activity_detector: VoiceActivityDetector,
     pub(crate) start_point: Timestamp,
 }
 
 impl Whisper {
     fn new(context: Arc<WhisperContext>, language: Option<String>) -> Result<Self> {
         let state = context.create_state()?;
-        let audio_samples = Vec::new();
+        let audio_samples = VecDeque::with_capacity(SAMPLE_SIZE * 2);
+        let voice_activity_detector = VoiceActivityDetector::builder()
+            .sample_rate(SAMPLE_RATE)
+            .chunk_size(SAMPLE_SIZE)
+            .build()?;
 
         Ok(Whisper {
             state,
             language,
-            audio_samples,
+            audio_queue: audio_samples,
+            samples: (0..MINIMUM_SAMPLES).map(|_| 0.0).collect(),
+            voice_activity_detector,
             start_point: Timestamp::now(),
         })
     }
@@ -269,17 +363,36 @@ impl Whisper {
 impl Whisper {
     fn extend_audio_frame(&mut self, frame: Frame<RawAudio>) {
         let samples = frame.into_data().samples.into_samples::<f32>();
-        self.audio_samples.extend(samples);
+        self.audio_queue.extend(samples);
+    }
+
+    fn write_audio_data(counter: u32, samples: Vec<f32>) -> Result<()> {
+        let mut file = File::create(format!("audio_data_{counter}.raw"))?;
+        file.write_all(
+            samples
+                .iter()
+                .map(|s| s.to_le_bytes())
+                .flatten()
+                .collect::<Vec<u8>>()
+                .as_slice(),
+        )?;
+        Ok(())
     }
 
     fn transcribe_segment(&mut self) -> Result<String> {
-        let sample_duration =
-            self.audio_samples.len() as f32 / SAMPLE_RATE as f32 / CHANNELS as f32;
+        static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+        let sample_duration = self.samples.len() as f32 / SAMPLE_RATE as f32 / CHANNELS as f32;
 
         if sample_duration < 1.0 {
-            self.audio_samples
+            self.samples
                 .resize((SAMPLE_RATE * CHANNELS * 2) as usize, 0.0);
         }
+
+        Self::write_audio_data(
+            COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            self.samples.clone(),
+        )?;
 
         let mut segments = Vec::new();
 
@@ -292,7 +405,7 @@ impl Whisper {
         params.set_print_realtime(false);
         params.set_print_timestamps(false);
 
-        self.state.full(params, &self.audio_samples[..])?;
+        self.state.full(params, &self.samples[..])?;
 
         let num_segments = self.state.full_n_segments()?;
         for i in 0..num_segments {
@@ -300,7 +413,7 @@ impl Whisper {
             segments.push(segment);
         }
 
-        self.audio_samples.clear();
+        self.samples.clear();
 
         Ok(segments.join("").trim().to_owned())
     }
