@@ -49,7 +49,7 @@ use chat::RoomChatState;
 #[cfg(feature = "chat")]
 pub use chat::{ChatApi, Message, OpenTalkChatEvent};
 pub use livekit::{LiveKitApi, OpenTalkLiveKitEvent};
-pub use recording::{OpenTalkRecordingEvent, RecordingApi};
+pub use recording::{OpenTalkRecordingEvent, RecorderAction, RecordingApi};
 #[cfg(feature = "recording-service")]
 use recording_service::RoomRecordingServiceState;
 #[cfg(feature = "recording-service")]

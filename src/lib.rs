@@ -21,7 +21,7 @@ pub use config::{AuthConfig, ControllerConfig};
 pub use room::{ChatApi, Message, OpenTalkChatEvent};
 pub use room::{
     DisconnectReason, Event, LiveKitApi, OpenTalkEvent, OpenTalkLiveKitEvent,
-    OpenTalkRecordingEvent, Participant, RecordingApi, Room,
+    OpenTalkRecordingEvent, Participant, RecorderAction, RecordingApi, Room,
 };
 #[cfg(feature = "recording-service")]
 pub use room::{OpenTalkRecordingServiceEvent, RecordingServiceApi};

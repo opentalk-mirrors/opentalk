@@ -7,8 +7,12 @@ use std::option::Option;
 use reqwest::StatusCode;
 use types::{
     api::v1::{
-        rooms::by_room_id::{
-            PostRoomsStartInvitedRequestBody, PostRoomsStartRequestBody, RoomsStartResponseBody,
+        pagination::PagePaginationQuery,
+        rooms::{
+            PostRoomsRequestBody, RoomResource,
+            by_room_id::{
+                PostRoomsStartInvitedRequestBody, PostRoomsStartRequestBody, RoomsStartResponseBody,
+            },
         },
         services::{call_in::PostCallInStartRequestBody, recording::PostRecordingStartRequestBody},
     },
@@ -85,6 +89,26 @@ pub enum WebsocketError {
     ConnectionFailed(#[source] tt::tungstenite::Error),
     #[error("Uri can't be turned into request")]
     UriConversionFailed,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CreateRoomError {
+    #[error("Failed to get access token from authentication backend")]
+    FailedToGetAccessToken(#[source] anyhow::Error),
+    #[error("Request failed because of: {0}")]
+    ResponseError(#[from] reqwest::Error),
+    #[error("Failed to create room: server responded with: {0}")]
+    FailedToCreateRoom(String),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum GetRoomError {
+    #[error("Failed to get access token from authentication backend")]
+    FailedToGetAccessToken(#[source] anyhow::Error),
+    #[error("Request failed because of {0}")]
+    ResponseError(#[from] reqwest::Error),
+    #[error("Failed to get all rooms: {0}")]
+    FailedToGetRooms(String),
 }
 
 pub(crate) struct HttpClient {
@@ -265,6 +289,101 @@ impl HttpClient {
             }
             StatusCode::BAD_REQUEST => Err(StartCallInError::InvalidIdOrPin),
             status => Err(StartCallInError::UnexpectedStatusCode(status)),
+        }
+    }
+
+    /// Get a list ids of rooms that are accessible
+    pub(crate) async fn get_rooms(
+        &self,
+        config: &ControllerConfig,
+        max: usize,
+    ) -> Result<Vec<RoomResource>, GetRoomError> {
+        const PER_PAGE: i64 = 25;
+
+        let uri = format!("{}/rooms", config.v1_api_base_url());
+
+        let mut ret = Vec::new();
+
+        let token = self
+            .authentication
+            .access_token()
+            .await
+            .map_err(GetRoomError::FailedToGetAccessToken)?;
+
+        // Check 100 pages at most
+        for page in 1..=(max as i64) {
+            let response = self
+                .http_client
+                .get(&uri)
+                .query(&PagePaginationQuery {
+                    per_page: PER_PAGE,
+                    page,
+                })
+                .bearer_auth(token.secret())
+                .send()
+                .await?;
+
+            if response.status().is_success() {
+                let rooms = response.json::<Vec<RoomResource>>().await?;
+
+                let rooms_len = rooms.len();
+
+                ret.extend(rooms.into_iter());
+
+                // Getting fewer results than requested, must be last page
+                if ret.len() >= max || (rooms_len as i64) < PER_PAGE {
+                    break;
+                }
+            } else {
+                return Err(GetRoomError::FailedToGetRooms(format!(
+                    "{:?}",
+                    response.json::<serde_json::Value>().await
+                )));
+            }
+        }
+
+        Ok(ret)
+    }
+
+    // Create a room and return it's id
+    pub(crate) async fn create_room(
+        &self,
+        config: &ControllerConfig,
+        password: Option<RoomPassword>,
+        enable_sip: bool,
+        waiting_room: bool,
+        e2e_encryption: bool,
+    ) -> Result<RoomResource, CreateRoomError> {
+        let uri = format!("{}/rooms", config.v1_api_base_url());
+        let token = self
+            .authentication
+            .access_token()
+            .await
+            .map_err(CreateRoomError::FailedToGetAccessToken)?;
+
+        let response = self
+            .http_client
+            .post(&uri)
+            .bearer_auth(token.secret())
+            .json(&PostRoomsRequestBody {
+                password,
+                enable_sip,
+                waiting_room,
+                e2e_encryption,
+            })
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            response
+                .json::<RoomResource>()
+                .await
+                .map_err(CreateRoomError::ResponseError)
+        } else {
+            Err(CreateRoomError::FailedToCreateRoom(format!(
+                "{:?}",
+                response.json::<serde_json::Value>().await
+            )))
         }
     }
 }
