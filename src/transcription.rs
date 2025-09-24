@@ -41,7 +41,6 @@ pub(crate) struct TranscriptionSession {
     speakers: Vec<Participant>,
 
     whisper: Arc<Mutex<HashMap<TrackSid, Whisper>>>,
-    track_to_participant: Arc<Mutex<HashMap<TrackSid, ParticipantId>>>,
 
     segments_rx: mpsc::Receiver<TranscriptionSegment>,
     segments_tx: mpsc::Sender<TranscriptionSegment>,
@@ -67,7 +66,6 @@ impl TranscriptionSession {
             language: room_info.language,
             speakers: Vec::new(),
             whisper: Arc::new(Mutex::new(HashMap::new())),
-            track_to_participant: Arc::new(Mutex::new(HashMap::new())),
             segments_rx,
             segments_tx,
         })
@@ -126,38 +124,6 @@ impl TranscriptionSession {
         log::trace!("livekit event: {event:?}");
 
         match event {
-            RoomEvent::ParticipantConnected(remote_participant) => {
-                let publications = remote_participant.track_publications();
-                let mut track_to_participant = self.track_to_participant.lock().await;
-                for (track, _) in publications.iter() {
-                    track_to_participant.insert(
-                        track.clone(),
-                        ParticipantId::from_str(remote_participant.identity().as_str())
-                            .expect("ParticipantIdentity is a ParticipantId"),
-                    );
-                }
-            }
-            RoomEvent::ParticipantDisconnected(remote_participant) => {
-                let publications = remote_participant.track_publications();
-                let mut track_to_participant = self.track_to_participant.lock().await;
-                for (track, _) in publications.iter() {
-                    track_to_participant.remove(track);
-                }
-            }
-            RoomEvent::Connected {
-                participants_with_tracks,
-            } => {
-                let mut track_to_participant = self.track_to_participant.lock().await;
-                for (remote_participant, publications) in participants_with_tracks {
-                    for publication in publications {
-                        track_to_participant.insert(
-                            publication.sid(),
-                            ParticipantId::from_str(remote_participant.identity().as_str())
-                                .expect("ParticipantIdentity is a ParticipantId"),
-                        );
-                    }
-                }
-            }
             RoomEvent::ActiveSpeakersChanged { speakers } => {
                 self.handle_speaker_change(speakers);
             }
@@ -216,6 +182,9 @@ impl TranscriptionSession {
     fn handle_speaker_change(&mut self, speakers: Vec<Participant>) {
         log::trace!("speaker changed: {speakers:?}");
 
+        let livekit_room = self.room.livekit_room().unwrap();
+        let remote_participants = livekit_room.remote_participants();
+
         for old_speaker in &self.speakers {
             // Still speaking, skip
             if speakers.iter().any(|p| p.sid() == old_speaker.sid()) {
@@ -227,7 +196,25 @@ impl TranscriptionSession {
                 let track = track.clone();
                 let whisper = self.whisper.clone();
                 let send_messages_tx = self.segments_tx.clone();
-                let track_to_participant = self.track_to_participant.clone();
+
+                let identity = remote_participants
+                    .iter()
+                    .find(|(_, p)| p.track_publications().contains_key(&track));
+
+                let participant_id = if let Some((identity, _)) = identity {
+                    match ParticipantId::from_str(identity.as_str()) {
+                        Ok(participant_id) => participant_id,
+                        Err(_) => {
+                            log::warn!(
+                                "Got track event from invalid participant identity {identity}"
+                            );
+                            continue;
+                        }
+                    }
+                } else {
+                    log::warn!("Got track event for unknown participant");
+                    continue;
+                };
 
                 tokio::task::spawn_blocking(move || {
                     let mut whisper = whisper.blocking_lock();
@@ -235,14 +222,9 @@ impl TranscriptionSession {
                         return;
                     };
 
-                    let track_to_participant = track_to_participant.blocking_lock();
-                    let Some(participant_id) = track_to_participant.get(&track) else {
-                        return;
-                    };
-
                     if let Ok(data) = whisper.transcribe_segment() {
                         let segment = TranscriptionSegment {
-                            participant_id: *participant_id,
+                            participant_id,
                             track_id: track.to_string(),
                             starts_at: whisper.start_point,
                             ends_at: Timestamp::now(),
