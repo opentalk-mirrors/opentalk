@@ -203,12 +203,12 @@ build:container-vulkan:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       variables:
-        IMAGE_DESTINATION_ARGS: --destination $CI_REGISTRY_IMAGE:dev
+        IMAGE_DESTINATION_ARGS: --destination $CI_REGISTRY_IMAGE:dev-vulkan
     - if: $CI_COMMIT_TAG != null
       variables:
         IMAGE_DESTINATION_ARGS: >
-          --destination $CI_REGISTRY_IMAGE:latest
-          --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+          --destination $CI_REGISTRY_IMAGE:latest-vulkan
+          --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG-vulkan
     # Don't run on feature branches if there is a MR
     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
       when: never
@@ -219,7 +219,7 @@ build:container-vulkan:
         $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH &&
         $CI_COMMIT_BRANCH != null
       variables:
-        IMAGE_DESTINATION_ARGS: --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH
+        IMAGE_DESTINATION_ARGS: --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH-vulkan
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   # IMAGE_DESTINATION_ARGS will be set inside the script
   image:
@@ -241,7 +241,7 @@ build:container-vulkan:
           sed 's/^[.-]/_/' |
           cut -c -128
         );
-        IMAGE_DESTINATION_ARGS="--destination $CI_REGISTRY_IMAGE:$IMAGE_TAG";
+        IMAGE_DESTINATION_ARGS="--destination $CI_REGISTRY_IMAGE:$IMAGE_TAG-vulkan";
       fi
     - mkdir -p /kaniko/.docker
     - >
