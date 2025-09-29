@@ -19,18 +19,20 @@ compose_service_minio_enabled: true
 compose_service_rabbitmq_enabled: true
 compose_service_traefik_enabled: true
 compose_service_ndt_enabled: true
+compose_service_mailcrab_enabled: false
+
+# SMTP Cleartext: smtp://user:pass@mailserver.example.org:1234?disable_starttls=true
+# SMTP with StartTLS: smtp://user:pass@mailserver.example.org:1234
+# SMTP with implicit TLS: smtps://user:pass@mailserver.example.org:1234
+# Note: Encode the URL properly:
+#       - Significant characters (e.g. the '@' separating the user credentials from the domain) must be written literally.
+#       - Special characters within the URL parts must be paraphrased (e.g. '@' replaced with '%40')
+#       Example: smtps://user%40maildomain.example.org:pass@mailserver.example.org
+# mailer_smtp_smtp_server: "smtp://mailcrab:1025?disable_starttls=true"
+# mailer_smtp_from_name: "OpenTalk - {{ ot_domain }}"
+# mailer_smtp_from_email: "no-reply@{{ ot_domain }}"
+# mailer_frontend_base_url: "https://{{ ot_domain }}"
+# mailer_support_contact_phone: "+49123321123"
+# mailer_support_contact_mail: "support@{{ ot_domain }}"
 
 custom_certificates_enabled: false
-#custom_certificates_certs_dir:
-#custom_certificates_ssl_ca_file
-#custom_certificates_ssl_ca_file: server_fullchain.crt
-#custom_certificates_ssl_ca_file: 
-#custom_ca_enabled:
-
-#CustomCertificates:
-#  enabled: false
-#  ssl_certificate_fullchain_file: "server_fullchain.crt"
-#  ssl_certificate_key_file: "server.key"
-#CustomCA:
-#  enabled: false
-#  ssl_ca_file: "ca.crt"
