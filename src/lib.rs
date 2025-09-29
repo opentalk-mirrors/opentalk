@@ -316,7 +316,7 @@ impl EtherpadClient {
         &self,
         session_id: &str,
         readonly_pad_id: &str,
-    ) -> Result<impl Stream<Item = reqwest::Result<Bytes>> + std::marker::Unpin> {
+    ) -> Result<impl Stream<Item = reqwest::Result<Bytes>> + std::marker::Unpin + use<>> {
         let url = self
             .base_url
             .join(&format!("p/{readonly_pad_id}/export/pdf"))?;
