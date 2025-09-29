@@ -34,9 +34,9 @@ mailer_smtp_from_email: "no-reply@{{ ot_domain }}"
 # mailer_templates_unregistered_uninvite: '{html = "resources/templates/unregistered_uninvite.html", txt = "resources/templates/unregistered_uninvite.txt"}'
 # mailer_templates_external_uninvite: '{html = "resources/templates/external_uninvite.html", txt = "resources/templates/external_uninvite.txt"}'
 
-# Optional frontend settings
-# mailer_frontend_base_url: "https://livekit-test.opentalk.run"
-# mailer_frontend_data_protection_url: "https://opentalk.eu/dataprotection"
+# Frontend settings
+mailer_frontend_base_url: "https://{{ ot_domain }}"
+#mailer_frontend_data_protection_url: "https://opentalk.example.org/dataprotection"
 
 mailer_languages_default_language: "de-DE"
 
@@ -45,4 +45,4 @@ mailer_languages_default_language: "de-DE"
 mailer_monitoring_port: 11411
 
 mailer_support_contact_phone: "+49123321123"
-mailer_support_contact_mail: "support@example.com"
+mailer_support_contact_mail: "support@{{ ot_domain }}"

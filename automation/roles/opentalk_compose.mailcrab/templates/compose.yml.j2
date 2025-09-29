@@ -1,8 +1,8 @@
 services:
   mailcrab:
     image: "{{ mailcrab_docker_image_src }}:{{ mailcrab_version }}"
-    #environment:
-    #  MAILCRAB_PREFIX: "{{ mailcrab_webui_prefix }}"
+    environment:
+      MAILCRAB_PREFIX: "{{ mailcrab_webui_prefix }}"
     networks:
       - {{ docker_network_name }}
     labels:
@@ -13,10 +13,9 @@ services:
       - "traefik.http.routers.mailcrab.tls.certresolver=letsencrypt"
 {% endif %}
       - "traefik.http.routers.mailcrab.middlewares={{ mailcrab_docker_label_http_routers_minio_console_middlewares }}"
-      - "traefik.http.middlewares.mailcrab-strip.stripprefix.prefixes={{ mailcrab_webui_prefix }}"
       - "traefik.http.services.mailcrab.loadbalancer.server.port=1080"
     healthcheck:
-      test: wget --quiet --output-document=/dev/stdout http://127.0.0.1:1080/api/version | grep -q version_be
+      test: wget --quiet --output-document=/dev/stdout http://127.0.0.1:1080{{ mailcrab_webui_prefix }}/api/version | grep -q version_be
       interval: 30s
       timeout: 15s
       retries: 3

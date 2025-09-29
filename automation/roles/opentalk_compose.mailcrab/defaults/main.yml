@@ -10,4 +10,4 @@ mailcrab_docker_compose_project_src: "{{ deploy_dir }}"
 mailcrab_docker_image_src: marlonb/mailcrab
 mailcrab_webui_prefix: /adm/mailcrab
 
-mailcrab_docker_label_http_routers_minio_console_middlewares: "mailcrab-strip, default-auth@file"
+mailcrab_docker_label_http_routers_minio_console_middlewares: "default-auth@file"
