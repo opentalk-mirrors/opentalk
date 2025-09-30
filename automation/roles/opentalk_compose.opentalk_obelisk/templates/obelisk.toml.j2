@@ -36,9 +36,13 @@ outbound_proxy = "{{ obelisk_sip_outbound_proxy }}"
 {% if obelisk_sip_nat_ping_delta is defined and obelisk_sip_nat_ping_delta %}
 nat_ping_delta = "{{ obelisk_sip_nat_ping_delta }}"
 {% endif %}
+{% if obelisk_sip_stun_server is defined and obelisk_sip_stun_server %}
 stun_server = "{{ obelisk_sip_stun_server }}"
+{% endif %}
 enforce_qop = {{ obelisk_sip_enforce_qop | to_json }}
 {% if obelisk_sip_max_audio_bitrate is defined and obelisk_sip_max_audio_bitrate %}
+max_audio_bitrate = "{{ obelisk_sip_max_audio_bitrate }}"
+{% endif %}
 {% if obelisk_sip_max_video_bitrate is defined and obelisk_sip_max_video_bitrate %}
 max_video_bitrate = "{{ obelisk_sip_max_video_bitrate }}"
 {% endif %}
