@@ -51,11 +51,13 @@ impl TranscriptionSession {
         app_state: Arc<AppState>,
         room_info: StartTranscriptionRequestBody,
     ) -> Result<TranscriptionSession> {
-        let room = app_state
+        let mut room: Room = app_state
             .opentalk_client
             .connect_recorder(room_info.room_id, room_info.breakout_room, true)
             .await?
             .into();
+
+        room.transcription_service_api().send_started().await?;
 
         let (segments_tx, segments_rx) = mpsc::channel(1000);
 
@@ -99,6 +101,8 @@ impl TranscriptionSession {
                 }
             }
         }
+
+        self.room.transcription_service_api().send_stopped().await?;
 
         Ok(())
     }
