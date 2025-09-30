@@ -39,7 +39,7 @@ jsonwebtoken = "9.3"
 log = "0.4"
 native-tls = "0.2"
 once_cell = "1.18"
-openh264 = "0.8"
+openh264 = "0.9"
 openidconnect = "4"
 opentalk-compositor = { version = "0.16", default-features = false }
 opentalk-version = "0.2.0"
