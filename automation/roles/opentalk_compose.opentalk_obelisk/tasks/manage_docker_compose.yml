@@ -24,3 +24,4 @@
     files:
       - compose.yml
     state: "{{ obelisk_docker_compose_services_state }}"
+  when: compose_service_opentalk_obelisk_enabled | bool
