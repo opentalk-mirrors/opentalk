@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: EUPL-1.2
 FROM intel/oneapi-basekit AS builder
 
+ARG WHISPER_CPP_TAG=v1.7.0
+
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
       intel-media-va-driver intel-gpu-tools \
@@ -22,7 +24,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
 
 ENV PATH=${PATH}:/root/.cargo/bin
 
-RUN git clone https://github.com/ggml-org/whisper.cpp /whisper.cpp
+RUN git clone --branch ${WHISPER_CPP_TAG} --depth 1 https://github.com/ggml-org/whisper.cpp /whisper.cpp
 WORKDIR /whisper.cpp
 
 RUN mkdir -p build
