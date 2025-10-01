@@ -62,7 +62,7 @@ services:
         || PathPrefix(`/socket`) \
         || PathPrefix(`/api/users/current`) \
         || PathPrefix(`/api/sessions/current`) \
-        || PathPrefix(`/api/spaces`) \
+        || PathPrefix(`/api/spaces`) && (!Method(`POST`)) \
         || PathPrefix(`/fonts/`))"
       - "traefik.http.services.spacedeck.loadbalancer.server.port=9666"
       - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/whiteboard"
