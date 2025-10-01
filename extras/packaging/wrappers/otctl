@@ -1,21 +1,4 @@
 #!/usr/bin/env bash
-# Unified control wrapper for OpenTalk automation & compose.
-# Usage examples:
-# (raw ansible removed)
-#   otctl playbook -i inventory.yml playbooks/opentalk_compose.yml
-#   otctl galaxy collection list
-#   otctl compose up -d
-#   otctl up        (shortcut for: compose up -d)
-#   otctl down      (shortcut for: compose down)
-#   otctl ps        (shortcut for: compose ps)
-#   otctl logs controller -f  (shortcut for: compose logs controller -f)
-#   otctl restart [service ...]   (restart one or more, or all if none specified)
-#   otctl recreate [service ...]  (force recreate containers; all if none specified)
-# Environment overrides:
-#   OT_PREFIX (default /opt/opentalk-compose)
-#   OT_COMPOSE_PROJECT (project name override)
-#   OT_COMPOSE_FILES (colon-separated list of compose files; default autodetect)
-#   DOCKER_CMD (override docker executable; supports podman aliasing)
 set -euo pipefail
 
 PREFIX="${OT_PREFIX:-/opt/opentalk-compose}"
@@ -34,7 +17,7 @@ if ! command -v "$COMPOSE_CMD" >/dev/null 2>&1; then
 fi
 
 log_cmd() {
-  # Print command in reproducible shell-escaped form (avoid escaping commas for readability)
+  # Print command in reproducible shell-escaped form
   printf '[otctl] +'
   for c in "$@"; do
     if [[ "$c" == *","* ]]; then
@@ -168,90 +151,101 @@ compose_exec() {
 }
 
 list_services() {
-  # Robust service listing supporting multiple docker compose versions.
+  # Enforced single compose file path.
   local files; read -r -a files <<<"$(resolve_compose_files)" || return 1
   local args=()
   for f in "${files[@]}"; do args+=( -f "$f" ); done
   local project_flag=()
   [ -n "${OT_COMPOSE_PROJECT:-}" ] && project_flag=( -p "$OT_COMPOSE_PROJECT" )
 
-  local entries=()
-  local max=0
+  local rows=()  # triples: service state health
+  local max_svc=0 max_state=0
 
-  # 1. Try JSON format (compose v2.21+)
+  # Try JSON (compose v2.21+)
   local cmd_json=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" ps --format json)
   log_cmd "${cmd_json[@]}"
   local out_json
   out_json="$("${cmd_json[@]}" 2>/dev/null || true)"
-  if [ -n "$out_json" ] && [[ $out_json == \[* || $out_json == \{* ]]; then
+  if [ -n "$out_json" ] && [[ $out_json == \[* ]]; then
     if command -v jq >/dev/null 2>&1; then
-      while IFS=$'\t' read -r svc state; do
+      while IFS=$'\t' read -r svc state health; do
         [ -z "$svc" ] && continue
-        entries+=("$svc" "$state")
-        local len=${#svc}; (( len>max )) && max=$len
-      done < <(echo "$out_json" | jq -r '.[] | "\(.Service)\t\(.State)"' 2>/dev/null || true)
-    else
-      # Parse minimal via python if available, else fallback later.
-      if command -v python3 >/dev/null 2>&1; then
-        while IFS=$'\t' read -r svc state; do
-          [ -z "$svc" ] && continue
-          entries+=("$svc" "$state")
-          local len=${#svc}; (( len>max )) && max=$len
-        done < <(python3 - <<'PY' "$out_json"
-import sys, json
-data=json.loads(sys.argv[1])
-for o in data:
-    print(f"{o.get('Service','')}\t{o.get('State','')}")
+        [ -z "$health" ] && health="n/a"
+        rows+=("$svc" "$state" "$health")
+        (( ${#svc} > max_svc )) && max_svc=${#svc}
+        (( ${#state} > max_state )) && max_state=${#state}
+      done < <(echo "$out_json" | jq -r '.[] | "\(.Service)\t\(.State)\t\(.Health // "")"' 2>/dev/null || true)
+    elif command -v python3 >/dev/null 2>&1; then
+      while IFS=$'\t' read -r svc state health; do
+        [ -z "$svc" ] && continue
+        [ -z "$health" ] && health="n/a"
+        rows+=("$svc" "$state" "$health")
+        (( ${#svc} > max_svc )) && max_svc=${#svc}
+        (( ${#state} > max_state )) && max_state=${#state}
+      done < <(python3 - <<'PY' "$out_json"
+import sys,json
+for o in json.loads(sys.argv[1]):
+    print(f"{o.get('Service','')}\t{o.get('State','')}\t{o.get('Health','')}")
 PY
-        )
-      fi
+      )
     fi
   fi
 
-  # 2. If JSON path failed, try Go template (widely supported):
-  if [ ${#entries[@]} -eq 0 ]; then
-    local cmd_tpl=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" ps --format '{{.Service}}\t{{.State}}')
+  # Fallback (go template)
+  if [ ${#rows[@]} -eq 0 ]; then
+    local cmd_tpl=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" ps --format '{{.Service}}\t{{.State}}\t{{.Health}}')
     log_cmd "${cmd_tpl[@]}"
     local out_tpl
     out_tpl="$("${cmd_tpl[@]}" 2>/dev/null || true)"
     if [ -n "$out_tpl" ]; then
-      while IFS=$'\t' read -r svc state; do
+      while IFS=$'\t' read -r svc state health; do
         [ -z "$svc" ] && continue
-        entries+=("$svc" "$state")
-        local len=${#svc}; (( len>max )) && max=$len
+        [ -z "$health" ] && health="n/a"
+        rows+=("$svc" "$state" "$health")
+        (( ${#svc} > max_svc )) && max_svc=${#svc}
+        (( ${#state} > max_state )) && max_state=${#state}
       done <<<"$out_tpl"
     fi
   fi
 
-  # 3. Fallback: parse default table output
-  if [ ${#entries[@]} -eq 0 ]; then
+  # Last resort: parse table + inspect
+  if [ ${#rows[@]} -eq 0 ]; then
     local cmd_tab=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" ps)
     log_cmd "${cmd_tab[@]}"
     local out_tab
     out_tab="$("${cmd_tab[@]}" 2>/dev/null || true)"
-    # Skip header line(s); attempt to derive service from NAME (project_service_1 pattern)
-    echo "$out_tab" | awk 'NR>1 {print $1, $0}' | while read -r name rest; do
-      [ -z "$name" ] && continue
-      # Derive service: strip project prefix and numeric suffix if pattern matches
-      svc="$name"
-      if [[ $svc == *-* ]]; then
-        # docker compose often uses project-service-1
-        svc="${svc##*-}"  # naive; if more structure needed adjust
+    echo "$out_tab" | awk 'NR>1 && NF>0 {print $1}' | while read -r cname; do
+      [ -z "$cname" ] && continue
+      local svc="$cname"
+      if [[ "$svc" == *_* ]]; then
+        svc="${svc#*_}"; svc="${svc%_*}"
       fi
-      # Extract state keyword from the STATUS column (search for Up/Exit/Running)
-      state="$(echo "$rest" | grep -Eo 'Up|Running|Exited|Restarting|Paused' | head -1)"
-      [ -z "$state" ] && state="unknown"
-      entries+=("$svc" "$state")
-      local len=${#svc}; (( len>max )) && max=$len
+      local state="unknown"
+      if docker inspect "$cname" >/dev/null 2>&1; then
+        state="$(docker inspect -f '{{.State.Status}}' "$cname" 2>/dev/null || echo unknown)"
+      fi
+      local health="n/a"
+      if docker inspect "$cname" >/dev/null 2>&1; then
+        health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$cname" 2>/dev/null)"
+        [ -z "$health" ] && health="n/a"
+      fi
+      rows+=("$svc" "$state" "$health")
+      (( ${#svc} > max_svc )) && max_svc=${#svc}
+      (( ${#state} > max_state )) && max_state=${#state}
     done
   fi
 
-  # Output aligned
+  if [ ${#rows[@]} -eq 0 ]; then
+    echo "(no services)"
+    return 0
+  fi
+
+  printf '%-*s  %-*s  %s\n' "$max_svc" SERVICE "$max_state" STATE HEALTH
   local i=0
-  while [ $i -lt ${#entries[@]} ]; do
-    local svc=${entries[$i]}; local state=${entries[$((i+1))]}
-    printf '%-*s  %s\n' "$max" "$svc" "$state"
-    i=$(( i + 2 ))
+  while [ $i -lt ${#rows[@]} ]; do
+    local svc=${rows[$i]} state=${rows[$((i+1))]} health=${rows[$((i+2))]}
+    printf '%-*s  %-*s  %s\n' "$max_svc" "$svc" "$max_state" "$state" "$health"
+    i=$(( i + 3 ))
   done
 }
 
