@@ -19,4 +19,4 @@
     state: "{{ postInstall_demoUser_state }}"
   tags:
     - never
-    - demo_user
+    - demo-user

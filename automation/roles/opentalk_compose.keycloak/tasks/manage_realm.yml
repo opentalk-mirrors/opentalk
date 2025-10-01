@@ -58,9 +58,6 @@
   - name: "Manage Keycloak client {{ outlook_add_in_oidc_client_id | default('OutlookAddin') }}"
     ansible.builtin.include_tasks: keycloak_oidc_client_outlook.yml
   
-  - name: "Create demo user"
-    ansible.builtin.include_tasks: keycloak_user_demo.yml
-
   when:
     - keycloak_manage_enabled is true
 

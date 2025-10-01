@@ -16,7 +16,7 @@ grep -v '^[[:space:]]*#' "$REQ" | sed 's/^/  /' || true
 CUR_HASH="$(sha256sum "$REQ" | awk '{print $1}')"
 if [[ -f "$STATE" && $FORCE -eq 0 ]]; then
   OLD_HASH="$(cat "$STATE")"
-  if [[ "$CUR_HASH" == "$OLD_HASH" && -n "$(ls -1 "$OUT"/*.tar.gz 2>/dev/null | head -1)" ]]; then
+  if [[ "$CUR_HASH" == "$OLD_HASH" && -n "$(\ls -1 "$OUT"/*.tar.gz 2>/dev/null | head -1)" ]]; then
     echo "[collections] Up-to-date; skip download."
     exit 0
   fi
@@ -30,6 +30,6 @@ $ANSIBLE_GALAXY collection download -r "$REQ" -p "$OUT"
 set +x
 echo "$CUR_HASH" > "$STATE"
 
-count=$(ls -1 "$OUT"/*.tar.gz 2>/dev/null | wc -l || true)
+count=$(\ls -1 "$OUT"/*.tar.gz 2>/dev/null | wc -l || true)
 echo "[collections] Tarballs at $OUT (count=$count)"
 [[ $count -gt 0 ]] || { echo "[collections] WARN: no tarballs downloaded."; }

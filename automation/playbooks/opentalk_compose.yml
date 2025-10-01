@@ -3,14 +3,15 @@
   gather_facts: yes
   vars_files:
     - ../../.versions.yml
-    - ../../config/settings.yml
+    - /etc/opentalk-compose/settings.yml
 
   pre_tasks:
     - name: Abort if ot_domain not set
       ansible.builtin.fail:
         msg: "ot_domain must be set (e.g. otctl deploy -e ot_domain=example.com or in settings.yml for persistence)"
-      when: ot_domain is not defined or (ot_domain | length) == 0
-    
+      when: (ot_domain | default('') | trim | length) == 0
+      tags: ["always"]
+
     - block:
         - name: Check for secrets vars file
           ansible.builtin.stat:
@@ -45,7 +46,13 @@
     - role: opentalk_compose.keycloak
       dependencies:
         - role: opentalk_compose.secrets
-      tags: [keycloak,demo_user]
+      tags: [keycloak]
+
+    # only with tag demo-user
+    - role: opentalk_compose.keycloak
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: [never, demo-user]
 
     - role: opentalk_compose.minio
       dependencies:

@@ -12,13 +12,16 @@ For customized setups or special conditions, refer to the "OpenTalk Administrati
 	- [1.4 DNS Domain Record](#14-dns-domain-record)
 	- [1.5 Docker as Container Engine is Required](#15-docker-as-container-engine-is-required)
 - [2. Installation Procedure](#2-installation-procedure)
-	- [2.1 Add the OpenTalk Package Repository](#21-add-the-opentalk-package-repository)
-	- [2.2 Install the opentalk-compose Package](#22-install-the-opentalk-compose-package)
-	- [2.3 Set the Server's DNS Domain Record](#23-set-the-servers-dns-domain-record)
-	- [2.4 Initialize the Deployment Environment](#24-initialize-the-deployment-environment)
-	- [2.5 Optional: Edit Settings in settings.yml](#25-optional-edit-settings-in-settingsyml)
-	- [2.6 Run OpenTalk Application Stack](#26-run-opentalk-application-stack)
-	- [2.8 Optional: Enable Demo User](#28-optional-enable-demo-user)
+  - [2.1 Add the OpenTalk Package Repository](#21-add-the-opentalk-package-repository)
+  - [2.2 Install the opentalk-compose Package](#22-install-the-opentalk-compose-package)
+  - [2.3 Set the Server's DNS Domain Record](#23-set-the-servers-dns-domain-record)
+  - [2.4 Initialize the Deployment Environment](#24-initialize-the-deployment-environment)
+  - [2.5 Configure & Deploy (Edit settings.yml then otctl deploy)](#25-configure--deploy-edit-settingsyml-then-otctl-deploy)
+  - [2.6 Check Service Status & Health](#26-check-service-status--health)
+  - [2.7 Backups (Optional but Recommended)](#27-backups-optional-but-recommended)
+  - [2.8 Undeploy (Tear Down)](#28-undeploy-tear-down)
+  - [2.9 Optional: Enable Demo User](#29-optional-enable-demo-user)
+  - [2.10 Reference: otctl Overview](#210-reference-otctl-overview)
 
 ## 1. Preparations
 
@@ -114,45 +117,158 @@ dnf install opentalk-compose -y
 zypper install opentalk-compose -y
 ```
 
-### 2.3 Set the Server's DNS Domain Record
+### 2.3 Set the OpenTalk Server's DNS Domain Record
 
-Set the environment variable `OT_DOMAIN` in the `default.env` file to your desired DNS domain for OpenTalk.
-You can edit `/opt/opentalk-compose/config/default.env` manually or use the following command:
+Define your primary domain in the central configuration file `settings.yml` using the key `ot_domain`.
 
-```bash
-sed -i 's/^OT_DOMAIN=.*/OT_DOMAIN="example.com"/' /opt/opentalk-compose/config/default.env
+Edit `/etc/opentalk-compose/settings.yml` and add your domain:
+
+```yaml
+ot_domain: example.com
 ```
-
-This means that the dashboard of the OpenTalk web application will later be accessible, for example, at `https://example.com`.
 
 ### 2.4 Initialize the Deployment Environment
 
-Use the `cforge` command to create directories, secrets, and configuration files required for the installation.
-A default configuration is derived from the OT_DOMAIN variable.
+Initialize secrets and baseline configuration using the embedded automation (a first run performs all required bootstrap steps automatically):
 
 ```bash
-cforge init
+otctl deploy
 ```
 
-### 2.5 Optional: Edit Settings in `settings.yml`
+First run effects:
 
-If the default configuration does not fit your needs and you prefer different settings, you can change the relevant parameters here. However, be careful: incorrect syntax or unmet prerequisites for some configuration options may cause certain services to fail to start, and OpenTalk may not function properly.
+- Generates required secrets (if not present)
+- Renders `compose.yml` and service configuration files
+- Prepares runtime directories & symlinks
+- Starts containers (equivalent to docker compose up -d with generated spec)
 
-### 2.6 Run OpenTalk Application Stack
+> **Note:** Configuring and starting all components may take several minutes, especially during the initial run. Please wait until the process is complete before attempting to access the web application.
+After the `init` phase the OpenTalk web application will be reachable at e.g. `https://example.com`.
 
-Use `docker compose` to pull the container images and start all required services for your OpenTalk instance.
+### 2.5 Optional: Configure & Deploy (Edit `settings.yml`)
+
+If the default configuration does not fit your needs and you prefer different settings, adjust `/etc/opentalk-compose/settings.yml` (symlink also at `/opt/opentalk-compose/config/settings.yml`) before or after the first run to tune configuration (domain, certificates scenario, external services, feature toggles). Keep YAML indentation valid because syntax errors will abort the playbook.
+
+After editing `settings.yml`, simply re-run the deployment (idempotent):
 
 ```bash
-cd /opt/opentalk-compose && docker compose up -d
+otctl deploy
 ```
 
-It can take several minutes for all services to start. The OpenTalk web application should now be reachable at the domain you configured in [2.3 Set the Server's DNS Domain Record](#23-set-the-servers-dns-domain-record).
+Only changed templates / settings are re-applied. You can safely repeat this; it is idempotent.
 
-### 2.8 Optional: Enable Demo User
+> **Note:** You will notice that `otctl` first outputs the command it is about to execute: `[otctl] + <command>`. Since `otctl` is just a wrapper around `ansible` and `docker compose`, this can help you to track what is happening and serves as a reference if you want to work outside of `otctl`.
 
-By default, there is no user available to log in to the OpenTalk dashboard. For testing purposes, you can enable the demo user. You can find the username **demo** and the corresponding **password** in the output when you run `cforge` with the `--diff` argument.
-Otherwise, users are created in the Keycloak management console. Use this to create general user accounts.
+### 2.6 Check Service Status & Health
+
+Use `otctl status` to get a concise overview including container health (if a healthcheck is defined in the compose spec):
 
 ```bash
-cforge --diff task demoUser
+otctl status
 ```
+
+Example output:
+
+```text
+SERVICE       STATE     HEALTH
+controller    running   healthy
+keycloak      running   healthy
+minio         running   healthy
+obelisk       running   healthy
+webapp        running   healthy
+```
+
+Useful follow-up commands:
+
+```bash
+otctl logs controller            # Tail logs for a single service
+otctl restart webapp             # Restart only the web frontend
+otctl recreate controller        # Force recreate one service (new image)
+otctl version                    # Show bundled component versions
+```
+
+If something is unhealthy:
+
+- Check logs: `otctl logs <service>`
+- Re-run automation (ensures configuration rendered): `otctl deploy`
+- Inspect raw compose: `otctl compose ps` / `otctl compose logs <service>`
+
+### 2.7 Backups (Optional but Recommended)
+
+The embedded playbook provides structured backup targets. Default backup root is `/var/opt/opentalk-compose/backups` (falls back to `/opt/opentalk-compose/backups` if missing).
+
+Core commands:
+
+```bash
+otctl backup            # Full backup tag (databases + config + volumes as defined)
+otctl backup ls         # List existing backup artifacts
+otctl backup dump       # DB dumps (controller & keycloak)
+otctl backup dump controller   # Only controller DB
+otctl backup dump keycloak     # Only keycloak DB
+otctl backup config     # Configuration snapshot
+otctl backup volume     # All defined docker volumes
+otctl backup volume <name>   # Single docker volume by name
+otctl backup clean      # Apply retention policy (prune old backups)
+```
+
+Notes:
+
+- Retention logic is handled by dedicated Ansible tags (e.g. `backup_retention`).
+- To target a single docker volume, its exact volume name is passed; no project prefix is auto-added.
+- Extended variables (e.g. custom volume list) can be injected via `OTCTL_BACKUP_EXTRA_VARS` (advanced).
+
+### 2.8 Undeploy (Tear Down)
+
+To remove containers (keeping data volumes) and clean generated runtime artifacts:
+
+```bash
+otctl undeploy
+```
+
+This performs:
+
+1. `docker compose down` (if `compose.yml` is present)
+2. Removal of the generated `compose.yml`
+3. Cleanup of contents inside `services/` (directory itself is retained)
+
+To fully purge (volumes, images) afterwards, run manual docker commands as needed (e.g. `docker volume ls | grep opentalk_` then prune carefully).
+
+### 2.9 Optional: Enable Demo User
+
+By default, there is no user available to log in to the OpenTalk dashboard. For testing purposes, you can enable the demo user via an Ansible tag.
+The user name is `demo`; the password is generated (or taken from settings) and shown when running with `--diff`.
+Otherwise, manage regular users via the Keycloak administration console.
+
+```bash
+otctl deploy --diff --tags demo-user
+```
+
+If you later wish to remove the demo user:
+
+```bash
+otctl deploy --tags demo-user -e postInstall_demoUser_state=absent
+```
+
+### 2.10 Reference: `otctl` Overview
+
+Frequently used subcommands (see `otctl help` for the exhaustive list):
+
+| Command | Purpose |
+|---------|---------|
+| otctl deploy | Render & (re)start stack via Ansible + compose |
+| otctl status | Show service + health summary |
+| otctl logs [svc] | Stream logs (all or specific service) |
+| otctl restart [svc...] | Restart one or multiple services |
+| otctl recreate [svc...] | Force recreate (new container from image) |
+| otctl backup … | Managed backup workflows |
+| otctl version | Show product & component versions |
+| otctl undeploy | Stop stack & remove generated compose.yml |
+| otctl compose … | Raw passthrough to `docker compose` |
+| otctl playbook … | Advanced direct Ansible usage |
+
+Health Column Semantics (`otctl status`):
+
+- `healthy` – Container healthcheck succeeded.
+- `unhealthy` – Healthcheck failing (inspect logs).
+- `starting` – Healthcheck not yet passing (grace period).
+- `n/a` – No healthcheck defined in compose spec.

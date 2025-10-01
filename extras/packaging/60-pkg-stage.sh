@@ -45,15 +45,28 @@ mkdir -p "$PREFIX/services"
 [[ -d "$AUTOMATION_DIR" ]] || err "automation/ directory missing."
 [[ -f "$AUTOMATION_DIR/ansible.cfg" ]] || err "automation/ansible.cfg missing."
 
-# Config -> /etc
+EXAMPLES_DIR="$PKGROOT/usr/share/opentalk-compose/examples"
+mkdir -p "$EXAMPLES_DIR"
+
+# Config -> ship settings.yml as real conffile (dpkg handles .dpkg-dist), plus example copy
 if [[ -d "$PREFIX/config" ]]; then
-  echo "[stage] Relocating config/ to /etc/opentalk-compose"
-  # Safety: ensure secrets folder not copied even if rsync filter missed
+  echo "[stage] Relocating config/ to /etc/opentalk-compose (conffile model)"
   if [[ -d "$PREFIX/config/secrets" ]]; then
     echo "[stage] Removing config/secrets from package context"
     rm -rf "$PREFIX/config/secrets"
   fi
   cp -a "$PREFIX/config/." "$ETC_DIR/"
+  rm -rf "$PREFIX/config"
+  ln -s /etc/opentalk-compose "$PREFIX/config" || true
+fi
+
+# Guarantee the symlink exists even if repo had no config/ directory originally
+if [[ ! -e "$PREFIX/config" ]]; then
+  echo "[stage] Creating config -> /etc/opentalk-compose symlink (no config/ dir in repo)"
+  ln -s /etc/opentalk-compose "$PREFIX/config" || true
+elif [[ ! -L "$PREFIX/config" ]]; then
+  # If something else ended up there, replace with symlink
+  echo "[stage] Replacing existing non-symlink config entry with symlink"
   rm -rf "$PREFIX/config"
   ln -s /etc/opentalk-compose "$PREFIX/config"
 fi
@@ -61,6 +74,30 @@ fi
 echo "[stage] Skipping embedded venv copy (build on target)"
 rm -rf "$RUNTIME_DIR/venv"
 mkdir -p "$RUNTIME_DIR/venv"
+
+# Ensure secrets directory exists in /etc (even though content is generated later)
+mkdir -p "$ETC_DIR/secrets"
+chmod 0700 "$ETC_DIR/secrets" || true
+
+SAMPLE_SETTINGS_SRC=""
+if [[ -f "$ROOT/extras/packaging/config-dist/settings.yml-sample" ]]; then
+  SAMPLE_SETTINGS_SRC="$ROOT/extras/packaging/config-dist/settings.yml-sample"
+elif [[ -f "$ROOT/config/settings.yml" ]]; then
+  SAMPLE_SETTINGS_SRC="$ROOT/config/settings.yml"
+else
+  echo "[stage] WARN: No settings.yml sample or repo config/settings.yml found"
+fi
+
+# Ensure settings.yml exists (conffile) – if repo did not have one, create from sample
+if [[ ! -f "$ETC_DIR/settings.yml" && -n "$SAMPLE_SETTINGS_SRC" ]]; then
+  echo "[stage] Creating settings.yml from template (repo lacked one)"
+  cp "$SAMPLE_SETTINGS_SRC" "$ETC_DIR/settings.yml"
+fi
+
+# Install example copy (not a conffile) for diffs
+if [[ -f "$ETC_DIR/settings.yml" ]]; then
+  cp "$ETC_DIR/settings.yml" "$EXAMPLES_DIR/settings.yml.example" || true
+fi
 
 # Vendor Collections
 SRC_VENDOR_EMB="$EMB/vendor"
@@ -120,12 +157,20 @@ if compgen -G "$WHEEL_SRC/*.whl" >/dev/null; then
   echo "[stage] Copying wheelhouse"
   mkdir -p "$RUNTIME_DIR/$BUILD_ASSETS_SUB/wheelhouse"
   cp -a "$WHEEL_SRC/." "$RUNTIME_DIR/$BUILD_ASSETS_SUB/wheelhouse/"
-  (cd "$RUNTIME_DIR/$BUILD_ASSETS_SUB/wheelhouse" && ls -1 > ../wheelhouse.list)
+  (cd "$RUNTIME_DIR/$BUILD_ASSETS_SUB/wheelhouse" && \ls -1 > ../wheelhouse.list)
 fi
 if [[ -f "$ROOT/extras/packaging/requirements-ansible.txt" ]]; then
   cp -a "$ROOT/extras/packaging/requirements-ansible.txt" "$RUNTIME_DIR/$BUILD_ASSETS_SUB/"
   sha256sum "$ROOT/extras/packaging/requirements-ansible.txt" | awk '{print $1}' > "$RUNTIME_DIR/$BUILD_ASSETS_SUB/requirements-ansible.sha256"
 fi
+
+# Shell completions
+install -d -m 0755 "$PKGROOT/usr/share/bash-completion/completions"
+install -d -m 0755 "$PKGROOT/usr/share/zsh/site-functions"
+install -m 0644 "$ROOT/extras/packaging/completions/otctl.bash" \
+  "$PKGROOT/usr/share/bash-completion/completions/otctl"
+install -m 0644 "$ROOT/extras/packaging/completions/_otctl" \
+  "$PKGROOT/usr/share/zsh/site-functions/_otctl"
 
 # Docs
 [[ -f "$ROOT/README.md" ]] && cp -a "$ROOT/README.md" "$DOC_DIR/README.md"
@@ -135,4 +180,4 @@ fi
 find "$PREFIX" -type d -exec chmod 0755 {} + 2>/dev/null || true
 find "$PREFIX/bin" -type f -maxdepth 1 -exec chmod 0755 {} + 2>/dev/null || true
 
-echo "[stage] Completed staging at $PKGROOT"
+echo "[stage] Completed staging at $PKGROOT (conffile settings.yml + example)"

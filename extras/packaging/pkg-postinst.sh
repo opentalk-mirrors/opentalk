@@ -17,6 +17,32 @@ export PIP_NO_INDEX=1
 export PIP_DISABLE_PIP_VERSION_CHECK=1
 export PIP_RETRY=0
 
+CFG_DIR="/etc/opentalk-compose"
+EXAMPLES_DIR="/usr/share/opentalk-compose/examples"
+
+# Ensure main config dir exists (normally packaged)
+if [ ! -d "$CFG_DIR" ]; then
+  log "Creating missing config directory $CFG_DIR"
+  install -d -m 0755 "$CFG_DIR"
+fi
+
+# Ensure secrets directory (not a conffile)
+if [ ! -d "$CFG_DIR/secrets" ]; then
+  install -d -m 0700 "$CFG_DIR/secrets"
+else
+  chmod 0700 "$CFG_DIR/secrets" || true
+fi
+
+# Recovery: create settings.yml from example ONLY if absent (should exist as conffile)
+if [ ! -f "$CFG_DIR/settings.yml" ]; then
+  if [ -f "$EXAMPLES_DIR/settings.yml.example" ]; then
+    cp "$EXAMPLES_DIR/settings.yml.example" "$CFG_DIR/settings.yml"
+    log "Recovered missing settings.yml from example template (unexpected)."
+  else
+    log "WARNING: settings.yml missing and no example template found."
+  fi
+fi
+
 [ -f "$REQ_TXT" ] || { log "Requirements file missing ($REQ_TXT) - cannot build venv."; exit 0; }
 
 need_rebuild=0
@@ -47,6 +73,16 @@ fi
 [ -x "$PYTHON_BIN" ] || { log "Portable python missing ($PYTHON_BIN)"; exit 1; }
 
 log "Creating virtualenv..."
+if [ ! -L "/opt/opentalk-compose/config" ]; then
+  if [ -e "/opt/opentalk-compose/config" ]; then
+    log "Replacing existing /opt/opentalk-compose/config with symlink to /etc/opentalk-compose"
+    rm -rf /opt/opentalk-compose/config || true
+  else
+    log "Creating config symlink /opt/opentalk-compose/config -> /etc/opentalk-compose"
+  fi
+  ln -s /etc/opentalk-compose /opt/opentalk-compose/config || true
+fi
+
 rm -rf "$VENV_DIR"
 "$PYTHON_BIN" -m venv "$VENV_DIR"
 . "$VENV_DIR/bin/activate"

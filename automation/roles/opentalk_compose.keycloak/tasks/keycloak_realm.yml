@@ -8,10 +8,6 @@
     state: present
     enabled: true
     login_theme: "opentalk"
-  tags:
-    - init
-    - apply
-    - keycloak
 
 - block:
   - name: Get current realm config

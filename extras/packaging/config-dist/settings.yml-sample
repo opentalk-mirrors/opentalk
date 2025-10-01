@@ -3,7 +3,7 @@ ot_domain: ''
 ot_ingress_port: 443
 ot_ingress_protocol: https
 
-config_dir: "/opt/opentalk-compose/config"
+config_dir: "/etc/opentalk-compose"
 services_dir: "/opt/opentalk-compose/services"
 deploy_dir: "/opt/opentalk-compose"
 

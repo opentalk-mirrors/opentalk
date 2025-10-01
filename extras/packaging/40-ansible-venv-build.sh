@@ -11,7 +11,7 @@ PYBIN="${PYBIN:-$RTPY}"
 FORCE=${FORCE_REFRESH:-0}
 MARKER_HASH="$EMB/.venv/.reqs.sha256"
 
-ls "$WHL"/*.whl >/dev/null 2>&1 || { echo "Wheelhouse empty: $WHL"; exit 1; }
+\ls "$WHL"/*.whl >/dev/null 2>&1 || { echo "Wheelhouse empty: $WHL"; exit 1; }
 [[ -f "$REQ" ]] || { echo "Missing $REQ"; exit 1; }
 [[ -x "$PYBIN" ]] || { echo "No python runtime."; exit 1; }
 
@@ -29,8 +29,20 @@ echo "[venv] (Re)building..."
 rm -rf "$EMB" && mkdir -p "$EMB"
 "$PYBIN" -m venv "$EMB/.venv"
 . "$EMB/.venv/bin/activate"
-pip install --upgrade pip
-pip install --no-index --find-links "$WHL" --require-hashes -r "$REQ"
+export PIP_DISABLE_PIP_VERSION_CHECK=1
+export PIP_NO_PYTHON_VERSION_WARNING=1
+pip install --upgrade pip >/dev/null 2>&1 || pip install --upgrade pip
+# Preflight: ensure critical native wheels (e.g. cffi) exist for this interpreter before offline attempt.
+if ! compgen -G "$WHL/cffi-*.whl" >/dev/null; then
+  echo "[venv] WARN: cffi wheel missing for $("$PYBIN" -c 'import sys;print(f"py{sys.version_info.major}{sys.version_info.minor}")') in $WHL" >&2
+  echo "[venv] Attempting on-demand download (network required)..." >&2
+  if "$PYBIN" -m pip download -d "$WHL" cffi==1.17.1 2>/dev/null; then
+    echo "[venv] Added missing cffi wheel." >&2
+  else
+    echo "[venv] ERROR: Could not fetch cffi wheel. Provide network or add wheel to wheelhouse." >&2
+  fi
+fi
+PIP_DISABLE_PIP_VERSION_CHECK=1 pip install --no-index --find-links "$WHL" --require-hashes -r "$REQ"
 deactivate
 find "$EMB/.venv" -name "__pycache__" -type d -exec rm -rf {} + || true
 find "$EMB/.venv" -name "*.pyc" -delete || true
