@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 FROM intel/oneapi-basekit AS builder
 
-ARG WHISPER_CPP_TAG=v1.7.0
+ARG WHISPER_CPP_TAG=v1.8.0
 
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
@@ -31,9 +31,7 @@ RUN mkdir -p build
 WORKDIR /whisper.cpp/build
 
 RUN cmake .. \
-    -DWHISPER_VULKAN=ON \
     -DGGML_SYCL=ON \
-    -DGGML_VULKAN=ON \
     -DGGML_SYCL_TARGET=INTEL \
     -DCMAKE_C_COMPILER=icx \
     -DCMAKE_CXX_COMPILER=icpx \
@@ -72,7 +70,7 @@ WORKDIR /transcription
 RUN mkdir -p /opt/whisper.cpp/lib
 
 COPY --from=builder /whisper.cpp/build/ggml/src/* /opt/whisper.cpp/lib/
-COPY --from=builder /whisper.cpp/build/src/libwhisper.so.1 /opt/whisper.cpp/lib/
+COPY --from=builder /whisper.cpp/build/src/libwhisper.so* /opt/whisper.cpp/lib/
 
 ENV MKLROOT=/opt/intel/oneapi/mkl/2025.2
 ENV ONEAPI_DEVICE_SELECTOR="level_zero:0"
