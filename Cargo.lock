@@ -4069,9 +4069,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.36.1"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1fb63bac5adbc4845662c2ea7b7fc6d36940d1f5d23f6a577532bbdfb5de2f9"
+checksum = "02188eda2792507bef0b9c5acf8eae66a911f6bb1adec6a8a132d387c67f30d6"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -4115,9 +4115,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling"
-version = "0.38.1"
+version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07d3066e2e4ab61bf432282e29ac313a765782181d25e71d74afd2a15ecd2039"
+checksum = "dbef39f6dce89b1811aede97c4d0cb13b0942fcc02bd84c68521d0a41951d91b"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
@@ -4129,9 +4129,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-control"
-version = "0.38.0"
+version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20d24cae1ea7b387e0eb30bb0ffcac5a5d19ef97bc8826c7cb15214fa2fb20c2"
+checksum = "87f31024baa1fc7ace2692e906953379a58a1af74f56196446cc47d8c2aac2ff"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -4141,9 +4141,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-livekit"
-version = "0.39.0"
+version = "0.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f35dd8718102ea75e6b03ccc03f2592a79de4f0b607d3e9396964ae2df489781"
+checksum = "ddad8c0a9cd8598ee1eebbbbbd10cd55557f4c2c9d5a757d3007a2d8a73aa746"
 dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
@@ -4152,9 +4152,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling-recording"
-version = "0.37.0"
+version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc4a88c6ee5f56dcfad0608e59a6a55f3fa0717553398854dfbf0e2f70a5f0f6"
+checksum = "eec253a88d58b29c71daeb1c42a52edc5d401f894a672c87eedbbff4c9cc8efe"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
