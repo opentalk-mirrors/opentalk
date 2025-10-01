@@ -252,7 +252,7 @@ build:container-vulkan:
       /kaniko/executor
       --registry-mirror=mirror.gcr.io
       --context $CI_PROJECT_DIR
-      --dockerfile $CI_PROJECT_DIR/Dockerfile-vulkan
+      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile-vulkan
       $IMAGE_DESTINATION_ARGS
       --force
 
@@ -312,6 +312,6 @@ build:container-intel:
       /kaniko/executor
       --registry-mirror=mirror.gcr.io
       --context $CI_PROJECT_DIR
-      --dockerfile $CI_PROJECT_DIR/Dockerfile-intel
+      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile-intel
       $IMAGE_DESTINATION_ARGS
       --force
