@@ -27,17 +27,38 @@
 #addr = "192.0.2.0"
 #addr = "2001:0DB8::1337:DEAD:CAFE"
 
-# The port to bind the HTTP Server to (defaults to 11411).
+# The port to bind the HTTP Server to.
 #port = 11411
 
+# Authentication configuration using OpenID Connect (OIDC).
 [auth]
-# OIDC Credentials
+# The OIDC issuer url.
 issuer = "https://example.org/auth/realms/OpenTalk"
+
+# The client ID registered in the identity provider.
 client_id = "Transcription"
+
+# The client secret for the above client ID.
 client_secret = "Abc123"
 
 [controller]
+# The url to the controller
 domain = "localhost:11311"
+
+# Whether to allow insecure connections (no TLS / certificate validation).
 insecure = true
 
+# Monitoring endpoint configuration.
+# Provides Prometheus-compatible metrics for scraping.
 [monitoring]
+# Address to bind the monitoring endpoint to.
+addr = "::1"
+
+# Port for the monitoring endpoint.
+port = 11411
+
+[transcription]
+# Configuration of the transcription engine.
+
+# Path to the whisper model file to load.
+#model = "models/ggml-large-v3-turbo.bin"
