@@ -6,6 +6,8 @@ services/spacedeck/.spacedeck_api.secret
 services/spacedeck/.spacedeck_invite.secret
 services/cforge/data/.secrets.yaml
 
+extras/packaging/requirements-ansible.txt
+
 config/**
 services/**/config/
 **/data/

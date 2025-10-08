@@ -1,6 +1,18 @@
 ---
 # Idempotent creation of a permanent admin with automatic fallback logic.
 
+- name: Wait for Keycloak to be reachable
+  ansible.builtin.uri:
+    url: "{{ keycloak_health_url }}"
+    method: GET
+    status_code: 200
+    return_content: no
+    validate_certs: false
+  register: keycloak_healthcheck
+  until: keycloak_healthcheck.status == 200
+  retries: 18
+  delay: 10
+
 - name: "Check permanent admin exists | '{{ keycloak_permanent_admin_username }}'"
   ansible.builtin.uri:
     url: "{{ keycloak_base_url }}/realms/master/protocol/openid-connect/token"
@@ -31,18 +43,6 @@
         keycloak_auth_username: "{{ keycloak_bootstrap_admin_username }}"
         keycloak_auth_password: "{{ keycloak_bootstrap_admin_password }}"
         keycloak_auth_realm: "master"
-
-    - name: Wait for Keycloak to be reachable
-      ansible.builtin.uri:
-        url: "{{ keycloak_health_url }}"
-        method: GET
-        status_code: 200
-        return_content: no
-        validate_certs: false
-      register: keycloak_healthcheck
-      until: keycloak_healthcheck.status == 200
-      retries: 18
-      delay: 10
 
     - name: "Create permanent global admin user in '{{ keycloak_auth_realm }} realm"
       community.general.keycloak_user:

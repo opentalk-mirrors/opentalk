@@ -11,18 +11,16 @@ services:
     environment:
       TZ: ${TZ:-Europe/Berlin}
       RUST_LOG: info,opentalk_recorder=debug,rustls=info,opentalk_recorder::signaling=debug
-{% if custom_certificates_enabled is defined and custom_certificates_enabled is true %}
-{% elif custom_ca_enabled is defined and custom_ca_enabled is true %}
     volumes:
       - ./config/recorder.toml:/etc/opentalk/recorder.toml
-      - /opt/opentalk-compose{{ custom_certificates_certs_dir }}/{{ custom_certificates_ssl_ca_file }}:/usr/local/share/ca-certificates/{{ custom_certificates_ssl_ca_file }}
+{% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
+      - /etc/opentalk-compose/ssl/{{ custom_certificates_ca_root_cert_file }}:/usr/local/share/ca-certificates/{{ custom_certificates_ca_root_cert_file }}
+{% endif %}
+{% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
     entrypoint: []
     command: >
        /bin/bash -c "update-ca-certificates; exec /recorder/opentalk-recorder"
     user: root
-{% else %}
-    volumes:
-      - ./config/recorder.toml:/etc/opentalk/recorder.toml
 {% endif %}
     networks:
       - {{ docker_network_name }}

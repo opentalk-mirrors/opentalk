@@ -2,15 +2,15 @@
 
 ## 1. Table of Contents
 
-- 1 [Access Web Interfaces](#1-access-web-interfaces)
+- 1 [Access Web Interfaces](#access-web-interfaces)
 - 2 [Login to OpenTalk Webapp](#2-login-to-opentalk-webapp)
 - 3 [Web Interfaces of 3rd Party Services](#3-web-interfaces-of-3rd-party-services)
-	- 3.1 [Keycloak Admin Console](#31-keycloak-admin-console)
-	- 3.2 [Authentication for Endpoints Behind /adm/](#32-authentication-for-endpoints-behind-adm)
-		- 3.2.1 [Traefik Dashboard](#321-traefik-dashboard)
-		- 3.2.2 [RabbitMQ Management Web Interface](#322-rabbitmq-management-web-interface)
-		- 3.2.3 [MinIO Web Console](#323-minio-web-console)
-		- 3.2.4 [MailCrab Web Interface](#324-mailcrab-web-interface)
+  - 3.1 [Keycloak Admin Console](#31-keycloak-admin-console)
+  - 3.2 [Authentication for Endpoints Behind /adm/](#32-authentication-for-endpoints-behind-adm)
+    - 3.2.1 [Traefik Dashboard](#321-traefik-dashboard)
+    - 3.2.2 [RabbitMQ Management Web Interface](#322-rabbitmq-management-web-interface)
+    - 3.2.3 [MinIO Web Console](#323-minio-web-console)
+    - 3.2.4 [MailCrab Web Interface](#324-optional-mailcrab-web-interface)
 
 The OpenTalk web application provides a dashboard for managing OpenTalk meetings. In addition, there are several other web interfaces and consoles from third-party components that become accessible after installation and help administer the OpenTalk environment. The following section describes which interfaces are available and how to access them when using the default settings.
 
@@ -30,10 +30,9 @@ Accessible with default settings at: `/auth/`
 
 - e.g. `http://example.com/auth/`
 
-When default settings are kept the username is `admin`. The password is randomly generated during the initialization phase and can be found in `config/secrets/secrets.yaml` as the value for the key `KC_BOOTSTRAP_ADMIN_PASSWORD`.
+When default settings are kept the username is `admin`. The password is randomly generated during the initialization phase and can be found in `config/secrets/secrets.yaml` as the value for the key `KC_PERMANENT_ADMIN_PASSWORD`.
 
 Here you can create users for using OpenTalk. A step-by-step guide can be found [here](docs/3-managing-opentalk-users.md). Extensive configurations can also be made regarding user authentication. Further information on using the Keycloak Admin Console can be found in the official [Keycloak documentation](https://www.keycloak.org/docs/latest/server_admin/index.html#using-the-admin-console).
-
 
 ### 3.2 Authentication for Endpoints Behind `/adm/`
 

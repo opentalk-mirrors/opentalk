@@ -55,7 +55,7 @@ keycloak_db_url_host: keycloak-db
 keycloak_db_url_port: 5432
 keycloak_health_enabled: "true"
 keycloak_metrics_enabled: "true"
-keycloak_health_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/realms/master"
+keycloak_health_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/realms/{{ keycloak_auth_realm }}/.well-known/openid-configuration"
 keycloak_http_relative_path: /auth
 keycloak_spi_sticky_session_encoder_infinispan_should_attach_route: "false"
 keycloak_redirectUris_uris:

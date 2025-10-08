@@ -1,0 +1,157 @@
+# SPDX-License-Identifier: MIT-0
+---
+# tasks file for opentalk_compose.self_signed_cert
+
+- block:
+    - name: "Check if custom certificates exist"
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ custom_certificates_certs_dir }}/{{ self_signed_certificates_ssl_certificate_ca_file }}"
+        - "{{ custom_certificates_certs_dir }}/{{ self_signed_certificates_ssl_certificate_fullchain_file }}"
+        - "{{ custom_certificates_certs_dir }}/{{ self_signed_certificates_ssl_certificate_key_file }}"
+      register: custom_certs_stat
+      check_mode: no
+
+    - name: "Set fact for certificate existence"
+      ansible.builtin.set_fact:
+        certs_exist: "{{ custom_certs_stat.results | map(attribute='stat.exists') | select | list | length == 3 }}"
+      check_mode: no
+  tags:
+    - self-signed-certificates
+
+- block:
+    - name: "Ensure base ssl directory exists"
+      ansible.builtin.file:
+        path: "{{ custom_certificates_certs_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: "Create private temporary CA directory structure"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ self_signed_certificates_ca_dir }}"
+        - "{{ self_signed_certificates_ca_dir }}/csr"
+        - "{{ self_signed_certificates_ca_dir }}/private"
+        - "{{ self_signed_certificates_ca_dir }}/newcerts"
+
+    - name: "Generate temporary CA key"
+      community.crypto.openssl_privatekey:
+        path: "{{ self_signed_certificates_ca_dir }}/private/rootCA.key"
+        size: "{{ self_signed_certificates_ca_key_size }}"
+        mode: "0600"
+
+    - name: "Generate temporary CA CSR"
+      community.crypto.openssl_csr:
+        path: "{{ self_signed_certificates_ca_dir }}/csr/rootCA.csr"
+        privatekey_path: "{{ self_signed_certificates_ca_dir }}/private/rootCA.key"
+        country_name: "{{ self_signed_certificates_ca_country }}"
+        state_or_province_name: "{{ self_signed_certificates_ca_state }}"
+        locality_name: "{{ self_signed_certificates_ca_locality }}"
+        organization_name: "{{ self_signed_certificates_ca_organization }}"
+        organizational_unit_name: "{{ self_signed_certificates_ca_organizational_unit }}"
+        common_name: "{{ self_signed_certificates_ca_common_name | regex_replace('^(.*?)(:\\d+)?$', '\\1') }}"
+        email_address: "{{ self_signed_certificates_ca_email_address }}"
+        basic_constraints: ['CA:TRUE']
+        basic_constraints_critical: true
+        key_usage: ['keyCertSign', 'cRLSign']
+        key_usage_critical: true
+
+    - name: "Generate self-signed temporary CA certificate"
+      community.crypto.x509_certificate:
+        path: "{{ self_signed_certificates_ca_dir }}/rootCA.crt"
+        privatekey_path: "{{ self_signed_certificates_ca_dir }}/private/rootCA.key"
+        csr_path: "{{ self_signed_certificates_ca_dir }}/csr/rootCA.csr"
+        provider: selfsigned
+        selfsigned_not_after: "+{{ self_signed_certificates_server_certificate_validity_days }}d"
+
+    - name: "Generate server key"
+      community.crypto.openssl_privatekey:
+        path: "{{ self_signed_certificates_ca_dir }}/newcerts/server.key.pem"
+        size: "{{ self_signed_certificates_server_key_size }}"
+        mode: "0600"
+
+    - name: "Generate server CSR"
+      community.crypto.openssl_csr:
+        path: "{{ self_signed_certificates_ca_dir }}/csr/server.csr.pem"
+        privatekey_path: "{{ self_signed_certificates_ca_dir }}/newcerts/server.key.pem"
+        country_name: "{{ self_signed_certificates_server_country }}"
+        state_or_province_name: "{{ self_signed_certificates_server_state }}"
+        locality_name: "{{ self_signed_certificates_server_locality }}"
+        organization_name: "{{ self_signed_certificates_server_organization }}"
+        organizational_unit_name: "{{ self_signed_certificates_server_organizational_unit }}"
+        common_name: "{{ self_signed_certificates_server_common_name | regex_replace('^(.*?)(:\\d+)?$', '\\1') }}"
+        email_address: "{{ self_signed_certificates_server_email_address }}"
+        subject_alt_name: "{{ subject_alt_names }}"
+        key_usage: ['digitalSignature', 'keyEncipherment']
+        extended_key_usage: ['serverAuth', 'clientAuth']
+      vars:
+        subject_alt_names: |
+          {% set sans = [] %}
+          {% for dns in self_signed_certificates_server_san_dns | default([]) if dns is string %}
+          {%   set cleaned_dns = dns | regex_replace(':\d+$', '') | trim %}
+          {%   if cleaned_dns and cleaned_dns != ':' %}
+          {%     set _ = sans.append('DNS:' + cleaned_dns) %}
+          {%   endif %}
+          {% endfor %}
+          {% for ip in self_signed_certificates_server_san_ip | default([]) if ip is string %}
+          {%   set cleaned_ip = ip | regex_replace(':\d+$', '') | trim %}
+          {%   if cleaned_ip and cleaned_ip != ':' %}
+          {%     set _ = sans.append('IP:' + cleaned_ip) %}
+          {%   endif %}
+          {% endfor %}
+          {{ sans }}
+
+    - name: "Sign server certificate with our temporary CA"
+      community.crypto.x509_certificate:
+        path: "{{ self_signed_certificates_ca_dir }}/newcerts/server.crt.pem"
+        csr_path: "{{ self_signed_certificates_ca_dir }}/csr/server.csr.pem"
+        ownca_path: "{{ self_signed_certificates_ca_dir }}/rootCA.crt"
+        ownca_privatekey_path: "{{ self_signed_certificates_ca_dir }}/private/rootCA.key"
+        provider: ownca
+        ownca_not_after: "+{{ self_signed_certificates_ca_certificate_validity_days }}d"
+
+    - name: "Create full-chain certificate"
+      ansible.builtin.copy:
+        content: "{{ lookup('file', self_signed_certificates_ca_dir + '/newcerts/server.crt.pem') }}\n{{ lookup('file', self_signed_certificates_ca_dir + '/rootCA.crt') }}"
+        dest: "{{ self_signed_certificates_ca_dir }}/newcerts/server_full_chain.crt.pem"
+        mode: "0644"
+
+    - name: "Copy final certificates and key"
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "{{ item.mode }}"
+        remote_src: true
+        force: false
+      loop:
+        - { src: "{{ self_signed_certificates_ca_dir }}/newcerts/server.key.pem",
+            dest: "{{ custom_certificates_certs_dir }}/{{ self_signed_certificates_ssl_certificate_key_file }}",
+            mode: "0600" 
+          }
+        - { src: "{{ self_signed_certificates_ca_dir }}/newcerts/server_full_chain.crt.pem",
+            dest: "{{ custom_certificates_certs_dir }}/{{ self_signed_certificates_ssl_certificate_fullchain_file }}",
+            mode: "0644"
+          }
+        - { src: "{{ self_signed_certificates_ca_dir }}/rootCA.crt",
+            dest: "{{ custom_certificates_certs_dir }}/{{ self_signed_certificates_ssl_certificate_ca_file }}",
+            mode: "0644"
+          }
+
+    - name: "Cleanup temporary CA working subdirectories (keep final artifacts)"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ self_signed_certificates_ca_dir }}"
+        - "{{ self_signed_certificates_ca_dir }}/csr"
+        - "{{ self_signed_certificates_ca_dir }}/private"
+        - "{{ self_signed_certificates_ca_dir }}/newcerts"
+
+  when: not certs_exist
+  tags:
+    - self-signed-certificates
+

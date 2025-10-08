@@ -42,6 +42,11 @@ done
 # Conffile (must exist now – created by staging)
 [ -f "$PKGROOT/etc/opentalk-compose/settings.yml" ] || fail "Missing conffile: $PKGROOT/etc/opentalk-compose/settings.yml"
 [ -d "$PKGROOT/etc/opentalk-compose/secrets" ] || fail "Missing secrets dir: $PKGROOT/etc/opentalk-compose/secrets"
+[ -d "$PKGROOT/etc/opentalk-compose/ssl" ] || fail "Missing ssl dir: $PKGROOT/etc/opentalk-compose/ssl"
+
+# Shell completions (bash + zsh) must be present
+[ -f "$PKGROOT/usr/share/bash-completion/completions/otctl" ] || fail "Missing bash completion: $PKGROOT/usr/share/bash-completion/completions/otctl"
+[ -f "$PKGROOT/usr/share/zsh/site-functions/_otctl" ] || fail "Missing zsh completion: $PKGROOT/usr/share/zsh/site-functions/_otctl"
 
 # Guard: packaging sources must not leak
 [ -d "$PKGROOT/opt/opentalk-compose/extras/packaging" ] && fail "extras/packaging accidentally included"
@@ -95,7 +100,8 @@ if command -v fpm >/dev/null 2>&1; then
     --vendor "$VENDOR" \
     --maintainer "$MAINTAINER" \
     --url "$URL"
-  mv -f ./*.deb "$PKG_FILE"
+  # fpm already wrote the file to the exact path given via -p, the prior mv was redundant and caused failures
+  [ -f "$PKG_FILE" ] || fail "fpm did not produce expected package at $PKG_FILE"
 else
   echo "[build-deb] fpm not found - using raw dpkg-deb fallback"
   mkdir -p "$PKGROOT/DEBIAN"
@@ -123,11 +129,8 @@ EOF
   dpkg-deb --build "$PKGROOT" "$PKG_FILE"
 fi
 
-# Sanity checks
-INSPECT_DIR="$ROOT/build/_inspect_pkg"
-rm -rf "$INSPECT_DIR"
-mkdir -p "$INSPECT_DIR"
-
+# Sanity checks (inspect package contents in an isolated temp dir)
+INSPECT_DIR="$(mktemp -d "$ROOT/build/inspect.XXXXXX")"
 if ! dpkg-deb -R "$PKG_FILE" "$INSPECT_DIR"; then
   echo "[build-deb] DEBUG: ar t output:"
   ar t "$PKG_FILE" || true
@@ -142,3 +145,4 @@ fi
 
 echo "[build-deb] Built: $PKG_FILE"
 \ls -lh "$PKG_FILE"
+rm -rf "$INSPECT_DIR"

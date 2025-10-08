@@ -31,6 +31,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./config:/etc/traefik
       - traefik:/data
+{% if custom_certificates_enabled is defined and custom_certificates_enabled is true %}
+      - /etc/opentalk-compose/ssl:/etc/traefik/ssl
+{% endif %}
 
 volumes:
   traefik:

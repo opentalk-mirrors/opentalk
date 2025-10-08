@@ -79,6 +79,10 @@ mkdir -p "$RUNTIME_DIR/venv"
 mkdir -p "$ETC_DIR/secrets"
 chmod 0700 "$ETC_DIR/secrets" || true
 
+# Ensure ssl directory exists (certs/keys may be dropped in later by operator)
+mkdir -p "$ETC_DIR/ssl"
+chmod 0700 "$ETC_DIR/ssl" || true
+
 SAMPLE_SETTINGS_SRC=""
 if [[ -f "$ROOT/extras/packaging/config-dist/settings.yml-sample" ]]; then
   SAMPLE_SETTINGS_SRC="$ROOT/extras/packaging/config-dist/settings.yml-sample"

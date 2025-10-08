@@ -8,36 +8,49 @@ livekit_docker_compose_project_src: "{{ deploy_dir }}"
 
 livekit_docker_image_src: livekit/livekit-server
 
+livekit_api_key_controller: "{{ LIVEKIT_API_SECRET }}"
+
 livekit_port: 7880
+
 livekit_rtc_tcp_port: 7881
 livekit_rtc_port_range_start: 50000
 livekit_rtc_port_range_end: 64535
-livekit_rtc_use_external_ip: "true"
-livekit_rtc_enable_loopback_candidate: "false"
-livekit_api_key_controller: "{{ LIVEKIT_API_SECRET }}"
-# livekit_stun_servers:
-#   - turn.opentalk.run:443
-# livekit_turn_servers:
-#   - host: turn.opentalk.run
+livekit_rtc_use_external_ip: true
+livekit_rtc_enable_loopback_candidate: false
+# livekit_rtc_use_ice_lite: false
+# livekit_rtc_node_ip: "{{ ansible_host }}"
+# livekit_rtc_udp_port: 7882-7890
+# livekit_rtc_stun_servers:
+#   - stun.example.com:443
+# livekit_rtc_turn_servers:
+#   - host: turn.example.com
 #     port: 443
 #     protocol: tls
-#     username: "opentalk"
-#     credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
-#   - host: turn.opentalk.run
+#     username: ""
+#     credential: ""
+#   - host: turn.example.com
 #     port: 443
 #     protocol: tcp
-#     username: "opentalk"
-#     credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
-#   - host: turn.opentalk.run
+#     username: ""
+#     credential: ""
+#   - host: turn.example.com
 #     port: 443
 #     protocol: udp
-#     username: "opentalk"
-#     credential: "RTJln6D5y4Hn3hMhXnqU7Pqg93yMWrbH"
-# livekit_turn_embedded_enabled: "false"
-# livekit_turn_embedded_domain: meet-lk1-turn.opentalk.eu
-# livekit_turn_embedded_tls_port: 5349
-# livekit_turn_embedded_udp_port: 3478
-# livekit_turn_embedded_external_tls: true
+#     username: ""
+#     credential: ""
+livekit_rtc_ips_includes: []
+livekit_rtc_ips_excludes:
+  - 10.0.0.0/8 
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+
+livekit_turn_embedded_enabled: "false"
+livekit_turn_embedded_domain: "turn.{{ ot_domain }}"
+livekit_turn_embedded_tls_port: 5349
+livekit_turn_embedded_udp_port: 3478
+livekit_turn_embedded_external_tls: true
+
 # livekit_prometheus_port: 6789
+
 # livekit_logging_json: "false"
 # livekit_logging_level: info

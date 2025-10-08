@@ -9,7 +9,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.mailcrab.rule=Host(`{{ ot_domain }}`) && PathPrefix(`{{ mailcrab_webui_prefix }}`)"
       - "traefik.http.routers.mailcrab.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
-{% if traefik_letsencrypt_enable %}
+{% if (traefik_letsencrypt_enable | default('true')) and (not custom_certificates_enabled is defined or not custom_certificates_enabled) %}
       - "traefik.http.routers.mailcrab.tls.certresolver=letsencrypt"
 {% endif %}
       - "traefik.http.routers.mailcrab.middlewares={{ mailcrab_docker_label_http_routers_minio_console_middlewares }}"

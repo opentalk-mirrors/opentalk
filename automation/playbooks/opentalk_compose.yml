@@ -38,6 +38,11 @@
         - role: opentalk_compose.secrets
       tags: [backup, never]
 
+    - role: opentalk_compose.self_signed_cert
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: [self-signed-certificates]
+
     - role: opentalk_compose.traefik
       dependencies:
         - role: opentalk_compose.secrets

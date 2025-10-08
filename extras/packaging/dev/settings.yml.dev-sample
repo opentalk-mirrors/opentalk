@@ -45,8 +45,8 @@ mailcrab_docker_label_http_routers_minio_console_middlewares: "mailcrab-strip"
 
 custom_certificates_enabled: false
 #custom_certificates_enabled: true
-#custom_certificates_ssl_certificate_key_file:
-#custom_certificates_ssl_certificate_fullchain_file:
+#custom_certificates_private_key_file:
+#custom_certificates_fullchain_cert_file:
 #livekit_turn_embedded_enabled
 
 

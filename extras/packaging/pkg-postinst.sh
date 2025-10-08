@@ -33,6 +33,13 @@ else
   chmod 0700 "$CFG_DIR/secrets" || true
 fi
 
+# Ensure ssl directory (cert/key drop-in) – not a conffile, restrictive perms
+if [ ! -d "$CFG_DIR/ssl" ]; then
+  install -d -m 0700 "$CFG_DIR/ssl"
+else
+  chmod 0700 "$CFG_DIR/ssl" || true
+fi
+
 # Recovery: create settings.yml from example ONLY if absent (should exist as conffile)
 if [ ! -f "$CFG_DIR/settings.yml" ]; then
   if [ -f "$EXAMPLES_DIR/settings.yml.example" ]; then

@@ -1,5 +1,5 @@
 ---
-- name: "Create a user for testing purposes | name: {{ postInstall_demoUser_name | default('Test User') }}"
+- name: "Manage demo user for testing purposes | name: {{ postInstall_demoUser_name | default('Test User') }}"
   community.general.keycloak_user:
     auth_keycloak_url: "{{ keycloak_base_url }}"
     auth_realm: "{{ keycloak_auth_realm }}"

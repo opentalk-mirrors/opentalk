@@ -9,7 +9,7 @@ http:
     secure-headers:
       headers:
         sslRedirect: true
-        frameDeny: true
+        #frameDeny: true
         stsIncludeSubdomains: true
         stsPreload: true
         stsSeconds: 63072000
@@ -54,9 +54,9 @@ tls:
   stores:
     default:
       defaultCertificate:
-        certFile: /etc/traefik/ssl/{{ custom_certificates_ssl_certificate_fullchain_file }}
-        keyFile: /etc/traefik/ssl/{{ custom_certificates_ssl_certificate_key_file }}
+        certFile: /etc/traefik/ssl/{{ custom_certificates_fullchain_cert_file }}
+        keyFile: /etc/traefik/ssl/{{ custom_certificates_private_key_file }}
   certificates:
-    - certFile: "/etc/traefik/ssl/{{ custom_certificates_ssl_certificate_fullchain_file }}"
-      keyFile: "/etc/traefik/ssl/{{ custom_certificates_ssl_certificate_key_file }}"
+    - certFile: "/etc/traefik/ssl/{{ custom_certificates_fullchain_cert_file }}"
+      keyFile: "/etc/traefik/ssl/{{ custom_certificates_private_key_file }}"
 {% endif %}
