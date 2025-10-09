@@ -750,7 +750,9 @@ impl Signaling {
             } => unrestricted_participants.contains(&participant_id),
         };
 
-        if let RecordingConsentState::Rejected = self.recording_consent_state {
+        if let RecordingConsentState::Rejected | RecordingConsentState::WaitingForConsent =
+            self.recording_consent_state
+        {
             publish = false;
             self.audio_muted = true;
         }
