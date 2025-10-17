@@ -130,7 +130,7 @@ backup_volumes:
 backup_retention_days: 10
 backup_compression: gzip
 restore_volume_backups:
-  # Nur setzen wenn tatsächlich restore gefahren werden soll
+  # Only set entries below when an actual restore should be performed
   # - volume: etherpad-data
   #   file: etherpad-data-20250904-120000.tar.gz
   #   purge: true

@@ -65,7 +65,7 @@ Ensure these ports are reachable in a standard deployment:
 
 ### 1.4 DNS Domain Record
 
-Create a DNS record pointing to the server's public IPv4 and IPv6 addresses. This is the domain used to access the web application (e.g. https://example.com).
+Create a DNS record pointing to the server's public IPv4 and IPv6 addresses. This is the domain used to access the web application (e.g. <https://example.com>).
 
 ### 1.5 Docker Requirement
 
@@ -140,7 +140,7 @@ First run effects:
 - Starts containers (equivalent to docker compose up -d)
 
 Note: Initial configuration and startup may take several minutes. Wait until completion before accessing the application.  
-After initialization the web UI is available at: https://example.com (replace with your domain).
+After initialization the web UI is available at: <https://example.com> (replace with your domain).
 
 ### 2.5 Optional: Adjust Configuration & Redeploy
 

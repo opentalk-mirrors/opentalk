@@ -10,12 +10,12 @@
     validate_certs: false
   register: keycloak_healthcheck
   until: keycloak_healthcheck.status == 200
-  retries: 18
-  delay: 10
+  retries: "{{ keycloak_wait_to_be_reachable_retries }}"
+  delay: "{{ keycloak_wait_to_be_reachable_delay }}"
 
 - name: "Check permanent admin exists | '{{ keycloak_permanent_admin_username }}'"
   ansible.builtin.uri:
-    url: "{{ keycloak_base_url }}/realms/master/protocol/openid-connect/token"
+    url: "{{ keycloak_base_url }}/realms/{{ keycloak_auth_realm }}/protocol/openid-connect/token"
     method: POST
     body_format: form-urlencoded
     body:
@@ -33,7 +33,7 @@
       ansible.builtin.set_fact:
         keycloak_auth_username: "{{ keycloak_permanent_admin_username }}"
         keycloak_auth_password: "{{ keycloak_permanent_admin_password }}"
-        keycloak_auth_realm: "master"
+        keycloak_auth_realm: "{{ keycloak_auth_realm }}"
   when: permanent_admin_login_attempt.status == 200
 
 - name: "Ensure permanent admin account."
@@ -42,9 +42,9 @@
       ansible.builtin.set_fact:
         keycloak_auth_username: "{{ keycloak_bootstrap_admin_username }}"
         keycloak_auth_password: "{{ keycloak_bootstrap_admin_password }}"
-        keycloak_auth_realm: "master"
+        keycloak_auth_realm: "{{ keycloak_auth_realm }}"
 
-    - name: "Create permanent global admin user in '{{ keycloak_auth_realm }} realm"
+    - name: "Create permanent global admin user in {{ keycloak_auth_realm }} realm"
       community.general.keycloak_user:
         auth_keycloak_url: "{{ keycloak_base_url }}"
         auth_realm: "{{ keycloak_auth_realm }}"
@@ -79,7 +79,7 @@
       ansible.builtin.set_fact:
         keycloak_auth_username: "{{ keycloak_permanent_admin_username }}"
         keycloak_auth_password: "{{ keycloak_permanent_admin_password }}"
-        keycloak_auth_realm: "master"
+        keycloak_auth_realm: "{{ keycloak_auth_realm }}"
 
     - name: "Optionally remove bootstrap admin"
       community.general.keycloak_user:

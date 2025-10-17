@@ -18,7 +18,7 @@ The OpenTalk web application provides a dashboard for managing OpenTalk meetings
 
 - e.g. `https://example.com`
 
-The OpenTalk web application is the main component for users to access and use OpenTalk. For more information, refer to the [OpenTalk User documentation](https://docs.opentalk.eu/user/). If the default settings are kept, the web application is always available at the domain configured in the `OT_DOMAIN` environment variable.
+The OpenTalk web application is the main component for users to access and use OpenTalk. For more information, refer to the [OpenTalk User documentation](https://docs.opentalk.eu/user/). If the default settings are kept, the web application is always available at the domain configured in the `ot_domain` environment variable.
 
 ## 3. Web Interfaces of 3rd Party Services
 
@@ -32,7 +32,7 @@ Accessible with default settings at: `/auth/`
 
 When default settings are kept the username is `admin`. The password is randomly generated during the initialization phase and can be found in `config/secrets/secrets.yaml` as the value for the key `KC_PERMANENT_ADMIN_PASSWORD`.
 
-Here you can create users for using OpenTalk. A step-by-step guide can be found [here](docs/3-managing-opentalk-users.md). Extensive configurations can also be made regarding user authentication. Further information on using the Keycloak Admin Console can be found in the official [Keycloak documentation](https://www.keycloak.org/docs/latest/server_admin/index.html#using-the-admin-console).
+Here you can create users for using OpenTalk. A step-by-step guide can be found in the documentation ["Managing OpenTalk Users in Keycloak"](docs/3-managing-opentalk-users.md). Extensive configurations can also be made regarding user authentication. Further information on using the Keycloak Admin Console can be found in the official [Keycloak documentation](https://www.keycloak.org/docs/latest/server_admin/index.html#using-the-admin-console).
 
 ### 3.2 Authentication for Endpoints Behind `/adm/`
 
@@ -80,4 +80,4 @@ Accessible with default settings at: `/adm/mailcrab/`
 MailCrab is an optional dev/test SMTP sink to preview invites and notifications without sending real emails.
 The service is not enabled by defualt and intendet to use in `dev` mode.
 
-The MailCrab project is located [here](https://github.com/tweedegolf/mailcrab).
+The MailCrab project is located [in this git repo](https://github.com/tweedegolf/mailcrab).

@@ -103,6 +103,13 @@ if [[ -f "$ETC_DIR/settings.yml" ]]; then
   cp "$ETC_DIR/settings.yml" "$EXAMPLES_DIR/settings.yml.example" || true
 fi
 
+# Ship cleaned example Keycloak realm export (if present)
+REALM_EXAMPLE_SRC="$ROOT/extras/packaging/config-dist/export-opentalk-realm-and-users.json"
+if [[ -f "$REALM_EXAMPLE_SRC" ]]; then
+  echo "[stage] Including example Keycloak realm export"
+  install -m0644 "$REALM_EXAMPLE_SRC" "$EXAMPLES_DIR/export-opentalk-realm-and-users.json"
+fi
+
 # Vendor Collections
 SRC_VENDOR_EMB="$EMB/vendor"
 SRC_VENDOR_BUILD="$ROOT/build/vendor"
@@ -137,6 +144,17 @@ if [[ -f "$WRAPPER_SRC/otctl" ]]; then
   ln -sfn "/opt/opentalk-compose/bin/otctl" "$USR_BIN_DIR/otctl"
 else
   echo "[stage] WARN: otctl wrapper missing (expected $WRAPPER_SRC/otctl)"
+fi
+
+# Install auxiliary maintenance script (realm export sanitizer)
+SCRIPT_NEW_SRC="$ROOT/extras/scripts/opentalk_keycloak_realm_export_sanitize.sh"
+if [[ -f "$SCRIPT_NEW_SRC" ]]; then
+  echo "[stage] Installing opentalk_keycloak_realm_export_sanitize maintenance script"
+  install -m0755 "$SCRIPT_NEW_SRC" "$RUNTIME_BIN_DIR/opentalk_keycloak_realm_export_sanitize.sh"
+  # Backwards compatibility symlink for older docs/tools (can be removed in a future major release)
+  ln -sfn "/opt/opentalk-compose/bin/opentalk_keycloak_realm_export_sanitize.sh" "$RUNTIME_BIN_DIR/clean_realm_export.sh"
+else
+  echo "[stage] WARN: opentalk_keycloak_realm_export_sanitize.sh not found at $SCRIPT_NEW_SRC"
 fi
 
 # Portable Python

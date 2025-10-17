@@ -28,7 +28,6 @@ services:
       - "traefik.http.routers.minio-console.service=minio-console"
       - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
       - "traefik.http.routers.minio-console.middlewares={{ minio_docker_label_http_routers_minio_console_middlewares | default('') }}"
-      - "traefik.http.routers.minio-console.middlewares=minio-stripprefix"
       - "traefik.http.middlewares.minio-stripprefix.stripprefix.prefixes=/adm/minio"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]

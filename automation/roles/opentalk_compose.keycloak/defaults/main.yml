@@ -10,6 +10,9 @@ postgres_docker_image_src: postgres
 
 keycloak_docker_compose_state: present
 
+keycloak_wait_to_be_reachable_retries: 20
+keycloak_wait_to_be_reachable_delay: 10
+
 postInstall_demoUser_state: "present"
 postInstall_demoUser_enabled: "True"
 postInstall_demoUser_name: "demo"
@@ -42,7 +45,7 @@ keycloak_realm: "opentalk"
 keycloak_login_theme: "opentalk"
 keycloak_account_theme: "opentalk"
 keycloak_base_url: "{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) | build_subdomain_url }}/auth"
-keycloak_api_base_url: "{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) | build_subdomain_url }}/auth/admin/realms/opentalk"
+keycloak_api_base_url: "{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) | build_subdomain_url }}/auth/admin/realms/{{ keycloak_realm }}"
 keycloak_hostname: "{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) | build_subdomain_url }}/auth"
 keycloak_proxy: edge
 keycloak_proxy_headers: xforwarded
@@ -55,7 +58,7 @@ keycloak_db_url_host: keycloak-db
 keycloak_db_url_port: 5432
 keycloak_health_enabled: "true"
 keycloak_metrics_enabled: "true"
-keycloak_health_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/realms/{{ keycloak_auth_realm }}/.well-known/openid-configuration"
+keycloak_health_url: "{{ keycloak_base_url }}/realms/{{ keycloak_auth_realm }}/.well-known/openid-configuration"
 keycloak_http_relative_path: /auth
 keycloak_spi_sticky_session_encoder_infinispan_should_attach_route: "false"
 keycloak_redirectUris_uris:

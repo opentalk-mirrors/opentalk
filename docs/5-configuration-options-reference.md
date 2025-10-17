@@ -85,7 +85,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | Variable | Type | Default | Description |
 |---|---|---|---|
 | keycloak_account_theme | string | `opentalk` | Keycloak account theme. |
-| keycloak_api_base_url | derived | `{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) | build_subdomain_url }}/auth/admin/realms/opentalk` | Keycloak api base url. |
+| keycloak_api_base_url | derived | `{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) | build_subdomain_url }}/auth/admin/realms/{{ keycloak_realm }}` | Keycloak api base url. |
 | keycloak_auth_password | secret[derived] | `{{ keycloak_permanent_admin_password }}` | Keycloak auth password. |
 | keycloak_auth_realm | string | `master` | Keycloak auth realm. |
 | keycloak_auth_username | derived | `{{ keycloak_permanent_admin_username }}` | Keycloak auth username. |
@@ -107,7 +107,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | keycloak_docker_compose_state | string | `present` | Keycloak docker  state. |
 | keycloak_docker_image_src | string | `quay.io/keycloak/keycloak` | Keycloak docker image src. |
 | keycloak_health_enabled | string | `true` | Keycloak health enabled. |
-| keycloak_health_url | derived | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/realms/{{ keycloak_auth_realm }}/.well-known/openid-configuration` | Keycloak health url. |
+| keycloak_health_url | derived | `{{ keycloak_base_url }}/realms/{{ keycloak_auth_realm }}/.well-known/openid-configuration` | Keycloak health url. |
 | keycloak_hostname | derived | `{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) | build_subdomain_url }}/auth` | Keycloak hostname. |
 | keycloak_http_relative_path | string | `/auth` | Keycloak http relative path. |
 | keycloak_local_hostname | string | `` | Keycloak local hostname. |
@@ -125,6 +125,8 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | keycloak_realm | string | `opentalk` | Keycloak realm. |
 | keycloak_redirectUris_uris | list[str] | {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/popup_callback<br>{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/callback<br>{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard<br>{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard/*<br>{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/room/*<br>{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/join<br>{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/ | Keycloak redirectUris uris. |
 | keycloak_spi_sticky_session_encoder_infinispan_should_attach_route | string | `false` | Keycloak spi sticky session encoder infinispan should attach route. |
+| keycloak_wait_to_be_reachable_delay | int | `10` | Keycloak wait to be reachable delay. |
+| keycloak_wait_to_be_reachable_retries | int | `20` | Keycloak wait to be reachable retries. |
 | postInstall_demoUser_email | derived | `demo.user@{{ ot_domain | default('localhost') }}` | PostInstall demoUser email. |
 | postInstall_demoUser_enabled | string | `True` | PostInstall demoUser enabled. |
 | postInstall_demoUser_firstName | string | `Test` | PostInstall demoUser firstName. |
@@ -737,9 +739,11 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | traefik_providers_file_directory | string | `/etc/traefik/dynamic` | Traefik providers file directory. |
 | traefik_providers_file_watch | bool | `True` | Traefik providers file watch. |
 | bcrypt | template | — | Bcrypt (referenced in templates; no default defined). |
+| csp_allowed_extra_connect_src | template | — | Csp allowed extra connect src (referenced in templates; no default defined). |
 | custom_certificates_enabled | template | — | Custom certificates enabled (referenced in templates; no default defined). |
 | custom_certificates_fullchain_cert_file | template | — | Custom certificates fullchain cert file (referenced in templates; no default defined). |
 | custom_certificates_private_key_file | template | — | Custom certificates private key file (referenced in templates; no default defined). |
+| default | template | — | Default (referenced in templates; no default defined). |
 | defined | template | — | Defined (referenced in templates; no default defined). |
 | docker_network_name | template | — | Docker network name (referenced in templates; no default defined). |
 | hashtype | template | — | Hashtype (referenced in templates; no default defined). |
@@ -757,4 +761,4 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | websecure | template | — | Websecure (referenced in templates; no default defined). |
 
 ---
-Generated on: 2025-10-16
+Generated on: 2025-10-17

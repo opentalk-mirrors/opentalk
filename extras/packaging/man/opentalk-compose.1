@@ -153,9 +153,9 @@ cforge task <task name>
 .RE
 
 .SH BACKUPS:
-Backups can be created as post-install tasks describes above. The backup task bundels all files
-as '.tgz' archive with the current timestamp in the directory '/var/opt/opentalk-compose/backups'.
-When you run a single node setup, the 'restoreBackup' task is recommended.
+Backups can be created via the post-install tasks described above. The backup task bundles all files
+into a '.tgz' archive with the current timestamp in the directory '/var/opt/opentalk-compose/backups'.
+For a single-node setup, the 'restoreBackup' task is recommended.
 
 .RS
 Example:
@@ -167,10 +167,10 @@ cforge task createBackup
 
 
 .SH RESTORE:
-A Restore is also performed as post-install task. But the variable BACKUP_TIMESTAMP defined with
-the timestamp of the backup archive to restore is required. The backup archive will be extracted
-in /var/opt/opentalk-compose/backups/tmp/<timestamp> and the files will synced back and database 
-dumps will be improrted.
+A restore is also performed as a post-install task. The variable BACKUP_TIMESTAMP must be set
+to the timestamp of the backup archive to restore. The backup archive will be extracted
+into /var/opt/opentalk-compose/backups/tmp/<timestamp>; files will be synced back and database 
+dumps will be imported.
 
 .B IMPORTANT!
 A restore will overwrite existing data!
@@ -187,7 +187,7 @@ docker compose up -d --force-recreate
 .EE
 .RE
 
-.SS Scenario 2 - Desaster recovery or move to a new server
+.SS Scenario 2 - Disaster recovery or migration to a new server
 You are running an new machine or a fresh environment and your OpenTalk installation is not
 initialized. To Restore in this Scenario, you need to sync back the configuration files first
 using the task 'restoreBackupConfig'. After that initialze OpenTalk and bring it into a

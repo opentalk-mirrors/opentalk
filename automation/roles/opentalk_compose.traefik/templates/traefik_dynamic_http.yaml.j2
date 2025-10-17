@@ -9,7 +9,6 @@ http:
     secure-headers:
       headers:
         sslRedirect: true
-        #frameDeny: true
         stsIncludeSubdomains: true
         stsPreload: true
         stsSeconds: 63072000
@@ -23,7 +22,7 @@ http:
         accessControlMaxAge: 100
         addVaryheader: true
         referrerPolicy: strict-origin-when-cross-origin
-        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://seccdn.libravatar.org; connect-src 'self' wss://{{ ot_domain }} wss://*.{{ ot_domain }}; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://seccdn.libravatar.org; connect-src 'self' wss://{{ ot_domain }} wss://*.{{ ot_domain }} {{ csp_allowed_extra_connect_src | default('') }}; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 {% endif %}
 
 tls:
