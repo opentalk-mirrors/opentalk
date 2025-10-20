@@ -88,7 +88,3 @@ secrets:
     file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.spacedeck_api.secret
   spacedeck_invite_secret:
     file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.spacedeck_invite.secret
-
-networks:
-  {{ docker_network_name }}:
-    external: true

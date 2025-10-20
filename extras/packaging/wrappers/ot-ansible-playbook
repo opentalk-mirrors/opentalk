@@ -8,6 +8,8 @@ VENV_BIN="$RUNTIME/venv/bin"
 BIN="$VENV_BIN/ansible-playbook"
 POSTINST="$PREFIX/bin/pkg-postinst.sh"
 VENDOR="$RUNTIME/vendor/collections"
+PORTABLE_PY="$RUNTIME/python/bin/python3"
+VENV_PY="$VENV_BIN/python3"
 
 if [ ! -x "$BIN" ] || ! head -1 "$BIN" 2>/dev/null | grep -q '^#!'; then
   [ -x "$POSTINST" ] && bash "$POSTINST" || true
@@ -16,6 +18,26 @@ fi
 
 export PYTHONDONTWRITEBYTECODE=1
 export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$AUTOMATION/ansible.cfg}"
+# Prefer venv python (has requests & dependencies); fallback to portable runtime
+if [ -x "$VENV_PY" ]; then
+  export ANSIBLE_PYTHON_INTERPRETER="$VENV_PY"
+  # Self-heal: ensure requests import works; else rebuild venv
+  if ! "$VENV_PY" -c 'import requests' 2>/dev/null; then
+    echo "[wrapper] requests missing in venv - rebuilding via postinst" >&2
+    [ -x "$POSTINST" ] && bash "$POSTINST" || true
+  fi
+else
+  if [ -x "$PORTABLE_PY" ]; then
+    export ANSIBLE_PYTHON_INTERPRETER="$PORTABLE_PY"
+  fi
+fi
+# Inject interpreter extra var unless user already provided -e/--extra-vars
+if [ -n "${ANSIBLE_PYTHON_INTERPRETER:-}" ]; then
+  case " $* " in
+    *" -e "*|*" --extra-vars "*) ;; 
+    *) set -- -e "ansible_python_interpreter=${ANSIBLE_PYTHON_INTERPRETER}" "$@" ;;
+  esac
+fi
 
 if [ -z "${ANSIBLE_COLLECTIONS_PATHS:-}" ]; then
   cfg_paths=""

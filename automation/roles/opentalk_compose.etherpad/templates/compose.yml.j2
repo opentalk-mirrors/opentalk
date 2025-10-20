@@ -41,6 +41,3 @@ secrets:
   etherpad_api_secret:
     file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.etherpad_api.secret
 
-networks:
-  {{ docker_network_name }}:
-    external: true

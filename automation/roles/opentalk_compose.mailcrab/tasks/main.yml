@@ -5,7 +5,9 @@
 - name: Include manage_mailcrab_config.yml
   ansible.builtin.include_tasks:
     file: manage_mailcrab_config.yml
+  when: (compose_service_mailcrab_enabled | default(false)) | bool
 
 - name: Include manage_docker_compose.yml
   ansible.builtin.include_tasks:
     file: manage_docker_compose.yml
+  when: (compose_service_mailcrab_enabled | default(false)) | bool
