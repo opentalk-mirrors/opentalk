@@ -24,11 +24,18 @@ echo "[lock] (Re)generating lock file..."
 # Use ephemeral venv to avoid PATH issues
 LOCKENV="$ROOT/build/.lockenv"
 rm -rf "$LOCKENV"
-python3 -m venv "$LOCKENV"
+
+# Prefer embedded portable python if fetched
+PY_BIN="python3"
+if [[ -x "$ROOT/build/python/bin/python3" ]]; then
+  PY_BIN="$ROOT/build/python/bin/python3"
+fi
+
+"$PY_BIN" -m venv "$LOCKENV"
 . "$LOCKENV/bin/activate"
-pip install -q --upgrade pip pip-tools
-python -m piptools compile --generate-hashes "$IN" -o "$OUT"
-deactivate
+pip install -q --upgrade pip pip-tools || { echo "[lock] ERROR: pip-tools install failed" >&2; deactivate || true; rm -rf "$LOCKENV"; exit 1; }
+python -m piptools compile --generate-hashes "$IN" -o "$OUT" || { echo "[lock] ERROR: piptools compile failed" >&2; deactivate || true; rm -rf "$LOCKENV"; exit 1; }
+deactivate || true
 rm -rf "$LOCKENV"
 echo "$CUR_HASH" > "$STATE"
 echo "[lock] Wrote $OUT"
