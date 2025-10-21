@@ -25,7 +25,7 @@ services:
 
 secrets:
   rabbitmq_default_password:
-    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.rabbitmq_default.secret
+    file: ${CONTAINER_SECRETS_PATH:-{{ config_dir }}/secrets}/.rabbitmq_default.secret
 
 volumes:
   rabbitmq:

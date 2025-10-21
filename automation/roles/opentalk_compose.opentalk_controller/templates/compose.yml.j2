@@ -67,7 +67,7 @@ services:
 
 secrets:
   db_controller_secret:
-    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.db_controller.secret
+    file: ${CONTAINER_SECRETS_PATH:-{{ config_dir }}/secrets}/.db_controller.secret
  
 volumes:
   controller-db:

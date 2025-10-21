@@ -82,7 +82,7 @@ services:
 
 secrets:
   db_keycloak_secret:
-    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.db_keycloak.secret
+    file: ${CONTAINER_SECRETS_PATH:-{{ config_dir }}/secrets}/.db_keycloak.secret
 
 volumes:
   keycloak-db:

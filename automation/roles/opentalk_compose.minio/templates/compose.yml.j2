@@ -37,7 +37,7 @@ services:
 
 secrets:
   minio_root_secret:
-    file: ${CONTAINER_SECRETS_PATH:-../../config/secrets}/.minio_root.secret
+    file: ${CONTAINER_SECRETS_PATH:-{{ config_dir }}/secrets}/.minio_root.secret
 
 volumes:
   minio:
