@@ -25,7 +25,35 @@ if command -v fpm >/dev/null 2>&1; then
   MAINTAINER="OpenTalk <support@opentalk.eu>"
   VENDOR="OpenTalk"
   URL="https://opentalk.eu"
-  RPM_FILE="$ARTifacts_DIR/${NAME}-${VERSION}-1.${ARCH}.rpm"
+  # Determine release baseline (default 1). If RPM_RELEASE is set, use that.
+  # If DYNAMIC_RPM_RELEASE=1, only escalate to dynamic timestamp release when a conflict is detected
+  # (existing artifact with same NEVRA or installed package with same version-release).
+  if [[ -n "${RPM_RELEASE:-}" ]]; then
+    RELEASE="$RPM_RELEASE"
+  else
+    RELEASE="1"
+  fi
+  if [[ "${DYNAMIC_RPM_RELEASE:-0}" == "1" ]]; then
+    BASE_RPM_FILE="$ARTifacts_DIR/${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm"
+    CONFLICT=0
+    # Conflict if target artifact already exists
+    [[ -f "$BASE_RPM_FILE" ]] && CONFLICT=1
+    # Conflict if system already has same NEV (Name-Version-Release) installed
+    if rpm -q --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n' "$NAME" 2>/dev/null | grep -q "^${NAME}-${VERSION}-${RELEASE}\."; then
+      CONFLICT=1
+    fi
+    if [[ $CONFLICT -eq 1 ]]; then
+      TS_REL="$(date -u +%Y%m%d%H%M%S)"
+      if git -C "$ROOT" rev-parse --short=8 HEAD >/dev/null 2>&1; then
+        GIT_SHORT="$(git -C "$ROOT" rev-parse --short=8 HEAD)"
+        RELEASE="${TS_REL}.git${GIT_SHORT}"
+      else
+        RELEASE="${TS_REL}"
+      fi
+      echo "[rpm] Dynamic release escalation due to conflict -> $RELEASE"
+    fi
+  fi
+  RPM_FILE="$ARTifacts_DIR/${NAME}-${VERSION}-${RELEASE}.${ARCH}.rpm"
   FORCE=${FORCE_RPM_OVERWRITE:-0}
   if [[ -f "$RPM_FILE" ]]; then
     if [[ "$FORCE" == "1" ]]; then
@@ -38,7 +66,7 @@ if command -v fpm >/dev/null 2>&1; then
     fi
   fi
 
-  echo "[rpm] fpm building $RPM_FILE"
+  echo "[rpm] fpm building $RPM_FILE (release=$RELEASE)"
   # Multi-thread compression attempt: prefer xzmt if fpm supports it, else xz.
   FPM_HELP=$(fpm --help 2>&1 || true)
   COMP_LEVEL="${RPM_COMPRESSION_LEVEL:-3}"
@@ -48,6 +76,7 @@ if command -v fpm >/dev/null 2>&1; then
   fi
   echo "[rpm] fpm compression: $COMP_ALGO (level $COMP_LEVEL)"
   fpm -s dir -t rpm -n "$NAME" -v "$VERSION" -a "$ARCH" \
+    --iteration "$RELEASE" \
     --config-files /etc/opentalk-compose/settings.yml \
     --rpm-compression "$COMP_ALGO" \
     --rpm-compression-level "$COMP_LEVEL" \
@@ -93,7 +122,25 @@ if [ -d "$ROOT/.git" ]; then
 fi
 
 pushd "$RPMROOT" >/dev/null
-echo "[rpm] rpmbuild -ba (version=$VERSION release=1 git_commit=$GIT_COMMIT)"
+if [[ -n "${RPM_RELEASE:-}" ]]; then
+  RELEASE="$RPM_RELEASE"
+else
+  # rpmbuild fallback (same logic as fpm, but need to recalc because we exited earlier there if fpm succeeded)
+  RELEASE="1"
+  if [[ "${DYNAMIC_RPM_RELEASE:-0}" == "1" ]]; then
+    if rpm -q --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n' opentalk-compose 2>/dev/null | grep -q "^opentalk-compose-${VERSION}-1\."; then
+      TS_REL="$(date -u +%Y%m%d%H%M%S)"
+      if git -C "$ROOT" rev-parse --short=8 HEAD >/dev/null 2>&1; then
+        GIT_SHORT="$(git -C "$ROOT" rev-parse --short=8 HEAD)"
+        RELEASE="${TS_REL}.git${GIT_SHORT}"
+      else
+        RELEASE="${TS_REL}"
+      fi
+      echo "[rpm] Dynamic release escalation (rpmbuild) -> $RELEASE"
+    fi
+  fi
+fi
+echo "[rpm] rpmbuild -ba (version=$VERSION release=$RELEASE git_commit=$GIT_COMMIT)"
   # rpmbuild path: configure XZ_OPT for multi-thread compression if xz supports -T.
   XZ_THREADS="${RPM_XZ_THREADS:-0}"  # 0 means all cores
   XZ_LEVEL="${RPM_COMPRESSION_LEVEL:-3}"
@@ -107,7 +154,7 @@ echo "[rpm] rpmbuild -ba (version=$VERSION release=1 git_commit=$GIT_COMMIT)"
 rpmbuild \
   --define "_topdir $RPMROOT" \
   --define "version $VERSION" \
-  --define "release 1" \
+  --define "release $RELEASE" \
   --define "_source_payload w9.xzdio" \
   --define "_binary_payload w9.xzdio" \
   $( [ -n "$GIT_COMMIT" ] && printf -- "--define git_commit %s" "$GIT_COMMIT" ) \

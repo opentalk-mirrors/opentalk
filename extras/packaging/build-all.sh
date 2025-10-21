@@ -6,6 +6,9 @@ set -euo pipefail
 #
 # Options:
 #   --version X
+#   --rpm-release N   (override RPM_RELEASE; packaging iteration for rpm)
+#   --deb-revision N  (override DEB_REVISION; packaging revision for deb)
+#   --release N       (generic iteration applied to both rpm+deb unless specific ones provided)
 #   --offline
 #   --skip-collections
 #   --no-package
@@ -26,6 +29,11 @@ FALLBACK_PY_URL="https://github.com/indygreg/python-build-standalone/releases/do
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PKGDIR="$ROOT/extras/packaging"
 
+# Safety: ensure we are operating from repo root even if user invoked script from a directory that gets deleted (e.g. artifacts/ just cleaned).
+if [[ "$PWD" != "$ROOT" ]]; then
+  cd "$ROOT" || { echo "[fatal] Cannot change directory to repo root $ROOT" >&2; exit 1; }
+fi
+
 VERSION="1.0.0"
 DO_DEB=true
 DO_RPM=true
@@ -42,9 +50,13 @@ PY_FILE="${PY_FILE:-}"
 PY_SHA256="${PY_SHA256:-}"
 COL_REQ="${COL_REQ:-$ROOT/automation/collections/requirements.yml}"
 
+GENERIC_RELEASE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --version) VERSION="${2:?missing version}"; shift ;;
+  --version) VERSION="${2:?missing version}"; shift ;;
+  --rpm-release) RPM_RELEASE="${2:?missing release}"; shift ;;
+  --deb-revision) DEB_REVISION="${2:?missing revision}"; shift ;;
+  --release) GENERIC_RELEASE="${2:?missing generic release}"; shift ;;
     --offline) OFFLINE=true ;;
     --skip-collections) SKIP_COLLECTIONS=true ;;
     --no-package) NO_PACKAGE=true ;;
@@ -66,6 +78,15 @@ $VERBOSE && set -x
 run(){ echo ">>> $*"; "$@"; }
 
 echo "[info] Build version: $VERSION"
+if [[ -n "$GENERIC_RELEASE" ]]; then
+  echo "[info] Generic release flag detected: $GENERIC_RELEASE"
+fi
+if [[ -n "${DEB_REVISION:-}" ]]; then
+  echo "[deb] Explicit deb revision: $DEB_REVISION"
+fi
+if [[ -n "${RPM_RELEASE:-}" ]]; then
+  echo "[rpm] Explicit rpm release: $RPM_RELEASE"
+fi
 echo "[info] Package targets: $(
   $DO_DEB && $DO_RPM && echo "deb,rpm" || {
     $DO_DEB && echo deb
@@ -149,11 +170,24 @@ fi
 
 # 7. Package
 if ! $NO_PACKAGE; then
+  # Resolve unified release semantics:
+  # Precedence: explicit per-format overrides generic. If generic set and specific missing -> apply.
+  if [[ -n "$GENERIC_RELEASE" ]]; then
+    if [[ -z "${RPM_RELEASE:-}" ]]; then RPM_RELEASE="$GENERIC_RELEASE"; fi
+    if [[ -z "${DEB_REVISION:-}" ]]; then DEB_REVISION="$GENERIC_RELEASE"; fi
+  fi
   if $DO_DEB; then
+    if [[ -n "${DEB_REVISION:-}" ]]; then export DEB_REVISION; fi
     run bash "$PKGDIR/70-pkg-build-deb.sh" "$VERSION"
     echo "[result] Debian package ready (artifacts/)"
   fi
   if $DO_RPM; then
+    # Enable dynamic release fallback to avoid NEVRA collisions when rebuilding same version.
+    export DYNAMIC_RPM_RELEASE="${DYNAMIC_RPM_RELEASE:-1}"
+    if [[ -n "${RPM_RELEASE:-}" ]]; then
+      echo "[rpm] Using explicit rpm release: $RPM_RELEASE"
+      export RPM_RELEASE
+    fi
     run bash "$PKGDIR/80-pkg-build-rpm.sh" "$VERSION" || {
       echo "[rpm] ERROR: RPM build failed" >&2; exit 1; }
     echo "[result] RPM package ready (artifacts/)"

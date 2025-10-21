@@ -9,6 +9,17 @@ set -euo pipefail
 VERSION="${1:-}"
 [ -n "$VERSION" ] || { echo "Usage: $0 <version>"; exit 1; }
 
+# Optional Debian revision (packaging iteration). If unset, remain backward compatible (no suffix).
+DEB_REVISION="${DEB_REVISION:-}"
+if [[ -n "$DEB_REVISION" ]]; then
+  # Basic validation: allow alphanum plus . and + and ~; reject spaces
+  if ! [[ "$DEB_REVISION" =~ ^[0-9A-Za-z.+~_-]+$ ]]; then
+    echo "[build-deb] ERROR: Invalid DEB_REVISION: $DEB_REVISION" >&2
+    exit 2
+  fi
+  echo "[build-deb] Using deb revision: $DEB_REVISION"
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PKGROOT="$ROOT/build/pkgroot"
 OUTDIR="$ROOT/artifacts"
@@ -80,7 +91,12 @@ if [ ! -f "$RUNTIME_META" ]; then
   } >"$RUNTIME_META"
 fi
 
-PKG_FILE="$OUTDIR/${NAME}_${VERSION}_${ARCH}.deb"
+if [[ -n "$DEB_REVISION" ]]; then
+  BASE_FILENAME="${NAME}_${VERSION}-${DEB_REVISION}_${ARCH}.deb"
+else
+  BASE_FILENAME="${NAME}_${VERSION}_${ARCH}.deb"
+fi
+PKG_FILE="$OUTDIR/$BASE_FILENAME"
 if [[ -f "$PKG_FILE" ]]; then
   if [[ "${FORCE_DEB_OVERWRITE:-0}" == "1" ]]; then
     echo "[build-deb] Existing file will be overwritten (FORCE_DEB_OVERWRITE=1): $PKG_FILE"
@@ -99,28 +115,32 @@ POSTRM_SRC="$PKGROOT/opt/opentalk-compose/bin/pkg-postrm.sh"
 [ -f "$POSTRM_SRC" ] || echo "[build-deb] (optional) postrm script not present"
 
 if command -v fpm >/dev/null 2>&1; then
-  # Build via fpm
-  fpm -s dir -t deb -n "$NAME" -v "$VERSION" -a "$ARCH" \
+  # Build via fpm. Use --iteration for revision if provided (maps to Debian revision after a dash)
+  FPM_CMD=(fpm -s dir -t deb -n "$NAME" -v "$VERSION" -a "$ARCH" \
     --config-files /etc/opentalk-compose/settings.yml \
     --deb-compression xz \
-    --after-install  "$POSTINST_SRC" \
-    $( [ -f "$POSTRM_SRC" ] && printf -- "--after-remove %s" "$POSTRM_SRC" ) \
-    -C "$PKGROOT" \
-    -p "$PKG_FILE" \
-    --description "$DESC" \
-  --license "EUPL-1.2" \
-    --vendor "$VENDOR" \
-    --maintainer "$MAINTAINER" \
-    --url "$URL"
-  # fpm already wrote the file to the exact path given via -p, the prior mv was redundant and caused failures
+    --after-install "$POSTINST_SRC")
+  if [ -f "$POSTRM_SRC" ]; then
+    FPM_CMD+=(--after-remove "$POSTRM_SRC")
+  fi
+  if [[ -n "$DEB_REVISION" ]]; then
+    FPM_CMD+=(--iteration "$DEB_REVISION")
+  fi
+  FPM_CMD+=(-C "$PKGROOT" -p "$PKG_FILE" --description "$DESC" --license "EUPL-1.2" --vendor "$VENDOR" --maintainer "$MAINTAINER" --url "$URL")
+  "${FPM_CMD[@]}"
   [ -f "$PKG_FILE" ] || fail "fpm did not produce expected package at $PKG_FILE"
 else
   echo "[build-deb] fpm not found - using raw dpkg-deb fallback"
   mkdir -p "$PKGROOT/DEBIAN"
 
+  if [[ -n "$DEB_REVISION" ]]; then
+    FULL_VERSION="${VERSION}-${DEB_REVISION}"
+  else
+    FULL_VERSION="$VERSION"
+  fi
   cat >"$PKGROOT/DEBIAN/control" <<EOF
 Package: $NAME
-Version: $VERSION
+Version: $FULL_VERSION
 Section: misc
 Priority: optional
 Architecture: $ARCH
