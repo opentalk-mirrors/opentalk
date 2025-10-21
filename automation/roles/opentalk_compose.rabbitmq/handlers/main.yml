@@ -6,5 +6,6 @@
     project_src: "{{ services_dir }}/rabbitmq"
     files:
       - compose.yml
+      - "{{ deploy_dir }}/common.yml"
     recreate: never
     state: restarted

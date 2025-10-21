@@ -7,5 +7,6 @@
     project_src: "{{ services_dir }}/opentalk-recorder"
     files:
       - compose.yml
+      - "{{ deploy_dir }}/common.yml"
     recreate: never
     state: restarted
