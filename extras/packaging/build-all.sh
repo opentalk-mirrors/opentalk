@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Orchestrates embedded Ansible build and Debian package.
-# Steps: clean? -> python -> lock -> wheelhouse -> collections dl/vendor -> venv -> embed -> stage -> deb
+# Orchestrates embedded Ansible build and packages (Debian + RPM).
+# Steps: clean? -> python -> lock -> wheelhouse -> collections dl/vendor -> venv -> embed -> stage -> deb+rpm
 #
 # Options:
 #   --version X
@@ -27,6 +27,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PKGDIR="$ROOT/extras/packaging"
 
 VERSION="1.0.0"
+DO_DEB=true
+DO_RPM=true
 OFFLINE=false
 SKIP_COLLECTIONS=false
 NO_PACKAGE=false
@@ -46,6 +48,8 @@ while [[ $# -gt 0 ]]; do
     --offline) OFFLINE=true ;;
     --skip-collections) SKIP_COLLECTIONS=true ;;
     --no-package) NO_PACKAGE=true ;;
+    --rpm) DO_DEB=false; DO_RPM=true ;;
+    --deb) DO_DEB=true; DO_RPM=false ;;
     --clean) DO_CLEAN=true ;;
     --no-python) NO_PYTHON_FETCH=true; PY_URL=""; PY_FILE="";;
     --force) FORCE_REFRESH=1 ;;
@@ -62,6 +66,12 @@ $VERBOSE && set -x
 run(){ echo ">>> $*"; "$@"; }
 
 echo "[info] Build version: $VERSION"
+echo "[info] Package targets: $(
+  $DO_DEB && $DO_RPM && echo "deb,rpm" || {
+    $DO_DEB && echo deb
+    $DO_RPM && echo rpm
+  }
+)"
 $OFFLINE && echo "[mode] OFFLINE" || echo "[mode] ONLINE"
 echo "[cache] FORCE_REFRESH=$FORCE_REFRESH"
 echo "[paths] requirements.yml: $COL_REQ"
@@ -139,8 +149,15 @@ fi
 
 # 7. Package
 if ! $NO_PACKAGE; then
-  run bash "$PKGDIR/70-pkg-build-deb.sh" "$VERSION"
-  echo "[result] Debian package ready (artifacts/)"
+  if $DO_DEB; then
+    run bash "$PKGDIR/70-pkg-build-deb.sh" "$VERSION"
+    echo "[result] Debian package ready (artifacts/)"
+  fi
+  if $DO_RPM; then
+    run bash "$PKGDIR/80-pkg-build-rpm.sh" "$VERSION" || {
+      echo "[rpm] ERROR: RPM build failed" >&2; exit 1; }
+    echo "[result] RPM package ready (artifacts/)"
+  fi
 else
   echo "[result] Packaging skipped (--no-package)"
 fi

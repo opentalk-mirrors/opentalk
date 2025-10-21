@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+# SPDX-License-Identifier: EUPL-1.2
 set -euo pipefail
 #
 # Build Debian package for opentalk-compose
@@ -79,6 +81,16 @@ if [ ! -f "$RUNTIME_META" ]; then
 fi
 
 PKG_FILE="$OUTDIR/${NAME}_${VERSION}_${ARCH}.deb"
+if [[ -f "$PKG_FILE" ]]; then
+  if [[ "${FORCE_DEB_OVERWRITE:-0}" == "1" ]]; then
+    echo "[build-deb] Existing file will be overwritten (FORCE_DEB_OVERWRITE=1): $PKG_FILE"
+    rm -f "$PKG_FILE"
+  else
+    TS_DEB="$(date +%Y%m%d%H%M%S)"
+    PKG_FILE="$OUTDIR/${NAME}_${VERSION}_${TS_DEB}_${ARCH}.deb"
+    echo "[build-deb] Existing file found, using timestamped output: $PKG_FILE (set FORCE_DEB_OVERWRITE=1 to overwrite)"
+  fi
+fi
 echo "[build-deb] Building $PKG_FILE"
 
 POSTINST_SRC="$PKGROOT/opt/opentalk-compose/bin/pkg-postinst.sh"
@@ -96,7 +108,7 @@ if command -v fpm >/dev/null 2>&1; then
     -C "$PKGROOT" \
     -p "$PKG_FILE" \
     --description "$DESC" \
-    --license "Proprietary" \
+  --license "EUPL-1.2" \
     --vendor "$VENDOR" \
     --maintainer "$MAINTAINER" \
     --url "$URL"
