@@ -39,10 +39,18 @@ if command -v fpm >/dev/null 2>&1; then
   fi
 
   echo "[rpm] fpm building $RPM_FILE"
+  # Multi-thread compression attempt: prefer xzmt if fpm supports it, else xz.
+  FPM_HELP=$(fpm --help 2>&1 || true)
+  COMP_LEVEL="${RPM_COMPRESSION_LEVEL:-3}"
+  COMP_ALGO="xz"
+  if echo "$FPM_HELP" | grep -q "xzmt"; then
+    COMP_ALGO="xzmt"
+  fi
+  echo "[rpm] fpm compression: $COMP_ALGO (level $COMP_LEVEL)"
   fpm -s dir -t rpm -n "$NAME" -v "$VERSION" -a "$ARCH" \
     --config-files /etc/opentalk-compose/settings.yml \
-    --rpm-compression xz \
-    --rpm-compression-level 9 \
+    --rpm-compression "$COMP_ALGO" \
+    --rpm-compression-level "$COMP_LEVEL" \
     --description "$DESC" \
   --license EUPL-1.2 \
     --vendor "$VENDOR" \
@@ -86,6 +94,16 @@ fi
 
 pushd "$RPMROOT" >/dev/null
 echo "[rpm] rpmbuild -ba (version=$VERSION release=1 git_commit=$GIT_COMMIT)"
+  # rpmbuild path: configure XZ_OPT for multi-thread compression if xz supports -T.
+  XZ_THREADS="${RPM_XZ_THREADS:-0}"  # 0 means all cores
+  XZ_LEVEL="${RPM_COMPRESSION_LEVEL:-3}"
+  if xz --help 2>&1 | grep -q "-T"; then
+    export XZ_OPT="-T${XZ_THREADS} -${XZ_LEVEL}"
+    echo "[rpm] rpmbuild XZ_OPT=$XZ_OPT"
+  else
+    export XZ_OPT="-${XZ_LEVEL}"
+    echo "[rpm] rpmbuild xz has no threading support; using XZ_OPT=$XZ_OPT"
+  fi
 rpmbuild \
   --define "_topdir $RPMROOT" \
   --define "version $VERSION" \
@@ -93,7 +111,7 @@ rpmbuild \
   --define "_source_payload w9.xzdio" \
   --define "_binary_payload w9.xzdio" \
   $( [ -n "$GIT_COMMIT" ] && printf -- "--define git_commit %s" "$GIT_COMMIT" ) \
-  -ba SPECS/opentalk-compose.spec
+  -ba SPECS/opentalk-compose.spec || { echo "[rpm] ERROR: rpmbuild failed" >&2; exit 6; }
 popd >/dev/null
 
 echo "[rpm] Copying resulting RPMs to artifacts/"
