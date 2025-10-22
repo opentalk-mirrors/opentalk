@@ -57,19 +57,8 @@ if [[ -d "$PREFIX/config" ]]; then
   fi
   cp -a "$PREFIX/config/." "$ETC_DIR/"
   rm -rf "$PREFIX/config"
-  ln -s /etc/opentalk-compose "$PREFIX/config" || true
 fi
-
-# Guarantee the symlink exists even if repo had no config/ directory originally
-if [[ ! -e "$PREFIX/config" ]]; then
-  echo "[stage] Creating config -> /etc/opentalk-compose symlink (no config/ dir in repo)"
-  ln -s /etc/opentalk-compose "$PREFIX/config" || true
-elif [[ ! -L "$PREFIX/config" ]]; then
-  # If something else ended up there, replace with symlink
-  echo "[stage] Replacing existing non-symlink config entry with symlink"
-  rm -rf "$PREFIX/config"
-  ln -s /etc/opentalk-compose "$PREFIX/config"
-fi
+# NOTE: Legacy symlink $PREFIX/config -> /etc/opentalk-compose removed (no longer required).
 
 echo "[stage] Skipping embedded venv copy (build on target)"
 rm -rf "$RUNTIME_DIR/venv"
