@@ -18,6 +18,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FORCE=0
 MODE="standard"
+RELOCATED=0
 
 show_help() {
   cat << EOF
@@ -104,25 +105,45 @@ done
 
 case $MODE in
   all)
+    # Guard: if inside directory being removed, relocate to ROOT first
+    if [[ "$PWD" == "$ROOT/artifacts" || "$PWD" == "$ROOT/build" || "$PWD" == $ROOT/artifacts/* || "$PWD" == $ROOT/build/* ]]; then
+      echo "[cleanup] INFO: current working directory is inside target (will relocate to $ROOT before deletion)."
+      cd "$ROOT" && RELOCATED=1 || { echo "[cleanup] ERROR: failed to relocate from $PWD" >&2; exit 1; }
+    fi
     echo "[cleanup] Will remove: build/ + artifacts/ + loose packages"
     confirm "Proceed with full cleanup?" || exit 0
     cleanup_all
     ;;
   artifacts)
+    if [[ "$PWD" == "$ROOT/artifacts" || "$PWD" == $ROOT/artifacts/* ]]; then
+      echo "[cleanup] INFO: current working directory is inside artifacts/ (relocating to $ROOT)."
+      cd "$ROOT" && RELOCATED=1 || { echo "[cleanup] ERROR: failed to relocate from $PWD" >&2; exit 1; }
+    fi
     echo "[cleanup] Will remove: artifacts/ + loose packages (preserving build/)"
     confirm "Proceed with artifacts cleanup?" || exit 0
     cleanup_artifacts
     ;;
   build)
+    if [[ "$PWD" == "$ROOT/build" || "$PWD" == $ROOT/build/* ]]; then
+      echo "[cleanup] INFO: current working directory is inside build/ (relocating to $ROOT)."
+      cd "$ROOT" && RELOCATED=1 || { echo "[cleanup] ERROR: failed to relocate from $PWD" >&2; exit 1; }
+    fi
     echo "[cleanup] Will remove: build/ (preserving artifacts/)"
     confirm "Proceed with build cleanup?" || exit 0
     cleanup_build
     ;;
   standard)
+    if [[ "$PWD" == "$ROOT/build" || "$PWD" == $ROOT/build/* ]]; then
+      echo "[cleanup] INFO: current working directory is inside build/ (relocating to $ROOT)."
+      cd "$ROOT" && RELOCATED=1 || { echo "[cleanup] ERROR: failed to relocate from $PWD" >&2; exit 1; }
+    fi
     echo "[cleanup] Standard cleanup: build/ only (preserving artifacts/)"
     confirm "Proceed with standard cleanup?" || exit 0
     cleanup_build
     ;;
 esac
 
+if [[ $RELOCATED -eq 1 ]]; then
+  echo "[cleanup] NOTE: Working directory was inside removed tree; relocated to $ROOT."
+fi
 echo "[cleanup] Cleanup completed successfully"

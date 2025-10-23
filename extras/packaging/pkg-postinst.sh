@@ -80,14 +80,10 @@ fi
 [ -x "$PYTHON_BIN" ] || { log "Portable python missing ($PYTHON_BIN)"; exit 1; }
 
 log "Creating virtualenv..."
-if [ ! -L "/opt/opentalk-compose/config" ]; then
-  if [ -e "/opt/opentalk-compose/config" ]; then
-    log "Replacing existing /opt/opentalk-compose/config with symlink to /etc/opentalk-compose"
-    rm -rf /opt/opentalk-compose/config || true
-  else
-    log "Creating config symlink /opt/opentalk-compose/config -> /etc/opentalk-compose"
-  fi
-  ln -s /etc/opentalk-compose /opt/opentalk-compose/config || true
+# Legacy cleanup: remove obsolete /opt/opentalk-compose/config symlink or directory if it exists.
+if [ -L "/opt/opentalk-compose/config" ] || [ -d "/opt/opentalk-compose/config" ]; then
+  log "Removing obsolete /opt/opentalk-compose/config entry (symlink or dir)"
+  rm -rf /opt/opentalk-compose/config || true
 fi
 
 rm -rf "$VENV_DIR"

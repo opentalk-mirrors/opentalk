@@ -8,6 +8,8 @@ VENV_BIN="$RUNTIME/venv/bin"
 BIN="$VENV_BIN/ansible"
 POSTINST="$PREFIX/bin/pkg-postinst.sh"
 VENDOR="$RUNTIME/vendor/collections"
+PORTABLE_PY="$RUNTIME/python/bin/python3"
+VENV_PY="$VENV_BIN/python3"
 
 if [ ! -x "$BIN" ] || ! head -1 "$BIN" 2>/dev/null | grep -q '^#!'; then
   [ -x "$POSTINST" ] && bash "$POSTINST" || true
@@ -16,6 +18,23 @@ fi
 
 export PYTHONDONTWRITEBYTECODE=1
 export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$AUTOMATION/ansible.cfg}"
+if [ -x "$VENV_PY" ]; then
+  export ANSIBLE_PYTHON_INTERPRETER="$VENV_PY"
+  if ! "$VENV_PY" -c 'import requests' 2>/dev/null; then
+    echo "[wrapper] requests missing in venv - rebuilding via postinst" >&2
+    [ -x "$POSTINST" ] && bash "$POSTINST" || true
+  fi
+else
+  if [ -x "$PORTABLE_PY" ]; then
+    export ANSIBLE_PYTHON_INTERPRETER="$PORTABLE_PY"
+  fi
+fi
+if [ -n "${ANSIBLE_PYTHON_INTERPRETER:-}" ]; then
+  case " $* " in
+    *" -e "*|*" --extra-vars "*) ;; 
+    *) set -- -e "ansible_python_interpreter=${ANSIBLE_PYTHON_INTERPRETER}" "$@" ;;
+  esac
+fi
 
 if [ -z "${ANSIBLE_COLLECTIONS_PATHS:-}" ]; then
   cfg_paths=""
