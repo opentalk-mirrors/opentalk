@@ -5,12 +5,17 @@
 # This script is OpenTalk-focused: it keeps only the "demo" user (disabled), regenerates
 # all client secrets, and removes certain potentially sensitive sections. Designed for
 # preparing a sample realm export safe for sharing.
+# 
+# Realm export example:
+# /opt/keycloak/bin/kc.sh export --realm opentalk --users same_file --file export-opentalk-realm-users.json
 #
 # Usage:
-#   opentalk_keycloak_realm_export_sanitize.sh [--use-placeholder] <input_file> <output_file>
+#   opentalk_keycloak_realm_export_sanitize.sh [--use-placeholder] [--frontend-url <url>] <input_file> <output_file>
 #
 # Options:
-#   --use-placeholder   Use the literal placeholder CHANGE_ME instead of generating random secrets.
+#   --use-placeholder      Use the literal placeholder CHANGE_ME instead of generating random secrets.
+#   --frontend-url <url>   Set (and normalize) the public OpenTalk frontend base URL used inside client definitions.
+#                           If omitted, defaults to https://example.com . If a scheme is missing, https:// is prepended.
 #
 # Exit codes:
 #   1 usage / unknown option
@@ -24,19 +29,30 @@ set -euo pipefail
 
 USE_PLACEHOLDER=false
 PLACEHOLDER=CHANGE_ME
+FRONTEND_URL="https://example.com"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --use-placeholder)
       USE_PLACEHOLDER=true; shift ;;
+    --frontend-url)
+      [[ $# -ge 2 ]] || { echo "❌ --frontend-url expects a value"; exit 1; }
+      FRONTEND_URL="$2"; shift 2 ;;
     -*) echo "❌ Unknown option: $1"; exit 1 ;;
     *) break ;;
   esac
 done
 
 if [[ $# -ne 2 ]]; then
-  echo "Usage: $0 [--use-placeholder] <input_file> <output_file>"; exit 1
+  echo "Usage: $0 [--use-placeholder] [--frontend-url <url>] <input_file> <output_file>"; exit 1
 fi
+
+# Normalize FRONTEND_URL: add scheme if missing, drop trailing slashes (we keep a single trailing slash when assigning root/base/admin URLs)
+if [[ ! "$FRONTEND_URL" =~ :// ]]; then
+  FRONTEND_URL="https://$FRONTEND_URL"
+fi
+# Remove trailing slashes (store clean), will re-add one when assigning whole-base fields
+FRONTEND_URL_CLEAN=${FRONTEND_URL%/}
 
 INPUT="$1"; OUTPUT="$2"
 [[ -f "$INPUT" ]] || { echo "❌ Input file '$INPUT' not found."; exit 2; }
@@ -57,17 +73,35 @@ generate_secret() {
 }
 
 echo "🧹 Sanitizing OpenTalk realm export '$INPUT' ..."
+echo "🌐 Frontend URL set to: $FRONTEND_URL_CLEAN"
 
 TMP=$(mktemp)
 
 DEMO_PASSWORD=$(generate_secret)
 
-# Single jq pass: keep only demo user, disable it, set password, remove selected fields
-jq --arg pwd "$DEMO_PASSWORD" '
-  .users |= (map(select(.username == "demo")
-    | .enabled = false
-    | .credentials = [{ "type": "password", "value": $pwd, "temporary": false }]
-  )) |
+# Single jq pass:
+#   - Keep demo user (disabled, random password)
+#   - Keep ALL service account users (username starts with "service-account-") to preserve their realm role assignments
+#   - Drop any other real users
+#   - Remove selected top-level fields (components, eventsListeners)
+jq --arg pwd "$DEMO_PASSWORD" \
+   --arg front "$FRONTEND_URL_CLEAN" '
+  .users |= (
+    map(select(.username == "demo" or (.username|startswith("service-account-")))
+      | if .username == "demo" then
+          .enabled = false |
+          .credentials = [{ "type": "password", "value": $pwd, "temporary": false }]
+        else
+          .  # service-account users unchanged
+        end
+    )
+  ) |
+  # Rewrite client URL-related fields safely without replacing whole client objects
+  (.clients[]? | .rootUrl)      |= (if . != null then $front + "/" else . end) |
+  (.clients[]? | .baseUrl)      |= (if . != null then $front + "/" else . end) |
+  (.clients[]? | .adminUrl)     |= (if . != null then $front + "/" else . end) |
+  (.clients[]? | .redirectUris) |= (if type=="array" then map( if test("^[A-Za-z][A-Za-z0-9+.-]*://[^/]+") then sub("^[A-Za-z][A-Za-z0-9+.-]*://[^/]+"; $front) else . end ) else . end) |
+  (.clients[]? | .webOrigins)   |= (if type=="array" then map( if . == "*" then . else if test("^[A-Za-z][A-Za-z0-9+.-]*://[^/]+") then sub("^[A-Za-z][A-Za-z0-9+.-]*://[^/]+"; $front) else $front end end ) else . end) |
   del(.components, .eventsListeners)
 ' "$INPUT" > "$TMP"
 
@@ -82,7 +116,7 @@ done
 
 mv "$TMP" "$OUTPUT"
 
-echo "✅ Sanitized realm export created: $OUTPUT"
+echo "✅ Sanitized realm export created: $OUTPUT (service-account users retained, client URLs normalized)"
 
 echo
 echo "🔑 Client secrets:"
