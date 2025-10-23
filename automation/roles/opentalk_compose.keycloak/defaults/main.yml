@@ -17,7 +17,7 @@ postInstall_demoUser_state: "present"
 postInstall_demoUser_enabled: "True"
 postInstall_demoUser_name: "demo"
 postInstall_demoUser_password: "{{ DEMO_USER_PASSWORD }}"
-postInstall_demoUser_email: "demo.user@{{ ot_domain | default('localhost') }}"
+postInstall_demoUser_email: "demo.user@example.com"
 postInstall_demoUser_firstName: "Test"
 postInstall_demoUser_lastName: "User"
 

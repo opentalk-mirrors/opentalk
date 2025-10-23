@@ -22,6 +22,13 @@
     - [4.1.2 Adjust Keycloak Settings in settings.yml](#412-adjust-keycloak-settings-in-settingsyml)
     - [4.1.3 Generate OpenTalk configuration and start the services](#413-generate-opentalk-configuration-and-start-the-services)
   - [4.2 Option 2 - Manual configuration of a remote keycloak instance](#42-option-2---manual-configuration-of-a-remote-keycloak-instance)
+    - [4.2.1 Stop all OpenTalk related services](#421-stop-all-opentalk-related-services)
+    - [4.2.2 Disable the local (embedded) Keycloak instance](#422-disable-the-local-embedded-keycloak-instance)
+    - [4.2.3 Prepare the OpenTalk realm export](#423-prepare-the-opentalk-realm-export)
+    - [4.2.4 Import the realm into the external Keycloak](#424-import-the-realm-into-the-external-keycloak)
+    - [4.2.5 Apply generated secrets to the OpenTalk secrets.yml file](#425-apply-generated-secrets-to-the-opentalk-secretsyml-file)
+    - [4.2.6 Start OpenTalk services](#426-start-opentalk-services)
+    - [4.2.7 Common pitfalls](#427-common-pitfalls)
 - [5 Configure External Recorder](#5-configure-external-recorder)
   - [5.1 Disable Recorder Service in opentalk-compose](#51-disable-recorder-service-in-opentalk-compose)
     - [5.1.1 Stop all OpenTalk related services](#511-stop-all-opentalk-related-services)
@@ -170,11 +177,13 @@ Select the approach that fits your operations. Provide valid administrator crede
 
 ### 4.1 Option 1 - Automated configuration of a remote keycloak instance
 
-The OpenTalk Compose package includes automation tools to configure a existing Keycloak instance for OpenTalk. This instance may run locally (default) or remotely as in this scenario.
+The OpenTalk Compose package includes automation tools to configure an OpenTalk realm in an existing Keycloak instance. This instance may run locally (default) or remotely as in this scenario.
 
 Configuration is executed via the Keycloak Admin REST API. Ensure the OpenTalk host can reach the Keycloak base URL and required admin endpoints over HTTPS.
 
-It is recommended to use a dedicated realm for OpenTalk. If the configured realm does not exist, it is created automatically. **WARNING**: If you point to an existing realm, OpenTalk-specific clients, roles, and other resources are added to that realm, which might be undesirable.
+It is recommended to use a dedicated realm for OpenTalk. If the configured realm does not exist, it is created automatically.
+
+**WARNING**: If you point to an existing realm, OpenTalk-specific clients, roles, and other resources are added to that realm, which might be undesirable.
 
 #### 4.1.1 Stop all OpenTalk related services
 
@@ -237,7 +246,11 @@ otctl deploy --tags demo-user -e postInstall_demoUser_state=absent
 
 ### 4.2 Option 2 - Manual configuration of a remote keycloak instance
 
-This section describes how to manually integrate an already existing, externally operated Keycloak instance. The embedded (local) Keycloak provided by OpenTalk is disabled and a prepared example realm is imported.
+This section describes how to manually integrate an already existing, externally operated Keycloak instance. The embedded (local) Keycloak provided by OpenTalk will be disabled and a `JSON` file will be prepared to import.
+
+> Minimum Keycloak Version: 26.3
+>
+> The provided example realm export and recommended client / role configuration assume Keycloak 26.3 or newer. If your external instance is older, upgrade Keycloak before importing the realm to avoid incompatibilities (client protocol mappers, admin console expectations, or OIDC endpoints).
 
 It is assumed that:
 
@@ -265,6 +278,7 @@ Edit `/etc/opentalk-compose/settings.yml` and set:
 
 ```yaml
 compose_service_keycloak_enabled: false
+keycloak_manage_enabled: false
 
 # External Keycloak base URL (example – adjust to your environment)
 keycloak_base_url: https://keycloak.example.com/auth
@@ -276,28 +290,26 @@ csp_allowed_extra_connect_src: https://keycloak.example.com
 
 Save the file but do not start OpenTalk yet.
 
-#### 4.2.3 Prepare the example realm export
+#### 4.2.3 Prepare the OpenTalk realm export
 
 The OpenTalk package ships an example realm export with placeholder values located at:
 
 `/usr/share/opentalk-compose/examples/export-opentalk-realm-and-users.json`
 
-Before importing, generate fresh random client secrets and the demo user password using the provided script. Run on the OpenTalk host (pure file operation — no API calls):
+Before importing, generate fresh random client secrets using the provided script. Run on the OpenTalk host (pure file operation — no API calls). You also need to provide your OpenTalk frontend URL to set the redirct URLs for the frontend OIDC client.
 
 ```bash
-/opt/opentalk-compose/bin/opentalk_keycloak_realm_export_sanitize.sh \
+/opt/opentalk-compose/bin/opentalk_keycloak_realm_export_sanitize.sh --frontend-url https://example.com \
   /usr/share/opentalk-compose/examples/export-opentalk-realm-and-users.json \
   ./opentalk_realm_export.json
 ```
 
 Result:
 
-- File `opentalk_realm_export.json` contains the sanitized realm export.
-- The terminal prints the generated client secrets and the demo password. Copy the relevant secrets for later configuration (Controller / Recorder / Obelisk / Frontend, if required).
+- File `opentalk_realm_export.json` contains the sanitized realm export with new secrets and you frontend URL.
+- The terminal prints the generated client secrets and the demo password. Copy the relevant secrets for later configuration (Controller / Recorder / Obelisk / Frontend / etc, if required).
 
 You can transfer the generated realm export file (e.g. `opentalk_realm_export.json`) to the external Keycloak instance.
-
-Use `--use-placeholder` to keep `CHANGE_ME` values (documentation only). This is NOT recommended for real deployments.
 
 #### 4.2.4 Import the realm into the external Keycloak
 
@@ -309,15 +321,14 @@ Prerequisites:
 
 - Sanitized realm export file e.g. `opentalk_realm_export.json` is available in the directory `/opt/keycloak/data/import` on the external Keycloak instance.
 - You have admin credentials for the master realm.
-- Base URL below uses legacy /auth path (adapt if your Keycloak version omits /auth).
 
-The most common method for the import is, for example:
+A common method for the import is, for example:
 
 ```bash
 bin/kc.sh start --import-realm 
 ```
 
-#### 4.2.5 Apply secrets to the OpenTalk configuration
+#### 4.2.5 Apply generated secrets to the OpenTalk secrets.yml file
 
 Add the secrets printed during sanitization (only those needed by services) into `/etc/opentalk-compose/secrets/secrets.yml`:
 
@@ -325,6 +336,7 @@ Add the secrets printed during sanitization (only those needed by services) into
 OIDC_CONTROLLER_CLIENT_SECRET: "<controller-secret-from-export>"
 OIDC_RECORDER_CLIENT_SECRET: "<recorder-secret-from-export>"
 OIDC_OBELISK_CLIENT_SECRET: "<obelisk-secret-from-export>"
+...
 ```
 
 If you use additional integrations (e.g. OutlookAddin) copy their secrets likewise.
@@ -337,18 +349,7 @@ Generate configuration and start services (Keycloak will not start locally):
 otctl deploy
 ```
 
-#### 4.2.7 Validation
-
-1. Check OIDC discovery:
-
-```bash
-otctl logs controller --tail 100 | grep -i oidc
-```
-
-1. Test browser login – redirect to the external Keycloak must work.
-1. If CSP errors occur: inspect response headers and ensure the external domain is present in `csp_allowed_extra_connect_src` (include port if not 443).
-
-#### 4.2.8 Common pitfalls
+#### 4.2.7 Common pitfalls
 
 | Symptom | Cause | Resolution |
 |---------|-------|-----------|
@@ -356,7 +357,6 @@ otctl logs controller --tail 100 | grep -i oidc
 | CSP blocking | Domain or port missing in CSP | Add to `csp_allowed_extra_connect_src`. |
 | Missing clients after import | Incomplete import or wrong file | Re-sanitize and re-import. |
 | Login redirect loop | Realm name or redirect URIs mismatch domain | Align realm name & client redirect URIs. |
-
 
 ## 5 Configure External Recorder
 

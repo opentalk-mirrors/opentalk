@@ -16,15 +16,21 @@
 
 - name: Include keycloak_permanent_admin.yml
   include_tasks: keycloak_permanent_admin.yml
-  when: ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
+  when: 
+    - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
+    - keycloak_manage_enabled is true
 
 - name: Include manage_realm.yml
   include_tasks: manage_realm.yml
-  when: ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
+  when: 
+    - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
+    - keycloak_manage_enabled is true
 
 - name: Include keycloak_user_demo.yml
   include_tasks: keycloak_user_demo.yml
-  when: keycloak_demo_user_enabled | default(true)
+  when: 
+    - keycloak_demo_user_enabled | default(true)
+    - keycloak_manage_enabled is true
   tags:
     - demo-user
     - never
