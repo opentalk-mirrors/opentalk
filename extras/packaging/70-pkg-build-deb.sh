@@ -77,7 +77,7 @@ for w in ot-ansible ot-ansible-playbook ot-ansible-galaxy; do
 done
 
 # Embed build metadata (only once)
-RUNTIME_META="$PKGROOT/opt/opentalk-compose/BUILD_INFO"
+RUNTIME_META="$PKGROOT/opt/opentalk-compose/.BUILD_INFO"
 GIT_COMMIT=""
 if [ -d "$ROOT/.git" ]; then
   GIT_COMMIT="$(git -C "$ROOT" rev-parse --short=12 HEAD 2>/dev/null || true)"

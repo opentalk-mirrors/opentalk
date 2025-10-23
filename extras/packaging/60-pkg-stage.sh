@@ -159,7 +159,7 @@ if [[ -x "$ROOT/build/python/bin/python3" ]]; then
     [[ -n "$SRC_URL" ]] && echo "source=$SRC_URL"
     [[ -n "$VERSION" ]] && echo "package_version=$VERSION"
     date -u +"build_utc=%Y-%m-%dT%H:%M:%SZ"
-  } > "$RUNTIME_DIR/python/BUILD_INFO"
+  } > "$RUNTIME_DIR/python/.BUILD_INFO"
 fi
 
 # Wheelhouse + requirements
