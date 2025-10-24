@@ -51,6 +51,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | docker_network_name | string | `opentalk_internal` | Docker network name. |
 | docker_network_state | string | `present` | Docker network state. |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
+| deploy_dir | template | — | Deploy dir (referenced in templates; no default defined). |
 
 ### opentalk_compose.etherpad
 
@@ -69,6 +70,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | etherpad_docker_labels_traefik_http_routers_etherpad_rule | derived | `Host(`{{ ot_domain }}`) && PathPrefix(`/etherpad`)` | Etherpad docker labels traefik http routers etherpad rule. |
 | etherpad_docker_ports | list | `[]` | Etherpad docker ports. |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
+| config_dir | template | — | Config dir (referenced in templates; no default defined). |
 | custom_certificates_enabled | template | — | Custom certificates enabled (referenced in templates; no default defined). |
 | default | template | — | Default (referenced in templates; no default defined). |
 | defined | template | — | Defined (referenced in templates; no default defined). |
@@ -127,7 +129,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | keycloak_spi_sticky_session_encoder_infinispan_should_attach_route | string | `false` | Keycloak spi sticky session encoder infinispan should attach route. |
 | keycloak_wait_to_be_reachable_delay | int | `10` | Keycloak wait to be reachable delay. |
 | keycloak_wait_to_be_reachable_retries | int | `20` | Keycloak wait to be reachable retries. |
-| postInstall_demoUser_email | derived | `demo.user@{{ ot_domain | default('localhost') }}` | PostInstall demoUser email. |
+| postInstall_demoUser_email | string | `demo.user@example.com` | PostInstall demoUser email. |
 | postInstall_demoUser_enabled | string | `True` | PostInstall demoUser enabled. |
 | postInstall_demoUser_firstName | string | `Test` | PostInstall demoUser firstName. |
 | postInstall_demoUser_lastName | string | `User` | PostInstall demoUser lastName. |
@@ -136,6 +138,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | postInstall_demoUser_state | string | `present` | PostInstall demoUser state. |
 | postgres_docker_image_src | string | `postgres` | Postgres docker image src. |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
+| config_dir | template | — | Config dir (referenced in templates; no default defined). |
 | custom_certificates_enabled | template | — | Custom certificates enabled (referenced in templates; no default defined). |
 | default | template | — | Default (referenced in templates; no default defined). |
 | defined | template | — | Defined (referenced in templates; no default defined). |
@@ -236,6 +239,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | minio_docker_image_src | string | `minio/minio` | Minio docker image src. |
 | minio_docker_label_http_routers_minio_console_middlewares | string | `minio-stripprefix` | Minio docker label http routers minio console middlewares. |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
+| config_dir | template | — | Config dir (referenced in templates; no default defined). |
 | custom_certificates_enabled | template | — | Custom certificates enabled (referenced in templates; no default defined). |
 | default | template | — | Default (referenced in templates; no default defined). |
 | defined | template | — | Defined (referenced in templates; no default defined). |
@@ -325,6 +329,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | auth | template | — | Auth (referenced in templates; no default defined). |
 | com | template | — | Com (referenced in templates; no default defined). |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
+| config_dir | template | — | Config dir (referenced in templates; no default defined). |
 | controller_authz_synchronize_controllers | template | — | Controller authz synchronize controllers (referenced in templates; no default defined). |
 | controller_call_in_default_country_code | template | — | Controller call in default country code (referenced in templates; no default defined). |
 | controller_call_in_enable_phone_mapping | template | — | Controller call in enable phone mapping (referenced in templates; no default defined). |
@@ -385,6 +390,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | ot_domain | template | — | Ot domain (referenced in templates; no default defined). |
 | postgres_version | template | — | Postgres version (referenced in templates; no default defined). |
 | realms | template | — | Realms (referenced in templates; no default defined). |
+| to_json | template | — | To json (referenced in templates; no default defined). |
 | traefik_letsencrypt_enable | template | — | Traefik letsencrypt enable (referenced in templates; no default defined). |
 | web | template | — | Web (referenced in templates; no default defined). |
 | websecure | template | — | Websecure (referenced in templates; no default defined). |
@@ -403,33 +409,38 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | obelisk_docker_compose_project_src | derived | `{{ deploy_dir }}` | Obelisk docker  project src. |
 | obelisk_docker_compose_services_dir | derived | `{{ services_dir }}` | Obelisk docker  services dir. |
 | obelisk_docker_compose_services_state | derived | `{{ compose_service_opentalk_obelisk_state | default('present') }}` | Obelisk docker  services state. |
-| obelisk_docker_extra_hosts | list | `[]` | Obelisk docker extra hosts. |
+| obelisk_docker_extra_hosts | list[str] | host.docker.internal:host-gateway | Obelisk docker extra hosts. |
 | obelisk_docker_image_src | string | `registry.opencode.de/opentalk/obelisk` | Obelisk docker image src. |
+| obelisk_docker_network_mode | string | `` | Obelisk docker network mode. |
+| obelisk_docker_ports | list[str] | 5060:5060 | Obelisk docker ports. |
+| obelisk_environment_gst_debug_level | int | `2` | Obelisk environment gst debug level. |
+| obelisk_environment_rust_log_level | string | `info` | Obelisk environment rust log level. |
+| obelisk_monitoring_addr | string | `` | Obelisk monitoring addr. |
 | obelisk_monitoring_port | int | `11411` | Obelisk monitoring port. |
-| obelisk_sip_addr | derived | `{{ ot_domain }}` | Obelisk sip addr. |
+| obelisk_sip_addr | string | `0.0.0.0` | Obelisk sip addr. |
+| obelisk_sip_contact | string | `` | Obelisk sip contact. |
 | obelisk_sip_enforce_qop | bool | `True` | Obelisk sip enforce qop. |
-| obelisk_sip_password | string | `<sipProviderPassword>` | Obelisk sip password. |
+| obelisk_sip_id | string | `` | Obelisk sip id. |
+| obelisk_sip_max_video_bitrate | int | `6000` | Obelisk sip max video bitrate. |
+| obelisk_sip_nat_ping_delta | string | `` | Obelisk sip nat ping delta. |
+| obelisk_sip_offer_srtp | string | `` | Obelisk sip offer srtp. |
+| obelisk_sip_outbound_proxy | string | `` | Obelisk sip outbound proxy. |
+| obelisk_sip_password | string | `` | Obelisk sip password. |
 | obelisk_sip_port | int | `5060` | Obelisk sip port. |
-| obelisk_sip_realm | string | `asterisk` | Obelisk sip realm. |
-| obelisk_sip_registrar | string | `sip:127.0.0.1` | Obelisk sip registrar. |
+| obelisk_sip_realm | string | `` | Obelisk sip realm. |
+| obelisk_sip_registrar | string | `` | Obelisk sip registrar. |
 | obelisk_sip_rtp_port_range_end | int | `49999` | Obelisk sip rtp port range end. |
 | obelisk_sip_rtp_port_range_start | int | `40000` | Obelisk sip rtp port range start. |
-| obelisk_sip_username | string | `0000` | Obelisk sip username. |
+| obelisk_sip_stun_server | string | `` | Obelisk sip stun server. |
+| obelisk_sip_username | string | `` | Obelisk sip username. |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
 | custom_certificates_ca_root_cert_file | template | — | Custom certificates ca root cert file (referenced in templates; no default defined). |
 | defined | template | — | Defined (referenced in templates; no default defined). |
+| host | template | — | Host (referenced in templates; no default defined). |
 | is | template | — | Is (referenced in templates; no default defined). |
 | length | template | — | Length (referenced in templates; no default defined). |
 | obelisk_monitoring | template | — | Obelisk monitoring (referenced in templates; no default defined). |
-| obelisk_monitoring_addr | template | — | Obelisk monitoring addr (referenced in templates; no default defined). |
-| obelisk_sip_contact | template | — | Obelisk sip contact (referenced in templates; no default defined). |
-| obelisk_sip_id | template | — | Obelisk sip id (referenced in templates; no default defined). |
 | obelisk_sip_max_audio_bitrate | template | — | Obelisk sip max audio bitrate (referenced in templates; no default defined). |
-| obelisk_sip_max_video_bitrate | template | — | Obelisk sip max video bitrate (referenced in templates; no default defined). |
-| obelisk_sip_nat_ping_delta | template | — | Obelisk sip nat ping delta (referenced in templates; no default defined). |
-| obelisk_sip_offer_srtp | template | — | Obelisk sip offer srtp (referenced in templates; no default defined). |
-| obelisk_sip_outbound_proxy | template | — | Obelisk sip outbound proxy (referenced in templates; no default defined). |
-| obelisk_sip_stun_server | template | — | Obelisk sip stun server (referenced in templates; no default defined). |
 | opentalk_obelisk_version | template | — | Obelisk version (referenced in templates; no default defined). |
 | to_json | template | — | To json (referenced in templates; no default defined). |
 
@@ -542,7 +553,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | opentalk_web_frontend_docker_extra_hosts | list | `[]` | Web frontend docker extra hosts. |
 | opentalk_web_frontend_docker_image_src | string | `registry.opencode.de/opentalk/web-frontend` | Web frontend docker image src. |
 | opentalk_web_frontend_environment_base_url | derived | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}` | Web frontend environment base url. |
-| opentalk_web_frontend_environment_change_password_url | derived | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/realms/opentalk/account/` | Web frontend environment change password url. |
+| opentalk_web_frontend_environment_change_password_url | derived | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}/account/` | Web frontend environment change password url. |
 | opentalk_web_frontend_environment_controller_host | derived | `{{ (ot_domain, ot_ingress_port) | build_host }}/controller` | Web frontend environment controller host. |
 | opentalk_web_frontend_environment_error_report_address | derived | `{{ ERROR_REPORT_ADDRESS | default('reports@example.com') }}` | Web frontend environment error report address. |
 | opentalk_web_frontend_environment_feature_protocol | derived | `{{ FEATURE_PROTOCOL | default(true) }}` | Web frontend environment feature protocol. |
@@ -554,9 +565,9 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | opentalk_web_frontend_environment_is_beta_release | derived | `{{ IS_BETA_RELEASE | default(false) }}` | Web frontend environment is beta release. |
 | opentalk_web_frontend_environment_libravatar_default_image | derived | `{{ LIBRAVATAR_DEFAULT_IMAGE | default('identicon') }}` | Web frontend environment libravatar default image. |
 | opentalk_web_frontend_environment_livekit_server_url | derived | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/livekit` | Web frontend environment livekit server url. |
-| opentalk_web_frontend_environment_ndt_server | derived | `{{ ot_domain }}` | Web frontend environment ndt server. |
+| opentalk_web_frontend_environment_ndt_server | derived | `{{ (ot_domain, ot_ingress_port) | build_host }}` | Web frontend environment ndt server. |
 | opentalk_web_frontend_environment_oidc_client_id | derived | `{{ controller_oidc_frontend_client_id | default('Frontend') }}` | Web frontend environment oidc client id. |
-| opentalk_web_frontend_environment_oidc_issuer | derived | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/realms/opentalk` | Web frontend environment oidc issuer. |
+| opentalk_web_frontend_environment_oidc_issuer | derived | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}` | Web frontend environment oidc issuer. |
 | opentalk_web_frontend_environment_suppress_browser_compatibility_info | bool | `False` | Web frontend environment suppress browser compatibility info. |
 | opentalk_web_frontend_environment_video_backgrounds | string | `[{ …` | Web frontend environment video backgrounds. |
 | opentalk_web_frontend_environment_waiting_room_default_value | derived | `{{ WAITING_ROOM_DEFAULT_VALUE | default(false) }}` | Web frontend environment waiting room default value. |
@@ -599,6 +610,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | rabbitmq_docker_image_src | string | `rabbitmq` | RabbitMQ docker image src. |
 | rabbitmq_management_path_prefix | string | `/adm/rabbitmq` | RabbitMQ management path prefix. |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
+| config_dir | template | — | Config dir (referenced in templates; no default defined). |
 | custom_certificates_enabled | template | — | Custom certificates enabled (referenced in templates; no default defined). |
 | default | template | — | Default (referenced in templates; no default defined). |
 | defined | template | — | Defined (referenced in templates; no default defined). |
@@ -689,6 +701,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | spacedeck_docker_labels_traefik_enable | bool | `True` | Spacedeck docker labels traefik enable. |
 | spacedeck_docker_ports | list | `[]` | Spacedeck docker ports. |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
+| config_dir | template | — | Config dir (referenced in templates; no default defined). |
 | custom_certificates_ca_root_cert_file | template | — | Custom certificates ca root cert file (referenced in templates; no default defined). |
 | custom_certificates_enabled | template | — | Custom certificates enabled (referenced in templates; no default defined). |
 | default | template | — | Default (referenced in templates; no default defined). |
@@ -761,4 +774,4 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | websecure | template | — | Websecure (referenced in templates; no default defined). |
 
 ---
-Generated on: 2025-10-17
+Generated on: 2025-10-24

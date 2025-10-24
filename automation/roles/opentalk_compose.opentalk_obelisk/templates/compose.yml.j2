@@ -1,17 +1,35 @@
 services:
   obelisk:
     image: "{{ obelisk_docker_image_src }}:{{ opentalk_obelisk_version }}"
+{% if obelisk_docker_network_mode is not defined or obelisk_docker_network_mode != 'host' %}
 {% if obelisk_docker_extra_hosts is defined and obelisk_docker_extra_hosts %}
     extra_hosts:
 {% for eh in obelisk_docker_extra_hosts %}
       - "{{ eh }}"
 {% endfor %}
 {% endif %}
-    network_mode: host
+{% endif %}
+{% if obelisk_docker_network_mode is defined and obelisk_docker_network_mode %}
+    network_mode: {{ obelisk_docker_network_mode }}
+{% endif %}
+{% if obelisk_docker_network_mode is not defined or obelisk_docker_network_mode != 'host' %}
+{% if obelisk_docker_ports is defined and obelisk_docker_ports %}
+{% for ports in obelisk_docker_ports %}
+    ports:
+      - "{{ ports }}"
+{% endfor %}
+{% endif %}
+{% endif %}
     restart: always
+{% if (obelisk_environment_rust_log_level is defined and obelisk_environment_rust_log_level) or (obelisk_environment_gst_debug_level is defined and obelisk_environment_gst_debug_level) %}
     environment:
-      RUST_LOG: ${RUST_LOG:-info}
-      GST_DEBUG: ${GST_DEBUG:-2}
+{% if obelisk_environment_rust_log_level is defined and obelisk_environment_rust_log_level %}
+      RUST_LOG: {{ obelisk_environment_rust_log_level }}
+{% endif %}
+{% if obelisk_environment_gst_debug_level is defined and obelisk_environment_gst_debug_level %}
+      GST_DEBUG: {{ obelisk_environment_gst_debug_level }}
+{% endif %}
+{% endif %}
 {% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
     volumes:
       - ./config/obelisk.toml:/obelisk/opentalk/obelisk.toml

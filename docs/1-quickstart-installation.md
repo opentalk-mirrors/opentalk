@@ -22,6 +22,11 @@ For customized setups or special conditions, refer to the OpenTalk Administratio
   - [2.8 Undeploy (Tear Down)](#28-undeploy-tear-down)  
   - [2.9 Optional: Enable Demo User](#29-optional-enable-demo-user)  
   - [2.10 Reference: otctl Overview](#210-reference-otctl-overview)
+- [3. Optional: Obelisk SIP Bridge Service](#3-optional-obelisk-sip-bridge-service)  
+  - [3.1 What is Obelisk](#31-what-is-obelisk)  
+  - [3.2 Enable Obelisk Service](#32-enable-obelisk-service)  
+  - [3.3 Configure SIP Provider and Call-In Settings](#33-configure-sip-provider-and-call-in-settings)  
+  - [3.4 Verify Obelisk Status](#34-verify-obelisk-status)
 
 ## 1. Preparations
 
@@ -267,3 +272,144 @@ Health column semantics (`otctl status`):
 - unhealthy: Healthcheck failing
 - starting: Healthcheck not yet passing
 - n/a: No healthcheck defined
+
+## 3. Optional: Obelisk SIP Bridge Service
+
+### 3.1 What is Obelisk
+
+Obelisk is a SIP (Session Initiation Protocol) telephony bridge service that enables traditional phone systems and SIP clients to connect to OpenTalk video conferences. This allows participants to:
+
+- Join OpenTalk meetings via traditional telephone
+- Connect from SIP-enabled desk phones
+- Provide dial-in access for participants without internet or video capabilities
+
+### 3.2 Enable Obelisk Service
+
+**Important:** Obelisk must be properly configured before it can be enabled and started. The service will fail to start without valid SIP provider configuration.
+
+By default, the Obelisk service is disabled. To enable it, you must first configure your SIP provider settings (see section 3.3), then:
+
+1. Edit `/etc/opentalk-compose/settings.yml` and set:
+
+```yaml
+compose_service_opentalk_obelisk_enabled: true
+```
+
+1. Deploy the configuration:
+
+```bash
+otctl deploy
+```
+
+### 3.3 Configure SIP Provider and Call-In Settings
+
+Before enabling Obelisk, you must configure both the OpenTalk Controller call-in settings and the SIP provider connection.
+
+#### Controller Call-In Configuration
+
+First, configure the OpenTalk Controller for telephone integration in `/etc/opentalk-compose/settings.yml`:
+
+```yaml
+# Enable call-in functionality in controller and set the dial-in number
+controller_call_in_tel: "+49 30 62937395"
+controller_call_in_enable_phone_mapping: false
+controller_call_in_default_country_code: DE
+```
+
+#### Basic SIP Configuration
+
+Configure the connection to your SIP provider or PBX system:
+
+```yaml
+# SIP server configuration
+obelisk_sip_username: "your_sip_username"
+obelisk_sip_password: "your_sip_password" 
+obelisk_sip_realm: "your_sip_domain"
+obelisk_sip_registrar: "sip:your_sip_server.example.com"
+```
+
+#### Advanced SIP Options
+
+```yaml
+# Optional: Custom SIP ID and contact
+obelisk_sip_id: "sip:opentalk@your_domain.com"
+obelisk_sip_contact: "sip:opentalk@your_public_ip:5060"
+
+# Optional: Outbound proxy
+obelisk_sip_outbound_proxy: "sip:proxy.example.com:5060"
+
+# Optional: STUN server for NAT traversal
+obelisk_sip_stun_server: "stun:stun.example.com:3478"
+
+# Optional: RTP port range customization
+obelisk_sip_rtp_port_range_start: 40000
+obelisk_sip_rtp_port_range_end: 49999
+
+# Optional: Enable SRTP encryption
+obelisk_sip_offer_srtp: true
+
+# Optional: Bitrate limits
+obelisk_sip_max_video_bitrate: 6000
+```
+
+#### Firewall Considerations
+
+Ensure the following ports are accessible:
+
+- `5060/udp` - SIP signaling (default)
+- `40000-49999/udp` - RTP media (configurable range)
+
+#### Example SIP Configuration for Sipgate
+
+```yaml
+# Sipgate SIP configuration
+obelisk_sip_username: "username"
+obelisk_sip_password: "******"
+obelisk_sip_realm: "sipconnect.sipgate.de"
+obelisk_sip_registrar: "sip:sipconnect.sipgate.de"
+obelisk_sip_outbound_proxy: "sip:sipconnect.sipgate.de"
+obelisk_sip_stun_server: "stun.sipgate.net:10000"
+```
+
+#### Example SIP Configuration for Asterisk (PBX)
+
+```yaml
+# Asterisk SIP configuration
+obelisk_sip_username: "username"
+obelisk_sip_password: "******"
+obelisk_sip_realm: "asterisk"
+obelisk_sip_registrar: "sip:asterisk.example.com"
+obelisk_sip_stun_server: "stun.sipgate.net:10000"
+```
+
+### 3.4 Verify Obelisk Status
+
+After configuration, verify the service is running:
+
+```bash
+otctl status
+```
+
+Expected output should include:
+
+```text
+SERVICE       STATE     HEALTH
+...
+obelisk       running   healthy
+...
+```
+
+Check Obelisk logs for SIP registration status:
+
+```bash
+otctl logs obelisk
+```
+
+Look for successful SIP registration messages. If there are connection issues, verify:
+
+1. SIP credentials are correct
+2. Firewall ports are open (5060/udp, RTP range)
+3. Network connectivity to SIP server
+4. DNS resolution of SIP server hostname
+
+For detailed configuration options, refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_obelisk).
