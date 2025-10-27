@@ -108,7 +108,7 @@ macro_rules! build_info {
                     }
                     let mut text = String::new();
                     if (args.version) {
-                        self.version(&mut text);
+                        let _ = self.version(&mut text);
                     }
                     if (args.license) {
                         self.license(&mut text);
@@ -116,28 +116,30 @@ macro_rules! build_info {
                     Some(text)
                 }
 
-                fn version(&self, text: &mut String) {
-                    write!(&text, "Build Timestamp: {}\n", self.build_timestamp);
-                    write!(&text, "Build Version: {}\n", self.build_version);
+                fn version(&self, text: &mut String) -> Result<(), std::fmt::Error> {
+                    use std::fmt::Write as _;
+
+                    write!(text, "Build Timestamp: {}\n", self.build_timestamp)?;
+                    write!(text, "Build Version: {}\n", self.build_version)?;
                     if let Some(sha) = self.commit_sha {
-                        write!(&text, "Commit SHA: {}", sha);
+                        write!(text, "Commit SHA: {}", sha)?;
                         match self.commit_dirty {
-                            Some("true") => write!(&text, "-dirty\n"),
-                            _ => write!(&text, "\n"),
+                            Some("true") => write!(text, "-dirty\n")?,
+                            _ => write!(text, "\n")?,
                         }
                     }
                     if let Some(commit_date) = self.commit_date {
-                        write!(&text, "Commit Date: {}\n", commit_date);
+                        write!(text, "Commit Date: {}\n", commit_date)?;
                     }
 
                     if let Some(commit_branch) = self.commit_branch {
-                        write!(&text, "Commit Branch: {}\n", commit_branch);
+                        write!(text, "Commit Branch: {}\n", commit_branch)?;
                     }
-                    write!(&text, "rustc Version: {}\n", self.rustc_version);
-                    write!(&text, "rustc Channel: {}\n", self.rustc_channel);
-                    write!(&text, "rustc Host Triple: {}\n", self.rustc_host_triple);
-                    write!(&text, "cargo Target Triple: {}\n", self.cargo_target_triple);
-                    write!(&text, "cargo Profile: {}\n", self.cargo_profile);
+                    write!(text, "rustc Version: {}\n", self.rustc_version)?;
+                    write!(text, "rustc Channel: {}\n", self.rustc_channel)?;
+                    write!(text, "rustc Host Triple: {}\n", self.rustc_host_triple)?;
+                    write!(text, "cargo Target Triple: {}\n", self.cargo_target_triple)?;
+                    write!(text, "cargo Profile: {}\n", self.cargo_profile)
                 }
 
                 fn license(&self, text: &mut String) {
