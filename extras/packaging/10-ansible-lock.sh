@@ -33,7 +33,8 @@ fi
 
 "$PY_BIN" -m venv "$LOCKENV"
 . "$LOCKENV/bin/activate"
-pip install -q --upgrade pip pip-tools || { echo "[lock] ERROR: pip-tools install failed" >&2; deactivate || true; rm -rf "$LOCKENV"; exit 1; }
+# Pin pip and pip-tools to compatible versions for Python 3.14
+pip install -q --upgrade "pip>=23.0,<24.3" "pip-tools>=7.4.1,<8.0.0" || { echo "[lock] ERROR: pip-tools install failed" >&2; deactivate || true; rm -rf "$LOCKENV"; exit 1; }
 python -m piptools compile --generate-hashes "$IN" -o "$OUT" || { echo "[lock] ERROR: piptools compile failed" >&2; deactivate || true; rm -rf "$LOCKENV"; exit 1; }
 deactivate || true
 rm -rf "$LOCKENV"

@@ -24,7 +24,7 @@ set -euo pipefail
 #   FORCE_REFRESH=1
 #   CLEAN=1 (alternative to --clean)
 
-FALLBACK_PY_URL="https://github.com/indygreg/python-build-standalone/releases/download/20250818/cpython-3.13.7+20250818-x86_64-unknown-linux-gnu-install_only.tar.gz"
+FALLBACK_PY_URL="https://github.com/astral-sh/python-build-standalone/releases/download/20251014/cpython-3.14.0+20251014-x86_64-unknown-linux-gnu-install_only.tar.gz"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PKGDIR="$ROOT/extras/packaging"
