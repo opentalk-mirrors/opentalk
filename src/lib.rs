@@ -31,7 +31,7 @@
 use anyhow::Context as _;
 use clap::ArgAction;
 use vergen::{BuildBuilder, CargoBuilder, Emitter, RustcBuilder};
-use vergen_gix::GixBuilder;
+use vergen_git2::Git2Builder;
 
 /// This macro will expand to a module `build_info` which contains a struct `BuildInfo`.
 /// The struct can be used to access build information.
@@ -183,7 +183,7 @@ pub fn collect_build_information() -> anyhow::Result<()> {
 
     if is_contained_in_git()? {
         builder
-            .add_instructions(&GixBuilder::all_git().context("Failed to build git variables")?)
+            .add_instructions(&Git2Builder::all_git().context("Failed to build git variables")?)
             .context("Failed to add git variables")?;
     }
     builder.emit().context("Failed to emit")?;
