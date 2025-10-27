@@ -4,3 +4,5 @@
 docker_network_name: "opentalk_internal"
 docker_network_driver: "bridge"
 docker_network_state: "present"
+
+docker_overwrite_main_compose_file: false
