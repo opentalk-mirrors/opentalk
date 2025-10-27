@@ -53,7 +53,7 @@ Accessible with default settings at: `/adm/rabbitmq/`
 
 - e.g. `http://example.com/adm/rabbitmq/`
 
-RabbitMQ’s management UI shows connections, channels, queues and consumers; use it to verify OpenTalk queues (`opentalk_mailer`, `opentalk_recorder`) and consumer health.
+RabbitMQ's management UI shows connections, channels, queues and consumers; use it to verify OpenTalk queues (`opentalk_mailer`, `opentalk_recorder`) and consumer health.
 
 Login: pass Traefik BasicAuth (see 3.2), then sign in to RabbitMQ with user `ot` and the password from `RABBITMQ_PASSWORD` (configured via settings/secrets).
 
@@ -78,6 +78,18 @@ Accessible with default settings at: `/adm/mailcrab/`
 - e.g. `http://example.com/adm/mailcrab/`
 
 MailCrab is an optional dev/test SMTP sink to preview invites and notifications without sending real emails.
-The service is not enabled by defualt and intendet to use in `dev` mode.
+The service is not enabled by default and intended to use in a development environment or for testing purposes.
+
+MailCrab can be enabeld in `settings.yaml`.
+
+```yaml
+compose_service_mailcrab_enabled: true
+```
+
+Deploy the updated configuration and start service with:
+
+```bash
+otctl delpoy
+```
 
 The MailCrab project is located [in this git repo](https://github.com/tweedegolf/mailcrab).

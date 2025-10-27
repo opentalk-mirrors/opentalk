@@ -61,7 +61,7 @@ rtc:
 {% endfor %}
 {% endif %}
 
-{% if livekit_turn_embedded_enabled is defined and livekit_turn_embedded_enabled == "true" %}
+{% if livekit_turn_embedded_enabled is defined and livekit_turn_embedded_enabled %}
 turn:
   domain: {{ livekit_turn_embedded_domain }}
   tls_port: {{ livekit_turn_embedded_tls_port }}
