@@ -2,6 +2,9 @@
 #
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
+[workspace]
+members = [".", "canary"]
+
 [package]
 authors = ["OpenTalk GmbH <mail@opentalk.eu>"]
 description = "Collect a set of build information and make it available for printing."

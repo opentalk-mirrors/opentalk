@@ -83,6 +83,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "canary"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "opentalk-version",
+]
+
+[[package]]
 name = "cargo-platform"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
