@@ -10,7 +10,7 @@ rtc:
   port_range_start: {{ livekit_rtc_port_range_start }}
   port_range_end: {{ livekit_rtc_port_range_end }}
 {% endif %}
-{% if livekit_rtc_use_external_ip is defined and livekit_rtc_use_external_ip %}
+{% if livekit_rtc_use_external_ip is defined %}
   use_external_ip: {{ livekit_rtc_use_external_ip | to_json }}
 {% endif %}
 {% if livekit_rtc_enable_loopback_candidate is defined and livekit_rtc_enable_loopback_candidate %}
