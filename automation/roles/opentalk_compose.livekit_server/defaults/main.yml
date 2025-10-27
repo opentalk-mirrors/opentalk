@@ -44,7 +44,7 @@ livekit_rtc_ips_excludes:
   - 172.16.0.0/12
   - 192.168.0.0/16
 
-livekit_turn_embedded_enabled: "false"
+livekit_turn_embedded_enabled: false
 livekit_turn_embedded_domain: "turn.{{ ot_domain }}"
 livekit_turn_embedded_tls_port: 5349
 livekit_turn_embedded_udp_port: 3478
