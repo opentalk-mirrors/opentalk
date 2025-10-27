@@ -20,10 +20,16 @@
 //! ```ignore
 //! // This adds a `build_info` module which contains a `BuildInfo` struct that
 //! // contains all collected build information.
+//! use build_info::BuildInfo;
+//! use opentalk_version::InfoArgs;
+//!
 //! opentalk_version::build_info!();
 //!
-//! pub(super) fn print_version() {
-//!     println!("{}", build_info::BuildInfo::new())
+//! pub(super) fn print_version(args: &InfoArgs) {
+//!     let build_info = BuildInfo::new();
+//!     if let Some(text) = build_info.format(&args) {
+//!         println!("{text}");
+//!     }
 //! }
 //!
 //! ```
