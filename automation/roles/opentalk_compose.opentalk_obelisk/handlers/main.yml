@@ -9,3 +9,5 @@
       - "{{ deploy_dir }}/common.yml"
     recreate: never
     state: restarted
+  tags:
+    - obelisk

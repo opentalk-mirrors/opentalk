@@ -166,7 +166,7 @@ synchronize_controllers = {{ controller_authz_synchronize_controllers }}
 tel = "{{ controller_call_in_tel }}"
 {% endif %}
 {% if controller_call_in_enable_phone_mapping is defined %}
-enable_phone_mapping = {{ controller_call_in_enable_phone_mapping }}
+enable_phone_mapping = {{ controller_call_in_enable_phone_mapping | to_json }}
 {% endif %}
 {% if controller_call_in_default_country_code is defined and controller_call_in_default_country_code %}
 default_country_code = "{{ controller_call_in_default_country_code }}"
