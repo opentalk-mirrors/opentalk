@@ -41,8 +41,8 @@ mailer_frontend_base_url: "https://{{ ot_domain }}"
 mailer_languages_default_language: "de-DE"
 
 # Optional monitoring address
-# mailer_monitoring_addr: "0.0.0.0"
+mailer_monitoring_addr: "0.0.0.0"
 mailer_monitoring_port: 11411
 
-mailer_support_contact_phone: "+49123321123"
+mailer_support_contact_phone: "+49 123 456789"
 mailer_support_contact_mail: "support@{{ ot_domain }}"

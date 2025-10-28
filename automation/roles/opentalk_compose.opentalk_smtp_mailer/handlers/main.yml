@@ -3,7 +3,8 @@
 # handlers file for opentalk_compose.opentalk_smtp_mailer
 - name: "Restart Docker Service OpenTalk SMTP Mailer"
   community.docker.docker_compose_v2:
-    project_src: "{{ services_dir }}/opentalk-recorder"
+    project_src: "{{ services_dir }}/opentalk-smtp-mailer"
+    project_name: "{{ compose_project_name }}"
     files:
       - compose.yml
       - "{{ deploy_dir }}/common.yml"
