@@ -41,5 +41,6 @@ obelisk_sip_offer_srtp: ''
 obelisk_sip_rtp_port_range_start: 40000
 obelisk_sip_rtp_port_range_end: 49999
 
-obelisk_monitoring_addr: ''
+obelisk_monitoring_enable: true
+obelisk_monitoring_addr: '0.0.0.0'
 obelisk_monitoring_port: 11411

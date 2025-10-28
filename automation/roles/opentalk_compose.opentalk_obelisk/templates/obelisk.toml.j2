@@ -54,7 +54,7 @@ offer_srtp = "{{ obelisk_sip_offer_srtp | to_json }}"
 start = {{ obelisk_sip_rtp_port_range_start }}
 end = {{ obelisk_sip_rtp_port_range_end }}
 
-{% if obelisk_monitoring is defined and obelisk_monitoring %}
+{% if obelisk_monitoring_enable is defined and obelisk_monitoring_enable %}
 [monitoring]
 {% if obelisk_monitoring_addr is defined and obelisk_monitoring_addr %}
 addr = "{{ obelisk_monitoring_addr }}"
