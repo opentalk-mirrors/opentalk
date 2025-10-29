@@ -50,8 +50,8 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | docker_network_driver | string | `bridge` | Docker network driver. |
 | docker_network_name | string | `opentalk_internal` | Docker network name. |
 | docker_network_state | string | `present` | Docker network state. |
+| docker_overwrite_main_compose_file | bool | `False` | Docker overwrite main  file. |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
-| deploy_dir | template | — | Deploy dir (referenced in templates; no default defined). |
 
 ### opentalk_compose.etherpad
 
@@ -172,7 +172,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | livekit_server_docker_compose_services_dir | derived | `{{ services_dir }}` | LiveKit server docker  services dir. |
 | livekit_server_docker_compose_services_state | derived | `{{ compose_service_livekit_server_state | default('present') }}` | LiveKit server docker  services state. |
 | livekit_turn_embedded_domain | derived | `turn.{{ ot_domain }}` | LiveKit turn embedded domain. |
-| livekit_turn_embedded_enabled | string | `false` | LiveKit turn embedded enabled. |
+| livekit_turn_embedded_enabled | bool | `False` | LiveKit turn embedded enabled. |
 | livekit_turn_embedded_external_tls | bool | `True` | LiveKit turn embedded external tls. |
 | livekit_turn_embedded_tls_port | int | `5349` | LiveKit turn embedded tls port. |
 | livekit_turn_embedded_udp_port | int | `3478` | LiveKit turn embedded udp port. |
@@ -415,7 +415,8 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | obelisk_docker_ports | list[str] | 5060:5060 | Obelisk docker ports. |
 | obelisk_environment_gst_debug_level | int | `2` | Obelisk environment gst debug level. |
 | obelisk_environment_rust_log_level | string | `info` | Obelisk environment rust log level. |
-| obelisk_monitoring_addr | string | `` | Obelisk monitoring addr. |
+| obelisk_monitoring_addr | string | `0.0.0.0` | Obelisk monitoring addr. |
+| obelisk_monitoring_enable | bool | `True` | Obelisk monitoring enable. |
 | obelisk_monitoring_port | int | `11411` | Obelisk monitoring port. |
 | obelisk_sip_addr | string | `0.0.0.0` | Obelisk sip addr. |
 | obelisk_sip_contact | string | `` | Obelisk sip contact. |
@@ -439,7 +440,6 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | host | template | — | Host (referenced in templates; no default defined). |
 | is | template | — | Is (referenced in templates; no default defined). |
 | length | template | — | Length (referenced in templates; no default defined). |
-| obelisk_monitoring | template | — | Obelisk monitoring (referenced in templates; no default defined). |
 | obelisk_sip_max_audio_bitrate | template | — | Obelisk sip max audio bitrate (referenced in templates; no default defined). |
 | opentalk_obelisk_version | template | — | Obelisk version (referenced in templates; no default defined). |
 | to_json | template | — | To json (referenced in templates; no default defined). |
@@ -511,6 +511,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | mailer_docker_image_src | string | `registry.opencode.de/opentalk/smtp-mailer` | Mailer docker image src. |
 | mailer_frontend_base_url | derived | `https://{{ ot_domain }}` | Mailer frontend base url. |
 | mailer_languages_default_language | string | `de-DE` | Mailer languages default language. |
+| mailer_monitoring_addr | string | `0.0.0.0` | Mailer monitoring addr. |
 | mailer_monitoring_port | int | `11411` | Mailer monitoring port. |
 | mailer_rabbit_mq_mail_task_queue | string | `opentalk_mailer` | Mailer rabbit mq mail task queue. |
 | mailer_rabbit_mq_url | secret[derived] | `amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F` | Mailer rabbit mq url. |
@@ -518,13 +519,12 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | mailer_smtp_from_name | derived | `OpenTalk - {{ ot_domain }}` | Mailer smtp from name. |
 | mailer_smtp_smtp_server | string | `smtp://mailcrab:1025?disable_starttls=true` | Mailer smtp smtp server. |
 | mailer_support_contact_mail | derived | `support@{{ ot_domain }}` | Mailer support contact mail. |
-| mailer_support_contact_phone | string | `+49123321123` | Mailer support contact phone. |
+| mailer_support_contact_phone | string | `+49 123 456789` | Mailer support contact phone. |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
 | defined | template | — | Defined (referenced in templates; no default defined). |
 | docker_network_name | template | — | Docker network name (referenced in templates; no default defined). |
 | is | template | — | Is (referenced in templates; no default defined). |
 | mailer_frontend_data_protection_url | template | — | Mailer frontend data protection url (referenced in templates; no default defined). |
-| mailer_monitoring_addr | template | — | Mailer monitoring addr (referenced in templates; no default defined). |
 | mailer_template_builder_dashboard_event_link_builder | template | — | Mailer template builder dashboard event link builder (referenced in templates; no default defined). |
 | mailer_template_builder_guest_link_builder | template | — | Mailer template builder guest link builder (referenced in templates; no default defined). |
 | mailer_template_builder_join_link_builder | template | — | Mailer template builder join link builder (referenced in templates; no default defined). |
@@ -774,4 +774,4 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | websecure | template | — | Websecure (referenced in templates; no default defined). |
 
 ---
-Generated on: 2025-10-24
+Generated on: 2025-10-29
