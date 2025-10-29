@@ -22,11 +22,15 @@ For customized setups or special conditions, refer to the OpenTalk Administratio
   - [2.8 Undeploy (Tear Down)](#28-undeploy-tear-down)  
   - [2.9 Optional: Enable Demo User](#29-optional-enable-demo-user)  
   - [2.10 Reference: otctl Overview](#210-reference-otctl-overview)
-- [3. Optional: Obelisk SIP Bridge Service](#3-optional-obelisk-sip-bridge-service)  
-  - [3.1 What is Obelisk](#31-what-is-obelisk)  
-  - [3.2 Enable Obelisk Service](#32-enable-obelisk-service)  
-  - [3.3 Configure SIP Provider and Call-In Settings](#33-configure-sip-provider-and-call-in-settings)  
-  - [3.4 Verify Obelisk Status](#34-verify-obelisk-status)
+- [3. Optional: SMTP Mailer Service](#3-optional-smtp-mailer-service)  
+  - [3.1 What is the SMTP Mailer](#31-what-is-the-smtp-mailer)  
+  - [3.2 Enable & Configure SMTP Mailer](#32-enable--configure-smtp-mailer)  
+  - [3.3 Verify SMTP Mailer](#33-verify-smtp-mailer)  
+- [4. Optional: Obelisk SIP Bridge Service](#4-optional-obelisk-sip-bridge-service)  
+  - [4.1 What is Obelisk](#41-what-is-obelisk)  
+  - [4.2 Enable Obelisk Service](#42-enable-obelisk-service)  
+  - [4.3 Configure SIP Provider and Call-In Settings](#43-configure-sip-provider-and-call-in-settings)  
+  - [4.4 Verify Obelisk Status](#44-verify-obelisk-status)
 
 ## 1. Preparations
 
@@ -273,9 +277,78 @@ Health column semantics (`otctl status`):
 - starting: Healthcheck not yet passing
 - n/a: No healthcheck defined
 
-## 3. Optional: Obelisk SIP Bridge Service
+## 3. Optional: SMTP Mailer Service
 
-### 3.1 What is Obelisk
+### 3.1 What is the SMTP Mailer
+
+The SMTP Mailer service sends transactional emails for OpenTalk (meeting invitations, notifications). It integrates via a configured SMTP server and uses values derived from your `ot_domain` setting to produce consistent links and sender addresses.
+
+This behavior can be adjusted. For a full list of available SMTP Mailer configuration variables see the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_smtp_mailer).
+
+### 3.2 Enable & Configure SMTP Mailer
+
+Set the required options in `/etc/opentalk-compose/settings.yml` before deploying:
+
+```yaml
+compose_service_opentalk_smtp_mailer_enabled: true
+
+mailer_smtp_smtp_server: "smtp://user%40example.com:PaSsw0Rd@mail.example.com:587"
+mailer_smtp_from_name: "OpenTalk - {{ ot_domain }}"
+mailer_smtp_from_email: "no-reply@{{ ot_domain }}"
+mailer_frontend_base_url: "https://{{ ot_domain }}"
+mailer_support_contact_phone: "+49 123 456789"
+mailer_support_contact_mail: "support@{{ ot_domain }}"
+```
+
+Notes:
+
+- You can reuse `{{ ot_domain }}` inside these smtp mailer options; it is substituted when templates render.
+- The `mailer_smtp_smtp_server` value embeds credentials URL-encoded (e.g. `user%40example.com` for `user@example.com`). Ensure password escaping if it contains special characters (`:` `@` `/`).
+- Use `smtp://` or `smtps://` (implicit TLS) depending on your provider. For STARTTLS on port 587 `smtp://` is typical. Implicit TLS typical uses port 465 `smtps://`
+- Keep this file secured; credentials are sensitive.
+
+Deploy after editing:
+
+```bash
+otctl deploy
+```
+
+### 3.3 Verify SMTP Mailer
+
+Check service status:
+
+```bash
+otctl status
+```
+
+Look for:
+
+```text
+mailer        running   healthy
+```
+
+Review logs:
+
+```bash
+otctl logs mailer
+```
+
+Common verification steps:
+
+1. Trigger an action that sends email (invite user to event).
+2. Confirm log line showing successful SMTP connection / send.
+3. Inspect mail headers for correct `From:` and links.
+
+Troubleshooting:
+
+- Authentication failures: Re-check URL-encoded username, password validity.
+- TLS errors: Switch between `smtp://` + STARTTLS and `smtps://` depending on provider requirements.
+- Missing emails: Verify provider spam/relay policies and `mailer_frontend_base_url` correctness for links.
+- Support contacts: Ensure phone/mail fields appear in templates (template customization may require additional steps beyond quickstart).
+
+## 4. Optional: Obelisk SIP Bridge Service
+
+### 4.1 What is Obelisk
 
 Obelisk is a SIP (Session Initiation Protocol) telephony bridge service that enables traditional phone systems and SIP clients to connect to OpenTalk video conferences. This allows participants to:
 
@@ -283,7 +356,9 @@ Obelisk is a SIP (Session Initiation Protocol) telephony bridge service that ena
 - Connect from SIP-enabled desk phones
 - Provide dial-in access for participants without internet or video capabilities
 
-### 3.2 Enable Obelisk Service
+For all Obelisk-related configuration variables refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_obelisk).
+
+### 4.2 Enable Obelisk Service
 
 **Important:** Obelisk must be properly configured before it can be enabled and started. The service will fail to start without valid SIP provider configuration.
 
@@ -301,7 +376,7 @@ compose_service_opentalk_obelisk_enabled: true
 otctl deploy
 ```
 
-### 3.3 Configure SIP Provider and Call-In Settings
+### 4.3 Configure SIP Provider and Call-In Settings
 
 Before enabling Obelisk, you must configure both the OpenTalk Controller call-in settings and the SIP provider connection.
 
@@ -311,7 +386,7 @@ First, configure the OpenTalk Controller for telephone integration in `/etc/open
 
 ```yaml
 # Enable call-in functionality in controller and set the dial-in number
-controller_call_in_tel: "+49 30 62937395"
+controller_call_in_tel: "+49 123 456789"
 controller_call_in_enable_phone_mapping: false
 controller_call_in_default_country_code: DE
 ```
@@ -379,10 +454,10 @@ obelisk_sip_username: "username"
 obelisk_sip_password: "******"
 obelisk_sip_realm: "asterisk"
 obelisk_sip_registrar: "sip:asterisk.example.com"
-obelisk_sip_stun_server: "stun.sipgate.net:10000"
+obelisk_sip_stun_server: "stun.example.com:3478"
 ```
 
-### 3.4 Verify Obelisk Status
+### 4.4 Verify Obelisk Status
 
 After configuration, verify the service is running:
 
