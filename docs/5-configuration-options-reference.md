@@ -608,6 +608,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | rabbitmq_docker_compose_services_dir | derived | `{{ services_dir }}` | RabbitMQ docker  services dir. |
 | rabbitmq_docker_compose_services_state | derived | `{{ compose_service_rabbitmq_state | default('present') }}` | RabbitMQ docker  services state. |
 | rabbitmq_docker_image_src | string | `rabbitmq` | RabbitMQ docker image src. |
+| rabbitmq_docker_ports | list | `[]` | RabbitMQ docker ports. |
 | rabbitmq_management_path_prefix | string | `/adm/rabbitmq` | RabbitMQ management path prefix. |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
 | config_dir | template | — | Config dir (referenced in templates; no default defined). |
@@ -774,4 +775,4 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | websecure | template | — | Websecure (referenced in templates; no default defined). |
 
 ---
-Generated on: 2025-10-29
+Generated on: 2025-10-30

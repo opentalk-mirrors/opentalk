@@ -30,15 +30,16 @@
     - [4.2.6 Start OpenTalk services](#426-start-opentalk-services)
     - [4.2.7 Common pitfalls](#427-common-pitfalls)
 - [5 Configure External Recorder](#5-configure-external-recorder)
-  - [5.1 Disable Recorder Service in opentalk-compose](#51-disable-recorder-service-in-opentalk-compose)
+  - [5.1 Prepare the OpenTalk server configuration](#51-prepare-the-opentalk-server-configuration)
     - [5.1.1 Stop all OpenTalk related services](#511-stop-all-opentalk-related-services)
-    - [5.1.2 Adjust Docker Compose profile](#512-adjust-docker-compose-profile)
-  - [5.2 Expose RabbitMQ AMQP port in settings.yml](#52-expose-rabbitmq-amqp-port-in-settingsyml)
-  - [5.3 Set Up an OpenTalk Recorder-only Node](#53-set-up-an-opentalk-recorder-only-node)
-    - [5.3.1 Ensure docker engine is installed](#531-ensure-docker-engine-is-installed)
-    - [5.3.2 Create the recorder configuration](#532-create-the-recorder-configuration)
-    - [5.3.3 Create a Docker Compose file for the recorder service](#533-create-a-docker-compose-file-for-the-recorder-service)
-    - [5.3.4 Run Recorder container](#534-run-recorder-container)
+    - [5.1.2 Edit settings.yml](#512-edit-settingsyml)
+    - [5.1.3 Deploy configuration changes on the OpenTalk server](#513-deploy-configuration-changes-on-the-opentalk-server)
+  - [5.2 Set Up an OpenTalk Recorder-only Node](#52-set-up-an-opentalk-recorder-only-node)
+    - [Hardware acceleration (optional)](#hardware-acceleration-optional)
+    - [5.2.1 Ensure Docker Engine is installed on the external Recorder host](#521-ensure-docker-engine-is-installed-on-the-external-recorder-host)
+    - [5.2.2 Docker Compose configuration for the external Recorder service](#522-docker-compose-configuration-for-the-external-recorder-service)
+    - [5.2.3 OpenTalk Recorder Service configuration](#523-opentalk-recorder-service-configuration)
+    - [5.2.4 Run Recorder container](#524-run-recorder-container)
 - [6 Configure External LiveKit Server](#6-configure-external-livekit-server)
   - [6.1 Install LiveKit Server](#61-install-livekit-server)
   - [6.2 Disable LiveKit in opentalk-compose](#62-disable-livekit-in-opentalk-compose)
@@ -49,11 +50,11 @@
 
 ## 1 Use own TLS certificate instead of Let's Encrypt
 
-By default, OpenTalk obtains TLS certificates via Let's Encrypt. If you want to use an existing certificate already signed by a public CA for your domain, copy the fullchain certificate (server plus intermediates) and the private key into `/etc/opentalk-compose/ssl` and reference their file names in `/etc/opentalk-compose/settings.yml`. Ensure the certificate is PEM-encoded (`.crt`) and the private key has restrictive permissions (`chmod 600`).
+By default, OpenTalk obtains TLS certificates via Let's Encrypt. If you want to use an existing certificate already signed by a public CA for your domain, copy the full-chain certificate (server plus intermediates) and the private key into `/etc/opentalk-compose/ssl` and reference their file names in `/etc/opentalk-compose/settings.yml`. Ensure the certificate is PEM‑encoded (`.crt`) and the private key has restrictive permissions (`chmod 600`).
 
 ### 1.1 Stop all OpenTalk related services
 
-Check if OpenTalk Services are running and shut down the stack.
+Check whether OpenTalk services are running, then shut down the stack.
 
 ```bash
 otctl status
@@ -66,8 +67,8 @@ Copy your TLS certificate and key to `/etc/opentalk-compose/ssl/`.
 
 Ensure the following:
 
-- The certificate is a fullchain certificate containing the server certificate and intermediate certificates
-- The certificate is PEM-encoded and named with the `.crt` file extensinon.
+- The certificate is a full-chain certificate containing the server certificate and intermediate certificates
+- The certificate is PEM-encoded and named with the `.crt` file extension.
 - The file permission of the key is restrictive (chmod 600)
 
 ### 1.3 Edit settings.yml
@@ -88,11 +89,11 @@ otctl deploy
 
 ## 2 Add Custom CA and custom TLS certificates
 
-If you operate your own internal Certification Authority (CA) and want OpenTalk services to trust the certificates it issues, provide the server full-chain certificate (server plus intermediates) and the CA root certificate (and any intermediate CA certificates). A separate root CA certificate file is required so it can be injected into the host system and container trust stores, completing the trust chain.
+If you operate your own internal Certification Authority (CA) and want OpenTalk services to trust the certificates it issues, provide the server full‑chain certificate (server plus intermediates) and the CA root certificate (plus any intermediate CA certificates). A separate root CA certificate file is required so it can be injected into the host system and container trust stores, completing the trust chain.
 
 ### 2.1 Stop all OpenTalk related services
 
-Check if OpenTalk Services are running and shut down the stack.
+Check whether OpenTalk services are running, then shut down the stack.
 
 ```bash
 otctl status
@@ -105,10 +106,10 @@ Copy the certificate files to /etc/opentalk-compose/ssl.
 
 Ensure the following:
 
-- The certificate is a fullchain certificate containing the server certificate and intermediate certificates
-- The certificate is PEM-encoded and named with the `.crt` file extensinon.
+- The certificate is a full-chain certificate containing the server certificate and intermediate certificates
+- The certificate is PEM-encoded and named with the `.crt` file extension.
 - The CA root certificate is a fullchain certificate containing the server certificate and intermediate certificates
-- The CA root certificate is PEM-encoded and named with the `.crt` file extensinon.
+- The CA root certificate is PEM-encoded and named with the `.crt` file extension.
 - The file permission of the key is restrictive (chmod 600)
 
 ### 2.3 Edit settings.yml
@@ -171,11 +172,11 @@ If you want to use an existing Keycloak deployment or host Keycloak on a separat
 The following sections consider two options:
 
 1. Option 1: Automated remote configuration: Use the provided configuration management tooling on the OpenTalk host to bootstrap and configure the remote Keycloak (realm, clients, roles).
-2. Option 2: Manual realm configuration by importing an prepared OpenTalk realm export.
+2. Option 2: Manual realm configuration by importing a prepared OpenTalk realm export.
 
 Select the approach that fits your operations. Provide valid administrator credentials for setup if you choose the automated option.
 
-### 4.1 Option 1 - Automated configuration of a remote keycloak instance
+### 4.1 Option 1 - Automated configuration of a remote Keycloak instance
 
 The OpenTalk Compose package includes automation tools to configure an OpenTalk realm in an existing Keycloak instance. This instance may run locally (default) or remotely as in this scenario.
 
@@ -244,7 +245,7 @@ To remove the demo user, run this command:
 otctl deploy --tags demo-user -e postInstall_demoUser_state=absent
 ```
 
-### 4.2 Option 2 - Manual configuration of a remote keycloak instance
+### 4.2 Option 2 - Manual configuration of a remote Keycloak instance
 
 This section describes how to manually integrate an already existing, externally operated Keycloak instance. The embedded (local) Keycloak provided by OpenTalk will be disabled and a `JSON` file will be prepared to import.
 
@@ -296,7 +297,7 @@ The OpenTalk package ships an example realm export with placeholder values locat
 
 `/usr/share/opentalk-compose/examples/export-opentalk-realm-and-users.json`
 
-Before importing, generate fresh random client secrets using the provided script. Run on the OpenTalk host (pure file operation — no API calls). You also need to provide your OpenTalk frontend URL to set the redirct URLs for the frontend OIDC client.
+Before importing, generate fresh random client secrets using the provided script. Run on the OpenTalk host (pure file operation — no API calls). You also need to provide your OpenTalk frontend URL to set the redirect URLs for the frontend OIDC client.
 
 ```bash
 /opt/opentalk-compose/bin/opentalk_keycloak_realm_export_sanitize.sh --frontend-url https://example.com \
@@ -306,7 +307,7 @@ Before importing, generate fresh random client secrets using the provided script
 
 Result:
 
-- File `opentalk_realm_export.json` contains the sanitized realm export with new secrets and you frontend URL.
+- File `opentalk_realm_export.json` contains the sanitized realm export with new secrets and your frontend URL.
 - The terminal prints the generated client secrets and the demo password. Copy the relevant secrets for later configuration (Controller / Recorder / Obelisk / Frontend / etc, if required).
 
 You can transfer the generated realm export file (e.g. `opentalk_realm_export.json`) to the external Keycloak instance.
@@ -360,11 +361,11 @@ otctl deploy
 
 ## 5 Configure External Recorder
 
-Recording meetings is resource-intensive. Offload to dedicated nodes if needed.
+Recording meetings can be resource intensive. Offloading the Recorder service to a dedicated host is appropriate if recordings are frequent or occur in parallel. Ideally that host provides compatible GPUs to enable hardware acceleration (see <https://docs.opentalk.eu/admin/recorder/hardware_acceleration/>). Some security precautions are required: the external Recorder host must reach RabbitMQ on port `5672/tcp`, which is currently only possible unencrypted. Ensure the RabbitMQ port is not publicly exposed (bind to a private interface or restrict via firewall). The Recorder should communicate with RabbitMQ over a private, trusted network. Confirm the necessary network infrastructure and firewall rules are in place before proceeding. See also the configuration reference for relevant variables: [Recorder service options](./5-configuration-options-reference.md#opentalk_composeopentalk_recorder) and [RabbitMQ options](./5-configuration-options-reference.md#opentalk_composerabbitmq).
 
-### 5.1 Disable Recorder Service in opentalk-compose
+### 5.1 Prepare the OpenTalk server configuration
 
-Remove the recorder service from the main stack and run it externally.
+Disable the recorder service from the OpenTalk Compose stack and adjust the configuration on the main server.
 
 #### 5.1.1 Stop all OpenTalk related services
 
@@ -375,31 +376,73 @@ otctl status
 otctl down
 ```
 
-#### 5.1.2 Adjust Docker Compose profile
+#### 5.1.2 Edit settings.yml
 
-Edit `config/default.env` and exclude the recorder (example):
-
-```bash
-COMPOSE_PROFILES=controller,webapp,mailer,pad,spacedeck,keycloak,keycloak-db,minio,traefik,livekit,rabbitmq,controller-db,ofelia
-```
-
-### 5.2 Expose RabbitMQ AMQP port in settings.yml
+Edit and add the following settings to `/etc/opentalk-compose/settings.yml`.
 
 ```yaml
-RabbitMQ:
-  exposed_ports:
-    - "10.1.2.3:5672:5672"
+# Disable the local Recorder service
+compose_service_opentalk_recorder_enabled: false
+
+# Expose RabbitMQ AMQP port ONLY on a private/internal IP (never 0.0.0.0)
+rabbitmq_docker_ports:
+  - "PRIVATE-IP:5672:5672"
+
+# The Controller exposes the LiveKit API; set its service URL using value from ot_domain
+controller_livekit_service_url: "https://{{ ot_domain }}/livekit"
 ```
 
-### 5.3 Set Up an OpenTalk Recorder-only Node
+#### 5.1.3 Deploy configuration changes on the OpenTalk server
 
-#### 5.3.1 Ensure docker engine is installed
+```bash
+otctl deploy
+```
 
-Follow official Docker Engine installation docs.
+### 5.2 Set Up an OpenTalk Recorder-only Node
 
-#### 5.3.2 Create the recorder configuration
+An OpenTalk recorder-only node can be provisioned easily as a standalone Docker Compose service. The steps below outline the procedure.
 
-`recorder.toml`:
+#### Hardware acceleration (optional)
+
+> **Note**: If you have a compatible integrated GPU (e.g. Intel iGPU with VA-API) or dedicated Intel Arc graphics card, you can enable hardware acceleration by uncommenting the settings below. Specifically the Intel Arc A310 Eco and Intel Arc A770 models have been tested for hardware acceleration. Ensure the appropriate drivers and device passthrough (e.g. `/dev/dri`) are exposed in the container before enabling the option in the OpenTalk Recorder configuration. Find more information about the [Recorder and hardware acceleration](https://docs.opentalk.eu/admin/recorder/hardware_acceleration/) in the OpenTalk documentation.
+
+#### 5.2.1 Ensure Docker Engine is installed on the external Recorder host
+
+Follow the official [Docker Engine installation](https://docs.docker.com/engine/install/) docs to install `docker` including the `compose` plugin on the recorder node.
+
+#### 5.2.2 Docker Compose configuration for the external Recorder service
+
+Create a directory for the Recorder's Docker Compose and configuration file e.g.:
+
+```bash
+mkdir /opt/{opentalk-recorder,opentalk-recorder/config}
+```
+
+Create a `compose.yml` file in `/opt/opentalk-recorder/`:
+
+> **Note:** Adjust the OpenTalk Recorder image tag version to match the installed OpenTalk product version if necessary. Published versions are available at <https://docs.opentalk.eu/releases>
+
+```yaml
+services:
+  recorder:
+    image: registry.opencode.de/opentalk/recorder:v0.15.1
+    container_name: opentalk-recorder
+    restart: always
+    environment:
+      RUST_LOG: info
+    #devices:
+    #  - "/dev/dri:/dev/dri"
+    #group_add:
+    #  - "video"
+    #cap_add:
+    #  - CAP_PERFMON
+    volumes:
+      - ./config/recorder.toml:/etc/opentalk/recorder.toml:ro
+```
+
+#### 5.2.3 OpenTalk Recorder Service configuration
+
+Create a `recorder.toml` file under `/opt/opentalk-recorder/config/` with the content below. Replace `example.com` with your OpenTalk domain (value from `ot_domain`) and substitute the placeholder secrets (`OIDC_RECORDER_CLIENT_SECRET`, `RABBITMQ_PASSWORD`, `PRIVATE-IP`) with the actual values. Find the secrets in `/etc/opentalk-compose/secrets/secrets.yml` on the OpenTalk Compose host.
 
 ```toml
 [controller]
@@ -412,7 +455,7 @@ client_id = "Recorder"
 client_secret = "OIDC_RECORDER_CLIENT_SECRET"
 
 [rabbitmq]
-uri = "amqp://ot:RABBITMQ_PASSWORD@internal-IP:5672/%2F"
+uri = "amqp://ot:RABBITMQ_PASSWORD@PRIVATE-IP:5672/%2F"
 queue = "opentalk_recorder"
 
 # [recorder.hardware_acceleration]
@@ -422,25 +465,20 @@ queue = "opentalk_recorder"
 clock_format = "%d.%m.%y %X %Z"
 ```
 
-#### 5.3.3 Create a Docker Compose file for the recorder service
-
-`compose.yml`:
-
-```yaml
-services:
-  recorder:
-    image: registry.opencode.de/opentalk/recorder:v0.15.1
-    container_name: opentalk-recorder
-    restart: unless-stopped
-    volumes:
-      - ./recorder.toml:/etc/opentalk/recorder.toml:ro
-```
-
-#### 5.3.4 Run Recorder container
+#### 5.2.4 Run Recorder container
 
 ```bash
-otctl deploy
+cd /opt/opentalk-recorder && docker compose up -d
 ```
+
+Check the Recorder log. The log message shows whether the connection to RabbitMQ was established successfully.
+
+```txt
+:/opt/opentalk-recorder # docker compose logs recorder -f
+opentalk-recorder  | [2025-10-01T08:00:00Z INFO  opentalk_recorder] RabbitMQ connection established successfully
+```
+
+Recordings should now occur on the external Recorder node.
 
 ## 6 Configure External LiveKit Server
 

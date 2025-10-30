@@ -135,35 +135,35 @@ ot_domain: example.com
 
 ### 2.4 Initialize the Deployment Environment
 
-Run the first deployment:
+Run the initial deployment:
 
 ```bash
 otctl deploy
 ```
 
-First run effects:
+Initial run performs:
 
-- Generates required secrets (if absent)
-- Renders `compose.yml` and service configs
-- Prepares runtime directories and symlinks
-- Starts containers (equivalent to docker compose up -d)
+- Generate required secrets (if absent)
+- Render `compose.yml` and service configs
+- Prepare runtime directories and symlinks
+- Start containers (equivalent to `docker compose up -d`)
 
-Note: Initial configuration and startup may take several minutes. Wait until completion before accessing the application.  
-After initialization the web UI is available at: <https://example.com> (replace with your domain).
+> **Note:** Initial configuration and startup may take several minutes. Wait until completion before accessing the application.
+> After initialization the web UI is available at: <https://example.com> (replace with your domain).
 
 ### 2.5 Optional: Adjust Configuration & Redeploy
 
 Modify `/etc/opentalk-compose/settings.yml` (symlink at `/opt/opentalk-compose/config/settings.yml`) to adapt domain, certificate handling, external services, or feature toggles. Maintain valid YAML indentation.
 
-Then redeploy (idempotent):
+Redeploy (idempotent):
 
 ```bash
 otctl deploy
 ```
 
-Only changed settings are re-applied. Re-running is safe.
+Only changed settings are applied; re-running is safe.
 
-Note: `otctl` prints the underlying command (`[otctl] + <command>`) for transparency.
+> **Tip:** `otctl` prints the underlying command (`[otctl] + <command>`) for transparency.
 
 ### 2.6 Check Service Status and Health
 
