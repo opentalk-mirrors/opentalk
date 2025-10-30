@@ -6,6 +6,7 @@ rabbitmq_docker_compose_services_state: "{{ compose_service_rabbitmq_state | def
 rabbitmq_docker_compose_services_dir: "{{ services_dir }}"
 rabbitmq_docker_compose_project_src: "{{ deploy_dir }}"
 
+rabbitmq_docker_ports: []
 rabbitmq_docker_image_src: rabbitmq
 
 rabbitmq_default_vhost: "/"

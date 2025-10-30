@@ -32,6 +32,8 @@ services:
       - "/dev/dri:/dev/dri"
     group_add:
       - "video"
+    cap_add:
+      - CAP_PERFMON
 {% endif %}
     healthcheck:
       test:

@@ -12,6 +12,8 @@ config/**
 services/**/config/
 **/data/
 
+.ansible/
+
 # Build artifacts
 *.deb
 *.rpm
