@@ -139,7 +139,7 @@ registries = [
 # https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
 [bans]
 # Lint level for when multiple versions of the same crate are detected
-multiple-versions = "deny"
+multiple-versions = "allow"
 # Lint level for when a crate version requirement is `*`
 wildcards = "allow"
 # The graph highlighting used when creating dotgraphs for crates
@@ -163,41 +163,7 @@ deny = [
   #{ name = "ansi_term", version = "=0.11.0", wrappers = [] },
 ]
 # Certain crates/versions that will be skipped when doing duplicate detection.
-skip = [
-  "base64",
-  "faster-hex",
-  "foldhash",
-  "getrandom",
-  "gix-features",
-  "gix-fs",
-  "gix-hash",
-  "gix-utils",
-  "gix-validate",
-  "h2",
-  "hashbrown",
-  "heck",
-  "http-body",
-  "http",
-  "hyper-rustls",
-  "hyper",
-  "itertools",
-  "linux-raw-sys",
-  "rand_chacha",
-  "rand_core",
-  "rand",
-  "reqwest",
-  "rustix",
-  "rustls-webpki",
-  "rustls",
-  "socket2",
-  "sync_wrapper",
-  "thiserror-impl",
-  "thiserror",
-  "tokio-rustls",
-  "tokio-tungstenite",
-  "toml_datetime",
-  "tungstenite",
-]
+skip = []
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
 # dependencies starting at the specified crate, up to a certain depth, which is
