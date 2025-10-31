@@ -88,21 +88,35 @@ Debian / Ubuntu:
 
 ```bash
 apt update && apt install -y curl gnupg
-curl http://anfi.opentalk.run:7376/deb-testing/public.gpg | gpg --yes --dearmor -o /usr/share/keyrings/openrepo-deb-testing.gpg
-echo "deb [arch=any signed-by=/usr/share/keyrings/openrepo-deb-testing.gpg] http://anfi.opentalk.run:7376/deb-testing/ stable main" > /etc/apt/sources.list.d/openrepo-deb-testing.list
+curl http://anfi.opentalk.run:7376/deb-experimental/public.gpg | gpg --yes --dearmor -o /usr/share/keyrings/openrepo-deb-experimental.gpg
+echo "deb [arch=any signed-by=/usr/share/keyrings/openrepo-deb-experimental.gpg] http://anfi.opentalk.run:7376/deb-experimental/ stable main" > /etc/apt/sources.list.d/openrepo-deb-experimental.list
+apt update
 ```
 
-RHEL- and SUSE-based:
+RHEL-based:
 
 ```bash
-cat > /etc/yum.repos.d/rpm-testing.repo <<'EOF'
-[rpm-testing]
-name=rpm-testing
-baseurl=http://anfi.opentalk.run:7376/rpm-testing
+echo """
+[rpm-experimental]
+name=rpm-experimental
+baseurl=http://anfi.opentalk.run:7376/rpm-experimental
 enabled=1
 repo_gpgcheck=1
-gpgkey=http://anfi.opentalk.run:7376/rpm-testing/public.gpg
-EOF
+gpgkey=http://anfi.opentalk.run:7376/rpm-experimental/public.gpg
+""" > /etc/yum.repos.d/opentalk-compose-rpm-experimental.repo
+```
+
+SUSE-based:
+
+```bash
+echo """
+[rpm-experimental]
+name=rpm-experimental
+baseurl=http://anfi.opentalk.run:7376/rpm-experimental
+enabled=1
+repo_gpgcheck=1
+gpgkey=http://anfi.opentalk.run:7376/rpm-experimental/public.gpg
+""" > /etc/zypp/repos.d/opentalk-compose-rpm-experimental.repo
 ```
 
 ### 2.2 Install the `opentalk-compose` Package

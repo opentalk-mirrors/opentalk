@@ -1,58 +1,14 @@
 # Advanced Installation Scenarios
 
-## Table of Contents
+[[_TOC_]]
 
-- [1 Use own TLS certificate instead of Let's Encrypt](#1-use-own-tls-certificate-instead-of-lets-encrypt)
-  - [1.1 Stop all OpenTalk related services](#11-stop-all-opentalk-related-services)
-  - [1.2 Copy TLS certificate files](#12-copy-tls-certificate-files)
-  - [1.3 Edit settings.yml](#13-edit-settingsyml)
-  - [1.4 Generate OpenTalk configuration and start the services](#14-generate-opentalk-configuration-and-start-the-services)
-- [2 Add Custom CA and custom TLS certificates](#2-add-custom-ca-and-custom-tls-certificates)
-  - [2.1 Stop all OpenTalk related services](#21-stop-all-opentalk-related-services)
-  - [2.2 Copy TLS certificate files](#22-copy-tls-certificate-files)
-  - [2.3 Edit settings.yml](#23-edit-settingsyml)
-  - [2.4 Generate OpenTalk configuration and start the services](#24-generate-opentalk-configuration-and-start-the-services)
-- [3 Use embedded temporary Root CA and create self-signed TLS certificates](#3-use-embedded-temporary-root-ca-and-create-self-signed-tls-certificates)
-  - [3.1 Stop all OpenTalk related services](#31-stop-all-opentalk-related-services)
-  - [3.2 Edit settings.yml](#32-edit-settingsyml)
-  - [3.3 Generate OpenTalk configuration and start the services](#33-generate-opentalk-configuration-and-start-the-services)
-- [4 Configure and integrate an external Keycloak service](#4-configure-and-integrate-an-external-keycloak-service)
-  - [4.1 Option 1 - Automated configuration of a remote keycloak instance](#41-option-1---automated-configuration-of-a-remote-keycloak-instance)
-    - [4.1.1 Stop all OpenTalk related services](#411-stop-all-opentalk-related-services)
-    - [4.1.2 Adjust Keycloak Settings in settings.yml](#412-adjust-keycloak-settings-in-settingsyml)
-    - [4.1.3 Generate OpenTalk configuration and start the services](#413-generate-opentalk-configuration-and-start-the-services)
-  - [4.2 Option 2 - Manual configuration of a remote keycloak instance](#42-option-2---manual-configuration-of-a-remote-keycloak-instance)
-    - [4.2.1 Stop all OpenTalk related services](#421-stop-all-opentalk-related-services)
-    - [4.2.2 Disable the local (embedded) Keycloak instance](#422-disable-the-local-embedded-keycloak-instance)
-    - [4.2.3 Prepare the OpenTalk realm export](#423-prepare-the-opentalk-realm-export)
-    - [4.2.4 Import the realm into the external Keycloak](#424-import-the-realm-into-the-external-keycloak)
-    - [4.2.5 Apply generated secrets to the OpenTalk secrets.yml file](#425-apply-generated-secrets-to-the-opentalk-secretsyml-file)
-    - [4.2.6 Start OpenTalk services](#426-start-opentalk-services)
-    - [4.2.7 Common pitfalls](#427-common-pitfalls)
-- [5 Configure External Recorder](#5-configure-external-recorder)
-  - [5.1 Prepare the OpenTalk server configuration](#51-prepare-the-opentalk-server-configuration)
-    - [5.1.1 Stop all OpenTalk related services](#511-stop-all-opentalk-related-services)
-    - [5.1.2 Edit settings.yml](#512-edit-settingsyml)
-    - [5.1.3 Deploy configuration changes on the OpenTalk server](#513-deploy-configuration-changes-on-the-opentalk-server)
-  - [5.2 Set Up an OpenTalk Recorder-only Node](#52-set-up-an-opentalk-recorder-only-node)
-    - [Hardware acceleration (optional)](#hardware-acceleration-optional)
-    - [5.2.1 Ensure Docker Engine is installed on the external Recorder host](#521-ensure-docker-engine-is-installed-on-the-external-recorder-host)
-    - [5.2.2 Docker Compose configuration for the external Recorder service](#522-docker-compose-configuration-for-the-external-recorder-service)
-    - [5.2.3 OpenTalk Recorder Service configuration](#523-opentalk-recorder-service-configuration)
-    - [5.2.4 Run Recorder container](#524-run-recorder-container)
-- [6 Configure External LiveKit Server](#6-configure-external-livekit-server)
-  - [6.1 Install LiveKit Server](#61-install-livekit-server)
-  - [6.2 Disable LiveKit in opentalk-compose](#62-disable-livekit-in-opentalk-compose)
-    - [6.2.1 Stop all OpenTalk related services](#621-stop-all-opentalk-related-services)
-    - [6.2.2 Adjust Docker Compose profile](#622-adjust-docker-compose-profile)
-    - [6.2.3 Adjust LiveKit Settings in settings.yml](#623-adjust-livekit-settings-in-settingsyml)
-    - [6.2.4 Start OpenTalk Services](#624-start-opentalk-services)
+## 1 Certificate handling
 
-## 1 Use own TLS certificate instead of Let's Encrypt
+### 1.1 Use own TLS certificate instead of Let's Encrypt
 
 By default, OpenTalk obtains TLS certificates via Let's Encrypt. If you want to use an existing certificate already signed by a public CA for your domain, copy the full-chain certificate (server plus intermediates) and the private key into `/etc/opentalk-compose/ssl` and reference their file names in `/etc/opentalk-compose/settings.yml`. Ensure the certificate is PEM‑encoded (`.crt`) and the private key has restrictive permissions (`chmod 600`).
 
-### 1.1 Stop all OpenTalk related services
+#### 1.1.1 Stop all OpenTalk related services
 
 Check whether OpenTalk services are running, then shut down the stack.
 
@@ -61,7 +17,7 @@ otctl status
 otctl down
 ```
 
-### 1.2 Copy TLS certificate files
+#### 1.1.2 Copy TLS certificate files
 
 Copy your TLS certificate and key to `/etc/opentalk-compose/ssl/`.
 
@@ -71,7 +27,7 @@ Ensure the following:
 - The certificate is PEM-encoded and named with the `.crt` file extension.
 - The file permission of the key is restrictive (chmod 600)
 
-### 1.3 Edit settings.yml
+#### 1.1.3 Edit settings.yml
 
 Edit `/etc/opentalk-compose/settings.yml` and add the configuration below. Replace the example certificate and key file names with your own while keeping the naming conventions described above.
 
@@ -81,17 +37,17 @@ custom_certificates_fullchain_cert_file: fullchain.crt
 custom_certificates_private_key_file: privkey.key
 ```
 
-### 1.4 Generate OpenTalk configuration and start the services
+#### 1.1.4 Generate OpenTalk configuration and start the services
 
 ```bash
 otctl deploy
 ```
 
-## 2 Add Custom CA and custom TLS certificates
+### 1.2 Custom CA and custom TLS certificates
 
 If you operate your own internal Certification Authority (CA) and want OpenTalk services to trust the certificates it issues, provide the server full‑chain certificate (server plus intermediates) and the CA root certificate (plus any intermediate CA certificates). A separate root CA certificate file is required so it can be injected into the host system and container trust stores, completing the trust chain.
 
-### 2.1 Stop all OpenTalk related services
+#### 1.2.1 Stop all OpenTalk related services
 
 Check whether OpenTalk services are running, then shut down the stack.
 
@@ -100,7 +56,7 @@ otctl status
 otctl down
 ```
 
-### 2.2 Copy TLS certificate files
+#### 1.2.2 Copy TLS certificate files
 
 Copy the certificate files to /etc/opentalk-compose/ssl.
 
@@ -112,7 +68,7 @@ Ensure the following:
 - The CA root certificate is PEM-encoded and named with the `.crt` file extension.
 - The file permission of the key is restrictive (chmod 600)
 
-### 2.3 Edit settings.yml
+#### 1.2.3 Edit settings.yml
 
 Edit `/etc/opentalk-compose/settings.yml` and add the configuration below. Replace the example certificate and key file names with your own while keeping the naming conventions described above.
 
@@ -123,23 +79,22 @@ custom_certificates_private_key_file: privkey.key
 custom_certificates_ca_root_cert_file: ca.crt
 ```
 
-### 2.4 Generate OpenTalk configuration and start the services
+#### 1.2.4 Generate OpenTalk configuration and start the services
 
 ```bash
 otctl deploy
 ```
 
-## 3. Use embedded temporary Root CA and create self-signed TLS certificates
+### 1.3. Embedded Root CA and self-signed certificate creation
 
 OpenTalk can create a temporary (ephemeral) Root CA and use it to self‑sign TLS certificates for its services. This feature is intended for testing and non‑production scenarios.
 
-**Note:** The generated Root CA certificate must be imported and trusted on all client systems (browser / OS trust store); otherwise browsers will reject the self‑signed service certificates.
+> **Note:** The generated Root CA certificate must be imported and trusted on all client systems (browser / OS trust store); otherwise browsers will reject the self‑signed service certificates.
+  Set `self_signed_certificates_generate: true` in `settings.yml` and specify the filenames for the generated full‑chain certificate, private key, and root CA certificate using the `custom_certificates_*` keys (e.g. `fullchain.crt`, `privkey.key`, `ca.crt`). The embedded temporary Root CA will create these files and they are automatically enabled in the OpenTalk configuration. It is recommended to keep `/etc/opentalk-compose/ssl` empty before proceeding to avoid conflicts with existing certificates.
 
-Usage: Set `self_signed_certificates_generate: true` in `settings.yml` and specify the filenames for the generated full‑chain certificate, private key, and root CA certificate using the `custom_certificates_* keys` (e.g. fullchain.crt, privkey.key, ca.crt). The embedded temporary Root CA will create these files and they are automatically enabled in the OpenTalk configuration. It is recommended to keep `/etc/opentalk-compose/ssl` empty before proceeding to avoid conflicts with existing certificates.
+#### 1.3.1 Stop all OpenTalk related services
 
-### 3.1 Stop all OpenTalk related services
-
-Check if OpenTalk Services are running and shut down the stack. Clean `/etc/opentalk-compose/ssl/` directory.
+Check whether OpenTalk services are running, then shut down the stack. Clean `/etc/opentalk-compose/ssl/` directory.
 
 ```bash
 otctl status
@@ -147,7 +102,7 @@ otctl down
 rm -rf /etc/opentalk-compose/ssl/*
 ```
 
-### 3.2 Edit settings.yml
+#### 1.3.2 Edit settings.yml
 
 Edit `/etc/opentalk-compose/settings.yml` and add the configuration below.
 
@@ -159,13 +114,13 @@ custom_certificates_private_key_file: privkey.key
 custom_certificates_ca_root_cert_file: ca.crt
 ```
 
-### 3.3 Generate OpenTalk configuration and start the services
+#### 1.3.3 Generate OpenTalk configuration and start the services
 
 ```bash
 otctl deploy
 ```
 
-## 4 Configure and integrate an external Keycloak service
+## 2 External Keycloak integration
 
 If you want to use an existing Keycloak deployment or host Keycloak on a separate server, disable the embedded Keycloak service and configure the external instance. Ensure DNS and network connectivity (HTTPS and required ports and paths) from the OpenTalk host to Keycloak.
 
@@ -176,7 +131,7 @@ The following sections consider two options:
 
 Select the approach that fits your operations. Provide valid administrator credentials for setup if you choose the automated option.
 
-### 4.1 Option 1 - Automated configuration of a remote Keycloak instance
+### 2.1 Automated configuration of a remote Keycloak instance
 
 The OpenTalk Compose package includes automation tools to configure an OpenTalk realm in an existing Keycloak instance. This instance may run locally (default) or remotely as in this scenario.
 
@@ -184,18 +139,18 @@ Configuration is executed via the Keycloak Admin REST API. Ensure the OpenTalk h
 
 It is recommended to use a dedicated realm for OpenTalk. If the configured realm does not exist, it is created automatically.
 
-**WARNING**: If you point to an existing realm, OpenTalk-specific clients, roles, and other resources are added to that realm, which might be undesirable.
+> **Warning:** If you point to an existing realm, OpenTalk-specific clients, roles, and other resources are added to that realm, which might be undesirable.
 
-#### 4.1.1 Stop all OpenTalk related services
+#### 2.1.1 Stop all OpenTalk related services
 
-Check if OpenTalk Services are running and shut down the stack.
+Check whether OpenTalk services are running, then shut down the stack.
 
 ```bash
 otctl status
 otctl down
 ```
 
-#### 4.1.2 Adjust Keycloak Settings in settings.yml
+#### 2.1.2 Adjust Keycloak Settings in settings.yml
 
 Edit `/etc/opentalk-compose/settings.yml` and add the configuration below. The following example assumes the external Keycloak is reachable at `https://keycloak.example.com/auth`; replace the host with your own. The local Keycloak service will be disabled. Traefik sets Content Security Policies (CSP) by default. If the external Keycloak runs under a different domain, add that domain to the CSP (for example via `csp_allowed_extra_connect_src`).
 
@@ -225,7 +180,7 @@ keycloak_bootstrap_admin_password: ******
 csp_allowed_extra_connect_src: https://keycloak.example.com
 ```
 
-#### 4.1.3 Generate OpenTalk configuration and start the services
+#### 2.1.3 Generate OpenTalk configuration and start the services
 
 Execute the deployment. The tasks will configure the external Keycloak and local services and then start them.
 
@@ -245,13 +200,13 @@ To remove the demo user, run this command:
 otctl deploy --tags demo-user -e postInstall_demoUser_state=absent
 ```
 
-### 4.2 Option 2 - Manual configuration of a remote Keycloak instance
+### 2.2 Option 2 - Manual configuration of a remote Keycloak instance
 
 This section describes how to manually integrate an already existing, externally operated Keycloak instance. The embedded (local) Keycloak provided by OpenTalk will be disabled and a `JSON` file will be prepared to import.
 
-> Minimum Keycloak Version: 26.3
+> Minimum Keycloak Version: 24.3
 >
-> The provided example realm export and recommended client / role configuration assume Keycloak 26.3 or newer. If your external instance is older, upgrade Keycloak before importing the realm to avoid incompatibilities (client protocol mappers, admin console expectations, or OIDC endpoints).
+> The provided example realm export and recommended client / role configuration assume Keycloak 24.3 or newer. If your external instance is older, upgrade Keycloak before importing the realm to avoid incompatibilities (client protocol mappers, admin console expectations, or OIDC endpoints).
 
 It is assumed that:
 
@@ -262,16 +217,16 @@ Stop all OpenTalk related services
 
 Check if OpenTalk Services are running and shut down the stack.
 
-#### 4.2.1 Stop all OpenTalk related services
+#### 2.2.1 Stop all OpenTalk related services
 
-Check if OpenTalk Services are running and shut down the stack.
+Check whether OpenTalk services are running, then shut down the stack.
 
 ```bash
 otctl status
 otctl down
 ```
 
-#### 4.2.2 Disable the local (embedded) Keycloak instance
+#### 2.2.2 Disable the local (embedded) Keycloak instance
 
 Disable the local Keycloak service and configure the base URL of the external Keycloak service. Extend also the Content Security Policy (CSP) to include the external Keycloak host.
 
@@ -291,7 +246,7 @@ csp_allowed_extra_connect_src: https://keycloak.example.com
 
 Save the file but do not start OpenTalk yet.
 
-#### 4.2.3 Prepare the OpenTalk realm export
+#### 2.2.3 Prepare the OpenTalk realm export
 
 The OpenTalk package ships an example realm export with placeholder values located at:
 
@@ -312,7 +267,7 @@ Result:
 
 You can transfer the generated realm export file (e.g. `opentalk_realm_export.json`) to the external Keycloak instance.
 
-#### 4.2.4 Import the realm into the external Keycloak
+#### 2.2.4 Import the realm into the external Keycloak
 
 Import the OpenTalk realm export into the external Keycloak. Refer to the official Keycloak documentation for importing a realm from a file: [Keycloak documentation](https://www.keycloak.org/server/importExport#_importing_a_realm_from_a_file).
 
@@ -329,7 +284,7 @@ A common method for the import is, for example:
 bin/kc.sh start --import-realm 
 ```
 
-#### 4.2.5 Apply generated secrets to the OpenTalk secrets.yml file
+#### 2.2.5 Apply generated secrets to the OpenTalk secrets.yml file
 
 Add the secrets printed during sanitization (only those needed by services) into `/etc/opentalk-compose/secrets/secrets.yml`:
 
@@ -342,7 +297,7 @@ OIDC_OBELISK_CLIENT_SECRET: "<obelisk-secret-from-export>"
 
 If you use additional integrations (e.g. OutlookAddin) copy their secrets likewise.
 
-#### 4.2.6 Start OpenTalk services
+#### 2.2.6 Start OpenTalk services
 
 Generate configuration and start services (Keycloak will not start locally):
 
@@ -350,7 +305,7 @@ Generate configuration and start services (Keycloak will not start locally):
 otctl deploy
 ```
 
-#### 4.2.7 Common pitfalls
+#### 2.2.7 Common pitfalls
 
 | Symptom | Cause | Resolution |
 |---------|-------|-----------|
@@ -359,24 +314,24 @@ otctl deploy
 | Missing clients after import | Incomplete import or wrong file | Re-sanitize and re-import. |
 | Login redirect loop | Realm name or redirect URIs mismatch domain | Align realm name & client redirect URIs. |
 
-## 5 Configure External Recorder
+## 3 External OpenTalk Recorder-only nodes
 
 Recording meetings can be resource intensive. Offloading the Recorder service to a dedicated host is appropriate if recordings are frequent or occur in parallel. Ideally that host provides compatible GPUs to enable hardware acceleration (see <https://docs.opentalk.eu/admin/recorder/hardware_acceleration/>). Some security precautions are required: the external Recorder host must reach RabbitMQ on port `5672/tcp`, which is currently only possible unencrypted. Ensure the RabbitMQ port is not publicly exposed (bind to a private interface or restrict via firewall). The Recorder should communicate with RabbitMQ over a private, trusted network. Confirm the necessary network infrastructure and firewall rules are in place before proceeding. See also the configuration reference for relevant variables: [Recorder service options](./5-configuration-options-reference.md#opentalk_composeopentalk_recorder) and [RabbitMQ options](./5-configuration-options-reference.md#opentalk_composerabbitmq).
 
-### 5.1 Prepare the OpenTalk server configuration
+### 3.1 Prepare the OpenTalk server configuration
 
 Disable the recorder service from the OpenTalk Compose stack and adjust the configuration on the main server.
 
-#### 5.1.1 Stop all OpenTalk related services
+#### 3.1.1 Stop all OpenTalk related services
 
-Check if OpenTalk Services are running and shut down the stack.
+Check whether OpenTalk services are running, then shut down the stack.
 
 ```bash
 otctl status
 otctl down
 ```
 
-#### 5.1.2 Edit settings.yml
+#### 3.1.2 Edit settings.yml
 
 Edit and add the following settings to `/etc/opentalk-compose/settings.yml`.
 
@@ -392,25 +347,25 @@ rabbitmq_docker_ports:
 controller_livekit_service_url: "https://{{ ot_domain }}/livekit"
 ```
 
-#### 5.1.3 Deploy configuration changes on the OpenTalk server
+#### 3.1.3 Deploy configuration changes on the OpenTalk server
 
 ```bash
 otctl deploy
 ```
 
-### 5.2 Set Up an OpenTalk Recorder-only Node
+### 3.2 Set Up an OpenTalk Recorder-only Node
 
 An OpenTalk recorder-only node can be provisioned easily as a standalone Docker Compose service. The steps below outline the procedure.
 
 #### Hardware acceleration (optional)
 
-> **Note**: If you have a compatible integrated GPU (e.g. Intel iGPU with VA-API) or dedicated Intel Arc graphics card, you can enable hardware acceleration by uncommenting the settings below. Specifically the Intel Arc A310 Eco and Intel Arc A770 models have been tested for hardware acceleration. Ensure the appropriate drivers and device passthrough (e.g. `/dev/dri`) are exposed in the container before enabling the option in the OpenTalk Recorder configuration. Find more information about the [Recorder and hardware acceleration](https://docs.opentalk.eu/admin/recorder/hardware_acceleration/) in the OpenTalk documentation.
+> **Note:** If you have a compatible integrated GPU (e.g. Intel iGPU with VA-API) or dedicated Intel Arc graphics card, you can enable hardware acceleration by uncommenting the settings below. Specifically, the Intel Arc A310 Eco and Intel Arc A770 models have been tested for hardware acceleration. Ensure the appropriate drivers and device passthrough (e.g. `/dev/dri`) are exposed in the container before enabling the option in the OpenTalk Recorder configuration. Find more information about the [Recorder and hardware acceleration](https://docs.opentalk.eu/admin/recorder/hardware_acceleration/) in the OpenTalk documentation.
 
-#### 5.2.1 Ensure Docker Engine is installed on the external Recorder host
+#### 3.2.1 Ensure Docker Engine is installed on the external Recorder host
 
 Follow the official [Docker Engine installation](https://docs.docker.com/engine/install/) docs to install `docker` including the `compose` plugin on the recorder node.
 
-#### 5.2.2 Docker Compose configuration for the external Recorder service
+#### 3.2.2 Docker Compose configuration for the external Recorder service
 
 Create a directory for the Recorder's Docker Compose and configuration file e.g.:
 
@@ -425,7 +380,7 @@ Create a `compose.yml` file in `/opt/opentalk-recorder/`:
 ```yaml
 services:
   recorder:
-    image: registry.opencode.de/opentalk/recorder:v0.15.1
+    image: registry.opencode.de/opentalk/recorder:v0.13.1
     container_name: opentalk-recorder
     restart: always
     environment:
@@ -440,7 +395,7 @@ services:
       - ./config/recorder.toml:/etc/opentalk/recorder.toml:ro
 ```
 
-#### 5.2.3 OpenTalk Recorder Service configuration
+#### 3.2.3 OpenTalk Recorder Service configuration
 
 Create a `recorder.toml` file under `/opt/opentalk-recorder/config/` with the content below. Replace `example.com` with your OpenTalk domain (value from `ot_domain`) and substitute the placeholder secrets (`OIDC_RECORDER_CLIENT_SECRET`, `RABBITMQ_PASSWORD`, `PRIVATE-IP`) with the actual values. Find the secrets in `/etc/opentalk-compose/secrets/secrets.yml` on the OpenTalk Compose host.
 
@@ -465,7 +420,7 @@ queue = "opentalk_recorder"
 clock_format = "%d.%m.%y %X %Z"
 ```
 
-#### 5.2.4 Run Recorder container
+#### 3.2.4 Run Recorder container
 
 ```bash
 cd /opt/opentalk-recorder && docker compose up -d
@@ -480,12 +435,12 @@ opentalk-recorder  | [2025-10-01T08:00:00Z INFO  opentalk_recorder] RabbitMQ con
 
 Recordings should now occur on the external Recorder node.
 
-## 6 Integrate an external LiveKit Server
+## 4 External LiveKit Server integration
 
 The following instructions assume you already have a running LiveKit server installation. To install an LiveKit, follow the official self-hosting guide: [https://docs.livekit.io/home/self-hosting/vm/](https://docs.livekit.io/home/self-hosting/vm/). The examples below assume the public DNS names `livekit.example.com` and `livekit-turn.example.com` resolves to your LiveKit host. Replace these hostnames with your own everywhere it appears.
 Also ensure that your firewall configuration allows the required LiveKit Server ports and protocols (signaling, TURN, media). For details, see: https://docs.livekit.io/home/self-hosting/ports-firewall/
 
-### 6.1 Gather information about the external LiveKit Server
+### 4.1 Gather information about the external LiveKit Server
 
 Before integrating an external LiveKit server with OpenTalk, collect the following details from your LiveKit installation:
 
@@ -498,11 +453,11 @@ Before integrating an external LiveKit server with OpenTalk, collect the followi
 
 You will need these values to configure OpenTalk for external LiveKit integration. Adjust the examples in the following steps to match your environment.
 
-### 6.2 Replace the embedded LiveKit server with an external one
+### 4.2 Replace the embedded LiveKit server with an external one
 
 The following steps describe how to disable the embedded LiveKit server and apply the necessary configuration changes to integrate an external LiveKit server with OpenTalk.
 
-#### 6.2.1 Stop all OpenTalk related services
+#### 4.2.1 Stop all OpenTalk related services
 
 Check if OpenTalk Services are running and shut down the stack.
 
@@ -511,7 +466,7 @@ otctl status
 otctl down
 ```
 
-#### 6.2.2 Adjust the LiveKit related configuration in settings.yml
+#### 4.2.2 Adjust the LiveKit related configuration in settings.yml
 
 Edit `/etc/opentalk-compose/settings.yml` and update or add the following configurations
 
@@ -531,7 +486,7 @@ controller_livekit_api_secret: "generated secret"
 csp_allowed_extra_connect_src: "wss://livekit.example.com"
 ```
 
-#### 6.2.3 Deploy changes and start OpenTalk Services
+#### 4.2.3 Deploy changes and start OpenTalk Services
 
 ```bash
 otctl deploy
