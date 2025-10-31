@@ -480,13 +480,27 @@ opentalk-recorder  | [2025-10-01T08:00:00Z INFO  opentalk_recorder] RabbitMQ con
 
 Recordings should now occur on the external Recorder node.
 
-## 6 Configure External LiveKit Server
+## 6 Integrate an external LiveKit Server
 
-### 6.1 Install LiveKit Server
+The following instructions assume you already have a running LiveKit server installation. To install an LiveKit, follow the official self-hosting guide: [https://docs.livekit.io/home/self-hosting/vm/](https://docs.livekit.io/home/self-hosting/vm/). The examples below assume the public DNS names `livekit.example.com` and `livekit-turn.example.com` resolves to your LiveKit host. Replace these hostnames with your own everywhere it appears.
+Also ensure that your firewall configuration allows the required LiveKit Server ports and protocols (signaling, TURN, media). For details, see: https://docs.livekit.io/home/self-hosting/ports-firewall/
 
-Install per official docs. Assume DNS `livekit.example.com`.
+### 6.1 Gather information about the external LiveKit Server
 
-### 6.2 Disable LiveKit in opentalk-compose
+Before integrating an external LiveKit server with OpenTalk, collect the following details from your LiveKit installation:
+
+- **Public WebSocket URL** (e.g., `wss://livekit.example.com`)
+- **Public Service URL** (e.g., `https://livekit.example.com`)
+- **TURN/TLS address** (e.g., `livekit-turn.example.com:443`)
+- **TURN/UDP address** (e.g., `livekit-turn.example.com:3478`)
+- **API Key** (generated during LiveKit setup)
+- **API Secret** (generated during LiveKit setup)
+
+You will need these values to configure OpenTalk for external LiveKit integration. Adjust the examples in the following steps to match your environment.
+
+### 6.2 Replace the embedded LiveKit server with an external one
+
+The following steps describe how to disable the embedded LiveKit server and apply the necessary configuration changes to integrate an external LiveKit server with OpenTalk.
 
 #### 6.2.1 Stop all OpenTalk related services
 
@@ -497,31 +511,30 @@ otctl status
 otctl down
 ```
 
-#### 6.2.2 Adjust Docker Compose profile
+#### 6.2.2 Adjust the LiveKit related configuration in settings.yml
 
-Exclude LiveKit:
-
-```bash
-COMPOSE_PROFILES=controller,webapp,recorder,mailer,pad,spacedeck,keycloak,keycloak-db,minio,traefik,rabbitmq,controller-db,ofelia
-```
-
-#### 6.2.3 Adjust LiveKit Settings in settings.yml
+Edit `/etc/opentalk-compose/settings.yml` and update or add the following configurations
 
 ```yaml
-Deployment:
-  scenario:
-    - external_livekit
+# Disable the local LiveKit service
+compose_service_livekit_server_enabled: false
 
-Controller:
-  livekit:
-    public_url: "wss://livekit.example.com"
-    service_url: "https://livekit.example.com"
-    api_key: "controller"
-    api_secret: "LIVEKIT_API_SECRET"
+# Set the public and service URLs for the external LiveKit server
+controller_livekit_public_url: wss://livekit.example.com
+controller_livekit_service_url: https://livekit.example.com
+
+# Fill in the API key and secret with the values generated during the LiveKit installation
+controller_livekit_api_key: "generated key"
+controller_livekit_api_secret: "generated secret"
+
+# Add the WebSocket address to the Content Security Policy Content Security Policy (CSP)
+csp_allowed_extra_connect_src: "wss://livekit.example.com"
 ```
 
-#### 6.2.4 Start OpenTalk Services
+#### 6.2.3 Deploy changes and start OpenTalk Services
 
 ```bash
 otctl deploy
 ```
+
+After applying the configuration changes, the external LiveKit server should be integrated. Log in to the OpenTalk web frontend to test WebRTC functionality.
