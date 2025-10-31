@@ -7,6 +7,7 @@ image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.91.0-trixie
 
 stages:
   - lint
+  - build
   - test
   - package
   - trigger
@@ -199,6 +200,20 @@ test:container:
       --cache-repo $CI_REGISTRY_IMAGE/cache
       --no-push
       --force
+
+build:docs:
+  stage: build
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  artifacts:
+    paths:
+      - site/
+  script:
+    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
 
 trigger-docs:
   stage: trigger
