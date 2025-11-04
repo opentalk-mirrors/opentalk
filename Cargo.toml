@@ -20,14 +20,14 @@ chrono-tz = "0.10"
 ecow = "0.2.3"
 glob = "0.3.3"
 log = "0.4"
-pretty_assertions = "1"
 serde = { version = "1", features = ["derive"] }
 snafu = "0.8"
-typst = "0.13.0"
-typst-kit = { version = "0.13.0", default-features = false, features = [
+typst = "0.14.0"
+typst-kit = { version = "0.14.0", default-features = false, features = [
   "embed-fonts",
 ] }
-typst-pdf = "0.13.0"
+typst-pdf = "0.14.0"
 
 [dev-dependencies]
+pretty_assertions = "1"
 serde_json = "1"

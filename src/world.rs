@@ -13,7 +13,7 @@ use std::{
 use chrono::{DateTime, Datelike as _, FixedOffset, Local, Utc};
 use snafu::{OptionExt as _, ResultExt as _};
 use typst::{
-    Library,
+    Library, LibraryExt as _,
     diag::{FileError, FileResult},
     foundations::{Bytes, Datetime},
     syntax::{
