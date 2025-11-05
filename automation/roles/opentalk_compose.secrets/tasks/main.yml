@@ -2,7 +2,7 @@
 ---
 # tasks file for opentalk_compose.secrets
 
-- name: Ensure secrets directory | config/secrets
+- name: "Ensure secrets directory | {{ config_dir }}/secrets"
   ansible.builtin.file:
     path: "{{ config_dir }}/secrets"
     state: directory
