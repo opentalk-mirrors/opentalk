@@ -126,35 +126,6 @@ max_channels_per_connection = "{{ controller_rabbit_mq_max_channels_per_connecti
 url = "{{ controller_redis_url }}"
 {% endif %}
 
-{% if controller_turn_lifetime is defined or controller_turn_servers_uris is defined %}
-[turn]
-{% if controller_turn_lifetime is defined and controller_turn_lifetime %}
-lifetime = "{{ controller_turn_lifetime }}"
-{% endif %}
-{% if controller_turn_servers_uris is defined and controller_turn_servers_uris %}
-[[turn.servers]]
-uris = [
-{% for uri in controller_turn_servers_uris %}
-   "{{ uri }}"{% if not loop.last %},
-{% endif %}
-{% endfor %}
-]
-{% if controller_turn_servers_pre_shared_key is defined and controller_turn_servers_pre_shared_key %}
-pre_shared_key = "{{ controller_turn_servers_pre_shared_key }}"
-{% endif %}
-{% endif %}
-{% endif %}
-
-{% if controller_stun_uris is defined and controller_stun_uris %}
-[stun]
-uris = [
-{% for uri in controller_stun_uris %}
-   "{{ uri }}"{% if not loop.last %},
-{% endif %}
-{% endfor %}
-]
-{% endif %}
-
 {% if controller_authz_synchronize_controllers is defined and controller_authz_synchronize_controllers %}
 [authz]
 synchronize_controllers = {{ controller_authz_synchronize_controllers }}

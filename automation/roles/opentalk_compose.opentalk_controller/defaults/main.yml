@@ -57,14 +57,6 @@ controller_rabbit_mq_recording_task_queue: "opentalk_recorder"
 controller_rabbit_mq_min_connections: 10
 controller_rabbit_mq_max_channels_per_connection: 100
 #controller_redis_url: "redis://localhost:6379/"
-#controller_turn_lifetime: 86400
-#controller_turn_servers_uris:
-#  - "turn:127.0.0.1:3478?transport=udp"
-#  - "turn:127.0.0.1:3478?transport=tcp"
-#  - "turns:127.0.0.1:5349?transport=tcp"
-#controller_turn_servers_pre_shared_key: opentalk2
-#controller_stun_uris:
-#  - stun:127.0.0.1:3478
 #controller_authz_synchronize_controllers: "true"
 #controller_call_in_tel: "03012345678"
 #controller_call_in_enable_phone_mapping: "false"
