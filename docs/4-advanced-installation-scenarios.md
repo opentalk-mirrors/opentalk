@@ -438,7 +438,7 @@ Recordings should now occur on the external Recorder node.
 ## 4 External LiveKit Server integration
 
 The following instructions assume you already have a running LiveKit server installation. To install an LiveKit, follow the official self-hosting guide: [https://docs.livekit.io/home/self-hosting/vm/](https://docs.livekit.io/home/self-hosting/vm/). The examples below assume the public DNS names `livekit.example.com` and `livekit-turn.example.com` resolves to your LiveKit host. Replace these hostnames with your own everywhere it appears.
-Also ensure that your firewall configuration allows the required LiveKit Server ports and protocols (signaling, TURN, media). For details, see: https://docs.livekit.io/home/self-hosting/ports-firewall/
+Also ensure that your firewall configuration allows the required LiveKit Server ports and protocols (signaling, TURN, media). For details, see: <https://docs.livekit.io/home/self-hosting/ports-firewall/>
 
 ### 4.1 Gather information about the external LiveKit Server
 
@@ -505,7 +505,7 @@ A STUN and TURN server is essential for reliable WebRTC communication, especiall
 - You want to self-host a STUN server instead of using a public one.
 - You require greater configuration flexibility.
 
-This section explains how to integrate an external Coturn server into OpenTalk. It assumes Coturn is already installed and configured according to the official documentation (https://github.com/coturn/coturn) and is reachable at the domain `turn.example.com`. Replace this domain with your own as needed.
+This section explains how to integrate an external Coturn server into OpenTalk. It assumes Coturn is already installed and configured according to the official documentation (<https://github.com/coturn/coturn>) and is reachable at the domain `turn.example.com`. Replace this domain with your own as needed.
 
 Before proceeding, ensure:
 

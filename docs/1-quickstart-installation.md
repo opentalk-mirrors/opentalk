@@ -13,23 +13,22 @@ For customized setups or special conditions, refer to the OpenTalk Administratio
   - [1.5 Docker Requirement](#15-docker-requirement)  
 - [2. Installation Procedure](#2-installation-procedure)  
   - [2.1 Add the OpenTalk Package Repository](#21-add-the-opentalk-package-repository)  
-  - [2.2 Install the opentalk-compose Package](#22-install-the-opentalk-compose-package)  
+  - [2.2 Install the `opentalk-compose` Package](#22-install-the-opentalk-compose-package)  
   - [2.3 Set the OpenTalk Server Domain](#23-set-the-opentalk-server-domain)  
   - [2.4 Initialize the Deployment Environment](#24-initialize-the-deployment-environment)  
-  - [2.5 Optional: Adjust Configuration & Redeploy](#25-optional-adjust-configuration--redeploy)  
-  - [2.6 Check Service Status and Health](#26-check-service-status-and-health)  
-  - [2.7 Backups (Optional but Recommended)](#27-backups-optional-but-recommended)  
-  - [2.8 Undeploy (Tear Down)](#28-undeploy-tear-down)  
-  - [2.9 Optional: Enable Demo User](#29-optional-enable-demo-user)  
-  - [2.10 Reference: otctl Overview](#210-reference-otctl-overview)
+  - [2.5 Optional: Enable Demo User](#25-optional-enable-demo-user)  
+  - [2.6 Optional: Adjust Configuration & Redeploy](#26-optional-adjust-configuration--redeploy)  
+  - [2.7 Check Service Status and Health](#27-check-service-status-and-health)  
+  - [2.8 Backups (Optional but Recommended)](#28-backups-optional-but-recommended)  
+  - [2.9 Reference: `otctl` Overview](#29-reference-otctl-overview)
 - [3. Optional: SMTP Mailer Service](#3-optional-smtp-mailer-service)  
   - [3.1 What is the SMTP Mailer](#31-what-is-the-smtp-mailer)  
   - [3.2 Enable & Configure SMTP Mailer](#32-enable--configure-smtp-mailer)  
   - [3.3 Verify SMTP Mailer](#33-verify-smtp-mailer)  
 - [4. Optional: Obelisk SIP Bridge Service](#4-optional-obelisk-sip-bridge-service)  
   - [4.1 What is Obelisk](#41-what-is-obelisk)  
-  - [4.2 Enable Obelisk Service](#42-enable-obelisk-service)  
-  - [4.3 Configure SIP Provider and Call-In Settings](#43-configure-sip-provider-and-call-in-settings)  
+  - [4.2 Configure SIP Provider and Call-In Settings](#42-configure-sip-provider-and-call-in-settings)  
+  - [4.3 Enable Obelisk Service](#43-enable-obelisk-service)  
   - [4.4 Verify Obelisk Status](#44-verify-obelisk-status)  
 - [5. Optional: TURN over TLS with Embedded TURN Server (LiveKit)](#5-optional-turn-over-tls-with-embedded-turn-server-livekit)  
   - [5.1 Default Embedded TURN Behavior](#51-default-embedded-turn-behavior)  
@@ -171,93 +170,7 @@ Initial run performs:
 > **Note:** Initial configuration and startup may take several minutes. Wait until completion before accessing the application.
 > After initialization the web UI is available at: <https://example.com> (replace with your domain).
 
-### 2.5 Optional: Adjust Configuration & Redeploy
-
-Modify `/etc/opentalk-compose/settings.yml` (symlink at `/opt/opentalk-compose/config/settings.yml`) to adapt domain, certificate handling, external services, or feature toggles. Maintain valid YAML indentation.
-
-Redeploy (idempotent):
-
-```bash
-otctl deploy
-```
-
-Only changed settings are applied; re-running is safe.
-
-> **Tip:** `otctl` prints the underlying command (`[otctl] + <command>`) for transparency.
-
-### 2.6 Check Service Status and Health
-
-```bash
-otctl status
-```
-
-Example:
-
-```text
-SERVICE       STATE     HEALTH
-controller    running   healthy
-keycloak      running   healthy
-minio         running   healthy
-obelisk       running   healthy
-webapp        running   healthy
-```
-
-Follow-up examples:
-
-```bash
-otctl logs controller         # Tail one service
-otctl restart webapp          # Restart web frontend
-otctl recreate controller     # Recreate container with new image
-otctl version                 # Show bundled versions
-```
-
-If unhealthy:
-
-- Logs: `otctl logs <service>`
-- Re-apply config: `otctl deploy`
-- Inspect raw compose: `otctl compose ps`, `otctl compose logs <service>`
-
-### 2.7 Backups (Optional but Recommended)
-
-Default backup root: `/var/opt/opentalk-compose/backups` (falls back to `/opt/opentalk-compose/backups`).
-
-Core commands:
-
-```bash
-otctl backup                 # Full backup (databases + config + volumes)
-otctl backup ls              # List backups
-otctl backup dump            # All DB dumps
-otctl backup dump controller # Controller DB only
-otctl backup dump keycloak   # Keycloak DB only
-otctl backup config          # Config snapshot
-otctl backup volume          # All defined volumes
-otctl backup volume <name>   # Single volume
-otctl backup clean           # Apply retention policy
-```
-
-Notes:
-
-- Retention is controlled via Ansible tags (e.g. `backup_retention`).
-- Volume names must match exactly (no automatic prefixing).
-- Extra vars can be passed via `OTCTL_BACKUP_EXTRA_VARS` for advanced use.
-
-### 2.8 Undeploy (Tear Down)
-
-Remove containers (keep data volumes) and generated artifacts:
-
-```bash
-otctl undeploy
-```
-
-Performs:
-
-1. docker compose down (if compose.yml exists)  
-2. Removes generated `compose.yml`  
-3. Cleans contents of `services/` (keeps directory)
-
-For full purge (volumes, images), use Docker commands manually (e.g. review `docker volume ls | grep opentalk_` before pruning).
-
-### 2.9 Optional: Enable Demo User
+### 2.5 Optional: Enable Demo User
 
 A demo user can be created for testing. Username: `demo`. The password is generated (or taken from settings) and shown with `--diff`.
 
@@ -273,9 +186,80 @@ Remove:
 otctl deploy --tags demo-user -e postInstall_demoUser_state=absent
 ```
 
-Regular user management is done via Keycloak.
+Regular user management is done via Keycloak. Refer the docs [Managing OpenTalk Users](./3-managing-opentalk-users-in-keycloak.md).
 
-### 2.10 Reference: `otctl` Overview
+### 2.6 Optional: Adjust Configuration & Redeploy
+
+Modify `/etc/opentalk-compose/settings.yml` to adapt domain, certificate handling, external services, or feature toggles. Maintain a valid YAML indentation.
+
+Redeploy (idempotent):
+
+```bash
+otctl deploy
+```
+
+Only changed settings are applied; re-running is safe.
+
+> **Tip:** `otctl` prints the underlying command (`[otctl] + <command>`) for transparency.
+
+### 2.7 Check Service Status and Health
+
+```bash
+otctl status
+```
+
+Example:
+
+```text
+SERVICE       STATE     HEALTH
+controller    running   healthy
+keycloak      running   healthy
+minio         running   healthy
+obelisk       running   healthy
+webapp        running   healthy
+...
+```
+
+Follow-up examples:
+
+```bash
+otctl logs controller         # Tail one service
+otctl restart webapp          # Restart web frontend
+otctl recreate controller     # Recreate container with new image
+otctl version                 # Show bundled versions
+```
+
+If unhealthy:
+
+- Logs: `otctl logs <service>`
+- Re-deploy config: `otctl deploy`
+- Inspect raw compose: `otctl compose ps`, `otctl compose logs <service>`
+
+### 2.8 Backups (Optional but Recommended)
+
+Default backup root: `/var/opt/opentalk-compose/backups` (falls back to `/opt/opentalk-compose/backups`).
+
+Core commands:
+
+```bash
+otctl backup all             # Full backup (databases + config + volumes)
+otctl backup ls              # List backups
+otctl backup dump            # All DB dumps
+otctl backup dump controller # Controller DB only
+otctl backup dump keycloak   # Keycloak DB only
+otctl backup config          # Config snapshot
+otctl backup volume          # Backup volumes of non-database containers 
+otctl backup volume <name>   # Single volume
+otctl backup clean           # Apply retention policy
+```
+
+Notes:
+
+- Retention is controlled via Ansible tags (e.g. `backup_retention`).
+- Volume names must match exactly (no automatic prefixing).
+- Extra vars can be passed via `OTCTL_BACKUP_EXTRA_VARS` for advanced use.
+
+### 2.9 Reference: `otctl` Overview
 
 | Command | Purpose |
 |---------|---------|
@@ -286,7 +270,6 @@ Regular user management is done via Keycloak.
 | otctl recreate [svc...] | Recreate containers |
 | otctl backup … | Backup workflows |
 | otctl version | Show versions |
-| otctl undeploy | Stop stack & remove compose.yml |
 | otctl compose … | Pass through to docker compose |
 | otctl playbook … | Advanced Ansible usage |
 
@@ -301,9 +284,9 @@ Health column semantics (`otctl status`):
 
 ### 3.1 What is the SMTP Mailer
 
-The SMTP Mailer service sends transactional emails for OpenTalk (meeting invitations, notifications). It integrates via a configured SMTP server and uses values derived from your `ot_domain` setting to produce consistent links and sender addresses.
+The SMTP Mailer service sends transactional emails for OpenTalk (meeting invitations, notifications). It connects to a configured SMTP server and derives sender addresses and links from your `ot_domain` setting. The mailer requires valid credentials for your SMTP server; therefore it is disabled by default until configured.
 
-This behavior can be adjusted. For a full list of available SMTP Mailer configuration variables see the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_smtp_mailer).
+For a full list of available SMTP Mailer configuration variables see the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_smtp_mailer).
 
 ### 3.2 Enable & Configure SMTP Mailer
 
@@ -378,25 +361,9 @@ Obelisk is a SIP (Session Initiation Protocol) telephony bridge service that ena
 
 For all Obelisk-related configuration variables refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_obelisk).
 
-### 4.2 Enable Obelisk Service
+Obelisk requires credentials for your SIP provider or PBX system, so it is disabled by default.
 
-**Important:** Obelisk must be properly configured before it can be enabled and started. The service will fail to start without valid SIP provider configuration.
-
-By default, the Obelisk service is disabled. To enable it, you must first configure your SIP provider settings (see section 3.3), then:
-
-1. Edit `/etc/opentalk-compose/settings.yml` and set:
-
-```yaml
-compose_service_opentalk_obelisk_enabled: true
-```
-
-1. Deploy the configuration:
-
-```bash
-otctl deploy
-```
-
-### 4.3 Configure SIP Provider and Call-In Settings
+### 4.2 Configure SIP Provider and Call-In Settings
 
 Before enabling Obelisk, you must configure both the OpenTalk Controller call-in settings and the SIP provider connection.
 
@@ -475,6 +442,22 @@ obelisk_sip_password: "******"
 obelisk_sip_realm: "asterisk"
 obelisk_sip_registrar: "sip:asterisk.example.com"
 obelisk_sip_stun_server: "stun.example.com:3478"
+```
+
+### 4.3 Enable Obelisk Service
+
+> **Important:** Obelisk must be properly configured before it can be enabled and started. The service will fail to start without valid SIP provider configuration.
+
+Edit `/etc/opentalk-compose/settings.yml` and set
+
+```yaml
+compose_service_opentalk_obelisk_enabled: true
+```
+
+#### Deploy the configuration
+
+```bash
+otctl deploy
 ```
 
 ### 4.4 Verify Obelisk Status
