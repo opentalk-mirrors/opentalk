@@ -493,3 +493,94 @@ otctl deploy
 ```
 
 After applying the configuration changes, the external LiveKit server should be integrated. Log in to the OpenTalk web frontend to test WebRTC functionality.
+
+## 5. External TURN and STUN Server integration (Coturn)
+
+### 5.1 Overview
+
+A STUN and TURN server is essential for reliable WebRTC communication, especially for users behind NAT or restrictive firewalls. The open-source Coturn server provides these functionality. Consider switching to a separate Coturn installation if:
+
+- The embedded LiveKit TURN server no longer meets your requirements.
+- You need a dedicated server(s) for capacity or scaling.
+- You want to self-host a STUN server instead of using a public one.
+- You require greater configuration flexibility.
+
+This section explains how to integrate an external Coturn server into OpenTalk. It assumes Coturn is already installed and configured according to the official documentation (https://github.com/coturn/coturn) and is reachable at the domain `turn.example.com`. Replace this domain with your own as needed.
+
+Before proceeding, ensure:
+
+- A DNS A/AAAA record `turn.example.com` exists and points to the public IP of the TURN/STUN server.
+- A TLS certificate and private key for the `turn.example.com` domain are available.
+- Open port 3478/udp and 443/tcp for TLS on your firewall.
+- Ensure the TURN server is reachable from your LiveKit server and clients.
+- Ensure LiveKit RTC port range is reachable from the TURN server (OpenTalk Compose default: 50000-64535/udp).
+
+### 5.2 Minimal Coturn configuration
+
+Configure the following settings on the Coturn server so LiveKit can authenticate successfully.
+
+Edit `/etc/turnserver.conf` and set at least the following options (adjust values as required):
+
+```ini
+listening-port=3478
+tls-listening-port=443
+realm=opentalk
+fingerprint
+lt-cred-mech
+userdb=/var/lib/turn/turndb
+cert=/path/to/certs/fullchain.pem
+pkey=/path/to/certs/privkey.pem
+no-rfc5780
+no-stun-backward-compatibility
+response-origin-only-with-rfc5780
+
+```
+
+Restart coturn after editing:
+
+```bash
+systemctl restart coturn
+systemctl enable coturn
+```
+
+Create a user for the TURN service and generate a random secret. It will be required below for the LiveKit configuration.
+
+```bash
+turnadmin -a --db /var/lib/turn/turndb -u livekit -r opentalk -p <secret> 
+```
+
+> **Note:** You might see a message that appears misleading; the user is still created successfully.
+>
+> ```txt
+> 0: : SQLite connection was closed.
+> 0: : log file opened: /var/log/turn_1969035_2025-11-05.log
+> ```
+>
+> You can verify that the user exists with the command `turnadmin -a --db /var/lib/turn/turndb -l`.
+
+### 5.3 Add Coturn to the LiveKit Configuration
+
+On the OpenTalk Compose host, edit `/etc/opentalk-compose/settings.yml` and add the configuration for the Coturn host:
+
+```yaml
+livekit_turn_embedded_enabled: false
+livekit_rtc_stun_servers:
+  - turn.example.com:443
+livekit_rtc_turn_servers:
+   - host: turn.example.com
+     port: 443
+     protocol: tls
+     username: livekit
+     credential: "<secret>"
+   - host: turn.example.com
+     port: 3478
+     protocol: udp
+     username: livekit
+     credential: "<secret>"
+```
+
+#### 5.3.1 Deploy changes and start OpenTalk Services
+
+```bash
+otctl deploy
+```

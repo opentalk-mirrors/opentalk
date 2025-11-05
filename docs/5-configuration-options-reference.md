@@ -171,9 +171,10 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | livekit_server_docker_compose_project_name | derived | `{{ compose_project_name | default('opentalk') }}` | LiveKit server docker  project name. |
 | livekit_server_docker_compose_services_dir | derived | `{{ services_dir }}` | LiveKit server docker  services dir. |
 | livekit_server_docker_compose_services_state | derived | `{{ compose_service_livekit_server_state | default('present') }}` | LiveKit server docker  services state. |
-| livekit_turn_embedded_domain | derived | `turn.{{ ot_domain }}` | LiveKit turn embedded domain. |
-| livekit_turn_embedded_enabled | bool | `False` | LiveKit turn embedded enabled. |
+| livekit_turn_embedded_domain | derived | `{{ ot_domain }}` | LiveKit turn embedded domain. |
+| livekit_turn_embedded_enabled | bool | `True` | LiveKit turn embedded enabled. |
 | livekit_turn_embedded_external_tls | bool | `True` | LiveKit turn embedded external tls. |
+| livekit_turn_embedded_tls_enabled | bool | `False` | LiveKit turn embedded tls enabled. |
 | livekit_turn_embedded_tls_port | int | `5349` | LiveKit turn embedded tls port. |
 | livekit_turn_embedded_udp_port | int | `3478` | LiveKit turn embedded udp port. |
 | ansible_host | template | — | Ansible host (referenced in templates; no default defined). |
@@ -360,7 +361,6 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | controller_shared_folder_provider | template | — | Controller shared folder provider (referenced in templates; no default defined). |
 | controller_shared_folder_url | template | — | Controller shared folder url (referenced in templates; no default defined). |
 | controller_shared_folder_username | template | — | Controller shared folder username (referenced in templates; no default defined). |
-| controller_stun_uris | template | — | Controller stun uris (referenced in templates; no default defined). |
 | controller_tariffs_assignment | template | — | Controller tariffs assignment (referenced in templates; no default defined). |
 | controller_tariffs_static_tariff_name | template | — | Controller tariffs static tariff name (referenced in templates; no default defined). |
 | controller_tariffs_status_mapping_default | template | — | Controller tariffs status mapping default (referenced in templates; no default defined). |
@@ -370,9 +370,6 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | controller_tenants_assignment | template | — | Controller tenants assignment (referenced in templates; no default defined). |
 | controller_tenants_external_tenant_id_user_attribute_name | template | — | Controller tenants external tenant id user attribute name (referenced in templates; no default defined). |
 | controller_tenants_static_tenant_id | template | — | Controller tenants static tenant id (referenced in templates; no default defined). |
-| controller_turn_lifetime | template | — | Controller turn lifetime (referenced in templates; no default defined). |
-| controller_turn_servers_pre_shared_key | secret[template] | — | Controller turn servers pre shared key (referenced in templates; no default defined). |
-| controller_turn_servers_uris | template | — | Controller turn servers uris (referenced in templates; no default defined). |
 | controller_user_search_client_id | template | — | Controller user search client id (referenced in templates; no default defined). |
 | controller_user_search_client_secret | secret[template] | — | Controller user search client secret (referenced in templates; no default defined). |
 | controller_user_search_external_id_user_attribute_name | template | — | Controller user search external id user attribute name (referenced in templates; no default defined). |
@@ -775,4 +772,4 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | websecure | template | — | Websecure (referenced in templates; no default defined). |
 
 ---
-Generated on: 2025-10-30
+Generated on: 2025-11-05

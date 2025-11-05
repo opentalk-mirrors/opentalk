@@ -30,7 +30,13 @@ For customized setups or special conditions, refer to the OpenTalk Administratio
   - [4.1 What is Obelisk](#41-what-is-obelisk)  
   - [4.2 Enable Obelisk Service](#42-enable-obelisk-service)  
   - [4.3 Configure SIP Provider and Call-In Settings](#43-configure-sip-provider-and-call-in-settings)  
-  - [4.4 Verify Obelisk Status](#44-verify-obelisk-status)
+  - [4.4 Verify Obelisk Status](#44-verify-obelisk-status)  
+- [5. Optional: TURN over TLS with Embedded TURN Server (LiveKit)](#5-optional-turn-over-tls-with-embedded-turn-server-livekit)  
+  - [5.1 Default Embedded TURN Behavior](#51-default-embedded-turn-behavior)  
+  - [5.2 Enabling TURN over TLS](#52-enabling-turn-over-tls)  
+    - [5.2.1 Configuration in settings.yml](#521-configuration-in-settingsyml)  
+    - [5.2.2 Deploy configuration changes](#522-deploy-configuration-changes)  
+  - [5.3 Verification](#53-verification)
 
 ## 1. Preparations
 
@@ -502,3 +508,43 @@ Look for successful SIP registration messages. If there are connection issues, v
 4. DNS resolution of SIP server hostname
 
 For detailed configuration options, refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_obelisk).
+
+## 5. Optional: TURN over TLS with Embedded TURN Server (LiveKit)
+
+Reliable WebRTC connectivity sometimes requires TURN relaying when direct peer-to-peer connections are blocked by NAT or restrictive firewalls. OpenTalk ships with an embedded TURN server provided by LiveKit. This section explains the default behavior, how to enable TURN over TLS, required DNS changes, configuration options, verification, troubleshooting, scaling considerations, and security recommendations. For deploying a separate (dedicated) TURN service with coturn, see the advanced guide: [Dedicated TURN Server (coturn)](./4-advanced-installation-scenarios.md#5-install-and-configure-a-dedicated-turn-server-coturn).
+
+### 5.1 Default Embedded TURN Behavior
+
+The embedded TURN server is part of the LiveKit deployment and is managed by OpenTalk Compose. Out-of-the-box (without extra settings) LiveKit exposes TURN (UDP) on port `3478` using the host's main domain (e.g. `example.com:3478`). This supports most scenarios. Enabling TURN over TLS (TCP/TLS on port `443` behind a proxy) improves connectivity behind very restrictive corporate firewalls.
+
+### 5.2 Enabling TURN over TLS
+
+To offer TURN over TLS you should create a dedicated domain record (recommended: `turn.<ot_domain>`). This allows the loadbalancer (Traefik) to distinguish normal HTTPS traffic from TURN TLS signaling and relay flows.
+Add a DNS A/AAAA record that points to the same host as the main OpenTalk services.
+
+Requirements when enabling TURN TLS:
+
+- Subdomain (e.g. `turn.example.com`) must resolve to the OpenTalk host
+- Custom certificate must cover the TURN subdomain for TLS, ACME / Let's Encrypt gets cert automatically (default)
+
+#### 5.2.1 Configuration in settings.yml
+
+Edit `/etc/opentalk-compose/settings.yml` and set or adjust the following variables.
+
+```yaml
+livekit_turn_embedded_external_tls: true
+livekit_turn_embedded_domain: "turn.{{ ot_domain }}" # expands to turn.example.com
+```
+
+#### 5.2.2 Deploy configuration changes
+
+```bash
+otctl deploy
+```
+
+### 5.3 Verification
+
+1. Open a meeting in a browser from a restrictive network.
+2. Inspect ICE candidates via Chrome (`chrome://webrtc-internals`) or Firefox (`about:webrtc`).
+3. Confirm presence of `relay` candidates referencing your TURN domain.
+4. Check LiveKit logs: `otctl logs livekit-server` for successful TURN allocation entries.
