@@ -26,21 +26,8 @@ compose_service_traefik_enabled: true
 compose_service_ndt_enabled: true
 compose_service_mailcrab_enabled: false
 
-# OpenTalk Compose uses Let's Encrypt by default to get certificates for the domain defined via `ot_domain`.
-# When set to 'true' place certificate files in '/etc/opentalk/ssl'
-custom_certificates_enabled: false
-# custom_certificates_fullchain_cert_file: fullchain.crt
-# custom_certificates_private_key_file: privkey.key
-# custom_certificates_ca_root_cert_file: ca.crt
-
-# SMTP Cleartext: smtp://user:pass@mailserver.example.org:1234?disable_starttls=true
-# SMTP with StartTLS: smtp://user:pass@mailserver.example.org:1234
-# SMTP with implicit TLS: smtps://user:pass@mailserver.example.org:1234
-# Note: Encode the URL properly:
-#       - Significant characters (e.g. the '@' separating the user credentials from the domain) must be written literally.
-#       - Special characters within the URL parts must be paraphrased (e.g. '@' replaced with '%40')
-#       Example: smtps://user%40maildomain.example.org:pass@mailserver.example.org
-# mailer_smtp_smtp_server: "smtp://mailcrab:1025?disable_starttls=true"
+# OpenTalk smtp-mailer config
+# mailer_smtp_smtp_server: "smtp://user%40example.com:PaSsw0Rd@mail.example.com:587"
 # mailer_smtp_from_name: "OpenTalk - {{ ot_domain }}"
 # mailer_smtp_from_email: "no-reply@{{ ot_domain }}"
 # mailer_frontend_base_url: "https://{{ ot_domain }}"
@@ -48,8 +35,19 @@ custom_certificates_enabled: false
 # mailer_support_contact_mail: "support@{{ ot_domain }}"
 
 # SIP Settings for the Obelik Service
-obelisk_sip_username: "username"
-obelisk_sip_password: "******"
-obelisk_sip_realm: "asterisk"
-obelisk_sip_registrar: "sip:asterisk.example.com"
-obelisk_sip_stun_server: "stun.example.com:3478"
+# obelisk_sip_username: "username"
+# obelisk_sip_password: "******"
+# obelisk_sip_realm: "asterisk"
+# obelisk_sip_registrar: "sip:asterisk.example.com"
+# obelisk_sip_stun_server: "stun.example.com:3478"
+
+# Enable TURN over TLS support in LiveKit
+# livekit_turn_embedded_external_tls: true
+# livekit_turn_embedded_domain: "turn.{{ ot_domain }}" # expands to turn.example.com
+
+# OpenTalk Compose uses Let's Encrypt by default to get certificates for the domain defined via `ot_domain`.
+# When set to 'true' place certificate files in '/etc/opentalk/ssl'
+custom_certificates_enabled: false
+# custom_certificates_fullchain_cert_file: fullchain.crt
+# custom_certificates_private_key_file: privkey.key
+# custom_certificates_ca_root_cert_file: ca.crt
