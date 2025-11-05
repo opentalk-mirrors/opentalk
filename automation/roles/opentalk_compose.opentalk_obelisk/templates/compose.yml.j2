@@ -32,7 +32,7 @@ services:
 {% endif %}
 {% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
     volumes:
-      - ./config/obelisk.toml:/obelisk/opentalk/obelisk.toml
+      - ./config/obelisk.toml:/etc/opentalk/obelisk.toml
       - /etc/opentalk-compose/ssl/{{ custom_certificates_ca_root_cert_file }}:/usr/local/share/ca-certificates/{{ custom_certificates_ca_root_cert_file }}
     entrypoint: []
     command: >
