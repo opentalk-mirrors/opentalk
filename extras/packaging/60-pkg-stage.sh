@@ -75,8 +75,6 @@ chmod 0700 "$ETC_DIR/ssl" || true
 SAMPLE_SETTINGS_SRC=""
 if [[ -f "$ROOT/extras/packaging/config-dist/settings.yml-sample" ]]; then
   SAMPLE_SETTINGS_SRC="$ROOT/extras/packaging/config-dist/settings.yml-sample"
-elif [[ -f "$ROOT/config/settings.yml" ]]; then
-  SAMPLE_SETTINGS_SRC="$ROOT/config/settings.yml"
 else
   echo "[stage] WARN: No settings.yml sample or repo config/settings.yml found"
 fi
