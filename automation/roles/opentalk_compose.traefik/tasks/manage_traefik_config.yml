@@ -13,7 +13,7 @@
 - name: "Render traefik static config | config/services-config/traefik/traefik.yaml"
   ansible.builtin.template:
     src: traefik.yaml.j2
-    dest: "{{ traefik_docker_compose_services_dir }}/traefik//config/traefik.yaml"
+    dest: "{{ traefik_docker_compose_services_dir }}/traefik/config/traefik.yaml"
     mode: 0644
   notify: Restart Docker service traefik
 
