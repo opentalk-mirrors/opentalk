@@ -15,9 +15,19 @@ services:
 {% endif %}
       - "traefik.http.routers.livekit.middlewares=livekit-strip"
       - "traefik.http.middlewares.livekit-strip.stripprefix.prefixes=/livekit"
-      - "traefik.http.services.livekit.loadbalancer.server.port=7880"
+      - "traefik.http.services.livekit.loadbalancer.server.port={{ livekit_port }}"
+{% if livekit_turn_embedded_tls_enabled is defined and livekit_turn_embedded_tls_enabled %}
+      - "traefik.tcp.routers.livekit-turn.rule=HostSNI(`{{ livekit_turn_embedded_domain }}`)"
+      - "traefik.tcp.routers.livekit-turn.entrypoints=websecure"
+{% if (traefik_letsencrypt_enable | default('true')) and (not custom_certificates_enabled is defined or not custom_certificates_enabled) %}
+      - "traefik.tcp.routers.livekit-turn.tls.certresolver=letsencrypt"
+{% endif %}
+      - "traefik.tcp.routers.livekit-turn.service=livekit-turn-service"
+      - "traefik.tcp.services.livekit-turn-service.loadbalancer.server.port={{ livekit_turn_embedded_tls_port }}"
+      - "traefik.tcp.routers.livekit-turn.priority=100"
+{% endif %}
     healthcheck:
-      test: wget --quiet --output-document=/dev/stdout http://localhost:7880 | grep -q OK
+      test: wget --quiet --output-document=/dev/stdout http://localhost:{{ livekit_port}} | grep -q OK
       interval: 30s
       timeout: 15s
       retries: 3

@@ -63,10 +63,15 @@ rtc:
 
 {% if livekit_turn_embedded_enabled is defined and livekit_turn_embedded_enabled %}
 turn:
+  enabled: {{ livekit_turn_embedded_enabled | to_json }}
   domain: {{ livekit_turn_embedded_domain }}
-  tls_port: {{ livekit_turn_embedded_tls_port }}
+{% if livekit_turn_embedded_udp_port is defined and livekit_turn_embedded_udp_port %}
   udp_port: {{ livekit_turn_embedded_udp_port }}
+{% endif %}
+{% if livekit_turn_embedded_tls_enabled is defined and livekit_turn_embedded_tls_enabled %}
+  tls_port: {{ livekit_turn_embedded_tls_port }}
   external_tls: {{ livekit_turn_embedded_external_tls | to_json}}
+{% endif %}
 {% endif %}
 
 {% if livekit_prometheus_port is defined and livekit_prometheus_port %}

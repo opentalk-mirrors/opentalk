@@ -5,6 +5,7 @@
 - name: "Restart Docker service LiveKit"
   community.docker.docker_compose_v2:
     project_src: "{{ services_dir }}/livekit-server"
+    project_name: "{{ compose_project_name }}"
     files:
       - compose.yml
       - "{{ deploy_dir }}/common.yml"
