@@ -16,5 +16,11 @@ precedence = "aggregate"
 [[annotations]]
 SPDX-FileCopyrightText = "OpenTalk GmbH <mail@opentalk.eu>"
 SPDX-License-Identifier = "EUPL-1.2"
-path = [".commitlintrc.json", "Cargo.lock", ".gitattributes", ".gitignore"]
+path = [
+  ".commitlintrc.json",
+  "Cargo.lock",
+  ".gitattributes",
+  ".gitignore",
+  "renovate.json",
+]
 precedence = "aggregate"
