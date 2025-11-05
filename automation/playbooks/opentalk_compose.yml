@@ -36,7 +36,6 @@
     - role: opentalk_compose.backup
       dependencies:
         - role: opentalk_compose.secrets
-      tags: [backup, never]
 
     - role: opentalk_compose.self_signed_cert
       dependencies:
