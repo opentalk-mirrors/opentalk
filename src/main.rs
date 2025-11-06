@@ -36,6 +36,7 @@ mod cli;
 mod metrics;
 mod settings;
 mod transcription;
+mod voice_activity_detection;
 
 pub(crate) struct AppState {
     pub(crate) tasks: Arc<Mutex<Vec<JoinHandle<Result<()>>>>>,
