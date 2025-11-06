@@ -16,4 +16,4 @@ For customized setups or special requirements, refer to the [Advanced Installati
 
 [5. Configuration Option Reference](docs/5-configuration-options-reference.md)
 
-[6. Development related docs](docs/6-developer-docs.md)
+[6. Development related docs](docs/6-development-related-docs.md)
