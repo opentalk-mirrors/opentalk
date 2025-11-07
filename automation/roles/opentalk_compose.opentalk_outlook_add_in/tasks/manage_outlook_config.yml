@@ -7,3 +7,5 @@
   with_items:
     - "{{ outlook_add_in_docker_compose_services_dir }}"
     - "{{ outlook_add_in_docker_compose_services_dir }}/opentalk-outlook_add-in"
+  tags:
+    - outlook_add_in

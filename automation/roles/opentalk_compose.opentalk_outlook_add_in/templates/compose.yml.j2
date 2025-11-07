@@ -17,12 +17,11 @@ services:
 {% endif %}
       - "traefik.http.routers.outlook_add_in.priority=100"
       - "traefik.http.services.outlook_add_in.loadbalancer.server.port=80"
-      # Path rewrite: /outlook/(.*) -> /$1
-      - "traefik.http.middlewares.outlook_add_in-rewrite.replacePathRegex.regex=^/outlook/(.*)"
-      - "traefik.http.middlewares.outlook_add_in-rewrite.replacePathRegex.replacement=/$1"
-      - "traefik.http.routers.outlook_add_in.middlewares=outlook_add_in-rewrite@docker,outlook_add_in-cors@docker"
-      # CORS Middleware
-      - "traefik.http.middlewares.outlook_add_in-cors.headers.accessControlAllowOriginList={{ outlook_add_in_labels_traefik_http_middlewares_outlook_add_in_cors_headers_accessControlAllowOriginList }}"
-      - "traefik.http.middlewares.outlook_add_in-cors.headers.accessControlAllowMethods=GET,OPTIONS,PUT,POST,DELETE,PATCH"
-      - "traefik.http.middlewares.outlook_add_in-cors.headers.accessControlAllowHeaders=Content-Type,Authorization,X-Requested-With"
-      - "traefik.http.middlewares.outlook_add_in-cors.headers.addVaryHeader=true"
+      - "traefik.http.routers.outlook_add_in.middlewares=outlook_add_in-strip"
+      - "traefik.http.middlewares.outlook_add_in-strip.stripprefix.prefixes=/outlook"
+    healthcheck:
+      test: wget -nv -t1 --spider http://localhost:80 || exit 1
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 15s
