@@ -36,15 +36,20 @@ For customized setups or special conditions, refer to the OpenTalk Administratio
     - [5.2.1 Configuration in settings.yml](#521-configuration-in-settingsyml)  
     - [5.2.2 Deploy configuration changes](#522-deploy-configuration-changes)  
   - [5.3 Verification](#53-verification)
-- [6. Updating OpenTalk Compose](#6-updating-opentalk-compose)  
-  - [6.1 Overview](#61-overview)  
-  - [6.2 Step 1: Create a Full Backup](#62-step-1-create-a-full-backup)  
-  - [6.3 Step 2: Update Repository & Package](#63-step-2-update-repository--package)  
-    - [6.3.1 Debian / Ubuntu](#631-debian--ubuntu)  
-    - [6.3.2 RHEL-based](#632-rhel-based)  
-    - [6.3.3 SUSE-based](#633-suse-based)  
-  - [6.4 Step 3: Redeploy Services](#64-step-3-redeploy-services)  
-  - [6.5 Verification & Rollback Notes](#65-verification--rollback-notes)
+ [6. Optional: Configure the OpenTalk Outlook Add-in](#6-optional-configure-the-opentalk-outlook-add-in)  
+  - [6.1 What is the OpenTalk Outlook Add-in](#61-what-is-the-opentalk-outlook-add-in)  
+  - [6.2 Prerequisites](#62-prerequisites)  
+  - [6.3 Enable the Service](#63-enable-the-service)  
+  - [6.4 Add the Add-in to Microsoft Outlook](#64-add-the-add-in-to-microsoft-outlook)  
+- [7. Updating OpenTalk Compose](#7-updating-opentalk-compose)  
+  - [7.1 Overview](#71-overview)  
+  - [7.2 Step 1: Create a Full Backup](#72-step-1-create-a-full-backup)  
+  - [7.3 Step 2: Update Repository & Package](#73-step-2-update-repository--package)  
+    - [7.3.1 Debian / Ubuntu](#731-debian--ubuntu)  
+    - [7.3.2 RHEL-based](#732-rhel-based)  
+    - [7.3.3 SUSE-based](#733-suse-based)  
+  - [7.4 Step 3: Redeploy Services](#74-step-3-redeploy-services)  
+  - [7.5 Verification & Rollback Notes](#75-verification--rollback-notes)
 
 ## 1. Preparations
 
@@ -541,13 +546,67 @@ otctl deploy
 3. Confirm presence of `relay` candidates referencing your TURN domain.
 4. Check LiveKit logs: `otctl logs livekit-server` for successful TURN allocation entries.
 
-## 6. Updating OpenTalk Compose
+## 6. Optional: Configure the OpenTalk Outlook Add-in
+
+The  OpenTalk Outlook Add-in integrates OpenTalk scheduling and meeting join links directly into the Microsoft Outlook Calendar. The OpenTalk Outlook Add-in in needs to be configured via the web version of Microsoft Outlook. But once installed, the add-in is bound to your account and can be used with any device.
+
+### 6.1 What is the OpenTalk Outlook Add-in
+
+The add-in provides:
+
+- Creation of OpenTalk meetings from Outlook
+- Insertion of meeting join links into calendar events
+- User authentication via the existing OpenTalk Keycloak realm (OIDC)
+
+The add-in is provided by the OpenTalk instance via an endpoint, e.g. <https://example.com/outlook/manifest.xml>. This XML file is then added to Microsoft Outlook.
+
+### 6.2 Prerequisites
+
+- A working base installation (sections 1–2 completed)
+- Valid HTTPS setup (Let's Encrypt or custom certs)
+- At least one existing OpenTalk user account
+
+### 6.3 Enable the Service
+
+Set the OpenTalk Outlook Add-in service in `/etc/opentalk-compose/settings.yml` to `enable`:
+
+```yaml
+compose_service_opentalk_outlook_add_in_enabled: true
+```
+
+Then deploy:
+
+```bash
+otctl deploy --tags outlook_add_in
+```
+
+This renders and starts the `outlook_add_in` service (container) with the required Traefik routing labels.
+
+Check status:
+
+```bash
+otctl status
+```
+
+### 6.4 Add the Add-in to Microsoft Outlook
+
+Proceed with the following steps to add the OpenTalk Outlook Add-in in Outlook:
+
+1. Login to your OpenTalk instance
+2. Download the manifest from <https://{{ ot_domain }}/outlook/manifest.xml>
+3. Visit <https://outlook.live.com/owa/?path=/options/manageapps>
+4. Select Add-ins → My add-ins → Add from file
+5. Add the downloaded manifest e.g. `opentalk-outlook.xml`
+
+When creating a new calendar event, open the three-dot menu and choose OpenTalk. You are redirected to OpenTalk to grant the permissions for event creation. After authorization, any Outlook events where OpenTalk was selected via the three-dot menu are also created in OpenTalk.
+
+## 7. Updating OpenTalk Compose
 
 Keeping your OpenTalk Compose installation current ensures you receive security fixes, performance improvements, and new features. Updates are designed to be safe and idempotent. The recommended workflow mirrors the initial installation and consists of three main steps: create a full backup, update the package from the repository, and redeploy the stack.
 
 > **Maintenance Window:** Perform updates during a low-usage window to avoid interrupting active meetings. A typical update (package + redeploy) usually completes within a few minutes.
 
-### 6.1 Overview
+### 7.1 Overview
 
 High-level process:
 
@@ -555,7 +614,7 @@ High-level process:
 2. Refresh repository metadata and upgrade the `opentalk-compose` package
 3. Run `otctl deploy` to render any updated templates and restart services if needed
 
-### 6.2 Step 1: Create a Full Backup
+### 7.2 Step 1: Create a Full Backup
 
 Use the bundled backup facility before every update:
 
@@ -566,32 +625,32 @@ otctl backup ls   # (optional) verify backup presence
 
 Backups are stored under `/var/opt/opentalk-compose/backups`. Keep sufficient disk space free. For more granular commands see section 2.8.
 
-### 6.3 Step 2: Update Repository & Package
+### 7.3 Step 2: Update Repository & Package
 
 Ensure your repository configuration is still present (see section 2.1). Then update according to your distribution family.
 
-#### 6.3.1 Debian / Ubuntu
+#### 7.3.1 Debian / Ubuntu
 
 ```bash
 apt update
 apt install --only-upgrade opentalk-compose
 ```
 
-#### 6.3.2 RHEL-based
+#### 7.3.2 RHEL-based
 
 ```bash
 dnf makecache
 dnf upgrade -y opentalk-compose
 ```
 
-#### 6.3.3 SUSE-based
+#### 7.3.3 SUSE-based
 
 ```bash
 zypper refresh
 zypper update -y opentalk-compose
 ```
 
-### 6.4 Step 3: Redeploy Services
+### 7.4 Step 3: Redeploy Services
 
 After upgrading the package, redeploy to apply any new templates, configuration changes, or image updates:
 
@@ -601,7 +660,7 @@ otctl deploy
 
 The deploy is idempotent: unchanged services remain running; changed components are recreated or restarted automatically.
 
-### 6.5 Verification & Rollback Notes
+### 7.5 Verification & Rollback Notes
 
 Verify versions and health:
 
