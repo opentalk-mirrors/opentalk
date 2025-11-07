@@ -2,10 +2,13 @@
 ---
 # tasks file for opentalk_compose.opentalk_outlook_add_in
 
-- name: Include manage_outlook_config.yml
-  ansible.builtin.include_tasks:
-    file: manage_outlook_config.yml
-
-- name: Include manage_docker_compose.yml
-  ansible.builtin.include_tasks:
-    file: manage_docker_compose.yml
+- block:
+  - name: Include manage_outlook_config.yml
+    ansible.builtin.include_tasks:
+      file: manage_outlook_config.yml
+  
+  - name: Include manage_docker_compose.yml
+    ansible.builtin.include_tasks:
+      file: manage_docker_compose.yml
+  tags:
+    - outlook_add_in
