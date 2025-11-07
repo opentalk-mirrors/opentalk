@@ -14,6 +14,7 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ mailer_docker_compose_services_dir }}/opentalk-smtp-mailer/compose.yml"
+  when: compose_service_opentalk_smtp_mailer_enabled | bool
 
 - name: Manage OpenTalk SMTP Mailer Docker Compose state
   community.docker.docker_compose_v2:
@@ -24,3 +25,4 @@
     files:
       - compose.yml
     state: "{{ mailer_docker_compose_services_state }}"
+  when: compose_service_opentalk_smtp_mailer_enabled | bool
