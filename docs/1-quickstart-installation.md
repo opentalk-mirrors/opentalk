@@ -36,6 +36,15 @@ For customized setups or special conditions, refer to the OpenTalk Administratio
     - [5.2.1 Configuration in settings.yml](#521-configuration-in-settingsyml)  
     - [5.2.2 Deploy configuration changes](#522-deploy-configuration-changes)  
   - [5.3 Verification](#53-verification)
+- [6. Updating OpenTalk Compose](#6-updating-opentalk-compose)  
+  - [6.1 Overview](#61-overview)  
+  - [6.2 Step 1: Create a Full Backup](#62-step-1-create-a-full-backup)  
+  - [6.3 Step 2: Update Repository & Package](#63-step-2-update-repository--package)  
+    - [6.3.1 Debian / Ubuntu](#631-debian--ubuntu)  
+    - [6.3.2 RHEL-based](#632-rhel-based)  
+    - [6.3.3 SUSE-based](#633-suse-based)  
+  - [6.4 Step 3: Redeploy Services](#64-step-3-redeploy-services)  
+  - [6.5 Verification & Rollback Notes](#65-verification--rollback-notes)
 
 ## 1. Preparations
 
@@ -531,3 +540,88 @@ otctl deploy
 2. Inspect ICE candidates via Chrome (`chrome://webrtc-internals`) or Firefox (`about:webrtc`).
 3. Confirm presence of `relay` candidates referencing your TURN domain.
 4. Check LiveKit logs: `otctl logs livekit-server` for successful TURN allocation entries.
+
+## 6. Updating OpenTalk Compose
+
+Keeping your OpenTalk Compose installation current ensures you receive security fixes, performance improvements, and new features. Updates are designed to be safe and idempotent. The recommended workflow mirrors the initial installation and consists of three main steps: create a full backup, update the package from the repository, and redeploy the stack.
+
+> **Maintenance Window:** Perform updates during a low-usage window to avoid interrupting active meetings. A typical update (package + redeploy) usually completes within a few minutes.
+
+### 6.1 Overview
+
+High-level process:
+
+1. Create a full backup (databases, config, volumes)
+2. Refresh repository metadata and upgrade the `opentalk-compose` package
+3. Run `otctl deploy` to render any updated templates and restart services if needed
+
+### 6.2 Step 1: Create a Full Backup
+
+Use the bundled backup facility before every update:
+
+```bash
+otctl backup all
+otctl backup ls   # (optional) verify backup presence
+```
+
+Backups are stored under `/var/opt/opentalk-compose/backups`. Keep sufficient disk space free. For more granular commands see section 2.8.
+
+### 6.3 Step 2: Update Repository & Package
+
+Ensure your repository configuration is still present (see section 2.1). Then update according to your distribution family.
+
+#### 6.3.1 Debian / Ubuntu
+
+```bash
+apt update
+apt install --only-upgrade opentalk-compose
+```
+
+#### 6.3.2 RHEL-based
+
+```bash
+dnf makecache
+dnf upgrade -y opentalk-compose
+```
+
+#### 6.3.3 SUSE-based
+
+```bash
+zypper refresh
+zypper update -y opentalk-compose
+```
+
+### 6.4 Step 3: Redeploy Services
+
+After upgrading the package, redeploy to apply any new templates, configuration changes, or image updates:
+
+```bash
+otctl deploy
+```
+
+The deploy is idempotent: unchanged services remain running; changed components are recreated or restarted automatically.
+
+### 6.5 Verification & Rollback Notes
+
+Verify versions and health:
+
+```bash
+otctl version
+otctl status
+```
+
+Check logs of critical services (e.g. controller, keycloak, livekit-server) for startup issues:
+
+```bash
+otctl logs controller
+otctl logs livekit-server
+otctl logs keycloak
+```
+
+If problems occur:
+
+- Re-run deploy: `otctl deploy`
+- Compare configs: use previous config backup snapshot
+- Restore from backup using the artifacts created in Step 1
+
+> **Tip:** Maintain at least the last two successful full backups to facilitate rollback in rare edge cases.
