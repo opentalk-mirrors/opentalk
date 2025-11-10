@@ -36,7 +36,7 @@ For customized setups or special conditions, refer to the OpenTalk Administratio
     - [5.2.1 Configuration in settings.yml](#521-configuration-in-settingsyml)  
     - [5.2.2 Deploy configuration changes](#522-deploy-configuration-changes)  
   - [5.3 Verification](#53-verification)
- [6. Optional: Configure the OpenTalk Outlook Add-in](#6-optional-configure-the-opentalk-outlook-add-in)  
+- [6. Optional: Configure the OpenTalk Outlook Add-in](#6-optional-configure-the-opentalk-outlook-add-in)  
   - [6.1 What is the OpenTalk Outlook Add-in](#61-what-is-the-opentalk-outlook-add-in)  
   - [6.2 Prerequisites](#62-prerequisites)  
   - [6.3 Enable the Service](#63-enable-the-service)  
