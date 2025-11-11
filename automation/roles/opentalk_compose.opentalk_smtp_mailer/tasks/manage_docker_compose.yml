@@ -24,5 +24,5 @@
       - smtp-mailer
     files:
       - compose.yml
-    state: "{{ mailer_docker_compose_services_state }}"
+    state: "{{ 'present' if compose_service_opentalk_smtp_mailer_enabled | bool else 'absent' }}"
   when: compose_service_opentalk_smtp_mailer_enabled | bool
