@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 
 - name: Ensure MinIO Service directory
@@ -13,5 +17,5 @@
   ansible.builtin.template:
     src: rabbitmq.conf.j2
     dest: "{{ rabbitmq_docker_compose_services_dir }}/rabbitmq/config/rabbitmq.conf"
-    mode: 0644
+    mode: '0644'
   notify: Restart Docker service RabbitMQ

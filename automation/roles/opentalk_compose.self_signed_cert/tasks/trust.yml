@@ -1,6 +1,10 @@
-# SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # tasks file for opentalk_compose.self_signed_cert
+
 - name: Resolve source CA certificate path
   ansible.builtin.set_fact:
     self_signed_ca_src: "{{ custom_certificates_certs_dir }}/{{ self_signed_certificates_ssl_certificate_ca_file }}"

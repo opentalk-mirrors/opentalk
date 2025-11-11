@@ -1,4 +1,7 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 ndt_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
 ndt_docker_compose_services_state: "{{ compose_service_ndt_state | default('present') }}"
@@ -8,4 +11,3 @@ ndt_docker_compose_project_src: "{{ deploy_dir }}"
 compose_service_ndt_enabled: "{{ ndt_enable | default(false) }}"
 
 ndt_docker_image_src: measurementlab/ndt-server
-

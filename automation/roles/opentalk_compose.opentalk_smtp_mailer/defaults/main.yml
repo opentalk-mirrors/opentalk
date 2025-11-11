@@ -1,6 +1,10 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # defaults file for opentalk_compose.opentalk_smtp_mailer
+
 mailer_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
 mailer_docker_compose_services_state: "{{ compose_service_opentalk_smtp_mailer_state | default('present') }}"
 mailer_docker_compose_services_dir: "{{ services_dir }}"
@@ -36,7 +40,7 @@ mailer_smtp_from_email: "no-reply@{{ ot_domain }}"
 
 # Frontend settings
 mailer_frontend_base_url: "https://{{ ot_domain }}"
-#mailer_frontend_data_protection_url: "https://opentalk.example.org/dataprotection"
+# mailer_frontend_data_protection_url: "https://opentalk.example.org/dataprotection"
 
 mailer_languages_default_language: "de-DE"
 

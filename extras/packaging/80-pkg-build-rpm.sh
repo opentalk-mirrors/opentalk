@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 # SPDX-License-Identifier: EUPL-1.2
 set -euo pipefail
 
@@ -75,6 +79,11 @@ if command -v fpm >/dev/null 2>&1; then
     COMP_ALGO="xzmt"
   fi
   echo "[rpm] fpm compression: $COMP_ALGO (level $COMP_LEVEL)"
+  # Conditional args arrays to avoid word splitting (SC2046)
+  AFTER_REMOVE_ARGS=()
+  if [ -f "$PKGROOT/opt/opentalk-compose/bin/pkg-postrm.sh" ]; then
+    AFTER_REMOVE_ARGS=(--after-remove "$PKGROOT/opt/opentalk-compose/bin/pkg-postrm.sh")
+  fi
   fpm -s dir -t rpm -n "$NAME" -v "$VERSION" -a "$ARCH" \
     --iteration "$RELEASE" \
     --config-files /etc/opentalk-compose/settings.yml \
@@ -87,7 +96,7 @@ if command -v fpm >/dev/null 2>&1; then
     --url "$URL" \
     -C "$PKGROOT" \
     --after-install "$PKGROOT/opt/opentalk-compose/bin/pkg-postinst.sh" \
-    $( [ -f "$PKGROOT/opt/opentalk-compose/bin/pkg-postrm.sh" ] && printf -- "--after-remove %s" "$PKGROOT/opt/opentalk-compose/bin/pkg-postrm.sh" ) \
+    "${AFTER_REMOVE_ARGS[@]}" \
     -p "$RPM_FILE"
   [ -f "$RPM_FILE" ] || { echo "[rpm] ERROR: fpm did not produce rpm" >&2; exit 5; }
   echo "[rpm] Built (fpm): $RPM_FILE"
@@ -151,13 +160,18 @@ echo "[rpm] rpmbuild -ba (version=$VERSION release=$RELEASE git_commit=$GIT_COMM
     export XZ_OPT="-${XZ_LEVEL}"
     echo "[rpm] rpmbuild xz has no threading support; using XZ_OPT=$XZ_OPT"
   fi
+  # Conditional git commit define (SC2046)
+  GIT_DEFINE=()
+  if [ -n "$GIT_COMMIT" ]; then
+    GIT_DEFINE=(--define "git_commit $GIT_COMMIT")
+  fi
 rpmbuild \
   --define "_topdir $RPMROOT" \
   --define "version $VERSION" \
   --define "release $RELEASE" \
   --define "_source_payload w9.xzdio" \
   --define "_binary_payload w9.xzdio" \
-  $( [ -n "$GIT_COMMIT" ] && printf -- "--define git_commit %s" "$GIT_COMMIT" ) \
+  "${GIT_DEFINE[@]}" \
   -ba SPECS/opentalk-compose.spec || { echo "[rpm] ERROR: rpmbuild failed" >&2; exit 6; }
 popd >/dev/null
 

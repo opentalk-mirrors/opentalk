@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# shellcheck disable=SC2015  # Chained 'cd && RELOCATED=1 || { ... }' pattern intentional for concise error handling.
 set -euo pipefail
 #
 # Cleanup build artifacts and temporary files
@@ -50,7 +55,7 @@ cleanup_artifacts() {
   local found=0
   for pattern in "*.deb" "*.rpm" "*.tar.gz" "*.tar.xz"; do
     if compgen -G "$ROOT/$pattern" >/dev/null 2>&1; then
-      rm -f "$ROOT"/$pattern
+      rm -f "$ROOT"/"$pattern"
       echo "[cleanup] - Removed $pattern files"
       found=1
     fi

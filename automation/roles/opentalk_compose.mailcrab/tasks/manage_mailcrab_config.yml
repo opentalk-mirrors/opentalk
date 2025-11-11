@@ -1,5 +1,8 @@
----
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
 
+---
 - name: Ensure MailCrab Service directory
   ansible.builtin.file:
     path: "{{ item }}"
@@ -7,4 +10,3 @@
   with_items:
     - "{{ mailcrab_docker_compose_services_dir }}"
     - "{{ mailcrab_docker_compose_services_dir }}/mailcrab"
-

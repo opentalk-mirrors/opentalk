@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 # SPDX-License-Identifier: EUPL-1.2
 set -euo pipefail
 #
@@ -25,7 +29,6 @@ PKGROOT="$ROOT/build/pkgroot"
 OUTDIR="$ROOT/artifacts"
 
 NAME="opentalk-compose"
-OLD_NAME="opentalk-compose-embedded-ansible"
 ARCH="amd64"
 
 # Metadata defaults (override via environment if needed)

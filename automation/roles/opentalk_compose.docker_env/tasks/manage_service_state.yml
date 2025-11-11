@@ -1,4 +1,8 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
 
+---
 - name: Set Docker Compose project name and desired state facts
   ansible.builtin.set_fact:
     compose_service_opentalk_controller_state: "{{ 'present' if compose_service_opentalk_controller_enabled else 'absent' }}"

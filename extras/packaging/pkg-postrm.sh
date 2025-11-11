@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 set -euo pipefail
 ARG="${1:-}"  # rpm: numeric, deb: 'remove'|'purge'|'upgrade'|'failed-upgrade' etc
-ACTION="${1:-remove}"  # legacy compatibility if called manually
 
 PREFIX="/opt/opentalk-compose"
 RUNTIME_DIR="$PREFIX/runtime"
@@ -27,7 +30,9 @@ cleanup_ephemeral() {
 remove_prefix_if_empty() {
   if [ -d "$PREFIX" ]; then
     if [ -z "$(find "$PREFIX" -mindepth 1 -maxdepth 1 2>/dev/null)" ]; then
-      rmdir "$PREFIX" 2>/dev/null && log "Removed empty prefix: $PREFIX" || true
+      if rmdir "$PREFIX" 2>/dev/null; then
+        log "Removed empty prefix: $PREFIX"
+      fi
     fi
   fi
 }
@@ -47,7 +52,8 @@ if [[ -n "$ARG" && "$ARG" =~ ^[0-9]+$ ]]; then
     cleanup_ephemeral
     # Remove automation + bin directories explicitly on final removal
     if [ -f "$COMMON_FILE" ]; then
-      rm -f "$COMMON_FILE" && log "Purged common.yml: $COMMON_FILE" || true
+      rm -f "$COMMON_FILE"
+      log "Purged common.yml: $COMMON_FILE"
     fi
     # Final sweep: if prefix still exists, attempt to remove harmless leftover files (compose/override/common yaml, env files)
     if [ -d "$PREFIX" ]; then
@@ -74,7 +80,7 @@ if [[ -n "$ARG" && "$ARG" =~ ^[0-9]+$ ]]; then
       log "Purged automation dir (arg=0): $AUTOMATION_DIR"
     fi
     if [ -d "$PREFIX/bin" ]; then
-      rm -rf "$PREFIX/bin"
+      rm -rf "${PREFIX:?}/bin"  # SC2115 safeguard
       log "Purged bin dir (arg=0): $PREFIX/bin"
     fi
     remove_prefix_if_empty
@@ -89,7 +95,10 @@ else
       cleanup_ephemeral
       if [ -d "$AUTOMATION_DIR" ]; then
         rm -rf "$AUTOMATION_DIR"; log "Purged automation dir (purge): $AUTOMATION_DIR"; fi
-      if [ -f "$COMMON_FILE" ]; then rm -f "$COMMON_FILE" && log "Purged common.yml: $COMMON_FILE" || true; fi
+      if [ -f "$COMMON_FILE" ]; then
+        rm -f "$COMMON_FILE"
+        log "Purged common.yml: $COMMON_FILE"
+      fi
       # Final sweep
       if [ -d "$PREFIX" ]; then
         rem_entries=$(find "$PREFIX" -mindepth 1 -maxdepth 1 -printf '%f\n' 2>/dev/null || true)
@@ -116,8 +125,11 @@ else
       cleanup_ephemeral
       # Remove automation + bin directories if present (they are package-scoped, not user config)
       if [ -d "$AUTOMATION_DIR" ]; then rm -rf "$AUTOMATION_DIR"; log "Removed automation dir (remove): $AUTOMATION_DIR"; fi
-      if [ -d "$PREFIX/bin" ]; then rm -rf "$PREFIX/bin"; log "Removed bin dir (remove): $PREFIX/bin"; fi
-      if [ -f "$COMMON_FILE" ]; then rm -f "$COMMON_FILE" && log "Removed common.yml (remove): $COMMON_FILE" || true; fi
+  if [ -d "$PREFIX/bin" ]; then rm -rf "${PREFIX:?}/bin"; log "Removed bin dir (remove): $PREFIX/bin"; fi
+      if [ -f "$COMMON_FILE" ]; then
+        rm -f "$COMMON_FILE"
+        log "Removed common.yml (remove): $COMMON_FILE"
+      fi
       # Sweep benign leftovers
       if [ -d "$PREFIX" ]; then
         rem_entries=$(find "$PREFIX" -mindepth 1 -maxdepth 1 -printf '%f\n' 2>/dev/null || true)
@@ -125,7 +137,7 @@ else
           safe=1
           while IFS= read -r e; do
             case "$e" in
-              common.yml|compose.yml|*.override.yml|*.yml|.env|README*|LICENSE*|CHANGELOG*|.BUILD_INFO|.versions.yml ) ;;
+              common.yml|compose.yml|*.override.yml|*.yml|.env|README*|LICENSE*|CHANGELOG*|.BUILD_INFO ) ;;
               *) safe=0; break ;;
             esac
           done <<< "$rem_entries"
@@ -148,7 +160,10 @@ else
         log "FORCE_POSTRM_PURGE=1 (empty arg) - performing cleanup."
         cleanup_ephemeral
         if [ -d "$AUTOMATION_DIR" ]; then rm -rf "$AUTOMATION_DIR"; log "Purged automation dir."; fi
-        if [ -f "$COMMON_FILE" ]; then rm -f "$COMMON_FILE" && log "Purged common.yml: $COMMON_FILE" || true; fi
+        if [ -f "$COMMON_FILE" ]; then
+          rm -f "$COMMON_FILE"
+          log "Purged common.yml: $COMMON_FILE"
+        fi
         remove_prefix_if_empty
       else
         log "Empty arg context - no purge (set FORCE_POSTRM_PURGE=1 to force)."
@@ -161,7 +176,10 @@ else
           log "Heuristic: package absent (non-deb env) - performing final purge."
           cleanup_ephemeral
           if [ -d "$AUTOMATION_DIR" ]; then rm -rf "$AUTOMATION_DIR"; log "Purged automation dir."; fi
-          if [ -f "$COMMON_FILE" ]; then rm -f "$COMMON_FILE" && log "Purged common.yml: $COMMON_FILE" || true; fi
+          if [ -f "$COMMON_FILE" ]; then
+            rm -f "$COMMON_FILE"
+            log "Purged common.yml: $COMMON_FILE"
+          fi
           remove_prefix_if_empty
         else
           log "Unrecognized arg '$ARG' - skipping purge."

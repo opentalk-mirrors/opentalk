@@ -1,34 +1,37 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # tasks file for opentalk_compose.keycloak
 
 - name: Include manage_keycloak_config.yml
   include_tasks: manage_keycloak_config.yml
-  when: 
+  when:
     - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
     - compose_service_keycloak_enabled | default(true)
 
 - name: Include manage_docker_compose.yml
   include_tasks: manage_docker_compose.yml
-  when: 
+  when:
     - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
     - compose_service_keycloak_enabled | default(true)
 
 - name: Include keycloak_permanent_admin.yml
   include_tasks: keycloak_permanent_admin.yml
-  when: 
+  when:
     - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
     - keycloak_manage_enabled is true
 
 - name: Include manage_realm.yml
   include_tasks: manage_realm.yml
-  when: 
+  when:
     - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
     - keycloak_manage_enabled is true
 
 - name: Include keycloak_user_demo.yml
   include_tasks: keycloak_user_demo.yml
-  when: 
+  when:
     - keycloak_demo_user_enabled | default(true)
     - keycloak_manage_enabled is true
   tags:

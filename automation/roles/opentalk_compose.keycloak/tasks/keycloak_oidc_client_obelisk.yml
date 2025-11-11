@@ -1,5 +1,10 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # Manage Keycloak client used for OpenTalk obelisk
+
 - name: Create or update Keycloak client {{ OBELISK_CLIENT_ID | default('Obelisk') }}
   community.general.keycloak_client:
     auth_keycloak_url: "{{ keycloak_base_url }}"

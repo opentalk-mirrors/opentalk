@@ -1,6 +1,10 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # handlers file for opentalk_compose.rabbitmq
+
 - name: "Restart Docker service RabbitMQ"
   community.docker.docker_compose_v2:
     project_src: "{{ services_dir }}/rabbitmq"

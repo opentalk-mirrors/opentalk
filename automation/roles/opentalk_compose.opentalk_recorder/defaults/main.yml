@@ -1,6 +1,10 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # defaults file for opentalk_compose.opentalk_recorder
+
 recorder_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
 recorder_docker_compose_services_state: "{{ compose_service_opentalk_recorder_state | default('present') }}"
 recorder_docker_compose_services_dir: "{{ services_dir }}"
@@ -22,7 +26,7 @@ recorder_rabbitmq_queue: "opentalk_recorder"
 
 recorder_recorder_display: "true"
 recorder_recorder_clock_format: "%d.%m.%y %X %Z"
-#recorder_hardware_acceleration_manufacturer: "intel"
-#recorder_hardware_acceleration_device: "/dev/dri/renderD129"
+# recorder_hardware_acceleration_manufacturer: "intel"
+# recorder_hardware_acceleration_device: "/dev/dri/renderD129"
 
 recorder_monitoring_port: 11411

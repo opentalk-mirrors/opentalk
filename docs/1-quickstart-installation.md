@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+
+SPDX-License-Identifier: EUPL-1.2
+-->
+
 # Quickstart Guide to Self-Hosting OpenTalk
 
 OpenTalk Compose is a set of tools and utilities for running the OpenTalk video conferencing solution on your own server. This quickstart guide covers the minimal steps required to get the necessary services up and running. It assumes a standard scenario with a publicly accessible server where all components run on a single host and SSL/TLS certificates are obtained via Let's Encrypt.  
@@ -5,51 +11,7 @@ For customized setups or special conditions, refer to the OpenTalk Administratio
 
 ## Table of Contents
 
-- [1. Preparations](#1-preparations)  
-  - [1.1 Minimal System Requirements](#11-minimal-system-requirements)  
-  - [1.2 Supported Operating Systems](#12-supported-operating-systems)  
-  - [1.3 Firewall Configuration](#13-firewall-configuration)  
-  - [1.4 DNS Domain Record](#14-dns-domain-record)  
-  - [1.5 Docker Requirement](#15-docker-requirement)  
-- [2. Installation Procedure](#2-installation-procedure)  
-  - [2.1 Add the OpenTalk Package Repository](#21-add-the-opentalk-package-repository)  
-  - [2.2 Install the `opentalk-compose` Package](#22-install-the-opentalk-compose-package)  
-  - [2.3 Set the OpenTalk Server Domain](#23-set-the-opentalk-server-domain)  
-  - [2.4 Initialize the Deployment Environment](#24-initialize-the-deployment-environment)  
-  - [2.5 Optional: Enable Demo User](#25-optional-enable-demo-user)  
-  - [2.6 Optional: Adjust Configuration & Redeploy](#26-optional-adjust-configuration--redeploy)  
-  - [2.7 Check Service Status and Health](#27-check-service-status-and-health)  
-  - [2.8 Backups (Optional but Recommended)](#28-backups-optional-but-recommended)  
-  - [2.9 Reference: `otctl` Overview](#29-reference-otctl-overview)
-- [3. Optional: SMTP Mailer Service](#3-optional-smtp-mailer-service)  
-  - [3.1 What is the SMTP Mailer](#31-what-is-the-smtp-mailer)  
-  - [3.2 Enable & Configure SMTP Mailer](#32-enable--configure-smtp-mailer)  
-  - [3.3 Verify SMTP Mailer](#33-verify-smtp-mailer)  
-- [4. Optional: Obelisk SIP Bridge Service](#4-optional-obelisk-sip-bridge-service)  
-  - [4.1 What is Obelisk](#41-what-is-obelisk)  
-  - [4.2 Configure SIP Provider and Call-In Settings](#42-configure-sip-provider-and-call-in-settings)  
-  - [4.3 Enable Obelisk Service](#43-enable-obelisk-service)  
-  - [4.4 Verify Obelisk Status](#44-verify-obelisk-status)  
-- [5. Optional: TURN over TLS with Embedded TURN Server (LiveKit)](#5-optional-turn-over-tls-with-embedded-turn-server-livekit)  
-  - [5.1 Default Embedded TURN Behavior](#51-default-embedded-turn-behavior)  
-  - [5.2 Enabling TURN over TLS](#52-enabling-turn-over-tls)  
-    - [5.2.1 Configuration in settings.yml](#521-configuration-in-settingsyml)  
-    - [5.2.2 Deploy configuration changes](#522-deploy-configuration-changes)  
-  - [5.3 Verification](#53-verification)
-- [6. Optional: Configure the OpenTalk Outlook Add-in](#6-optional-configure-the-opentalk-outlook-add-in)  
-  - [6.1 What is the OpenTalk Outlook Add-in](#61-what-is-the-opentalk-outlook-add-in)  
-  - [6.2 Prerequisites](#62-prerequisites)  
-  - [6.3 Enable the Service](#63-enable-the-service)  
-  - [6.4 Add the Add-in to Microsoft Outlook](#64-add-the-add-in-to-microsoft-outlook)  
-- [7. Updating OpenTalk Compose](#7-updating-opentalk-compose)  
-  - [7.1 Overview](#71-overview)  
-  - [7.2 Step 1: Create a Full Backup](#72-step-1-create-a-full-backup)  
-  - [7.3 Step 2: Update Repository & Package](#73-step-2-update-repository--package)  
-    - [7.3.1 Debian / Ubuntu](#731-debian--ubuntu)  
-    - [7.3.2 RHEL-based](#732-rhel-based)  
-    - [7.3.3 SUSE-based](#733-suse-based)  
-  - [7.4 Step 3: Redeploy Services](#74-step-3-redeploy-services)  
-  - [7.5 Verification & Rollback Notes](#75-verification--rollback-notes)
+[[_TOC_]]
 
 ## 1. Preparations
 
@@ -262,7 +224,7 @@ otctl backup dump            # All DB dumps
 otctl backup dump controller # Controller DB only
 otctl backup dump keycloak   # Keycloak DB only
 otctl backup config          # Config snapshot
-otctl backup volume          # Backup volumes of non-database containers 
+otctl backup volume          # Backup volumes of non-database containers
 otctl backup volume <name>   # Single volume
 otctl backup clean           # Apply retention policy
 ```
@@ -279,9 +241,9 @@ Notes:
 |---------|---------|
 | otctl deploy | Render and (re)start stack |
 | otctl status | Show service + health summary |
-| otctl logs [svc] | Stream logs |
-| otctl restart [svc...] | Restart services |
-| otctl recreate [svc...] | Recreate containers |
+| otctl logs \[svc...\] | Stream logs |
+| otctl restart \[svc...\] | Restart services |
+| otctl recreate \[svc...\] | Recreate containers |
 | otctl backup … | Backup workflows |
 | otctl version | Show versions |
 | otctl compose … | Pass through to docker compose |
@@ -399,7 +361,7 @@ Configure the connection to your SIP provider or PBX system:
 ```yaml
 # SIP server configuration
 obelisk_sip_username: "your_sip_username"
-obelisk_sip_password: "your_sip_password" 
+obelisk_sip_password: "your_sip_password"
 obelisk_sip_realm: "your_sip_domain"
 obelisk_sip_registrar: "sip:your_sip_server.example.com"
 ```

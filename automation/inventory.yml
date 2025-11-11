@@ -1,7 +1,12 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
 all:
   children:
     default:
       hosts:
         localhost:
           ansible_connection: local
-          ansible_python_interpreter: auto_silent 
+          ansible_python_interpreter: auto_silent

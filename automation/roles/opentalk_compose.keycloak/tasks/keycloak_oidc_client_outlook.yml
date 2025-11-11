@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 - name: "Create a OIDC client for OpenTalk Outlook Add-in | {{ outlook_add_in_oidc_client_id | default('OutlookAddin') }}"
   community.general.keycloak_client:

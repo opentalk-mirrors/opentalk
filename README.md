@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+
+SPDX-License-Identifier: EUPL-1.2
+-->
+
 # OpenTalk Compose Administration Guide
 
 OpenTalk Compose provides tools and utilities for deploying the OpenTalk video conferencing solution on your own server. Begin with the [Quickstart Guide](docs/1-quickstart-installation.md), which walks you through the installation steps required to set up all necessary services for your OpenTalk instance. This guide assumes a standard scenario: a publicly accessible server where all components run on a single host, and SSL/TLS certificates are obtained via Let's Encrypt.

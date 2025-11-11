@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# shellcheck disable=SC1091  # Sourcing ephemeral venv activate script intentionally; path created at runtime.
 set -euo pipefail
 # Lock requirements only if source changed or forced.
 

@@ -1,5 +1,10 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # Manage Keycloak client used for OpenTalk web-frontend
+
 - name: "Create or update Keycloak client {{ controller_oidc_frontend_client_id | default('Frontend') }}"
   community.general.keycloak_client:
     auth_keycloak_url: "{{ keycloak_base_url }}"

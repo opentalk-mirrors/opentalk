@@ -1,6 +1,11 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
 - name: Install Opentalk
   hosts: localhost
-  gather_facts: yes
+  gather_facts: true
   vars_files:
     - ../../.versions.yml
     - /etc/opentalk-compose/settings.yml

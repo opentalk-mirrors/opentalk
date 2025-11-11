@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# .ansible-lint
+
+profile: production
+
+exclude_paths:
+  - automation/
+  - docs/
+  - extras/
+  - LICENSES/
+  - services/
+  - .cache/
+  - .gitlab-ci.yml

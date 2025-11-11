@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# shellcheck disable=SC2015  # Intentional use of logical chaining for optional echo of combined targets.
 set -euo pipefail
 
 # Orchestrates embedded Ansible build and packages (Debian + RPM).

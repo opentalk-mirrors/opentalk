@@ -1,4 +1,7 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 keycloak_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
 keycloak_docker_compose_services_state: "{{ compose_service_keycloak_state | default('present') }}"

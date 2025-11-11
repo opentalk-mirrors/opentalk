@@ -1,5 +1,8 @@
----
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
 
+---
 - name: Include generate_self_signed_certificates.yml
   ansible.builtin.include_tasks:
     file: generate_self_signed_certificates.yml

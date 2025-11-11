@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 # filepath: devops/opentalk-compose/extras/packaging/wrappers/ot-ansible-galaxy
 set -euo pipefail
 PREFIX="/opt/opentalk-compose"
@@ -10,7 +14,9 @@ POSTINST="$PREFIX/bin/pkg-postinst.sh"
 VENDOR="$RUNTIME/vendor/collections"
 
 if [ ! -x "$BIN" ] || ! head -1 "$BIN" 2>/dev/null | grep -q '^#!'; then
-  [ -x "$POSTINST" ] && bash "$POSTINST" || true
+  if [ -x "$POSTINST" ]; then
+    bash "$POSTINST"
+  fi
 fi
 [ -x "$BIN" ] || { echo "[wrapper] ansible-galaxy unavailable" >&2; exit 1; }
 
@@ -25,7 +31,7 @@ if [ -z "${ANSIBLE_COLLECTIONS_PATHS:-}" ]; then
   if [ -d "$VENDOR/ansible_collections" ]; then
     case ":$cfg_paths:" in
       *":$VENDOR:"*) ANSIBLE_COLLECTIONS_PATHS="$cfg_paths" ;;
-      "") ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$HOME/.ansible/collections:/usr/share/ansible/collections" ;;
+      "::") ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$HOME/.ansible/collections:/usr/share/ansible/collections" ;;
       *) ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$cfg_paths" ;;
     esac
   else

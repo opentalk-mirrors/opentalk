@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+
+SPDX-License-Identifier: EUPL-1.2
+-->
+
 # Advanced Installation Scenarios
 
 [[_TOC_]]
@@ -89,8 +95,12 @@ otctl deploy
 
 OpenTalk can create a temporary (ephemeral) Root CA and use it to self‑sign TLS certificates for its services. This feature is intended for testing and non‑production scenarios.
 
-> **Note:** The generated Root CA certificate must be imported and trusted on all client systems (browser / OS trust store); otherwise browsers will reject the self‑signed service certificates.
-  Set `self_signed_certificates_generate: true` in `settings.yml` and specify the filenames for the generated full‑chain certificate, private key, and root CA certificate using the `custom_certificates_*` keys (e.g. `fullchain.crt`, `privkey.key`, `ca.crt`). The embedded temporary Root CA will create these files and they are automatically enabled in the OpenTalk configuration. It is recommended to keep `/etc/opentalk-compose/ssl` empty before proceeding to avoid conflicts with existing certificates.
+> **Note:** The generated Root CA certificate must be imported and trusted on all client systems (browser / OS trust store)
+> otherwise browsers will reject the self‑signed service certificates. Set `self_signed_certificates_generate: true` in
+> `settings.yml` and specify the filenames for the generated full‑chain certificate, private key, and root CA certificate
+> using the `custom_certificates_*` keys (e.g. `fullchain.crt`, `privkey.key`, `ca.crt`). The embedded temporary Root CA will
+> create these files and they are automatically enabled in the OpenTalk configuration. It is recommended to keep
+> `/etc/opentalk-compose/ssl` empty before proceeding to avoid conflicts with existing certificates.
 
 #### 1.3.1 Stop all OpenTalk related services
 
@@ -281,7 +291,7 @@ Prerequisites:
 A common method for the import is, for example:
 
 ```bash
-bin/kc.sh start --import-realm 
+bin/kc.sh start --import-realm
 ```
 
 #### 2.2.5 Apply generated secrets to the OpenTalk secrets.yml file
@@ -546,7 +556,7 @@ systemctl enable coturn
 Create a user for the TURN service and generate a random secret. It will be required below for the LiveKit configuration.
 
 ```bash
-turnadmin -a --db /var/lib/turn/turndb -u livekit -r opentalk -p <secret> 
+turnadmin -a --db /var/lib/turn/turndb -u livekit -r opentalk -p <secret>
 ```
 
 > **Note:** You might see a message that appears misleading; the user is still created successfully.

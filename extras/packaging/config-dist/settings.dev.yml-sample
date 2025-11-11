@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
 #OT_DOMAIN: localhost
 
 config_dir: "../../config"

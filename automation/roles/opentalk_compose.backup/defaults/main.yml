@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
 backup_dir: /var/opt/opentalk-compose/backups
 backup_dir_sql_dumps: "{{ backup_dir }}/dumps"
 backup_dir_volumes: "{{ backup_dir }}/volumes"

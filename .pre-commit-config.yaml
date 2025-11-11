@@ -1,0 +1,61 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+repos:
+  - repo: local
+    hooks:
+      - id: shellcheck-all-sh
+        name: ShellCheck on all *.sh files
+        entry: bash -c "git ls-files -z '*.sh' | xargs -0r shellcheck"
+        language: system
+        pass_filenames: false
+
+      - id: shellcheck-wrappers
+        name: ShellCheck on wrappers
+        entry: bash -c "shellcheck extras/packaging/wrappers/*"
+        language: system
+        pass_filenames: false
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.37.1
+    hooks:
+      - id: yamllint
+        name: Lint YAML files
+        entry: yamllint .
+        language: system
+        pass_filenames: false
+
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v6.2.0
+    hooks:
+      - id: reuse
+
+  - repo: local
+    hooks:
+      - id: markdown-lint
+        name: Markdown Lint (custom)
+        entry: |
+          bash -c '
+          echo "🔍 Linting Markdown files (ignoring [[_TOC_]])...";
+          git ls-files "*.md" |
+          grep -v "docs/5-configuration-options-reference.md" |
+          xargs -P4 -n1 sh -c "
+            f=\"\$1\";
+            sed \"/\\[\\[_TOC_\\]\\]/Id\" \"\$f\" |
+            mdl --style .markdown_style.rb - 2>&1 |
+            sed \"s|^|\$f: |\"
+          " _
+          '
+        language: system
+        pass_filenames: false
+
+  - repo: https://github.com/ansible/ansible-lint.git
+    rev: v25.11.0
+    hooks:
+      - id: ansible-lint
+        files: \.(yaml|yml)$
+        name: Ansible Lint
+        language_version: python3
+        description: Run configurations on .ansible-lint file

@@ -1,4 +1,7 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # defaults file for opentalk_compose.opentalk_obelisk
 obelisk_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
@@ -10,7 +13,7 @@ obelisk_docker_image_src: registry.opencode.de/opentalk/obelisk
 obelisk_docker_extra_hosts:
   - host.docker.internal:host-gateway
 obelisk_docker_network_mode: ''
-obelisk_docker_ports: 
+obelisk_docker_ports:
   - "5060:5060"
 obelisk_environment_rust_log_level: info
 obelisk_environment_gst_debug_level: 2

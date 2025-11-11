@@ -1,8 +1,12 @@
-image: ruby:slim-bookworm
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgbuild:dev
 
 stages:
-  - package
-  - publish
+  - lint
 
 variables:
   PACKAGE_NAME: "opentalk-compose"
@@ -18,174 +22,223 @@ variables:
   SOURCE_DIR: "/tmp/src"
   OUTPUT_DIR: "./build"
 
-build:deb:
+.template_vars:
+  FLAVORS: ['--deb', '--rpm']
+
+lint:shellcheck:
+  stage: lint
+  script:
+    - git ls-files -z '*.sh' | xargs -0r shellcheck
+    - shellcheck extras/packaging/wrappers/*
+
+lint:yamllint:
+  stage: lint
+  script:
+    - yamllint .
+
+lint:licensing:
+  stage: lint
+  script:
+    - reuse lint
+
+lint:markdown:
+  stage: lint
+  script:
+    - |
+      echo "🔍 Linting Markdown files (ignoring [[_TOC_]])..."
+      git ls-files '*.md' | grep -v 'docs/5-configuration-options-reference.md' | \
+        xargs -P4 -n1 sh -c '
+          f="$1"
+          sed "/\[\[_TOC_\]\]/Id" "$f" | mdl --style .markdown_style.rb - 2>&1 |
+          sed "s|^|$f: |"
+        ' _
+
+lint:ansible-lint:
+  stage: lint
+  script:
+    - ansible-lint .
+
+package:controller-container-build:
+  parallel:
+    matrix:
+      - FLAVOR: !reference [.template_vars, FLAVORS]
   stage: package
   rules:
-    - if: $CI_COMMIT_TAG  
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
-    - mkdir -p $SOURCE_DIR/opt/opentalk-compose
-    - cp -rT . $SOURCE_DIR/opt/opentalk-compose
-    - rm -rf $SOURCE_DIR/opt/opentalk-compose/{.git,.gitignore,.gitlab-ci.yml,README.md}
-    - find $SOURCE_DIR/opt/opentalk-compose -name .gitkeep -delete
-    - mv $SOURCE_DIR/opt/opentalk-compose/config/default.env.sample $SOURCE_DIR/opt/opentalk-compose/config/default.env
-    - mkdir -p $OUTPUT_DIR
-    - sed -i "s/^PRODUCT_VERSION=.*/PRODUCT_VERSION=$PACKAGE_VERSION/" $SOURCE_DIR/opt/opentalk-compose/.versions
-    - apt-get update && apt-get install -y squashfs-tools binutils curl
-    - gem install fpm
-    - |
-      fpm -s dir -t deb -n $PACKAGE_NAME \
-        -v $PACKAGE_VERSION \
-        -a $PACKAGE_ARCH_DEB \
-        --description "OpenTalk Compose Package. $PACKAGE_DESCRIPTION" \
-        --license $PACKAGE_LICENSE \
-        --maintainer "$PACKAGE_MAINTAINER" \
-        --vendor "$PACKAGE_VENDOR" \
-        --url "$PACKAGE_VENDOR_URL" \
-        --category $PACKAGE_CATEGORY \
-        --depends "docker-ce | docker-ee" \
-        --depends "docker-compose-plugin" \
-        --provides "$PACKAGE_NAME" \
-        --conflicts "$PACKAGE_NAME-ee (>= 0)" \
-        --directories /opt/$PACKAGE_NAME \
-        --directories /var/opt/$PACKAGE_NAME \
-        --config-files /opt/$PACKAGE_NAME/config \
-        --config-files /opt/$PACKAGE_NAME/config/secrets \
-        -C $SOURCE_DIR \
-        --after-install $SOURCE_DIR/opt/opentalk-compose/extras/packaging/post-install.sh \
-        -p $OUTPUT_DIR/${PACKAGE_NAME}_${PACKAGE_VERSION}_${PACKAGE_ARCH_DEB}.deb
-  artifacts:
-    paths:
-      - $OUTPUT_DIR/*.deb
-    expire_in: 1 week
+    - extras/packaging/build-all.sh $FLAVOR
 
-build:rpm:
-  stage: package
-  rules:
-    - if: $CI_COMMIT_TAG  
-  script:
-    - mkdir -pv $SOURCE_DIR/opt/opentalk-compose
-    - mkdir -pv $SOURCE_DIR/var/opt/opentalk-compose
-    - cp -rTv . $SOURCE_DIR/opt/opentalk-compose
-    - rm -rfv $SOURCE_DIR/opt/opentalk-compose/{.git,.gitignore,.gitlab-ci.yml,README.md}
-    - find $SOURCE_DIR/opt/opentalk-compose -name .gitkeep -delete
-    - mv -v $SOURCE_DIR/opt/opentalk-compose/config/default.env.sample $SOURCE_DIR/opt/opentalk-compose/config/default.env
-    - mkdir -pv $OUTPUT_DIR
-    - sed -i "s/^PRODUCT_VERSION=.*/PRODUCT_VERSION=$PACKAGE_VERSION/" $SOURCE_DIR/opt/opentalk-compose/.versions
-    - apt-get update && apt-get install -y squashfs-tools binutils rpm curl git
-    - gem install fpm
-    - |
-      fpm \
-        -s dir -t rpm \
-        -p ${OUTPUT_DIR}/${PACKAGE_NAME}-${PACKAGE_VERSION}.${PACKAGE_ARCH_RPM}.rpm \
-        --name "${PACKAGE_NAME}" \
-        --version "${PACKAGE_VERSION}" \
-        --description "OpenTalk Compose Package. $PACKAGE_DESCRIPTION" \
-        --maintainer "$PACKAGE_MAINTAINER" \
-        --vendor "$PACKAGE_VENDOR" \
-        --url "$PACKAGE_VENDOR_URL" \
-        --license "$PACKAGE_LICENSE" \
-        --depends "(docker-ce or docker-ee or docker)" \
-        --depends "(docker-compose-plugin or docker-compose)" \
-        --provides "${PACKAGE_NAME}" \
-        --directories /opt/${PACKAGE_NAME} \
-        --directories /var/opt/${PACKAGE_NAME} \
-        --config-files /opt/${PACKAGE_NAME}/config \
-        --config-files /opt/${PACKAGE_NAME}/config/secrets \
-        --after-install $SOURCE_DIR/opt/opentalk-compose/extras/packaging/post-install.sh \
-        -C ${SOURCE_DIR}
-  artifacts:
-    paths:
-      - $OUTPUT_DIR/*.rpm
-    expire_in: 1 week
-
-upload_package:deb-testing:
-  image: debian:bookworm-slim
-  stage: publish
-  rules:
-    - if: $CI_COMMIT_TAG && $CI_COMMIT_BRANCH != "main"
-  script:
-    - |
-      apt update && apt install -y curl
-      curl -L https://github.com/openkilt/openrepo/releases/download/v1.0.0/openrepo_cli_x86_64 -o /usr/local/bin/openrepo 
-      chmod +x -v /usr/local/bin/openrepo
-      for file in $OUTPUT_DIR/*.deb; do
-        if [ -f "$file" ]; then
-          filename=$(basename "$file")
-          curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
-               --upload-file "$file" \
-               "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
-          echo "Uploaded to gitlab: $filename"
-          openrepo --debug upload $file -r deb-testing -o
-          echo "Uploaded to openrepo: $filename"
-          sleep 2
-        fi
-      done
-
-upload_package:deb:
-  image: debian:bookworm-slim
-  stage: publish
-  rules:
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_BRANCH == "main"'
-  script:
-    - |
-      apt update && apt install -y curl
-      curl -L https://github.com/openkilt/openrepo/releases/download/v1.0.0/openrepo_cli_x86_64 -o /usr/local/bin/openrepo 
-      chmod +x -v /usr/local/bin/openrepo
-      for file in $OUTPUT_DIR/*.deb; do
-        if [ -f "$file" ]; then
-          filename=$(basename "$file")
-          curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
-               --upload-file "$file" \
-               "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
-          echo "Uploaded to gitlab: $filename"
-          openrepo --debug upload $file -r deb
-          echo "Uploaded to openrepo: $filename"
-          sleep 2
-        fi
-      done
-
-upload_package:rpm-testing:
-  image: debian:bookworm-slim
-  stage: publish
-  rules:
-    - if: $CI_COMMIT_TAG && $CI_COMMIT_BRANCH != "main"
-  script:
-    - |
-      apt update && apt install -y curl
-      curl -L https://github.com/openkilt/openrepo/releases/download/v1.0.0/openrepo_cli_x86_64 -o /usr/local/bin/openrepo 
-      chmod +x -v /usr/local/bin/openrepo
-      for file in $OUTPUT_DIR/*.rpm; do
-        if [ -f "$file" ]; then
-          filename=$(basename "$file")
-          curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
-               --upload-file "$file" \
-               "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
-          echo "Uploaded to gitlab: $filename"
-          RPM_VERSION_IGNORE_BUILD_NUM=True openrepo --debug upload $file -r rpm-testing -o
-          echo "Uploaded to openrepo: $filename"
-          sleep 2
-        fi
-      done
-
-upload_package:rpm:
-  image: debian:bookworm-slim
-  stage: publish
-  rules:
-    - if: '$CI_COMMIT_TAG && $CI_COMMIT_BRANCH == "main"'
-  script:
-    - |
-      apt update && apt install -y curl
-      curl -L https://github.com/openkilt/openrepo/releases/download/v1.0.0/openrepo_cli_x86_64 -o /usr/local/bin/openrepo 
-      chmod +x -v /usr/local/bin/openrepo
-      for file in $OUTPUT_DIR/*.rpm; do
-        if [ -f "$file" ]; then
-          filename=$(basename "$file")
-          curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
-               --upload-file "$file" \
-               "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
-          echo "Uploaded to gitlab: $filename"
-          RPM_VERSION_IGNORE_BUILD_NUM=True openrepo --debug upload $file -r rpm
-          echo "Uploaded to openrepo: $filename"
-          sleep 2
-        fi
-      done
+# build:deb:
+#   stage: package
+#   rules:
+#     - if: $CI_COMMIT_TAG
+#   script:
+#     - mkdir -p $SOURCE_DIR/opt/opentalk-compose
+#     - cp -rT . $SOURCE_DIR/opt/opentalk-compose
+#     - rm -rf $SOURCE_DIR/opt/opentalk-compose/{.git,.gitignore,.gitlab-ci.yml,README.md}
+#     - find $SOURCE_DIR/opt/opentalk-compose -name .gitkeep -delete
+#     - mv $SOURCE_DIR/opt/opentalk-compose/config/default.env.sample $SOURCE_DIR/opt/opentalk-compose/config/default.env
+#     - mkdir -p $OUTPUT_DIR
+#     - sed -i "s/^PRODUCT_VERSION=.*/PRODUCT_VERSION=$PACKAGE_VERSION/" $SOURCE_DIR/opt/opentalk-compose/.versions
+#     - apt-get update && apt-get install -y squashfs-tools binutils curl
+#     - gem install fpm
+#     - |
+#       fpm -s dir -t deb -n $PACKAGE_NAME \
+#         -v $PACKAGE_VERSION \
+#         -a $PACKAGE_ARCH_DEB \
+#         --description "OpenTalk Compose Package. $PACKAGE_DESCRIPTION" \
+#         --license $PACKAGE_LICENSE \
+#         --maintainer "$PACKAGE_MAINTAINER" \
+#         --vendor "$PACKAGE_VENDOR" \
+#         --url "$PACKAGE_VENDOR_URL" \
+#         --category $PACKAGE_CATEGORY \
+#         --depends "docker-ce | docker-ee" \
+#         --depends "docker-compose-plugin" \
+#         --provides "$PACKAGE_NAME" \
+#         --conflicts "$PACKAGE_NAME-ee (>= 0)" \
+#         --directories /opt/$PACKAGE_NAME \
+#         --directories /var/opt/$PACKAGE_NAME \
+#         --config-files /opt/$PACKAGE_NAME/config \
+#         --config-files /opt/$PACKAGE_NAME/config/secrets \
+#         -C $SOURCE_DIR \
+#         --after-install $SOURCE_DIR/opt/opentalk-compose/extras/packaging/post-install.sh \
+#         -p $OUTPUT_DIR/${PACKAGE_NAME}_${PACKAGE_VERSION}_${PACKAGE_ARCH_DEB}.deb
+#   artifacts:
+#     paths:
+#       - $OUTPUT_DIR/*.deb
+#     expire_in: 1 week
+#
+# build:rpm:
+#   stage: package
+#   rules:
+#     - if: $CI_COMMIT_TAG
+#   script:
+#     - mkdir -pv $SOURCE_DIR/opt/opentalk-compose
+#     - mkdir -pv $SOURCE_DIR/var/opt/opentalk-compose
+#     - cp -rTv . $SOURCE_DIR/opt/opentalk-compose
+#     - rm -rfv $SOURCE_DIR/opt/opentalk-compose/{.git,.gitignore,.gitlab-ci.yml,README.md}
+#     - find $SOURCE_DIR/opt/opentalk-compose -name .gitkeep -delete
+#     - mv -v $SOURCE_DIR/opt/opentalk-compose/config/default.env.sample $SOURCE_DIR/opt/opentalk-compose/config/default.env
+#     - mkdir -pv $OUTPUT_DIR
+#     - sed -i "s/^PRODUCT_VERSION=.*/PRODUCT_VERSION=$PACKAGE_VERSION/" $SOURCE_DIR/opt/opentalk-compose/.versions
+#     - apt-get update && apt-get install -y squashfs-tools binutils rpm curl git
+#     - gem install fpm
+#     - |
+#       fpm \
+#         -s dir -t rpm \
+#         -p ${OUTPUT_DIR}/${PACKAGE_NAME}-${PACKAGE_VERSION}.${PACKAGE_ARCH_RPM}.rpm \
+#         --name "${PACKAGE_NAME}" \
+#         --version "${PACKAGE_VERSION}" \
+#         --description "OpenTalk Compose Package. $PACKAGE_DESCRIPTION" \
+#         --maintainer "$PACKAGE_MAINTAINER" \
+#         --vendor "$PACKAGE_VENDOR" \
+#         --url "$PACKAGE_VENDOR_URL" \
+#         --license "$PACKAGE_LICENSE" \
+#         --depends "(docker-ce or docker-ee or docker)" \
+#         --depends "(docker-compose-plugin or docker-compose)" \
+#         --provides "${PACKAGE_NAME}" \
+#         --directories /opt/${PACKAGE_NAME} \
+#         --directories /var/opt/${PACKAGE_NAME} \
+#         --config-files /opt/${PACKAGE_NAME}/config \
+#         --config-files /opt/${PACKAGE_NAME}/config/secrets \
+#         --after-install $SOURCE_DIR/opt/opentalk-compose/extras/packaging/post-install.sh \
+#         -C ${SOURCE_DIR}
+#   artifacts:
+#     paths:
+#       - $OUTPUT_DIR/*.rpm
+#     expire_in: 1 week
+#
+# upload_package:deb-testing:
+#   image: debian:bookworm-slim
+#   stage: publish
+#   rules:
+#     - if: $CI_COMMIT_TAG && $CI_COMMIT_BRANCH != "main"
+#   script:
+#     - |
+#       apt update && apt install -y curl
+#       curl -L https://github.com/openkilt/openrepo/releases/download/v1.0.0/openrepo_cli_x86_64 -o /usr/local/bin/openrepo
+#       chmod +x -v /usr/local/bin/openrepo
+#       for file in $OUTPUT_DIR/*.deb; do
+#         if [ -f "$file" ]; then
+#           filename=$(basename "$file")
+#           curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+#                --upload-file "$file" \
+#                "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
+#           echo "Uploaded to gitlab: $filename"
+#           openrepo --debug upload $file -r deb-testing -o
+#           echo "Uploaded to openrepo: $filename"
+#           sleep 2
+#         fi
+#       done
+#
+# upload_package:deb:
+#   image: debian:bookworm-slim
+#   stage: publish
+#   rules:
+#     - if: '$CI_COMMIT_TAG && $CI_COMMIT_BRANCH == "main"'
+#   script:
+#     - |
+#       apt update && apt install -y curl
+#       curl -L https://github.com/openkilt/openrepo/releases/download/v1.0.0/openrepo_cli_x86_64 -o /usr/local/bin/openrepo
+#       chmod +x -v /usr/local/bin/openrepo
+#       for file in $OUTPUT_DIR/*.deb; do
+#         if [ -f "$file" ]; then
+#           filename=$(basename "$file")
+#           curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+#                --upload-file "$file" \
+#                "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
+#           echo "Uploaded to gitlab: $filename"
+#           openrepo --debug upload $file -r deb
+#           echo "Uploaded to openrepo: $filename"
+#           sleep 2
+#         fi
+#       done
+#
+# upload_package:rpm-testing:
+#   image: debian:bookworm-slim
+#   stage: publish
+#   rules:
+#     - if: $CI_COMMIT_TAG && $CI_COMMIT_BRANCH != "main"
+#   script:
+#     - |
+#       apt update && apt install -y curl
+#       curl -L https://github.com/openkilt/openrepo/releases/download/v1.0.0/openrepo_cli_x86_64 -o /usr/local/bin/openrepo
+#       chmod +x -v /usr/local/bin/openrepo
+#       for file in $OUTPUT_DIR/*.rpm; do
+#         if [ -f "$file" ]; then
+#           filename=$(basename "$file")
+#           curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+#                --upload-file "$file" \
+#                "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
+#           echo "Uploaded to gitlab: $filename"
+#           RPM_VERSION_IGNORE_BUILD_NUM=True openrepo --debug upload $file -r rpm-testing -o
+#           echo "Uploaded to openrepo: $filename"
+#           sleep 2
+#         fi
+#       done
+#
+# upload_package:rpm:
+#   image: debian:bookworm-slim
+#   stage: publish
+#   rules:
+#     - if: '$CI_COMMIT_TAG && $CI_COMMIT_BRANCH == "main"'
+#   script:
+#     - |
+#       apt update && apt install -y curl
+#       curl -L https://github.com/openkilt/openrepo/releases/download/v1.0.0/openrepo_cli_x86_64 -o /usr/local/bin/openrepo
+#       chmod +x -v /usr/local/bin/openrepo
+#       for file in $OUTPUT_DIR/*.rpm; do
+#         if [ -f "$file" ]; then
+#           filename=$(basename "$file")
+#           curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+#                --upload-file "$file" \
+#                "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
+#           echo "Uploaded to gitlab: $filename"
+#           RPM_VERSION_IGNORE_BUILD_NUM=True openrepo --debug upload $file -r rpm
+#           echo "Uploaded to openrepo: $filename"
+#           sleep 2
+#         fi
+#       done
