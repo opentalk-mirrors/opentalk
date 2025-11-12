@@ -1,9 +1,9 @@
 %define pkgname        opentalk-compose
-%define pkgsummary     OpenTalk Deployment Orchestration (compose + automation)
+%define pkgsummary     OpenTalk Compose Package. Compose and orchestrate OpenTalk services.
 %define pkglicense     EUPL-1.2
 ## SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 ## SPDX-License-Identifier: EUPL-1.2
-%define pkgurl         https://opentalk.org/
+%define pkgurl         https://opentalk.eu/
 # These can be overridden: rpmbuild --define 'version 1.2.3' --define 'release 2'
 %ifndef version
 %define version 25.3.0
@@ -13,6 +13,9 @@
 %endif
 
 Name:           %{pkgname}
+Group:          Applications/Communications
+Vendor:         OpenTalk GmbH
+Packager:       OpenTalk GmbH <mail@opentalk.eu>
 Version:        %{version}
 Release:        %{release}%{?dist}
 Summary:        %{pkgsummary}
@@ -28,6 +31,10 @@ Requires:       rsync
 Requires:       jq
 Requires:       openssl
 Requires:       tar
+# Compose / Docker runtime (boolean dependencies where available)
+Requires:       (docker-ce or docker-ee or docker)
+Requires:       (docker-compose-plugin or docker-compose)
+Provides:       %{pkgname}
 
 %description
 OpenTalk Orchestrierung inklusive Automation (Ansible), Wrapper-Skripten,

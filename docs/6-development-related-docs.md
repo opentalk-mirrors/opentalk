@@ -79,3 +79,34 @@ To update hook versions defined in .pre-commit-config.yaml:
 ```bash
 pre-commit autoupdate
 ```
+
+
+## Versioning of DEB or RPM Packages
+
+Because the OpenTalk product version cannot be mapped 1:1 to DEB or RPM package versions without breaking update mechanics, product versions are converted accordingly. Nothing changes for authoring: keep using the product version schema when createing releases or git tags. The conversion happens when running the build scripts.
+
+## DEB-Pakages
+
+| Product Version / Input Tag                     | Package Version                      | Debian Filename                                                     |
+|-------------------------------------|---------------------------------------|---------------------------------------------------------------------|
+| v25.3.2                             | 25.3.2-1                              | opentalk-compose_25.3.2-1_amd64.deb                                 |
+| v25.3.2-1                           | 25.3.2-1                              | opentalk-compose_25.3.2-1_amd64.deb                                 |
+| v25.3.2-2                           | 25.3.2-2                              | opentalk-compose_25.3.2-2_amd64.deb                                 |
+| v25.3.2-beta                        | 25.3.2~beta-1                         | opentalk-compose_25.3.2~beta-1_amd64.deb                            |
+| v25.3.2-beta.2                      | 25.3.2~beta2-1                        | opentalk-compose_25.3.2~beta2-1_amd64.deb                           |
+| v25.3.2-beta.3+git-4e7d8a1f         | 25.3.2~beta3+git4e7d8a1f-1            | opentalk-compose_25.3.2~beta3+git4e7d8a1f-1_amd64.deb              |
+| v25.3.2-beta+git4e7d8a1f            | 25.3.2~beta+git4e7d8a1f-1             | opentalk-compose_25.3.2~beta+git4e7d8a1f-1_amd64.deb               |
+| v25.3.2+git-4e7d8a1f                | 25.3.2+git4e7d8a1f-1                  | opentalk-compose_25.3.2+git4e7d8a1f-1_amd64.deb                    |
+
+## RPM-Pakages
+
+| Product Version / Input Tag | RPM Version | RPM Release | RPM Filename |
+|-------------------------------------|----------------------|------------------------|---------------------------------------------------|
+| v25.3.2                             | 25.3.2               | 1                      | opentalk-compose-25.3.2-1.x86_64.rpm             |
+| v25.3.2-1                           | 25.3.2               | 1                      | opentalk-compose-25.3.2-1.x86_64.rpm             |
+| v25.3.2-2                           | 25.3.2               | 2                      | opentalk-compose-25.3.2-2.x86_64.rpm             |
+| v25.3.2-beta                        | 25.3.2~beta          | 1                      | opentalk-compose-25.3.2~beta-1.x86_64.rpm        |
+| v25.3.2-beta.2                      | 25.3.2~beta2         | 1                      | opentalk-compose-25.3.2~beta2-1.x86_64.rpm       |
+| v25.3.2-beta.3+git-4e7d8a1f         | 25.3.2~beta3+git4e7d8a1f   | 1                | opentalk-compose-25.3.2~beta3+git4e7d8a1f-1.x86_64.rpm |
+| v25.3.2-beta+git4e7d8a1f           | 25.3.2~beta+git4e7d8a1f     | 1                | opentalk-compose-25.3.2~beta+git4e7d8a1f-1.x86_64.rpm |
+| v25.3.2+git-4e7d8a1f                | 25.3.2+git4e7d8a1f   | 1                      | opentalk-compose-25.3.2+git4e7d8a1f-1.x86_64.rpm |

@@ -8,6 +8,10 @@ yaml-files:
   - '*.yml'
   - '.yamllint'
 
+ignore:
+  - artifacts/
+  - build/
+
 rules:
   anchors: enable
   braces:
