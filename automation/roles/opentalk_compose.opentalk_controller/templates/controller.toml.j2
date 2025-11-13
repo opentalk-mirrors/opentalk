@@ -202,7 +202,7 @@ expiry = {{ controller_shared_folder_expiry }}
 user_language = "{{ controller_defaults_user_language }}"
 {% endif %}
 {% if controller_defaults_screen_share_requires_permission is defined %}
-screen_share_requires_permission = {{ controller_defaults_screen_share_requires_permission }}
+screen_share_requires_permission = {{ controller_defaults_screen_share_requires_permission | to_json}}
 {% endif %}
 {% if controller_defaults_disabled_features is defined and controller_defaults_disabled_features %}
 disabled_features = [
