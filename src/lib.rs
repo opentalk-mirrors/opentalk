@@ -71,7 +71,11 @@ pub fn generate_pdf_report(
         std::fs::write(dump_path.join("report.typ"), &source).context(DumpFileExportSnafu)?;
 
         for (path, (_package, content)) in &data {
-            std::fs::write(dump_path.join(path), content).context(DumpFileExportSnafu)?;
+            let file_dump_path = dump_path.join(path);
+            if let Some(parent) = file_dump_path.parent() {
+                std::fs::create_dir_all(parent).context(DumpDirectoryCreationSnafu)?;
+            }
+            std::fs::write(file_dump_path, content).context(DumpFileExportSnafu)?;
         }
     }
 
