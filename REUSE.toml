@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+SPDX-PackageDownloadLocation = "https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose"
+SPDX-PackageName = "OpenTalk Compose"
+SPDX-PackageSupplier = "OpenTalk GmbH <mail@opentalk.eu>"
+version = 1
+
+[[annotations]]
+SPDX-FileCopyrightText = "OpenTalk GmbH <mail@opentalk.eu>"
+SPDX-License-Identifier = "EUPL-1.2"
+path = [
+  "automation/roles/opentalk_compose.keycloak/files/**",
+  "extras/packaging/config-dist/**",
+  "extras/packaging/man/**"
+]
+precedence = "aggregate"
+
+#exclude_paths = [
+#  "build/"
+##  "docs/**",
+##  "automation/**",
+#]
+##
+##exclude_file = [
+##  ".gitignore",
+##  ".gitlab-ci.yml.old",
+##  ".versions.yml",
+##  ".yamllint.yml",
+##  "README.md"
+##]

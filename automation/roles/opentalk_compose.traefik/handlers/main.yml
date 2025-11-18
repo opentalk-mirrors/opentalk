@@ -1,4 +1,7 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # handlers file for opentalk_compose.traefik
 - name: "Restart Docker service traefik"
@@ -11,7 +14,7 @@
     recreate: never
     state: restarted
   tags:
-   - always
+    - always
 
 - name: "Recreate Docker service traefik"
   community.docker.docker_compose_v2:
@@ -22,4 +25,4 @@
     recreate: always
     state: restarted
   tags:
-   - always
+    - always

@@ -1,36 +1,40 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # Manage Keycloak client used for OpenTalk backend
-- block:
-  - name: Create or update Keycloak client {{ controller_oidc_controller_client_id | default('Controller') }}
-    community.general.keycloak_client:
-      auth_keycloak_url: "{{ keycloak_base_url }}"
-      auth_realm: "{{ keycloak_auth_realm }}"
-      auth_username: "{{ keycloak_auth_username }}"
-      auth_password: "{{ keycloak_auth_password }}"
-      realm: "{{ keycloak_realm }}"
-      client_id: "{{ controller_oidc_controller_client_id | default('Controller') }}"
-      name: "{{ controller_oidc_controller_client_id | default('Controller') }}"
-      description: "OpenTalk Controller OIDC client"
-      state: present
-      enabled: true
-      public_client: false
-      direct_access_grants_enabled: false
-      service_accounts_enabled: true
-      client_authenticator_type: client-secret
-      secret: "{{ OIDC_CONTROLLER_CLIENT_SECRET }}"
-      attributes:
-        post.logout.redirect.uris: "+"
 
-  - name: "Map a client roles to service account user for client {{ controller_oidc_controller_client_id | default('Controller') }}"
-    community.general.keycloak_user_rolemapping:
-      auth_keycloak_url: "{{ keycloak_base_url }}"
-      auth_realm: "{{ keycloak_auth_realm }}"
-      auth_username: "{{ keycloak_auth_username }}"
-      auth_password: "{{ keycloak_auth_password }}"
-      realm: "{{ keycloak_realm }}"
-      client_id: "realm-management"
-      service_account_user_client_id: "{{ controller_oidc_controller_client_id | default('Controller') }}"
-      roles:
-        - name: view-users
-        - name: query-users
-      state: present
+- name: Create or update Keycloak client {{ controller_oidc_controller_client_id | default('Controller') }}
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ keycloak_base_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_auth_username }}"
+    auth_password: "{{ keycloak_auth_password }}"
+    realm: "{{ keycloak_realm }}"
+    client_id: "{{ controller_oidc_controller_client_id | default('Controller') }}"
+    name: "{{ controller_oidc_controller_client_id | default('Controller') }}"
+    description: "OpenTalk Controller OIDC client"
+    state: present
+    enabled: true
+    public_client: false
+    direct_access_grants_enabled: false
+    service_accounts_enabled: true
+    client_authenticator_type: client-secret
+    secret: "{{ OIDC_CONTROLLER_CLIENT_SECRET }}"
+    attributes:
+      post.logout.redirect.uris: "+"
+
+- name: "Map a client roles to service account user for client {{ controller_oidc_controller_client_id | default('Controller') }}"
+  community.general.keycloak_user_rolemapping:
+    auth_keycloak_url: "{{ keycloak_base_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_auth_username }}"
+    auth_password: "{{ keycloak_auth_password }}"
+    realm: "{{ keycloak_realm }}"
+    client_id: "realm-management"
+    service_account_user_client_id: "{{ controller_oidc_controller_client_id | default('Controller') }}"
+    roles:
+      - name: view-users
+      - name: query-users
+    state: present

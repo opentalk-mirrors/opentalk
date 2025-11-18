@@ -1,7 +1,12 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # Backup tasks for opentalk_compose.backup : backup_config.yml
+
 - name: Ensure config backup directory
-  ansible.builtin.command: 
+  ansible.builtin.command:
     cmd: mkdir -p "{{ backup_dir_config }}"
     creates: "{{ backup_dir_config }}"
 
@@ -10,4 +15,4 @@
     path: "{{ config_dir }}"
     dest: "{{ backup_dir_config }}/{{ config_backup_file_name }}"
     format: gz
-    remove: no
+    remove: false

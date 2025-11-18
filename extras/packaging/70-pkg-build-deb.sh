@@ -1,22 +1,60 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
 # SPDX-License-Identifier: EUPL-1.2
+
 set -euo pipefail
 #
 # Build Debian package for opentalk-compose
 #
 
-VERSION="${1:-}"
-[ -n "$VERSION" ] || { echo "Usage: $0 <version>"; exit 1; }
+VERSION_RAW="${1:-}"
+[ -n "$VERSION_RAW" ] || { echo "Usage: $0 <version>"; exit 1; }
 
-# Optional Debian revision (packaging iteration). If unset, remain backward compatible (no suffix).
-DEB_REVISION="${DEB_REVISION:-}"
-if [[ -n "$DEB_REVISION" ]]; then
-  # Basic validation: allow alphanum plus . and + and ~; reject spaces
-  if ! [[ "$DEB_REVISION" =~ ^[0-9A-Za-z.+~_-]+$ ]]; then
-    echo "[build-deb] ERROR: Invalid DEB_REVISION: $DEB_REVISION" >&2
-    exit 2
+# Normalize provided version/tag to Debian/RPM-compatible upstream-version
+# Rules:
+#  - strip leading 'v'
+#  - convert prerelease in base part: '-prerelease[.N]' -> '~prereleaseN'
+#  - preserve '+meta' part but remove '-' inside meta (e.g. '+git-c069' -> '+gitc069')
+strip_v="$(printf '%s' "$VERSION_RAW" | sed -E 's/^v//')"
+base_part="$strip_v"
+meta_part=""
+if [[ "$strip_v" == *+* ]]; then
+  base_part="${strip_v%%+*}"
+  meta_part="${strip_v#*+}"
+fi
+base_part="$(printf '%s' "$base_part" | sed -E 's/-([[:alpha:]]+)\.([0-9]+)/~\1\2/g; s/-([[:alpha:]]+)/~\1/g')"
+if [ -n "$meta_part" ]; then
+  # remove hyphens inside meta to keep Debian upstream-version valid
+  meta_part="$(printf '%s' "$meta_part" | tr -d '-')"
+  VERSION="${base_part}+${meta_part}"
+else
+  VERSION="${base_part}"
+fi
+
+# Extract explicit Debian revision from trailing -N if pattern matches semver (+ optional ~prerelease) before meta.
+explicit_deb_revision_flag=0
+if [[ "$VERSION" =~ ^([^+]+)-([0-9]+)(\+.+)?$ ]]; then
+  core_part="${BASH_REMATCH[1]}"
+  rev_part="${BASH_REMATCH[2]}"
+  meta_tail="${BASH_REMATCH[3]}"
+  if [[ "$core_part" =~ ^[0-9]+(\.[0-9]+){2}(~[A-Za-z0-9]+)?$ ]]; then
+    VERSION="${core_part}${meta_tail}"  # strip -N from upstream version, keep +meta if any
+    DEB_REVISION="$rev_part"
+    explicit_deb_revision_flag=1
   fi
+fi
+
+# Debian revision (packaging iteration). Default to 1 per versioning schema.
+DEB_REVISION="${DEB_REVISION:-${DEB_REVISION:-1}}"
+# Basic validation: allow alphanum plus . and + and ~; reject spaces
+if ! [[ "$DEB_REVISION" =~ ^[0-9A-Za-z.+~_-]+$ ]]; then
+  echo "[build-deb] ERROR: Invalid DEB_REVISION: $DEB_REVISION" >&2
+  exit 2
+fi
+if [ $explicit_deb_revision_flag -eq 1 ]; then
+  echo "[build-deb] Using deb revision: $DEB_REVISION (from tag)"
+else
   echo "[build-deb] Using deb revision: $DEB_REVISION"
 fi
 
@@ -25,14 +63,21 @@ PKGROOT="$ROOT/build/pkgroot"
 OUTDIR="$ROOT/artifacts"
 
 NAME="opentalk-compose"
-OLD_NAME="opentalk-compose-embedded-ansible"
 ARCH="amd64"
 
-# Metadata defaults (override via environment if needed)
-DESC="${DESC:-OpenTalk compose deployment tooling}"
-MAINTAINER="${MAINTAINER:-OpenTalk <support@opentalk.eu>}"
-VENDOR="${VENDOR:-OpenTalk}"
-URL="${URL:-https://opentalk.eu}"
+# Unified package metadata (override via environment if needed)
+PACKAGE_NAME="${PACKAGE_NAME:-$NAME}"
+PACKAGE_DESCRIPTION="${PACKAGE_DESCRIPTION:-Compose and orchestrate OpenTalk services.}"
+PACKAGE_LICENSE="${PACKAGE_LICENSE:-EUPL-1.2}"
+PACKAGE_MAINTAINER="${PACKAGE_MAINTAINER:-OpenTalk GmbH mail@opentalk.eu}"
+PACKAGE_VENDOR="${PACKAGE_VENDOR:-OpenTalk GmbH}"
+PACKAGE_VENDOR_URL="${PACKAGE_VENDOR_URL:-https://opentalk.eu}"
+# Requested category (fpm --category) vs Debian Section mapping: use Section 'net' as specified
+PACKAGE_CATEGORY="${PACKAGE_CATEGORY:-comm}"
+DEB_SECTION="${DEB_SECTION:-net}"
+
+# Final assembled human-readable description for tooling
+FPM_DESCRIPTION="OpenTalk Compose Package. ${PACKAGE_DESCRIPTION}"
 
 mkdir -p "$OUTDIR"
 
@@ -91,21 +136,23 @@ if [ ! -f "$RUNTIME_META" ]; then
   } >"$RUNTIME_META"
 fi
 
-if [[ -n "$DEB_REVISION" ]]; then
-  BASE_FILENAME="${NAME}_${VERSION}-${DEB_REVISION}_${ARCH}.deb"
-else
-  BASE_FILENAME="${NAME}_${VERSION}_${ARCH}.deb"
-fi
+BASE_FILENAME="${NAME}_${VERSION}-${DEB_REVISION}_${ARCH}.deb"
 PKG_FILE="$OUTDIR/$BASE_FILENAME"
-if [[ -f "$PKG_FILE" ]]; then
-  if [[ "${FORCE_DEB_OVERWRITE:-0}" == "1" ]]; then
-    echo "[build-deb] Existing file will be overwritten (FORCE_DEB_OVERWRITE=1): $PKG_FILE"
-    rm -f "$PKG_FILE"
-  else
-    TS_DEB="$(date +%Y%m%d%H%M%S)"
-    PKG_FILE="$OUTDIR/${NAME}_${VERSION}_${TS_DEB}_${ARCH}.deb"
-    echo "[build-deb] Existing file found, using timestamped output: $PKG_FILE (set FORCE_DEB_OVERWRITE=1 to overwrite)"
+if [[ -f "$PKG_FILE" ]] && [[ "${FORCE_DEB_OVERWRITE:-0}" != "1" ]]; then
+  echo "[build-deb] Existing artifact detected: $PKG_FILE"
+  # If explicit revision extracted from tag, abort instead of auto-incrementing.
+  if [[ $explicit_deb_revision_flag -eq 1 ]]; then
+    echo "[build-deb] ERROR: Explicit revision '$DEB_REVISION' from tag already exists. Not auto-incrementing." >&2
+    echo "[build-deb]        Use FORCE_DEB_OVERWRITE=1 or choose a new version/revision." >&2
+    exit 3
   fi
+  # Otherwise increment Debian revision until free.
+  while [[ -f "$OUTDIR/${NAME}_${VERSION}-${DEB_REVISION}_${ARCH}.deb" ]]; do
+    DEB_REVISION=$(( DEB_REVISION + 1 ))
+  done
+  BASE_FILENAME="${NAME}_${VERSION}-${DEB_REVISION}_${ARCH}.deb"
+  PKG_FILE="$OUTDIR/$BASE_FILENAME"
+  echo "[build-deb] Bumped deb revision to $DEB_REVISION -> $PKG_FILE"
 fi
 echo "[build-deb] Building $PKG_FILE"
 
@@ -116,37 +163,43 @@ POSTRM_SRC="$PKGROOT/opt/opentalk-compose/bin/pkg-postrm.sh"
 
 if command -v fpm >/dev/null 2>&1; then
   # Build via fpm. Use --iteration for revision if provided (maps to Debian revision after a dash)
-  FPM_CMD=(fpm -s dir -t deb -n "$NAME" -v "$VERSION" -a "$ARCH" \
+  FPM_CMD=(fpm -s dir -t deb -n "$PACKAGE_NAME" -v "$VERSION" -a "$ARCH" \
     --config-files /etc/opentalk-compose/settings.yml \
     --deb-compression xz \
     --after-install "$POSTINST_SRC")
   if [ -f "$POSTRM_SRC" ]; then
     FPM_CMD+=(--after-remove "$POSTRM_SRC")
   fi
-  if [[ -n "$DEB_REVISION" ]]; then
-    FPM_CMD+=(--iteration "$DEB_REVISION")
-  fi
-  FPM_CMD+=(-C "$PKGROOT" -p "$PKG_FILE" --description "$DESC" --license "EUPL-1.2" --vendor "$VENDOR" --maintainer "$MAINTAINER" --url "$URL")
+  FPM_CMD+=(--iteration "$DEB_REVISION")
+  # Metadata & dependencies
+  FPM_CMD+=(--description "$FPM_DESCRIPTION" \
+    --license "$PACKAGE_LICENSE" \
+    --maintainer "$PACKAGE_MAINTAINER" \
+    --vendor "$PACKAGE_VENDOR" \
+    --url "$PACKAGE_VENDOR_URL" \
+    --category "$PACKAGE_CATEGORY" \
+    --provides "$PACKAGE_NAME" \
+    --depends "docker-ce | docker-ee" \
+    --depends "docker-compose-plugin")
+  FPM_CMD+=(-C "$PKGROOT" -p "$PKG_FILE")
   "${FPM_CMD[@]}"
   [ -f "$PKG_FILE" ] || fail "fpm did not produce expected package at $PKG_FILE"
 else
   echo "[build-deb] fpm not found - using raw dpkg-deb fallback"
   mkdir -p "$PKGROOT/DEBIAN"
 
-  if [[ -n "$DEB_REVISION" ]]; then
-    FULL_VERSION="${VERSION}-${DEB_REVISION}"
-  else
-    FULL_VERSION="$VERSION"
-  fi
+  FULL_VERSION="${VERSION}-${DEB_REVISION}"
   cat >"$PKGROOT/DEBIAN/control" <<EOF
-Package: $NAME
+Package: $PACKAGE_NAME
 Version: $FULL_VERSION
-Section: misc
+Section: $DEB_SECTION
 Priority: optional
 Architecture: $ARCH
-Maintainer: $MAINTAINER
-Description: $DESC
-Homepage: $URL
+Maintainer: $PACKAGE_MAINTAINER
+Homepage: $PACKAGE_VENDOR_URL
+Depends: docker-ce | docker-ee, docker-compose-plugin
+Provides: $PACKAGE_NAME
+Description: $FPM_DESCRIPTION
 EOF
 
   {

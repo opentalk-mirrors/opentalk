@@ -1,4 +1,8 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 mkdir -p /var/opt/opentalk-compose/data
 mkdir -p /var/opt/opentalk-compose/backups
 chmod 755 /var/opt/opentalk-compose/data
@@ -10,8 +14,8 @@ MAN_FILE=/usr/share/man/man1/opentalk-compose.1
 CFORGE_CMD=/usr/bin/cforge
 BASH_COMPLETION_CFORGE=/etc/bash_completion.d/cforge.bash
 
-if [ ! -f $SETTINGS_FILE ]; then
-cp $ANSIBLE_DEFAULT_FILE $SETTINGS_FILE
+if [ ! -f "$SETTINGS_FILE" ]; then
+  cp "$ANSIBLE_DEFAULT_FILE" "$SETTINGS_FILE"
 fi
 
 if [ ! -f "$MAN_FILE" ]; then
@@ -27,7 +31,8 @@ if [ ! -f "$BASH_COMPLETION_CFORGE" ]; then
 fi
 
 if [ -f "$BASH_COMPLETION_CFORGE" ]; then
-    # shellcheck source=/dev/null
-    source $BASH_COMPLETION_CFORGE
-    complete -F _cforge_completion cforge
+  # shellcheck source=/dev/null
+  # Quote path (SC2086)
+  source "$BASH_COMPLETION_CFORGE"
+  complete -F _cforge_completion cforge
 fi

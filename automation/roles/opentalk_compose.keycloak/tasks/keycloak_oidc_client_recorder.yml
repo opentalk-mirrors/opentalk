@@ -1,5 +1,10 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # Manage Keycloak client used for OpenTalk recorder
+
 - name: Create or update Keycloak client {{ recorder_auth_client_id | default('Recorder') }}
   community.general.keycloak_client:
     auth_keycloak_url: "{{ keycloak_base_url }}"

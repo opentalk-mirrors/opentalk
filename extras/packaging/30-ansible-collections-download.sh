@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# shellcheck disable=SC2012  # Using ls for simple glob existence/count; acceptable for controlled filenames.
 set -euo pipefail
 # Download Ansible collection tarballs (offline cache).
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

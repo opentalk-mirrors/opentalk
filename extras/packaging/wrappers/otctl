@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 set -euo pipefail
 
 PREFIX="${OT_PREFIX:-/opt/opentalk-compose}"
@@ -32,9 +36,9 @@ log_cmd() {
 PLAYBOOK_WRAPPER() { log_cmd "$WRAPPER_DIR/ot-ansible-playbook" "$@"; "$WRAPPER_DIR/ot-ansible-playbook" "$@"; }
 
 usage() {
-  local c_hdr="" c_dim="" c_reset=""
+  local c_hdr="" c_reset=""
   if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ -z "${OTCTL_NO_COLOR:-}" ]; then
-    c_hdr=$'\e[1;94m'; c_dim=$'\e[2m'; c_reset=$'\e[0m'
+  c_hdr=$'\e[1;94m'; c_reset=$'\e[0m'
   fi
   cat <<EOF
 
@@ -100,7 +104,7 @@ EOF
 
 # Ensure post-install (self-heal) if venv missing
 if [ ! -x "$VENV_BIN/ansible" ] && [ -x "$POSTINST" ]; then
-  bash "$POSTINST" || true
+  bash "$POSTINST"
 fi
 [ -x "$VENV_BIN/ansible" ] || { echo "[otctl] ansible runtime missing under $VENV_BIN" >&2; exit 1; }
 
@@ -113,7 +117,7 @@ if [ -z "${ANSIBLE_COLLECTIONS_PATHS:-}" ]; then
   if [ -d "$VENDOR/ansible_collections" ]; then
     case ":$cfg_paths:" in
       *":$VENDOR:"*) ANSIBLE_COLLECTIONS_PATHS="$cfg_paths" ;;
-      "") ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$HOME/.ansible/collections:/usr/share/ansible/collections" ;;
+      "::") ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$HOME/.ansible/collections:/usr/share/ansible/collections" ;;
       *) ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$cfg_paths" ;;
     esac
   else
@@ -124,7 +128,7 @@ fi
 export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$AUTOMATION/ansible.cfg}"
 export PYTHONDONTWRITEBYTECODE=1
 
-subcmd="${1:-}"; shift || true
+subcmd="${1:-}"; if [ $# -gt 0 ]; then shift; fi
 
 resolve_compose_files() {
   # Enforced single compose file path.
@@ -262,7 +266,7 @@ print_versions() {
   local comp_keys=() comp_vals=()
   if [ -f "$versions_file" ]; then
     while IFS= read -r line; do
-      line="${line%%$(printf '\r')}"
+  line="${line%%"$(printf '\r')"}"
       case "$line" in ''|'#'*) continue ;; esac
       [[ $line != *:* ]] && continue
       local key="${line%%:*}" val="${line#*:}"
@@ -340,7 +344,7 @@ list_tags() {
   [ -f "$playbook" ] || { echo "[otctl] playbook not found: $playbook" >&2; return 2; }
   # Use ansible-playbook --list-tags (fast, doesn't execute tasks)
   local out
-  if out="$($WRAPPER_DIR/ot-ansible-playbook -i "$AUTOMATION/inventory.yml" "$playbook" --list-tags 2>/dev/null)"; then
+  if out="$("$WRAPPER_DIR"/ot-ansible-playbook -i "$AUTOMATION/inventory.yml" "$playbook" --list-tags 2>/dev/null)"; then
     # Extract lines after 'playbook: ...' containing 'TAGS:' pattern
     # Typical format: 'playbook: ...' then '  play # tags=tag1,tag2'
     # Newer ansible shows 'TASK TAGS: [tag1, tag2]'
@@ -473,7 +477,7 @@ otctl backup USAGE:
   (advanced) otctl backup --tags <custom>
 BHELP
     }
-    mode="${1:-}"; [ $# -gt 0 ] && shift || true
+  mode="${1:-}"; if [ $# -gt 0 ]; then shift; fi
     if [ -z "$mode" ] || [[ "$mode" == help ]] || [[ "$mode" == --help ]] || [[ "$mode" == -h ]]; then
       backup_usage; exit 0
     fi
@@ -487,8 +491,8 @@ BHELP
         # Optional qualifier
         qualifier="${1:-}"; if [ -n "$qualifier" ]; then
           case "$qualifier" in
-            controller|ctrl) tags_arg="controller_db_dump"; shift || true ;;
-            keycloak|kc) tags_arg="keycloak_db_dump"; shift || true ;;
+            controller|ctrl) tags_arg="controller_db_dump"; if [ $# -gt 0 ]; then shift; fi ;;
+            keycloak|kc) tags_arg="keycloak_db_dump"; if [ $# -gt 0 ]; then shift; fi ;;
             *) tags_arg="controller_db_dump,keycloak_db_dump" ;;
           esac
         else
@@ -500,7 +504,7 @@ BHELP
       volume)
         # Optional single volume argument
         if [ -n "${1:-}" ] && [[ "${1:-}" != -* ]]; then
-          single_vol="$1"; shift || true
+          single_vol="$1"; if [ $# -gt 0 ]; then shift; fi
           # Build JSON for extra var; try to detect if already prefixed with compose project
           if [[ "$single_vol" != ${OT_COMPOSE_PROJECT:-opentalk}_* ]]; then
             # Accept raw provided; assume user knows full name

@@ -1,4 +1,9 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
+
 - name: OpenTalk Recorder Compose path include
   ansible.builtin.blockinfile:
     path: "{{ deploy_dir }}/compose.yml"

@@ -1,46 +1,52 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # Idempotent creation of a permanent admin with automatic fallback logic.
 
 - name: Manage permanent keycloak admin
-  block:
-  - name: Wait for Keycloak to be reachable
-    ansible.builtin.uri:
-      url: "{{ keycloak_health_url }}"
-      method: GET
-      status_code: 200
-      return_content: no
-      validate_certs: false
-    register: keycloak_healthcheck
-    until: keycloak_healthcheck.status == 200
-    retries: "{{ keycloak_wait_to_be_reachable_retries }}"
-    delay: "{{ keycloak_wait_to_be_reachable_delay }}"
-  
-  - name: "Check permanent admin exists | '{{ keycloak_permanent_admin_username }}'"
-    ansible.builtin.uri:
-      url: "{{ keycloak_base_url }}/realms/{{ keycloak_auth_realm }}/protocol/openid-connect/token"
-      method: POST
-      body_format: form-urlencoded
-      body:
-        grant_type: password
-        client_id: admin-cli
-        username: "{{ keycloak_permanent_admin_username }}"
-        password: "{{ keycloak_permanent_admin_password }}"
-      status_code: [200, 401] # Expect success (200) or failure (401)
-    register: permanent_admin_login_attempt
-    failed_when: false # Prevent task failure on 401
-  
-  - name: "Continue with permanent admin credentials"
-    block:
-      - name: "Set auth facts to permanent admin"
-        ansible.builtin.set_fact:
-          keycloak_auth_username: "{{ keycloak_permanent_admin_username }}"
-          keycloak_auth_password: "{{ keycloak_permanent_admin_password }}"
-          keycloak_auth_realm: "{{ keycloak_auth_realm }}"
-    when: permanent_admin_login_attempt.status == 200
   when:
     - keycloak_manage_enabled is true
+  block:
+    - name: Wait for Keycloak to be reachable
+      ansible.builtin.uri:
+        url: "{{ keycloak_health_url }}"
+        method: GET
+        status_code: 200
+        return_content: false
+        validate_certs: false
+      register: keycloak_healthcheck
+      until: keycloak_healthcheck.status == 200
+      retries: "{{ keycloak_wait_to_be_reachable_retries }}"
+      delay: "{{ keycloak_wait_to_be_reachable_delay }}"
+
+    - name: "Check permanent admin exists | '{{ keycloak_permanent_admin_username }}'"
+      ansible.builtin.uri:
+        url: "{{ keycloak_base_url }}/realms/{{ keycloak_auth_realm }}/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          grant_type: password
+          client_id: admin-cli
+          username: "{{ keycloak_permanent_admin_username }}"
+          password: "{{ keycloak_permanent_admin_password }}"
+        status_code: [200, 401]  # Expect success (200) or failure (401)
+      register: permanent_admin_login_attempt
+      failed_when: false  # Prevent task failure on 401
+
+    - name: "Continue with permanent admin credentials"
+      block:
+        - name: "Set auth facts to permanent admin"
+          ansible.builtin.set_fact:
+            keycloak_auth_username: "{{ keycloak_permanent_admin_username }}"
+            keycloak_auth_password: "{{ keycloak_permanent_admin_password }}"
+            keycloak_auth_realm: "{{ keycloak_auth_realm }}"
+      when: permanent_admin_login_attempt.status == 200
 
 - name: "Ensure permanent admin account."
+  when:
+    - permanent_admin_login_attempt.status != 200
   block:
     - name: "Set auth facts to bootstrap admin for creation"
       ansible.builtin.set_fact:
@@ -95,6 +101,3 @@
         username: "{{ keycloak_bootstrap_admin_username }}"
         state: absent
       when: keycloak_bootstrap_admin_remove | default(true) | bool
-
-  when: 
-    - permanent_admin_login_attempt.status != 200

@@ -1,4 +1,7 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # defaults file for opentalk_compose.etherpad
 etherpad_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
@@ -19,4 +22,3 @@ etherpad_docker_ports: []
 
 etherpad_docker_labels_traefik_enable: true
 etherpad_docker_labels_traefik_http_routers_etherpad_rule: "Host(`{{ ot_domain }}`) && PathPrefix(`/etherpad`)"
-

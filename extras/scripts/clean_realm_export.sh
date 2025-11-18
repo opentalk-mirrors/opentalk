@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+#
 #
 # opentalk_keycloak_realm_export_sanitize.sh — Sanitizes an OpenTalk Keycloak realm export for public distribution.
 #

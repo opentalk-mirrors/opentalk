@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 - name: "Manage demo user for testing purposes | name: {{ postInstall_demoUser_name | default('Test User') }}"
   community.general.keycloak_user:
@@ -13,9 +17,9 @@
     enabled: "{{ postInstall_demoUser_enabled | default(true) }}"
     emailVerified: true
     credentials:
-        - type: password
-          value: "{{ postInstall_demoUser_password }}"
-          temporary: false
+      - type: password
+        value: "{{ postInstall_demoUser_password }}"
+        temporary: false
     state: "{{ postInstall_demoUser_state }}"
   tags:
     - never

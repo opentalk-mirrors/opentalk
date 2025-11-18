@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 """
 Generate the configuration options reference markdown by parsing Ansible role default files
 AND scanning Jinja2 templates for additional referenced variables that lack defaults.

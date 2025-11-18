@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# shellcheck disable=SC1091  # Optional venv activation happens conditionally; suppress info.
 set -euo pipefail
 # Rebuild / repair runtime venv offline.
 

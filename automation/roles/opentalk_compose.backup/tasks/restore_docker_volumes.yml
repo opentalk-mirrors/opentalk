@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 - name: Determine latest backup per volume
   ansible.builtin.command: bash -c 'ls -1t {{ backup_dir_volumes }}/{{ item }}-*.tar.gz 2>/dev/null | head -n1'

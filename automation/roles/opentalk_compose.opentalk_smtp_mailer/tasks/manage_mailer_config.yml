@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 
 - name: Ensure OpenTalk Recorder service directory
@@ -13,5 +17,5 @@
   ansible.builtin.template:
     src: smtp-mailer.toml.j2
     dest: "{{ mailer_docker_compose_services_dir }}/opentalk-smtp-mailer/config/smtp-mailer.toml"
-    mode: 0644
+    mode: '0644'
   notify: Restart Docker Service OpenTalk SMTP Mailer

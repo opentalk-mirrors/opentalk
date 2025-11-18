@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+
+SPDX-License-Identifier: EUPL-1.2
+-->
+
 # OpenTalk configuration options reference
 
 > This page is being regenerated. The tables below will be replaced by an automated extract of current Ansible role defaults. Some legacy parameters may disappear if they are no longer present.
@@ -772,4 +778,4 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | websecure | template | — | Websecure (referenced in templates; no default defined). |
 
 ---
-Generated on: 2025-11-05
+Generated on: 2025-11-11

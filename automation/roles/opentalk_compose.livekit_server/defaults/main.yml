@@ -1,4 +1,7 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # defaults file for opentalk_compose.livekit_server
 livekit_server_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
@@ -40,7 +43,7 @@ livekit_rtc_enable_loopback_candidate: false
 #     credential: ""
 livekit_rtc_ips_includes: []
 livekit_rtc_ips_excludes:
-  - 10.0.0.0/8 
+  - 10.0.0.0/8
   - 172.16.0.0/12
   - 192.168.0.0/16
 

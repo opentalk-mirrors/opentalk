@@ -1,13 +1,17 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # defaults file for opentalk_compose.traefik
+
 traefik_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
 traefik_docker_compose_services_state: "{{ compose_service_traefik_state | default('present') }}"
 traefik_docker_compose_services_dir: "{{ services_dir }}"
 traefik_docker_compose_project_src: "{{ deploy_dir }}"
 
 traefik_docker_image_src: "traefik"
-traefik_docker_extra_hosts: 
+traefik_docker_extra_hosts:
   - host.docker.internal:host-gateway
 traefik_docker_ports:
   - target: 80
@@ -47,7 +51,6 @@ traefik_letsencrypt_acme_email: ops@{{ ot_domain }}
 traefik_letsencrypt_acme_storage: /data/acme.json
 traefik_letsencrypt_acme_httpChallenge_entryPoint: web
 traefik_letsencrypt_acme_caServer: https://acme-v02.api.letsencrypt.org/directory
-#traefik_letsencrypt_acme_caServer: https://acme-staging-v02.api.letsencrypt.org/directory
 
 traefik_providers_docker_exposedByDefault: false
 traefik_providers_file_directory: /etc/traefik/dynamic

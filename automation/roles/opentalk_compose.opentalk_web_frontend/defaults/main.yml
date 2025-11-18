@@ -1,6 +1,10 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # defaults file for opentalk_compose.opentalk_web_frontend
+
 opentalk_web_frontend_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
 opentalk_web_frontend_docker_compose_services_state: "{{ compose_service_opentalk_web_frontend_state | default('present') }}"
 opentalk_web_frontend_docker_compose_services_dir: "{{ services_dir }}"

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 ---
 # Prune old backups according to retention policy.
 # Removes files older than backup_retention_max_age_days OR exceeding backup_retention_max_items (per category).
@@ -6,7 +10,7 @@
   ansible.builtin.find:
     paths: "{{ backup_dir_sql_dumps }}"
     patterns: "*.sql,*.sql.gz"
-    recurse: no
+    recurse: false
   register: found_sql
   failed_when: false
   tags: [backup, backup_retention]
@@ -15,7 +19,7 @@
   ansible.builtin.find:
     paths: "{{ backup_dir_volumes }}"
     patterns: "*.tar,*.tar.gz"
-    recurse: no
+    recurse: false
   register: found_vols
   failed_when: false
   tags: [backup, backup_retention]
@@ -24,7 +28,7 @@
   ansible.builtin.find:
     paths: "{{ backup_dir_config }}"
     patterns: "*.tar,*.tar.gz"
-    recurse: no
+    recurse: false
   register: found_cfg
   failed_when: false
   tags: [backup, backup_retention]

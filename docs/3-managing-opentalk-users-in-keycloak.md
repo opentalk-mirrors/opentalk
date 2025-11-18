@@ -1,11 +1,12 @@
+<!--
+SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+
+SPDX-License-Identifier: EUPL-1.2
+-->
+
 # Managing OpenTalk Users in Keycloak
 
-## Table of Contents
-
-- [Method A: Creating Users via the Keycloak Admin Console (GUI)](#method-a-creating-users-via-the-keycloak-admin-console-gui)
-- [Method B: Creating Users via CLI in the Keycloak Container (via kcadm.sh)](#method-b-creating-users-via-cli-in-the-keycloak-container-via-kcadmsh)
-- [Additional Notes](#additional-notes)
-- [Troubleshooting](#troubleshooting)
+[[_TOC_]]
 
 ## Method A: Creating Users via the Keycloak Admin Console (GUI)
 

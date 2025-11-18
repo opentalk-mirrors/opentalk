@@ -1,3 +1,7 @@
+{# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>#}
+{##}
+{# SPDX-License-Identifier: EUPL-1.2#}
+
 {% macro url(protocol, domain, port='') -%}
 {{ protocol }}://{{ domain }}{{ (':' ~ port) if port|default('') and (port|string not in ['80','443']) else '' }}
 {%- endmacro %}
