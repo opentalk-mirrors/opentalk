@@ -14,7 +14,6 @@ opentalk_web_frontend_docker_image_src: "registry.opencode.de/opentalk/web-front
 
 opentalk_web_frontend_docker_extra_hosts: []
 
-
 opentalk_web_frontend_environment_insecure: false
 opentalk_web_frontend_environment_controller_host: "{{ (ot_domain, ot_ingress_port) | build_host }}/controller"
 opentalk_web_frontend_environment_base_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}"
@@ -42,3 +41,6 @@ opentalk_web_frontend_environment_suppress_browser_compatibility_info: false
 
 opentalk_web_frontend_labels_traefik_enable: true
 opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}"
+
+opentalk_web_frontend_environment_feature_e2e_encryption: false
+opentalk_web_frontend_environment_livekit_e2ee_salt: "{{ LIVEKIT_E2EE_SALT }}"

@@ -80,7 +80,6 @@ To update hook versions defined in .pre-commit-config.yaml:
 pre-commit autoupdate
 ```
 
-
 ## Versioning of DEB or RPM Packages
 
 Because the OpenTalk product version cannot be mapped 1:1 to DEB or RPM package versions without breaking update mechanics, product versions are converted accordingly. Nothing changes for authoring: keep using the product version schema when createing releases or git tags. The conversion happens when running the build scripts.
