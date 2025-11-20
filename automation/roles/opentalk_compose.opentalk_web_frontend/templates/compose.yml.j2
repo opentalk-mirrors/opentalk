@@ -36,6 +36,10 @@ services:
       FEATURE_RECORDING: {{ opentalk_web_frontend_environment_feature_recording | to_json }}
       WAITING_ROOM_DEFAULT_VALUE: {{ opentalk_web_frontend_environment_waiting_room_default_value }}
       SUPPRESS_BROWSER_COMPATIBILITY_INFO: {{ opentalk_web_frontend_environment_suppress_browser_compatibility_info | to_json }}
+{% if opentalk_web_frontend_environment_feature_e2e_encryption is defined and opentalk_web_frontend_environment_feature_e2e_encryption | bool %}
+      FEATURE_E2E_ENCRYPTION: {{ opentalk_web_frontend_environment_feature_e2e_encryption | to_json }}
+      LIVEKIT_E2EE_SALT: {{ opentalk_web_frontend_environment_livekit_e2ee_salt }}
+{% endif %}
       PRODUCT_VERSION: {{ opentalk_product_version }}
     labels:
       - "traefik.enable={{ opentalk_web_frontend_labels_traefik_enable | to_json }}"
