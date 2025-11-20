@@ -560,6 +560,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | opentalk_web_frontend_environment_change_password_url | derived | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}/account/` | Web frontend environment change password url. |
 | opentalk_web_frontend_environment_controller_host | derived | `{{ (ot_domain, ot_ingress_port) | build_host }}/controller` | Web frontend environment controller host. |
 | opentalk_web_frontend_environment_error_report_address | derived | `{{ ERROR_REPORT_ADDRESS | default('reports@example.com') }}` | Web frontend environment error report address. |
+| opentalk_web_frontend_environment_feature_e2e_encryption | bool | `False` | Web frontend environment feature e2e encryption. |
 | opentalk_web_frontend_environment_feature_protocol | derived | `{{ FEATURE_PROTOCOL | default(true) }}` | Web frontend environment feature protocol. |
 | opentalk_web_frontend_environment_feature_recording | derived | `{{ FEATURE_RECORDING | default(false) }}` | Web frontend environment feature recording. |
 | opentalk_web_frontend_environment_feature_timer | derived | `{{ FEATURE_TIMER | default(true) }}` | Web frontend environment feature timer. |
@@ -568,6 +569,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | opentalk_web_frontend_environment_insecure | bool | `False` | Web frontend environment insecure. |
 | opentalk_web_frontend_environment_is_beta_release | derived | `{{ IS_BETA_RELEASE | default(false) }}` | Web frontend environment is beta release. |
 | opentalk_web_frontend_environment_libravatar_default_image | derived | `{{ LIBRAVATAR_DEFAULT_IMAGE | default('identicon') }}` | Web frontend environment libravatar default image. |
+| opentalk_web_frontend_environment_livekit_e2ee_salt | derived | `{{ LIVEKIT_E2EE_SALT }}` | Web frontend environment livekit e2ee salt. |
 | opentalk_web_frontend_environment_livekit_server_url | derived | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/livekit` | Web frontend environment livekit server url. |
 | opentalk_web_frontend_environment_ndt_server | derived | `{{ (ot_domain, ot_ingress_port) | build_host }}` | Web frontend environment ndt server. |
 | opentalk_web_frontend_environment_oidc_client_id | derived | `{{ controller_oidc_frontend_client_id | default('Frontend') }}` | Web frontend environment oidc client id. |
@@ -577,6 +579,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | opentalk_web_frontend_environment_waiting_room_default_value | derived | `{{ WAITING_ROOM_DEFAULT_VALUE | default(false) }}` | Web frontend environment waiting room default value. |
 | opentalk_web_frontend_labels_traefik_enable | bool | `True` | Web frontend labels traefik enable. |
 | opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList | derived | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}` | Web frontend labels traefik http middlewares webapp cors headers accessControlAllowOriginList. |
+| bool | template | — | Bool (referenced in templates; no default defined). |
 | compose_project_name | template | — | Project name (referenced in templates; no default defined). |
 | custom_certificates_enabled | template | — | Custom certificates enabled (referenced in templates; no default defined). |
 | default | template | — | Default (referenced in templates; no default defined). |
@@ -638,6 +641,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | KC_PERMANENT_ADMIN_PASSWORD | secret[template] | — | KC PERMANENT ADMIN PASSWORD (referenced in templates; no default defined). |
 | KEYCLOAK_DB_PASSWORD | secret[template] | — | KEYCLOAK DB PASSWORD (referenced in templates; no default defined). |
 | LIVEKIT_API_SECRET | secret[template] | — | LIVEKIT API SECRET (referenced in templates; no default defined). |
+| LIVEKIT_E2EE_SALT | template | — | LIVEKIT E2EE SALT (referenced in templates; no default defined). |
 | MINIO_ACC_KEY | secret[template] | — | MINIO ACC KEY (referenced in templates; no default defined). |
 | MINIO_ROOT_PASSWORD | secret[template] | — | MINIO ROOT PASSWORD (referenced in templates; no default defined). |
 | MINIO_SECRET_KEY | secret[template] | — | MINIO SECRET KEY (referenced in templates; no default defined). |
@@ -779,4 +783,4 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | websecure | template | — | Websecure (referenced in templates; no default defined). |
 
 ---
-Generated on: 2025-11-18
+Generated on: 2025-11-19
