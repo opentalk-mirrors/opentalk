@@ -13,7 +13,7 @@ stages:
 .template_vars:
   FLAVORS: ['deb', 'rpm']
 
-.linter_conditions: &linter_conditions
+.default_linter_conditions: &default_linter_conditions
   needs: []
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -23,7 +23,7 @@ stages:
 
 lint:shellcheck:
   stage: lint
-  <<: *linter_conditions
+  <<: *default_linter_conditions
   script:
     - echo "🔍 Linting shell scripts..."
     - git ls-files -z '*.sh' | xargs -0r shellcheck
@@ -31,14 +31,14 @@ lint:shellcheck:
 
 lint:yamllint:
   stage: lint
-  <<: *linter_conditions
+  <<: *default_linter_conditions
   script:
     - echo "🔍 Linting YAML files..."
     - yamllint .
 
 lint:markdown:
   stage: lint
-  <<: *linter_conditions
+  <<: *default_linter_conditions
   script:
     - echo "🔍 Linting Markdown files (ignoring [[_TOC_]])..."
     - |
@@ -51,14 +51,38 @@ lint:markdown:
 
 lint:ansible-lint:
   stage: lint
-  <<: *linter_conditions
+  <<: *default_linter_conditions
   script:
     - echo "🔍 Linting Ansible code ..."
     - ansible-lint .
 
 lint:licensing:
   stage: lint
-  <<: *linter_conditions
+  <<: *default_linter_conditions
+  script:
+    - echo "🔍 Check license compliance..."
+    - reuse lint
+
+lint:release_tag:
+  stage: lint
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - when: never
+  script:
+    - echo "🔍 Check license compliance..."
+    - reuse lint
+
+lint:pre-release_tag:
+  stage: lint
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - when: never
   script:
     - echo "🔍 Check license compliance..."
     - reuse lint
