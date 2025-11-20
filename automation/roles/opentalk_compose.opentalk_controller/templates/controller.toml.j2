@@ -67,6 +67,9 @@ port = {{ controller_monitoring_port }}
 
 [http]
 port = {{ controller_http_port | default('11311') }}
+{% if controller_http_cors_allowed_origin is defined and controller_http_cors_allowed_origin %}
+allowed_origin = {{ controller_http_cors_allowed_origin }}
+{% endif %}
 
 [oidc]
 authority = "{{ controller_oidc_authority | default('https://example.com/auth/realms/OPENTALK') }}"

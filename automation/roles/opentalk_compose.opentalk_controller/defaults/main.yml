@@ -40,6 +40,7 @@ controller_database_port: 5432
 controller_monitoring_port: 11411
 # controller_monitoring_addr: "0.0.0.0"
 controller_http_port: 11311
+# controller_http_cors_allowed_origin: ["*"]
 controller_oidc_authority: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
 controller_oidc_frontend_client_id: "Frontend"
 # controller_oidc_frontend_authority: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
