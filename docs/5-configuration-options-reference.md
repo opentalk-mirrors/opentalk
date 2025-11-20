@@ -350,6 +350,7 @@ Template-only variables: referenced in Jinja2 templates but lacking a default; t
 | controller_endpoints_disallow_custom_display_name | template | — | Controller endpoints disallow custom display name (referenced in templates; no default defined). |
 | controller_endpoints_users_find_use_kc | template | — | Controller endpoints users find use kc (referenced in templates; no default defined). |
 | controller_etcd_urls | template | — | Controller etcd urls (referenced in templates; no default defined). |
+| controller_http_cors_allowed_origin | template | — | Controller http cors allowed origin (referenced in templates; no default defined). |
 | controller_logging_otlp_tracing_endpoint | template | — | Controller logging otlp tracing endpoint (referenced in templates; no default defined). |
 | controller_logging_service_instance_id | template | — | Controller logging service instance id (referenced in templates; no default defined). |
 | controller_logging_service_name | template | — | Controller logging service name (referenced in templates; no default defined). |
