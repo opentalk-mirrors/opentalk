@@ -8,7 +8,9 @@
 - name: Include manage_recorder_config.yml
   ansible.builtin.include_tasks:
     file: manage_recorder_config.yml
+  when: compose_service_opentalk_recorder_enabled | bool
 
 - name: Include manage_docker_compose.yml
   ansible.builtin.include_tasks:
     file: manage_docker_compose.yml
+  when: compose_service_opentalk_recorder_enabled | bool

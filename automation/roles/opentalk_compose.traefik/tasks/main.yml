@@ -14,7 +14,9 @@
 - name: Include manage_traefik_config.yml
   ansible.builtin.include_tasks:
     file: manage_traefik_config.yml
+  when: compose_service_traefik_enabled | bool
 
 - name: Include manage_docker_compose.yml
   ansible.builtin.include_tasks:
     file: manage_docker_compose.yml
+  when: compose_service_traefik_enabled | bool

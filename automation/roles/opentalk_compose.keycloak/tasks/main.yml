@@ -10,30 +10,35 @@
   when:
     - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
     - compose_service_keycloak_enabled | default(true)
+    - compose_service_keycloak_enabled | bool
 
 - name: Include manage_docker_compose.yml
   include_tasks: manage_docker_compose.yml
   when:
     - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
     - compose_service_keycloak_enabled | default(true)
+    - compose_service_keycloak_enabled | bool
 
 - name: Include keycloak_permanent_admin.yml
   include_tasks: keycloak_permanent_admin.yml
   when:
     - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
     - keycloak_manage_enabled is true
+    - compose_service_keycloak_enabled | bool
 
 - name: Include manage_realm.yml
   include_tasks: manage_realm.yml
   when:
     - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
     - keycloak_manage_enabled is true
+    - compose_service_keycloak_enabled | bool
 
 - name: Include keycloak_user_demo.yml
   include_tasks: keycloak_user_demo.yml
   when:
     - keycloak_demo_user_enabled | default(true)
     - keycloak_manage_enabled is true
+    - compose_service_keycloak_enabled | bool
   tags:
     - demo-user
     - never
