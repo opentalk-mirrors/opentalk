@@ -15,6 +15,22 @@ The Obelisk supports the following Codecs:
 | G.722        | 8,000      |
 | H.264        | 90,000     |
 
+## Video Support
+
+Obelisk includes support for SIP video calls using the **H.264** codec by default.
+
+Most Cloud/SaaS SIP providers **do not** support video calls, so we strongly recommend verifying video capabilities with
+your SIP provider.
+
+### Cisco Call Manager
+
+Compatibility with Cisco Unified Communications Manager (CUCM) has been tested and verified.
+To enable video calls, **Early Offer** must be enabled in the SIP Profile on CUCM.
+
+### Cisco RoomKit
+
+Cisco RoomKit devices have been tested and verified to work with Obelisk, both via Asterisk and CUCM.
+
 ## Configuration
 
 The section in the [configuration file](configuration.md) is called `sip`.
