@@ -31,9 +31,15 @@
           client_id: admin-cli
           username: "{{ keycloak_permanent_admin_username }}"
           password: "{{ keycloak_permanent_admin_password }}"
-        status_code: [200, 401]  # Expect success (200) or failure (401)
+        status_code: [200, 401, 405]  # 405 (Method Not Allowed) may occur transiently before realm accepts password grant
       register: permanent_admin_login_attempt
-      failed_when: false  # Prevent task failure on 401
+      failed_when: false  # Prevent task failure on 401/405
+      until: permanent_admin_login_attempt.status in [200, 401]
+      retries: 15
+      delay: 10
+
+    - debug:
+        msg: "Permanent admin login attempt status: {{ permanent_admin_login_attempt.status }}"
 
     - name: "Continue with permanent admin credentials"
       block:
@@ -72,6 +78,10 @@
             value: "{{ keycloak_permanent_admin_password }}"
             temporary: false
         state: present
+      register: permanent_admin_creation
+      until: "permanent_admin_creation is not failed"
+      retries: 15
+      delay: 10
 
     - name: "Assign global 'admin' role"
       community.general.keycloak_user_rolemapping:

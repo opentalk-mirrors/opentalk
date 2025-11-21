@@ -11,22 +11,10 @@ version = 1
 SPDX-FileCopyrightText = "OpenTalk GmbH <mail@opentalk.eu>"
 SPDX-License-Identifier = "EUPL-1.2"
 path = [
+  ".commitlintrc.json",
+  "CHANGELOG.md",
   "automation/roles/opentalk_compose.keycloak/files/**",
   "extras/packaging/config-dist/**",
   "extras/packaging/man/**"
 ]
 precedence = "aggregate"
-
-#exclude_paths = [
-#  "build/"
-##  "docs/**",
-##  "automation/**",
-#]
-##
-##exclude_file = [
-##  ".gitignore",
-##  ".gitlab-ci.yml.old",
-##  ".versions.yml",
-##  ".yamllint.yml",
-##  "README.md"
-##]
