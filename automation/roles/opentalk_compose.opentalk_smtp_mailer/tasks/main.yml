@@ -8,6 +8,7 @@
 - name: Include manage_mailer_config.yml
   ansible.builtin.include_tasks:
     file: manage_mailer_config.yml
+  when: compose_service_opentalk_smtp_mailer_enabled | bool
 
 - name: Include manage_docker_compose.yml
   ansible.builtin.include_tasks:
