@@ -104,7 +104,19 @@ lint:commitlint:
     GIT_DEPTH: 0
   script:
     - set -euo pipefail
-    - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
+    - |
+      if [ -n "${CI_MERGE_REQUEST_DIFF_BASE_SHA:-}" ]; then
+        BASE="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
+      else
+        BASE="$(git rev-parse HEAD~1)"
+      fi
+    - echo "Checking commits from $BASE to HEAD"
+    - git log --oneline "$BASE..HEAD"
+    - |
+      if ! npx commitlint --from "$BASE" --to HEAD --verbose; then
+        echo "❌ Commitlint found problems - blocking pipeline!"
+        exit 1
+      fi
 
 # ------------------------------
 # PACKAGE JOBS
