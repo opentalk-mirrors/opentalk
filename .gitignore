@@ -53,3 +53,9 @@ fabric.properties
 
 # Macos specific
 .DS_Store
+
+# Local cache for mkdocs downloaded artifacts such as fonts
+.cache
+
+# Documentation site built by `mkdocs build`
+site

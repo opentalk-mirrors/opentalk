@@ -2,15 +2,15 @@
 title: Obelisk
 ---
 
-# Administration guide for the OpenTalk Obelisk SIP bridge
+# Administration guide for the {{ product_name }} Obelisk SIP bridge
 
 ## General information about the service
 
 - [Configuration](configuration.md)
 
-## Interaction between OpenTalk Obelisk and other services
+## Interaction between {{ product_name }} Obelisk and other services
 
-### Services required by OpenTalk Obelisk
+### Services required by {{ product_name }} Obelisk
 
 - [Auth](auth.md)
 - [Controller](controller.md)

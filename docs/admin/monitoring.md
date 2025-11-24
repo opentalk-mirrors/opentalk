@@ -1,6 +1,6 @@
 # Monitoring
 
-The OpenTalk Obelisk provides a simple Http-Server for monitoring purpose.
+The {{ product_name }} Obelisk provides a simple Http-Server for monitoring purpose.
 
 ## Configuration
 
