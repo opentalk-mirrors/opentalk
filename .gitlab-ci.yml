@@ -8,10 +8,14 @@ image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgbuild:dev
 stages:
   - lint
   - package
+  - integration
   - upload
 
-.template_vars:
-  FLAVORS: ['deb', 'rpm']
+.template_pkg_vars:
+  FLAVORS_PKG: ['deb', 'rpm']
+
+.template_dist_vars:
+  FLAVORS_DIST: ['debian12', 'debian13', 'opensuse15', 'opensuse16', 'rocky9', 'ubuntu2404']
 
 .default_linter_conditions: &default_linter_conditions
   needs: []
@@ -133,7 +137,7 @@ package:stable:
     - lint:commitlint
   parallel:
     matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
+      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -143,7 +147,8 @@ package:stable:
     - extras/packaging/build-all.sh --${FLAVOR} --version "$CI_COMMIT_TAG"
   artifacts:
     paths:
-      - artifacts/
+      - artifacts/*.deb
+      - artifacts/*.rpm
     expire_in: 1 day
 
 package:pre-release:
@@ -157,7 +162,7 @@ package:pre-release:
     - lint:commitlint
   parallel:
     matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
+      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -167,7 +172,8 @@ package:pre-release:
     - extras/packaging/build-all.sh --${FLAVOR} --version "$CI_COMMIT_TAG"
   artifacts:
     paths:
-      - artifacts/
+      - artifacts/*.deb
+      - artifacts/*.rpm
     expire_in: 1 day
 
 package:experimental:
@@ -181,7 +187,7 @@ package:experimental:
     - lint:commitlint
   parallel:
     matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
+      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - when: never
@@ -196,7 +202,8 @@ package:experimental:
     - extras/packaging/build-all.sh --${FLAVOR} --version "$VERSION"
   artifacts:
     paths:
-      - artifacts/
+      - artifacts/*.deb
+      - artifacts/*.rpm
     expire_in: 2 hours
 
 # ------------------------------
@@ -207,7 +214,7 @@ upload:stable:
   stage: upload
   parallel:
     matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
+      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
   needs:
     - job: package:stable
       artifacts: true
@@ -234,7 +241,7 @@ upload:pre-release:
   stage: upload
   parallel:
     matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
+      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
   needs:
     - job: package:pre-release
       artifacts: true
@@ -257,10 +264,11 @@ upload:experimental:
   stage: upload
   parallel:
     matrix:
-      - FLAVOR: !reference [.template_vars, FLAVORS]
+      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
   needs:
     - job: package:experimental
       artifacts: true
+    - job: deploy:experimental
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - when: never
@@ -273,3 +281,95 @@ upload:experimental:
         echo "Uploaded to openrepo (experimental): $filename"
         sleep 2
       done
+
+# ------------------------------
+# INTEGRATION TESTS
+# ------------------------------
+
+deploy:experimental:
+  stage: integration
+  tags:
+    - dind
+  parallel:
+    matrix:
+      - DIST: debian12
+      - DIST: debian13
+      - DIST: ubuntu2404
+      - DIST: opensuse15
+      - DIST: opensuse16
+      - DIST: rocky9
+      # - DIST: rocky10
+  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
+  needs:
+    - job: package:experimental
+      artifacts: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - when: never
+  variables:
+    REGISTRY_MIRROR_ENABLE: "true"
+    REGISTRY_MIRROR_URL: "http://load.opentalk.eu:5000"
+    OT_SETTINGS: |
+      ot_domain: 'localhost'
+      ot_ingress_port: 443
+      ot_ingress_protocol: https
+      config_dir: "/etc/opentalk-compose"
+      services_dir: "/opt/opentalk-compose/services"
+      deploy_dir: "/opt/opentalk-compose"
+      compose_project_name: "opentalk"
+      compose_service_opentalk_controller_enabled: true
+      compose_service_opentalk_obelisk_enabled: false
+      compose_service_opentalk_outlook_add_in_enabled: false
+      compose_service_opentalk_recorder_enabled: true
+      compose_service_opentalk_smtp_mailer_enabled: false
+      compose_service_opentalk_web_frontend_enabled: true
+      compose_service_etherpad_enabled: true
+      compose_service_spacedeck_enabled: true
+      compose_service_keycloak_enabled: true
+      compose_service_livekit_server_enabled: true
+      compose_service_minio_enabled: true
+      compose_service_rabbitmq_enabled: true
+      compose_service_traefik_enabled: true
+      compose_service_ndt_enabled: true
+      compose_service_mailcrab_enabled: false
+      self_signed_certificates_generate: true
+      custom_certificates_enabled: true
+      custom_certificates_fullchain_cert_file: fullchain.crt
+      custom_certificates_private_key_file: privkey.key
+      custom_certificates_ca_root_cert_file: ca.crt
+  script:
+    - |
+      OS_ID="$(. /etc/os-release && echo "$ID")"
+      case "$OS_ID" in
+         debian|ubuntu)
+              echo "Debian-/Ubuntu-based Distribution: $OS_ID"
+              docker info
+              DEB_FILE=$(ls artifacts/*.deb 2>/dev/null || true)
+              echo "Installing ${DEB_FILE}..."
+              dpkg -i "$DEB_FILE" || apt-get install -f -y
+              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
+              otctl deploy
+              ;;
+          rocky)
+              echo "RHEL-based Distribution: $OS_ID"
+              docker info
+              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
+              echo "Installing ${RPM_FILE}..."
+              dnf install -y "$RPM_FILE" --nogpgcheck
+              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
+              otctl deploy
+              ;;
+          opensuse-leap)
+              echo "SUSE-based Distribution: $OS_ID"
+              docker info
+              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
+              echo "Installing ${RPM_FILE}..."
+              zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
+              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
+              otctl deploy
+              ;;
+          *)
+              echo "Unknown or unsupported Distribution: $OS_ID"
+              exit 1
+              ;;
+      esac
