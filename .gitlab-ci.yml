@@ -373,3 +373,183 @@ deploy:experimental:
               exit 1
               ;;
       esac
+
+deploy:pre-release:
+  stage: integration
+  tags:
+    - dind
+  parallel:
+    matrix:
+      - DIST: debian12
+      - DIST: debian13
+      - DIST: ubuntu2404
+      - DIST: opensuse15
+      - DIST: opensuse16
+      - DIST: rocky9
+      # - DIST: rocky10
+  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
+  needs:
+    - job: package:experimental
+      artifacts: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/ && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - when: never
+  variables:
+    REGISTRY_MIRROR_ENABLE: "true"
+    REGISTRY_MIRROR_URL: "http://load.opentalk.eu:5000"
+    OT_SETTINGS: |
+      ot_domain: 'localhost'
+      ot_ingress_port: 443
+      ot_ingress_protocol: https
+      config_dir: "/etc/opentalk-compose"
+      services_dir: "/opt/opentalk-compose/services"
+      deploy_dir: "/opt/opentalk-compose"
+      compose_project_name: "opentalk"
+      compose_service_opentalk_controller_enabled: true
+      compose_service_opentalk_obelisk_enabled: false
+      compose_service_opentalk_outlook_add_in_enabled: false
+      compose_service_opentalk_recorder_enabled: true
+      compose_service_opentalk_smtp_mailer_enabled: false
+      compose_service_opentalk_web_frontend_enabled: true
+      compose_service_etherpad_enabled: true
+      compose_service_spacedeck_enabled: true
+      compose_service_keycloak_enabled: true
+      compose_service_livekit_server_enabled: true
+      compose_service_minio_enabled: true
+      compose_service_rabbitmq_enabled: true
+      compose_service_traefik_enabled: true
+      compose_service_ndt_enabled: true
+      compose_service_mailcrab_enabled: false
+      self_signed_certificates_generate: true
+      custom_certificates_enabled: true
+      custom_certificates_fullchain_cert_file: fullchain.crt
+      custom_certificates_private_key_file: privkey.key
+      custom_certificates_ca_root_cert_file: ca.crt
+  script:
+    - |
+      OS_ID="$(. /etc/os-release && echo "$ID")"
+      case "$OS_ID" in
+         debian|ubuntu)
+              echo "Debian-/Ubuntu-based Distribution: $OS_ID"
+              docker info
+              DEB_FILE=$(ls artifacts/*.deb 2>/dev/null || true)
+              echo "Installing ${DEB_FILE}..."
+              dpkg -i "$DEB_FILE" || apt-get install -f -y
+              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
+              otctl deploy
+              ;;
+          rocky)
+              echo "RHEL-based Distribution: $OS_ID"
+              docker info
+              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
+              echo "Installing ${RPM_FILE}..."
+              dnf install -y "$RPM_FILE" --nogpgcheck
+              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
+              otctl deploy
+              ;;
+          opensuse-leap)
+              echo "SUSE-based Distribution: $OS_ID"
+              docker info
+              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
+              echo "Installing ${RPM_FILE}..."
+              zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
+              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
+              otctl deploy
+              ;;
+          *)
+              echo "Unknown or unsupported Distribution: $OS_ID"
+              exit 1
+              ;;
+      esac
+
+deploy:stable:
+  stage: integration
+  tags:
+    - dind
+  parallel:
+    matrix:
+      - DIST: debian12
+      - DIST: debian13
+      - DIST: ubuntu2404
+      - DIST: opensuse15
+      - DIST: opensuse16
+      - DIST: rocky9
+      # - DIST: rocky10
+  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
+  needs:
+    - job: package:experimental
+      artifacts: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/ && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - when: never
+  variables:
+    REGISTRY_MIRROR_ENABLE: "true"
+    REGISTRY_MIRROR_URL: "http://load.opentalk.eu:5000"
+    OT_SETTINGS: |
+      ot_domain: 'localhost'
+      ot_ingress_port: 443
+      ot_ingress_protocol: https
+      config_dir: "/etc/opentalk-compose"
+      services_dir: "/opt/opentalk-compose/services"
+      deploy_dir: "/opt/opentalk-compose"
+      compose_project_name: "opentalk"
+      compose_service_opentalk_controller_enabled: true
+      compose_service_opentalk_obelisk_enabled: false
+      compose_service_opentalk_outlook_add_in_enabled: false
+      compose_service_opentalk_recorder_enabled: true
+      compose_service_opentalk_smtp_mailer_enabled: false
+      compose_service_opentalk_web_frontend_enabled: true
+      compose_service_etherpad_enabled: true
+      compose_service_spacedeck_enabled: true
+      compose_service_keycloak_enabled: true
+      compose_service_livekit_server_enabled: true
+      compose_service_minio_enabled: true
+      compose_service_rabbitmq_enabled: true
+      compose_service_traefik_enabled: true
+      compose_service_ndt_enabled: true
+      compose_service_mailcrab_enabled: false
+      self_signed_certificates_generate: true
+      custom_certificates_enabled: true
+      custom_certificates_fullchain_cert_file: fullchain.crt
+      custom_certificates_private_key_file: privkey.key
+      custom_certificates_ca_root_cert_file: ca.crt
+  script:
+    - |
+      OS_ID="$(. /etc/os-release && echo "$ID")"
+      case "$OS_ID" in
+         debian|ubuntu)
+              echo "Debian-/Ubuntu-based Distribution: $OS_ID"
+              docker info
+              DEB_FILE=$(ls artifacts/*.deb 2>/dev/null || true)
+              echo "Installing ${DEB_FILE}..."
+              dpkg -i "$DEB_FILE" || apt-get install -f -y
+              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
+              otctl deploy
+              ;;
+          rocky)
+              echo "RHEL-based Distribution: $OS_ID"
+              docker info
+              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
+              echo "Installing ${RPM_FILE}..."
+              dnf install -y "$RPM_FILE" --nogpgcheck
+              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
+              otctl deploy
+              ;;
+          opensuse-leap)
+              echo "SUSE-based Distribution: $OS_ID"
+              docker info
+              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
+              echo "Installing ${RPM_FILE}..."
+              zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
+              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
+              otctl deploy
+              ;;
+          *)
+              echo "Unknown or unsupported Distribution: $OS_ID"
+              exit 1
+              ;;
+      esac
