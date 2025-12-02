@@ -7,6 +7,7 @@ title: Obelisk
 ## General information about the service
 
 - [Configuration](configuration.md)
+- [Health command](health.md) for fetching the current readiness state.⏎
 
 ## Interaction between {{ product_name }} Obelisk and other services
 

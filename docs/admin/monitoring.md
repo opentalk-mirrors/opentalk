@@ -1,6 +1,8 @@
 # Monitoring
 
-The {{ product_name }} Obelisk provides a simple Http-Server for monitoring purpose.
+The {{ product_name }} Obelisk provides a simple Http-Server for monitoring purpose. This HTTP service is only provided when configured.
+
+The [health command](health.md) can be used to determine the readiness state.
 
 ## Configuration
 
