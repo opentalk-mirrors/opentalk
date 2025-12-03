@@ -294,6 +294,14 @@ upload:stable:
              --upload-file "$file" \
              "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
         echo "Uploaded to gitlab: $filename"
+        if [ "$FLAVOR" = "deb" ]; then
+            NEXUS_URL="${NEXUS_REPO_BASE_URL}/opentalk-compose_deb_amd64/"
+        fi
+        if [ "$FLAVOR" = "rpm" ]; then
+            NEXUS_URL="${NEXUS_REPO_BASE_URL}/opentalk-compose_rpm_x86_64/"
+        fi
+        curl -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${filename}" "${NEXUS_URL}"
+        echo "Uploaded to Nexus: $filename"
         openrepo --debug upload "$file" -r "${FLAVOR}" -o
         echo "Uploaded to openrepo (stable): $filename"
         sleep 2
@@ -318,6 +326,18 @@ upload:pre-release:
       for file in artifacts/*.${FLAVOR}; do
         [ -f "$file" ] || continue
         filename=$(basename "$file")
+        curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+             --upload-file "$file" \
+             "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
+        echo "Uploaded to gitlab: $filename"
+        if [ "$FLAVOR" = "deb" ]; then
+            NEXUS_URL="${NEXUS_REPO_BASE_URL}/opentalk-compose-beta_deb_amd64/"
+        fi
+        if [ "$FLAVOR" = "rpm" ]; then
+            NEXUS_URL="${NEXUS_REPO_BASE_URL}/opentalk-compose-beta_rpm_x86_64/"
+        fi
+        curl -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${filename}" "${NEXUS_URL}"
+        echo "Uploaded to Nexus: $filename"
         openrepo --debug upload "$file" -r "${FLAVOR}-testing" -o
         echo "Uploaded to openrepo (testing): $filename"
         sleep 2
