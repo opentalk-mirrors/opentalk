@@ -296,10 +296,15 @@ upload:stable:
         echo "Uploaded to gitlab: $filename"
         if [ "$FLAVOR" = "deb" ]; then
             NEXUS_URL="${NEXUS_REPO_BASE_URL}/opentalk-compose_deb_amd64/"
+            curl --progress-bar -v -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${file}" "${NEXUS_URL}" | tee /dev/null
+            echo "Uploaded to Nexus: $filename"
         fi
         if [ "$FLAVOR" = "rpm" ]; then
             NEXUS_URL="${NEXUS_REPO_BASE_URL}/opentalk-compose_rpm_x86_64/"
+            curl --progress-bar -v -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" --upload-file ${file} "${NEXUS_URL}" | tee /dev/null
+            echo "Uploaded to Nexus: $filename"
         fi
+        echo "curl -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${file}" "${NEXUS_URL}""
         curl -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${file}" "${NEXUS_URL}"
         echo "Uploaded to Nexus: $filename"
         openrepo --debug upload "$file" -r "${FLAVOR}" -o
@@ -332,12 +337,14 @@ upload:pre-release:
         echo "Uploaded to gitlab: $filename"
         if [ "$FLAVOR" = "deb" ]; then
             NEXUS_URL="${NEXUS_REPO_BASE_URL}/opentalk-compose-beta_deb_amd64/"
+            curl --progress-bar -v -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${file}" "${NEXUS_URL}" | tee /dev/null
+            echo "Uploaded to Nexus: $filename"
         fi
         if [ "$FLAVOR" = "rpm" ]; then
             NEXUS_URL="${NEXUS_REPO_BASE_URL}/opentalk-compose-beta_rpm_x86_64/"
+            curl --progress-bar -v -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" --upload-file ${file} "${NEXUS_URL}" | tee /dev/null
+            echo "Uploaded to Nexus: $filename"
         fi
-        curl -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${file}" "${NEXUS_URL}"
-        echo "Uploaded to Nexus: $filename"
         openrepo --debug upload "$file" -r "${FLAVOR}-testing" -o
         echo "Uploaded to openrepo (testing): $filename"
         sleep 2
