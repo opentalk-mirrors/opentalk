@@ -1,0 +1,157 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: "Configure User Profile Provider"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/components"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      providerType: "org.keycloak.userprofile.UserProfileProvider"
+      providerId: "declarative-user-profile"
+      name: "user-profile"
+      config:
+        kc.user.profile.config:
+          - |
+            {
+              "attributes": [
+                {
+                  "name": "username",
+                  "displayName": "${username}",
+                  "validations": {
+                    "length": {"min": 3, "max": 255},
+                    "username-prohibited-characters": {},
+                    "up-username-not-idn-homograph": {}
+                  },
+                  "permissions": {
+                    "view": ["admin", "user"],
+                    "edit": ["admin", "user"]
+                  },
+                  "multivalued": false
+                },
+                {
+                  "name": "email",
+                  "displayName": "${email}",
+                  "validations": {
+                    "email": {},
+                    "length": {"max": 255}
+                  },
+                  "required": {"roles": ["user"]},
+                  "permissions": {
+                    "view": ["admin", "user"],
+                    "edit": ["admin", "user"]
+                  },
+                  "multivalued": false
+                },
+                {
+                  "name": "firstName",
+                  "displayName": "${firstName}",
+                  "validations": {
+                    "length": {"max": 255},
+                    "person-name-prohibited-characters": {}
+                  },
+                  "required": {"roles": ["user"]},
+                  "permissions": {
+                    "view": ["admin", "user"],
+                    "edit": ["admin", "user"]
+                  },
+                  "multivalued": false
+                },
+                {
+                  "name": "lastName",
+                  "displayName": "${lastName}",
+                  "validations": {
+                    "length": {"max": 255},
+                    "person-name-prohibited-characters": {}
+                  },
+                  "required": {"roles": ["user"]},
+                  "permissions": {
+                    "view": ["admin", "user"],
+                    "edit": ["admin", "user"]
+                  },
+                  "multivalued": false
+                },
+                {
+                  "name": "zoneinfo",
+                  "displayName": "${zoneinfo}",
+                  "validations": {},
+                  "annotations": {},
+                  "permissions": {
+                    "view": ["admin", "user"],
+                    "edit": ["admin", "user"]
+                  },
+                  "selector": {"scopes": ["profile"]},
+                  "multivalued": false
+                },
+                {
+                  "name": "tariff_id",
+                  "displayName": "${tariff_id}",
+                  "validations": {
+                    "options": {
+                      "options": ["OpenTalkDefaultTariff"]
+                    }
+                  },
+                  "annotations": {"inputType": "select"},
+                  "permissions": {
+                    "view": ["admin", "user"],
+                    "edit": ["admin"]
+                  },
+                  "selector": {"scopes": ["tariff"]},
+                  "group": "tariff",
+                  "multivalued": false
+                },
+                {
+                  "name": "tariff_status",
+                  "displayName": "${tariff_status}",
+                  "validations": {},
+                  "annotations": {},
+                  "permissions": {
+                    "view": ["admin", "user"],
+                    "edit": ["admin"]
+                  },
+                  "selector": {"scopes": ["tariff"]},
+                  "group": "tariff",
+                  "multivalued": false
+                },
+                {
+                  "name": "tenant_id",
+                  "displayName": "${tenant_id}",
+                  "validations": {},
+                  "annotations": {},
+                  "permissions": {
+                    "view": ["admin"],
+                    "edit": ["admin"]
+                  },
+                  "selector": {"scopes": ["tenancy"]},
+                  "group": "tenant",
+                  "multivalued": false
+                }
+              ],
+              "groups": [
+                {
+                  "name": "user-metadata",
+                  "displayHeader": "User metadata",
+                  "displayDescription": "Attributes, which refer to user metadata"
+                },
+                {
+                  "name": "tariff",
+                  "displayHeader": "${tariff}",
+                  "displayDescription": "${tariff.description}",
+                  "annotations": {}
+                },
+                {
+                  "name": "tenant",
+                  "displayHeader": "${tenant}",
+                  "displayDescription": "${tenant.description}",
+                  "annotations": {}
+                }
+              ]
+            }
+    status_code: [201, 409]
+  vars:
+    keycloak_token: "{{ keycloak_token_response_json_access_token }}"

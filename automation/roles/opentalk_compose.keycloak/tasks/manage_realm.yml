@@ -46,6 +46,9 @@
     - name: Configure keycloak client scopes | {{ keycloak_realm }}
       ansible.builtin.include_tasks: keycloak_client_scopes.yml
 
+    - name: Configure keycloak user profile | {{ keycloak_realm }}
+      ansible.builtin.include_tasks: keycloak_user_profile.yml
+
     - name: "Manage Keycloak client {{ controller_oidc_controller_client_id | default('Controller') }}"
       ansible.builtin.include_tasks: keycloak_oidc_client_backend.yml
 
