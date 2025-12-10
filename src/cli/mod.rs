@@ -3,15 +3,16 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use build_info::BuildInfo;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use opentalk_version::InfoArgs;
 
+use url::Url;
 mod license;
 
-#[derive(Parser, Debug, Clone)]
+#[derive(Parser, Debug)]
 pub struct Args {
     #[command(flatten)]
-    info: InfoArgs,
+    pub info: InfoArgs,
 
     /// Path of the configuration file.
     ///
@@ -25,29 +26,23 @@ pub struct Args {
     /// - `/etc/opentalk/obelisk.toml`
     #[clap(short, long, verbatim_doc_comment)]
     pub config: Option<String>,
+
+    #[clap(subcommand)]
+    pub(crate) command: Option<Commands>,
 }
 
-impl Args {
-    /// Returns true if we want to startup the controller after we finished the cli part
-    pub fn should_start(&self) -> bool {
-        !self.info.should_print()
-    }
-}
-
-/// Parses the CLI-Arguments into [`Args`]
-///
-/// Also runs (optional) cli commands if necessary
-pub fn parse_args() -> Args {
-    let args = Args::parse();
-    if args.info.should_print() {
-        print_info(&args.info);
-    }
-    args
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    /// Return the readiness state
+    Health {
+        /// The monitoring endpoint can be provided optionally
+        endpoint: Option<Url>,
+    },
 }
 
 opentalk_version::build_info!();
 
-fn print_info(info_args: &InfoArgs) {
+pub fn print_info(info_args: &InfoArgs) {
     let build_info = BuildInfo::with_license(license::LICENSE.to_owned());
     if let Some(text) = build_info.format(info_args) {
         println!("{text}");

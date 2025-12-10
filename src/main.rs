@@ -3,7 +3,11 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use anyhow::Result;
-use std::sync::Arc;
+use std::{process::exit, sync::Arc};
+
+use crate::cli::{Args, Commands, print_info};
+use clap::Parser;
+use service_probe_client::is_ready;
 
 mod cli;
 mod http;
@@ -30,25 +34,56 @@ async fn main() -> Result<()> {
 
     env_logger::init();
 
-    let args = cli::parse_args();
-    if !args.should_start() {
-        return Ok(());
+    let args = Args::parse();
+    if args.info.should_print() {
+        print_info(&args.info);
+    } else {
+        let settings = Arc::new(settings::Settings::load(&args.config)?);
+        if let Some(Commands::Health { endpoint }) = args.command {
+            let Some(monitoring_endpoint) = endpoint.or_else(|| {
+                settings.monitoring.as_ref().map(|monitoring_settings| {
+                    format!(
+                        "http://{}:{}",
+                        monitoring_settings.addr, monitoring_settings.port
+                    )
+                    .parse()
+                    .expect("valid endpoint can be built from monitoring settings")
+                })
+            }) else {
+                log::warn!("Monitoring not configured and no url endpoint parameter given");
+                exit(1);
+            };
+            return match is_ready(&monitoring_endpoint).await {
+                Ok(is_ready) => match is_ready {
+                    true => {
+                        log::info!("READY");
+                        Ok(())
+                    }
+                    false => {
+                        log::info!("Not Ready");
+                        exit(1)
+                    }
+                },
+                Err(err) => {
+                    log::error!("Err: {}", err);
+                    exit(-1)
+                }
+            };
+        } else {
+            // livekit uses libwebrtc, which in turn uses libsrtp. This tells libwebrtc that we're gonna
+            // initialize libsrtp. If this is not done, livekit silently fails to work properly.
+            webrtc_sys::prohibit_libsrtp_initialization::ffi::ProhibitLibsrtpInitialization();
+
+            // Initialize libsrtp
+            srtp::ensure_init();
+
+            media::PortPool::init(settings.clone());
+
+            sip::run(settings).await?;
+
+            log::info!("Obelisk exiting, bye!");
+        }
     }
-
-    // livekit uses libwebrtc, which in turn uses libsrtp. This tells libwebrtc that we're gonna
-    // initialize libsrtp. If this is not done, livekit silently fails to work properly.
-    webrtc_sys::prohibit_libsrtp_initialization::ffi::ProhibitLibsrtpInitialization();
-
-    // Initialize libsrtp
-    srtp::ensure_init();
-
-    let settings = Arc::new(settings::Settings::load(&args.config)?);
-
-    media::PortPool::init(settings.clone());
-
-    sip::run(settings).await?;
-
-    log::info!("Obelisk exiting, bye!");
 
     Ok(())
 }
