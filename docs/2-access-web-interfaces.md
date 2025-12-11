@@ -28,7 +28,7 @@ Accessible with default settings at: `/auth/`
 
 When default settings are kept the username is `admin`. The password is randomly generated during the initialization phase and can be found in `config/secrets/secrets.yaml` as the value for the key `KC_PERMANENT_ADMIN_PASSWORD`.
 
-Here you can create users for using OpenTalk. A step-by-step guide can be found in the documentation ["Managing OpenTalk Users in Keycloak"](docs/3-managing-opentalk-users.md). Extensive configurations can also be made regarding user authentication. Further information on using the Keycloak Admin Console can be found in the official [Keycloak documentation](https://www.keycloak.org/docs/latest/server_admin/index.html#using-the-admin-console).
+Here you can create users for using OpenTalk. A step-by-step guide can be found in the documentation ["Managing OpenTalk Users in Keycloak"](3-managing-opentalk-users-in-keycloak.md). Extensive configurations can also be made regarding user authentication. Further information on using the Keycloak Admin Console can be found in the official [Keycloak documentation](https://www.keycloak.org/docs/latest/server_admin/index.html#using-the-admin-console).
 
 ### 2.2 Authentication for Endpoints Behind `/adm/`
 

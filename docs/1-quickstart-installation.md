@@ -27,7 +27,7 @@ The target server should meet at least:
 
 ### 1.2 Supported Operating Systems
 
-Releases are provided as DEB and RPM packages. The packages are architecture-independent and not tied to a specific Linux distribution.
+Releases are provided as DEB and RPM packages. The packages are build for the x86-64 architecture and not tied to a specific Linux distribution.
 
 Recommended distributions:
 
@@ -40,7 +40,9 @@ Recommended distributions:
 |                                            | Rocky Linux 9               |
 |                                            | Rocky Linux 10              |
 |                                            | openSUSE Leap 15            |
+|                                            | openSUSE Leap 16            |
 |                                            | SLES 15                     |
+|                                            | SLES 16                     |
 
 ### 1.3 Firewall Configuration
 
@@ -470,7 +472,7 @@ For detailed configuration options, refer to the [Configuration Options Referenc
 
 ## 5. Optional: TURN over TLS with Embedded TURN Server (LiveKit)
 
-Reliable WebRTC connectivity sometimes requires TURN relaying when direct peer-to-peer connections are blocked by NAT or restrictive firewalls. OpenTalk ships with an embedded TURN server provided by LiveKit. This section explains the default behavior, how to enable TURN over TLS, required DNS changes, configuration options, verification, troubleshooting, scaling considerations, and security recommendations. For deploying a separate (dedicated) TURN service with coturn, see the advanced guide: [Dedicated TURN Server (coturn)](./4-advanced-installation-scenarios.md#5-install-and-configure-a-dedicated-turn-server-coturn).
+Reliable WebRTC connectivity sometimes requires TURN relaying when direct peer-to-peer connections are blocked by NAT or restrictive firewalls. OpenTalk ships with an embedded TURN server provided by LiveKit. This section explains the default behavior, how to enable TURN over TLS, required DNS changes, configuration options, verification, troubleshooting, scaling considerations, and security recommendations. For deploying a separate (dedicated) TURN service with coturn, see the advanced guide: [Dedicated TURN Server (coturn)](./4-advanced-installation-scenarios.md#5-external-turn-and-stun-server-integration-coturn).
 
 ### 5.1 Default Embedded TURN Behavior
 

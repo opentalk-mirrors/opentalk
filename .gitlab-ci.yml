@@ -7,6 +7,7 @@ image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgbuild:dev
 
 stages:
   - lint
+  - docs
   - package
   - integration
   - upload
@@ -17,7 +18,7 @@ stages:
 .template_dist_vars:
   FLAVORS_DIST: ['debian12', 'debian13', 'opensuse15', 'opensuse16', 'rocky9', 'ubuntu2404']
 
-.default_linter_conditions: &default_linter_conditions
+.default_conditions: &default_conditions
   needs: []
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -31,7 +32,7 @@ stages:
 
 lint:shellcheck:
   stage: lint
-  <<: *default_linter_conditions
+  <<: *default_conditions
   script:
     - echo "🔍 Linting shell scripts..."
     - git ls-files -z '*.sh' | xargs -0r shellcheck
@@ -39,14 +40,14 @@ lint:shellcheck:
 
 lint:yamllint:
   stage: lint
-  <<: *default_linter_conditions
+  <<: *default_conditions
   script:
     - echo "🔍 Linting YAML files..."
     - yamllint .
 
 lint:markdown:
   stage: lint
-  <<: *default_linter_conditions
+  <<: *default_conditions
   script:
     - echo "🔍 Linting Markdown files..."
     - |
@@ -59,14 +60,14 @@ lint:markdown:
 
 lint:ansible-lint:
   stage: lint
-  <<: *default_linter_conditions
+  <<: *default_conditions
   script:
     - echo "🔍 Linting Ansible code ..."
     - ansible-lint .
 
 lint:licensing:
   stage: lint
-  <<: *default_linter_conditions
+  <<: *default_conditions
   script:
     - echo "🔍 Check license compliance..."
     - reuse lint
@@ -101,7 +102,7 @@ lint:commitlint:
   cache: {}
   stage: lint
   allow_failure: false
-  <<: *default_linter_conditions
+  <<: *default_conditions
   variables:
     GIT_DEPTH: 0
   script:
@@ -119,6 +120,20 @@ lint:commitlint:
         echo "❌ Commitlint found problems - blocking pipeline!"
         exit 1
       fi
+
+docs:mkdocs:
+  stage: docs
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
+  <<: *default_conditions
+  script:
+    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+  artifacts:
+    paths:
+      - site/
+  pages:
+    publish: site
 
 # ------------------------------
 # PACKAGE JOBS

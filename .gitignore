@@ -32,3 +32,6 @@ rpmbuild/
 
 **/__pycache__/
 *.pyc
+
+.cache/
+site/

@@ -37,6 +37,7 @@ RSYNC_EXCLUDES=(
   "--exclude" "/.markdown_style.rb"
   "--exclude" "/.pre-commit-config.yaml"
   "--exclude" "/.yamllint.yml"
+  "--exclude" "/mkdocs.yml"
   "--exclude" "/REUSE.toml"
   "--exclude" "/build"
   "--exclude" "/artifacts"

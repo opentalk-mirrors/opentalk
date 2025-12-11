@@ -4,22 +4,27 @@ SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 SPDX-License-Identifier: EUPL-1.2
 -->
 
-# OpenTalk Compose Administration Guide
+# OpenTalk Compose
 
-OpenTalk Compose provides tools and utilities for deploying the OpenTalk video conferencing solution on your own server. Begin with the [Quickstart Guide](docs/1-quickstart-installation.md), which walks you through the installation steps required to set up all necessary services for your OpenTalk instance. This guide assumes a standard scenario: a publicly accessible server where all components run on a single host, and SSL/TLS certificates are obtained via Let's Encrypt.
+OpenTalk Compose provides tools and utilities for deploying the OpenTalk video conferencing solution on your own server.
 
-For customized setups or special requirements, refer to the [Advanced Installation Scenarios](docs/4-advanced-installation-scenarios.md) in this documentation to explore configuration options that meet your needs. The Quickstart Guide covers the essential steps for a common installation.
+## Getting Started
 
-## Table of Contents
+To get started with OpenTalk Compose, please refer to our [Quickstart Guide](docs/1-quickstart-installation.md). This guide provides the minimal steps required to get the necessary services up and running for a standard installation.
 
-[1. Quickstart Installation](docs/1-quickstart-installation.md)
+## Documentation
 
-[2. Accessing Web Interfaces](docs/2-access-web-interfaces.md)
+For more detailed information, including advanced installation scenarios and configuration options, please see our full [Administration Guide](docs/README.md).
 
-[3. Managing OpenTalk Users](docs/3-managing-opentalk-users-in-keycloak.md)
+The full table of contents for the documentation is:
 
-[4. Advanced Installation Scenarios](docs/4-advanced-installation-scenarios.md)
+1. [Quickstart Installation](docs/1-quickstart-installation.md)
+2. [Accessing Web Interfaces](docs/2-access-web-interfaces.md)
+3. [Managing OpenTalk Users](docs/3-managing-opentalk-users-in-keycloak.md)
+4. [Advanced Installation Scenarios](docs/4-advanced-installation-scenarios.md)
+5. [Configuration Option Reference](docs/5-configuration-options-reference.md)
+6. [Development related docs](docs/6-development-related-docs.md)
 
-[5. Configuration Option Reference](docs/5-configuration-options-reference.md)
+## License
 
-[6. Development related docs](docs/6-development-related-docs.md)
+This project is licensed under the [EUPL-1.2](LICENSES/EUPL-1.2.txt).
