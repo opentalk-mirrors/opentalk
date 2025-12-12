@@ -6,8 +6,6 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Access Web Interfaces
 
-[[_TOC_]]
-
 The OpenTalk web application provides a dashboard for managing OpenTalk meetings. In addition, there are several other web interfaces and consoles from third-party components that become accessible after installation and help administer the OpenTalk environment. The following section describes which interfaces are available and how to access them when using the default settings.
 
 ## 1. Login to OpenTalk Webapp

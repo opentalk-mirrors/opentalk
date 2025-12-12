@@ -6,8 +6,6 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Advanced Installation Scenarios
 
-[[_TOC_]]
-
 ## 1 Certificate handling
 
 ### 1.1 Use own TLS certificate instead of Let's Encrypt

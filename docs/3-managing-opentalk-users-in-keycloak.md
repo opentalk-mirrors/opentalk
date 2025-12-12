@@ -6,8 +6,6 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Managing OpenTalk Users in Keycloak
 
-[[_TOC_]]
-
 ## Method A: Creating Users via the Keycloak Admin Console (GUI)
 
 The Keycloak Admin Console provides a user-friendly graphical interface for managing users. Follow these steps to create a new user:

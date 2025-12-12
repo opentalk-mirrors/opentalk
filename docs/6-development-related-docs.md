@@ -6,8 +6,6 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Development related docs
 
-[[_TOC_]]
-
 ## Building Packages
 
 You can use `--deb` or `--rpm` to create packages in the respective format. If you omit these options, packages in both formats will be created.

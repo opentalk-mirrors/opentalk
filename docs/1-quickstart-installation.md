@@ -9,10 +9,6 @@ SPDX-License-Identifier: EUPL-1.2
 OpenTalk Compose is a set of tools and utilities for running the OpenTalk video conferencing solution on your own server. This quickstart guide covers the minimal steps required to get the necessary services up and running. It assumes a standard scenario with a publicly accessible server where all components run on a single host and SSL/TLS certificates are obtained via Let's Encrypt.  
 For customized setups or special conditions, refer to the OpenTalk Administration Guide. The essentials are explained here.
 
-## Table of Contents
-
-[[_TOC_]]
-
 ## 1. Preparations
 
 ### 1.1 Minimal System Requirements
@@ -27,7 +23,7 @@ The target server should meet at least:
 
 ### 1.2 Supported Operating Systems
 
-Releases are provided as DEB and RPM packages. The packages are build for the x86-64 architecture and not tied to a specific Linux distribution.
+Releases are provided as DEB and RPM packages. The packages are built for the x86-64 architecture and not tied to a specific Linux distribution.
 
 Recommended distributions:
 
