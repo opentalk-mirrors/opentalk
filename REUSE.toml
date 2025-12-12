@@ -15,6 +15,7 @@ path = [
   "CHANGELOG.md",
   "automation/roles/opentalk_compose.keycloak/files/**",
   "extras/packaging/config-dist/**",
-  "extras/packaging/man/**"
+  "extras/packaging/man/**",
+  "renovate.json",
 ]
 precedence = "aggregate"
