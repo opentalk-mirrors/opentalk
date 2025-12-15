@@ -9,10 +9,6 @@ SPDX-License-Identifier: EUPL-1.2
 OpenTalk Compose is a set of tools and utilities for running the OpenTalk video conferencing solution on your own server. This quickstart guide covers the minimal steps required to get the necessary services up and running. It assumes a standard scenario with a publicly accessible server where all components run on a single host and SSL/TLS certificates are obtained via Let's Encrypt.  
 For customized setups or special conditions, refer to the OpenTalk Administration Guide. The essentials are explained here.
 
-## Table of Contents
-
-[[_TOC_]]
-
 ## 1. Preparations
 
 ### 1.1 Minimal System Requirements
@@ -27,7 +23,7 @@ The target server should meet at least:
 
 ### 1.2 Supported Operating Systems
 
-Releases are provided as DEB and RPM packages. The packages are architecture-independent and not tied to a specific Linux distribution.
+Releases are provided as DEB and RPM packages. The packages are built for the x86-64 architecture and not tied to a specific Linux distribution.
 
 Recommended distributions:
 
@@ -40,7 +36,9 @@ Recommended distributions:
 |                                            | Rocky Linux 9               |
 |                                            | Rocky Linux 10              |
 |                                            | openSUSE Leap 15            |
+|                                            | openSUSE Leap 16            |
 |                                            | SLES 15                     |
+|                                            | SLES 16                     |
 
 ### 1.3 Firewall Configuration
 
@@ -63,72 +61,84 @@ Install Docker and the Docker Compose plugin before installing `opentalk-compose
 
 ## 2. Installation Procedure
 
-### 2.1 Add the OpenTalk Package Repository
+### 2.1 Add the Package Repository and install `opentalk-compose`
 
-Debian / Ubuntu:
+=== "Debian / Ubuntu"
 
-```bash
-apt update && apt install -y curl gnupg
-curl http://anfi.opentalk.run:7376/deb-experimental/public.gpg | gpg --yes --dearmor -o /usr/share/keyrings/openrepo-deb-experimental.gpg
-echo "deb [arch=any signed-by=/usr/share/keyrings/openrepo-deb-experimental.gpg] http://anfi.opentalk.run:7376/deb-experimental/ stable main" > /etc/apt/sources.list.d/openrepo-deb-experimental.list
-apt update
-```
+    For Debian 12, 13 and Ubuntu 24.04 based systems.
 
-RHEL-based:
+    ```bash
+    # Download and install the GPG public key
+    curl -fsSL \
+      https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc | \
+      sudo tee /etc/apt/trusted.gpg.d/opentalk-archive-keyring.asc > /dev/null
+    
+    # Add the OpenTalk Compose (Beta) repository
+    echo "deb [arch=amd64] \
+      https://repo.heinlein.group/repo/opentalk-compose/deb/beta/ all main" | \
+      sudo tee /etc/apt/sources.list.d/opentalk-compose.list
+    
+    # Update package index
+    sudo apt update
+    
+    # Install package opentalk-compose
+    sudo apt install opentalk-compose
+    ```
+    
 
-```bash
-echo """
-[rpm-experimental]
-name=rpm-experimental
-baseurl=http://anfi.opentalk.run:7376/rpm-experimental
-enabled=1
-repo_gpgcheck=1
-gpgkey=http://anfi.opentalk.run:7376/rpm-experimental/public.gpg
-""" > /etc/yum.repos.d/opentalk-compose-rpm-experimental.repo
-```
+=== "RHEL / Rocky / AlmaLinux"
 
-SUSE-based:
+    For RHEL 9, 10 and compatible distributions (Rocky Linux, AlmaLinux, etc.).
 
-```bash
-echo """
-[rpm-experimental]
-name=rpm-experimental
-baseurl=http://anfi.opentalk.run:7376/rpm-experimental
-enabled=1
-repo_gpgcheck=1
-gpgkey=http://anfi.opentalk.run:7376/rpm-experimental/public.gpg
-""" > /etc/zypp/repos.d/opentalk-compose-rpm-experimental.repo
-```
+    ```bash
+    # Download and install the GPG public key
+    sudo rpm --import \
+      https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
+    
+    # Add the OpenTalk Compose (Beta) repository
+    sudo tee /etc/yum.repos.d/opentalk-beta.repo <<EOF
+    [opentalk-compose]
+    name=OpenTalk Compose Repository - Beta Releases
+    baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/beta/
+    enabled=1
+    gpgcheck=1
+    gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
+    EOF
+    
+    # Update repository metadata
+    sudo dnf makecache
+    
+    # Install package opentalk-compose
+    sudo dnf install opentalk-compose
+    ```
 
-### 2.2 Install the `opentalk-compose` Package
+=== "SLES / openSUSE"
 
-Debian / Ubuntu:
+    For SUSE Linux Enterprise 15, 16 and openSUSE Leap based distributions.
 
-```bash
-apt update && apt install -y opentalk-compose
-```
+    ```bash
+    # Download and install the GPG public key
+    sudo rpm --import \
+      https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
+    
+    # Add the OpenTalk Compose (Beta) repository
+    sudo tee /etc/zypp/repos.d/opentalk-beta.repo <<EOF
+    [opentalk-compose-beta]
+    name=OpenTalk Compose Repository - Beta Releases
+    baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/beta/
+    enabled=1
+    gpgcheck=1
+    gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
+    EOF
+    
+    # Refresh repositories and install OpenTalk Compose
+    sudo zypper refresh
+    
+    # Install package opentalk-compose
+    sudo zypper install opentalk-compose
+    ```
 
-RHEL:
-
-```bash
-dnf install -y opentalk-compose
-```
-
-SUSE:
-
-```bash
-zypper install -y opentalk-compose
-```
-
-### 2.3 Set the OpenTalk Server Domain
-
-Edit `/etc/opentalk-compose/settings.yml` and set:
-
-```yaml
-ot_domain: example.com
-```
-
-### 2.4 Initialize the Deployment Environment
+### 2.2 Initialize the Deployment Environment
 
 Run the initial deployment:
 
@@ -146,7 +156,7 @@ Initial run performs:
 > **Note:** Initial configuration and startup may take several minutes. Wait until completion before accessing the application.
 > After initialization the web UI is available at: <https://example.com> (replace with your domain).
 
-### 2.5 Optional: Enable Demo User
+### 2.3 Optional: Enable Demo User
 
 A demo user can be created for testing. Username: `demo`. The password is generated (or taken from settings) and shown with `--diff`.
 
@@ -164,7 +174,7 @@ otctl deploy --tags demo-user -e postInstall_demoUser_state=absent
 
 Regular user management is done via Keycloak. Refer the docs [Managing OpenTalk Users](./3-managing-opentalk-users-in-keycloak.md).
 
-### 2.6 Optional: Adjust Configuration & Redeploy
+### 2.4 Optional: Adjust Configuration & Redeploy
 
 Modify `/etc/opentalk-compose/settings.yml` to adapt domain, certificate handling, external services, or feature toggles. Maintain a valid YAML indentation.
 
@@ -178,7 +188,7 @@ Only changed settings are applied; re-running is safe.
 
 > **Tip:** `otctl` prints the underlying command (`[otctl] + <command>`) for transparency.
 
-### 2.7 Check Service Status and Health
+### 2.5 Check Service Status and Health
 
 ```bash
 otctl status
@@ -211,7 +221,7 @@ If unhealthy:
 - Re-deploy config: `otctl deploy`
 - Inspect raw compose: `otctl compose ps`, `otctl compose logs <service>`
 
-### 2.8 Backups (Optional but Recommended)
+### 2.6 Backups (Optional but Recommended)
 
 Default backup root: `/var/opt/opentalk-compose/backups` (falls back to `/opt/opentalk-compose/backups`).
 
@@ -235,7 +245,7 @@ Notes:
 - Volume names must match exactly (no automatic prefixing).
 - Extra vars can be passed via `OTCTL_BACKUP_EXTRA_VARS` for advanced use.
 
-### 2.9 Reference: `otctl` Overview
+### 2.7 Reference: `otctl` Overview
 
 | Command | Purpose |
 |---------|---------|
@@ -470,7 +480,7 @@ For detailed configuration options, refer to the [Configuration Options Referenc
 
 ## 5. Optional: TURN over TLS with Embedded TURN Server (LiveKit)
 
-Reliable WebRTC connectivity sometimes requires TURN relaying when direct peer-to-peer connections are blocked by NAT or restrictive firewalls. OpenTalk ships with an embedded TURN server provided by LiveKit. This section explains the default behavior, how to enable TURN over TLS, required DNS changes, configuration options, verification, troubleshooting, scaling considerations, and security recommendations. For deploying a separate (dedicated) TURN service with coturn, see the advanced guide: [Dedicated TURN Server (coturn)](./4-advanced-installation-scenarios.md#5-install-and-configure-a-dedicated-turn-server-coturn).
+Reliable WebRTC connectivity sometimes requires TURN relaying when direct peer-to-peer connections are blocked by NAT or restrictive firewalls. OpenTalk ships with an embedded TURN server provided by LiveKit. This section explains the default behavior, how to enable TURN over TLS, required DNS changes, configuration options, verification, troubleshooting, scaling considerations, and security recommendations. For deploying a separate (dedicated) TURN service with coturn, see the advanced guide: [Dedicated TURN Server (coturn)](./4-advanced-installation-scenarios.md#5-external-turn-and-stun-server-integration-coturn).
 
 ### 5.1 Default Embedded TURN Behavior
 

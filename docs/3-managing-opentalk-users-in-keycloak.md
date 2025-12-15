@@ -6,14 +6,12 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Managing OpenTalk Users in Keycloak
 
-[[_TOC_]]
-
 ## Method A: Creating Users via the Keycloak Admin Console (GUI)
 
 The Keycloak Admin Console provides a user-friendly graphical interface for managing users. Follow these steps to create a new user:
 
 1. **Access the Keycloak Admin Console**  
-    Open your web browser and navigate to the Keycloak Admin Console. For detailed instructions, refer to [Section 3.1: Keycloak Admin Console](./2-access-web-interfaces.md#31-keycloak-admin-console).
+    Open your web browser and navigate to the Keycloak Admin Console. For detailed instructions, refer to [Section 3.1: Keycloak Admin Console](./2-access-web-interfaces.md#21-keycloak-admin-console).
 
 2. **Log In with Administrator Credentials**  
     Enter your administrator username and password to log in.

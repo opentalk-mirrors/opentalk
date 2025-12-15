@@ -1,0 +1,7 @@
+- [OpenTalk Compose](README.md)
+    - [1. Quickstart Installation](1-quickstart-installation.md)
+    - [2. Accessing Web Interfaces](2-access-web-interfaces.md)
+    - [3. Managing OpenTalk Users](3-managing-opentalk-users-in-keycloak.md)
+    - [4. Advanced Installation Scenarios](4-advanced-installation-scenarios.md)
+    - [5. Configuration Option Reference](5-configuration-options-reference.md)
+    - [6. Development related docs](6-development-related-docs.md)
