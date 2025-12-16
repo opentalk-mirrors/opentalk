@@ -140,6 +140,12 @@ Install Docker and the Docker Compose plugin before installing `opentalk-compose
 
 ### 2.2 Initialize the Deployment Environment
 
+Add your Domain to the `ot_domain` key in `/etc/opentalk-compose/secrets/secrets.yml`
+
+```yaml
+ot_domain: example.com
+```
+
 Run the initial deployment:
 
 ```bash
@@ -158,12 +164,18 @@ Initial run performs:
 
 ### 2.3 Optional: Enable Demo User
 
-A demo user can be created for testing. Username: `demo`. The password is generated (or taken from settings) and shown with `--diff`.
+A demo user can be created for testing. The user name is `demo`. The password is generated (or taken from `settings.yml`).
 
 Enable:
 
 ```bash
 otctl deploy --diff --tags demo-user
+```
+
+Find the password for `demo` in `/etc/opentalk-compose/secrets/secrets.yml`.
+
+```bash
+grep DEMO_USER_PASSWORD /etc/opentalk-compose/secrets/secrets.yml
 ```
 
 Remove:
