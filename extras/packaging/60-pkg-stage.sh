@@ -39,6 +39,7 @@ RSYNC_EXCLUDES=(
   "--exclude" "/.yamllint.yml"
   "--exclude" "/mkdocs.yml"
   "--exclude" "/REUSE.toml"
+  "--exclude" "/renovate.json"
   "--exclude" "/build"
   "--exclude" "/artifacts"
   "--exclude" "/extras"

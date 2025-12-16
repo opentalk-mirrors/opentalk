@@ -16,6 +16,7 @@ path = [
   "automation/roles/opentalk_compose.keycloak/files/**",
   "extras/packaging/config-dist/**",
   "extras/packaging/man/**",
-  "docs/navigation.md"
+  "docs/navigation.md",
+  "renovate.json"
 ]
 precedence = "aggregate"
