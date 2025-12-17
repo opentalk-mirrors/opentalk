@@ -29,10 +29,47 @@ set -euo pipefail
 #   FORCE_REFRESH=1
 #   CLEAN=1 (alternative to --clean)
 
-FALLBACK_PY_URL="https://github.com/astral-sh/python-build-standalone/releases/download/20251014/cpython-3.14.0+20251014-x86_64-unknown-linux-gnu-install_only.tar.gz"
-
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PKGDIR="$ROOT/extras/packaging"
+
+# shellcheck source=/dev/null
+. "$PKGDIR/astral_python.version"
+
+# Determine latest Python patch version for given minor from GitHub Release assets
+get_latest_python_patch() {
+  local release="$1"
+  local minor="$2"
+  local target="$3"
+  
+  # Fetch release data from GitHub API
+  local api_url="https://api.github.com/repos/astral-sh/python-build-standalone/releases/tags/${release}"
+  local assets
+  assets=$(curl -fsSL "$api_url" | grep -o "cpython-${minor}\.[0-9]\++${release}-${target}-install_only\.tar\.gz" | head -1)
+  
+  if [[ -z "$assets" ]]; then
+    echo "[python] ERROR: No Python ${minor}.x asset found in release ${release}" >&2
+    return 1
+  fi
+  
+  # Extract Python version from asset name (cpython-3.14.2+20251209-...)
+  local py_version
+  py_version=$(echo "$assets" | sed -n "s/cpython-\(${minor}\.[0-9]\+\)+.*/\1/p")
+  
+  if [[ -z "$py_version" ]]; then
+    echo "[python] ERROR: Could not parse Python version from asset: $assets" >&2
+    return 1
+  fi
+  
+  echo "$py_version"
+}
+
+# Auto-detect latest Python patch version
+PYTHON_VERSION=$(get_latest_python_patch "$ASTRAL_PBS_RELEASE" "$PYTHON_MINOR_VERSION" "$ASTRAL_PBS_TARGET")
+echo "[python] Detected version: $PYTHON_VERSION from release $ASTRAL_PBS_RELEASE"
+
+# Build download URL
+ASTRAL_PBS_PACKAGE="cpython-${PYTHON_VERSION}+${ASTRAL_PBS_RELEASE}-${ASTRAL_PBS_TARGET}-install_only.tar.gz"
+FALLBACK_PY_URL="https://github.com/astral-sh/python-build-standalone/releases/download/${ASTRAL_PBS_RELEASE}/${ASTRAL_PBS_PACKAGE}"
 
 # Safety: ensure we are operating from repo root even if user invoked script from a directory that gets deleted (e.g. artifacts/ just cleaned).
 if [[ "$PWD" != "$ROOT" ]]; then

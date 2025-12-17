@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# python-build-standalone release tag
+ASTRAL_PBS_RELEASE=20251014
+
+# python minor version - determined at build time
+PYTHON_MINOR_VERSION=3.14
+
+# platform / arch (static)
+ASTRAL_PBS_TARGET=x86_64_v2-unknown-linux-gnu

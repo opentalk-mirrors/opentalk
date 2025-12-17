@@ -2,5 +2,19 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "pip_requirements": {
+    "fileMatch": ["^extras/packaging/requirements-ansible\\.in$"]
+  },
+  "regexManagers": [
+    {
+      "fileMatch": ["^extras/packaging/astral_python\\.version$"],
+      "matchStrings": [
+        "ASTRAL_PBS_RELEASE=(?<currentValue>\\d+)"
+      ],
+      "depNameTemplate": "astral-sh/python-build-standalone",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "loose"
+    }
   ]
 }

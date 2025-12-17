@@ -107,3 +107,15 @@ Because the OpenTalk product version cannot be mapped 1:1 to DEB or RPM package 
 | v25.3.2-beta.3+git-4e7d8a1f         | 25.3.2~beta3+git4e7d8a1f   | 1                | opentalk-compose-25.3.2~beta3+git4e7d8a1f-1.x86_64.rpm |
 | v25.3.2-beta+git4e7d8a1f           | 25.3.2~beta+git4e7d8a1f     | 1                | opentalk-compose-25.3.2~beta+git4e7d8a1f-1.x86_64.rpm |
 | v25.3.2+git-4e7d8a1f                | 25.3.2+git4e7d8a1f   | 1                      | opentalk-compose-25.3.2+git4e7d8a1f-1.x86_64.rpm |
+
+## Revovate local test
+
+```bash
+ docker run --rm -v "$(pwd):/usr/src/app" \
+   -e LOG_LEVEL=debug \
+   -e RENOVATE_CONFIG_FILE=/usr/src/app/renovate.json \
+   -e GITHUB_COM_TOKEN="$GITHUB_COM_TOKEN" \
+   ghcr.io/renovatebot/renovate:full \
+   --platform=local \
+   --dry-run=lookup
+```
