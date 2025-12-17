@@ -14,8 +14,9 @@ license = "EUPL-1.2"
 
 [features]
 chat = ["types/signaling-chat"]
-default = ["chat", "livekit", "recording-service", "transcription-service"]
+default = ["chat", "livekit", "recording-service", "transcription-service", "rustls-tls"]
 livekit = ["dep:livekit"]
+rustls-tls = ["reqwest/rustls-tls"]
 recording-service = ["types/signaling-recording-service"]
 transcription-service = ["types/signaling-transcription"]
 
@@ -31,6 +32,7 @@ log = "0.4"
 openidconnect = { version = "4", default-features = false, features = ["reqwest"] }
 reqwest = { version = "0.12", default-features = false, features = [
   "json",
+  "rustls-tls",
   "stream",
 ] }
 serde = { version = "1.0", features = ["derive"] }
@@ -47,6 +49,12 @@ types = { version = "0.49", package = "opentalk-types", default-features = false
   "signaling-recording",
   "signaling-transcription",
 ] }
+# 0.3.16 onwards introduces system dependencies, so pin on 0.3.15
+webrtc-sys = "=0.3.15"
 
 [build-dependencies]
 anyhow = "1"
+
+# TODO: Remove when removing webrtc-sys
+[package.metadata.cargo-machete]
+ignored = ["webrtc-sys"]
