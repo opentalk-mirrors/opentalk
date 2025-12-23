@@ -84,31 +84,33 @@ Because the OpenTalk product version cannot be mapped 1:1 to DEB or RPM package 
 
 ## DEB-Pakages
 
-| Product Version / Input Tag                     | Package Version                      | Debian Filename                                                     |
-|-------------------------------------|---------------------------------------|---------------------------------------------------------------------|
-| v25.3.2                             | 25.3.2-1                              | opentalk-compose_25.3.2-1_amd64.deb                                 |
-| v25.3.2-1                           | 25.3.2-1                              | opentalk-compose_25.3.2-1_amd64.deb                                 |
-| v25.3.2-2                           | 25.3.2-2                              | opentalk-compose_25.3.2-2_amd64.deb                                 |
-| v25.3.2-beta                        | 25.3.2~beta-1                         | opentalk-compose_25.3.2~beta-1_amd64.deb                            |
-| v25.3.2-beta.2                      | 25.3.2~beta2-1                        | opentalk-compose_25.3.2~beta2-1_amd64.deb                           |
-| v25.3.2-beta.3+git-4e7d8a1f         | 25.3.2~beta3+git4e7d8a1f-1            | opentalk-compose_25.3.2~beta3+git4e7d8a1f-1_amd64.deb              |
-| v25.3.2-beta+git4e7d8a1f            | 25.3.2~beta+git4e7d8a1f-1             | opentalk-compose_25.3.2~beta+git4e7d8a1f-1_amd64.deb               |
-| v25.3.2+git-4e7d8a1f                | 25.3.2+git4e7d8a1f-1                  | opentalk-compose_25.3.2+git4e7d8a1f-1_amd64.deb                    |
+| Product Version / Input Tag         | Package Version                       | Debian Filename                                       |
+|-------------------------------------|---------------------------------------|-------------------------------------------------------|
+| v25.3.2                             | 25.3.2-1                              | opentalk-compose_25.3.2-1_amd64.deb                   |
+| v25.3.2-1                           | 25.3.2-1                              | opentalk-compose_25.3.2-1_amd64.deb                   |
+| v25.3.2-2                           | 25.3.2-2                              | opentalk-compose_25.3.2-2_amd64.deb                   |
+| v25.3.2-beta                        | 25.3.2~beta-1                         | opentalk-compose_25.3.2~beta-1_amd64.deb              |
+| v25.3.2-beta.2                      | 25.3.2~beta2-1                        | opentalk-compose_25.3.2~beta2-1_amd64.deb             |
+| v25.3.2-beta.3+git-4e7d8a1f         | 25.3.2~beta3+git4e7d8a1f-1            | opentalk-compose_25.3.2~beta3+git4e7d8a1f-1_amd64.deb |
+| v25.3.2-beta+git4e7d8a1f            | 25.3.2~beta+git4e7d8a1f-1             | opentalk-compose_25.3.2~beta+git4e7d8a1f-1_amd64.deb  |
+| v25.3.2+git-4e7d8a1f                | 25.3.2+git4e7d8a1f-1                  | opentalk-compose_25.3.2+git4e7d8a1f-1_amd64.deb       |
 
 ## RPM-Pakages
 
-| Product Version / Input Tag | RPM Version | RPM Release | RPM Filename |
-|-------------------------------------|----------------------|------------------------|---------------------------------------------------|
-| v25.3.2                             | 25.3.2               | 1                      | opentalk-compose-25.3.2-1.x86_64.rpm             |
-| v25.3.2-1                           | 25.3.2               | 1                      | opentalk-compose-25.3.2-1.x86_64.rpm             |
-| v25.3.2-2                           | 25.3.2               | 2                      | opentalk-compose-25.3.2-2.x86_64.rpm             |
-| v25.3.2-beta                        | 25.3.2~beta          | 1                      | opentalk-compose-25.3.2~beta-1.x86_64.rpm        |
-| v25.3.2-beta.2                      | 25.3.2~beta2         | 1                      | opentalk-compose-25.3.2~beta2-1.x86_64.rpm       |
-| v25.3.2-beta.3+git-4e7d8a1f         | 25.3.2~beta3+git4e7d8a1f   | 1                | opentalk-compose-25.3.2~beta3+git4e7d8a1f-1.x86_64.rpm |
-| v25.3.2-beta+git4e7d8a1f           | 25.3.2~beta+git4e7d8a1f     | 1                | opentalk-compose-25.3.2~beta+git4e7d8a1f-1.x86_64.rpm |
-| v25.3.2+git-4e7d8a1f                | 25.3.2+git4e7d8a1f   | 1                      | opentalk-compose-25.3.2+git4e7d8a1f-1.x86_64.rpm |
+| Product Version / Input Tag         | RPM Version              | RPM Release            | RPM Filename                                           |
+|-------------------------------------|--------------------------|------------------------|--------------------------------------------------------|
+| v25.3.2                             | 25.3.2                   | 1                      | opentalk-compose-25.3.2-1.x86_64.rpm                   |
+| v25.3.2-1                           | 25.3.2                   | 1                      | opentalk-compose-25.3.2-1.x86_64.rpm                   |
+| v25.3.2-2                           | 25.3.2                   | 2                      | opentalk-compose-25.3.2-2.x86_64.rpm                   |
+| v25.3.2-beta                        | 25.3.2~beta              | 1                      | opentalk-compose-25.3.2~beta-1.x86_64.rpm              |
+| v25.3.2-beta.2                      | 25.3.2~beta2             | 1                      | opentalk-compose-25.3.2~beta2-1.x86_64.rpm             |
+| v25.3.2-beta.3+git-4e7d8a1f         | 25.3.2~beta3+git4e7d8a1f | 1                      | opentalk-compose-25.3.2~beta3+git4e7d8a1f-1.x86_64.rpm |
+| v25.3.2-beta+git4e7d8a1f            | 25.3.2~beta+git4e7d8a1f  | 1                      | opentalk-compose-25.3.2~beta+git4e7d8a1f-1.x86_64.rpm  |
+| v25.3.2+git-4e7d8a1f                | 25.3.2+git4e7d8a1f       | 1                      | opentalk-compose-25.3.2+git4e7d8a1f-1.x86_64.rpm       |
 
-## Revovate local test
+## Renovate local test
+
+Run Renovate to verify the `renovate.json` configuration or check which components are tracked:
 
 ```bash
  docker run --rm -v "$(pwd):/usr/src/app" \
@@ -118,4 +120,62 @@ Because the OpenTalk product version cannot be mapped 1:1 to DEB or RPM package 
    ghcr.io/renovatebot/renovate:full \
    --platform=local \
    --dry-run=lookup
+```
+
+## Building and Testing OpenTalk Compose Package on the local machine
+
+This section describes how to build and test the OpenTalk Compose Debian package in a Docker container.
+
+### Example for a Debian package
+
+#### Build the package
+
+```bash
+extras/packaging/build-all.sh --deb --version v25.4.0
+```
+
+#### Start a Debian container with Docker-in-Docker support
+
+**With Docker:**
+
+```bash
+docker run --rm -ti --name dind-debian12 \
+  --privileged \
+  --tmpfs /run:rw,noexec,nosuid,size=65536k \
+  --tmpfs /run/lock \
+  -v dind-debian-docker-root:/var/lib/docker \
+  -v ./artifacts:/artifacts \
+  -e DOCKER_TLS_CERTDIR= \
+  git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/debian12:dev bash
+```
+
+**With Podman:**
+
+```bash
+podman run --rm -ti --name dind-debian12 \
+  --privileged \
+  --tmpfs /run:rw,noexec,nosuid,size=65536k \
+  --tmpfs /run/lock \
+  -v dind-debian-docker-root:/var/lib/docker \
+  -v ./artifacts:/artifacts \
+  -e DOCKER_TLS_CERTDIR= \
+  git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/debian12:dev bash
+```
+
+#### Install the OpenTalk Compose package inside the DinD container
+
+```bash
+dpkg -i artifacts/opentalk-compose_25.4.0-1_amd64.deb
+```
+
+#### Activate the Python virtual environment
+
+```bash
+source /opt/opentalk-compose/runtime/venv/bin/activate
+```
+
+#### Run deplyment to execute ansible tasks
+
+```bash
+otctl deploy -e ot_domain=localhost
 ```
