@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 # python-build-standalone release tag
-ASTRAL_PBS_RELEASE=20251014
+ASTRAL_PBS_RELEASE=20251217
 
 # python minor version - determined at build time
 PYTHON_MINOR_VERSION=3.14
