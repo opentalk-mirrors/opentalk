@@ -8,7 +8,7 @@ http:
     default-auth:
       basicAuth:
         users:
-          - "{{ traefik_basicAuth_dashboard_admin }}:{{ traefik_basicAuth_dashboard_admin_password | password_hash(hashtype='bcrypt', salt=traefik_basicAuth_dashboard_admin_password_salt)}}"
+          - "{{ traefik_basicAuth_dashboard_admin }}:{{ traefik_basicAuth_dashboard_admin_password | password_hash(hashtype='sha512_crypt', salt=(traefik_basicAuth_dashboard_admin_password_salt[:16]))}}"
 {% if (custom_certificates_enabled is defined and custom_certificates_enabled is true) or (traefik_letsencrypt_enable is defined and traefik_letsencrypt_enable is true) %}
     secure-headers:
       headers:
