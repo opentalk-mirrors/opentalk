@@ -238,6 +238,11 @@ trigger-docs:
   trigger:
     project: opentalk/backend/docs
 
+include:
+  - project: opentalk/ci/templates/collect-commit-evidence
+    ref: v2
+    file: .gitlab-ci-template.yml
+
 package:obelisk-container-build:
   parallel:
     matrix:
