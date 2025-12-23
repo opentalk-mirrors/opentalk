@@ -61,10 +61,10 @@ services:
         || PathPrefix(`/javascripts`) \
         || PathPrefix(`/images`) \
         || PathPrefix(`/stylesheets`) \
+        || PathPrefix(`/storage`) \
         || PathPrefix(`/socket`) \
         || PathPrefix(`/api/users/current`) \
         || PathPrefix(`/api/sessions/current`) \
-        || PathPrefix(`/api/spaces`) \
         || PathPrefix(`/api/spaces`) \
         || PathPrefix(`/fonts/`))"
       - "traefik.http.services.spacedeck.loadbalancer.server.port=9666"
