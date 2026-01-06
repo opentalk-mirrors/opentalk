@@ -44,6 +44,9 @@ ignore = [
 
   # paste - no longer maintained
   "RUSTSEC-2024-0436",
+
+  # rustls-pemfile is unmaintained
+  "RUSTSEC-2025-0134",
 ]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
