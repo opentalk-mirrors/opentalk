@@ -217,6 +217,16 @@ pub struct SipSettings {
 
     #[serde(default)]
     pub encode_video_at_half_bitrate: bool,
+
+    #[serde(default)]
+    pub display_name_source: DisplayNameSource,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub enum DisplayNameSource {
+    #[default]
+    Contact,
+    From,
 }
 
 fn default_max_video_bitrate() -> u32 {

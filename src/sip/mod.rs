@@ -4,7 +4,7 @@
 
 use crate::http::HttpClient;
 use crate::media::{MediaPipeline, Track};
-use crate::settings::{MonitoringSettings, Settings, SipRegistrarSettings};
+use crate::settings::{DisplayNameSource, MonitoringSettings, Settings, SipRegistrarSettings};
 use crate::signaling::Signaling;
 use anyhow::{Context, Result, bail};
 use bytesstr::BytesStr;
@@ -131,13 +131,20 @@ impl AppLayer {
             notify_picture_fast_update: fast_picture_update_notify.clone(),
         });
 
-        let name = if let Some(name) = &dialog.peer_contact.uri.name {
-            Some(name.clone())
-        } else {
-            match &dialog.peer_contact.uri.uri.user_part {
-                SipUriUserPart::Empty => None,
-                SipUriUserPart::User(user) => Some(user.clone()),
-                SipUriUserPart::UserPw(_) => None,
+        let name = {
+            let uri = match self.settings.sip.display_name_source {
+                DisplayNameSource::Contact => &dialog.peer_contact.uri,
+                DisplayNameSource::From => &dialog.peer_fromto.uri,
+            };
+
+            if let Some(name) = &uri.name {
+                Some(name.clone())
+            } else {
+                match &uri.uri.user_part {
+                    SipUriUserPart::Empty => None,
+                    SipUriUserPart::User(user) => Some(user.clone()),
+                    SipUriUserPart::UserPw(_) => None,
+                }
             }
         };
 
