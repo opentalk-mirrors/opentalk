@@ -40,7 +40,7 @@ pub struct SocketPair {
     pub local_rtp_port: u16,
     /// public RTP port resolved using the configured STUN server, or if none is set, same as `local_rtp_port`
     pub public_rtp_port: u16,
-    /// public RTCP port, same as public_rtp_port
+    /// public RTCP port, same as `public_rtp_port`
     pub public_rtcp_port: u16,
 
     pub rtp_socket: Arc<UdpSocket>,
@@ -109,6 +109,7 @@ impl PortPool {
     /// This avoids contention under heavy load (many open connections)
     ///
     /// Returns Ok(None) when no more ports are available
+    #[expect(clippy::similar_names)]
     pub async fn create_rtp_socket_pair(
         &self,
         address_family: AddressFamily,
@@ -125,29 +126,21 @@ impl PortPool {
                 .choose(&mut rand::rng());
 
             // return if no available ports were found
-            let pair = match pair {
-                Some(pair) => pair,
-                None => return Ok(None),
-            };
+            let Some(pair) = pair else { return Ok(None) };
 
             // get the actual port values for the pair
             let local_rtp_port = self.port_start + (pair * 2);
             let local_rtcp_port = local_rtp_port + 1;
 
-            let rtp_socket = match create_udp_socket(local_rtp_port, address_family).await? {
-                Some(rtp_socket) => rtp_socket,
-                None => {
-                    failed_pairs.push(pair);
-                    continue;
-                }
+            let Some(rtp_socket) = create_udp_socket(local_rtp_port, address_family).await? else {
+                failed_pairs.push(pair);
+                continue;
             };
 
-            let rtcp_socket = match create_udp_socket(local_rtcp_port, address_family).await? {
-                Some(rtcp_socket) => rtcp_socket,
-                None => {
-                    failed_pairs.push(pair);
-                    continue;
-                }
+            let Some(rtcp_socket) = create_udp_socket(local_rtcp_port, address_family).await?
+            else {
+                failed_pairs.push(pair);
+                continue;
             };
 
             log::trace!(
@@ -195,10 +188,7 @@ impl PortPool {
         if used_pairs.remove(&pair) {
             log::trace!("Removed port {port} from PortPool (pair {pair})");
         } else {
-            log::error!(
-                "Failed to remove port pair {pair}, used_pairs={:?}",
-                used_pairs
-            );
+            log::error!("Failed to remove port pair {pair}, used_pairs={used_pairs:?}");
         }
     }
 }

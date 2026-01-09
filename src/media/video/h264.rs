@@ -39,6 +39,7 @@ impl H264Encoder {
         level: Option<Level>,
         fps: u32,
     ) -> Result<Self> {
+        #[expect(clippy::cast_precision_loss)]
         let mut encoder_config = EncoderConfig::new()
             .bitrate(BitRate::from_bps(bitrate))
             .intra_frame_period(IntraFramePeriod::from_num_frames(90))
@@ -87,7 +88,10 @@ impl H264Encoder {
 
         let bitstream = match self.encoder.encode_at(
             &slices,
-            openh264::Timestamp::from_millis(self.init.elapsed().as_millis() as u64),
+            openh264::Timestamp::from_millis(
+                u64::try_from(self.init.elapsed().as_millis())
+                    .expect("conversion to u64 not possible"),
+            ),
         ) {
             Ok(bitstream) => bitstream.to_vec(),
             Err(e) => {
@@ -146,11 +150,11 @@ impl H264Decoder {
         let (stride_y, stride_u, stride_v) = decoded_yuv.strides();
 
         let mut buffer = I420Buffer::with_strides(
-            width as u32,
-            height as u32,
-            stride_y as u32,
-            stride_u as u32,
-            stride_v as u32,
+            u32::try_from(width).expect("conversion to u32 not possible"),
+            u32::try_from(height).expect("conversion to u32 not possible"),
+            u32::try_from(stride_y).expect("conversion to u32 not possible"),
+            u32::try_from(stride_u).expect("conversion to u32 not possible"),
+            u32::try_from(stride_v).expect("conversion to u32 not possible"),
         );
 
         buffer.data_mut().0.copy_from_slice(decoded_yuv.y());
@@ -159,7 +163,8 @@ impl H264Decoder {
 
         Some(Ok(VideoFrame {
             rotation: VideoRotation::VideoRotation0,
-            timestamp_us: self.init.elapsed().as_micros() as i64,
+            timestamp_us: i64::try_from(self.init.elapsed().as_micros())
+                .expect("conversion to i64 not possible"),
             buffer,
         }))
     }

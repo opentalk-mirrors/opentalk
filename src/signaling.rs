@@ -122,7 +122,7 @@ enum RecordingConsentState {
 
 impl Signaling {
     /// Create a new Signaling from a newly established SIP session
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
         settings: Arc<Settings>,
         http_client: Arc<HttpClient>,
@@ -192,7 +192,7 @@ impl Signaling {
                     self.media.ui_controller.set(self.dtmf_id.clone(), self.dtmf_pw.clone());
                 }
                 event = websocket_receive(&mut self.websocket) => {
-                    if let Err(e) = self.handle_websocket_event(event, closed_finished_channel_tx.clone()).await {
+                    if let Err(e) = Box::pin(self.handle_websocket_event(event, closed_finished_channel_tx.clone())).await {
                         log::error!("failed to handle websocket event, {e:?}");
                     }
                 }
@@ -207,7 +207,7 @@ impl Signaling {
                 _ = closed_finished_channel_rx.recv() => {
                     self.state = State::Quitting;
                 }
-                _ = opt_timeout(&mut self.livekit_disconnection_grace_period) => {
+                () = opt_timeout(&mut self.livekit_disconnection_grace_period) => {
 
                 }
                 _ = self.shutdown.recv() => {
@@ -243,6 +243,7 @@ impl Signaling {
         Ok(())
     }
 
+    #[expect(clippy::too_many_lines)]
     async fn handle_media_event(
         &mut self,
         event: MediaEvent,
@@ -256,9 +257,6 @@ impl Signaling {
                         // #
                         self.dtmf_id.clear();
                         self.dtmf_pw.clear();
-                    }
-                    10 => {
-                        // *
                     }
                     0..=9 => {
                         if self.dtmf_id.len() < 10 {
@@ -278,7 +276,7 @@ impl Signaling {
 
                             if self.dtmf_pw.len() == 10 {
                                 match self.connect_websocket().await {
-                                    Ok(_) => {
+                                    Ok(()) => {
                                         self.track_controller.play_track_and_respond(
                                             self.settings.language,
                                             Track::WelcomeUsage,
@@ -458,6 +456,7 @@ impl Signaling {
         Ok(())
     }
 
+    #[expect(clippy::too_many_lines)]
     async fn handle_websocket_event(
         &mut self,
         event: Result<WebsocketEvent>,
@@ -673,7 +672,8 @@ impl Signaling {
         self.participants = join_result.participants;
 
         let mut compositor = Mixer::new(MixerParameters {
-            target_fps: self.media.target_fps as u16,
+            target_fps: u16::try_from(self.media.target_fps)
+                .expect("conversion to u16 not possible"),
             clock_format: self.settings.clock_format.clone(),
             livekit_url: join_result
                 .livekit
@@ -689,7 +689,7 @@ impl Signaling {
         for participant in &self.participants {
             if participant.control.left_at.is_some() {
                 continue;
-            };
+            }
 
             compositor.add_participant(
                 &participant.id.to_string().into(),

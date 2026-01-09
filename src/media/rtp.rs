@@ -36,7 +36,7 @@ impl RtpSessions {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, clippy::similar_names)]
     pub async fn add_sender(
         &mut self,
         session_id: MediaSessionId,
@@ -53,8 +53,8 @@ impl RtpSessions {
             session_id,
             srtp,
             clock_rate,
-            rtp_socket,
-            rtcp_socket,
+            &rtp_socket,
+            &rtcp_socket,
             remote_rtp_addr,
             remote_rtcp_addr,
         );
@@ -95,7 +95,7 @@ impl RtpSessions {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, clippy::similar_names)]
     pub async fn add_receiver(
         &mut self,
         session_id: MediaSessionId,
@@ -111,8 +111,8 @@ impl RtpSessions {
             session_id,
             srtp,
             clock_rate,
-            rtp_socket,
-            rtcp_socket,
+            &rtp_socket,
+            &rtcp_socket,
             remote_rtp_addr,
             remote_rtcp_addr,
         );
@@ -150,14 +150,14 @@ impl RtpSessions {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, clippy::similar_names)]
     fn get_or_create_session(
         &mut self,
         session_id: MediaSessionId,
         srtp: Option<&SrtpInfo>,
         clock_rate: u32,
-        rtp_socket: Arc<UdpSocket>,
-        rtcp_socket: Arc<UdpSocket>,
+        rtp_socket: &Arc<UdpSocket>,
+        rtcp_socket: &Arc<UdpSocket>,
         remote_rtp_addr: SocketAddr,
         remote_rtcp_addr: SocketAddr,
     ) -> &mut Entry {
@@ -267,7 +267,7 @@ struct RtpTask {
     state: State,
     on_err: Arc<Box<dyn Fn() + Send + Sync>>,
 
-    /// Channel to receive commands from the RtpSessions object from. When this returns None, the Task quits
+    /// Channel to receive commands from the `RtpSessions` object from. When this returns None, the Task quits
     commands_rx: mpsc::Receiver<RtpTaskCommand>,
 
     /// RTP Session
@@ -301,7 +301,7 @@ enum State {
 }
 
 impl RtpTask {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, clippy::similar_names)]
     fn new(
         commands_rx: mpsc::Receiver<RtpTaskCommand>,
         on_err: Arc<Box<dyn Fn() + Send + Sync>>,
@@ -329,6 +329,7 @@ impl RtpTask {
         }
     }
 
+    #[expect(clippy::similar_names)]
     async fn run(mut self) {
         let mut rtcp_interval = interval_at(
             Instant::now() + Duration::from_secs(5),
@@ -366,7 +367,7 @@ impl RtpTask {
                         return;
                     }
 
-                    self.send_rtcp().await
+                    self.send_rtcp().await;
                 },
 
                 // Receive incoming RTP packets from the peer
@@ -388,7 +389,7 @@ impl RtpTask {
     }
 
     fn handle_command(&mut self, command: Option<RtpTaskCommand>) {
-        use RtpTaskCommand::*;
+        use RtpTaskCommand::{AddReceiver, AddSender, RemoveReceiver, RemoveSender};
 
         match command {
             Some(AddSender(new_source)) => self.rtp_sender_source = Some(new_source),
@@ -565,7 +566,7 @@ impl RtpTask {
             match pkg {
                 Ok(packet) => {
                     log_report(&packet);
-                    self.session.recv_rtcp(packet)
+                    self.session.recv_rtcp(packet);
                 }
                 Err(e) => log::debug!("Encountered invalid RTCP packet in compound packet, {e:?}"),
             }
@@ -642,7 +643,7 @@ fn log_report(packet: &ezk_rtp::rtcp_types::Packet<'_>) {
                 "]".yellow(),
                 format!(
                     "{}%",
-                    ((report_block.fraction_lost() as f32 / 255.0) * 100.0)
+                    ((f32::from(report_block.fraction_lost()) / 255.0) * 100.0)
                 )
                 .bright_cyan(),
                 report_block.cumulative_lost().bright_cyan(),

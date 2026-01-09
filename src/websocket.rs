@@ -37,7 +37,7 @@ pub enum WebsocketEvent {
     Update(Participant),
     Left(AssociatedParticipant),
     SessionEnded {
-        #[allow(dead_code)]
+        #[expect(dead_code)]
         issued_by: ParticipantId,
     },
     StreamUpdated(StreamUpdated),
@@ -146,7 +146,7 @@ impl Websocket {
                     payload: ModerationPayload::Accepted,
                 }) => return self.enter_from_waiting_room().await,
                 Some(unhandled) => {
-                    log::warn!("Unhandled message while in waiting_room, {unhandled:?}")
+                    log::warn!("Unhandled message while in waiting_room, {unhandled:?}");
                 }
                 None => bail!("Connection closed while waiting inside the waiting room"),
             }
@@ -209,10 +209,9 @@ impl Websocket {
         loop {
             match self.websocket.next().await {
                 Some(Ok(Message::Ping(data))) => self.websocket.send(Message::Pong(data)).await?,
-                Some(Ok(Message::Close(_))) => return Ok(None),
+                Some(Ok(Message::Close(_))) | None => return Ok(None),
                 Some(Ok(msg)) => return Ok(Some(msg.into_text()?.to_string())),
                 Some(Err(e)) => return Err(e.into()),
-                None => return Ok(None),
             }
         }
     }
@@ -231,7 +230,7 @@ impl Websocket {
         loop {
             match self.receive_payload().await {
                 Ok(Some(payload)) => {
-                    if let Some(event) = self.payload_to_event(payload)? {
+                    if let Some(event) = payload_to_event(payload)? {
                         return Ok(event);
                     }
                 }
@@ -241,35 +240,30 @@ impl Websocket {
             }
         }
     }
+}
 
-    fn payload_to_event(&self, payload: Payload) -> Result<Option<WebsocketEvent>> {
-        match payload {
-            Payload::Control { payload } => match payload {
-                ControlPayload::JoinSuccess(_) => bail!("unexpected JoinSuccess"),
-                ControlPayload::Update(participant) => {
-                    Ok(Some(WebsocketEvent::Update(participant)))
-                }
-                ControlPayload::Joined(participant) => {
-                    Ok(Some(WebsocketEvent::Joined(participant)))
-                }
-                ControlPayload::Left(participant) => Ok(Some(WebsocketEvent::Left(participant))),
-            },
-            Payload::Moderation { payload } => match payload {
-                ModerationPayload::InWaitingRoom => Ok(Some(WebsocketEvent::MovedToWaitingRoom)),
-                ModerationPayload::Accepted => bail!("Unexpected moderation message 'accepted'"),
-                ModerationPayload::SessionEnded(SessionEnded { issued_by }) => {
-                    Ok(Some(WebsocketEvent::SessionEnded { issued_by }))
-                }
-            },
-            Payload::Recording { payload } => match payload {
-                RecordingEvent::StreamUpdated(stream_updated) => {
-                    Ok(Some(WebsocketEvent::StreamUpdated(stream_updated)))
-                }
-                RecordingEvent::Error(..) => Ok(None),
-                RecordingEvent::RecorderError(..) => Ok(None),
-            },
-            Payload::LiveKit { payload } => Ok(Some(WebsocketEvent::LiveKitEvent(payload))),
-        }
+fn payload_to_event(payload: Payload) -> Result<Option<WebsocketEvent>> {
+    match payload {
+        Payload::Control { payload } => match payload {
+            ControlPayload::JoinSuccess(_) => bail!("unexpected JoinSuccess"),
+            ControlPayload::Update(participant) => Ok(Some(WebsocketEvent::Update(participant))),
+            ControlPayload::Joined(participant) => Ok(Some(WebsocketEvent::Joined(participant))),
+            ControlPayload::Left(participant) => Ok(Some(WebsocketEvent::Left(participant))),
+        },
+        Payload::Moderation { payload } => match payload {
+            ModerationPayload::InWaitingRoom => Ok(Some(WebsocketEvent::MovedToWaitingRoom)),
+            ModerationPayload::Accepted => bail!("Unexpected moderation message 'accepted'"),
+            ModerationPayload::SessionEnded(SessionEnded { issued_by }) => {
+                Ok(Some(WebsocketEvent::SessionEnded { issued_by }))
+            }
+        },
+        Payload::Recording { payload } => match payload {
+            RecordingEvent::StreamUpdated(stream_updated) => {
+                Ok(Some(WebsocketEvent::StreamUpdated(stream_updated)))
+            }
+            RecordingEvent::Error(..) | RecordingEvent::RecorderError(..) => Ok(None),
+        },
+        Payload::LiveKit { payload } => Ok(Some(WebsocketEvent::LiveKitEvent(payload))),
     }
 }
 
@@ -314,7 +308,6 @@ pub struct Participant {
 enum ModerationPayload {
     InWaitingRoom,
     Accepted,
-    #[allow(dead_code)]
     #[serde(rename = "session_ended")]
     SessionEnded(SessionEnded),
 }

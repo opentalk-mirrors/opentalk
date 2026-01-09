@@ -40,7 +40,6 @@ pub struct SdpSendCodec {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub enum SdpSendCodecParams {
     None,
     H264 {
@@ -165,7 +164,7 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
                     1 => packetization_mode = H264PacketizationMode::NonInterleavedMode,
                     _ => log::warn!("Unhandled packetization mode {value}"),
                 },
-                _ => continue,
+                _ => {}
             }
         }
 
@@ -222,11 +221,8 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
     }
 
     for bandwidth in &offer.bandwidth {
-        match bandwidth.type_.as_str() {
-            // The TIAS Bandwidth Modifier
-            // https://www.rfc-editor.org/rfc/rfc3890#section-6.2
-            "TIAS" => bitrate = Some(bandwidth.bandwidth),
-            _ => continue,
+        if bandwidth.type_.as_str() == "TIAS" {
+            bitrate = Some(bandwidth.bandwidth);
         }
     }
 
@@ -243,7 +239,10 @@ fn calculate_best_resolution_and_fps(
     max_mbps: Option<u32>,
     max_fs: Option<u32>,
 ) -> ((u32, u32), u32) {
-    use h264_profile_level_id::Level::*;
+    use h264_profile_level_id::Level::{
+        Level1, Level1b, Level2, Level3, Level4, Level5, Level11, Level12, Level13, Level21,
+        Level22, Level31, Level32, Level41, Level42, Level51, Level52,
+    };
 
     // Default 30 fps, which is what the compositor produces
     let mut fps = DEFAULT_FPS;
@@ -251,19 +250,16 @@ fn calculate_best_resolution_and_fps(
     // Max macroblock processing rate MaxMBPS (MB/s)
     // from ITU-T H.264 (08/2021) Annex A.3.1 page 294 Table A-1 'Level limits'
     let mut max_macro_blocks_per_second = match level {
-        Level1 => 1485,
-        Level1b => 1485,
+        Level1 | Level1b => 1485,
         Level11 => 3000,
         Level12 => 6000,
-        Level13 => 11_880,
-        Level2 => 11_880,
+        Level13 | Level2 => 11_880,
         Level21 => 19_800,
         Level22 => 20_250,
         Level3 => 40_500,
         Level31 => 108_000,
         Level32 => 216_000,
-        Level4 => 245_760,
-        Level41 => 245_760,
+        Level4 | Level41 => 245_760,
         Level42 => 522_240,
         Level5 => 589_824,
         Level51 => 983_040,

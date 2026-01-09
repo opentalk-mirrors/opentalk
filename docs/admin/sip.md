@@ -53,7 +53,7 @@ The section in the [configuration file](configuration.md) is called `sip`.
 | `rtp_port_range`               | [RTP port range](#rtp-port-range) | no       | 40000-49999   | The port range for the SIP RTP/RTCP connections                                                                                                                                                                             |
 | `max_video_bitrate`            | `int`                             | no       | 6000000       | Maximum allowed video bitrate to the caller in bits/s                                                                                                                                                                       |
 | `encode_video_at_half_bitrate` | `bool`                            | no       | `false`       | Encode video at half the bitrate advertised by the caller. This ensures compatibility with devices that incorrectly report their supported H.264 maximum bitrate for both sending and receiving, instead of just receiving. |
-| `display_name_source`          | `string`                          | no       | `Contact`     | Which header to infer the caller's display name from. Supported values are `Contact` and `From`. |
+| `display_name_source`          | `string`                          | no       | `Contact`     | Which header to infer the caller's display name from. Supported values are `Contact` and `From`.                                                                                                                            |
 
 If `ìd` is not set, it is generated as `sip:<username>@<registrar-host>`. If no
 registrar is configured it is generated just like the `contact` field.

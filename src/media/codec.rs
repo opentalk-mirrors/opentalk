@@ -35,14 +35,14 @@ pub enum Codec {
 }
 
 impl Codec {
-    pub fn media_type(&self) -> MediaType {
+    pub fn media_type(self) -> MediaType {
         match self {
             Codec::G711PCMA | Codec::G711PCMU | Codec::G722 => MediaType::Audio,
             Codec::H264 => MediaType::Video,
         }
     }
 
-    pub fn encoding_name(&self) -> &str {
+    pub fn encoding_name(self) -> &'static str {
         match self {
             Codec::G711PCMA => "PCMA",
             Codec::G711PCMU => "PCMU",
@@ -51,7 +51,7 @@ impl Codec {
         }
     }
 
-    pub fn clock_rate(&self) -> u32 {
+    pub fn clock_rate(self) -> u32 {
         match self {
             Codec::G711PCMA | Codec::G711PCMU | Codec::G722 => 8000,
             Codec::H264 => 90_000,

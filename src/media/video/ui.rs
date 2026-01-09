@@ -77,11 +77,13 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks, waiting_room: bool) -> 
     let dummy_id_text = SimpleText::new(100.0, "Id: 9999999999");
     let dummy_pin_text = SimpleText::new(100.0, "Pin: 9999999999");
 
+    #[expect(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     let text_top_offset = HEIGHT / 2 - dummy_id_text.height() as usize;
 
     let handle = thread::spawn(move || {
         loop {
             let data = data.lock();
+            #[expect(clippy::cast_precision_loss)]
             let sleep_delta = Duration::from_secs_f32(1.0 / data.target_fps as f32);
 
             if !data.run {
@@ -98,7 +100,9 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks, waiting_room: bool) -> 
             if data.waiting_room {
                 let in_waiting_room = SimpleText::new(128.0, "In Waiting-Room");
 
+                #[expect(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
                 let y = (HEIGHT / 2) - (in_waiting_room.height() / 2.0) as usize;
+                #[expect(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
                 let x = (WIDTH / 2) - (in_waiting_room.width() / 2.0) as usize;
 
                 in_waiting_room.draw(Point::new(x, y), &mut image);
@@ -109,6 +113,7 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks, waiting_room: bool) -> 
 
                 drop(data);
 
+                #[expect(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
                 headline.draw(
                     Point::new(
                         // Align the Headline in the center
@@ -122,9 +127,11 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks, waiting_room: bool) -> 
                     // Draw "Id: XXXXXXXXX"
                     //
                     // First align the text in the center using the dummy text
+                    #[expect(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
                     let align_center = (WIDTH - dummy_id_text.width() as usize) / 2;
                     // Then to align the colon of both "Id:" and "Pin:" shift the "Id:" text right,
                     // by adding the half of their width difference to x
+                    #[expect(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
                     let align_colons =
                         ((dummy_pin_text.width() - dummy_id_text.width()) / 2.) as usize;
 
@@ -134,6 +141,7 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks, waiting_room: bool) -> 
                     );
                 }
 
+                #[expect(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
                 pin_text.draw(
                     Point::new(
                         // Align the text in the exact center using the width of the dummy pin text
@@ -146,7 +154,7 @@ pub(crate) fn spawn_ui_thread(sinks: ToCallerVideoSinks, waiting_room: bool) -> 
             }
 
             for sink in sinks.blocking_lock().values_mut() {
-                sink(&staging)
+                sink(&staging);
             }
 
             thread::sleep(sleep_delta);

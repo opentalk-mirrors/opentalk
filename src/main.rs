@@ -37,53 +37,52 @@ async fn main() -> Result<()> {
     let args = Args::parse();
     if args.info.should_print() {
         print_info(&args.info);
-    } else {
-        let settings = Arc::new(settings::Settings::load(&args.config)?);
-        if let Some(Commands::Health { endpoint }) = args.command {
-            let Some(monitoring_endpoint) = endpoint.or_else(|| {
-                settings.monitoring.as_ref().map(|monitoring_settings| {
-                    format!(
-                        "http://{}:{}",
-                        monitoring_settings.addr, monitoring_settings.port
-                    )
-                    .parse()
-                    .expect("valid endpoint can be built from monitoring settings")
-                })
-            }) else {
-                log::warn!("Monitoring not configured and no url endpoint parameter given");
-                exit(1);
-            };
-            return match is_ready(&monitoring_endpoint).await {
-                Ok(is_ready) => match is_ready {
-                    true => {
-                        log::info!("READY");
-                        Ok(())
-                    }
-                    false => {
-                        log::info!("Not Ready");
-                        exit(1)
-                    }
-                },
-                Err(err) => {
-                    log::error!("Err: {}", err);
-                    exit(-1)
-                }
-            };
-        } else {
-            // livekit uses libwebrtc, which in turn uses libsrtp. This tells libwebrtc that we're gonna
-            // initialize libsrtp. If this is not done, livekit silently fails to work properly.
-            webrtc_sys::prohibit_libsrtp_initialization::ffi::ProhibitLibsrtpInitialization();
-
-            // Initialize libsrtp
-            srtp::ensure_init();
-
-            media::PortPool::init(settings.clone());
-
-            sip::run(settings).await?;
-
-            log::info!("Obelisk exiting, bye!");
-        }
+        return Ok(());
     }
+
+    let settings = Arc::new(settings::Settings::load(args.config.as_ref())?);
+    if let Some(Commands::Health { endpoint }) = args.command {
+        let Some(monitoring_endpoint) = endpoint.or_else(|| {
+            settings.monitoring.as_ref().map(|monitoring_settings| {
+                format!(
+                    "http://{}:{}",
+                    monitoring_settings.addr, monitoring_settings.port
+                )
+                .parse()
+                .expect("valid endpoint can be built from monitoring settings")
+            })
+        }) else {
+            log::warn!("Monitoring not configured and no url endpoint parameter given");
+            exit(1);
+        };
+        return match is_ready(&monitoring_endpoint).await {
+            Ok(false) => {
+                log::info!("Not Ready");
+                exit(1)
+            }
+            Ok(true) => {
+                log::info!("READY");
+                Ok(())
+            }
+            Err(err) => {
+                log::error!("Err: {err}");
+                exit(-1)
+            }
+        };
+    }
+
+    // livekit uses libwebrtc, which in turn uses libsrtp. This tells libwebrtc that we're gonna
+    // initialize libsrtp. If this is not done, livekit silently fails to work properly.
+    webrtc_sys::prohibit_libsrtp_initialization::ffi::ProhibitLibsrtpInitialization();
+
+    // Initialize libsrtp
+    srtp::ensure_init();
+
+    media::PortPool::init(settings.clone());
+
+    sip::run(settings).await?;
+
+    log::info!("Obelisk exiting, bye!");
 
     Ok(())
 }
