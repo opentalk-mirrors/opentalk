@@ -10,10 +10,12 @@ use std::collections::BTreeSet;
 use std::io::ErrorKind;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::Arc;
+use std::time::Duration;
 use stun_types::attributes::{MappedAddress, Software, XorMappedAddress};
 use stun_types::{Class, Message, MessageBuilder, Method, TransactionId};
 use tokio::net::{UdpSocket, lookup_host};
 use tokio::sync::Mutex;
+use tokio::time::timeout;
 
 static INSTANCE: OnceCell<PortPool> = OnceCell::new();
 
@@ -254,26 +256,33 @@ async fn send_and_receive_stun(
 ) -> Result<SocketAddr> {
     let mut recv_buffer = vec![0u8; 1500];
 
-    sock.send_to(msg, server)
-        .await
-        .context("Failed to send request")?;
+    for i in 1..=8 {
+        sock.send_to(msg, server)
+            .await
+            .context("Failed to send request")?;
 
-    let len = sock
-        .recv(&mut recv_buffer)
-        .await
-        .context("Failed to receive response")?;
+        let recv = sock.recv(&mut recv_buffer);
 
-    recv_buffer.truncate(len);
+        let len = match timeout(Duration::from_millis(50) * i, recv).await {
+            Ok(Ok(len)) => len,
+            Ok(Err(e)) => return Err(e).context("Failed to receive stun response")?,
+            Err(_) => continue,
+        };
 
-    let mut msg = Message::parse(recv_buffer).context("Failed to parse response")?;
+        recv_buffer.truncate(len);
 
-    if let Some(Ok(attr)) = msg.attribute::<XorMappedAddress>() {
-        return Ok(attr.0);
+        let mut msg = Message::parse(recv_buffer).context("Failed to parse response")?;
+
+        if let Some(Ok(attr)) = msg.attribute::<XorMappedAddress>() {
+            return Ok(attr.0);
+        }
+
+        if let Some(Ok(attr)) = msg.attribute::<MappedAddress>() {
+            return Ok(attr.0);
+        }
+
+        bail!("Stun response did not contain a mapped-address attribute")
     }
 
-    if let Some(Ok(attr)) = msg.attribute::<MappedAddress>() {
-        return Ok(attr.0);
-    }
-
-    bail!("Stun response didn't contain a mapped-address attribute")
+    bail!("Did not receive an answer from STUN server")
 }
