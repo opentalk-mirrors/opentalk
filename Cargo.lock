@@ -6391,7 +6391,7 @@ dependencies = [
 [[package]]
 name = "whisper-rs"
 version = "0.14.3"
-source = "git+https://github.com/SoraTenshi/whisper-rs.git?rev=9d36ab752cb7c8deabf4cf1e718f0924dbcae380#9d36ab752cb7c8deabf4cf1e718f0924dbcae380"
+source = "git+https://github.com/SoraTenshi/whisper-rs.git?rev=a812820ec18a34da3930139b69e3130cb8195703#a812820ec18a34da3930139b69e3130cb8195703"
 dependencies = [
  "libc",
  "log",
@@ -6401,7 +6401,7 @@ dependencies = [
 [[package]]
 name = "whisper-rs-sys"
 version = "0.13.0"
-source = "git+https://github.com/SoraTenshi/whisper-rs.git?rev=9d36ab752cb7c8deabf4cf1e718f0924dbcae380#9d36ab752cb7c8deabf4cf1e718f0924dbcae380"
+source = "git+https://github.com/SoraTenshi/whisper-rs.git?rev=a812820ec18a34da3930139b69e3130cb8195703#a812820ec18a34da3930139b69e3130cb8195703"
 dependencies = [
  "bindgen",
  "cfg-if",
