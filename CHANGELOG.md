@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-01-19
+
+[0.4.0]: https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/compare/v0.3.0...v0.4.0
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!109](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/109), [!110](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/110), [!112](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/112), [!118](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/118))
+- (deps) Update `vergen-git2` to v9.1.0 ([!118](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/118))
+- (deps) Update alpine docker tag to v3.23 ([!106](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/106))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.92.0 ([!108](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/108))
+- (deps) Update pre-commit hook adrienverge/yamllint to v1.38.0 ([!114](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/114))
+- (deps) Update pre-commit hook alessandrojcm/commitlint-pre-commit-hook to v9.24.0 ([!115](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/115))
+- (deps) Update pre-commit hook andrejorsula/pre-commit-cargo to v0.5.0 ([!111](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/111))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.0 ([!113](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/113))
+- (deps) Update pre-commit hook markdownlint/markdownlint to v0.15.0 ([!104](https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/merge_requests/104))
+
 ## [0.3.0] - 2025-10-27
 
 [0.3.0]: https://git.opentalk.dev/opentalk/backend/libs/ot-version/-/compare/v0.2.0...v0.3.0
