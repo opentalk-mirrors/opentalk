@@ -9,7 +9,7 @@ use sip_ua::dialog::Usage;
 use std::str::from_utf8;
 use tokio::sync::broadcast;
 
-/// Simple Dialog Usage which reacts to picture_fast_update messages in the media_control protocol
+/// Simple Dialog Usage which reacts to `picture_fast_update` messages in the `media_control` protocol
 pub(super) struct MediaControlUsage {
     pub(super) notify_picture_fast_update: broadcast::Sender<()>,
 }
@@ -25,7 +25,7 @@ impl Usage for MediaControlUsage {
             return;
         }
 
-        self.receive_info_request(endpoint, request).await
+        self.receive_info_request(endpoint, request).await;
     }
 }
 
@@ -38,16 +38,14 @@ impl MediaControlUsage {
         let is_media_control = request
             .headers
             .get_named::<ContentType>()
-            .map(|ct| ct.0.starts_with("application/media_control"))
-            .unwrap_or_default();
+            .is_ok_and(|ct| ct.0.starts_with("application/media_control"));
 
         if !is_media_control {
             return;
         }
 
-        let is_picture_fast_update = from_utf8(request.body.as_ref())
-            .map(|str| str.contains("picture_fast_update"))
-            .unwrap_or_default();
+        let is_picture_fast_update =
+            from_utf8(request.body.as_ref()).is_ok_and(|str| str.contains("picture_fast_update"));
 
         let code = if !is_picture_fast_update {
             StatusCode::NOT_FOUND

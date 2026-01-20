@@ -105,8 +105,7 @@ pub async fn handle_reinvite(
     let body_is_sdp = request
         .headers
         .get_named()
-        .map(|content_type: ContentType| content_type.0 == "application/sdp")
-        .unwrap_or_default();
+        .is_ok_and(|content_type: ContentType| content_type.0 == "application/sdp");
 
     if body_is_sdp {
         let body = request.body.clone();
@@ -149,8 +148,7 @@ pub async fn handle_reinvite(
         let ack_body_is_sdp = ack
             .headers
             .get_named()
-            .map(|content_type: ContentType| content_type.0 == "application/sdp")
-            .unwrap_or_default();
+            .is_ok_and(|content_type: ContentType| content_type.0 == "application/sdp");
 
         if !ack_body_is_sdp {
             bail!("Got ACK without SDP in body");

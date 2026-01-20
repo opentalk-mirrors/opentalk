@@ -28,7 +28,7 @@ Configuration values found at the root of the TOML file
 | Field          | Type     | Required | Default value | Description                                                                     |
 | -------------- | -------- | -------- | ------------- | ------------------------------------------------------------------------------- |
 | `language`     | `string` | no       | `"de"`        | Language of the audio cue to be played to the callee. (Either `"de"` or `"en"`) |
-| `clock-format` | `string` | no       | `"%x %X %Z"`  | The time format for the clock when using video, see `man strftime` for details    |
+| `clock-format` | `string` | no       | `"%x %X %Z"`  | The time format for the clock when using video, see `man strftime` for details  |
 
 ## Environment variables
 

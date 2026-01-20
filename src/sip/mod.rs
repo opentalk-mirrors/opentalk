@@ -141,9 +141,8 @@ impl AppLayer {
                 Some(name.clone())
             } else {
                 match &uri.uri.user_part {
-                    SipUriUserPart::Empty => None,
+                    SipUriUserPart::Empty | SipUriUserPart::UserPw(_) => None,
                     SipUriUserPart::User(user) => Some(user.clone()),
-                    SipUriUserPart::UserPw(_) => None,
                 }
             }
         };
@@ -171,7 +170,7 @@ impl AppLayer {
 
         response.msg.body = media_session.build_sdp().to_string().into();
 
-        let (mut session, ack) = acceptor.respond_success(response).await?;
+        let (session, ack) = acceptor.respond_success(response).await?;
 
         if changes.is_empty() {
             changes = media_session
@@ -181,16 +180,7 @@ impl AppLayer {
 
         // Create a media pipeline
         let (mut media, track_controller) =
-            match MediaPipeline::new(self.settings.clone(), fast_picture_update_notify).await {
-                Ok(answer) => answer,
-                Err(e) => {
-                    log::error!("Failed to create media pipeline, {e:?}");
-
-                    session.terminate().await?;
-
-                    return Ok(());
-                }
-            };
+            MediaPipeline::new(self.settings.clone(), fast_picture_update_notify);
 
         update::apply_changes(&mut media, &mut media_session, changes).await?;
 
@@ -213,7 +203,7 @@ impl AppLayer {
             self.shutdown.subscribe(),
         );
 
-        signaling.run().await?;
+        Box::pin(signaling.run()).await?;
 
         Ok(())
     }
@@ -489,7 +479,7 @@ async fn register_with_registrar(
 
             // Wait for either the the register interval to expire or the application shutdown signal
             tokio::select! {
-                _ = registration.wait_for_expiry() => {
+                () = registration.wait_for_expiry() => {
                     // fallthrough to refresh binding
                 }
                 _ = shutdown_recv => {
@@ -524,7 +514,7 @@ async fn register_with_registrar(
         .await
         {
             set_service_state(ServiceState::Up);
-            log::error!("Failed to remove binding, {e:?}")
+            log::error!("Failed to remove binding, {e:?}");
         }
     });
 
@@ -576,10 +566,10 @@ async fn register(
             )?,
             400..=499 if !remove_binding => {
                 if !registration.receive_error_response(response) {
-                    bail!("Registration failed with code '{:?}'", response_code);
+                    bail!("Registration failed with code '{response_code:?}'");
                 }
             }
-            _ => bail!("Registration failed with code '{:?}'", response_code),
+            _ => bail!("Registration failed with code '{response_code:?}'"),
         }
     }
 }

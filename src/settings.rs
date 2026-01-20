@@ -70,7 +70,7 @@ where
 }
 
 impl Settings {
-    pub fn load(config_arg_path: &Option<String>) -> Result<Self> {
+    pub fn load(config_arg_path: Option<&String>) -> Result<Self> {
         Config::builder()
             .add_source(discover_config_file(config_arg_path)?)
             .add_source(WarningSource(
@@ -90,7 +90,7 @@ impl Settings {
 }
 
 fn discover_config_file(
-    config_arg_path: &Option<String>,
+    config_arg_path: Option<&String>,
 ) -> Result<File<FileSourceFile, FileFormat>> {
     if let Some(path) = config_arg_path {
         return Ok(File::new(path, FileFormat::Toml));
@@ -282,7 +282,7 @@ mod test {
     #[test]
     fn settings_env_vars_overwite_config() -> anyhow::Result<()> {
         // Sanity check
-        let settings = Settings::load(&Some("./extra/example.toml".into()))?;
+        let settings = Settings::load(Some(&"./extra/example.toml".to_string()))?;
 
         assert_eq!(settings.controller.domain, "localhost:8000");
         assert_eq!(settings.sip.port, 5060u16);
@@ -294,7 +294,7 @@ mod test {
             env::set_var("OPENTALK_OBLSK_CONTROLLER__DOMAIN", &env_controller_domain);
             env::set_var("OPENTALK_OBLSK_SIP__PORT", env_sip_port.to_string());
         }
-        let settings = Settings::load(&Some("./extra/example.toml".into()))?;
+        let settings = Settings::load(Some(&"./extra/example.toml".to_string()))?;
 
         assert_eq!(settings.controller.domain, env_controller_domain);
         assert_eq!(settings.sip.port, env_sip_port);

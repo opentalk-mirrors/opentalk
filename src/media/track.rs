@@ -43,7 +43,6 @@ macro_rules! wav_file {
 macro_rules! audio_files {
     ($($name:literal, $ident:ident;)*) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        #[allow(unused)]
         pub(crate) enum Track {
             $($ident,)*
         }
@@ -251,7 +250,8 @@ impl Source for TrackSource {
 
         let mut data = self.data.lock();
 
-        let mut samples = vec![0i16; SAMPLES_PER_BUF as usize];
+        let mut samples =
+            vec![0i16; usize::try_from(SAMPLES_PER_BUF).expect("conversion to usize not possible")];
         data.write_samples(&mut samples);
 
         let timestamp = self.timestamp;
@@ -259,8 +259,12 @@ impl Source for TrackSource {
 
         Ok(SourceEvent::Frame(Frame::new(
             RawAudioFrame {
-                sample_rate: SampleRate(SAMPLE_RATE as u32),
-                channels: Channels::NotPositioned(CHANNELS as u32),
+                sample_rate: SampleRate(
+                    u32::try_from(SAMPLE_RATE).expect("conversion to u32 not possible"),
+                ),
+                channels: Channels::NotPositioned(
+                    u32::try_from(CHANNELS).expect("conversion to u32 not possible"),
+                ),
                 samples: samples.into(),
             },
             timestamp,

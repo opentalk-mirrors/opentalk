@@ -14,9 +14,9 @@ use bytesstr::BytesStr;
 use core::fmt;
 use rand::RngCore;
 use sdp_types::{
-    Connection, Direction, Fmtp, Media, MediaDescription, MediaType as SdpMediaType, Origin, Rtcp,
-    RtpMap, SessionDescription, SrtpCrypto, SrtpKeyingMaterial, SrtpSuite, TaggedAddress, Time,
-    TransportProtocol,
+    Connection, Direction, Fmtp, IceOptions, Media, MediaDescription, MediaType as SdpMediaType,
+    Origin, Rtcp, RtpMap, SessionDescription, SrtpCrypto, SrtpKeyingMaterial, SrtpSuite,
+    TaggedAddress, Time, TransportProtocol,
 };
 use std::{
     io,
@@ -219,6 +219,7 @@ impl SessionState {
         Ok(())
     }
 
+    #[expect(clippy::similar_names)]
     pub fn receive_answer(&mut self, answer: Bytes) -> Result<Vec<MediaChange>> {
         let answer =
             BytesStr::from_utf8_bytes(answer).context("SDP contains invalid UTF-8 characters")?;
@@ -321,6 +322,7 @@ impl SessionState {
         Ok(changes)
     }
 
+    #[expect(clippy::similar_names)]
     pub async fn receive_offer(&mut self, offer: Bytes) -> Result<Vec<MediaChange>> {
         let offer =
             BytesStr::from_utf8_bytes(offer).context("SDP contains invalid UTF-8 characters")?;
@@ -436,6 +438,7 @@ impl SessionState {
         Ok(changes)
     }
 
+    #[expect(clippy::similar_names)]
     async fn create_new_session(
         &mut self,
         offer_media: &MediaDescription,
@@ -468,7 +471,7 @@ impl SessionState {
         let srtp = match &offer_media.media.proto {
             TransportProtocol::RtpAvp => None,
             TransportProtocol::RtpSavp => setup_srtp(offer_media)?,
-            p => bail!("Unsupported transport protocol: {:?}", p),
+            p => bail!("Unsupported transport protocol: {p:?}"),
         };
 
         let id = self.make_media_session_id();
@@ -531,109 +534,7 @@ impl SessionState {
         let media_descriptions = self
             .media_sessions
             .iter()
-            .map(|media_session| {
-                let mut rtpmaps = vec![];
-                let mut fmtps = vec![];
-                let mut fmts = vec![];
-                let mut crypto = vec![];
-
-                let proto = match &media_session.state {
-                    MediaSessionState::Offered(offered) => {
-                        for codec in &offered.codec {
-                            rtpmaps.push(codec.make_rtpmap());
-                            fmts.push(codec.payload);
-
-                            if let Some(fmtp) = &codec.fmtp {
-                                fmtps.push(Fmtp {
-                                    format: codec.payload,
-                                    params: fmtp.as_str().into(),
-                                });
-                            }
-                        }
-
-                        for srtp in &offered.srtp {
-                            populate_crypto_attributes(srtp, &mut crypto);
-                        }
-
-                        if offered.srtp.is_empty() {
-                            TransportProtocol::RtpAvp
-                        } else {
-                            TransportProtocol::RtpSavp
-                        }
-                    }
-                    MediaSessionState::Established(established) => {
-                        rtpmaps.push(established.recv_codec.make_rtpmap());
-                        fmts.push(established.recv_codec.payload);
-
-                        if let Some(fmtp) = &established.recv_codec.fmtp {
-                            fmtps.push(Fmtp {
-                                format: established.recv_codec.payload,
-                                params: fmtp.as_str().into(),
-                            });
-                        }
-
-                        if let Some(srtp) = &established.srtp {
-                            populate_crypto_attributes(srtp, &mut crypto);
-
-                            TransportProtocol::RtpSavp
-                        } else {
-                            TransportProtocol::RtpAvp
-                        }
-                    }
-                };
-
-                if let Some(dtmf_events) = &media_session.dtmf_events {
-                    rtpmaps.push(RtpMap {
-                        payload: dtmf_events.pt,
-                        encoding: "telephone-event".into(),
-                        clock_rate: 8000,
-                        params: None,
-                    });
-
-                    // Copy over the fmtp field from offer for best compatibility
-                    if let Some(fmtp) = &dtmf_events.fmtp {
-                        fmtps.push(fmtp.clone());
-                    }
-
-                    fmts.push(dtmf_events.pt);
-                }
-
-                MediaDescription {
-                    media: Media {
-                        media_type: media_session.media_type.into(),
-                        port: media_session.local_rtp_addr.port(),
-                        ports_num: None,
-                        proto,
-                        fmts,
-                    },
-                    connection: Some(Connection {
-                        address: media_session.local_rtp_addr.ip().into(),
-                        ttl: None,
-                        num: None,
-                    }),
-                    bandwidth: vec![],
-                    direction: media_session.direction,
-                    rtcp: Some(Rtcp {
-                        port: media_session.local_rtcp_addr.port(),
-                        address: None,
-                    }),
-                    rtcp_mux: false,
-                    mid: None,
-                    rtpmap: rtpmaps,
-                    fmtp: fmtps,
-                    ice_ufrag: None,
-                    ice_pwd: None,
-                    ice_candidates: vec![],
-                    ice_end_of_candidates: false,
-                    crypto,
-                    extmap: vec![],
-                    extmap_allow_mixed: false,
-                    ssrc: vec![],
-                    setup: None,
-                    fingerprint: vec![],
-                    attributes: vec![],
-                }
-            })
+            .map(determine_media_description)
             .collect();
 
         SessionDescription {
@@ -652,7 +553,7 @@ impl SessionState {
             extmap: vec![],
             extmap_allow_mixed: false,
             ice_lite: false,
-            ice_options: Default::default(),
+            ice_options: IceOptions::default(),
             ice_ufrag: None,
             ice_pwd: None,
             setup: None,
@@ -660,6 +561,111 @@ impl SessionState {
             attributes: vec![],
             media_descriptions,
         }
+    }
+}
+
+#[expect(clippy::similar_names)]
+fn determine_media_description(media_session: &MediaSession) -> MediaDescription {
+    let mut rtpmaps = vec![];
+    let mut fmtps = vec![];
+    let mut fmts = vec![];
+    let mut crypto = vec![];
+
+    let proto = match &media_session.state {
+        MediaSessionState::Offered(offered) => {
+            for codec in &offered.codec {
+                rtpmaps.push(codec.make_rtpmap());
+                fmts.push(codec.payload);
+
+                if let Some(fmtp) = &codec.fmtp {
+                    fmtps.push(Fmtp {
+                        format: codec.payload,
+                        params: fmtp.as_str().into(),
+                    });
+                }
+            }
+
+            for srtp in &offered.srtp {
+                populate_crypto_attributes(srtp, &mut crypto);
+            }
+
+            if offered.srtp.is_empty() {
+                TransportProtocol::RtpAvp
+            } else {
+                TransportProtocol::RtpSavp
+            }
+        }
+        MediaSessionState::Established(established) => {
+            rtpmaps.push(established.recv_codec.make_rtpmap());
+            fmts.push(established.recv_codec.payload);
+
+            if let Some(fmtp) = &established.recv_codec.fmtp {
+                fmtps.push(Fmtp {
+                    format: established.recv_codec.payload,
+                    params: fmtp.as_str().into(),
+                });
+            }
+
+            if let Some(srtp) = &established.srtp {
+                populate_crypto_attributes(srtp, &mut crypto);
+
+                TransportProtocol::RtpSavp
+            } else {
+                TransportProtocol::RtpAvp
+            }
+        }
+    };
+
+    if let Some(dtmf_events) = &media_session.dtmf_events {
+        rtpmaps.push(RtpMap {
+            payload: dtmf_events.pt,
+            encoding: "telephone-event".into(),
+            clock_rate: 8000,
+            params: None,
+        });
+
+        // Copy over the fmtp field from offer for best compatibility
+        if let Some(fmtp) = &dtmf_events.fmtp {
+            fmtps.push(fmtp.clone());
+        }
+
+        fmts.push(dtmf_events.pt);
+    }
+
+    MediaDescription {
+        media: Media {
+            media_type: media_session.media_type.into(),
+            port: media_session.local_rtp_addr.port(),
+            ports_num: None,
+            proto,
+            fmts,
+        },
+        connection: Some(Connection {
+            address: media_session.local_rtp_addr.ip().into(),
+            ttl: None,
+            num: None,
+        }),
+        bandwidth: vec![],
+        direction: media_session.direction,
+        rtcp: Some(Rtcp {
+            port: media_session.local_rtcp_addr.port(),
+            address: None,
+        }),
+        rtcp_mux: false,
+        mid: None,
+        rtpmap: rtpmaps,
+        fmtp: fmtps,
+        ice_ufrag: None,
+        ice_pwd: None,
+        ice_candidates: vec![],
+        ice_end_of_candidates: false,
+        crypto,
+        extmap: vec![],
+        extmap_allow_mixed: false,
+        ssrc: vec![],
+        setup: None,
+        fingerprint: vec![],
+        attributes: vec![],
     }
 }
 
@@ -679,7 +685,10 @@ fn populate_crypto_attributes(srtp: &SrtpInfo, crypto: &mut Vec<SrtpCrypto>) {
 }
 
 fn offer_srtp() -> Vec<SrtpInfo> {
-    use SrtpSuite::*;
+    use SrtpSuite::{
+        AES_256_CM_HMAC_SHA1_32, AES_256_CM_HMAC_SHA1_80, AES_CM_128_HMAC_SHA1_32,
+        AES_CM_128_HMAC_SHA1_80,
+    };
 
     // key_len, suite
     let suites = [
@@ -697,7 +706,7 @@ fn offer_srtp() -> Vec<SrtpInfo> {
             rand::rng().fill_bytes(&mut send_key);
 
             SrtpInfo {
-                tag: tag as u32,
+                tag: u32::try_from(tag).expect("conversion to u32 not possible"),
                 suite,
                 send_key,
                 recv_key: vec![],
@@ -733,7 +742,10 @@ fn find_matching_crypto_in_answer(
 }
 
 fn setup_srtp(offer_media: &MediaDescription) -> Result<Option<SrtpInfo>> {
-    use SrtpSuite::*;
+    use SrtpSuite::{
+        AES_256_CM_HMAC_SHA1_32, AES_256_CM_HMAC_SHA1_80, AES_CM_128_HMAC_SHA1_32,
+        AES_CM_128_HMAC_SHA1_80,
+    };
 
     // Find best suite to use
     let choice1 = offer_media
@@ -794,6 +806,7 @@ fn flip_direction(direction: Direction, origin_unspecified: bool) -> Direction {
     }
 }
 
+#[expect(clippy::similar_names)]
 fn remote_peer_addresses(
     connection: Option<&Connection>,
     media_desc: &MediaDescription,
@@ -802,8 +815,7 @@ fn remote_peer_addresses(
     let peer_rtcp_port = media_desc
         .rtcp
         .as_ref()
-        .map(|rtcp| rtcp.port)
-        .unwrap_or_else(|| peer_rtp_port + 1);
+        .map_or_else(|| peer_rtp_port + 1, |rtcp| rtcp.port);
     let connection = media_desc
         .connection
         .as_ref()

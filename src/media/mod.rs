@@ -139,10 +139,10 @@ impl MediaPipeline {
     ///
     /// - Self
     /// - track controller to play different audio tracks
-    pub async fn new(
+    pub fn new(
         settings: Arc<Settings>,
         picture_fast_update_notify: broadcast::Sender<()>,
-    ) -> Result<(Self, TrackController)> {
+    ) -> (Self, TrackController) {
         let (events_tx, events_rx) = mpsc::unbounded_channel();
 
         // [conference ->] obelisk -> phone
@@ -189,7 +189,8 @@ impl MediaPipeline {
                         };
 
                         let frame = AudioFrame {
-                            samples_per_channel: (samples.len() / 2) as u32,
+                            samples_per_channel: u32::try_from(samples.len() / 2)
+                                .expect("conversion to u32 not possible"),
                             data: samples.into(),
                             sample_rate: 48_000,
                             num_channels: 2,
@@ -240,7 +241,7 @@ impl MediaPipeline {
             events_rx,
         };
 
-        Ok((this, track_controller))
+        (this, track_controller)
     }
 
     pub async fn add_compositor(&mut self, mut compositor: Mixer) -> Result<()> {
@@ -391,7 +392,7 @@ impl MediaPipeline {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, clippy::similar_names)]
     pub async fn add_sender(
         &mut self,
         session_id: MediaSessionId,
@@ -497,13 +498,14 @@ impl MediaPipeline {
         let mut h264_enc = H264Encoder::create(packetization_mode, bitrate, profile, level, fps)?;
 
         // With a clock-rate of 90_000 a u32 timestamp can cover 47721 seconds of time, so generate a random point in that timestamp range
-        let start_timestamp =
-            Instant::now() - Duration::from_secs(rand::rng().random_range(0..45000));
+        let start_timestamp = Instant::now()
+            .checked_sub(Duration::from_secs(rand::rng().random_range(0..45000)))
+            .unwrap();
         let payload_type = codec.payload;
         let mut sequence_number = rand::random::<u16>() / 2;
 
         let mut fast_picture_update_notify = self.picture_fast_update_notify.subscribe();
-        #[allow(clippy::type_complexity)]
+        #[expect(clippy::type_complexity)]
         let on_video_frame: Box<dyn FnMut(&[u8]) + Send + 'static> = Box::new(move |buf| {
             let buf = maybe_resize(&mut resizer, buf, &mut staging, target_width, target_height);
 
@@ -513,6 +515,7 @@ impl MediaPipeline {
                 h264_enc.encode_and_packetize(buf, target_width, target_height, force_intra_frame);
 
             // Calculate the timestamp from the seconds passed since origin * clock-rate (90_000) and use only the lower 32bit
+            #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
             let timestamp = (((start_timestamp.elapsed().as_secs_f64() * 90_000.0) as u64)
                 & u64::from(u32::MAX)) as u32;
 
@@ -560,7 +563,7 @@ impl MediaPipeline {
             .context("Failed to remove sender from rtp-sessions")
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, clippy::similar_names)]
     pub async fn add_receiver(
         &mut self,
         session_id: MediaSessionId,
@@ -725,7 +728,7 @@ impl MediaPipeline {
                 .unpublish_track(&track_id)
                 .await
             {
-                log::warn!("Failed to unpublish track {track_id:?}, {e}")
+                log::warn!("Failed to unpublish track {track_id:?}, {e}");
             }
         }
 
@@ -743,7 +746,9 @@ impl MediaPipeline {
 
         self.ui_controller.set_target_fps(self.target_fps);
         if let Some(compositor) = &mut self.compositor {
-            compositor.set_target_fps(self.target_fps as u16);
+            compositor.set_target_fps(
+                u16::try_from(self.target_fps).expect("conversion to u16 not possible"),
+            );
 
             let video_support = !self.to_caller_video_sinks.lock().await.is_empty();
             compositor.set_video_support(video_support);
@@ -902,16 +907,16 @@ fn maybe_resize<'a>(
     target_width: usize,
     target_height: usize,
 ) -> &'a [u8] {
-    if target_width == WIDTH && target_height == HEIGHT {
-        return src;
-    }
-
     const COLOR: ezk_image::ColorInfo = ezk_image::ColorInfo::YUV(ezk_image::YuvColorInfo {
         transfer: ezk_image::ColorTransfer::Linear,
         primaries: ezk_image::ColorPrimaries::BT709,
         space: ezk_image::ColorSpace::BT709,
         full_range: false,
     });
+
+    if target_width == WIDTH && target_height == HEIGHT {
+        return src;
+    }
 
     let src_img = &Image::from_buffer(PixelFormat::I420, src, None, WIDTH, HEIGHT, COLOR)
         .expect("src must always be a valid WIDTH * HEIGHT I420 image");
