@@ -6,6 +6,11 @@
 services:
   web-frontend:
     image: "{{ opentalk_web_frontend_docker_image_src }}:{{ opentalk_web_frontend_version }}"
+    ulimits:
+      nofile:
+          soft: {{ opentalk_web_frontend_docker_compose_ulimits_nofile_soft }}
+          hard: {{ opentalk_web_frontend_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ opentalk_web_frontend_docker_compose_ulimits_nproc }}
 {% if opentalk_web_frontend_docker_extra_hosts is defined and opentalk_web_frontend_docker_extra_hosts %}
     extra_hosts:
 {% for eh in opentalk_web_frontend_docker_extra_hosts %}

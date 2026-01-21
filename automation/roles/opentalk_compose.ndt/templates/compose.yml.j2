@@ -6,6 +6,11 @@
 services:
   ndt:
     image: "{{ ndt_docker_image_src }}:{{ ndt_version }}"
+    ulimits:
+      nofile:
+        soft: {{ ndt_docker_compose_ulimits_nofile_soft }}
+        hard: {{ ndt_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ ndt_docker_compose_ulimits_nproc }}
     networks:
       - {{ docker_network_name }}
     labels:

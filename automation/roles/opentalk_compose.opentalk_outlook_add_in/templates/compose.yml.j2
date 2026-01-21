@@ -6,6 +6,11 @@
 services:
   outlook_add_in:
     image: {{ outlook_add_in_docker_image_src }}:{{ opentalk_outlook_add_in_version }}
+    ulimits:
+      nofile:
+        soft: {{ outlook_add_in_docker_compose_ulimits_nofile_soft }}
+        hard: {{ outlook_add_in_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ outlook_add_in_docker_compose_ulimits_nproc }}
     restart: always
     environment:
       OPENTALK_OUTLOOK_URL: "{{ outlook_add_in_outlook_url }}"

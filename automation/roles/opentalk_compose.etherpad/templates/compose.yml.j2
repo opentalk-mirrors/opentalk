@@ -6,6 +6,11 @@
 services:
   etherpad:
     image: "{{ etherpad_docker_image_src }}:{{ etherpad_version }}"
+    ulimits:
+      nofile:
+        soft: {{ etherpad_docker_compose_ulimits_nofile_soft }}
+        hard: {{ etherpad_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ etherpad_docker_compose_ulimits_nproc }}
 {% if etherpad_docker_extra_hosts is defined and etherpad_docker_extra_hosts %}
     extra_hosts:
 {% for eh in etherpad_docker_extra_hosts %}

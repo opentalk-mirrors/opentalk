@@ -6,6 +6,11 @@
 services:
   livekit-server:
     image: "{{ livekit_docker_image_src }}:{{ livekit_version }}"
+    ulimits:
+      nofile:
+        soft: {{ livekit_docker_compose_ulimits_nofile_soft }}
+        hard: {{ livekit_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ livekit_docker_compose_ulimits_nproc }}
     command: "--config /livekit.yaml"
     network_mode: host
     restart: always

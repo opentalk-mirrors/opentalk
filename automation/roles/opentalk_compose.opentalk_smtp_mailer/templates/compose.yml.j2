@@ -6,6 +6,11 @@
 services:
   smtp-mailer:
     image: "{{ mailer_docker_image_src }}:{{ opentalk_smtp_mailer_version }}"
+    ulimits:
+      nofile:
+        soft: {{ mailer_docker_compose_ulimits_nofile_soft }}
+        hard: {{ mailer_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ mailer_docker_compose_ulimits_nproc }}
     restart: always
     volumes:
       - ./config/smtp-mailer.toml:/etc/opentalk/smtp-mailer.toml

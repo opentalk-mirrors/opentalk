@@ -8,6 +8,10 @@ ndt_docker_compose_services_state: "{{ compose_service_ndt_state | default('pres
 ndt_docker_compose_services_dir: "{{ services_dir }}"
 ndt_docker_compose_project_src: "{{ deploy_dir }}"
 
+ndt_docker_compose_ulimits_nofile_soft: 32768
+ndt_docker_compose_ulimits_nofile_hard: 65536
+ndt_docker_compose_ulimits_nproc: 4096
+
 compose_service_ndt_enabled: "{{ ndt_enable | default(false) }}"
 
 ndt_docker_image_src: measurementlab/ndt-server

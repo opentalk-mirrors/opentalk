@@ -6,6 +6,12 @@
 services:
   mailcrab:
     image: "{{ mailcrab_docker_image_src }}:{{ mailcrab_version }}"
+    ulimits:
+      nofile:
+        soft: {{ mailcrab_docker_compose_ulimits_nofile_soft }}
+        hard: {{ mailcrab_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ mailcrab_docker_compose_ulimits_nproc }}
+    restart: always
     environment:
       MAILCRAB_PREFIX: "{{ mailcrab_webui_prefix }}"
     networks:

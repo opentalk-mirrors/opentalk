@@ -6,6 +6,11 @@
 services:
   obelisk:
     image: "{{ obelisk_docker_image_src }}:{{ opentalk_obelisk_version }}"
+    ulimits:
+      nofile:
+        soft: {{ obelisk_docker_compose_ulimits_nofile_soft }}
+        hard: {{ obelisk_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ obelisk_docker_compose_ulimits_nproc }}
 {% if obelisk_docker_network_mode is not defined or obelisk_docker_network_mode != 'host' %}
 {% if obelisk_docker_extra_hosts is defined and obelisk_docker_extra_hosts %}
     extra_hosts:

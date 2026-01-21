@@ -10,6 +10,10 @@ recorder_docker_compose_services_state: "{{ compose_service_opentalk_recorder_st
 recorder_docker_compose_services_dir: "{{ services_dir }}"
 recorder_docker_compose_project_src: "{{ deploy_dir }}"
 
+recorder_docker_compose_ulimits_nofile_soft: 65536
+recorder_docker_compose_ulimits_nofile_hard: 65536
+recorder_docker_compose_ulimits_nproc: 8192
+
 recorder_docker_image_src: registry.opencode.de/opentalk/recorder
 recorder_docker_extra_hosts:
   - host.docker.internal:host-gateway

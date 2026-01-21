@@ -10,6 +10,10 @@ outlook_add_in_docker_compose_services_state: "{{ compose_service_opentalk_outlo
 outlook_add_in_docker_compose_services_dir: "{{ services_dir }}"
 outlook_add_in_docker_compose_project_src: "{{ deploy_dir }}"
 
+outlook_add_in_docker_compose_ulimits_nofile_soft: 65536
+outlook_add_in_docker_compose_ulimits_nofile_hard: 65536
+outlook_add_in_docker_compose_ulimits_nproc: 8192
+
 outlook_add_in_docker_image_src: "registry.opencode.de/opentalk/opentalk-outlook-add-in"
 
 outlook_add_in_oidc_client_id: "OutlookAddin"
