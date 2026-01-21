@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2025-12-11
+Last updated: 2026-01-21
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -59,6 +59,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `etherpad_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `etherpad_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `etherpad_docker_compose_services_state` | string | `{{ compose_service_etherpad_state \| default('present') }}` |
+| `etherpad_docker_compose_ulimits_nofile_hard` | integer | `16384` |
+| `etherpad_docker_compose_ulimits_nofile_soft` | integer | `8192` |
+| `etherpad_docker_compose_ulimits_nproc` | integer | `4096` |
 | `etherpad_docker_environment_default_pad_text` | string | `Welcome to OpenTalk` |
 | `etherpad_docker_environment_suppress_errors_in_pad_text` | boolean | `true` |
 | `etherpad_docker_environment_trust_proxy` | boolean | `true` |
@@ -93,6 +96,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `keycloak_docker_compose_services_state` | string | `{{ compose_service_keycloak_state \| default('present') }}` |
 | `keycloak_docker_compose_state` | string | `present` |
+| `keycloak_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `keycloak_docker_compose_ulimits_nofile_soft` | integer | `16384` |
+| `keycloak_docker_compose_ulimits_nproc` | integer | `8192` |
 | `keycloak_docker_image_src` | string | `quay.io/keycloak/keycloak` |
 | `keycloak_health_enabled` | string | `true` |
 | `keycloak_health_url` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_auth_realm }}/.well-known/openid-configuration` |
@@ -130,6 +136,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 |----------|------|---------------|
 | `livekit_api_key_controller` | string | `{{ LIVEKIT_API_SECRET }}` |
 | `livekit_docker_compose_project_src` | string | `{{ deploy_dir }}` |
+| `livekit_docker_compose_ulimits_nofile_hard` | integer | `98304` |
+| `livekit_docker_compose_ulimits_nofile_soft` | integer | `98304` |
+| `livekit_docker_compose_ulimits_nproc` | integer | `16384` |
 | `livekit_docker_image_src` | string | `livekit/livekit-server` |
 | `livekit_port` | integer | `7880` |
 | `livekit_rtc_enable_loopback_candidate` | boolean | `false` |
@@ -157,6 +166,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailcrab_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `mailcrab_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `mailcrab_docker_compose_services_state` | string | `{{ compose_service_mailcrab_state \| default('present') }}` |
+| `mailcrab_docker_compose_ulimits_nofile_hard` | integer | `32768` |
+| `mailcrab_docker_compose_ulimits_nofile_soft` | integer | `16384` |
+| `mailcrab_docker_compose_ulimits_nproc` | integer | `4096` |
 | `mailcrab_docker_image_src` | string | `marlonb/mailcrab` |
 | `mailcrab_docker_label_http_routers_minio_console_middlewares` | string | `default-auth@file` |
 | `mailcrab_webui_prefix` | string | `/adm/mailcrab` |
@@ -170,6 +182,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `minio_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `minio_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `minio_docker_compose_services_state` | string | `{{ compose_service_minio_state \| default('present') }}` |
+| `minio_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `minio_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `minio_docker_compose_ulimits_nproc` | integer | `8192` |
 | `minio_docker_image_src` | string | `minio/minio` |
 | `minio_docker_label_http_routers_minio_console_middlewares` | string | `minio-stripprefix` |
 
@@ -182,6 +197,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `ndt_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `ndt_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `ndt_docker_compose_services_state` | string | `{{ compose_service_ndt_state \| default('present') }}` |
+| `ndt_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `ndt_docker_compose_ulimits_nofile_soft` | integer | `32768` |
+| `ndt_docker_compose_ulimits_nproc` | integer | `4096` |
 | `ndt_docker_image_src` | string | `measurementlab/ndt-server` |
 
 ## opentalk_compose.opentalk_controller
@@ -197,6 +215,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `controller_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `controller_docker_compose_services_state` | string | `{{ compose_service_opentalk_controller_state \| default('present') }}` |
+| `controller_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `controller_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `controller_docker_compose_ulimits_nproc` | integer | `8192` |
 | `controller_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
 | `controller_docker_image_src` | string | `registry.opencode.de/opentalk/controller` |
 | `controller_endpoints_event_invite_external_email_address` | string | `true` |
@@ -247,6 +268,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `obelisk_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `obelisk_docker_compose_services_state` | string | `{{ compose_service_opentalk_obelisk_state \| default('present') }}` |
+| `obelisk_docker_compose_ulimits_nofile_hard` | integer | `98304` |
+| `obelisk_docker_compose_ulimits_nofile_soft` | integer | `98304` |
+| `obelisk_docker_compose_ulimits_nproc` | integer | `16384` |
 | `obelisk_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
 | `obelisk_docker_image_src` | string | `registry.opencode.de/opentalk/obelisk` |
 | `obelisk_docker_network_mode` | string | `` |
@@ -281,6 +305,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `outlook_add_in_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `outlook_add_in_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `outlook_add_in_docker_compose_services_state` | string | `{{ compose_service_opentalk_outlook_add_in_state \| default('present') }}` |
+| `outlook_add_in_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `outlook_add_in_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `outlook_add_in_docker_compose_ulimits_nproc` | integer | `8192` |
 | `outlook_add_in_docker_image_src` | string | `registry.opencode.de/opentalk/opentalk-outlook-add-in` |
 | `outlook_add_in_labels_traefik_http_middlewares_outlook_add_in_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, '*') \| build_url }}` |
 | `outlook_add_in_oidc_client_id` | string | `OutlookAddin` |
@@ -300,6 +327,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `recorder_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `recorder_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `recorder_docker_compose_services_state` | string | `{{ compose_service_opentalk_recorder_state \| default('present') }}` |
+| `recorder_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `recorder_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `recorder_docker_compose_ulimits_nproc` | integer | `8192` |
 | `recorder_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
 | `recorder_docker_image_src` | string | `registry.opencode.de/opentalk/recorder` |
 | `recorder_monitoring_port` | integer | `11411` |
@@ -316,6 +346,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailer_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `mailer_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `mailer_docker_compose_services_state` | string | `{{ compose_service_opentalk_smtp_mailer_state \| default('present') }}` |
+| `mailer_docker_compose_ulimits_nofile_hard` | integer | `32768` |
+| `mailer_docker_compose_ulimits_nofile_soft` | integer | `16384` |
+| `mailer_docker_compose_ulimits_nproc` | integer | `4096` |
 | `mailer_docker_image_src` | string | `registry.opencode.de/opentalk/smtp-mailer` |
 | `mailer_frontend_base_url` | string | `https://{{ ot_domain }}` |
 | `mailer_languages_default_language` | string | `de-DE` |
@@ -337,6 +370,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `opentalk_web_frontend_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `opentalk_web_frontend_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `opentalk_web_frontend_docker_compose_services_state` | string | `{{ compose_service_opentalk_web_frontend_state \| default('present') }}` |
+| `opentalk_web_frontend_docker_compose_ulimits_nofile_hard` | integer | `8192` |
+| `opentalk_web_frontend_docker_compose_ulimits_nofile_soft` | integer | `4096` |
+| `opentalk_web_frontend_docker_compose_ulimits_nproc` | integer | `2048` |
 | `opentalk_web_frontend_docker_extra_hosts` | list | `[]` |
 | `opentalk_web_frontend_docker_image_src` | string | `registry.opencode.de/opentalk/web-frontend` |
 | `opentalk_web_frontend_environment_base_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
@@ -374,6 +410,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `rabbitmq_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `rabbitmq_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `rabbitmq_docker_compose_services_state` | string | `{{ compose_service_rabbitmq_state \| default('present') }}` |
+| `rabbitmq_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `rabbitmq_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `rabbitmq_docker_compose_ulimits_nproc` | integer | `8192` |
 | `rabbitmq_docker_image_src` | string | `rabbitmq` |
 | `rabbitmq_docker_ports` | list | `[]` |
 | `rabbitmq_management_path_prefix` | string | `/adm/rabbitmq` |
@@ -427,6 +466,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `spacedeck_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `spacedeck_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `spacedeck_docker_compose_services_state` | string | `{{ compose_service_spacedeck_state \| default('present') }}` |
+| `spacedeck_docker_compose_ulimits_nofile_hard` | integer | `32768` |
+| `spacedeck_docker_compose_ulimits_nofile_soft` | integer | `16384` |
+| `spacedeck_docker_compose_ulimits_nproc` | integer | `4096` |
 | `spacedeck_docker_environment_prefix` | string | `/whiteboard` |
 | `spacedeck_docker_environment_sd_api_token` | string | `/run/secrets/spacedeck_api_secret` |
 | `spacedeck_docker_environment_sd_endpoint` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
@@ -452,6 +494,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `traefik_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `traefik_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `traefik_docker_compose_services_state` | string | `{{ compose_service_traefik_state \| default('present') }}` |
+| `traefik_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `traefik_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `traefik_docker_compose_ulimits_nproc` | integer | `8192` |
 | `traefik_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
 | `traefik_docker_image_src` | string | `traefik` |
 | `traefik_docker_label_http_routers_dashboard_middlewares` | string | `dashboard-strip, default-auth@file` |

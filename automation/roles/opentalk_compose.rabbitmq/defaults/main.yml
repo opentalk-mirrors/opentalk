@@ -10,6 +10,10 @@ rabbitmq_docker_compose_services_state: "{{ compose_service_rabbitmq_state | def
 rabbitmq_docker_compose_services_dir: "{{ services_dir }}"
 rabbitmq_docker_compose_project_src: "{{ deploy_dir }}"
 
+rabbitmq_docker_compose_ulimits_nofile_soft: 65536
+rabbitmq_docker_compose_ulimits_nofile_hard: 65536
+rabbitmq_docker_compose_ulimits_nproc: 8192
+
 rabbitmq_docker_ports: []
 rabbitmq_docker_image_src: rabbitmq
 

@@ -6,6 +6,11 @@
 services:
   traefik:
     image: "{{ traefik_docker_image_src }}:{{ traefik_version }}"
+    ulimits:
+      nofile:
+        soft: {{ traefik_docker_compose_ulimits_nofile_soft }}
+        hard: {{ traefik_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ traefik_docker_compose_ulimits_nproc }}
     extra_hosts:
 {% for host in traefik_docker_extra_hosts %}
       - {{ host }}

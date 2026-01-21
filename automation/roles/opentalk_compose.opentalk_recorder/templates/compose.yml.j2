@@ -6,6 +6,11 @@
 services:
   recorder:
     image: "{{ recorder_docker_image_src }}:{{ opentalk_recorder_version }}"
+    ulimits:
+      nofile:
+        soft: {{ recorder_docker_compose_ulimits_nofile_soft }}
+        hard: {{ recorder_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ recorder_docker_compose_ulimits_nproc }}
 {% if recorder_docker_extra_hosts is defined and recorder_docker_extra_hosts %}
     extra_hosts:
 {% for eh in recorder_docker_extra_hosts %}

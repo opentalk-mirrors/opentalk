@@ -10,6 +10,10 @@ spacedeck_docker_compose_services_state: "{{ compose_service_spacedeck_state | d
 spacedeck_docker_compose_services_dir: "{{ services_dir }}"
 spacedeck_docker_compose_project_src: "{{ deploy_dir }}"
 
+spacedeck_docker_compose_ulimits_nofile_soft: 16384
+spacedeck_docker_compose_ulimits_nofile_hard: 32768
+spacedeck_docker_compose_ulimits_nproc: 4096
+
 spacedeck_docker_image_src: registry.opencode.de/opentalk/spacedeck
 
 spacedeck_docker_extra_hosts: []

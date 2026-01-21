@@ -6,6 +6,11 @@
 services:
   controller:
     image: "{{ controller_docker_image_src }}:{{ opentalk_controller_version }}"
+    ulimits:
+      nofile:
+        soft: {{ controller_docker_compose_ulimits_nofile_soft }}
+        hard: {{ controller_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ controller_docker_compose_ulimits_nproc }}
     restart: always
 {% if controller_docker_extra_hosts | length > 0 %}
     extra_hosts:

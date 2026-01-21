@@ -10,6 +10,10 @@ opentalk_web_frontend_docker_compose_services_state: "{{ compose_service_opental
 opentalk_web_frontend_docker_compose_services_dir: "{{ services_dir }}"
 opentalk_web_frontend_docker_compose_project_src: "{{ deploy_dir }}"
 
+opentalk_web_frontend_docker_compose_ulimits_nofile_soft: 4096
+opentalk_web_frontend_docker_compose_ulimits_nofile_hard: 8192
+opentalk_web_frontend_docker_compose_ulimits_nproc: 2048
+
 opentalk_web_frontend_docker_image_src: "registry.opencode.de/opentalk/web-frontend"
 
 opentalk_web_frontend_docker_extra_hosts: []

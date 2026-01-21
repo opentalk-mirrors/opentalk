@@ -9,6 +9,10 @@ etherpad_docker_compose_services_state: "{{ compose_service_etherpad_state | def
 etherpad_docker_compose_services_dir: "{{ services_dir }}"
 etherpad_docker_compose_project_src: "{{ deploy_dir }}"
 
+etherpad_docker_compose_ulimits_nofile_soft: 8192
+etherpad_docker_compose_ulimits_nofile_hard: 16384
+etherpad_docker_compose_ulimits_nproc: 4096
+
 etherpad_docker_image_src: registry.opencode.de/opentalk/etherpad
 
 etherpad_docker_extra_hosts: []

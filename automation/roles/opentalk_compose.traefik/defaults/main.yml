@@ -10,6 +10,10 @@ traefik_docker_compose_services_state: "{{ compose_service_traefik_state | defau
 traefik_docker_compose_services_dir: "{{ services_dir }}"
 traefik_docker_compose_project_src: "{{ deploy_dir }}"
 
+traefik_docker_compose_ulimits_nofile_soft: 65536
+traefik_docker_compose_ulimits_nofile_hard: 65536
+traefik_docker_compose_ulimits_nproc: 8192
+
 traefik_docker_image_src: "traefik"
 traefik_docker_extra_hosts:
   - host.docker.internal:host-gateway

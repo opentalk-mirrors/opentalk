@@ -10,6 +10,10 @@ controller_docker_compose_services_state: "{{ compose_service_opentalk_controlle
 controller_docker_compose_services_dir: "{{ services_dir }}"
 controller_docker_compose_project_src: "{{ deploy_dir }}"
 
+controller_docker_compose_ulimits_nofile_soft: 65536
+controller_docker_compose_ulimits_nofile_hard: 65536
+controller_docker_compose_ulimits_nproc: 8192
+
 controller_docker_image_src: registry.opencode.de/opentalk/controller
 postgres_docker_image_src: postgres
 controller_docker_extra_hosts:

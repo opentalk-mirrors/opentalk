@@ -6,6 +6,11 @@
 services:
   spacedeck:
     image: "{{ spacedeck_docker_image_src }}:{{ spacedeck_version }}"
+    ulimits:
+      nofile:
+        soft: {{ spacedeck_docker_compose_ulimits_nofile_soft }}
+        hard: {{ spacedeck_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ spacedeck_docker_compose_ulimits_nproc }}
 {% if spacedeck_docker_extra_hosts is defined and spacedeck_docker_extra_hosts %}
     extra_hosts:
 {% for eh in spacedeck_docker_extra_hosts %}

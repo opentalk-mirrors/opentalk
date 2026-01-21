@@ -6,6 +6,11 @@
 services:
   keycloak:
     image: "{{ keycloak_docker_image_src }}:{{ keycloak_version }}"
+    ulimits:
+      nofile:
+        soft: {{ keycloak_docker_compose_ulimits_nofile_soft }}
+        hard: {{ keycloak_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ keycloak_docker_compose_ulimits_nproc }}
     ports:
       - "8000:8080"
       - "9080:9000"
