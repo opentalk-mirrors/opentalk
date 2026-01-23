@@ -71,6 +71,11 @@ services:
 
   keycloak-db:
     image: "{{ postgres_docker_image_src }}:{{ postgres_version }}"
+    ulimits:
+      nofile:
+        soft: {{ keycloak_db_docker_compose_ulimits_nofile_soft }}
+        hard: {{ keycloak_db_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ keycloak_db_docker_compose_ulimits_nproc }}
     volumes:
       - keycloak-db:/var/lib/postgresql/data
     restart: always

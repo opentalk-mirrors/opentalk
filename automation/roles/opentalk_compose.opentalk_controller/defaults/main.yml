@@ -14,6 +14,10 @@ controller_docker_compose_ulimits_nofile_soft: 65536
 controller_docker_compose_ulimits_nofile_hard: 65536
 controller_docker_compose_ulimits_nproc: 8192
 
+controller_db_docker_compose_ulimits_nofile_soft: 65536
+controller_db_docker_compose_ulimits_nofile_hard: 65536
+controller_db_docker_compose_ulimits_nproc: 8192
+
 controller_docker_image_src: registry.opencode.de/opentalk/controller
 postgres_docker_image_src: postgres
 controller_docker_extra_hosts:
