@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-01-21
+Last updated: 2026-01-23
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -84,6 +84,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_bootstrap_admin_password` | string | `{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}` |
 | `keycloak_bootstrap_admin_remove` | boolean | `true` |
 | `keycloak_bootstrap_admin_username` | string | `bootstrap_admin` |
+| `keycloak_db_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `keycloak_db_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `keycloak_db_docker_compose_ulimits_nproc` | integer | `8192` |
 | `keycloak_db_password` | string | `{{ KEYCLOAK_DB_PASSWORD }}` |
 | `keycloak_db_schema` | string | `public` |
 | `keycloak_db_url_database` | string | `keycloak` |
@@ -211,6 +214,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_database_password` | string | `{{ CONTROLLER_DB_PASSWORD }}` |
 | `controller_database_port` | integer | `5432` |
 | `controller_database_user` | string | `ot` |
+| `controller_db_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `controller_db_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `controller_db_docker_compose_ulimits_nproc` | integer | `8192` |
 | `controller_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `controller_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `controller_docker_compose_services_dir` | string | `{{ services_dir }}` |

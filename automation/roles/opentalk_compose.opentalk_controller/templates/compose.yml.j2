@@ -55,6 +55,11 @@ services:
 
   controller-db:
     image: "{{ postgres_docker_image_src }}:{{ postgres_version }}"
+    ulimits:
+      nofile:
+        soft: {{ controller_db_docker_compose_ulimits_nofile_soft }}
+        hard: {{ controller_db_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ controller_db_docker_compose_ulimits_nproc }}
     ports:
       - 127.0.0.1:5432:5432
     volumes:
