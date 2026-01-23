@@ -15,7 +15,7 @@ use sip_core::transport::streaming::StreamingListenerBuilder;
 use sip_core::transport::tcp::{TcpConnector, TcpListener};
 use sip_core::transport::udp::Udp;
 use sip_core::transport::{TargetTransportInfo, TpHandle};
-use sip_core::{Endpoint, IncomingRequest, Layer, MayTake};
+use sip_core::{Endpoint, EndpointBuilder, IncomingRequest, Layer, MayTake};
 use sip_types::header::typed::{Contact, ContentType, FromTo, Refresher};
 use sip_types::print::AppendCtx;
 use sip_types::uri::{NameAddr, SipUri, SipUriUserPart};
@@ -36,6 +36,7 @@ use tokio::time::{interval, sleep};
 
 mod codec;
 mod media_control;
+mod options;
 mod sdp;
 mod update;
 
@@ -68,13 +69,11 @@ impl Layer for AppLayer {
         "obelisk"
     }
 
-    async fn receive(&self, endpoint: &Endpoint, request: MayTake<'_, IncomingRequest>) {
-        let request = if request.line.method == Method::INVITE {
-            request.take()
-        } else {
-            return;
-        };
+    fn init(&mut self, endpoint: &mut EndpointBuilder) {
+        endpoint.add_allow(Method::OPTIONS);
+    }
 
+    async fn receive(&self, endpoint: &Endpoint, request: MayTake<'_, IncomingRequest>) {
         let (contact, pub_ip) = if let Some(app_data) = &*self.app_data.read() {
             (app_data.contact.clone(), app_data.pub_ip)
         } else {
@@ -82,8 +81,19 @@ impl Layer for AppLayer {
             return;
         };
 
-        if let Err(e) = self.handle_invite(endpoint, request, contact, pub_ip).await {
-            log::error!("failed to handle invite {e:?}");
+        match request.line.method.clone() {
+            Method::OPTIONS => {
+                options::handle_options_request(endpoint, request.take(), &contact).await;
+            }
+            Method::INVITE => {
+                if let Err(e) = self
+                    .handle_invite(endpoint, request.take(), contact, pub_ip)
+                    .await
+                {
+                    log::error!("failed to handle invite {e:?}");
+                }
+            }
+            _ => {}
         }
     }
 }
@@ -124,7 +134,8 @@ impl AppLayer {
                 .context("Failed to handle INVITE application/sdp body")?;
         }
 
-        let dialog = Dialog::new_server(endpoint.clone(), &request, contact)?;
+        let dialog = Dialog::new_server(endpoint.clone(), &request, contact.clone())?;
+        dialog.register_usage(options::OptionsUsage { contact });
 
         let fast_picture_update_notify = broadcast::Sender::new(1);
 
