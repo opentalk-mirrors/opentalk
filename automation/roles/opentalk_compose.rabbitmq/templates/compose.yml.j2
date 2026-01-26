@@ -5,6 +5,11 @@
 services:
   rabbitmq:
     image: "{{ rabbitmq_docker_image_src }}:{{ rabbitmq_version }}"
+    ulimits:
+      nofile:
+        soft: {{ rabbitmq_docker_compose_ulimits_nofile_soft }}
+        hard: {{ rabbitmq_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ rabbitmq_docker_compose_ulimits_nproc }}
     restart: always
 {% if rabbitmq_docker_ports is defined and rabbitmq_docker_ports %}
 {% for ports in rabbitmq_docker_ports %}

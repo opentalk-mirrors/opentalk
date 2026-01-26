@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add changelog creation ([!91](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/91))
 - (fix) Missing ulimit settings for database services ([!97](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/97))
+- (fix) Missing ulimit settings for rabbitmq ([!99](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/99))
 
 ## [25.4.0-4] - 2026-01-05
 
