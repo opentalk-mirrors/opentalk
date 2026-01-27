@@ -38,7 +38,7 @@ reqwest = { version = "0.12", default-features = false, features = [
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
-tokio = { version = "1.45", features = ["macros"] }
+tokio = { version = "1.49", features = ["macros"] }
 tt = { package = "tokio-tungstenite", version = "0.28", default-features = false, features = ["connect", "handshake"] }
 types = { version = "0.60", package = "opentalk-types", default-features = false, features = [
   "api",
@@ -49,7 +49,6 @@ types = { version = "0.60", package = "opentalk-types", default-features = false
   "signaling-recording",
   "signaling-transcription",
 ] }
-# 0.3.16 onwards introduces system dependencies, so pin on 0.3.15
 webrtc-sys = "0.3"
 
 [build-dependencies]
