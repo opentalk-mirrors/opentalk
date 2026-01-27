@@ -8,12 +8,11 @@ use std::future::pending;
 
 #[cfg(feature = "livekit")]
 use ::livekit::{Room as LiveKitRoom, RoomEvent as LiveKitRoomEvent};
+use opentalk_roomserver_types_livekit::{Credentials, LiveKitState, MicrophoneRestrictionState};
+use opentalk_roomserver_types_moderation::event::ModerationEvent;
 #[cfg(feature = "livekit")]
 use tokio::sync::mpsc::UnboundedReceiver;
-use types::signaling::{
-    ParticipantId,
-    livekit::{Credentials, MicrophoneRestrictionState, event::LiveKitEvent, state::LiveKitState},
-};
+use types::signaling::ParticipantId;
 
 use crate::{Room, room::OpenTalkEvent};
 
@@ -79,30 +78,32 @@ impl RoomLiveKitState {
         }
     }
 
-    pub(super) fn handle_websocket_event(&mut self, event: LiveKitEvent) -> Option<OpenTalkEvent> {
+    pub(super) fn handle_moderation_event(
+        &mut self,
+        event: ModerationEvent,
+    ) -> Option<OpenTalkEvent> {
         match event {
-            LiveKitEvent::MicrophoneRestrictionsEnabled(unrestricted_participants) => {
+            ModerationEvent::MicrophoneRestrictionsEnabled {
+                unrestricted_participants,
+            } => {
                 self.microphone_restriction_state = MicrophoneRestrictionState::Enabled {
-                    unrestricted_participants: unrestricted_participants
-                        .unrestricted_participants
-                        .clone(),
+                    unrestricted_participants: unrestricted_participants.clone(),
                 };
 
                 Some(OpenTalkEvent::LiveKit(
                     OpenTalkLiveKitEvent::MicrophoneRestrictionEnabled {
-                        unrestricted_participants: unrestricted_participants
-                            .unrestricted_participants,
+                        unrestricted_participants,
                     },
                 ))
             }
-            LiveKitEvent::MicrophoneRestrictionsDisabled => {
+            ModerationEvent::MicrophoneRestrictionsDisabled => {
                 self.microphone_restriction_state = MicrophoneRestrictionState::Disabled;
 
                 Some(OpenTalkEvent::LiveKit(
                     OpenTalkLiveKitEvent::MicrophoneRestrictionDisabled,
                 ))
             }
-            LiveKitEvent::ForceMuted { moderator } => Some(OpenTalkEvent::LiveKit(
+            ModerationEvent::Muted { moderator } => Some(OpenTalkEvent::LiveKit(
                 OpenTalkLiveKitEvent::MutedBy(moderator),
             )),
             _ => None,

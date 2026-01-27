@@ -18,6 +18,7 @@ use openidconnect::{
         CoreProviderMetadata, CoreRevocableToken, CoreTokenType,
     },
 };
+use opentalk_service_auth::ApiKey;
 use serde::Deserialize;
 use tokio::sync::Mutex;
 
@@ -63,6 +64,26 @@ pub(crate) struct NoAuthentication;
 impl Authentication for NoAuthentication {
     async fn access_token(&self) -> Result<AccessToken> {
         bail!("no authentication available")
+    }
+}
+
+pub(crate) struct ApiKeyAuthentication(ApiKey);
+
+impl From<ApiKey> for ApiKeyAuthentication {
+    fn from(api_key: ApiKey) -> Self {
+        Self(api_key)
+    }
+}
+
+#[async_trait]
+impl Authentication for ApiKeyAuthentication {
+    async fn access_token(&self) -> Result<AccessToken> {
+        let jwt = self
+            .0
+            .generate_jwt()
+            .context("Failed to create JWT from ApiKey")?;
+
+        Ok(AccessToken::new(jwt))
     }
 }
 

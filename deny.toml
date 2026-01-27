@@ -40,7 +40,11 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
-ignore = ["RUSTSEC-2023-0071"]
+ignore = [
+
+  "RUSTSEC-2023-0071",
+
+]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
 # will still output a note when they are encountered.
@@ -68,6 +72,7 @@ allow = [
   "EUPL-1.2",
   "ISC",
   "MIT",
+  "MPL-2.0",
   "OpenSSL",
   "Unicode-3.0",
   "Zlib",
@@ -87,10 +92,6 @@ exceptions = [
   { allow = ["EUPL-1.2"], name = "opentalk-types-common-identifiers" },
   { allow = ["EUPL-1.2"], name = "opentalk-types-common-macros" },
   { allow = ["EUPL-1.2"], name = "opentalk-types-signaling" },
-  { allow = ["EUPL-1.2"], name = "opentalk-types-signaling-control" },
-  { allow = ["EUPL-1.2"], name = "opentalk-types-signaling-livekit" },
-  { allow = ["EUPL-1.2"], name = "opentalk-types-signaling-recording" },
-  { allow = ["EUPL-1.2"], name = "opentalk-types-signaling-recording-service" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,
@@ -161,6 +162,8 @@ deny = [
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
   { name = "base64", version = "=0.21.7" },
+  { name = "cpufeatures", version = "=0.2.17" },
+  { name = "getrandom", version = "=0.3.4" },
   { name = "getrandom", version = "0.2" },
   { name = "getrandom", version = "0.3" },
   { name = "heck", version = "=0.4.1" },
@@ -168,17 +171,23 @@ skip = [
   { name = "itertools", version = "=0.10.5" },
   { name = "itertools", version = "=0.11.0" },
   { name = "itertools", version = "=0.12.1" },
-  { name = "jsonwebtoken", version = "=10.3.0" },
   { name = "litemap", version = "=0.7.5" },
-  { name = "rand", version = "0.8" },
+  { name = "opentalk-types-api-v1", version = "=0.52.4" },
   { name = "rand_chacha", version = "0.3" },
+  { name = "rand_core", version = "=0.10.0" },
   { name = "rand_core", version = "0.6" },
-  { name = "thiserror", version = "1" },
+  { name = "rand", version = "=0.10.0" },
+  { name = "rand", version = "0.8" },
+  { name = "reqwest", version = "=0.12.28" },
   { name = "thiserror-impl", version = "1" },
+  { name = "thiserror", version = "1" },
   { name = "tinystr", version = "=0.7.6" },
   { name = "tokio-tungstenite", version = "0.20.1" },
+  { name = "toml_datetime", version = "=0.7.5+spec-1.1.0" },
+  { name = "toml", version = "=0.9.12+spec-1.1.0" },
   { name = "tungstenite", version = "0.20.1" },
   { name = "untrusted", version = "=0.7.1" },
+  { name = "winnow", version = "=0.7.15" },
   { name = "writeable", version = "=0.5.5" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate

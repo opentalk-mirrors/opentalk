@@ -13,17 +13,12 @@ repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-client-signaling
 license = "EUPL-1.2"
 
 [features]
-chat = ["types/signaling-chat"]
-default = ["chat", "livekit", "recording-service", "transcription-service", "rustls-tls"]
+default = ["livekit"]
 livekit = ["dep:livekit"]
-rustls-tls = ["reqwest/rustls-tls"]
-recording-service = ["types/signaling-recording-service"]
-transcription-service = ["types/signaling-transcription"]
 
 [dependencies]
 anyhow = "1"
 async-trait = "0.1"
-bytes = "1.10"
 chrono = { version = "0.4", default-features = false }
 futures-util = { version = "0.3", default-features = false }
 jsonwebtoken = { version = "10.2", default-features = false, features = ["aws_lc_rs"] }
@@ -43,13 +38,19 @@ tt = { package = "tokio-tungstenite", version = "0.28", default-features = false
 types = { version = "0.61", package = "opentalk-types", default-features = false, features = [
   "api",
   "serde",
-  "signaling-control",
-  "signaling-livekit",
-  "signaling-moderation",
-  "signaling-recording",
-  "signaling-transcription",
+  "signaling",
 ] }
 webrtc-sys = "0.3"
+
+opentalk-roomserver-client = "0.0.28"
+opentalk-roomserver-types = "0.0.28"
+opentalk-roomserver-types-livekit = "0.0.28"
+opentalk-roomserver-types-moderation = "0.0.28"
+opentalk-roomserver-types-raise-hands = "0.0.28"
+opentalk-roomserver-types-recording = "0.0.28"
+opentalk-service-auth = "0.2"
+opentalk-types-api-internal = "0.1.0"
+rand = "0.9.2"
 
 [build-dependencies]
 anyhow = "1"

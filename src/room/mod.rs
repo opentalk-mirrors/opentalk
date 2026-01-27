@@ -2,7 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::HashMap, future::pending};
+use std::{
+    any::type_name,
+    collections::{BTreeMap, BTreeSet, HashMap, hash_map::Entry},
+    future::pending,
+};
 
 #[cfg(feature = "livekit")]
 use ::livekit::{
@@ -10,60 +14,47 @@ use ::livekit::{
 };
 use anyhow::{Context, Result, bail};
 use chrono::{DateTime, Utc};
+use opentalk_roomserver_client::api::{
+    command::SignalingModuleCommand,
+    event::{SignalingEvent, SignalingModuleEvent},
+    signaling::SignalingConnection,
+};
+use opentalk_roomserver_types::{
+    connection_id::ConnectionId,
+    core::{CoreCommand, CoreEvent, state::CoreState},
+    join::{event_info::EventInfo, join_success::JoinSuccess},
+    shared_json::SharedJson,
+};
+use opentalk_roomserver_types_livekit::{Credentials, LiveKitState};
+use opentalk_roomserver_types_moderation::event::ModerationEvent;
+use opentalk_roomserver_types_raise_hands::{
+    command::RaiseHandsCommand, event::RaiseHandsEvent, state::RaisedHandPeerState,
+};
+use opentalk_roomserver_types_recording::{
+    command::RecordingCommand, event::RecordingEvent, peer_state::RecordingPeerState,
+    state::RecordingState,
+};
+use serde::Deserialize;
 use types::{
-    common::{events::EventInfo, users::DisplayName},
-    signaling::{
-        Participant as OpenTalkParticipant, ParticipantId,
-        control::{
-            command::ControlCommand,
-            event::{ControlEvent, JoinSuccess, Left},
-            state::ControlState,
-        },
-        livekit::{Credentials, state::LiveKitState},
-        moderation::event::{ModerationEvent, SessionEnded},
-        recording::{
-            command::{RecordingCommand, SetConsent},
-            peer_state::RecordingPeerState,
-            state::RecordingState,
-        },
-    },
+    common::{modules::ModuleId, users::DisplayName},
+    signaling::{ParticipantId, SignalingModulePeerFrontendData},
 };
 
-use crate::{
-    room::{livekit::RoomLiveKitState, recording::RoomRecordingState},
-    signaling::{Signaling, incoming},
-};
+use crate::room::{livekit::RoomLiveKitState, recording::RoomRecordingState};
 
 mod livekit;
 mod recording;
 
-#[cfg(feature = "chat")]
-mod chat;
-#[cfg(feature = "recording-service")]
 mod recording_service;
-#[cfg(feature = "transcription-service")]
-mod transcription_service;
 
-#[cfg(feature = "chat")]
-use chat::RoomChatState;
-#[cfg(feature = "chat")]
-pub use chat::{ChatApi, Message, OpenTalkChatEvent};
 pub use livekit::{LiveKitApi, OpenTalkLiveKitEvent};
 pub use recording::{OpenTalkRecordingEvent, RecorderAction, RecordingApi};
-#[cfg(feature = "recording-service")]
 use recording_service::RoomRecordingServiceState;
-#[cfg(feature = "recording-service")]
 pub use recording_service::{OpenTalkRecordingServiceEvent, RecordingServiceApi};
-#[cfg(feature = "transcription-service")]
-pub use transcription_service::{OpenTalkTranscriptionServiceEvent, TranscriptionServiceApi};
-#[cfg(feature = "chat")]
-use types::signaling::chat::state::ChatState;
-#[cfg(feature = "recording-service")]
-use types::signaling::recording_service::state::RecordingServiceState;
 
 #[derive(Debug)]
 pub struct Room {
-    pub(crate) signaling: Signaling,
+    pub(crate) signaling: SignalingConnection,
 
     id: ParticipantId,
 
@@ -75,11 +66,8 @@ pub struct Room {
 
     participants: HashMap<ParticipantId, Participant>,
 
-    #[cfg(feature = "chat")]
-    chat_state: Option<RoomChatState>,
     #[cfg(feature = "livekit")]
     use_livekit: bool,
-    #[cfg(feature = "recording-service")]
     recording_service_state: Option<RoomRecordingServiceState>,
 }
 
@@ -113,7 +101,7 @@ pub enum OpenTalkEvent {
     },
 
     /// A participant left the room
-    ParticipantLeft(ParticipantId),
+    ParticipantLeft(ParticipantId, ConnectionId),
 
     /// The participant was moved to the waiting room
     MovedToWaitingRoom,
@@ -128,16 +116,8 @@ pub enum OpenTalkEvent {
     /// All events from the recording module
     Recording(OpenTalkRecordingEvent),
 
-    #[cfg(feature = "chat")]
-    Chat(OpenTalkChatEvent),
-
     /// All events from the recording-service module
-    #[cfg(feature = "recording-service")]
     RecordingService(OpenTalkRecordingServiceEvent),
-
-    /// All events from the transcription-service module
-    #[cfg(feature = "transcription-service")]
-    TranscriptionService(OpenTalkTranscriptionServiceEvent),
 
     /// The participant was disconnected from the room. The [`Room`] must no longer be used.
     Disconnected(DisconnectReason),
@@ -146,7 +126,8 @@ pub enum OpenTalkEvent {
 #[derive(Debug)]
 pub enum DisconnectReason {
     WebsocketClosed,
-    SessionEnded(SessionEnded),
+    Kicked,
+    Banned,
 }
 
 #[derive(Debug, Clone)]
@@ -157,10 +138,14 @@ pub struct Participant {
     pub joined_at: DateTime<Utc>,
     pub left_at: Option<DateTime<Utc>>,
     pub consents_recording: bool,
+    pub connections: BTreeSet<ConnectionId>,
 }
 
 impl Room {
-    pub(crate) fn new(signaling: Signaling, #[cfg(feature = "livekit")] use_livekit: bool) -> Self {
+    pub(crate) fn new(
+        signaling: SignalingConnection,
+        #[cfg(feature = "livekit")] use_livekit: bool,
+    ) -> Self {
         Self {
             signaling,
             id: ParticipantId::nil(),
@@ -171,11 +156,8 @@ impl Room {
             event_info: None,
             participants: HashMap::new(),
 
-            #[cfg(feature = "chat")]
-            chat_state: None,
             #[cfg(feature = "livekit")]
             use_livekit,
-            #[cfg(feature = "recording-service")]
             recording_service_state: None,
         }
     }
@@ -210,7 +192,7 @@ impl Room {
             };
             #[cfg(feature = "livekit")]
             let event = tokio::select! {
-                payload = self.signaling.recv() => self.parse_opentalk_event(payload?)?.map(Event::OpenTalk),
+                payload = self.signaling.receive() => self.parse_opentalk_event(payload?)?.map(Event::OpenTalk),
                 room_event = recv_livekit(&mut self.livekit_state) => room_event.map(Event::LiveKit),
             };
 
@@ -222,7 +204,7 @@ impl Room {
 
     fn parse_opentalk_event(
         &mut self,
-        event: Option<incoming::Event>,
+        event: Option<SignalingEvent>,
     ) -> Result<Option<OpenTalkEvent>> {
         let Some(event) = event else {
             return Ok(Some(OpenTalkEvent::Disconnected(
@@ -230,71 +212,169 @@ impl Room {
             )));
         };
 
-        let event = match event {
-            incoming::Event::Control(ControlEvent::Joined(opentalk_participant)) => {
-                let participant = parse_participant(&opentalk_participant)?;
-                self.participants
-                    .insert(participant.id, participant.clone());
+        match event.payload {
+            SignalingModuleEvent::Core(core_event) => match core_event {
+                CoreEvent::JoinSuccess(..) => {
+                    bail!("Got unexpected JoinSuccess");
+                }
+                CoreEvent::JoinBlocked { .. } => {
+                    bail!("Got unexpected JoinBlocked");
+                }
+                CoreEvent::InWaitingRoom { .. } => {
+                    bail!("Got unexpected InWaitingRoom");
+                }
+                CoreEvent::ParticipantConnected {
+                    participant_id,
+                    connection_id,
+                    peer_data,
+                } => {
+                    let participant = match self.participants.entry(participant_id) {
+                        Entry::Occupied(mut occupied_entry) => {
+                            let participant = occupied_entry.get_mut();
+                            participant.connections.insert(connection_id);
+                            participant.clone()
+                        }
+                        Entry::Vacant(vacant_entry) => {
+                            let participant =
+                                parse_participant(participant_id, [connection_id], &peer_data)?;
+                            vacant_entry.insert(participant.clone());
+                            participant
+                        }
+                    };
 
-                Some(OpenTalkEvent::ParticipantJoined(participant))
+                    return Ok(Some(OpenTalkEvent::ParticipantJoined(participant)));
+                }
+                CoreEvent::ParticipantDisconnected {
+                    participant_id,
+                    connection_id,
+                    reason: _,
+                } => {
+                    if let Entry::Occupied(mut occupied_entry) =
+                        self.participants.entry(participant_id)
+                    {
+                        let participant = occupied_entry.get_mut();
+
+                        participant.connections.remove(&connection_id);
+
+                        if participant.connections.is_empty() {
+                            occupied_entry.remove();
+                        }
+                    }
+
+                    return Ok(Some(OpenTalkEvent::ParticipantLeft(
+                        participant_id,
+                        connection_id,
+                    )));
+                }
+                CoreEvent::JoinedWaitingRoom { .. } => {}
+                CoreEvent::LeftWaitingRoom(..) => {}
+                CoreEvent::Closing { .. } => {}
+                CoreEvent::Error(..) => {}
+                CoreEvent::RoomParametersChanged { .. } => {}
+            },
+            SignalingModuleEvent::Moderation(moderation_event) => {
+                return self.handle_moderation_event(moderation_event);
             }
-            incoming::Event::Control(ControlEvent::Update(opentalk_participant)) => {
-                let previous = self.participants[&opentalk_participant.id].clone();
-
-                let participant = parse_participant(&opentalk_participant)?;
-                self.participants
-                    .insert(participant.id, participant.clone());
-
-                Some(OpenTalkEvent::ParticipantUpdated {
-                    previous,
-                    updated: participant,
-                })
-            }
-            incoming::Event::Control(ControlEvent::Left(Left {
-                id: participant,
-                reason: _,
-            })) => {
-                self.participants.remove(&participant.id);
-
-                Some(OpenTalkEvent::ParticipantLeft(participant.id))
-            }
-            incoming::Event::Moderation(ModerationEvent::SentToWaitingRoom) => {
-                self.waiting_room_state = WaitingRoomState::InWaitingRoom;
-
-                self.livekit_state = None;
-
-                Some(OpenTalkEvent::MovedToWaitingRoom)
-            }
-            incoming::Event::Moderation(ModerationEvent::SessionEnded(session_ended)) => Some(
-                OpenTalkEvent::Disconnected(DisconnectReason::SessionEnded(session_ended)),
-            ),
-            incoming::Event::LiveKit(livekit_event) => self
-                .livekit_state
-                .as_mut()
-                .and_then(|state| state.handle_websocket_event(livekit_event)),
-            incoming::Event::Recording(recording_event) => self
-                .recording_state
-                .as_mut()
-                .and_then(|state| state.handle_websocket_event(recording_event)),
-            #[cfg(feature = "chat")]
-            incoming::Event::Chat(chat_event) => self
-                .chat_state
-                .as_mut()
-                .and_then(|state| state.handle_websocket_event(chat_event)),
-            #[cfg(feature = "recording-service")]
-            incoming::Event::RecordingService(recording_service_event) => {
-                self.recording_service_state.as_mut().map(|_| {
-                    RoomRecordingServiceState::handle_websocket_event(recording_service_event)
-                })
-            }
-            #[cfg(feature = "transcription-service")]
-            incoming::Event::TranscriptionService(transcription_service_event) => Some(
-                transcription_service::map_websocket_event(transcription_service_event),
-            ),
-            _ => None,
+            SignalingModuleEvent::RaiseHands(event) => match event {
+                RaiseHandsEvent::HandRaised { participant } => {
+                    if let Some(participant) = self.participants.get_mut(&participant)
+                        && !participant.hand_is_up
+                    {
+                        let previous = participant.clone();
+                        participant.hand_is_up = true;
+                        return Ok(Some(OpenTalkEvent::ParticipantUpdated {
+                            previous,
+                            updated: participant.clone(),
+                        }));
+                    }
+                }
+                RaiseHandsEvent::HandLowered { participant } => {
+                    if let Some(participant) = self.participants.get_mut(&participant)
+                        && participant.hand_is_up
+                    {
+                        let previous = participant.clone();
+                        participant.hand_is_up = false;
+                        return Ok(Some(OpenTalkEvent::ParticipantUpdated {
+                            previous,
+                            updated: participant.clone(),
+                        }));
+                    }
+                }
+                _ => {}
+            },
+            SignalingModuleEvent::Recording(event) => match event {
+                RecordingEvent::Service { event } => {
+                    if let Some(recording_service_state) = &mut self.recording_service_state {
+                        return Ok(Some(recording_service_state.handle_websocket_event(event)));
+                    }
+                }
+                event => {
+                    if let Some(recording_state) = &mut self.recording_state {
+                        return recording_state
+                            .handle_websocket_event(&mut self.participants, event);
+                    }
+                }
+            },
+            _ => {}
         };
 
-        Ok(event)
+        Ok(None)
+    }
+
+    fn handle_moderation_event(
+        &mut self,
+        moderation_event: ModerationEvent,
+    ) -> Result<Option<OpenTalkEvent>> {
+        match moderation_event {
+            ModerationEvent::Kicked => {
+                Ok(Some(OpenTalkEvent::Disconnected(DisconnectReason::Kicked)))
+            }
+            ModerationEvent::Banned => {
+                Ok(Some(OpenTalkEvent::Disconnected(DisconnectReason::Banned)))
+            }
+            ModerationEvent::ParticipantBanned(..) => Ok(None),
+            ModerationEvent::ParticipantUnbanned { .. } => Ok(None),
+            ModerationEvent::RoleUpdated { .. } => Ok(None),
+            ModerationEvent::DebriefingStarted { .. } => Ok(None),
+            ModerationEvent::WaitingRoomEnabled => Ok(None),
+            ModerationEvent::WaitingRoomDisabled => Ok(None),
+            ModerationEvent::SentToWaitingRoom => {
+                self.waiting_room_state = WaitingRoomState::InWaitingRoom;
+                Ok(Some(OpenTalkEvent::MovedToWaitingRoom))
+            }
+            ModerationEvent::Accepted => Ok(Some(OpenTalkEvent::WaitingRoomAccepted)),
+            ModerationEvent::ParticipantAccepted { .. } => Ok(None),
+            ModerationEvent::DisplayNameChanged {
+                target,
+                issued_by: _,
+                old_name: _,
+                new_name,
+            } => {
+                if let Some(participant) = self.participants.get_mut(&target) {
+                    let previous = participant.clone();
+                    participant.display_name = new_name;
+
+                    return Ok(Some(OpenTalkEvent::ParticipantUpdated {
+                        previous,
+                        updated: participant.clone(),
+                    }));
+                }
+
+                Ok(None)
+            }
+            event @ (ModerationEvent::MicrophoneRestrictionsEnabled { .. }
+            | ModerationEvent::MicrophoneRestrictionsDisabled
+            | ModerationEvent::Muted { .. }) => {
+                if let Some(livekit) = &mut self.livekit_state {
+                    return Ok(livekit.handle_moderation_event(event));
+                }
+
+                Ok(None)
+            }
+            ModerationEvent::Error(..) => Ok(None),
+            ModerationEvent::DisplayNameChangeRestrictionsEnabled { .. } => Ok(None),
+            ModerationEvent::DisplayNameChangeRestrictionsDisabled => Ok(None),
+        }
     }
 
     /// Wait until accepted into the room, while inside the waiting room
@@ -303,12 +383,18 @@ impl Room {
     pub async fn wait_until_accepted(&mut self) -> Result<()> {
         log::debug!("wait until accepted");
         loop {
-            match self.signaling.recv().await? {
-                Some(incoming::Event::Moderation(ModerationEvent::Accepted)) => {
+            match self
+                .signaling
+                .receive()
+                .await
+                .map(|m| m.map(|event| event.payload))?
+            {
+                Some(SignalingModuleEvent::Moderation(ModerationEvent::Accepted)) => {
                     self.waiting_room_state = WaitingRoomState::Accepted;
 
                     return Ok(());
                 }
+                None => bail!("Unexpected end of websocket stream"),
                 event => log::warn!("Received unexpected event {event:?} while in waiting room"),
             }
         }
@@ -327,27 +413,50 @@ impl Room {
             bail!("Not in waiting room, or not yet accepted")
         }
 
-        self.signaling.send(ControlCommand::EnterRoom).await?;
+        self.signaling
+            .send(&SignalingModuleCommand::Core(CoreCommand::EnterRoom).into())
+            .await?;
+
         self.join().await
     }
 
     pub(crate) async fn join(&mut self) -> Result<()> {
-        let first_message = self.signaling.recv().await;
+        let first_message = self
+            .signaling
+            .receive()
+            .await
+            .context("Failed to receive message")?
+            .context("Unexpected end of websocket stream")?;
 
-        match first_message {
-            Ok(Some(incoming::Event::Control(ControlEvent::JoinSuccess(join_success)))) => {
+        match first_message.payload {
+            SignalingModuleEvent::Core(CoreEvent::JoinSuccess(join_success)) => {
                 self.id = join_success.id;
 
                 self.participants.clear();
                 for opentalk_participant in &join_success.participants {
-                    let participant = parse_participant(opentalk_participant)?;
+                    let participant = parse_participant(
+                        opentalk_participant.id,
+                        opentalk_participant
+                            .connections
+                            .iter()
+                            .map(|i| i.connection_id),
+                        &opentalk_participant.module_data,
+                    )?;
+
                     self.participants.insert(participant.id, participant);
                 }
 
                 self.set_livekit_state(&join_success).await?;
 
                 // Set or update recording state after joining from waiting room
-                if let Ok(Some(recording_state)) = join_success.get_module::<RecordingState>() {
+                if let Some(mut recording_state) = join_success
+                    .get_module::<RecordingState>()
+                    .context("Failed to parse recording module state")?
+                {
+                    if let Some(state) = recording_state.service.take() {
+                        self.recording_service_state = Some(RoomRecordingServiceState::new(state));
+                    }
+
                     if let Some(room_recording_state) = &mut self.recording_state {
                         room_recording_state.update(recording_state);
                     } else {
@@ -357,28 +466,19 @@ impl Room {
                     self.recording_state = None;
                 }
 
-                #[cfg(feature = "chat")]
-                {
-                    self.chat_state = join_success
-                        .get_module::<ChatState>()
-                        .context("failed to parse ChatState")?
-                        .map(RoomChatState::new);
-                }
-
-                #[cfg(feature = "recording-service")]
-                {
-                    self.recording_service_state = join_success
-                        .get_module::<RecordingServiceState>()
-                        .context("failed to parse RecordingServiceState")?
-                        .map(RoomRecordingServiceState::new);
-                }
-
                 self.event_info = join_success.event_info;
 
                 self.waiting_room_state = WaitingRoomState::None;
             }
-            Ok(Some(incoming::Event::Moderation(ModerationEvent::InWaitingRoom))) => {
+            SignalingModuleEvent::Core(CoreEvent::InWaitingRoom {
+                connection_id: _,
+                participant_id,
+            }) => {
+                self.id = participant_id;
                 self.waiting_room_state = WaitingRoomState::InWaitingRoom;
+            }
+            SignalingModuleEvent::Core(CoreEvent::JoinBlocked { reason }) => {
+                bail!("Join Blocked, {reason:?}");
             }
             message => {
                 bail!("received neither JoinSuccess, nor InWaitingRoom, got: {message:?}")
@@ -457,13 +557,13 @@ impl Room {
     /// Send a command to lower or raise the local participants hand
     pub async fn set_hand_raised(&mut self, raised: bool) -> Result<()> {
         let cmd = if raised {
-            ControlCommand::RaiseHand
+            RaiseHandsCommand::RaiseHand
         } else {
-            ControlCommand::LowerHand
+            RaiseHandsCommand::LowerHand
         };
 
         self.signaling
-            .send(cmd)
+            .send(&SignalingModuleCommand::RaiseHands(cmd).into())
             .await
             .context("Failed to send hand-raise/lower websocket message")
     }
@@ -498,7 +598,9 @@ impl Room {
         };
 
         self.signaling
-            .send(RecordingCommand::SetConsent(SetConsent { consent }))
+            .send(
+                &SignalingModuleCommand::Recording(RecordingCommand::SetConsent { consent }).into(),
+            )
             .await
             .context("Failed to send set-consent websocket message")?;
 
@@ -532,7 +634,7 @@ impl Room {
     }
 
     /// Closes all connection to the room
-    pub async fn close(&mut self) -> Result<()> {
+    pub async fn close(mut self) -> Result<()> {
         #[cfg(feature = "livekit")]
         if let Some(livekit_room) = self
             .livekit_state
@@ -542,13 +644,13 @@ impl Room {
             livekit_room
                 .close()
                 .await
-                .context("Failed to close livekit")?;
+                .context("Failed to close livekit room")?;
         }
 
         self.signaling
             .close()
             .await
-            .context("Failed to close websocket")
+            .context("Failed to close signaling connection")
     }
 
     /// Access the [`LiveKitApi`] which contains functions to interact with the livekit module
@@ -569,24 +671,11 @@ impl Room {
             .then_some(RecordingApi { room: self })
     }
 
-    /// Access the [`ChatApi`] which contains functions to interact with the chat module
-    #[cfg(feature = "chat")]
-    pub fn chat_api(&mut self) -> Option<ChatApi<'_>> {
-        self.chat_state.is_some().then_some(ChatApi { room: self })
-    }
-
     /// Access the [`RecordingServiceApi`] which contains functions to interact with the recording service module
-    #[cfg(feature = "recording-service")]
     pub fn recording_service_api(&mut self) -> Option<RecordingServiceApi<'_>> {
         self.recording_service_state
             .is_some()
             .then_some(RecordingServiceApi { room: self })
-    }
-
-    /// Access the [`TranscriptionServiceApi`] which contains function to interact with the transcription service module
-    #[cfg(feature = "transcription-service")]
-    pub fn transcription_service_api(&mut self) -> TranscriptionServiceApi<'_> {
-        TranscriptionServiceApi { room: self }
     }
 }
 
@@ -605,25 +694,46 @@ impl Drop for Room {
     }
 }
 
-fn parse_participant(opentalk_participant: &OpenTalkParticipant) -> Result<Participant> {
-    let control_state = opentalk_participant
-        .get_module::<ControlState>()?
-        .context("control state is missing")?;
+fn parse_participant(
+    participant_id: ParticipantId,
+    connection_ids: impl IntoIterator<Item = ConnectionId>,
+    module_data: &BTreeMap<ModuleId, SharedJson>,
+) -> Result<Participant> {
+    let core_state: CoreState = get_module(module_data)?.context("Missing core module")?;
+    let raise_hands_state: Option<RaisedHandPeerState> = get_module(module_data)?;
 
-    let consents_recording = if let Ok(Some(recording_peer_state)) =
-        opentalk_participant.get_module::<RecordingPeerState>()
-    {
-        recording_peer_state.consents_recording
-    } else {
-        false
-    };
+    let consents_recording =
+        if let Ok(Some(recording_peer_state)) = get_module::<RecordingPeerState>(module_data) {
+            recording_peer_state.consents_recording
+        } else {
+            false
+        };
 
     Ok(Participant {
-        id: opentalk_participant.id,
-        hand_is_up: control_state.hand_is_up,
-        display_name: control_state.display_name,
-        joined_at: control_state.joined_at.into(),
-        left_at: control_state.left_at.map(Into::into),
+        id: participant_id,
+        hand_is_up: raise_hands_state.is_some(),
+        display_name: core_state.display_name,
+        joined_at: core_state.joined_at.into(),
+        left_at: core_state.left_at.map(Into::into),
         consents_recording,
+        connections: BTreeSet::from_iter(connection_ids),
+    })
+}
+
+fn get_module<T: SignalingModulePeerFrontendData>(
+    module_data: &BTreeMap<ModuleId, SharedJson>,
+) -> Result<Option<T>> {
+    module_data
+        .get(&T::NAMESPACE.unwrap())
+        .map(parse_module)
+        .transpose()
+}
+
+fn parse_module<T: for<'a> Deserialize<'a>>(json: &SharedJson) -> Result<T> {
+    serde_json::from_value(json.clone_inner()).with_context(|| {
+        format!(
+            "Failed to parse {} from participant peer data",
+            type_name::<T>()
+        )
     })
 }

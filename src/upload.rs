@@ -8,7 +8,7 @@ use std::{
 };
 
 use futures_util::{SinkExt, Stream, StreamExt};
-use openidconnect::http::Response;
+use openidconnect::{AccessToken, http::Response};
 use reqwest::header::HeaderValue;
 use tt::{
     WebSocketStream,
@@ -36,8 +36,8 @@ const CHUNK_LIMIT: u32 = 950;
 impl OpenTalkClient {
     pub(crate) async fn websocket_connect(
         &self,
-        uri: String,
-        token: openidconnect::AccessToken,
+        url: &str,
+        token: AccessToken,
     ) -> Result<
         (
             WebSocketStream<tt::MaybeTlsStream<tokio::net::TcpStream>>,
@@ -45,7 +45,7 @@ impl OpenTalkClient {
         ),
         WebsocketError,
     > {
-        let mut request = uri
+        let mut request = url
             .into_client_request()
             .map_err(|_| WebsocketError::UriConversionFailed)?;
 
@@ -71,7 +71,7 @@ impl OpenTalkClient {
     /// Every chunk must be at least 5 MiB (expect for the last one) and at most 5 GiB.
     pub async fn upload_render<E>(
         &self,
-        uri: String,
+        url: &str,
         chunk_stream: impl Stream<Item = Result<Vec<u8>, E>>,
         on_chunk_limit_reached: impl FnOnce(),
     ) -> Result<(), UploadingError> {
@@ -84,8 +84,8 @@ impl OpenTalkClient {
             .await
             .map_err(|_| UploadingError::AuthenticationFailed)?;
 
-        log::debug!("connect websocket to {uri}");
-        let (ws_stream, _response) = self.websocket_connect(uri, token).await?;
+        log::debug!("connect websocket to {url}");
+        let (ws_stream, _response) = self.websocket_connect(url, token).await?;
 
         let (mut tx, mut rx) = ws_stream.split();
 
