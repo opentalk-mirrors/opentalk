@@ -7,7 +7,7 @@ use std::time::{Duration, SystemTime};
 use anyhow::{Context, Result, bail};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc, serde::ts_seconds::deserialize as from_ts};
-use jsonwebtoken::{DecodingKey, Validation, decode};
+use jsonwebtoken::dangerous::insecure_decode;
 use openidconnect::{
     AccessToken, EmptyAdditionalClaims, EmptyExtraTokenFields, EndpointNotSet, EndpointSet,
     IdTokenFields, OAuth2TokenResponse, RevocationErrorResponseType, Scope, StandardErrorResponse,
@@ -211,12 +211,7 @@ struct TokenClaims {
 
 /// Check if the token is expired or is expiring within a minute
 fn check_if_token_is_expired(token: &str) -> Result<bool> {
-    let mut validation = Validation::default();
-    validation.insecure_disable_signature_validation();
-    validation.validate_exp = false;
-    validation.validate_aud = false;
-
-    let token = decode::<TokenClaims>(token, &DecodingKey::from_secret(&[]), &validation)?;
+    let token = insecure_decode::<TokenClaims>(token)?;
 
     let now = DateTime::<Utc>::from(SystemTime::now());
 

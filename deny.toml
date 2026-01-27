@@ -68,6 +68,7 @@ allow = [
   "EUPL-1.2",
   "ISC",
   "MIT",
+  "OpenSSL",
   "Unicode-3.0",
   "Zlib",
 ]
@@ -165,13 +166,19 @@ skip = [
   { name = "http", version = "=0.2.12" },
   { name = "itertools", version = "=0.10.5" },
   { name = "itertools", version = "=0.11.0" },
+  { name = "itertools", version = "=0.12.1" },
+  { name = "jsonwebtoken", version = "=10.2.0" },
+  { name = "litemap", version = "=0.7.5" },
   { name = "rand", version = "0.8" },
   { name = "rand_chacha", version = "0.3" },
   { name = "rand_core", version = "0.6" },
   { name = "thiserror", version = "1" },
   { name = "thiserror-impl", version = "1" },
+  { name = "tinystr", version = "=0.7.6" },
   { name = "tokio-tungstenite", version = "0.20.1" },
   { name = "tungstenite", version = "0.20.1" },
+  { name = "untrusted", version = "=0.7.1" },
+  { name = "writeable", version = "=0.5.5" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive

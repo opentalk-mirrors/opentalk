@@ -19,6 +19,7 @@ use types::{
     common::{
         auth::TicketToken,
         call_in::{CallInId, CallInPassword},
+        pagination::{Page, PageSize},
         rooms::{BreakoutRoomId, RoomId, RoomPassword},
     },
 };
@@ -316,8 +317,8 @@ impl HttpClient {
                 .http_client
                 .get(&uri)
                 .query(&PagePaginationQuery {
-                    per_page: PER_PAGE,
-                    page,
+                    per_page: PageSize::from_i64_clamped(PER_PAGE),
+                    page: Page::from_i64_clamped(page),
                 })
                 .bearer_auth(token.secret())
                 .send()
