@@ -50,7 +50,7 @@ types = { version = "0.60", package = "opentalk-types", default-features = false
   "signaling-transcription",
 ] }
 # 0.3.16 onwards introduces system dependencies, so pin on 0.3.15
-webrtc-sys = "=0.3.15"
+webrtc-sys = "0.3"
 
 [build-dependencies]
 anyhow = "1"
