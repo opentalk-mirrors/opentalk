@@ -167,7 +167,7 @@ skip = [
   { name = "itertools", version = "=0.10.5" },
   { name = "itertools", version = "=0.11.0" },
   { name = "itertools", version = "=0.12.1" },
-  { name = "jsonwebtoken", version = "=10.2.0" },
+  { name = "jsonwebtoken", version = "=10.3.0" },
   { name = "litemap", version = "=0.7.5" },
   { name = "rand", version = "0.8" },
   { name = "rand_chacha", version = "0.3" },
