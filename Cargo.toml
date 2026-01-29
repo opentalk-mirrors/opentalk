@@ -52,7 +52,7 @@ sdp-types = { version = "0.5", package = "ezk-sdp-types" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 service-probe = "0.3"
-service-probe-client = "0.3"
+service-probe-client = "0.4"
 sip-auth = { version = "0.5", package = "ezk-sip-auth" }
 sip-core = { version = "0.8", package = "ezk-sip-core", features = ["tls-native-tls"] }
 sip-types = { version = "0.6", package = "ezk-sip-types" }
