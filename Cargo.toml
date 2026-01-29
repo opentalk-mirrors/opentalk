@@ -6,7 +6,7 @@
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
 description = "Keycloak admin api client library for use in OpenTalk"
 documentation = "https://docs.rs/opentalk-keycloak-admin"
-edition = "2021"
+edition = "2024"
 homepage = "https://opentalk.eu/"
 license = "EUPL-1.2"
 name = "opentalk-keycloak-admin"
