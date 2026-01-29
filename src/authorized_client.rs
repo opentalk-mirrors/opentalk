@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use openidconnect::{core::CoreProviderMetadata, IssuerUrl};
+use openidconnect::{IssuerUrl, core::CoreProviderMetadata};
 use reqwest::{
-    header::AUTHORIZATION, redirect::Policy, Client, ClientBuilder, RequestBuilder, Response,
-    StatusCode,
+    Client, ClientBuilder, RequestBuilder, Response, StatusCode, header::AUTHORIZATION,
+    redirect::Policy,
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
@@ -58,10 +58,10 @@ impl AuthorizedClient {
     async fn update_token(&self, old_token: Option<String>) -> Result<String> {
         let mut token = self.token.write().await;
 
-        if let (Some(current_token), Some(old_token)) = (&*token, old_token) {
-            if current_token != &old_token {
-                return Ok(current_token.clone());
-            }
+        if let (Some(current_token), Some(old_token)) = (&*token, old_token)
+            && current_token != &old_token
+        {
+            return Ok(current_token.clone());
         }
 
         let new_token = self.get_access_token().await?;
