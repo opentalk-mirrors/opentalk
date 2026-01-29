@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use reqwest::{Client, RequestBuilder, Response};
+use ::reqwest::{Client, RequestBuilder, Response};
 use snafu::Snafu;
 use url::Url;
 
 mod authorized_client;
+pub mod reqwest;
 
 pub mod users;
 
@@ -17,7 +18,7 @@ pub use authorized_client::AuthorizedClient;
 #[derive(Debug, Snafu)]
 pub enum Error {
     #[snafu(display("Reqwest error: {}", source), context(false))]
-    Reqwest { source: reqwest::Error },
+    Reqwest { source: ::reqwest::Error },
     #[snafu(display("Failed to serialize body: {source}\n {body}"))]
     InvalidBody {
         body: String,

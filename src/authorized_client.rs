@@ -27,7 +27,7 @@ pub struct AuthorizedClient {
 
     base_url: Url,
 
-    client: reqwest::Client,
+    client: crate::reqwest::ClientWrapper,
 }
 
 impl AuthorizedClient {
@@ -38,7 +38,10 @@ impl AuthorizedClient {
 
         // Using Policy::none() to prevent SSRF vulnerabilities, see
         // https://github.com/ramosbugs/openidconnect-rs/blob/main/UPGRADE.md#use-stateful-http-clients
-        let client = ClientBuilder::new().redirect(Policy::none()).build()?;
+        let client = ClientBuilder::new()
+            .redirect(Policy::none())
+            .build()?
+            .into();
 
         Ok(Self {
             credentials: Credentials {
@@ -108,6 +111,7 @@ impl AuthorizedClient {
 
         let response = self
             .client
+            .0
             .post(url)
             .form(&RequestBody {
                 grant_type: "client_credentials",
