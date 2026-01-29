@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 ---
-image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.92.0-trixie
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.93.0-trixie
 
 stages:
   - build
