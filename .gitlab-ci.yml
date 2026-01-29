@@ -4,7 +4,7 @@
 
 ---
 image:
-  name: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.91.0-trixie
+  name: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.93.0-trixie
   pull_policy: if-not-present
 
 stages:
