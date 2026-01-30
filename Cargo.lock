@@ -1199,18 +1199,6 @@ dependencies = [
 
 [[package]]
 name = "ezk-image"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24eeeb2cd039c99c2f1c1877f86cbe1be0cbada92b7d398dad6f139bec636913"
-dependencies = [
- "fast_image_resize",
- "num_cpus",
- "rayon",
- "thiserror 2.0.18",
-]
-
-[[package]]
-name = "ezk-image"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "293b1fb12ef138d9094d8cb1f195a1d678a2c0fcd84dfa5b6b23407417694768"
@@ -3006,7 +2994,7 @@ dependencies = [
  "ezk",
  "ezk-audio",
  "ezk-audio-nodes",
- "ezk-image 0.4.2",
+ "ezk-image",
  "futures",
  "image",
  "livekit",
@@ -3041,7 +3029,7 @@ dependencies = [
  "ezk-audio-nodes",
  "ezk-g711",
  "ezk-g722",
- "ezk-image 0.2.4",
+ "ezk-image",
  "ezk-rtp",
  "ezk-sdp-types",
  "ezk-sip-auth",
