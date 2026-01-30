@@ -4514,15 +4514,15 @@ dependencies = [
 
 [[package]]
 name = "service-probe"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "134d8e209d0edcceedf0ad5dca61465a0fe88fd30a511a27bacad3bcf004b93e"
+checksum = "46172462949283cc0aab8d1aae416389ad0f0a7acc0d6ad0598f60db1de1ec3a"
 dependencies = [
  "http-body-util",
  "hyper 1.8.1",
  "hyper-util",
  "log",
- "service-probe-common 0.3.0",
+ "service-probe-common",
  "snafu",
  "tokio",
 ]
@@ -4535,16 +4535,10 @@ checksum = "acbc6080b62987a9e6e33fced3a22597fc8b3bddb5b1d9127c306b6b28097dd4"
 dependencies = [
  "log",
  "reqwest 0.13.1",
- "service-probe-common 0.4.0",
+ "service-probe-common",
  "snafu",
  "url",
 ]
-
-[[package]]
-name = "service-probe-common"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57cea4f6308da47bbc2a48e2f7200c05af227641439fc2ea227aabd486b8cb5b"
 
 [[package]]
 name = "service-probe-common"
