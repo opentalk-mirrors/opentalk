@@ -46,7 +46,7 @@ serde = { version = "1.0", features = ["derive"] }
 service-probe = "0.4"
 tokio = { version = "1.45", features = ["macros", "rt-multi-thread", "signal"] }
 voice_activity_detector = "0.2"
-whisper-rs = { git = "https://github.com/SoraTenshi/whisper-rs.git", rev = "9d36ab752cb7c8deabf4cf1e718f0924dbcae380", features = [
+whisper-rs = { git = "https://github.com/SoraTenshi/whisper-rs.git", rev = "a812820ec18a34da3930139b69e3130cb8195703", features = [
   "log_backend",
 ] }
 
