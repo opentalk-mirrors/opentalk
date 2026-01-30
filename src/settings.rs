@@ -195,6 +195,9 @@ pub struct SipSettings {
     pub addr: String,
     pub port: u16,
 
+    #[serde(default)]
+    pub transport: SipTransport,
+
     pub id: Option<String>,
     pub contact: Option<String>,
 
@@ -220,6 +223,25 @@ pub struct SipSettings {
 
     #[serde(default)]
     pub display_name_source: DisplayNameSource,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SipTransport {
+    Udp,
+    Tcp,
+    #[default]
+    UdpTcp,
+}
+
+impl SipTransport {
+    pub fn listen_udp(&self) -> bool {
+        matches!(self, Self::Udp | Self::UdpTcp)
+    }
+
+    pub fn listen_tcp(&self) -> bool {
+        matches!(self, Self::Tcp | Self::UdpTcp)
+    }
 }
 
 #[derive(Debug, Default, Deserialize)]

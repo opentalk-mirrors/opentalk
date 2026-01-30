@@ -11,7 +11,8 @@ use bytesstr::BytesStr;
 use service_probe::{ServiceState, set_service_state, start_probe};
 use sip_auth::{ClientAuthenticator, DigestUser, RequestParts, ResponseParts};
 use sip_auth::{DigestAuthenticator, DigestCredentials};
-use sip_core::transport::tcp::TcpConnector;
+use sip_core::transport::streaming::StreamingListenerBuilder;
+use sip_core::transport::tcp::{TcpConnector, TcpListener};
 use sip_core::transport::udp::Udp;
 use sip_core::transport::{TargetTransportInfo, TpHandle};
 use sip_core::{Endpoint, IncomingRequest, Layer, MayTake};
@@ -215,6 +216,7 @@ impl AppLayer {
 ///
 /// On shutdown it sends a shutdown signal to all active tasks shutting down all calls gracefully
 /// and un-registering from the SIP registrar
+#[allow(clippy::too_many_lines)]
 pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
     if let Some(MonitoringSettings { port, addr }) = settings.monitoring {
         start_probe(addr, port, ServiceState::Up).await?;
@@ -240,14 +242,6 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         app_data: parking_lot::RwLock::new(None),
     });
 
-    // Create a UDP socket to receive messages
-    let transport = Udp::spawn(
-        &mut builder,
-        format!("{}:{}", settings.sip.addr, settings.sip.port),
-    )
-    .await
-    .context("Failed to bind UDP Socket")?;
-
     // Add TCP connector to allow the endpoint to create TCP connections
     builder.add_transport_factory(Arc::new(TcpConnector::default()));
 
@@ -256,10 +250,38 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         native_tls::TlsConnector::new()?,
     )));
 
+    // Bind TCP transport if requested
+    if settings.sip.transport.listen_tcp() {
+        TcpListener::new()
+            .spawn(
+                &mut builder,
+                format!("{}:{}", settings.sip.addr, settings.sip.port),
+            )
+            .await
+            .context("Failed to bind TCP socket")?;
+    }
+
+    // Bind UDP transport if requested
+    let udp_transport = if settings.sip.transport.listen_udp() {
+        // Create a UDP socket to receive messages
+        let transport = Udp::spawn(
+            &mut builder,
+            format!("{}:{}", settings.sip.addr, settings.sip.port),
+        )
+        .await
+        .context("Failed to bind UDP Socket")?;
+
+        Some(transport)
+    } else {
+        None
+    };
+
     let endpoint = builder.build();
 
     // Find obelisk's public address using the UDP transport, when a stun-server is configured
-    let pub_addr = if let Some(stun_server) = settings.sip.stun_server.as_ref() {
+    let pub_addr = if let Some((stun_server, udp_transport)) =
+        settings.sip.stun_server.as_ref().zip(udp_transport)
+    {
         let stun_server = if stun_server.contains(':') {
             Cow::Borrowed(stun_server)
         } else {
@@ -268,11 +290,11 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
 
         let stun_server: SocketAddr = lookup_host(stun_server.as_str())
             .await?
-            .find(|addr| addr.is_ipv4() == transport.bound().is_ipv4())
+            .find(|addr| addr.is_ipv4() == udp_transport.bound().is_ipv4())
             .with_context(|| format!("configured stun-server '{stun_server}' yielded no addresses that are compatible with the configured bound address"))?;
 
         let pub_addr = endpoint
-            .discover_public_address(stun_server, &transport)
+            .discover_public_address(stun_server, &udp_transport)
             .await?;
 
         log::info!("Discovered public address '{}'", pub_addr.ip());
