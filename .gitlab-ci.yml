@@ -12,6 +12,7 @@ stages:
   - integration
   - upload
   - trigger
+  - deploy
 
 .template_pkg_vars:
   FLAVORS_PKG: ['deb', 'rpm']
@@ -309,7 +310,7 @@ upload:stable:
   needs:
     - job: package:stable
       artifacts: true
-    - job: deploy:stable
+    - job: int:stable
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -350,7 +351,7 @@ upload:pre-release:
   needs:
     - job: package:pre-release
       artifacts: true
-    - job: deploy:pre-release
+    - job: int:pre-release
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -388,7 +389,7 @@ upload:experimental:
   needs:
     - job: package:experimental
       artifacts: true
-    - job: deploy:experimental
+    - job: int:experimental
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - when: never
@@ -420,7 +421,7 @@ upload:experimental:
 # INTEGRATION TESTS
 # ------------------------------
 
-deploy:experimental:
+int:experimental:
   stage: integration
   tags:
     - dind
@@ -441,8 +442,6 @@ deploy:experimental:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - when: never
   variables:
-    REGISTRY_MIRROR_ENABLE: "true"
-    REGISTRY_MIRROR_URL: "http://load.opentalk.eu:5000"
     OT_SETTINGS: |
       ot_domain: 'localhost'
       ot_ingress_port: 443
@@ -508,7 +507,7 @@ deploy:experimental:
               ;;
       esac
 
-deploy:pre-release:
+int:pre-release:
   stage: integration
   tags:
     - dind
@@ -531,8 +530,6 @@ deploy:pre-release:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
     - when: never
   variables:
-    REGISTRY_MIRROR_ENABLE: "true"
-    REGISTRY_MIRROR_URL: "http://load.opentalk.eu:5000"
     OT_SETTINGS: |
       ot_domain: 'localhost'
       ot_ingress_port: 443
@@ -598,7 +595,7 @@ deploy:pre-release:
               ;;
       esac
 
-deploy:stable:
+int:stable:
   stage: integration
   tags:
     - dind
@@ -621,8 +618,6 @@ deploy:stable:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
     - when: never
   variables:
-    REGISTRY_MIRROR_ENABLE: "true"
-    REGISTRY_MIRROR_URL: "http://load.opentalk.eu:5000"
     OT_SETTINGS: |
       ot_domain: 'localhost'
       ot_ingress_port: 443
@@ -687,3 +682,63 @@ deploy:stable:
               exit 1
               ;;
       esac
+
+deploy:experimental:testing:
+  stage: deploy
+  allow_failure: false
+  # Fetch artifacts from experimental packaging; mark optional so the job exists even if one flavor is missing
+  needs:
+    - job: "package:experimental: [deb]"
+      artifacts: true
+      optional: true
+    - job: "package:experimental: [rpm]"
+      artifacts: true
+      optional: true
+  # Show manual button on typical branch/MR experimental pipelines; hide on tag pipelines
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: manual
+    - when: never
+  resource_group: remote-deploy-$HOST
+  variables:
+    GIT_STRATEGY: none
+  parallel:
+    matrix:
+      - DIST: debian12
+        HOST: "debian12-internal.testing.opentalk.run"
+        PKG_CMD: apt
+        PKG_TYPE: deb
+      - DIST: debian13
+        HOST: "debian13-internal.testing.opentalk.run"
+        PKG_CMD: apt
+        PKG_TYPE: deb
+      - DIST: ubuntu2404
+        HOST: "ubuntu2404-internal.testing.opentalk.run"
+        PKG_CMD: apt
+        PKG_TYPE: deb
+      - DIST: opensuse15
+        HOST: "opensuse15-internal.testing.opentalk.run"
+        PKG_CMD: zypper
+        PKG_TYPE: rpm
+      - DIST: opensuse16
+        HOST: "opensuse16-internal.testing.opentalk.run"
+        PKG_CMD: zypper
+        PKG_TYPE: rpm
+      - DIST: rocky9
+        HOST: "rocky9-internal.testing.opentalk.run"
+        PKG_CMD: dnf
+        PKG_TYPE: rpm
+      - DIST: rocky10
+        HOST: "rocky10-internal.testing.opentalk.run"
+        PKG_CMD: dnf
+        PKG_TYPE: rpm
+  before_script:
+    - set -euo pipefail
+    # Add SSH client config with jump host
+    - sh "$SH_SSH_CLIENT_CONFIG"
+  script:
+    - sh -euo pipefail
+    # Locate artifacts from experimental packaging
+    - sh "$SH_INSTALL_OPENTALK_COMPOSE"
