@@ -707,31 +707,31 @@ deploy:experimental:testing:
   parallel:
     matrix:
       - DIST: debian12
-        HOST: "debian12-internal.testing.opentalk.run"
+        HOST: $DEPLOY_TARGET_HOST_DEBIAN12
         PKG_CMD: apt
         PKG_TYPE: deb
       - DIST: debian13
-        HOST: "debian13-internal.testing.opentalk.run"
+        HOST: $DEPLOY_TARGET_HOST_DEBIAN13
         PKG_CMD: apt
         PKG_TYPE: deb
       - DIST: ubuntu2404
-        HOST: "ubuntu2404-internal.testing.opentalk.run"
+        HOST: $DEPLOY_TARGET_HOST_UBUNTU2404
         PKG_CMD: apt
         PKG_TYPE: deb
       - DIST: opensuse15
-        HOST: "opensuse15-internal.testing.opentalk.run"
+        HOST: $DEPLOY_TARGET_HOST_OPENSUSE15
         PKG_CMD: zypper
         PKG_TYPE: rpm
       - DIST: opensuse16
-        HOST: "opensuse16-internal.testing.opentalk.run"
+        HOST: $DEPLOY_TARGET_HOST_OPENSUSE16
         PKG_CMD: zypper
         PKG_TYPE: rpm
       - DIST: rocky9
-        HOST: "rocky9-internal.testing.opentalk.run"
+        HOST: $DEPLOY_TARGET_HOST_ROCKY9
         PKG_CMD: dnf
         PKG_TYPE: rpm
       - DIST: rocky10
-        HOST: "rocky10-internal.testing.opentalk.run"
+        HOST: $DEPLOY_TARGET_HOST_ROCKY10
         PKG_CMD: dnf
         PKG_TYPE: rpm
   before_script:
