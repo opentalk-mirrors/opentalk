@@ -39,7 +39,7 @@ opentalk-client-signaling = { version = "0.1", default-features = false, feature
   "livekit",
   "transcription-service",
 ] }
-opentalk-version = "0.2"
+opentalk-version = "0.4"
 owo-colors = "4.2"
 prometheus = { version = "0.14", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
@@ -52,7 +52,7 @@ whisper-rs = { git = "https://github.com/SoraTenshi/whisper-rs.git", rev = "a812
 
 [build-dependencies]
 anyhow = "1"
-opentalk-version = "0.2"
+opentalk-version = "0.4"
 
 [patch.crates-io]
 libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
