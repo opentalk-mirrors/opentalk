@@ -3,6 +3,45 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
+- name: Check Keycloak token endpoint readiness (demo-user)
+  block:
+    - name: Wait for Keycloak token endpoint to accept POST
+      ansible.builtin.uri:
+        url: "{{ keycloak_base_url }}/realms/{{ keycloak_auth_realm }}/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          grant_type: password
+          client_id: admin-cli
+          username: "{{ keycloak_auth_username }}"
+          password: "{{ keycloak_auth_password }}"
+        status_code:
+          - 200
+          - 401
+          - 404
+          - 405
+          - 502
+          - 503
+        return_content: false
+        validate_certs: false
+        timeout: 5
+      register: keycloak_token_probe
+      failed_when: false
+      until: keycloak_token_probe.status in [200, 401]
+      retries: 30
+      delay: 4
+
+    - name: Mark Keycloak token endpoint as ready
+      ansible.builtin.set_fact:
+        keycloak_token_endpoint_ready: true
+  rescue:
+    - name: Mark Keycloak token endpoint as not ready
+      ansible.builtin.set_fact:
+        keycloak_token_endpoint_ready: false
+  tags:
+    - never
+    - demo-user
+
 - name: "Manage demo user for testing purposes | name: {{ postInstall_demoUser_name | default('Test User') }}"
   community.general.keycloak_user:
     auth_keycloak_url: "{{ keycloak_base_url }}"
@@ -21,6 +60,7 @@
         value: "{{ postInstall_demoUser_password }}"
         temporary: false
     state: "{{ postInstall_demoUser_state }}"
+  when: keycloak_token_endpoint_ready | default(false) | bool
   tags:
     - never
     - demo-user
