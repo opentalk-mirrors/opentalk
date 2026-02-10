@@ -35,7 +35,7 @@ itertools = "0.14"
 livekit = { version = "0.7", features = ["native-tls"] }
 log = "0.4"
 openidconnect = "4"
-opentalk-client-signaling = { version = "0.1", default-features = false, features = [
+opentalk-client-signaling = { version = "0.2", default-features = false, features = [
   "livekit",
   "transcription-service",
 ] }
