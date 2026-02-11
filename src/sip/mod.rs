@@ -46,7 +46,7 @@ pub use update::{handle_reinvite, refresh_invite_session};
 
 struct AppData {
     contact: Contact,
-    pub_ip: IpAddr,
+    inbound_media_ip: IpAddr,
 }
 
 /// This layer is the application layer of the SIP endpoint and handles incoming INVITE requests
@@ -74,8 +74,8 @@ impl Layer for AppLayer {
     }
 
     async fn receive(&self, endpoint: &Endpoint, request: MayTake<'_, IncomingRequest>) {
-        let (contact, pub_ip) = if let Some(app_data) = &*self.app_data.read() {
-            (app_data.contact.clone(), app_data.pub_ip)
+        let (contact, inbound_media_ip) = if let Some(app_data) = &*self.app_data.read() {
+            (app_data.contact.clone(), app_data.inbound_media_ip)
         } else {
             log::warn!("Got request before contact is ready");
             return;
@@ -87,7 +87,7 @@ impl Layer for AppLayer {
             }
             Method::INVITE => {
                 if let Err(e) = self
-                    .handle_invite(endpoint, request.take(), contact, pub_ip)
+                    .handle_invite(endpoint, request.take(), contact, inbound_media_ip)
                     .await
                 {
                     log::error!("failed to handle invite {e:?}");
@@ -105,9 +105,9 @@ impl AppLayer {
         endpoint: &Endpoint,
         mut request: IncomingRequest,
         contact: Contact,
-        pub_ip: IpAddr,
+        inbound_media_ip: IpAddr,
     ) -> Result<()> {
-        let mut media_session = SessionState::empty(self.settings.clone(), pub_ip);
+        let mut media_session = SessionState::empty(self.settings.clone(), inbound_media_ip);
 
         let mut changes = vec![];
 
@@ -311,6 +311,8 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         log::info!("Discovered public address '{}'", pub_addr.ip());
 
         pub_addr
+    } else if let Some(inbound_addr) = settings.sip.inbound_addr {
+        inbound_addr
     } else {
         let pub_addr = lookup_host((settings.sip.addr.as_str(), settings.sip.port))
             .await?
@@ -327,8 +329,9 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         generate_contact_uri(&settings, pub_addr).context("Failed to generate contact uri")?;
 
     // set app data
+    let inbound_media_ip = settings.sip.inbound_media_ip.unwrap_or(pub_addr.ip());
     endpoint.layer::<AppLayer>().set_app_data(AppData {
-        pub_ip: pub_addr.ip(),
+        inbound_media_ip,
         contact: Contact::new(NameAddr::uri(contact.clone())),
     });
 
