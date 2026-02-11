@@ -9,7 +9,11 @@ use openidconnect::{ClientId, ClientSecret, IssuerUrl};
 use opentalk_compositor::ClockFormat;
 use owo_colors::OwoColorize as _;
 use serde::Deserialize;
-use std::{net::IpAddr, path::PathBuf, time::Duration};
+use std::{
+    net::{IpAddr, SocketAddr},
+    path::PathBuf,
+    time::Duration,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
@@ -197,6 +201,9 @@ pub struct SipSettings {
 
     #[serde(default)]
     pub transport: SipTransport,
+
+    pub inbound_addr: Option<SocketAddr>,
+    pub inbound_media_ip: Option<IpAddr>,
 
     pub id: Option<String>,
     pub contact: Option<String>,
