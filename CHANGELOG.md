@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.4.3] - 2026-02-11
+
+[25.4.3]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.2...v25.4.3
+
+### 📦 Dependencies
+
+- (deps) Livekit-server v1.9.11 ([!104](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/104))
+
+### ⚙ Miscellaneous
+
+- Release v25.4.3 ([!104](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/104))
+
 ## [25.4.2] - 2026-02-10
 
 [25.4.2]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.1-3...v25.4.2
