@@ -10,4 +10,4 @@ publish = false
 
 [dependencies]
 heck = "0.5"
-temp-dir = "0.1.14"
+temp-dir = "0.2.0"
