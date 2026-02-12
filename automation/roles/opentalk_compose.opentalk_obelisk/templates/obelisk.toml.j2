@@ -26,10 +26,18 @@ id = "{{ obelisk_sip_id }}"
 {% if obelisk_sip_contact is defined and obelisk_sip_contact %}
 contact = "{{ obelisk_sip_contact }}"
 {% endif %}
+{% if obelisk_sip_username is defined and obelisk_sip_username %}
 username = "{{ obelisk_sip_username }}"
+{% endif %}
+{% if obelisk_sip_password is defined and obelisk_sip_password %}
 password = "{{ obelisk_sip_password }}"
+{% endif %}
+{% if obelisk_sip_realm is defined and obelisk_sip_realm %}
 realm = "{{ obelisk_sip_realm }}"
+{% endif %}
+{% if obelisk_sip_registrar is defined and obelisk_sip_registrar %}
 registrar = "{{ obelisk_sip_registrar }}"
+{% endif %}
 {% if obelisk_sip_outbound_proxy is defined and obelisk_sip_outbound_proxy %}
 outbound_proxy = "{{ obelisk_sip_outbound_proxy }}"
 {% endif %}
