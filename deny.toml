@@ -40,7 +40,15 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
-ignore = ["RUSTSEC-2023-0071"]
+ignore = [
+  "RUSTSEC-2023-0071",
+  # This is an advisory for the 'rustls-pemfile' crate, which is a transitive
+  # dependency from 'rustls-native-certs' which in itself is a transitive dependency
+  # of 'livekit-api'.
+  # The advisory states, that the crate is no longer maintained.
+  # TODO: Remove once livekit removed / updated this dependency
+  "RUSTSEC-2025-0134",
+]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
 # will still output a note when they are encountered.
