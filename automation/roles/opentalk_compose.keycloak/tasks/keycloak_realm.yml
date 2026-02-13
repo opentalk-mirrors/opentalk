@@ -35,6 +35,8 @@
       {{
         (realm_config.json | combine({
           "displayNameHtml": '<div class="kc-logo-text"><span>OpenTalk</span></div>',
+          "ssoSessionIdleTimeout": 31536000,
+          "ssoSessionMaxLifespan": 31536000,
           "offlineSessionIdleTimeout": 31536000,
           "offlineSessionMaxLifespan": 31536000,
           "offlineSessionMaxLifespanEnabled": true,
