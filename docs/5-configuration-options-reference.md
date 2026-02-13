@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-01-23
+Last updated: 2026-02-13
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -120,6 +120,13 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_proxy` | string | `edge` |
 | `keycloak_proxy_headers` | string | `xforwarded` |
 | `keycloak_realm` | string | `opentalk` |
+| `keycloak_realm_client_session_idle_timeout` | integer | `86400` |
+| `keycloak_realm_client_session_max_lifespan` | integer | `2592000` |
+| `keycloak_realm_offline_session_idle_timeout` | integer | `2592000` |
+| `keycloak_realm_offline_session_max_lifespan` | integer | `5184000` |
+| `keycloak_realm_offline_session_max_lifespan_enabled` | boolean | `true` |
+| `keycloak_realm_sso_session_idle_timeout` | integer | `86400` |
+| `keycloak_realm_sso_session_max_lifespan` | integer | `2592000` |
 | `keycloak_redirectUris_uris` | list | `['{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/popup_callback', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/callback', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard/*', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/room/*', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/join', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/']` |
 | `keycloak_spi_sticky_session_encoder_infinispan_should_attach_route` | string | `false` |
 | `keycloak_wait_to_be_reachable_delay` | integer | `10` |

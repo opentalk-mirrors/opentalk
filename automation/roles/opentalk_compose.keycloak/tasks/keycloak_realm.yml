@@ -35,13 +35,13 @@
       {{
         (realm_config.json | combine({
           "displayNameHtml": '<div class="kc-logo-text"><span>OpenTalk</span></div>',
-          "ssoSessionIdleTimeout": 31536000,
-          "ssoSessionMaxLifespan": 31536000,
-          "offlineSessionIdleTimeout": 31536000,
-          "offlineSessionMaxLifespan": 31536000,
-          "offlineSessionMaxLifespanEnabled": true,
-          "clientSessionIdleTimeout": 31536000,
-          "clientSessionMaxLifespan": 31536000,
+          "ssoSessionIdleTimeout": {{ keycloak_realm_sso_session_idle_timeout }},
+          "ssoSessionMaxLifespan": {{ keycloak_realm_sso_session_max_lifespan }},
+          "offlineSessionIdleTimeout": {{ keycloak_realm_offline_session_idle_timeout }},
+          "offlineSessionMaxLifespan": {{ keycloak_realm_offline_session_max_lifespan }},
+          "offlineSessionMaxLifespanEnabled": {{ keycloak_realm_offline_session_max_lifespan_enabled | lower }},
+          "clientSessionIdleTimeout": {{ keycloak_realm_client_session_idle_timeout }},
+          "clientSessionMaxLifespan": {{ keycloak_realm_client_session_max_lifespan }},
           "attributes": (realm_config_json_attributes | default({}) | combine({
             "_browser_header_contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self' {{ (ot_ingress_protocol, ot_domain) | build_url }}:* {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }} {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_wildcard_url }}; object-src 'none';",
             "_browser_header_xContentTypeOptions": "nosniff",
