@@ -20,7 +20,7 @@ sycl = ["whisper-rs/intel-sycl"]
 vulkan = ["whisper-rs/vulkan"]
 
 [dependencies]
-anstream = "0.6"
+anstream = "1.0"
 anyhow = { version = "1", features = ["backtrace"] }
 audio-nodes = { package = "ezk-audio-nodes", version = "0.1" }
 axum = { version = "0.8.4", features = ["http2", "ws"] }
