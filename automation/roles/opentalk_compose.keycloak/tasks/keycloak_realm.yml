@@ -14,6 +14,42 @@
     enabled: true
     login_theme: "opentalk"
 
+# Reset client session timeouts before updating realm to avoid validation errors
+# (Keycloak 26.5+ requires client timeouts <= realm SSO timeouts)
+- name: Get all clients in realm
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients?max=1000"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    return_content: true
+  register: realm_clients
+
+- name: Reset client session timeouts to inherit from realm
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients/{{ item.id }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body: |
+      {{
+        item | combine({
+          "attributes": (item.attributes | default({}) | combine({
+            "client.session.idle.timeout": "0",
+            "client.session.max.lifespan": "0"
+          }))
+        })
+      }}
+    status_code: [200, 204]
+  loop: "{{ realm_clients.json }}"
+  loop_control:
+    label: "{{ item.clientId }}"
+  when: >
+    (item.attributes['client.session.idle.timeout'] | default('0') | int > keycloak_realm_sso_session_idle_timeout) or
+    (item.attributes['client.session.max.lifespan'] | default('0') | int > keycloak_realm_sso_session_max_lifespan)
+
 - name: Get current realm config
   ansible.builtin.uri:
     url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}"
