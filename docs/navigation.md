@@ -5,3 +5,4 @@
     - [4. Advanced Installation Scenarios](4-advanced-installation-scenarios.md)
     - [5. Configuration Option Reference](5-configuration-options-reference.md)
     - [6. Development related docs](6-development-related-docs.md)
+    - [7. Tools](7-tools.md)
