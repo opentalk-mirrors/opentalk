@@ -163,6 +163,13 @@ else
   echo "[python] Offline: skip runtime fetch."
 fi
 
+# 2b. External Tools
+if ! $OFFLINE; then
+  run bash "$PKGDIR/13-tools-fetch.sh"
+else
+  echo "[tools] Offline: skip tools fetch."
+fi
+
 # 3. Lock + wheelhouse
 if ! $OFFLINE; then
   run bash "$PKGDIR/10-ansible-lock.sh"
