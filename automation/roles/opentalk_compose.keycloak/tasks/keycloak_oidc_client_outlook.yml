@@ -25,7 +25,8 @@
       oauth2.device.authorization.grant.enabled: "true"
       access.token.lifespan: "1800"
       use.refresh.tokens: "true"
-      client.session.idle.timeout: "31536000"
-      client.session.max.lifespan: "31536000"
-      client.offline.session.idle.timeout: "31536000"
-      client.offline.session.max.lifespan: "31536000"
+      # client timeouts inherited from realm
+      client.session.idle.timeout: "0"
+      client.session.max.lifespan: "0"
+      client.offline.session.idle.timeout: "0"
+      client.offline.session.max.lifespan: "0"
