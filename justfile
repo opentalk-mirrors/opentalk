@@ -50,6 +50,7 @@ update-changelog VERSION: _check_git_cliff
     fi
 
     # Update Changelog
+    GITLAB_TOKEN=$GITLAB_TOKEN \
     GITLAB_API_URL=https://git.opentalk.dev/api/v4 \
     GITLAB_REPO=opentalk/backend/services/obelisk \
     git-cliff -vv \
