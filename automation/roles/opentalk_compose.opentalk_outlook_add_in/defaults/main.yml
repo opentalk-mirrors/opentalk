@@ -17,6 +17,7 @@ outlook_add_in_docker_compose_ulimits_nproc: 8192
 outlook_add_in_docker_image_src: "registry.opencode.de/opentalk/opentalk-outlook-add-in"
 
 outlook_add_in_oidc_client_id: "OutlookAddin"
+outlook_add_in_oidc_scopes: "profile email openid"
 outlook_add_in_outlook_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/outlook"
 outlook_add_in_outlook_webapp_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}"
 
