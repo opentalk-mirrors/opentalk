@@ -3,16 +3,31 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-- name: Create or update Keycloak realm
-  community.general.keycloak_realm:
-    auth_keycloak_url: "{{ keycloak_base_url }}"
-    auth_realm: "{{ keycloak_auth_realm }}"
-    auth_username: "{{ keycloak_auth_username }}"
-    auth_password: "{{ keycloak_auth_password }}"
-    realm: "{{ keycloak_realm }}"
-    state: present
-    enabled: true
-    login_theme: "opentalk"
+# Check if realm exists first
+- name: Check if Keycloak realm exists
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    status_code: [200, 404]
+  register: realm_check
+
+# Create realm only if it doesn't exist (minimal config, no timeouts)
+- name: Create Keycloak realm if not exists
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      realm: "{{ keycloak_realm }}"
+      enabled: true
+      loginTheme: "opentalk"
+    status_code: [201]
+  when: realm_check.status == 404
 
 # Reset client session timeouts before updating realm to avoid validation errors
 # (Keycloak 26.5+ requires client timeouts <= realm SSO timeouts)
