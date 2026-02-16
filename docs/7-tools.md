@@ -97,12 +97,19 @@ keycloak-theme-generator \
 
 ### Deploying the Theme
 
-After generating the theme:
+After generating the theme, configure OpenTalk to use it:
 
-1. **Without JAR**: Copy the generated theme directory to your Keycloak themes folder (`/opt/keycloak/themes/`)
-2. **With JAR**: Deploy the generated JAR file to Keycloak's providers directory (`/opt/keycloak/providers/`)
-3. **Rebuild Keycloak**: Run `kc.sh build` to import the new theme
-4. **Restart Keycloak**: Restart the Keycloak service to apply changes
+1. **Set the theme path in settings.yml**:
+  ```yaml
+  keycloak_theme_path: /path/to/your/generated/theme
+  ```
+
+2. **Deploy the theme**:
+  ```bash
+  otctl deploy -t keycloak
+  ```
+
+3. **Verify deployment**: Check that Keycloak has loaded the new theme by navigating to the login page.
 
 Then configure the theme in Keycloak:
 

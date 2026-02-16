@@ -38,6 +38,8 @@ keycloak_local_port: "{{ ot_ingress_port }}"
 
 keycloak_manage_enabled: true
 
+keycloak_theme_path: "{{ services_dir }}/keycloak/keycloak-ot-theme.jar"
+
 keycloak_bootstrap_admin_username: bootstrap_admin
 keycloak_bootstrap_admin_password: "{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}"
 # Whether to remove the bootstrap admin automatically after permanent admin exists

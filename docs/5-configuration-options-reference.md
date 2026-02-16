@@ -138,6 +138,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_realm_sso_session_max_lifespan` | integer | `2592000` |
 | `keycloak_redirectUris_uris` | list | `['{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/popup_callback', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/callback', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard/*', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/room/*', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/join', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/']` |
 | `keycloak_spi_sticky_session_encoder_infinispan_should_attach_route` | string | `false` |
+| `keycloak_theme_path` | string | `{{ services_dir }}/keycloak/keycloak-ot-theme.jar` |
 | `keycloak_wait_to_be_reachable_delay` | integer | `10` |
 | `keycloak_wait_to_be_reachable_retries` | integer | `20` |
 | `postInstall_demoUser_email` | string | `demo.user@example.com` |
