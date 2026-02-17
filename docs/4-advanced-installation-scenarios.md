@@ -388,7 +388,7 @@ Create a `compose.yml` file in `/opt/opentalk-recorder/`:
 ```yaml
 services:
   recorder:
-    image: registry.opencode.de/opentalk/recorder:v0.13.1
+    image: registry.heinlein.group/opentalk/recorder
     container_name: opentalk-recorder
     restart: always
     environment:
