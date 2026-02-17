@@ -1,0 +1,57 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Check if all compose.yml includes exist before running docker compose commands.
+# This prevents failures when service compose files haven't been rendered yet.
+
+- name: Read main compose.yml content
+  ansible.builtin.slurp:
+    src: "{{ deploy_dir }}/compose.yml"
+  register: _compose_yml_content
+  failed_when: false
+
+- name: Extract included compose file paths
+  ansible.builtin.set_fact:
+    _compose_include_paths: >-
+      {{
+        (_compose_yml_content.content | default('') | b64decode | from_yaml).include | default([])
+        | map(attribute='path', default=[])
+        | flatten
+        | list
+      }}
+  when: _compose_yml_content.content is defined
+
+- name: Set empty include paths if compose.yml not readable
+  ansible.builtin.set_fact:
+    _compose_include_paths: []
+  when: _compose_yml_content.content is not defined
+
+- name: Check existence of all included compose files
+  ansible.builtin.stat:
+    path: "{{ deploy_dir }}/{{ item }}"
+  loop: "{{ _compose_include_paths }}"
+  register: _compose_include_stats
+
+- name: Determine if all compose includes are ready
+  ansible.builtin.set_fact:
+    compose_includes_ready: >-
+      {{
+        _compose_include_stats.results | default([])
+        | map(attribute='stat.exists', default=false)
+        | list
+        | reject('equalto', false)
+        | list
+        | length == _compose_include_paths | length
+      }}
+
+- name: Warn if compose includes are not ready
+  ansible.builtin.debug:
+    msg: >-
+      Skipping Docker Compose state management: Not all included compose files exist yet.
+      Missing: {{ _compose_include_stats.results
+        | selectattr('stat.exists', 'equalto', false)
+        | map(attribute='item')
+        | list }}
+  when: not compose_includes_ready

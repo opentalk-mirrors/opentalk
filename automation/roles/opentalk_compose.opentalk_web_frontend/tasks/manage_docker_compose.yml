@@ -19,6 +19,10 @@
     src: compose.yml.j2
     dest: "{{ opentalk_web_frontend_docker_compose_services_dir }}/opentalk-web-frontend/compose.yml"
 
+- name: Check if all compose includes exist
+  ansible.builtin.include_tasks:
+    file: "{{ playbook_dir }}/roles/opentalk_compose.docker_env/tasks/check_compose_includes.yml"
+
 - name: Manage OpenTalk Web Frontend Docker Compose state
   community.docker.docker_compose_v2:
     project_src: "{{ opentalk_web_frontend_docker_compose_project_src }}"
@@ -28,3 +32,4 @@
     files:
       - compose.yml
     state: "{{ opentalk_web_frontend_docker_compose_services_state }}"
+  when: compose_includes_ready | default(false)
