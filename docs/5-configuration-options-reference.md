@@ -321,7 +321,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `outlook_add_in_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `outlook_add_in_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `outlook_add_in_docker_compose_ulimits_nproc` | integer | `8192` |
-| `outlook_add_in_docker_image_src` | string | `registry.heinlein.group/opentalk/opentalk-outlook-add-in` |
+| `outlook_add_in_docker_image_src` | string | `registry.heinlein.group/opentalk/outlook-add-in` |
 | `outlook_add_in_labels_traefik_http_middlewares_outlook_add_in_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, '*') \| build_url }}` |
 | `outlook_add_in_oidc_client_id` | string | `OutlookAddin` |
 | `outlook_add_in_oidc_scopes` | string | `profile email openid` |
