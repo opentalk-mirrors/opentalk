@@ -685,7 +685,7 @@ int:stable:
 
 deploy:experimental:testing:
   stage: deploy
-  allow_failure: false
+  allow_failure: true
   # Fetch artifacts from experimental packaging; mark optional so the job exists even if one flavor is missing
   needs:
     - job: "package:experimental: [deb]"
