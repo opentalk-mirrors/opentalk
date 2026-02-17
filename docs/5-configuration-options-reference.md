@@ -120,11 +120,20 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_proxy` | string | `edge` |
 | `keycloak_proxy_headers` | string | `xforwarded` |
 | `keycloak_realm` | string | `opentalk` |
+| `keycloak_realm_access_code_lifespan` | integer | `60` |
+| `keycloak_realm_access_code_lifespan_login` | integer | `1800` |
+| `keycloak_realm_access_code_lifespan_user_action` | integer | `300` |
+| `keycloak_realm_access_token_lifespan` | integer | `300` |
+| `keycloak_realm_access_token_lifespan_implicit` | integer | `900` |
+| `keycloak_realm_action_token_generated_by_admin_lifespan` | integer | `43200` |
+| `keycloak_realm_action_token_generated_by_user_lifespan` | integer | `300` |
 | `keycloak_realm_client_session_idle_timeout` | integer | `86400` |
 | `keycloak_realm_client_session_max_lifespan` | integer | `2592000` |
 | `keycloak_realm_offline_session_idle_timeout` | integer | `2592000` |
 | `keycloak_realm_offline_session_max_lifespan` | integer | `5184000` |
 | `keycloak_realm_offline_session_max_lifespan_enabled` | boolean | `true` |
+| `keycloak_realm_refresh_token_max_reuse` | integer | `0` |
+| `keycloak_realm_revoke_refresh_token` | boolean | `false` |
 | `keycloak_realm_sso_session_idle_timeout` | integer | `86400` |
 | `keycloak_realm_sso_session_max_lifespan` | integer | `2592000` |
 | `keycloak_redirectUris_uris` | list | `['{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/popup_callback', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/callback', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard/*', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/room/*', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/join', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/']` |
