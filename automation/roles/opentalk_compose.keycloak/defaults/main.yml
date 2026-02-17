@@ -96,3 +96,27 @@ keycloak_realm_offline_session_max_lifespan_enabled: true
 # Should not exceed ssoSession* values (Keycloak 26.5+ validation)
 keycloak_realm_client_session_idle_timeout: 86400
 keycloak_realm_client_session_max_lifespan: 2592000
+
+# Token lifespans (in seconds)
+# accessTokenLifespan: How long an access token is valid (default: 5 minutes)
+keycloak_realm_access_token_lifespan: 300
+# accessTokenLifespanForImplicitFlow: Access token lifespan for implicit flow (default: 15 minutes)
+keycloak_realm_access_token_lifespan_implicit: 900
+# accessCodeLifespan: Max time a client has to finish auth code flow (default: 1 minute)
+keycloak_realm_access_code_lifespan: 60
+# accessCodeLifespanLogin: Max time user has to complete login (default: 30 minutes)
+keycloak_realm_access_code_lifespan_login: 1800
+# accessCodeLifespanUserAction: Max time for user action during login (default: 5 minutes)
+keycloak_realm_access_code_lifespan_user_action: 300
+
+# Action token lifespans (in seconds)
+# actionTokenGeneratedByAdminLifespan: Default lifespan for admin-initiated action tokens (default: 12 hours)
+keycloak_realm_action_token_generated_by_admin_lifespan: 43200
+# actionTokenGeneratedByUserLifespan: Lifespan for user-initiated action tokens (default: 5 minutes)
+keycloak_realm_action_token_generated_by_user_lifespan: 300
+
+# Refresh token settings
+# revokeRefreshToken: If true, refresh tokens can only be used once (default: false)
+keycloak_realm_revoke_refresh_token: false
+# refreshTokenMaxReuse: How many times a refresh token can be reused (0 = unlimited, only if revokeRefreshToken is false)
+keycloak_realm_refresh_token_max_reuse: 0
