@@ -30,7 +30,7 @@
 
 - name: Check existence of all included compose files
   ansible.builtin.stat:
-    path: "{{ deploy_dir }}/{{ item }}"
+    path: "{{ item if item.startswith('/') else (deploy_dir ~ '/' ~ item) }}"
   loop: "{{ _compose_include_paths }}"
   register: _compose_include_stats
 
