@@ -47,7 +47,7 @@ Ensure these ports are reachable in a standard deployment:
 - 80, 443/tcp (HTTP, HTTPS)
 - 40000-49999/udp (RTP Obelisk)
 - 5060/udp (SIP Obelisk)
-- 50000-64535/udp (RTP LiveKit)
+- 50000-65535/udp (RTP LiveKit)
 - 7881/tcp (WebRTC ICE over TCP, LiveKit)
 - 3478/udp (LiveKit TURN)
 

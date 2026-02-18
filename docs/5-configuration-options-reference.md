@@ -154,7 +154,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `livekit_rtc_enable_loopback_candidate` | boolean | `false` |
 | `livekit_rtc_ips_excludes` | list | `['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']` |
 | `livekit_rtc_ips_includes` | list | `[]` |
-| `livekit_rtc_port_range_end` | integer | `64535` |
+| `livekit_rtc_port_range_end` | integer | `65535` |
 | `livekit_rtc_port_range_start` | integer | `50000` |
 | `livekit_rtc_tcp_port` | integer | `7881` |
 | `livekit_rtc_use_external_ip` | boolean | `true` |
