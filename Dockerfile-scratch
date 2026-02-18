@@ -35,8 +35,8 @@ RUN apt install ca-certificates -y --no-install-recommends
 
 FROM scratch
 
-COPY --from=preparer /lib64/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
-COPY --from=preparer /usr/bin/ld.so /lib/ld.so
+COPY --from=preparer /lib64/ld-linux-x86-64.so* /lib64/
+COPY --from=preparer /usr/bin/ld*.so* /lib/
 COPY --from=preparer /usr/lib /usr/lib
 COPY --from=preparer /lib /lib
 COPY --from=preparer /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
