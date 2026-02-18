@@ -39,6 +39,14 @@ addr = "0.0.0.0"
 # Port to bind to (5060 is SIP default)
 port = 5060
 
+# Inbound address to use in SIP and SDP messages.
+# This setting should only be used in NAT scenarios where using a STUN server is not possible.
+#inbound_addr = "192.0.2.1:5060"
+
+# Inbound media ip which is constrained to only SDP. Overrides the value of `inbound_addr`
+# for SDP and sets the inbound IP for media (RTP / RTCP).
+#inbound_media_ip = "192.0.2.1:5061"
+
 # ID of this SIP endpoint, used for creating the From/To header in SIP REGISTER messages
 # When not set, it is generated as `sip:<username>@<regisrar-host>` if a registrar is configured.
 # If no registrar is configured it is generated the same way as the contact uri (see below).
