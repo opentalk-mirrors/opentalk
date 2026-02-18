@@ -26,4 +26,4 @@ livekit_version: v1.9.11
 ndt_version: v0.25.0
 
 # Tools
-keycloak-theme-generator_version: v0.1.0
+keycloak-theme-generator_version: v0.1.2
