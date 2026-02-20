@@ -140,7 +140,7 @@ Install Docker and the Docker Compose plugin before installing `opentalk-compose
 
 ### 2.2 Initialize the Deployment Environment
 
-Add your Domain to the `ot_domain` key in `/etc/opentalk-compose/secrets/secrets.yml`
+Add your Domain to the `ot_domain` key in `/etc/opentalk-compose/settings.yml`
 
 ```yaml
 ot_domain: example.com
