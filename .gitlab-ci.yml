@@ -1,7 +1,23 @@
 # SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 #
 # SPDX-License-Identifier: EUPL-1.2
-
+---
+spec:
+  inputs:
+    release_version:
+      description: |
+        Version number, e.g. `1.2.3`. Must be in format `<major>.<minor>.<patch>`.
+        Keep at `0.0.0` unless you're in the process of creating a release.
+      type: string
+      regex: ^([0]|([1-9]\d*))\.([0]|([1-9]\d*))\.([0]|([1-9]\d*))$
+      default: 0.0.0
+    release_issue:
+      description: |
+        The number of an issue which should be closed by a release MR created by this pipeline.
+        Keep empty or unset unless you're in the process of creating a release.
+      type: string
+      regex: ^\d*$
+      default: ''
 ---
 image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.93.0-trixie
 
@@ -11,6 +27,7 @@ stages:
   - build
   - trigger
   - release
+  - package
 
 variables:
   CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
@@ -34,6 +51,17 @@ variables:
   - apt-get update
   - >
     apt-get update && apt-get install -y build-essential clang libclang-dev cmake libvulkan-dev glslc
+
+include:
+  - project: opentalk/ci/templates/collect-commit-evidence
+    ref: v2
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/release-creation
+    inputs:
+      version: $[[ inputs.release_version ]]
+      issue: $[[ inputs.release_issue]]
+    ref: v1
+    file: .gitlab-ci-template.yml
 
 lint:fmt:
   stage: lint
