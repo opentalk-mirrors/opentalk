@@ -513,7 +513,7 @@ Requirements when enabling TURN TLS:
 Edit `/etc/opentalk-compose/settings.yml` and set or adjust the following variables.
 
 ```yaml
-livekit_turn_embedded_external_tls: true
+livekit_turn_embedded_tls_enabled: true
 livekit_turn_embedded_domain: "turn.{{ ot_domain }}" # expands to turn.example.com
 ```
 
