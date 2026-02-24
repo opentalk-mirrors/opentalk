@@ -5,7 +5,7 @@
 ---
 services:
   roomserver:
-    image: git.opentalk.dev:5050/opentalk/backend/services/roomserver:dev
+    image: "{{ roomserver_docker_image_src }}:{{ opentalk_roomserver_version }}"
     volumes:
       - ./config/roomserver.toml:/opentalk-roomserver/roomserver.toml
     environment:

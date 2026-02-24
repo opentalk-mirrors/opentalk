@@ -10,4 +10,6 @@ roomserver_docker_compose_services_state: "{{ compose_service_opentalk_roomserve
 roomserver_docker_compose_services_dir: "{{ services_dir }}"
 roomserver_docker_compose_project_src: "{{ deploy_dir }}"
 
+roomserver_docker_image_src: registry.heinlein.group/opentalk/roomserver
+
 roomserver_public_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}"

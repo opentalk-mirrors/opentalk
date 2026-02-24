@@ -13,6 +13,7 @@ opentalk_recorder_version: v0.16.2
 opentalk_obelisk_version: v0.21.2
 opentalk_smtp_mailer_version: v0.17.0
 opentalk_outlook_add_in_version: v0.3.6-1
+opentalk_roomserver_version: v0.0.37
 spacedeck_version: v3.0.3
 etherpad_version: v2.0.4
 keycloak_version: 26.5.7
