@@ -26,7 +26,6 @@
     project_name: "{{ roomserver_docker_compose_project_name }}"
     services:
       - roomserver
-      - roomserver-db
     files:
       - compose.yml
     state: "{{ roomserver_docker_compose_services_state }}"
