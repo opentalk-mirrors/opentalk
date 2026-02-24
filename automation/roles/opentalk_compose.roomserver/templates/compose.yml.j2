@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+services:
+  roomserver:
+    image: git.opentalk.dev:5050/opentalk/backend/services/roomserver:dev
+    volumes:
+      - ./config/roomserver.toml:/opentalk-roomserver/roomserver.toml
+    environment:
+      - RUST_LOG=opentalk=debug
+    healthcheck:
+      test: [CMD, /opentalk-roomserver/opentalk-roomserver, health]
+      start_period: 1s
+      start_interval: 1s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.roomserver.rule=Host(`{{ ot_domain }}`) && PathPrefix(`/roomserver`)"
+      - "traefik.http.routers.roomserver.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+{% if (traefik_letsencrypt_enable | default('true')) and (not custom_certificates_enabled is defined or not custom_certificates_enabled) %}
+      - "traefik.http.routers.roomserver.tls.certresolver=letsencrypt"
+{% endif %}
+      - "traefik.http.routers.roomserver.middlewares=roomserver-strip"
+      - "traefik.http.middlewares.roomserver-strip.stripprefix.prefixes=/roomserver"
+      - "traefik.http.services.roomserver.loadbalancer.server.port=11311"
