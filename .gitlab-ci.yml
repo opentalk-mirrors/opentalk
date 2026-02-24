@@ -451,6 +451,7 @@ int:experimental:
       deploy_dir: "/opt/opentalk-compose"
       compose_project_name: "opentalk"
       compose_service_opentalk_controller_enabled: true
+      compose_service_opentalk_roomserver_enabled: true
       compose_service_opentalk_obelisk_enabled: false
       compose_service_opentalk_outlook_add_in_enabled: false
       compose_service_opentalk_recorder_enabled: true
