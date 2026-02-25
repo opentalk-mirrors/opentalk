@@ -23,4 +23,4 @@ services:
 {% endif %}
       - "traefik.http.routers.roomserver.middlewares=roomserver-strip"
       - "traefik.http.middlewares.roomserver-strip.stripprefix.prefixes=/roomserver"
-      - "traefik.http.services.roomserver.loadbalancer.server.port=11311"
+      - "traefik.http.services.roomserver.loadbalancer.server.port=11333"
