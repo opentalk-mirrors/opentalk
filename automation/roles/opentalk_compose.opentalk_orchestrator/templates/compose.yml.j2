@@ -7,22 +7,8 @@ services:
   orchestrator:
     image: "{{ orchestrator_docker_image_src }}:{{ opentalk_orchestrator_version }}"
     volumes:
-      - ./config/orchestrator.toml:/opentalk-orchestrator/orchestrator.toml
+      - ./config/orchestrator.toml:/.config/opentalk/orchestrator.toml
     environment:
-      - RUST_LOG=opentalk=debug
+      - RUST_LOG=orchestrator=info
     networks:
       - opentalk_internal
-    healthcheck:
-      test: [CMD, /opentalk-orchestrator/opentalk-orchestrator, health]
-      start_period: 1s
-      start_interval: 1s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.orchestrator.rule=Host(`{{ ot_domain }}`) && PathPrefix(`/orchestrator`)"
-      - "traefik.http.routers.orchestrator.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
-{% if (traefik_letsencrypt_enable | default('true')) and (not custom_certificates_enabled is defined or not custom_certificates_enabled) %}
-      - "traefik.http.routers.orchestrator.tls.certresolver=letsencrypt"
-{% endif %}
-      - "traefik.http.routers.orchestrator.middlewares=orchestrator-strip"
-      - "traefik.http.middlewares.orchestrator-strip.stripprefix.prefixes=/orchestrator"
-      - "traefik.http.services.orchestrator.loadbalancer.server.port=11333"
