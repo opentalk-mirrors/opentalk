@@ -10,6 +10,8 @@ services:
       - ./config/roomserver.toml:/opentalk-roomserver/roomserver.toml
     environment:
       - RUST_LOG=opentalk=debug
+    networks:
+      - opentalk_internal
     healthcheck:
       test: [CMD, /opentalk-roomserver/opentalk-roomserver, health]
       start_period: 1s
