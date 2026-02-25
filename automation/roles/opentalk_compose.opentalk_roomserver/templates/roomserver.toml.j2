@@ -93,9 +93,11 @@ screen_share_requires_permission = false
 # The location where typst looks for packages.
 #packages_path = "/usr/share/typst/packages"
 
+{% if compose_service_opentalk_orchestrator_enabled is defined and compose_service_opentalk_orchestrator_enabled %}
 # Optional orchestrator configuration
-#[orchestrator]
+[orchestrator]
 # The API key of the orchestrator
-#api_key = { id = "orchestrator", secret = "secret" }
+api_key = { id = "orchestrator", secret = "{{ ORCHESTRATOR_API_SECRET }}" }
 # The orchestrator URL
-#url = "http://127.0.0.1:11222"
+url = "http://orchestrator:11222"
+{% endif %}
