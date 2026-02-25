@@ -17,7 +17,7 @@ address = "0.0.0.0"
 #address = "::1"
 
 # The URL of the roomserver that is reachable by internal services
-# service_url = "http://localhost:13333"
+service_url = "http://roomserver:11333"
 
 # The publicly reachable URL of this server
 public_url = "{{ roomserver_public_url }}/roomserver"
@@ -26,10 +26,10 @@ public_url = "{{ roomserver_public_url }}/roomserver"
 #
 # The roomserver can have multiple api keys configured. An api key can be configured as string ("<key_id>:<key_secret>")
 # or as key/value pair ({id = "<key_id>", secret = "<key_secret>"}).
-api_keys = [{ id = "controller", secret = "secret" }]
+api_keys = [{ id = "roomserver", secret = "{{ ROOMSERVER_API_SECRET }}" }]
 
 # The port to bind the HTTP server to (defaults to 11333)
-#port = 11333
+port = 11333
 
 # Disable the OpenAPI endpoint under `/docs/openapi.json` and the corresponding
 # swagger endpoint under `/swagger`.
@@ -44,7 +44,7 @@ api_keys = [{ id = "controller", secret = "secret" }]
 url = "http://controller:11311"
 
 # The api key for the controllers service API
-api_key = { "id" = "controller", "secret" = "secret" }
+api_key = { "id" = "controller", "secret" = "{{ CONTROLLER_API_SECRET }}" }
 
 [monitoring]
 # Monitoring settings
@@ -65,7 +65,7 @@ api_key = { "id" = "controller", "secret" = "secret" }
 #allowlist = ["127.0.0.0/24", "::ffff:0:0/96"]
 
 # Allow access from localhost and docker network
-allowlist = ["127.0.0.0/24", "::ffff:0:0/96", "172.21.0.0/16"]
+allowlist = ["127.0.0.0/24", "::ffff:0:0/96", "172.16.0.0/12"]
 
 #[tracing]
 # Tracing settings

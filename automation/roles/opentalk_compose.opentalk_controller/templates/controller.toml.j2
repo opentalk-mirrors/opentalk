@@ -112,6 +112,9 @@ service_api_keys = [{% for key in controller_http_service_api_keys %}{ "id" = "{
 [http.cors]
 allowed_origin = {{ controller_http_cors_allowed_origin }}
 {% endif %}
+{% if compose_service_opentalk_roomserver_enabled is defined and compose_service_opentalk_roomserver_enabled %}
+service_api_keys = [{ "id" = "controller", "secret" = "{{ CONTROLLER_API_SECRET }}" }]
+{% endif %}
 
 [oidc]
 authority = "{{ controller_oidc_authority | default('https://example.com/auth/realms/OPENTALK') }}"
