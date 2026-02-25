@@ -470,6 +470,7 @@ int:experimental:
       compose_service_traefik_enabled: true
       compose_service_ndt_enabled: true
       compose_service_mailcrab_enabled: false
+      opentalk_web_frontend_docker_image_src: "git.opentalk.dev:5050/opentalk/frontend/web/web-app"
       self_signed_certificates_generate: true
       custom_certificates_enabled: true
       custom_certificates_fullchain_cert_file: fullchain.crt
