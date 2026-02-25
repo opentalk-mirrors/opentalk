@@ -108,6 +108,11 @@
         - role: opentalk_compose.secrets
       tags: ["opentalk-roomserver", "roomserver"]
 
+    - role: opentalk_compose.opentalk_orchestrator
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: ["opentalk-orchestrator", "orchestrator"]
+
     - role: opentalk_compose.opentalk_web_frontend
       dependencies:
         - role: opentalk_compose.secrets
