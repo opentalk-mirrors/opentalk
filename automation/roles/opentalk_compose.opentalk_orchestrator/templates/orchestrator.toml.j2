@@ -5,7 +5,7 @@
 [http]
 address = "0.0.0.0"
 port = 11222
-api_keys = [{ id = "orchestrator", secret = "secret" }]
+api_keys = [{ id = "orchestrator", secret = "{{ ORCHESTRATOR_API_SECRET }}" }]
 
 [services]
-keys = [{ id = "roomserver", secret = "{{ ORCHESTRATOR_API_SECRET }}" }]
+keys = [{ id = "roomserver", secret = "{{ ROOMSERVER_API_SECRET }}" }]
