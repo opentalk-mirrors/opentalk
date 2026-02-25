@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[http]
+address = "0.0.0.0"
+port = 11222
+api_keys = [{ id = "orchestrator", secret = "secret" }]
+
+[services]
+keys = [{ id = "roomserver", secret = "{{ ORCHESTRATOR_API_SECRET }}" }]

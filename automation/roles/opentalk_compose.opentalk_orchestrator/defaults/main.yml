@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose.orchestrator
+
+orchestrator_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+orchestrator_docker_compose_services_state: "{{ compose_service_opentalk_orchestrator_state | default('present') }}"
+orchestrator_docker_compose_services_dir: "{{ services_dir }}"
+orchestrator_docker_compose_project_src: "{{ deploy_dir }}"
+
+orchestrator_docker_image_src: git.opentalk.dev:5050/opentalk/backend/services/orchestrator
+
+orchestrator_public_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}"

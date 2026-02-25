@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# tasks file for opentalk_compose.opentalk_orchestrator
+
+- name: Include manage_orchestrator_config.yml
+  ansible.builtin.include_tasks:
+    file: manage_orchestrator_config.yml
+  when: compose_service_opentalk_orchestrator_enabled | bool
+
+- name: Include manage_docker_compose.yml
+  ansible.builtin.include_tasks:
+    file: manage_docker_compose.yml
+  when: compose_service_opentalk_orchestrator_enabled | bool
