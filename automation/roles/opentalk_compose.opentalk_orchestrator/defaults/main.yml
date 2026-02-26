@@ -6,7 +6,7 @@
 # defaults file for opentalk_compose.orchestrator
 
 orchestrator_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
-orchestrator_docker_compose_services_state: "{{ compose_service_opentalk_orchestrator_state | default('present') }}"
+orchestrator_docker_compose_services_state: "{{ compose_service_opentalk_orchestrator_state | default('absent') }}"
 orchestrator_docker_compose_services_dir: "{{ services_dir }}"
 orchestrator_docker_compose_project_src: "{{ deploy_dir }}"
 
