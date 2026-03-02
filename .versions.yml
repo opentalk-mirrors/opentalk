@@ -8,7 +8,7 @@ opentalk_product_version: v25.4.4
 
 # OpenTalk related Container Image Versions
 opentalk_controller_version: v0.32.3
-opentalk_web_frontend_version: v2.7.2
+opentalk_web_frontend_version: v2.7.3
 opentalk_recorder_version: v0.15.2
 opentalk_obelisk_version: v0.20.9
 opentalk_smtp_mailer_version: v0.16.1
