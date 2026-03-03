@@ -21,7 +21,7 @@ livekit_port: 7880
 
 livekit_rtc_tcp_port: 7881
 livekit_rtc_port_range_start: 50000
-livekit_rtc_port_range_end: 64535
+livekit_rtc_port_range_end: 65535
 livekit_rtc_use_external_ip: true
 livekit_rtc_enable_loopback_candidate: false
 # livekit_rtc_use_ice_lite: false

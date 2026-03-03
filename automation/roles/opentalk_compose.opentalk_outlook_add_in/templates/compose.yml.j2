@@ -16,6 +16,7 @@ services:
       OPENTALK_OUTLOOK_URL: "{{ outlook_add_in_outlook_url }}"
       OPENTALK_OUTLOOK_WEBAPP_URL: "{{ outlook_add_in_outlook_webapp_url }}"
       OPENTALK_OUTLOOK_OIDC_CLIENT_ID: "{{ outlook_add_in_oidc_client_id }}"
+      OPENTALK_OUTLOOK_OIDC_SCOPES: "{{ outlook_add_in_oidc_scopes }}"
     networks:
       - {{ docker_network_name }}
     labels:

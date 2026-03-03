@@ -3,16 +3,67 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-- name: Create or update Keycloak realm
-  community.general.keycloak_realm:
-    auth_keycloak_url: "{{ keycloak_base_url }}"
-    auth_realm: "{{ keycloak_auth_realm }}"
-    auth_username: "{{ keycloak_auth_username }}"
-    auth_password: "{{ keycloak_auth_password }}"
-    realm: "{{ keycloak_realm }}"
-    state: present
-    enabled: true
-    login_theme: "opentalk"
+# Check if realm exists first
+- name: Check if Keycloak realm exists
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    status_code: [200, 404]
+  register: realm_check
+
+# Create realm only if it doesn't exist (minimal config, no timeouts)
+- name: Create Keycloak realm if not exists
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      realm: "{{ keycloak_realm }}"
+      enabled: true
+      loginTheme: "opentalk"
+    status_code: [201]
+  when: realm_check.status == 404
+
+# Reset client session timeouts before updating realm to avoid validation errors
+# (Keycloak 26.5+ requires client timeouts <= realm SSO timeouts)
+- name: Get all clients in realm
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients?max=1000"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    return_content: true
+  register: realm_clients
+
+- name: Reset client session timeouts to inherit from realm
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients/{{ item.id }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body: |
+      {{
+        item | combine({
+          "attributes": (item.attributes | default({}) | combine({
+            "client.session.idle.timeout": "0",
+            "client.session.max.lifespan": "0"
+          }))
+        })
+      }}
+    status_code: [200, 204]
+  loop: "{{ realm_clients.json }}"
+  loop_control:
+    label: "{{ item.clientId }}"
+  when: >
+    (item.attributes['client.session.idle.timeout'] | default('0') | int > keycloak_realm_sso_session_idle_timeout) or
+    (item.attributes['client.session.max.lifespan'] | default('0') | int > keycloak_realm_sso_session_max_lifespan)
 
 - name: Get current realm config
   ansible.builtin.uri:
@@ -35,13 +86,24 @@
       {{
         (realm_config.json | combine({
           "displayNameHtml": '<div class="kc-logo-text"><span>OpenTalk</span></div>',
-          "offlineSessionIdleTimeout": 31536000,
-          "offlineSessionMaxLifespan": 31536000,
-          "offlineSessionMaxLifespanEnabled": true,
-          "clientSessionIdleTimeout": 31536000,
-          "clientSessionMaxLifespan": 31536000,
+          "ssoSessionIdleTimeout": keycloak_realm_sso_session_idle_timeout,
+          "ssoSessionMaxLifespan": keycloak_realm_sso_session_max_lifespan,
+          "offlineSessionIdleTimeout": keycloak_realm_offline_session_idle_timeout,
+          "offlineSessionMaxLifespan": keycloak_realm_offline_session_max_lifespan,
+          "offlineSessionMaxLifespanEnabled": keycloak_realm_offline_session_max_lifespan_enabled,
+          "clientSessionIdleTimeout": keycloak_realm_client_session_idle_timeout,
+          "clientSessionMaxLifespan": keycloak_realm_client_session_max_lifespan,
+          "accessTokenLifespan": keycloak_realm_access_token_lifespan,
+          "accessTokenLifespanForImplicitFlow": keycloak_realm_access_token_lifespan_implicit,
+          "accessCodeLifespan": keycloak_realm_access_code_lifespan,
+          "accessCodeLifespanLogin": keycloak_realm_access_code_lifespan_login,
+          "accessCodeLifespanUserAction": keycloak_realm_access_code_lifespan_user_action,
+          "actionTokenGeneratedByAdminLifespan": keycloak_realm_action_token_generated_by_admin_lifespan,
+          "actionTokenGeneratedByUserLifespan": keycloak_realm_action_token_generated_by_user_lifespan,
+          "revokeRefreshToken": keycloak_realm_revoke_refresh_token,
+          "refreshTokenMaxReuse": keycloak_realm_refresh_token_max_reuse,
           "attributes": (realm_config_json_attributes | default({}) | combine({
-            "_browser_header_contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self' {{ (ot_ingress_protocol, ot_domain) | build_url }}:* {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }} {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_wildcard_url }}; object-src 'none';",
+            "_browser_header_contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self' " ~ ((ot_ingress_protocol, ot_domain) | build_url) ~ ":* " ~ ((ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url) ~ " " ~ ((ot_ingress_protocol, ot_domain, ot_ingress_port) | build_wildcard_url) ~ "; object-src 'none';",
             "_browser_header_xContentTypeOptions": "nosniff",
             "_browser_header_xRobotsTag": "none",
             "_browser_header_xFrameOptions": "DENY",

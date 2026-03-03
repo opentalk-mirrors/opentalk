@@ -156,6 +156,16 @@ else
   echo "[stage] WARN: opentalk_keycloak_realm_export_sanitize.sh not found at $SCRIPT_NEW_SRC"
 fi
 
+# Install keycloak-theme-generator tool
+KC_THEME_GEN_SRC="$ROOT/build/tools/keycloak-theme-generator"
+if [[ -x "$KC_THEME_GEN_SRC" ]]; then
+  echo "[stage] Installing keycloak-theme-generator"
+  install -m0755 "$KC_THEME_GEN_SRC" "$RUNTIME_BIN_DIR/keycloak-theme-generator"
+  ln -sfn "/opt/opentalk-compose/bin/keycloak-theme-generator" "$USR_BIN_DIR/keycloak-theme-generator"
+else
+  echo "[stage] WARN: keycloak-theme-generator not found at $KC_THEME_GEN_SRC"
+fi
+
 # Portable Python
 if [[ -x "$ROOT/build/python/bin/python3" ]]; then
   echo "[stage] Including portable Python runtime"

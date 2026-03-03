@@ -38,6 +38,8 @@ keycloak_local_port: "{{ ot_ingress_port }}"
 
 keycloak_manage_enabled: true
 
+keycloak_theme_path: "{{ services_dir }}/keycloak/keycloak-ot-theme.jar"
+
 keycloak_bootstrap_admin_username: bootstrap_admin
 keycloak_bootstrap_admin_password: "{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}"
 # Whether to remove the bootstrap admin automatically after permanent admin exists
@@ -80,3 +82,43 @@ keycloak_redirectUris_uris:
   - "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/room/*"
   - "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/join"
   - "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/"
+
+# Realm session timeouts (in seconds)
+# ssoSessionIdleTimeout: Time before idle session expires (default: 24 hours)
+# ssoSessionMaxLifespan: Maximum session lifetime (default: 30 days)
+keycloak_realm_sso_session_idle_timeout: 86400
+keycloak_realm_sso_session_max_lifespan: 2592000
+# Offline session timeouts for refresh tokens / "remember me" (in seconds)
+# offlineSessionIdleTimeout: Idle timeout for offline tokens (default: 30 days)
+# offlineSessionMaxLifespan: Max lifetime for offline tokens (default: 60 days)
+keycloak_realm_offline_session_idle_timeout: 2592000
+keycloak_realm_offline_session_max_lifespan: 5184000
+keycloak_realm_offline_session_max_lifespan_enabled: true
+# Client session timeouts (in seconds)
+# Should not exceed ssoSession* values (Keycloak 26.5+ validation)
+keycloak_realm_client_session_idle_timeout: 86400
+keycloak_realm_client_session_max_lifespan: 2592000
+
+# Token lifespans (in seconds)
+# accessTokenLifespan: How long an access token is valid (default: 5 minutes)
+keycloak_realm_access_token_lifespan: 300
+# accessTokenLifespanForImplicitFlow: Access token lifespan for implicit flow (default: 15 minutes)
+keycloak_realm_access_token_lifespan_implicit: 900
+# accessCodeLifespan: Max time a client has to finish auth code flow (default: 1 minute)
+keycloak_realm_access_code_lifespan: 60
+# accessCodeLifespanLogin: Max time user has to complete login (default: 30 minutes)
+keycloak_realm_access_code_lifespan_login: 1800
+# accessCodeLifespanUserAction: Max time for user action during login (default: 5 minutes)
+keycloak_realm_access_code_lifespan_user_action: 300
+
+# Action token lifespans (in seconds)
+# actionTokenGeneratedByAdminLifespan: Default lifespan for admin-initiated action tokens (default: 12 hours)
+keycloak_realm_action_token_generated_by_admin_lifespan: 43200
+# actionTokenGeneratedByUserLifespan: Lifespan for user-initiated action tokens (default: 5 minutes)
+keycloak_realm_action_token_generated_by_user_lifespan: 300
+
+# Refresh token settings
+# revokeRefreshToken: If true, refresh tokens can only be used once (default: false)
+keycloak_realm_revoke_refresh_token: false
+# refreshTokenMaxReuse: How many times a refresh token can be reused (0 = unlimited, only if revokeRefreshToken is false)
+keycloak_realm_refresh_token_max_reuse: 0

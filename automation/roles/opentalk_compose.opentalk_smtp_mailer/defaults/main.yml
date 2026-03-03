@@ -14,7 +14,7 @@ mailer_docker_compose_ulimits_nofile_soft: 16384
 mailer_docker_compose_ulimits_nofile_hard: 32768
 mailer_docker_compose_ulimits_nproc: 4096
 
-mailer_docker_image_src: "registry.opencode.de/opentalk/smtp-mailer"
+mailer_docker_image_src: registry.heinlein.group/opentalk/smtp-mailer
 
 mailer_rabbit_mq_url: "amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F"
 mailer_rabbit_mq_mail_task_queue: "opentalk_mailer"

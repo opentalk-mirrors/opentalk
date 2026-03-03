@@ -21,11 +21,14 @@
     client_authenticator_type: client-secret
     implicit_flow_enabled: false
     protocol: openid-connect
+    client_scopes_behavior: idempotent
+    default_client_scopes: "{{ (outlook_add_in_oidc_scopes | default('profile email openid')).split() }}"
     attributes:
       oauth2.device.authorization.grant.enabled: "true"
       access.token.lifespan: "1800"
       use.refresh.tokens: "true"
-      client.session.idle.timeout: "31536000"
-      client.session.max.lifespan: "31536000"
-      client.offline.session.idle.timeout: "31536000"
-      client.offline.session.max.lifespan: "31536000"
+      # client timeouts inherited from realm
+      client.session.idle.timeout: "0"
+      client.session.max.lifespan: "0"
+      client.offline.session.idle.timeout: "0"
+      client.offline.session.max.lifespan: "0"

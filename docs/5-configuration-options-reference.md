@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-01-23
+Last updated: 2026-02-17
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -66,7 +66,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `etherpad_docker_environment_suppress_errors_in_pad_text` | boolean | `true` |
 | `etherpad_docker_environment_trust_proxy` | boolean | `true` |
 | `etherpad_docker_extra_hosts` | list | `[]` |
-| `etherpad_docker_image_src` | string | `registry.opencode.de/opentalk/etherpad` |
+| `etherpad_docker_image_src` | string | `registry.heinlein.group/opentalk/etherpad` |
 | `etherpad_docker_labels_traefik_enable` | boolean | `true` |
 | `etherpad_docker_labels_traefik_http_routers_etherpad_rule` | string | `Host(`{{ ot_domain }}`) && PathPrefix(`/etherpad`)` |
 | `etherpad_docker_ports` | list | `[]` |
@@ -120,8 +120,25 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_proxy` | string | `edge` |
 | `keycloak_proxy_headers` | string | `xforwarded` |
 | `keycloak_realm` | string | `opentalk` |
+| `keycloak_realm_access_code_lifespan` | integer | `60` |
+| `keycloak_realm_access_code_lifespan_login` | integer | `1800` |
+| `keycloak_realm_access_code_lifespan_user_action` | integer | `300` |
+| `keycloak_realm_access_token_lifespan` | integer | `300` |
+| `keycloak_realm_access_token_lifespan_implicit` | integer | `900` |
+| `keycloak_realm_action_token_generated_by_admin_lifespan` | integer | `43200` |
+| `keycloak_realm_action_token_generated_by_user_lifespan` | integer | `300` |
+| `keycloak_realm_client_session_idle_timeout` | integer | `86400` |
+| `keycloak_realm_client_session_max_lifespan` | integer | `2592000` |
+| `keycloak_realm_offline_session_idle_timeout` | integer | `2592000` |
+| `keycloak_realm_offline_session_max_lifespan` | integer | `5184000` |
+| `keycloak_realm_offline_session_max_lifespan_enabled` | boolean | `true` |
+| `keycloak_realm_refresh_token_max_reuse` | integer | `0` |
+| `keycloak_realm_revoke_refresh_token` | boolean | `false` |
+| `keycloak_realm_sso_session_idle_timeout` | integer | `86400` |
+| `keycloak_realm_sso_session_max_lifespan` | integer | `2592000` |
 | `keycloak_redirectUris_uris` | list | `['{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/popup_callback', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/callback', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard/*', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/room/*', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/join', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/']` |
 | `keycloak_spi_sticky_session_encoder_infinispan_should_attach_route` | string | `false` |
+| `keycloak_theme_path` | string | `{{ services_dir }}/keycloak/keycloak-ot-theme.jar` |
 | `keycloak_wait_to_be_reachable_delay` | integer | `10` |
 | `keycloak_wait_to_be_reachable_retries` | integer | `20` |
 | `postInstall_demoUser_email` | string | `demo.user@example.com` |
@@ -147,7 +164,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `livekit_rtc_enable_loopback_candidate` | boolean | `false` |
 | `livekit_rtc_ips_excludes` | list | `['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']` |
 | `livekit_rtc_ips_includes` | list | `[]` |
-| `livekit_rtc_port_range_end` | integer | `64535` |
+| `livekit_rtc_port_range_end` | integer | `65535` |
 | `livekit_rtc_port_range_start` | integer | `50000` |
 | `livekit_rtc_tcp_port` | integer | `7881` |
 | `livekit_rtc_use_external_ip` | boolean | `true` |
@@ -225,7 +242,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `controller_docker_compose_ulimits_nproc` | integer | `8192` |
 | `controller_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
-| `controller_docker_image_src` | string | `registry.opencode.de/opentalk/controller` |
+| `controller_docker_image_src` | string | `registry.heinlein.group/opentalk/controller` |
 | `controller_endpoints_event_invite_external_email_address` | string | `true` |
 | `controller_etherpad_api_key` | string | `{{ ETHERPAD_API_KEY }}` |
 | `controller_etherpad_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/etherpad/` |
@@ -278,7 +295,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_docker_compose_ulimits_nofile_soft` | integer | `98304` |
 | `obelisk_docker_compose_ulimits_nproc` | integer | `16384` |
 | `obelisk_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
-| `obelisk_docker_image_src` | string | `registry.opencode.de/opentalk/obelisk` |
+| `obelisk_docker_image_src` | string | `registry.heinlein.group/opentalk/obelisk` |
 | `obelisk_docker_network_mode` | string | `` |
 | `obelisk_docker_ports` | list | `['5060:5060']` |
 | `obelisk_environment_gst_debug_level` | integer | `2` |
@@ -314,9 +331,10 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `outlook_add_in_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `outlook_add_in_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `outlook_add_in_docker_compose_ulimits_nproc` | integer | `8192` |
-| `outlook_add_in_docker_image_src` | string | `registry.opencode.de/opentalk/opentalk-outlook-add-in` |
+| `outlook_add_in_docker_image_src` | string | `registry.heinlein.group/opentalk/outlook-add-in` |
 | `outlook_add_in_labels_traefik_http_middlewares_outlook_add_in_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, '*') \| build_url }}` |
 | `outlook_add_in_oidc_client_id` | string | `OutlookAddin` |
+| `outlook_add_in_oidc_scopes` | string | `profile email openid` |
 | `outlook_add_in_outlook_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/outlook` |
 | `outlook_add_in_outlook_webapp_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
 
@@ -337,7 +355,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `recorder_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `recorder_docker_compose_ulimits_nproc` | integer | `8192` |
 | `recorder_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
-| `recorder_docker_image_src` | string | `registry.opencode.de/opentalk/recorder` |
+| `recorder_docker_image_src` | string | `registry.heinlein.group/opentalk/recorder` |
 | `recorder_monitoring_port` | integer | `11411` |
 | `recorder_rabbitmq_queue` | string | `opentalk_recorder` |
 | `recorder_rabbitmq_uri` | string | `amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F` |
@@ -355,7 +373,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailer_docker_compose_ulimits_nofile_hard` | integer | `32768` |
 | `mailer_docker_compose_ulimits_nofile_soft` | integer | `16384` |
 | `mailer_docker_compose_ulimits_nproc` | integer | `4096` |
-| `mailer_docker_image_src` | string | `registry.opencode.de/opentalk/smtp-mailer` |
+| `mailer_docker_image_src` | string | `registry.heinlein.group/opentalk/smtp-mailer` |
 | `mailer_frontend_base_url` | string | `https://{{ ot_domain }}` |
 | `mailer_languages_default_language` | string | `de-DE` |
 | `mailer_monitoring_addr` | string | `0.0.0.0` |
@@ -380,7 +398,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `opentalk_web_frontend_docker_compose_ulimits_nofile_soft` | integer | `4096` |
 | `opentalk_web_frontend_docker_compose_ulimits_nproc` | integer | `2048` |
 | `opentalk_web_frontend_docker_extra_hosts` | list | `[]` |
-| `opentalk_web_frontend_docker_image_src` | string | `registry.opencode.de/opentalk/web-frontend` |
+| `opentalk_web_frontend_docker_image_src` | string | `registry.heinlein.group/opentalk/web-frontend` |
 | `opentalk_web_frontend_environment_base_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
 | `opentalk_web_frontend_environment_change_password_url` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}/account/` |
 | `opentalk_web_frontend_environment_controller_host` | string | `{{ (ot_domain, ot_ingress_port) \| build_host }}/controller` |
@@ -482,7 +500,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `spacedeck_docker_environment_sd_invite_code` | string | `/run/secrets/spacedeck_invite_secret` |
 | `spacedeck_docker_environment_sd_port` | integer | `9666` |
 | `spacedeck_docker_extra_hosts` | list | `[]` |
-| `spacedeck_docker_image_src` | string | `registry.opencode.de/opentalk/spacedeck` |
+| `spacedeck_docker_image_src` | string | `registry.heinlein.group/opentalk/spacedeck` |
 | `spacedeck_docker_labels_traefik_enable` | boolean | `true` |
 | `spacedeck_docker_ports` | list | `[]` |
 

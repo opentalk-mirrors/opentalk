@@ -14,7 +14,7 @@ recorder_docker_compose_ulimits_nofile_soft: 65536
 recorder_docker_compose_ulimits_nofile_hard: 65536
 recorder_docker_compose_ulimits_nproc: 8192
 
-recorder_docker_image_src: registry.opencode.de/opentalk/recorder
+recorder_docker_image_src: registry.heinlein.group/opentalk/recorder
 recorder_docker_extra_hosts:
   - host.docker.internal:host-gateway
 
@@ -26,7 +26,7 @@ recorder_controller_domain: "controller:11311"
 recorder_controller_insecure: "true"
 
 recorder_rabbitmq_uri: "amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F"
-recorder_rabbitmq_queue: "opentalk_recorder"
+recorder_rabbitmq_queue: opentalk_recorder
 
 recorder_recorder_display: "true"
 recorder_recorder_clock_format: "%d.%m.%y %X %Z"

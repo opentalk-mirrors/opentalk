@@ -388,7 +388,7 @@ Create a `compose.yml` file in `/opt/opentalk-recorder/`:
 ```yaml
 services:
   recorder:
-    image: registry.opencode.de/opentalk/recorder:v0.13.1
+    image: registry.heinlein.group/opentalk/recorder
     container_name: opentalk-recorder
     restart: always
     environment:
@@ -521,7 +521,7 @@ Before proceeding, ensure:
 - A TLS certificate and private key for the `turn.example.com` domain are available.
 - Open port 3478/udp and 443/tcp for TLS on your firewall.
 - Ensure the TURN server is reachable from your LiveKit server and clients.
-- Ensure LiveKit RTC port range is reachable from the TURN server (OpenTalk Compose default: 50000-64535/udp).
+- Ensure LiveKit RTC port range is reachable from the TURN server (OpenTalk Compose default: 50000-65535/udp).
 
 ### 5.2 Minimal Coturn configuration
 

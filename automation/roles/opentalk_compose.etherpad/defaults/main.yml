@@ -13,7 +13,7 @@ etherpad_docker_compose_ulimits_nofile_soft: 8192
 etherpad_docker_compose_ulimits_nofile_hard: 16384
 etherpad_docker_compose_ulimits_nproc: 4096
 
-etherpad_docker_image_src: registry.opencode.de/opentalk/etherpad
+etherpad_docker_image_src: registry.heinlein.group/opentalk/etherpad
 
 etherpad_docker_extra_hosts: []
 
