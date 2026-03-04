@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.4.4] - 2026-03-04
+
+[25.4.4]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.3...v25.4.4
+
+### 🚀 New features
+
+- (keycloak) Make keycloak realm session timeouts configurable ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (outlook-add-in) Make oidc scopes configurable ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (packaging) Add keycloak-theme-generator binary to the opentalk-compose package ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (keycloak) Make keycloak theme configurable ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+
+### 🐛 Bug fixes
+
+- (docs) Correct config variable name for TURN TLS ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+
+### 📦 Dependencies
+
+- (deps) Update dependency ansible-core to v2.20.3 ([!122](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/122))
+- (deps) Update dependency community.general to v12.4.0 ([!121](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/121))
+- (deps) Update dependency community.docker to v5.0.6 ([!107](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/107))
+- (deps) Update dependency community.crypto to v3.1.1 ([!118](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/118))
+- (deps) Update keycloak to version 26.5.3 ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (deps) Update keycloak-theme-generator-tool to v0.1.2 ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (deps) Update web frontend to version v2.7.3 ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (deps) Update controller to version v0.32.5 ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (deps) Update obelisk to version v0.20.12 ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (deps) Update outlook-add-in to version v0.20.12 ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+
+### ⚙ Miscellaneous
+
+- (keycloak) Support session timeout variables in realm config template ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (keycloak) Outlook addin client session timeouts inherited from realm ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (keyclaok) Reset client session timeouts before realm update ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (keycloak) Restructure realm tasks to reset clients before timeouts ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (docs) Update image source defaults ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (container) Switch to registry.heinlein.group as default image source for opentalk components ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (ci) Experimental deployment is optional ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (docs) Change livekit server default port range to 50000-65535/udp ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (keyclaok) Make access token lifespan configurable ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (docs) Add access token lifespan defaults ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (packaging) Use Job artifacts to fetch keycloak-theme-generator ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (docs) Add keycloak-theme-generator-tool docs ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+- (docs) Set correct settings path in installation docs ([!124](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/124))
+
 ## [25.4.3] - 2026-02-11
 
 [25.4.3]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.2...v25.4.3
