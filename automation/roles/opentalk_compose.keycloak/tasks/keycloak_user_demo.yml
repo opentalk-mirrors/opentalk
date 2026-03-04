@@ -55,6 +55,7 @@
     email: "{{ postInstall_demoUser_email | default('demo.user@localhost') }}"
     enabled: "{{ postInstall_demoUser_enabled | default(true) }}"
     emailVerified: true
+    force: true
     credentials:
       - type: password
         value: "{{ postInstall_demoUser_password }}"
