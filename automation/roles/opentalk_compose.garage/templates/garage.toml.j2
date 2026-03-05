@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# Garage configuration — managed by Ansible
+# Documentation: https://garagehq.deuxfleurs.fr/documentation/reference-manual/configuration/
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "{{ garage_db_engine }}"
+
+replication_factor = {{ garage_replication_factor }}
+
+[rpc]
+bind_addr = "{{ garage_rpc_bind_addr }}"
+public_addr = "{{ garage_rpc_public_addr }}"
+# rpc_secret is provided via GARAGE_RPC_SECRET_FILE environment variable
+
+[s3_api]
+s3_region = "{{ garage_s3_region }}"
+api_bind_addr = "{{ garage_s3_api_bind_addr }}"
+root_domain = ".s3.garage.localhost"
+
+[admin]
+api_bind_addr = "{{ garage_admin_api_bind_addr }}"
+# admin_token is provided via GARAGE_ADMIN_TOKEN_FILE environment variable

@@ -1,0 +1,153 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Garage cluster initialization (idempotent)
+# Runs after the container is started for the first time.
+# Each step checks if already completed before executing.
+
+- name: Wait for Garage to become healthy
+  community.docker.docker_container_info:
+    name: "{{ garage_docker_compose_project_name }}-garage-1"
+  register: garage_container_info
+  until: garage_container_info.container.State.Health.Status == "healthy"
+  retries: 30
+  delay: 5
+
+# --- Cluster Layout ---
+
+- name: Check current Garage layout
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      garage layout show
+  register: garage_layout_show
+  changed_when: false
+
+- name: Get Garage node status
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      garage status
+  register: garage_status
+  changed_when: false
+  when: "'NO ROLE ASSIGNED' in garage_layout_show.stdout or 'Current cluster layout version: 0' in garage_layout_show.stdout"
+
+- name: Extract Garage node ID
+  ansible.builtin.set_fact:
+    garage_node_id: "{{ garage_status.stdout_lines | select('search', 'this node') | first | regex_search('[0-9a-f]{16}') }}"
+  when: garage_status is not skipped and garage_status.rc == 0
+
+- name: Assign layout role to Garage node
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      garage layout assign -z {{ garage_layout_zone }} -c {{ garage_layout_capacity }} {{ garage_node_id }}
+  when: garage_node_id is defined
+  register: garage_layout_assign
+
+- name: Apply Garage layout
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      garage layout apply --version 1
+  when: garage_layout_assign is not skipped and garage_layout_assign is changed
+  register: garage_layout_apply
+
+# --- Bucket ---
+
+- name: Check if bucket exists
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      garage bucket list
+  register: garage_bucket_list
+  changed_when: false
+
+- name: Create Garage bucket
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      garage bucket create {{ garage_bucket_name }}
+  when: "garage_bucket_name not in garage_bucket_list.stdout"
+
+# --- API Key ---
+
+- name: Check if API key exists
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      garage key list
+  register: garage_key_list
+  changed_when: false
+
+- name: Create Garage API key
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      garage key create {{ garage_key_name }}
+  register: garage_key_create
+  when: "garage_key_name not in garage_key_list.stdout"
+
+- name: Extract API key credentials
+  when: garage_key_create is not skipped and garage_key_create is changed
+  block:
+    - name: Parse Key ID (access_key)
+      ansible.builtin.set_fact:
+        garage_new_access_key: "{{ garage_key_create.stdout | regex_search('Key ID: (\\S+)', '\\1') | first }}"
+
+    - name: Parse Secret key
+      ansible.builtin.set_fact:
+        garage_new_secret_key: "{{ garage_key_create.stdout | regex_search('Secret key: (\\S+)', '\\1') | first }}"
+
+- name: Grant key permissions on bucket
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      garage bucket allow --read --write --owner {{ garage_bucket_name }} --key {{ garage_key_name }}
+  when: garage_key_create is not skipped and garage_key_create is changed
+
+# --- Persist credentials ---
+
+- name: Get existing key info (when key already existed)
+  when: garage_key_create is skipped or garage_key_create is not changed
+  block:
+    - name: Retrieve key info
+      ansible.builtin.command:
+        cmd: >
+          docker exec {{ garage_docker_compose_project_name }}-garage-1
+          garage key info {{ garage_key_name }}
+      register: garage_key_info
+      changed_when: false
+
+    - name: Parse existing Key ID (access_key)
+      ansible.builtin.set_fact:
+        garage_new_access_key: "{{ garage_key_info.stdout | regex_search('Key ID: (\\S+)', '\\1') | first }}"
+
+    - name: Parse existing Secret key
+      ansible.builtin.set_fact:
+        garage_new_secret_key: "{{ garage_key_info.stdout | regex_search('Secret key: (\\S+)', '\\1') | first }}"
+
+- name: Load existing secrets file
+  ansible.builtin.include_vars:
+    file: "{{ config_dir }}/secrets/secrets.yml"
+    name: existing_secrets_garage
+
+- name: Update secrets with Garage S3 credentials
+  ansible.builtin.copy:
+    dest: "{{ config_dir }}/secrets/secrets.yml"
+    mode: '0600'
+    content: |
+      # !!! DO NOT EDIT THIS FILE BY HAND !!!
+      # This configuration file is managed by ansible. Changes will be overwritten.
+
+      {{ existing_secrets_garage | combine({'GARAGE_S3_ACCESS_KEY': garage_new_access_key, 'GARAGE_S3_SECRET_KEY': garage_new_secret_key}) | to_nice_yaml(indent=2) }}
+  no_log: true
+  when: >
+    existing_secrets_garage.get('GARAGE_S3_ACCESS_KEY', '') != garage_new_access_key or
+    existing_secrets_garage.get('GARAGE_S3_SECRET_KEY', '') != garage_new_secret_key
+
+- name: Reload secrets into variables
+  ansible.builtin.include_vars:
+    file: "{{ config_dir }}/secrets/secrets.yml"

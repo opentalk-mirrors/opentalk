@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# tasks file for opentalk_compose.garage
+
+- name: Include manage_garage_config.yml
+  ansible.builtin.include_tasks:
+    file: manage_garage_config.yml
+  when: compose_service_garage_enabled | bool
+
+- name: Include manage_docker_compose.yml
+  ansible.builtin.include_tasks:
+    file: manage_docker_compose.yml
+  when: compose_service_garage_enabled | bool
+
+- name: Include manage_garage_init.yml
+  ansible.builtin.include_tasks:
+    file: manage_garage_init.yml
+  when: compose_service_garage_enabled | bool
