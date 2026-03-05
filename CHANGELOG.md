@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.4.5] - 2026-03-05
+
+[25.4.5]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.4...v25.4.5
+
+### 🐛 Bug fixes
+
+- (keycloak) Force demo user password update ([!126](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/126))
+
+### 📦 Dependencies
+
+- (deps) Update dependency ansible-core to v2.20.3 ([!122](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/122))
+- (deps) Update dependency community.general to v12.4.0 ([!121](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/121))
+- (deps) Update OpenTalk Product version v25.4.5 ([!127](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/127))
+- (deps) Update OpenTalk Controller v0.32.6 ([!127](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/127))
+- (deps) Update OpenTalk Frontend v2.7.4 ([!127](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/127))
+- (deps) Update Etherpad v2.0.3 ([!127](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/127))
+
+### ⚙ Miscellaneous
+
+- (docs) Update CHANGELOG ([!125](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/125))
+
 ## [25.4.4] - 2026-03-04
 
 [25.4.4]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.3...v25.4.4
