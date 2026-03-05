@@ -15,7 +15,7 @@ rabbitmq_docker_compose_ulimits_nofile_hard: 65536
 rabbitmq_docker_compose_ulimits_nproc: 8192
 
 rabbitmq_docker_ports: []
-rabbitmq_docker_image_src: rabbitmq
+rabbitmq_docker_image_src: registry.heinlein.group/opentalk/rabbitmq
 
 rabbitmq_default_vhost: "/"
 rabbitmq_default_user: ot
