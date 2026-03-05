@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.4.6] - 2026-03-05
+
+[25.4.6]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.4...v25.4.6
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk Product version v25.4.6 ([!128](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/128))
+- (deps) Update OpenTalk Frontend v2.7.5 ([!128](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/128))
+- (deps) Update OpenTalk Controller v0.32.7 ([!128](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/128))
+
 ## [25.4.5] - 2026-03-05
 
 [25.4.5]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.4...v25.4.5
