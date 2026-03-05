@@ -4,7 +4,7 @@
 
 ---
 # OpenTalk Product Version
-opentalk_product_version: v25.4.5
+opentalk_product_version: v25.4.6
 
 # OpenTalk related Container Image Versions
 opentalk_controller_version: v0.32.6
