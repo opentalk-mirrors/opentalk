@@ -14,11 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (deps) Update OpenTalk Product version v25.4.6 ([!128](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/128))
 - (deps) Update OpenTalk Frontend v2.7.5 ([!128](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/128))
 - (deps) Update OpenTalk Controller v0.32.7 ([!128](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/128))
+- (deps) Update traefik v3.6.9 ([!128](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/128))
 
 ### ⚙ Miscellaneous
 
 - (docs) Update CHANGELOG ([!128](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/128))
 - (container) Heinlein registry by default ([!128](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/128))
+- (docs) Update CHANGELOG ([!128](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/128))
 
 ## [25.4.5] - 2026-03-05
 
