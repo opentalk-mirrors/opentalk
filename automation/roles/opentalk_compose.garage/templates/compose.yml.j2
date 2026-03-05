@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+services:
+  garage:
+    image: "{{ garage_docker_image_src }}:{{ garage_version }}"
+    restart: always
+    networks:
+      - {{ docker_network_name }}
+    volumes:
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+      - {{ garage_docker_compose_services_dir }}/garage/garage.toml:/etc/garage.toml:ro
+    environment:
+      GARAGE_RPC_SECRET_FILE: /run/secrets/garage_rpc_secret
+      GARAGE_ADMIN_TOKEN_FILE: /run/secrets/garage_admin_token
+    secrets:
+      - garage_rpc_secret
+      - garage_admin_token
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:{{ garage_admin_api_port }}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+secrets:
+  garage_rpc_secret:
+    file: ${CONTAINER_SECRETS_PATH:-{{ config_dir }}/secrets}/.garage_rpc.secret
+  garage_admin_token:
+    file: ${CONTAINER_SECRETS_PATH:-{{ config_dir }}/secrets}/.garage_admin_token.secret
+
+volumes:
+  garage_meta:
+  garage_data:
