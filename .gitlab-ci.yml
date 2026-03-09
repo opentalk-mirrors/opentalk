@@ -42,7 +42,7 @@ variables:
   DEFAULT_FLAVOR: trixie
 
 .template_vars:
-  FLAVORS: [trixie, bookworm, noble, scratch]
+  FLAVORS: [trixie, noble, scratch]
 
 .default_job_condition: &default_job_condition
   needs: []
