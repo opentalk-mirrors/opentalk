@@ -5,6 +5,117 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2026-03-09
+
+[0.21.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.20.12...v0.21.0
+
+### 🚀 New features
+
+- Log received dtmf events ([!321](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/321))
+- (ci) Push images to new registry ([#223](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/223))
+- Add health command ([#214](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/214))
+- Add sip.display_name_source config ([#226](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/226))
+- Add from scratch container ([!409](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/409), [!479](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/479))
+- Support inbound TCP connections ([!449](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/449))
+- Respond to options requests ([#234](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/234))
+- Add config sip.inbound_addr & sip.inbound_media_ip ([#240](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/240))
+- (ci) Add release mr creation job ([#243](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/243))
+
+### 🐛 Bug fixes
+
+- Avoid dropping packets when the internal RTP receiver falls behind ([!278](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/278))
+- Do not depend on API answer to check access-token expiry ([!280](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/280))
+- Use workaround to include padding in STUN attribute value lengths ([!304](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/304))
+- Disconnect from livekit before disconnecting from opentalk ([!320](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/320))
+- Properly release local UDP port when a STUN server is configured ([!319](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/319))
+- Mute video when rejecting being recorded ([#201](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/201))
+- Detect and timeout calls with broken rtp connection ([!335](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/335))
+- Remove usage of tokio::block_in_place ([!335](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/335))
+- Mute microphone when recording is active and consent is pending ([#208](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/208))
+- Avoid lockup when STUN request is not answered ([!438](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/438))
+
+### 📚 Documentation
+
+- Prepare documentation for mkdocs-material ([#211](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/211))
+- Add small section about video support ([!403](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/403))
+- Add inbound addr and media examples ([!476](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/476))
+
+### 📦 Dependencies
+
+- (deps) Update rust crate tokio to v1.47.1
+- (deps) Update rust crate bitstream-io to v4.5.0
+- (deps) Update rust crate rand to v0.9.2
+- (deps) Update rust crate serde_json to v1.0.142
+- (deps) Update rust crate anstream to v0.6.20
+- (deps) Update rust crate openidconnect to v4.0.1
+- (deps) Update pre-commit hook pre-commit/pre-commit-hooks to v5
+- (deps) Update pre-commit hook adrienverge/yamllint to v1.37.1
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.3
+- (deps) Update pre-commit hook pre-commit/pre-commit-hooks to v6
+- (deps) Update rust crate anyhow to v1.0.99
+- (deps) Update rust crate thiserror to v2.0.14
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.89.0
+- (deps) Update rust crate types-common to v0.36.1
+- (deps) Update rust crate async-trait to v0.1.89
+- (deps) Lock file maintenance
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.4
+- (deps) Update rust crate config to v0.15.15
+- (deps) Lock file maintencance
+- (deps) Remove patch versions in Cargo.toml
+- (deps) Update pre-commit hook fsfe/reuse-tool to v5.1.1
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.5
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.90.0
+- (deps) Update rust crate tt to 0.28
+- (deps) Update rust crate openh264 to 0.9
+- (deps) Update rust crate owo-colors to v4.2.3
+- (deps) Update rust crate config to v0.15.18
+- (deps) Update pre-commit hook alessandrojcm/commitlint-pre-commit-hook to v9.23.0
+- (deps) Update rust crate rtp to 0.14
+- (deps) Update pre-commit hook fsfe/reuse-tool to v6
+- (deps) Update pre-commit hook fsfe/reuse-tool to v6.2.0
+- (deps) Update rust crate clap to v4.5.51
+- (deps) Update registry.gitlab.com/pipeline-components/markdownlint docker tag to v0.14.5
+- (deps) Update rust crate log to v0.4.29
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.7
+- (deps) Update pre-commit hook markdownlint/markdownlint to v0.15.0
+- (deps) Update rust crate service-probe to 0.3
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.8
+- (deps) Update rust crate reqwest to v0.12.25
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.9
+- (deps) Update rust crate serde_json to v1.0.146
+- (deps) Update rust crate reqwest to v0.12.27
+- (deps) Update rust crate reqwest to v0.12.28
+- (deps) Update pre-commit hook andrejorsula/pre-commit-cargo to v0.5.0
+- (deps) Update rust crate serde_json to v1.0.147
+- (deps) Update pre-commit hook alessandrojcm/commitlint-pre-commit-hook to v9.24.0
+- (deps) Update rust crate serde_json to v1.0.149
+- (deps) Update rust crate url to v2.5.8
+- (deps) Update pre-commit hook adrienverge/yamllint to v1.38.0
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.0
+- (deps) Update rust crate service-probe-client to 0.4
+- (deps) Update rust crate chrono to v0.4.43
+- (deps) Update rust crate openh264 to v0.9.3
+- (deps) Update rust crate thiserror to v2.0.18
+- (deps) Update rust crate ezk-image to 0.4
+- (deps) Update rust crate service-probe to 0.4
+- (deps) Update rust crate jsonwebtoken to v10
+- (deps) Update rust crate rtp to 0.17
+- (deps) Update rust crate temp-dir to 0.2.0
+- (deps) Update rust crate native-tls to v0.2.18
+- (deps) Update quay.io/buildah/stable docker tag to v1.42.2
+- (deps) Update rust crate clap to v4.5.60
+- (deps) Update rust crate anyhow to v1.0.102
+- (deps) Update rust crate chrono to v0.4.44
+- (deps) Update rust crate tokio to v1.50.0
+- (deps) Update rust crate owo-colors to v4.3.0
+
+### ⚙ Miscellaneous
+
+- Update default ci and container image to Debian Trixie ([#204](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/204))
+- Upgrade to rust version 2024
+- Allow multiple versions in cargo deny
+- (container) Remove debian bookworm image ([#247](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/247))
+
 ## [0.20.0] - 2025-05-29
 
 [0.20.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.19.4...v0.20.0
