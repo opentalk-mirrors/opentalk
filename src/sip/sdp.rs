@@ -278,7 +278,7 @@ impl SessionState {
                 SdpMediaType::Video => {
                     choose_video_codec(&self.settings, &answer_media).with_context(|| {
                         format!("No compatible video codec found (supported is: {}), continuing without video", available_video_codec())
-                    })?
+                    })?.0
                 }
                 ty =>{
                     log::warn!("Skipping unexpected offered media {ty}");
@@ -447,21 +447,29 @@ impl SessionState {
         remote_rtcp_addr: SocketAddr,
         new_direction: Direction,
     ) -> Result<(MediaSessionId, Direction)> {
-        let (media_type, codec) = match offer_media.media.media_type {
+        let (media_type, send_codec, recv_codec) = match offer_media.media.media_type {
             SdpMediaType::Audio => {
-                let codec = choose_audio_codec(offer_media)
+                let send_codec = choose_audio_codec(offer_media)
                     .context("No compatible audio codec in offer")?;
 
-                (MediaType::Audio, codec)
+                let recv_codec = SdpRecvCodec {
+                    payload: send_codec.payload,
+                    codec: send_codec.codec,
+                    fmtp: None,
+                };
+
+                (MediaType::Audio, send_codec, recv_codec)
             }
             SdpMediaType::Video => {
-                let Some(codec) = choose_video_codec(&self.settings, offer_media) else {
+                let Some((send_codec, recv_codec)) =
+                    choose_video_codec(&self.settings, offer_media)
+                else {
                     bail!(
                         "No compatible video codec found (supported is: {}), continuing without video",
                         available_video_codec()
                     );
                 };
-                (MediaType::Video, codec)
+                (MediaType::Video, send_codec, recv_codec)
             }
             ty => {
                 bail!("Skipping unexpected offered media {ty}");
@@ -511,13 +519,8 @@ impl SessionState {
             state: MediaSessionState::Established(Established {
                 remote_rtp_addr,
                 remote_rtcp_addr,
-                // We always use the same payload number for our answers since we aren't psychos.
-                recv_codec: SdpRecvCodec {
-                    payload: codec.payload,
-                    codec: codec.codec,
-                    fmtp: None,
-                },
-                send_codec: codec,
+                recv_codec,
+                send_codec,
                 srtp,
             }),
             local_rtp_addr,

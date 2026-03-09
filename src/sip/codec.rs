@@ -5,8 +5,11 @@
 use crate::media::{DEFAULT_FPS, codec::Codec};
 use crate::settings::Settings;
 use h264_profile_level_id::{Level, Profile};
+use openh264::OpenH264API;
 use openh264::encoder::{Level as OpenH264Level, Profile as OpenH264Profile};
+use openh264_sys2::API;
 use sdp_types::{MediaDescription, RtpMap};
+use std::mem::MaybeUninit;
 use std::str::FromStr;
 
 /// Describes the codec used to receive audio/video
@@ -93,11 +96,20 @@ pub fn offer_all_audio_codecs() -> Vec<SdpRecvCodec> {
 }
 
 pub fn offer_all_video_codecs() -> Vec<SdpRecvCodec> {
-    vec![SdpRecvCodec {
-        payload: 96,
-        codec: Codec::H264,
-        fmtp: Some("profile-level-id=420028;max-mbps=243000;max-fs=8100;level-asymmetry-allowed=1;packetization-mode=0".into()),
-    }]
+    vec![
+        SdpRecvCodec {
+            payload: 96,
+            codec: Codec::H264,
+            fmtp: Some(openh264_decoder_fmtp(H264PacketizationMode::SingleNal)),
+        },
+        SdpRecvCodec {
+            payload: 97,
+            codec: Codec::H264,
+            fmtp: Some(openh264_decoder_fmtp(
+                H264PacketizationMode::NonInterleavedMode,
+            )),
+        },
+    ]
 }
 
 pub fn available_video_codec() -> &'static str {
@@ -112,7 +124,10 @@ pub enum H264PacketizationMode {
     NonInterleavedMode,
 }
 
-pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Option<SdpSendCodec> {
+pub fn choose_video_codec(
+    settings: &Settings,
+    offer: &MediaDescription,
+) -> Option<(SdpSendCodec, SdpRecvCodec)> {
     let rtpmap = offer
         .rtpmap
         .iter()
@@ -122,6 +137,7 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
 
     let mut codec_params = SdpSendCodecParams::None;
     let mut bitrate = None;
+    let mut packetization_mode = H264PacketizationMode::SingleNal;
 
     if let Some(fmtp) = fmtp {
         let params = fmtp.params.split(';');
@@ -129,7 +145,6 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
         let mut level = None;
         let mut max_mbps: Option<u32> = None;
         let mut max_fs: Option<u32> = None;
-        let mut packetization_mode = H264PacketizationMode::SingleNal;
 
         for p in params {
             let Some((key, value)) = p.split_once('=') else {
@@ -226,12 +241,19 @@ pub fn choose_video_codec(settings: &Settings, offer: &MediaDescription) -> Opti
         }
     }
 
-    Some(SdpSendCodec {
-        payload: rtpmap.payload,
-        codec: Codec::H264,
-        codec_params,
-        bitrate,
-    })
+    Some((
+        SdpSendCodec {
+            payload: rtpmap.payload,
+            codec: Codec::H264,
+            codec_params,
+            bitrate,
+        },
+        SdpRecvCodec {
+            payload: rtpmap.payload,
+            codec: Codec::H264,
+            fmtp: Some(openh264_decoder_fmtp(packetization_mode)),
+        },
+    ))
 }
 
 fn calculate_best_resolution_and_fps(
@@ -297,4 +319,44 @@ fn calculate_best_resolution_and_fps(
 
     // All resolutions are too small, fall back to 1080p
     ((1920, 1080), fps)
+}
+
+pub fn openh264_decoder_fmtp(packetization_mode: H264PacketizationMode) -> String {
+    let openh264_sys2::TagDecoderCapability {
+        iProfileIdc,
+        iProfileIop,
+        iLevelIdc,
+        iMaxMbps,
+        iMaxFs,
+        iMaxCpb,
+        iMaxDpb,
+        iMaxBr,
+        bRedPicCap: _,
+    } = unsafe {
+        let mut capability = MaybeUninit::uninit();
+
+        assert_eq!(
+            OpenH264API::from_source().WelsGetDecoderCapability(capability.as_mut_ptr()),
+            0,
+            "openh264 WelsGetDecoderCapability failed"
+        );
+
+        capability.assume_init()
+    };
+
+    let packetization_mode = match packetization_mode {
+        H264PacketizationMode::SingleNal => 0,
+        H264PacketizationMode::NonInterleavedMode => 1,
+    };
+
+    format!(
+        "profile-level-id={iProfileIdc:02X}{iProfileIop:02X}{iLevelIdc:02X};\
+        level-asymmetry-allowed=1;\
+        packetization-mode={packetization_mode};\
+        max-mbps={iMaxMbps};\
+        max-fs={iMaxFs};\
+        max-cpb={iMaxCpb};\
+        max-dpb={iMaxDpb};\
+        max-br={iMaxBr}",
+    )
 }
