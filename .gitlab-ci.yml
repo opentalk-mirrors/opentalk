@@ -433,7 +433,7 @@ int:experimental:
       - DIST: opensuse15
       - DIST: opensuse16
       - DIST: rocky9
-      # - DIST: rocky10
+      - DIST: rocky10
   image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
   needs:
     - job: package:experimental
@@ -519,7 +519,7 @@ int:pre-release:
       - DIST: opensuse15
       - DIST: opensuse16
       - DIST: rocky9
-      # - DIST: rocky10
+      - DIST: rocky10
   image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
   needs:
     - job: package:pre-release
@@ -607,7 +607,7 @@ int:stable:
       - DIST: opensuse15
       - DIST: opensuse16
       - DIST: rocky9
-      # - DIST: rocky10
+      - DIST: rocky10
   image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
   needs:
     - job: package:stable
