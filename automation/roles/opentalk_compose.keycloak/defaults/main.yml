@@ -16,8 +16,8 @@ keycloak_db_docker_compose_ulimits_nofile_soft: 65536
 keycloak_db_docker_compose_ulimits_nofile_hard: 65536
 keycloak_db_docker_compose_ulimits_nproc: 8192
 
-keycloak_docker_image_src: quay.io/keycloak/keycloak
-postgres_docker_image_src: postgres
+keycloak_docker_image_src: registry.heinlein.group/opentalk/keycloak
+postgres_docker_image_src: registry.heinlein.group/opentalk/postgres
 
 keycloak_docker_compose_state: present
 

@@ -13,7 +13,7 @@ livekit_docker_compose_ulimits_nofile_soft: 98304
 livekit_docker_compose_ulimits_nofile_hard: 98304
 livekit_docker_compose_ulimits_nproc: 16384
 
-livekit_docker_image_src: livekit/livekit-server
+livekit_docker_image_src: registry.heinlein.group/opentalk/livekit-server
 
 livekit_api_key_controller: "{{ LIVEKIT_API_SECRET }}"
 

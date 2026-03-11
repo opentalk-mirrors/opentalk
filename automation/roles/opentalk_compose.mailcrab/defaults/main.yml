@@ -14,7 +14,7 @@ mailcrab_docker_compose_ulimits_nofile_soft: 16384
 mailcrab_docker_compose_ulimits_nofile_hard: 32768
 mailcrab_docker_compose_ulimits_nproc: 4096
 
-mailcrab_docker_image_src: marlonb/mailcrab
+mailcrab_docker_image_src: registry.heinlein.group/opentalk/mailcrab
 mailcrab_webui_prefix: /adm/mailcrab
 
 mailcrab_docker_label_http_routers_minio_console_middlewares: "default-auth@file"
