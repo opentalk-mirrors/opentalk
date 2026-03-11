@@ -3097,6 +3097,7 @@ dependencies = [
  "native-tls",
  "once_cell",
  "openh264",
+ "openh264-sys2",
  "openidconnect",
  "opentalk-compositor",
  "opentalk-types-common",

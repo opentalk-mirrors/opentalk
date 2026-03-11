@@ -121,6 +121,7 @@ impl H264Encoder {
 }
 
 pub struct H264Decoder {
+    depayloader: H264Packet,
     decoder: openh264::decoder::Decoder,
     init: Instant,
 }
@@ -128,6 +129,7 @@ pub struct H264Decoder {
 impl H264Decoder {
     pub fn create() -> Result<Self> {
         Ok(Self {
+            depayloader: H264Packet::default(),
             decoder: openh264::decoder::Decoder::new()
                 .context("Failed to create openh264 decoder")?,
             init: Instant::now(),
@@ -136,7 +138,22 @@ impl H264Decoder {
 
     pub fn decode_packet(&mut self, packet: &[u8]) -> Option<Result<VideoFrame<I420Buffer>, ()>> {
         let packet = Bytes::copy_from_slice(packet);
-        let packet = H264Packet::default().depacketize(&packet).ok()?;
+
+        let packet = match self.depayloader.depacketize(&packet) {
+            Ok(packet) => packet,
+            Err(e) => {
+                log::warn!("Failed to depacketize H.264, {e}");
+                // Reset depayloader on error, may be caused by packet loss
+                self.depayloader = H264Packet::default();
+                return None;
+            }
+        };
+
+        // Depayloader returns empty bytes when decoding a FU-A fragment, so skip for now
+        if packet.is_empty() {
+            return None;
+        }
+
         let decoded_yuv = match self.decoder.decode(&packet) {
             Ok(decoded_yuv) => decoded_yuv?,
             Err(e) => {
