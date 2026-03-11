@@ -18,7 +18,7 @@ etherpad_version: v2.0.3
 keycloak_version: 26.5.5
 postgres_version: 17.9-alpine
 traefik_version: v3.6.10
-minio_version: RELEASE.2025-09-07T16-13-09Z
+minio_version: RELEASE.2025-10-15T17-29-55Z
 minio_client_version: RELEASE.2025-08-13T08-35-41Z
 rabbitmq_version: 4.2.4-management-alpine
 mailcrab_version: v1.6.4
