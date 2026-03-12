@@ -82,6 +82,7 @@ keycloak_redirectUris_uris:
   - "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/room/*"
   - "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/join"
   - "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/"
+keycloak_backchannel_logout_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/controller/v1/auth/logout"
 
 # Realm session timeouts (in seconds)
 # ssoSessionIdleTimeout: Time before idle session expires (default: 24 hours)

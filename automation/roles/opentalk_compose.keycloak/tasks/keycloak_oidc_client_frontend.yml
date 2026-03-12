@@ -23,3 +23,4 @@
     web_origins: "{{ controller_frontend_base_url | default('http://localhost') }}"
     attributes:
       post.logout.redirect.uris: "+"
+      backchannel.logout.url: "{{ keycloak_backchannel_logout_url }}"
