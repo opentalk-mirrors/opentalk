@@ -13,17 +13,16 @@ services:
       - garage_meta:/var/lib/garage/meta
       - garage_data:/var/lib/garage/data
       - {{ garage_docker_compose_services_dir }}/garage/garage.toml:/etc/garage.toml:ro
-    environment:
-      GARAGE_RPC_SECRET_FILE: /run/secrets/garage_rpc_secret
-      GARAGE_ADMIN_TOKEN_FILE: /run/secrets/garage_admin_token
     secrets:
       - garage_rpc_secret
       - garage_admin_token
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:{{ garage_admin_api_port }}/health"]
+      test: ["CMD", "/garage", "status"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
+
 
 secrets:
   garage_rpc_secret:

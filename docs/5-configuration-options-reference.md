@@ -12,6 +12,12 @@ This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
 Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
+## Global Settings
+
+| Variable | Type | Default Value | Description |
+|----------|------|---------------|-------------|
+| `s3_storage_provider` | string | `garage` | S3-compatible object storage backend: `garage` or `minio`. Only one can be active. Existing deployments with `compose_service_minio_enabled: true` are auto-detected as `minio` for backward compatibility. |
+
 ## opentalk_compose.backup
 
 | Variable | Type | Default Value |
@@ -194,7 +200,33 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailcrab_docker_label_http_routers_minio_console_middlewares` | string | `default-auth@file` |
 | `mailcrab_webui_prefix` | string | `/adm/mailcrab` |
 
+## opentalk_compose.garage
+
+| Variable | Type | Default Value |
+|----------|------|---------------|
+| `garage_admin_api_bind_addr` | string | `[::]:3903` |
+| `garage_admin_api_port` | integer | `3903` |
+| `garage_bucket_name` | string | `opentalk` |
+| `garage_db_engine` | string | `lmdb` |
+| `garage_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
+| `garage_docker_compose_project_src` | string | `{{ deploy_dir }}` |
+| `garage_docker_compose_services_dir` | string | `{{ services_dir }}` |
+| `garage_docker_compose_services_state` | string | `{{ compose_service_garage_state \| default('present') }}` |
+| `garage_docker_image_src` | string | `registry.heinlein.group/opentalk/garage` |
+| `garage_key_name` | string | `opentalk-key` |
+| `garage_layout_capacity` | string | `1G` |
+| `garage_layout_zone` | string | `dc1` |
+| `garage_replication_factor` | integer | `1` |
+| `garage_rpc_bind_addr` | string | `[::]:3901` |
+| `garage_rpc_port` | integer | `3901` |
+| `garage_rpc_public_addr` | string | `garage:3901` |
+| `garage_s3_api_bind_addr` | string | `[::]:3900` |
+| `garage_s3_api_port` | integer | `3900` |
+| `garage_s3_region` | string | `garage` |
+
 ## opentalk_compose.minio
+
+> **Note:** MinIO is an alternative S3 storage provider. To use MinIO instead of the default Garage, set `s3_storage_provider: minio` in `settings.yml`.
 
 | Variable | Type | Default Value |
 |----------|------|---------------|
@@ -254,10 +286,10 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_livekit_public_url` | string | `wss://{{ (ot_domain, ot_ingress_port) \| build_host }}/livekit` |
 | `controller_livekit_service_url` | string | `http://host.docker.internal:7880` |
 | `controller_logging_default_directives` | list | `['ERROR', 'opentalk=INFO', 'pinky_swear=OFF', 'rustls=WARN', 'mio=ERROR', 'lapin=WARN', 'execution_id=trace']` |
-| `controller_minio_access_key` | string | `minioadmin` |
+| `controller_minio_access_key` | string | `minioadmin` (minio) / `{{ GARAGE_S3_ACCESS_KEY }}` (garage) |
 | `controller_minio_bucket` | string | `opentalk` |
-| `controller_minio_secret_key` | string | `{{ MINIO_ROOT_PASSWORD }}` |
-| `controller_minio_uri` | string | `http://minio:9000` |
+| `controller_minio_secret_key` | string | `{{ MINIO_ROOT_PASSWORD }}` (minio) / `{{ GARAGE_S3_SECRET_KEY }}` (garage) |
+| `controller_minio_uri` | string | `http://minio:9000` (minio) / `http://garage:3900` (garage) |
 | `controller_monitoring_port` | integer | `11411` |
 | `controller_oidc_authority` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}` |
 | `controller_oidc_controller_client_id` | string | `Controller` |

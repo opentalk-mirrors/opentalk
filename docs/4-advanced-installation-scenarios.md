@@ -598,3 +598,174 @@ livekit_rtc_turn_servers:
 ```bash
 otctl deploy
 ```
+
+## 6 S3 Storage Provider
+
+OpenTalk uses an S3-compatible object storage service for files such as recordings and PDF documents. Two providers are supported:
+
+| Provider | Description |
+|----------|-------------|
+| **Garage** (default) | Lightweight, self-contained S3-compatible storage. No web UI — administration via CLI. |
+| **MinIO** | Feature-rich object storage with a web console at `/adm/minio/`. |
+
+Only one provider can be active per deployment. The provider is selected via the `s3_storage_provider` variable in `settings.yml`.
+
+### 6.1 Choosing a provider
+
+New installations default to **Garage** — no additional configuration is required.
+
+To use **MinIO** instead, set:
+
+```yaml
+s3_storage_provider: minio
+```
+
+Then deploy:
+
+```bash
+otctl deploy
+```
+
+> **Backward compatibility:** Existing deployments that have `compose_service_minio_enabled: true` in their `settings.yml` will automatically continue using MinIO. You do not need to change your configuration; however, it is recommended to migrate to the new `s3_storage_provider` variable.
+
+### 6.2 Garage administration
+
+Garage does not provide a web UI. Use the Garage CLI inside the running container instead:
+
+```bash
+# List buckets
+docker exec opentalk-garage-1 /garage bucket list
+
+# List API keys
+docker exec opentalk-garage-1 /garage key list
+
+# Show key details
+docker exec opentalk-garage-1 /garage key info opentalk-key
+
+# Show cluster status
+docker exec opentalk-garage-1 /garage status
+
+# Show cluster layout
+docker exec opentalk-garage-1 /garage layout show
+```
+
+For more information, refer to the [Garage documentation](https://garagehq.deuxfleurs.fr/documentation/quick-start/).
+
+### 6.3 Migration from MinIO to Garage
+
+If you have an existing deployment using MinIO and want to switch to Garage, follow these steps.
+
+> **Important:** Back up your data before starting the migration. The procedure uses `rclone` to copy objects between the two S3 backends.
+
+#### 6.3.1 Back up the current MinIO data
+
+```bash
+otctl backup
+```
+
+#### 6.3.2 Install rclone
+
+Install `rclone` on the host if not already present:
+
+```bash
+# Debian/Ubuntu
+apt-get install -y rclone
+
+# RHEL/Fedora
+dnf install -y rclone
+```
+
+#### 6.3.3 Switch the storage provider
+
+Edit `/etc/opentalk-compose/settings.yml`:
+
+```yaml
+s3_storage_provider: garage
+```
+
+Remove or comment out the old MinIO toggle if present:
+
+```yaml
+# compose_service_minio_enabled: true  # remove this line
+```
+
+#### 6.3.4 Deploy Garage
+
+```bash
+otctl deploy
+```
+
+This starts Garage, initializes the cluster, creates the bucket and API key, and stops the MinIO container.
+
+#### 6.3.5 Retrieve Garage credentials
+
+The Garage S3 credentials are stored in the secrets file after deployment:
+
+```bash
+grep 'GARAGE_S3' /etc/opentalk-compose/secrets/secrets.yml
+```
+
+Note the `GARAGE_S3_ACCESS_KEY` and `GARAGE_S3_SECRET_KEY` values.
+
+#### 6.3.6 Configure rclone
+
+Create a temporary rclone configuration:
+
+```bash
+cat > /tmp/rclone-migrate.conf << 'EOF'
+[minio]
+type = s3
+provider = Minio
+endpoint = http://localhost:9000
+access_key_id = minioadmin
+secret_access_key = <MINIO_ROOT_PASSWORD from secrets.yml>
+
+[garage]
+type = s3
+provider = Other
+endpoint = http://localhost:3900
+access_key_id = <GARAGE_S3_ACCESS_KEY>
+secret_access_key = <GARAGE_S3_SECRET_KEY>
+region = garage
+force_path_style = true
+EOF
+```
+
+Replace the placeholder values with your actual credentials.
+
+#### 6.3.7 Export from MinIO and import into Garage
+
+Temporarily start the old MinIO container so both backends are available:
+
+```bash
+docker compose -f /opt/opentalk-compose/compose.yml up -d minio
+```
+
+Copy all objects:
+
+```bash
+rclone sync --config /tmp/rclone-migrate.conf minio:opentalk garage:opentalk --progress
+```
+
+#### 6.3.8 Verify
+
+List objects in Garage to confirm the migration:
+
+```bash
+docker exec opentalk-garage-1 /garage bucket info opentalk
+```
+
+#### 6.3.9 Clean up
+
+Stop the old MinIO container and remove the temporary rclone config:
+
+```bash
+docker compose -f /opt/opentalk-compose/compose.yml rm -sf minio
+rm -f /tmp/rclone-migrate.conf
+```
+
+Optionally remove the MinIO Docker volume once you have confirmed the migration:
+
+```bash
+docker volume rm opentalk_minio
+```

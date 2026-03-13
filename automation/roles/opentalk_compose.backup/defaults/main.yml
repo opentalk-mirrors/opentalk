@@ -32,9 +32,12 @@ config_backup_restore_file: ""
 backup_retention_max_items: 5        # keep at most this many per category
 backup_retention_max_age_days: 7     # remove items older than this (days)
 
-backup_docker_volume_list:
-  - "{{ compose_project_name }}_minio"
-  - "{{ compose_project_name }}_rabbitmq"
-  - "{{ compose_project_name }}_traefik"
+backup_docker_volume_list: >-
+  {{
+    ( [compose_project_name ~ '_garage_meta', compose_project_name ~ '_garage_data']
+      if (s3_storage_provider | default('garage')) == 'garage'
+      else [compose_project_name ~ '_minio'] )
+    + [compose_project_name ~ '_rabbitmq', compose_project_name ~ '_traefik']
+  }}
 
 backup_docker_volume_restore_files: []
