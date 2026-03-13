@@ -20,7 +20,8 @@ compose_service_spacedeck_enabled: true
 compose_service_keycloak_enabled: true
 compose_service_livekit_server_enabled: true
 compose_service_mailcrab_enabled: true
-compose_service_minio_enabled: true
+# S3-compatible object storage provider: garage (default) or minio
+s3_storage_provider: garage
 compose_service_rabbitmq_enabled: true
 compose_service_traefik_enabled: true
 

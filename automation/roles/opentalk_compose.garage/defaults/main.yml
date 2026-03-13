@@ -12,7 +12,7 @@ garage_docker_compose_project_src: "{{ deploy_dir }}"
 garage_docker_image_src: registry.heinlein.group/opentalk/garage
 
 garage_bucket_name: opentalk
-garage_s3_region: garage
+garage_s3_region: unknown
 garage_replication_factor: 1
 garage_db_engine: lmdb
 

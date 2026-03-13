@@ -63,10 +63,15 @@
         - role: opentalk_compose.secrets
       tags: [never, demo-user]
 
+    - role: opentalk_compose.garage
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: [garage, s3]
+
     - role: opentalk_compose.minio
       dependencies:
         - role: opentalk_compose.secrets
-      tags: [minio]
+      tags: [minio, s3]
 
     - role: opentalk_compose.rabbitmq
       dependencies:

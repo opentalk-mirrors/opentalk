@@ -59,6 +59,8 @@ Accessible with default settings at: `/adm/minio/`
 
 - e.g. `http://example.com/adm/minio/`
 
+> **Note:** The MinIO Web Console is only available when using MinIO as the S3 storage provider (`s3_storage_provider: minio`). The default provider Garage does not include a web UI; use the Garage CLI instead (see [S3 Storage Provider](4-advanced-installation-scenarios.md#6-s3-storage-provider)).
+
 MinIO Console to manage buckets, objects, policies and access keys used by OpenTalk (e.g., recordings, PDF documents).
 
 Login: pass Traefik BasicAuth (see 3.2), then use MinIO credentials — username `minioadmin` (unless changed) and the password from `MINIO_ROOT_PASSWORD` (stored in secrets).
