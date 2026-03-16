@@ -655,9 +655,12 @@ fn determine_media_description(media_session: &MediaSession) -> MediaDescription
             address: None,
         }),
         rtcp_mux: false,
+        rtcp_rsize: false,
         mid: None,
+        msid: None,
         rtpmap: rtpmaps,
         fmtp: fmtps,
+        rtcp_fb: vec![],
         ice_ufrag: None,
         ice_pwd: None,
         ice_candidates: vec![],
@@ -668,6 +671,7 @@ fn determine_media_description(media_session: &MediaSession) -> MediaDescription
         ssrc: vec![],
         setup: None,
         fingerprint: vec![],
+        imageattr: vec![],
         attributes: vec![],
     }
 }

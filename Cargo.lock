@@ -1260,9 +1260,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-sdp-types"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "843f62041a0eb9527a7f893c22d914216327b4e06db96dee859a00ec53c87d8c"
+checksum = "f0f5c1f22ea6611587274ec277815629cfdcb0a657c298497aa754fac8674437"
 dependencies = [
  "bytes 1.11.1",
  "bytesstr",

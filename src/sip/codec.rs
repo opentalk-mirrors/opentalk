@@ -8,7 +8,8 @@ use h264_profile_level_id::{Level, Profile};
 use openh264::OpenH264API;
 use openh264::encoder::{Level as OpenH264Level, Profile as OpenH264Profile};
 use openh264_sys2::API;
-use sdp_types::{MediaDescription, RtpMap};
+use sdp_types::{ImageAttrSets, ImageAttrXyRange, MediaDescription, RtpMap};
+use std::cmp;
 use std::mem::MaybeUninit;
 use std::str::FromStr;
 
@@ -135,6 +136,11 @@ pub fn choose_video_codec(
 
     let fmtp = offer.fmtp.iter().find(|fmtp| fmtp.format == rtpmap.payload);
 
+    let imageattr = offer
+        .imageattr
+        .iter()
+        .find(|imageattr| imageattr.pt.is_none_or(|pt| pt == rtpmap.payload));
+
     let mut codec_params = SdpSendCodecParams::None;
     let mut bitrate = None;
     let mut packetization_mode = H264PacketizationMode::SingleNal;
@@ -185,17 +191,19 @@ pub fn choose_video_codec(
 
         if let Some(level) = level {
             // Calculate pre encode caps
-            let ((width, height), fps) =
+            let ((mut width, mut height), fps) =
                 calculate_best_resolution_and_fps(level.level(), max_mbps, max_fs);
 
+            if let Some(imageattr) = imageattr {
+                clamp_resolution_by_imageattr(imageattr, &mut width, &mut height);
+            }
+            
             // Calculate post encode caps
             let profile = match level.profile() {
                 Profile::Baseline => OpenH264Profile::Baseline,
                 Profile::Main => OpenH264Profile::Main,
-                Profile::High => OpenH264Profile::High,
-                Profile::ConstrainedBaseline
-                | Profile::ConstrainedHigh
-                | Profile::PredictiveHigh444 => {
+                Profile::High | Profile::ConstrainedHigh => OpenH264Profile::High,
+                Profile::ConstrainedBaseline | Profile::PredictiveHigh444 => {
                     log::warn!(
                         "Client requested unsupported H.264 profile {:?}, falling back to baseline",
                         level.profile()
@@ -254,6 +262,44 @@ pub fn choose_video_codec(
             fmtp: Some(openh264_decoder_fmtp(packetization_mode)),
         },
     ))
+}
+
+fn clamp_resolution_by_imageattr(
+    imageattr: &sdp_types::ImageAttr,
+    width: &mut u32,
+    height: &mut u32,
+) {
+    let Some(ImageAttrSets::Sets(sets)) = &imageattr.recv else {
+        return;
+    };
+
+    // Find highest weighted set (by `q` parameter)
+    let Some(set) = sets.iter().max_by(|set_a, set_b| {
+        let a = set_a.q.unwrap_or(0.5);
+        let b = set_b.q.unwrap_or(0.5);
+        a.total_cmp(&b)
+    }) else {
+        return;
+    };
+
+    clamp_by_range(width, &set.x);
+    clamp_by_range(height, &set.y);
+}
+
+fn clamp_by_range(value: &mut u32, range: &ImageAttrXyRange) {
+    match range {
+        ImageAttrXyRange::Range {
+            lower,
+            upper,
+            step: _,
+        } => *value = (*value).clamp(*lower, *upper),
+        ImageAttrXyRange::List(items) => {
+            if let Some(item) = items.first() {
+                *value = cmp::min(*value, *item);
+            }
+        }
+        ImageAttrXyRange::Value(v) => *value = cmp::min(*value, *v),
+    }
 }
 
 fn calculate_best_resolution_and_fps(
