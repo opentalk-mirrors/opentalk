@@ -169,10 +169,10 @@ pub fn choose_video_codec(
                 "max-mbps" => max_mbps = Some(value),
                 "max-fs" => max_fs = Some(value),
                 "max-br" => {
-                    let value = value.min(settings.sip.max_video_bitrate);
+                    // max-br is in kbit/s, convert to to bits/s
+                    let value = (value * 1000).min(settings.sip.max_video_bitrate);
 
-                    // convert from kbit/s to bits/s
-                    bitrate = Some(value * 1000);
+                    bitrate = Some(value);
                 }
                 "packetization-mode" => match value {
                     0 => packetization_mode = H264PacketizationMode::SingleNal,
