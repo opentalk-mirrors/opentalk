@@ -129,139 +129,145 @@ pub fn choose_video_codec(
     settings: &Settings,
     offer: &MediaDescription,
 ) -> Option<(SdpSendCodec, SdpRecvCodec)> {
-    let rtpmap = offer
+    'next_pt: for rtpmap in offer
         .rtpmap
         .iter()
-        .find(|rtpmap| rtpmap.encoding == "H264" && rtpmap.clock_rate == 90000)?;
+        .filter(|rtpmap| rtpmap.encoding == "H264" && rtpmap.clock_rate == 90000)
+    {
+        let fmtp = offer.fmtp.iter().find(|fmtp| fmtp.format == rtpmap.payload);
 
-    let fmtp = offer.fmtp.iter().find(|fmtp| fmtp.format == rtpmap.payload);
+        let imageattr = offer
+            .imageattr
+            .iter()
+            .find(|imageattr| imageattr.pt.is_none_or(|pt| pt == rtpmap.payload));
 
-    let imageattr = offer
-        .imageattr
-        .iter()
-        .find(|imageattr| imageattr.pt.is_none_or(|pt| pt == rtpmap.payload));
+        let mut codec_params = SdpSendCodecParams::None;
+        let mut bitrate = None;
+        let mut packetization_mode = H264PacketizationMode::SingleNal;
 
-    let mut codec_params = SdpSendCodecParams::None;
-    let mut bitrate = None;
-    let mut packetization_mode = H264PacketizationMode::SingleNal;
+        if let Some(fmtp) = fmtp {
+            let params = fmtp.params.split(';');
 
-    if let Some(fmtp) = fmtp {
-        let params = fmtp.params.split(';');
+            let mut level = None;
+            let mut max_mbps: Option<u32> = None;
+            let mut max_fs: Option<u32> = None;
 
-        let mut level = None;
-        let mut max_mbps: Option<u32> = None;
-        let mut max_fs: Option<u32> = None;
+            for p in params {
+                let Some((key, value)) = p.split_once('=') else {
+                    continue;
+                };
 
-        for p in params {
-            let Some((key, value)) = p.split_once('=') else {
-                continue;
-            };
+                if key == "profile-level-id" {
+                    match h264_profile_level_id::ProfileLevelId::from_str(value) {
+                        Ok(v) => level = Some(v),
+                        Err(e) => {
+                            log::warn!("Failed to parse profile-level-id in H.264 params, {e}");
+                            continue 'next_pt;
+                        }
+                    }
 
-            if key == "profile-level-id" {
-                match h264_profile_level_id::ProfileLevelId::from_str(value) {
-                    Ok(v) => level = Some(v),
-                    Err(e) => log::warn!("Failed to parse profile-level-id in H.264 params, {e}"),
+                    continue;
                 }
 
-                continue;
+                let Ok(value) = value.parse::<u32>() else {
+                    log::warn!("Failed to parse value for '{value}' in H.264 params");
+                    continue 'next_pt;
+                };
+
+                match key {
+                    "max-mbps" => max_mbps = Some(value),
+                    "max-fs" => max_fs = Some(value),
+                    "max-br" => {
+                        // max-br is in kbit/s, convert to to bits/s
+                        let value = (value * 1000).min(settings.sip.max_video_bitrate);
+
+                        bitrate = Some(value);
+                    }
+                    "packetization-mode" => match value {
+                        0 => packetization_mode = H264PacketizationMode::SingleNal,
+                        1 => packetization_mode = H264PacketizationMode::NonInterleavedMode,
+                        _ => {
+                            log::warn!("Unhandled packetization mode {value}");
+                            continue 'next_pt;
+                        }
+                    },
+                    _ => {}
+                }
             }
 
-            let Ok(value) = value.parse::<u32>() else {
-                log::warn!("Failed to parse value for '{value}' in H.264 params");
-                continue;
-            };
+            if let Some(level) = level {
+                // Calculate pre encode caps
+                let ((mut width, mut height), fps) =
+                    calculate_best_resolution_and_fps(level.level(), max_mbps, max_fs);
 
-            match key {
-                "max-mbps" => max_mbps = Some(value),
-                "max-fs" => max_fs = Some(value),
-                "max-br" => {
-                    // max-br is in kbit/s, convert to to bits/s
-                    let value = (value * 1000).min(settings.sip.max_video_bitrate);
-
-                    bitrate = Some(value);
+                // Clamp resolution if imageattr is set
+                if let Some(imageattr) = imageattr {
+                    clamp_resolution_by_imageattr(imageattr, &mut width, &mut height);
                 }
-                "packetization-mode" => match value {
-                    0 => packetization_mode = H264PacketizationMode::SingleNal,
-                    1 => packetization_mode = H264PacketizationMode::NonInterleavedMode,
-                    _ => log::warn!("Unhandled packetization mode {value}"),
-                },
-                _ => {}
+
+                // Calculate post encode caps
+                let profile = match level.profile() {
+                    Profile::ConstrainedBaseline | Profile::Baseline => OpenH264Profile::Baseline,
+                    Profile::Main => OpenH264Profile::Main,
+                    Profile::High | Profile::ConstrainedHigh => OpenH264Profile::High,
+                    Profile::PredictiveHigh444 => {
+                        continue 'next_pt;
+                    }
+                };
+
+                let level = match level.level() {
+                    Level::Level1b => OpenH264Level::Level_1_B,
+                    Level::Level1 => OpenH264Level::Level_1_0,
+                    Level::Level11 => OpenH264Level::Level_1_1,
+                    Level::Level12 => OpenH264Level::Level_1_2,
+                    Level::Level13 => OpenH264Level::Level_1_3,
+                    Level::Level2 => OpenH264Level::Level_2_0,
+                    Level::Level21 => OpenH264Level::Level_2_1,
+                    Level::Level22 => OpenH264Level::Level_2_2,
+                    Level::Level3 => OpenH264Level::Level_3_0,
+                    Level::Level31 => OpenH264Level::Level_3_1,
+                    Level::Level32 => OpenH264Level::Level_3_2,
+                    Level::Level4 => OpenH264Level::Level_4_0,
+                    Level::Level41 => OpenH264Level::Level_4_1,
+                    Level::Level42 => OpenH264Level::Level_4_2,
+                    Level::Level5 => OpenH264Level::Level_5_0,
+                    Level::Level51 => OpenH264Level::Level_5_1,
+                    Level::Level52 => OpenH264Level::Level_5_2,
+                };
+
+                codec_params = SdpSendCodecParams::H264 {
+                    width,
+                    height,
+                    fps,
+                    level,
+                    profile,
+                    packetization_mode,
+                }
             }
         }
 
-        if let Some(level) = level {
-            // Calculate pre encode caps
-            let ((mut width, mut height), fps) =
-                calculate_best_resolution_and_fps(level.level(), max_mbps, max_fs);
-
-            if let Some(imageattr) = imageattr {
-                clamp_resolution_by_imageattr(imageattr, &mut width, &mut height);
-            }
-            
-            // Calculate post encode caps
-            let profile = match level.profile() {
-                Profile::Baseline => OpenH264Profile::Baseline,
-                Profile::Main => OpenH264Profile::Main,
-                Profile::High | Profile::ConstrainedHigh => OpenH264Profile::High,
-                Profile::ConstrainedBaseline | Profile::PredictiveHigh444 => {
-                    log::warn!(
-                        "Client requested unsupported H.264 profile {:?}, falling back to baseline",
-                        level.profile()
-                    );
-                    OpenH264Profile::Baseline
-                }
-            };
-
-            let level = match level.level() {
-                Level::Level1b => OpenH264Level::Level_1_B,
-                Level::Level1 => OpenH264Level::Level_1_0,
-                Level::Level11 => OpenH264Level::Level_1_1,
-                Level::Level12 => OpenH264Level::Level_1_2,
-                Level::Level13 => OpenH264Level::Level_1_3,
-                Level::Level2 => OpenH264Level::Level_2_0,
-                Level::Level21 => OpenH264Level::Level_2_1,
-                Level::Level22 => OpenH264Level::Level_2_2,
-                Level::Level3 => OpenH264Level::Level_3_0,
-                Level::Level31 => OpenH264Level::Level_3_1,
-                Level::Level32 => OpenH264Level::Level_3_2,
-                Level::Level4 => OpenH264Level::Level_4_0,
-                Level::Level41 => OpenH264Level::Level_4_1,
-                Level::Level42 => OpenH264Level::Level_4_2,
-                Level::Level5 => OpenH264Level::Level_5_0,
-                Level::Level51 => OpenH264Level::Level_5_1,
-                Level::Level52 => OpenH264Level::Level_5_2,
-            };
-
-            codec_params = SdpSendCodecParams::H264 {
-                width,
-                height,
-                fps,
-                level,
-                profile,
-                packetization_mode,
+        for bandwidth in &offer.bandwidth {
+            if bandwidth.type_.as_str() == "TIAS" {
+                bitrate = Some(bandwidth.bandwidth);
             }
         }
+
+        return Some((
+            SdpSendCodec {
+                payload: rtpmap.payload,
+                codec: Codec::H264,
+                codec_params,
+                bitrate,
+            },
+            SdpRecvCodec {
+                payload: rtpmap.payload,
+                codec: Codec::H264,
+                fmtp: Some(openh264_decoder_fmtp(packetization_mode)),
+            },
+        ));
     }
 
-    for bandwidth in &offer.bandwidth {
-        if bandwidth.type_.as_str() == "TIAS" {
-            bitrate = Some(bandwidth.bandwidth);
-        }
-    }
-
-    Some((
-        SdpSendCodec {
-            payload: rtpmap.payload,
-            codec: Codec::H264,
-            codec_params,
-            bitrate,
-        },
-        SdpRecvCodec {
-            payload: rtpmap.payload,
-            codec: Codec::H264,
-            fmtp: Some(openh264_decoder_fmtp(packetization_mode)),
-        },
-    ))
+    None
 }
 
 fn clamp_resolution_by_imageattr(
