@@ -48,3 +48,4 @@ opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_access
 
 opentalk_web_frontend_environment_feature_e2e_encryption: false
 opentalk_web_frontend_environment_livekit_e2ee_salt: "{{ LIVEKIT_E2EE_SALT }}"
+opentalk_web_frontend_environment_livekit_preferred_video_codec: "{{ LIVEKIT_PREFERRED_VIDEO_CODEC | default('vp9') }}"
