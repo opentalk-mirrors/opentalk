@@ -7,6 +7,8 @@ services:
   garage:
     image: "{{ garage_docker_image_src }}:{{ garage_version }}"
     restart: always
+    ports:
+      - "127.0.0.1:{{ garage_s3_api_port }}:3900"
     networks:
       - {{ docker_network_name }}
     volumes:

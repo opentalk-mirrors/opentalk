@@ -16,6 +16,7 @@ minio_docker_compose_ulimits_nproc: 8192
 minio_docker_image_src: registry.heinlein.group/opentalk/minio
 
 minio_bucket_name: opentalk
+minio_s3_api_port: 9000
 
 # minio_docker_label_http_routers_minio_console_middlewares: "minio-stripprefix, default-auth@file"
 minio_docker_label_http_routers_minio_console_middlewares: "minio-stripprefix"

@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Migrate S3 data between MinIO and Garage.
+#
+# Required parameter (pass with -e):
+#   s3_migration_source: minio   # migrate minio → garage
+#   s3_migration_source: garage  # migrate garage → minio
+#
+# Optional parameter:
+#   s3_migrate_run_deploy: false  # skip the automatic post-migration deploy
+
+- name: S3 Migration
+  hosts: localhost
+  gather_facts: true
+  vars_files:
+    - ../../.versions.yml
+    - /etc/opentalk-compose/settings.yml
+
+  pre_tasks:
+    - name: Abort if s3_migration_source not set
+      ansible.builtin.fail:
+        msg: >-
+          s3_migration_source must be set.
+          Use: otctl migrate minio-to-garage
+            or otctl migrate garage-to-minio
+      when: s3_migration_source is not defined
+      tags: ["always"]
+
+    - block:
+        - name: Check for secrets vars file
+          ansible.builtin.stat:
+            path: "{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml"
+          register: secrets_file
+        - name: Load secrets
+          ansible.builtin.include_vars: "{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml"
+          when: secrets_file.stat.exists
+        - name: Fail if secrets file is missing
+          ansible.builtin.fail:
+            msg: "Secrets file '{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml' not found. Run 'otctl deploy' first."
+          when: not secrets_file.stat.exists
+      tags: ["always"]
+
+  roles:
+    - role: opentalk_compose.s3_migrate

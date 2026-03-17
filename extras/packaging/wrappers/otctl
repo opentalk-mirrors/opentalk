@@ -69,6 +69,12 @@ Subcommands (most used first):
   down        Shortcut for compose down
   ps          Shortcut for compose ps
   volumes     List or remove compose project volumes (rm <v...> | prune --force)
+  migrate     Migrate S3 data between MinIO and Garage
+              Sub-commands:
+                minio-to-garage  -> copy all objects from MinIO to Garage, update settings.yml
+                garage-to-minio  -> copy all objects from Garage to MinIO, update settings.yml
+              Options:
+                --no-deploy      -> skip automatic deploy after migration
   version     Show detected component versions
   compose     Run docker compose (passthrough)
   playbook    Run ansible-playbook (advanced)
@@ -562,6 +568,34 @@ BHELP
     ;;
   compose) compose_exec "$@" ;;
   playbook) PLAYBOOK_WRAPPER "$@" ;;
+  migrate)
+    migrate_direction="${1:-}"; if [ $# -gt 0 ]; then shift; fi
+    case "$migrate_direction" in
+      minio-to-garage) _migrate_src=minio ;;
+      garage-to-minio) _migrate_src=garage ;;
+      ''|-h|--help|help)
+        cat <<'MHELP'
+otctl migrate USAGE:
+  otctl migrate minio-to-garage           # copy MinIO → Garage, update settings.yml
+  otctl migrate garage-to-minio           # copy Garage → MinIO, update settings.yml
+  otctl migrate minio-to-garage --no-deploy  # skip automatic deploy after migration
+MHELP
+        exit 0 ;;
+      *) echo "[otctl] Unknown migration direction: $migrate_direction (use minio-to-garage or garage-to-minio)" >&2; exit 1 ;;
+    esac
+    _migrate_extra_vars="s3_migration_source=${_migrate_src}"
+    # Allow --no-deploy flag to skip the post-migration deploy
+    for _a in "$@"; do
+      if [ "$_a" = "--no-deploy" ]; then
+        _migrate_extra_vars="${_migrate_extra_vars} s3_migrate_run_deploy=false"
+        set -- "${@/--no-deploy/}"
+        break
+      fi
+    done
+    PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" \
+      "$AUTOMATION/playbooks/s3_migrate.yml" \
+      -e "$_migrate_extra_vars" "$@"
+    ;;
   -h|--help|help) usage; exit 0 ;;
   "") usage_short; exit 0 ;;
   *) echo "[otctl] Unknown subcommand: $subcmd" >&2; usage_short; exit 1 ;;

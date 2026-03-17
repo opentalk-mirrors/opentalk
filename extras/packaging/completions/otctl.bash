@@ -35,6 +35,7 @@ _otctl() {
     status)   COMPREPLY=( $(compgen -W "--json --services --since --follow" -- "$cur") );;
     logs)     COMPREPLY=( $(compgen -W "--since --follow --service --tail" -- "$cur") );;
     config)   COMPREPLY=( $(compgen -W "diff validate show path" -- "$cur") );;
+    migrate)  COMPREPLY=( $(compgen -W "minio-to-garage garage-to-minio --no-deploy" -- "$cur") );;
     *)        COMPREPLY=( $(compgen -W "$global_opts" -- "$cur") );;
   esac
 }

@@ -1,0 +1,54 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Validate migration parameters and verify that both containers are healthy.
+
+- name: Assert s3_migration_source is set
+  ansible.builtin.assert:
+    that:
+      - s3_migration_source is defined
+      - s3_migration_source in ['minio', 'garage']
+    fail_msg: >-
+      s3_migration_source must be 'minio' or 'garage'.
+      Pass it via: -e s3_migration_source=minio  or  -e s3_migration_source=garage
+
+- name: Derive migration destination
+  ansible.builtin.set_fact:
+    s3_migration_destination: "{{ 'garage' if s3_migration_source == 'minio' else 'minio' }}"
+
+- name: Derive rclone remote names and endpoints
+  ansible.builtin.set_fact:
+    s3_migrate_source_endpoint: "{{ s3_migrate_minio_endpoint if s3_migration_source == 'minio' else s3_migrate_garage_endpoint }}"
+    s3_migrate_dest_endpoint: "{{ s3_migrate_garage_endpoint if s3_migration_source == 'minio' else s3_migrate_minio_endpoint }}"
+    s3_migrate_source_project: "{{ compose_project_name | default('opentalk') }}"
+
+- name: Derive source container name
+  ansible.builtin.set_fact:
+    s3_migrate_source_container: "{{ s3_migrate_source_project }}-{{ s3_migration_source }}-1"
+    s3_migrate_dest_container: "{{ s3_migrate_source_project }}-{{ s3_migration_destination }}-1"
+
+- name: Check source container is running
+  community.docker.docker_container_info:
+    name: "{{ s3_migrate_source_container }}"
+  register: _source_container_info
+  failed_when: >-
+    not _source_container_info.exists or
+    _source_container_info.container.State.Status != 'running'
+
+- name: Check destination container is running
+  community.docker.docker_container_info:
+    name: "{{ s3_migrate_dest_container }}"
+  register: _dest_container_info
+  failed_when: >-
+    not _dest_container_info.exists or
+    _dest_container_info.container.State.Status != 'running'
+
+- name: Show migration plan
+  ansible.builtin.debug:
+    msg: >-
+      Migrating S3 data: {{ s3_migration_source }} → {{ s3_migration_destination }}
+      (bucket: {{ s3_migrate_bucket_name }},
+       source endpoint: {{ s3_migrate_source_endpoint }},
+       dest endpoint: {{ s3_migrate_dest_endpoint }})
