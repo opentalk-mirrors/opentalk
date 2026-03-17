@@ -10,10 +10,11 @@
     file: manage_garage_config.yml
   when: compose_service_garage_enabled | bool
 
+# Runs unconditionally so that the compose include block is removed when
+# compose_service_garage_enabled is false (state: absent cleans up).
 - name: Include manage_docker_compose.yml
   ansible.builtin.include_tasks:
     file: manage_docker_compose.yml
-  when: compose_service_garage_enabled | bool
 
 - name: Include manage_garage_init.yml
   ansible.builtin.include_tasks:

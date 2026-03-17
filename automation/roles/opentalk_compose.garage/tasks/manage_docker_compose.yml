@@ -12,7 +12,7 @@
       - path:
           - services/garage/compose.yml
     state: "{{ 'present' if compose_service_garage_enabled | bool else 'absent' }}"
-  when: compose_service_garage_enabled | bool
+
 
 - name: Render Garage compose file
   ansible.builtin.template:

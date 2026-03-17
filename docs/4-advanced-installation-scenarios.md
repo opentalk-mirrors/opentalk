@@ -600,9 +600,9 @@ OpenTalk uses an S3-compatible object storage service for files such as recordin
 | Provider | Description |
 |----------|-------------|
 | **Garage** (default) | Lightweight, self-contained S3-compatible storage. No web UI — administration via CLI. |
-| **MinIO** | Feature-rich object storage with a web console at `/adm/minio/`. |
+| **MinIO** | object storage with a web console at `/adm/minio/`. MinIO is no longer maintained and the the repository is now officially archived. Currently, Minio support is maintained solely for backward compatibility |
 
-Only one provider can be active per deployment. The provider is selected via the `s3_storage_provider` variable in `settings.yml`.
+Normally only one provider is active at a time, selected via the `s3_storage_provider` variable in `settings.yml`. During a migration both providers can run in parallel — see [Section 6.3](#63-migrating-between-minio-and-garage).
 
 ### 6.1 Choosing a provider
 
@@ -645,121 +645,80 @@ docker exec opentalk-garage-1 /garage layout show
 
 For more information, refer to the [Garage documentation](https://garagehq.deuxfleurs.fr/documentation/quick-start/).
 
-### 6.3 Migration from MinIO to Garage
+### 6.3 Migrating between MinIO and Garage
 
-If you have an existing deployment using MinIO and want to switch to Garage, follow these steps.
+You can migrate S3 data in either direction — MinIO → Garage or Garage → MinIO — using the `otctl migrate` command. The command automates the full procedure: it installs `rclone` if needed, copies all objects between the two backends, updates `settings.yml`, and optionally runs a deployment to stop the source service.
 
-> **Important:** Back up your data before starting the migration. The procedure uses `rclone` to copy objects between the two S3 backends.
+> **Important:** Back up your data before starting the migration.
+> ```bash
+> otctl backup
+> ```
 
-#### 6.3.1 Back up the current MinIO data
+#### 6.3.1 Enable both providers in parallel
 
-```bash
-otctl backup
-```
+Both providers must be running at the same time for the migration to work. Add the following to `/etc/opentalk-compose/settings.yml` and deploy:
 
-#### 6.3.2 Install rclone
-
-Install `rclone` on the host if not already present:
-
-```bash
-# Debian/Ubuntu
-apt-get install -y rclone
-
-# RHEL/Fedora
-dnf install -y rclone
-```
-
-#### 6.3.3 Switch the storage provider
-
-Edit `/etc/opentalk-compose/settings.yml`:
-
+**MinIO → Garage** (Garage is not yet running):
 ```yaml
-s3_storage_provider: garage
+compose_service_minio_enabled: true
+compose_service_garage_enabled: true
 ```
 
-Remove or comment out the old MinIO toggle if present:
-
+**Garage → MinIO** (MinIO is not yet running):
 ```yaml
-# compose_service_minio_enabled: true  # remove this line
+compose_service_garage_enabled: true
+compose_service_minio_enabled: true
 ```
 
-#### 6.3.4 Deploy Garage
+Then run `otctl deploy` to start both services. A warning will appear at the end of the deployment indicating that both providers are active and a migration should be performed.
+
+> **Note:** `s3_storage_provider` controls which S3 endpoint the controller uses. Leave it pointing at the current active provider until the migration is complete.
+
+#### 6.3.2 Run the migration
 
 ```bash
-otctl deploy
+# Migrate from MinIO to Garage:
+otctl migrate minio-to-garage
+
+# Migrate from Garage to MinIO:
+otctl migrate garage-to-minio
 ```
 
-This starts Garage, initializes the cluster, creates the bucket and API key, and stops the MinIO container.
+The command will:
 
-#### 6.3.5 Retrieve Garage credentials
+1. Install `rclone` on the host if not already present (via `apt` or `dnf`).
+2. Verify that both containers are running and healthy.
+3. Copy all objects from the source bucket to the destination bucket.
+4. Verify that the object counts match.
+5. Update `settings.yml`: set `s3_storage_provider` to the destination and set `compose_service_<source>_enabled: false`.
+6. Run `otctl deploy` automatically to stop the source service and reconfigure the controller.
 
-The Garage S3 credentials are stored in the secrets file after deployment:
+To skip the automatic deploy after migration (e.g. to verify manually first):
 
 ```bash
-grep 'GARAGE_S3' /etc/opentalk-compose/secrets/secrets.yml
+otctl migrate minio-to-garage --no-deploy
 ```
 
-Note the `GARAGE_S3_ACCESS_KEY` and `GARAGE_S3_SECRET_KEY` values.
+#### 6.3.3 Verify
 
-#### 6.3.6 Configure rclone
-
-Create a temporary rclone configuration:
+After migration, confirm the destination service is healthy and the controller is using the new backend:
 
 ```bash
-cat > /tmp/rclone-migrate.conf << 'EOF'
-[minio]
-type = s3
-provider = Minio
-endpoint = http://localhost:9000
-access_key_id = minioadmin
-secret_access_key = <MINIO_ROOT_PASSWORD from secrets.yml>
-
-[garage]
-type = s3
-provider = Other
-endpoint = http://localhost:3900
-access_key_id = <GARAGE_S3_ACCESS_KEY>
-secret_access_key = <GARAGE_S3_SECRET_KEY>
-region = garage
-force_path_style = true
-EOF
-```
-
-Replace the placeholder values with your actual credentials.
-
-#### 6.3.7 Export from MinIO and import into Garage
-
-Temporarily start the old MinIO container so both backends are available:
-
-```bash
-docker compose -f /opt/opentalk-compose/compose.yml up -d minio
-```
-
-Copy all objects:
-
-```bash
-rclone sync --config /tmp/rclone-migrate.conf minio:opentalk garage:opentalk --progress
-```
-
-#### 6.3.8 Verify
-
-List objects in Garage to confirm the migration:
-
-```bash
+# For Garage as destination:
 docker exec opentalk-garage-1 /garage bucket info opentalk
+
+# For MinIO as destination:
+otctl compose exec minio mc ls local/opentalk
 ```
 
-#### 6.3.9 Clean up
+#### 6.3.4 Clean up (optional)
 
-Stop the old MinIO container and remove the temporary rclone config:
-
-```bash
-docker compose -f /opt/opentalk-compose/compose.yml rm -sf minio
-rm -f /tmp/rclone-migrate.conf
-```
-
-Optionally remove the MinIO Docker volume once you have confirmed the migration:
+Once you have verified the migration, remove the old Docker volume to free disk space:
 
 ```bash
+# After migrating away from MinIO:
 docker volume rm opentalk_minio
+
+# After migrating away from Garage:
+docker volume rm opentalk_garage_data opentalk_garage_meta
 ```

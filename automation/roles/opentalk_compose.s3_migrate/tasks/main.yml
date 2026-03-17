@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# tasks file for opentalk_compose.s3_migrate
+
+- name: Include validate.yml
+  ansible.builtin.include_tasks:
+    file: validate.yml
+
+- name: Include install_rclone.yml
+  ansible.builtin.include_tasks:
+    file: install_rclone.yml
+
+- name: Include run_migration.yml
+  ansible.builtin.include_tasks:
+    file: run_migration.yml
+
+- name: Include update_settings.yml
+  ansible.builtin.include_tasks:
+    file: update_settings.yml
+
+- name: Include post_deploy.yml
+  ansible.builtin.include_tasks:
+    file: post_deploy.yml
+  when: s3_migrate_run_deploy | bool

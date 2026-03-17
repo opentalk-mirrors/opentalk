@@ -12,6 +12,8 @@ services:
         hard: {{ minio_docker_compose_ulimits_nofile_hard }}
       nproc: {{ minio_docker_compose_ulimits_nproc }}
     restart: always
+    ports:
+      - "127.0.0.1:{{ minio_s3_api_port }}:9000"
     entrypoint: |
       /bin/sh -c '
       mkdir -p /data/{{ minio_bucket_name | default('opentalk') }} && \

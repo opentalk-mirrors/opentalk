@@ -12,7 +12,7 @@
       - path:
           - services/minio/compose.yml
     state: "{{ 'present' if compose_service_minio_enabled | bool else 'absent' }}"
-  when: compose_service_minio_enabled | bool
+
 
 - name: Render MinIO compose file
   ansible.builtin.template:

@@ -20,10 +20,22 @@
       - s3_storage_provider in ['garage', 'minio']
     fail_msg: "s3_storage_provider must be 'garage' or 'minio', got '{{ s3_storage_provider }}'"
 
+# Both flags may be independently set in settings.yml (dual-run / migration).
+# If a flag is not explicitly set, fall back to the s3_storage_provider value.
 - name: Derive S3 service enabled flags
   ansible.builtin.set_fact:
-    compose_service_garage_enabled: "{{ s3_storage_provider == 'garage' }}"
-    compose_service_minio_enabled: "{{ s3_storage_provider == 'minio' }}"
+    compose_service_garage_enabled: >-
+      {%- if compose_service_garage_enabled is defined -%}
+        {{ compose_service_garage_enabled | bool }}
+      {%- else -%}
+        {{ s3_storage_provider == 'garage' }}
+      {%- endif -%}
+    compose_service_minio_enabled: >-
+      {%- if compose_service_minio_enabled is defined -%}
+        {{ compose_service_minio_enabled | bool }}
+      {%- else -%}
+        {{ s3_storage_provider == 'minio' }}
+      {%- endif -%}
 
 - name: Set Docker Compose project name and desired state facts
   ansible.builtin.set_fact:
