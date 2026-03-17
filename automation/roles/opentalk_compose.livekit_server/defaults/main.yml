@@ -28,7 +28,7 @@ livekit_rtc_enable_loopback_candidate: false
 # livekit_rtc_node_ip: "{{ ansible_host }}"
 # livekit_rtc_udp_port: 7882-7890
 # livekit_rtc_stun_servers:
-#   - stun.example.com:443
+#   - "stun.l.google.com:5349"
 # livekit_rtc_turn_servers:
 #   - host: turn.example.com
 #     port: 443

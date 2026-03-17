@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Quickstart Guide to Self-Hosting OpenTalk
 
-OpenTalk Compose is a set of tools and utilities for running the OpenTalk video conferencing solution on your own server. This quickstart guide covers the minimal steps required to get the necessary services up and running. It assumes a standard scenario with a publicly accessible server where all components run on a single host and SSL/TLS certificates are obtained via Let's Encrypt.  
+OpenTalk Compose is a set of tools and utilities for running the OpenTalk video conferencing solution on your own server. This quickstart guide covers the minimal steps required to get the necessary services up and running. It assumes a standard scenario with a publicly accessible server where all components run on a single host and SSL/TLS certificates are obtained via Let's Encrypt.
 For customized setups or special conditions, refer to the OpenTalk Administration Guide. The essentials are explained here.
 
 ## 1. Preparations
@@ -50,6 +50,20 @@ Ensure these ports are reachable in a standard deployment:
 - 50000-65535/udp (RTP LiveKit)
 - 7881/tcp (WebRTC ICE over TCP, LiveKit)
 - 3478/udp (LiveKit TURN)
+- 5349/tcp (LiveKit TLS TURN - optional)
+
+If the system itself has an external firewall is setup to block incoming connection.
+Additionally to the public ports you have to allow the internal services to access Livekit.
+
+Therefore you need to find your the docker opentalk network, e.g. 172.18.0.0/24
+and allow at least the ports: TCP/7880, UDP/50000-65535.
+
+```bash
+# controller, recorder obelisk -> livekit websocket
+iptables -A INPUT -p tcp -s 172.18.0.0/24 --dport 7880 -j ACCEPT
+# recorder obelisk -> livekit RTP
+iptables -A INPUT -p udp -s 172.18.0.0/24 --dport 50000:65535 -j ACCEPT
+```
 
 ### 1.4 DNS Domain Record
 
@@ -58,6 +72,19 @@ Create a DNS record pointing to the server's public IPv4 and IPv6 addresses. Thi
 ### 1.5 Docker Requirement
 
 Install Docker and the Docker Compose plugin before installing `opentalk-compose`. If not installed, follow the official Docker documentation.
+
+### 1.6 Automatic Address Discovery
+
+Livekit uses per default a google STUN server to infer its own public accessible IP address,
+while convenient this can changed by:
+ - either using another STUN server. There is a section in the `settings.yml` to tweak:
+```
+  livekit_rtc_stun_servers:
+   - "stun.YOUR-PROVIDER:STUN-PORT"
+
+```
+ - or disable `livekit_rtc_use_external_ip` and configure
+    `livekit_rtc_node_ip` instead to the public IP of the livekit-service.
 
 ## 2. Installation Procedure
 
@@ -72,19 +99,19 @@ Install Docker and the Docker Compose plugin before installing `opentalk-compose
     curl -fsSL \
       https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc | \
       sudo tee /etc/apt/trusted.gpg.d/opentalk-archive-keyring.asc > /dev/null
-    
+
     # Add the OpenTalk Compose (Beta) repository
     echo "deb [arch=amd64] \
       https://repo.heinlein.group/repo/opentalk-compose/deb/beta/ all main" | \
       sudo tee /etc/apt/sources.list.d/opentalk-compose.list
-    
+
     # Update package index
     sudo apt update
-    
+
     # Install package opentalk-compose
     sudo apt install opentalk-compose
     ```
-    
+
 
 === "RHEL / Rocky / AlmaLinux"
 
@@ -94,7 +121,7 @@ Install Docker and the Docker Compose plugin before installing `opentalk-compose
     # Download and install the GPG public key
     sudo rpm --import \
       https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
-    
+
     # Add the OpenTalk Compose (Beta) repository
     sudo tee /etc/yum.repos.d/opentalk-beta.repo <<EOF
     [opentalk-compose]
@@ -104,10 +131,10 @@ Install Docker and the Docker Compose plugin before installing `opentalk-compose
     gpgcheck=1
     gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
     EOF
-    
+
     # Update repository metadata
     sudo dnf makecache
-    
+
     # Install package opentalk-compose
     sudo dnf install opentalk-compose
     ```
@@ -120,7 +147,7 @@ Install Docker and the Docker Compose plugin before installing `opentalk-compose
     # Download and install the GPG public key
     sudo rpm --import \
       https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
-    
+
     # Add the OpenTalk Compose (Beta) repository
     sudo tee /etc/zypp/repos.d/opentalk-beta.repo <<EOF
     [opentalk-compose-beta]
@@ -130,10 +157,10 @@ Install Docker and the Docker Compose plugin before installing `opentalk-compose
     gpgcheck=1
     gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
     EOF
-    
+
     # Refresh repositories and install OpenTalk Compose
     sudo zypper refresh
-    
+
     # Install package opentalk-compose
     sudo zypper install opentalk-compose
     ```
@@ -496,17 +523,22 @@ Reliable WebRTC connectivity sometimes requires TURN relaying when direct peer-t
 
 ### 5.1 Default Embedded TURN Behavior
 
-The embedded TURN server is part of the LiveKit deployment and is managed by OpenTalk Compose. Out-of-the-box (without extra settings) LiveKit exposes TURN (UDP) on port `3478` using the host's main domain (e.g. `example.com:3478`). This supports most scenarios. Enabling TURN over TLS (TCP/TLS on port `443` behind a proxy) improves connectivity behind very restrictive corporate firewalls.
+The embedded TURN server is part of the LiveKit deployment and is managed by OpenTalk Compose.
+Out-of-the-box (without extra settings) LiveKit exposes TURN (UDP) on port `3478` using the host's main domain (e.g. `example.com:3478`).
+While this helps in some scenarios, if only TCP port 80 (HTTP) and 443(HTTPS) are available to the client, this will not bi sufficient.
 
 ### 5.2 Enabling TURN over TLS
 
-To offer TURN over TLS you should create a dedicated domain record (recommended: `turn.<ot_domain>`). This allows the loadbalancer (Traefik) to distinguish normal HTTPS traffic from TURN TLS signaling and relay flows.
+Enabling TURN over TLS (TCP/TLS on port `443` behind a proxy) improves connectivity behind very restrictive corporate firewalls.
+To offer TURN over TLS you should create a dedicated domain record (recommended: `turn.<ot_domain>`).
+This allows the loadbalancer (Traefik) to distinguish normal HTTPS traffic from TURN TLS signaling and relay flows.
 Add a DNS A/AAAA record that points to the same host as the main OpenTalk services.
 
 Requirements when enabling TURN TLS:
 
-- Subdomain (e.g. `turn.example.com`) must resolve to the OpenTalk host
+- Subdomain (e.g. `turn.<ot_domain>`) must resolve to the OpenTalk host
 - Custom certificate must cover the TURN subdomain for TLS, ACME / Let's Encrypt gets cert automatically (default)
+- Connections to `turn.<ot_domain>:443 (TCP)` need to be forwarded to the livekit service on port 5349 (TCP) by the loadbalancer
 
 #### 5.2.1 Configuration in settings.yml
 
