@@ -403,7 +403,7 @@ impl MediaPipeline {
         remote_rtp_addr: SocketAddr,
         remote_rtcp_addr: SocketAddr,
     ) -> Result<()> {
-        log::trace!("add sender session_id={session_id} {codec:?}");
+        log::debug!("add sender session_id={session_id} {codec:?}");
 
         let source = match codec.codec.media_type() {
             codec::MediaType::Audio => {
