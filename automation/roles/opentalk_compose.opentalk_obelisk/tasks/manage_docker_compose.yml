@@ -20,6 +20,10 @@
     dest: "{{ obelisk_docker_compose_services_dir }}/opentalk-obelisk/compose.yml"
   notify: Restart Docker Service OpenTalk Obelisk
 
+- name: Check if all compose includes exist
+  ansible.builtin.include_tasks:
+    file: "{{ playbook_dir }}/../roles/opentalk_compose.docker_env/tasks/check_compose_includes.yml"
+
 - name: Manage OpenTalk Obelisk Docker Compose state
   community.docker.docker_compose_v2:
     project_src: "{{ obelisk_docker_compose_project_src }}"
@@ -29,4 +33,6 @@
     files:
       - compose.yml
     state: "{{ obelisk_docker_compose_services_state }}"
-  when: compose_service_opentalk_obelisk_enabled | bool
+  when:
+    - compose_service_opentalk_obelisk_enabled | bool
+    - compose_includes_ready | default(false)
