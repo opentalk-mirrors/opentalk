@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.1.0-beta] - 2026-03-18
+
+### 🚀 New features
+
+- (livekit) Add LIVEKIT_PREFERRED_VIDEO_CODEC ([!137](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/137))
+
+### 🐛 Bug fixes
+
+- (keycloak) Enable backchannel logout ([!135](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/135))
+- (minio) Minio healthcheck broken ([!133](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/133))
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk Product version v26.1.0-beta ([!140](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/140))
+- (deps) Update OpenTalk Frontend v2.8.0 ([!140](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/140))
+- (deps) Update OpenTalk Controller v0.33.0 ([!140](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/140))
+- (deps) Update OpenTalk Obelisk v0.21.0 ([!140](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/140))
+- (deps) Update OpenTalk SMTP Mailer v0.17.0 ([!140](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/140))
+- (deps) Update OpenTalk Recorder v0.16.1 ([!140](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/140))
+
+### ⚙ Miscellaneous
+
+- (docs) Update CHANGELOG ([!132](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/132))
+- (obelisk) Change max video bitrate ([!138](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/138))
+- (ci) Enable Rocky Linux 10 test ([!134](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/134))
+- (ansible) Check compose.yml before managing a service ([!116](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/116))
+- (ansible) Correct path handling for compose includes check ([!116](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/116))
+- (docs) Update config reference ([!140](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/140))
+
 ## [25.4.6] - 2026-03-11
 
 ### 🐛 Bug fixes

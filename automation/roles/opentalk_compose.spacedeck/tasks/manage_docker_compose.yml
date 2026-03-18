@@ -20,6 +20,10 @@
     src: compose.yml.j2
     dest: "{{ spacedeck_docker_compose_services_dir }}/spacedeck/compose.yml"
 
+- name: Check if all compose includes exist
+  ansible.builtin.include_tasks:
+    file: "{{ playbook_dir }}/../roles/opentalk_compose.docker_env/tasks/check_compose_includes.yml"
+
 - name: Manage Spacedeck Docker Compose state
   community.docker.docker_compose_v2:
     project_src: "{{ spacedeck_docker_compose_project_src }}"
@@ -29,3 +33,4 @@
     files:
       - compose.yml
     state: "{{ spacedeck_docker_compose_services_state }}"
+  when: compose_includes_ready | default(false)

@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-02-17
+Last updated: 2026-03-18
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -88,6 +88,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_auth_password` | string | `{{ keycloak_permanent_admin_password }}` |
 | `keycloak_auth_realm` | string | `master` |
 | `keycloak_auth_username` | string | `{{ keycloak_permanent_admin_username }}` |
+| `keycloak_backchannel_logout_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/controller/v1/auth/logout` |
 | `keycloak_base_url` | string | `{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) \| build_subdomain_url }}/auth` |
 | `keycloak_bootstrap_admin_password` | string | `{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}` |
 | `keycloak_bootstrap_admin_remove` | boolean | `true` |
@@ -110,7 +111,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `keycloak_docker_compose_ulimits_nofile_soft` | integer | `16384` |
 | `keycloak_docker_compose_ulimits_nproc` | integer | `8192` |
-| `keycloak_docker_image_src` | string | `quay.io/keycloak/keycloak` |
+| `keycloak_docker_image_src` | string | `registry.heinlein.group/opentalk/keycloak` |
 | `keycloak_health_enabled` | string | `true` |
 | `keycloak_health_url` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_auth_realm }}/.well-known/openid-configuration` |
 | `keycloak_hostname` | string | `{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) \| build_subdomain_url }}/auth` |
@@ -156,7 +157,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `postInstall_demoUser_name` | string | `demo` |
 | `postInstall_demoUser_password` | string | `{{ DEMO_USER_PASSWORD }}` |
 | `postInstall_demoUser_state` | string | `present` |
-| `postgres_docker_image_src` | string | `postgres` |
+| `postgres_docker_image_src` | string | `registry.heinlein.group/opentalk/postgres` |
 
 ## opentalk_compose.livekit_server
 
@@ -167,7 +168,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `livekit_docker_compose_ulimits_nofile_hard` | integer | `98304` |
 | `livekit_docker_compose_ulimits_nofile_soft` | integer | `98304` |
 | `livekit_docker_compose_ulimits_nproc` | integer | `16384` |
-| `livekit_docker_image_src` | string | `livekit/livekit-server` |
+| `livekit_docker_image_src` | string | `registry.heinlein.group/opentalk/livekit-server` |
 | `livekit_port` | integer | `7880` |
 | `livekit_rtc_enable_loopback_candidate` | boolean | `false` |
 | `livekit_rtc_ips_excludes` | list | `['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']` |
@@ -197,7 +198,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailcrab_docker_compose_ulimits_nofile_hard` | integer | `32768` |
 | `mailcrab_docker_compose_ulimits_nofile_soft` | integer | `16384` |
 | `mailcrab_docker_compose_ulimits_nproc` | integer | `4096` |
-| `mailcrab_docker_image_src` | string | `marlonb/mailcrab` |
+| `mailcrab_docker_image_src` | string | `registry.heinlein.group/opentalk/mailcrab` |
 | `mailcrab_docker_label_http_routers_minio_console_middlewares` | string | `default-auth@file` |
 | `mailcrab_webui_prefix` | string | `/adm/mailcrab` |
 
@@ -240,7 +241,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `minio_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `minio_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `minio_docker_compose_ulimits_nproc` | integer | `8192` |
-| `minio_docker_image_src` | string | `minio/minio` |
+| `minio_docker_image_src` | string | `registry.heinlein.group/opentalk/minio` |
 | `minio_docker_label_http_routers_minio_console_middlewares` | string | `minio-stripprefix` |
 
 ## opentalk_compose.s3_migrate
@@ -266,7 +267,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `ndt_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `ndt_docker_compose_ulimits_nofile_soft` | integer | `32768` |
 | `ndt_docker_compose_ulimits_nproc` | integer | `4096` |
-| `ndt_docker_image_src` | string | `measurementlab/ndt-server` |
+| `ndt_docker_image_src` | string | `registry.heinlein.group/opentalk/ndt-server` |
 
 ## opentalk_compose.opentalk_controller
 
@@ -321,7 +322,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_user_search_api_base_url` | string | `{{ keycloak_api_base_url }}` |
 | `controller_user_search_backend` | string | `keycloak_webapi` |
 | `controller_user_search_users_find_behavior` | string | `from_user_search_backend` |
-| `postgres_docker_image_src` | string | `postgres` |
+| `postgres_docker_image_src` | string | `registry.heinlein.group/opentalk/postgres` |
 
 ## opentalk_compose.opentalk_obelisk
 
@@ -353,7 +354,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_sip_contact` | string | `` |
 | `obelisk_sip_enforce_qop` | boolean | `true` |
 | `obelisk_sip_id` | string | `` |
-| `obelisk_sip_max_video_bitrate` | integer | `6000` |
+| `obelisk_sip_max_video_bitrate` | integer | `6000000` |
 | `obelisk_sip_nat_ping_delta` | string | `` |
 | `obelisk_sip_offer_srtp` | string | `` |
 | `obelisk_sip_outbound_proxy` | string | `` |
@@ -459,6 +460,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `opentalk_web_frontend_environment_is_beta_release` | string | `{{ IS_BETA_RELEASE \| default(false) }}` |
 | `opentalk_web_frontend_environment_libravatar_default_image` | string | `{{ LIBRAVATAR_DEFAULT_IMAGE \| default('identicon') }}` |
 | `opentalk_web_frontend_environment_livekit_e2ee_salt` | string | `{{ LIVEKIT_E2EE_SALT }}` |
+| `opentalk_web_frontend_environment_livekit_preferred_video_codec` | string | `{{ LIVEKIT_PREFERRED_VIDEO_CODEC \| default('vp9') }}` |
 | `opentalk_web_frontend_environment_livekit_server_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/livekit` |
 | `opentalk_web_frontend_environment_ndt_server` | string | `{{ (ot_domain, ot_ingress_port) \| build_host }}` |
 | `opentalk_web_frontend_environment_oidc_client_id` | string | `{{ controller_oidc_frontend_client_id \| default('Frontend') }}` |
@@ -483,7 +485,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `rabbitmq_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `rabbitmq_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `rabbitmq_docker_compose_ulimits_nproc` | integer | `8192` |
-| `rabbitmq_docker_image_src` | string | `rabbitmq` |
+| `rabbitmq_docker_image_src` | string | `registry.heinlein.group/opentalk/rabbitmq` |
 | `rabbitmq_docker_ports` | list | `[]` |
 | `rabbitmq_management_path_prefix` | string | `/adm/rabbitmq` |
 
@@ -568,7 +570,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `traefik_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `traefik_docker_compose_ulimits_nproc` | integer | `8192` |
 | `traefik_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
-| `traefik_docker_image_src` | string | `traefik` |
+| `traefik_docker_image_src` | string | `registry.heinlein.group/opentalk/traefik` |
 | `traefik_docker_label_http_routers_dashboard_middlewares` | string | `dashboard-strip, default-auth@file` |
 | `traefik_docker_ports` | list | `[{'target': 80, 'published': 80, 'mode': 'host'}, {'target': 443, 'published': 443, 'mode': 'host'}, {'target': 8080, 'published': 7777}]` |
 | `traefik_docker_restart` | string | `always` |

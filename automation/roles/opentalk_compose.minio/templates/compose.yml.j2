@@ -42,7 +42,7 @@ services:
       - "traefik.http.routers.minio-console.middlewares={{ minio_docker_label_http_routers_minio_console_middlewares | default('') }}"
       - "traefik.http.middlewares.minio-stripprefix.stripprefix.prefixes=/adm/minio"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000"]
       interval: 30s
       timeout: 20s
       retries: 3
