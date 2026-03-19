@@ -5,23 +5,26 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{Context, Result};
-use types::{
-    common::streaming::StreamingTargetId,
-    signaling::{
-        recording::{StreamStatus, StreamUpdated},
-        recording_service::{
-            command::RecordingServiceCommand,
-            event::RecordingServiceEvent,
-            state::{RecorderStreamInfo, RecordingServiceState},
-        },
+use opentalk_roomserver_client::api::command::SignalingModuleCommand;
+use opentalk_roomserver_types_recording::{
+    RecordingStatus, StreamStatus,
+    command::RecordingCommand,
+    service::{
+        command::RecordingServiceCommand,
+        event::RecordingServiceEvent,
+        state::{RecordingServiceState, ServiceStreamingTarget},
     },
 };
+use types::common::streaming::StreamingTargetId;
 
 use super::{OpenTalkEvent, Room};
-use crate::signaling::outgoing;
 
 #[derive(Debug)]
 pub enum OpenTalkRecordingServiceEvent {
+    StartRecording,
+    PauseRecording,
+    StopRecording,
+
     /// Start Streams
     StartStreams {
         /// The ids of the streams that should be started.
@@ -41,18 +44,25 @@ pub enum OpenTalkRecordingServiceEvent {
 
 #[derive(Debug)]
 pub(super) struct RoomRecordingServiceState {
-    pub(super) streams: BTreeMap<StreamingTargetId, RecorderStreamInfo>,
+    pub(super) streams: BTreeMap<StreamingTargetId, ServiceStreamingTarget>,
 }
 
 impl RoomRecordingServiceState {
     pub(super) fn new(state: RecordingServiceState) -> Self {
         Self {
-            streams: state.streams,
+            streams: state.streaming_targets,
         }
     }
 
-    pub(super) fn handle_websocket_event(event: RecordingServiceCommand) -> OpenTalkEvent {
+    pub(super) fn handle_websocket_event(&self, event: RecordingServiceCommand) -> OpenTalkEvent {
         OpenTalkEvent::RecordingService(match event {
+            RecordingServiceCommand::StartRecording => {
+                OpenTalkRecordingServiceEvent::StartRecording
+            }
+            RecordingServiceCommand::PauseRecording => {
+                OpenTalkRecordingServiceEvent::PauseRecording
+            }
+            RecordingServiceCommand::StopRecording => OpenTalkRecordingServiceEvent::StopRecording,
             RecordingServiceCommand::StartStreams { target_ids } => {
                 OpenTalkRecordingServiceEvent::StartStreams { target_ids }
             }
@@ -71,27 +81,22 @@ pub struct RecordingServiceApi<'a> {
 }
 
 impl RecordingServiceApi<'_> {
-    pub fn recording(&self) -> Option<(&StreamingTargetId, &RecorderStreamInfo)> {
-        self.all_streams()
-            .iter()
-            .find(|(_, stream_info)| match stream_info {
-                RecorderStreamInfo::Recording(_) => true,
-                RecorderStreamInfo::Streaming(_) => false,
-            })
-    }
-
-    pub fn live_streams(&self) -> BTreeMap<&StreamingTargetId, &RecorderStreamInfo> {
-        self.all_streams()
-            .iter()
-            .filter(|(_, stream_info)| match stream_info {
-                RecorderStreamInfo::Recording(_) => false,
-                RecorderStreamInfo::Streaming(_) => true,
-            })
-            .collect()
-    }
-
-    pub fn all_streams(&self) -> &BTreeMap<StreamingTargetId, RecorderStreamInfo> {
+    pub fn streaming_targets(&self) -> &BTreeMap<StreamingTargetId, ServiceStreamingTarget> {
         &self.room.recording_service_state.as_ref().unwrap().streams
+    }
+
+    /// Send an update for a stream
+    pub async fn send_recording_update(&mut self, status: RecordingStatus) -> Result<()> {
+        self.room
+            .signaling
+            .send(
+                &SignalingModuleCommand::Recording(RecordingCommand::Service {
+                    command: RecordingServiceEvent::RecordingUpdated(status),
+                })
+                .into(),
+            )
+            .await
+            .context("Failed to send recording status update")
     }
 
     /// Send an update for a stream
@@ -102,10 +107,13 @@ impl RecordingServiceApi<'_> {
     ) -> Result<()> {
         self.room
             .signaling
-            .send(outgoing::Command::RecordingService(
-                RecordingServiceEvent::StreamUpdated(StreamUpdated { target_id, status }),
-            ))
+            .send(
+                &SignalingModuleCommand::Recording(RecordingCommand::Service {
+                    command: RecordingServiceEvent::StreamUpdated { status, target_id },
+                })
+                .into(),
+            )
             .await
-            .context("Failed to send stream update '{status}' on '{target_id}'")
+            .with_context(|| format!("Failed to send stream update on '{target_id}'"))
     }
 }

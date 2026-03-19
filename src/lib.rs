@@ -10,23 +10,19 @@ pub mod authentication;
 pub mod client;
 pub mod config;
 pub mod http;
-pub mod signaling;
 
-#[cfg(feature = "recording-service")]
 pub mod upload;
 
 pub use client::OpenTalkClient;
-pub use config::{AuthConfig, ControllerConfig};
-#[cfg(feature = "chat")]
-pub use room::{ChatApi, Message, OpenTalkChatEvent};
+pub use config::{AuthConfig, BaseUrl};
+pub use opentalk_roomserver_types;
+pub use opentalk_roomserver_types_livekit;
+pub use opentalk_roomserver_types_moderation;
+pub use opentalk_roomserver_types_raise_hands;
+pub use opentalk_roomserver_types_recording;
 pub use room::{
     DisconnectReason, Event, LiveKitApi, OpenTalkEvent, OpenTalkLiveKitEvent,
-    OpenTalkRecordingEvent, Participant, RecorderAction, RecordingApi, Room,
+    OpenTalkRecordingEvent, OpenTalkRecordingServiceEvent, Participant, RecorderAction,
+    RecordingApi, RecordingServiceApi, Room,
 };
-#[cfg(feature = "recording-service")]
-pub use room::{OpenTalkRecordingServiceEvent, RecordingServiceApi};
-#[cfg(feature = "transcription-service")]
-pub use room::{OpenTalkTranscriptionServiceEvent, TranscriptionServiceApi};
 pub use types;
-#[cfg(feature = "transcription-service")]
-pub use types::signaling::transcription::segment::Segment as TranscriptionSegment;

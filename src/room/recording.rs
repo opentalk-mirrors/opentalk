@@ -2,30 +2,45 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::collections::{BTreeMap, BTreeSet};
-
-use types::{
-    common::streaming::StreamingTargetId,
-    signaling::recording::{
-        StreamStatus, StreamTarget, StreamUpdated,
-        command::{PauseStreaming, RecordingCommand, StartStreaming, StopStreaming},
-        event::RecordingEvent,
-        state::RecordingState,
-    },
+use std::{
+    collections::{BTreeMap, BTreeSet, HashMap},
+    mem::replace,
 };
 
-use crate::{Room, room::OpenTalkEvent};
+use anyhow::{Context, Result};
+use opentalk_roomserver_client::api::{command::SignalingModuleCommand, signaling::SignalingError};
+use opentalk_roomserver_types_recording::{
+    RecordingStatus, StreamStatus, StreamingTarget,
+    command::RecordingCommand,
+    event::{RecordingError, RecordingEvent},
+    state::RecordingState,
+};
+use types::{common::streaming::StreamingTargetId, signaling::ParticipantId};
+
+use crate::{Participant, Room, room::OpenTalkEvent};
 
 /// OpenTalk recording module events
 #[derive(Debug)]
 pub enum OpenTalkRecordingEvent {
+    /// Recording state has been updated. This can be due to the recording starting, pausing or stopping.
+    ///
+    /// The events provides both the previous and updated state
+    RecordingStateUpdate {
+        previous: RecordingStatus,
+        new: RecordingStatus,
+    },
+
     /// Stream targets have been updated. This can be due to a stream starting, pausing or stopping.
     ///
     /// The events provides both the previous and updated state
     StreamTargetsUpdated {
-        stream_target: StreamTarget,
+        stream_target: StreamingTargetId,
         previous_status: StreamStatus,
+        new_status: StreamStatus,
     },
+
+    /// Some error has occurred
+    Error(RecordingError),
 }
 
 #[derive(Debug)]
@@ -38,7 +53,7 @@ pub enum RecorderAction {
 #[derive(thiserror::Error, Debug)]
 pub enum UpdateStreamingError {
     #[error("Sending recorder command failed: {0}")]
-    SignalingCommandFailed(#[source] anyhow::Error),
+    SignalingCommandFailed(#[source] SignalingError),
 }
 
 pub struct RecordingApi<'a> {
@@ -51,8 +66,13 @@ impl RecordingApi<'_> {
     /// # Panics
     /// When the `recording_state` was somehow invalidated
     #[must_use]
-    pub fn streams(&self) -> &BTreeMap<StreamingTargetId, StreamTarget> {
-        &self.room.recording_state.as_ref().unwrap().streams
+    pub fn streams(&self) -> &BTreeMap<StreamingTargetId, StreamingTarget> {
+        &self.room.recording_state.as_ref().unwrap().stream_states
+    }
+
+    #[must_use]
+    pub fn recording_status(&self) -> &RecordingStatus {
+        &self.room.recording_state.as_ref().unwrap().recording_state
     }
 
     pub async fn update_stream(
@@ -61,14 +81,14 @@ impl RecordingApi<'_> {
         target_ids: BTreeSet<StreamingTargetId>,
     ) -> Result<(), UpdateStreamingError> {
         let recorder_command = match action {
-            RecorderAction::Start => RecordingCommand::StartStream(StartStreaming { target_ids }),
-            RecorderAction::Stop => RecordingCommand::StopStream(StopStreaming { target_ids }),
-            RecorderAction::Pause => RecordingCommand::PauseStream(PauseStreaming { target_ids }),
+            RecorderAction::Start => RecordingCommand::StartStream { target_ids },
+            RecorderAction::Stop => RecordingCommand::StopStream { target_ids },
+            RecorderAction::Pause => RecordingCommand::PauseStream { target_ids },
         };
 
         self.room
             .signaling
-            .send(recorder_command)
+            .send(&SignalingModuleCommand::Recording(recorder_command).into())
             .await
             .map_err(UpdateStreamingError::SignalingCommandFailed)
     }
@@ -76,43 +96,82 @@ impl RecordingApi<'_> {
 
 #[derive(Debug)]
 pub(super) struct RoomRecordingState {
-    pub(super) streams: BTreeMap<StreamingTargetId, StreamTarget>,
+    pub(super) recording_state: RecordingStatus,
+    pub(super) stream_states: BTreeMap<StreamingTargetId, StreamingTarget>,
     pub(super) current_consent: bool,
 }
 
 impl RoomRecordingState {
     pub(super) fn new(state: RecordingState) -> Self {
         Self {
-            streams: state.targets,
+            recording_state: state.recording_state,
+            stream_states: state.stream_states,
             current_consent: false,
         }
     }
 
     pub(super) fn handle_websocket_event(
         &mut self,
+        participants: &mut HashMap<ParticipantId, Participant>,
         event: RecordingEvent,
-    ) -> Option<OpenTalkEvent> {
+    ) -> Result<Option<OpenTalkEvent>> {
         match event {
-            RecordingEvent::StreamUpdated(StreamUpdated { target_id, status }) => {
-                let stream_target = self.streams.get_mut(&target_id)?;
+            RecordingEvent::RecordingUpdated(status) => {
+                let previous = replace(&mut self.recording_state, status.clone());
+
+                Ok(Some(OpenTalkEvent::Recording(
+                    OpenTalkRecordingEvent::RecordingStateUpdate {
+                        previous,
+                        new: status,
+                    },
+                )))
+            }
+            RecordingEvent::StreamUpdated { target_id, status } => {
+                let stream_target = self
+                    .stream_states
+                    .get_mut(&target_id)
+                    .context("Got stream updated event for unknown streaming target")?;
 
                 let previous_status = stream_target.status.clone();
-                stream_target.status = status;
+                stream_target.status = status.clone();
 
-                Some(OpenTalkEvent::Recording(
+                Ok(Some(OpenTalkEvent::Recording(
                     OpenTalkRecordingEvent::StreamTargetsUpdated {
+                        stream_target: target_id,
                         previous_status,
-                        stream_target: stream_target.clone(),
+                        new_status: status,
                     },
-                ))
+                )))
             }
-            RecordingEvent::Error(..) | RecordingEvent::RecorderError(..) => None,
+            RecordingEvent::ConsentUpdated {
+                participant,
+                consents,
+            } => {
+                let participant = participants
+                    .get_mut(&participant)
+                    .context("Got ConsentUpdated for unknown participant")?;
+
+                let previous = participant.clone();
+                participant.consents_recording = consents;
+
+                Ok(Some(OpenTalkEvent::ParticipantUpdated {
+                    previous,
+                    updated: participant.clone(),
+                }))
+            }
+            RecordingEvent::Service { .. } => {
+                // Not passed in
+                Ok(None)
+            }
+            RecordingEvent::Error(err) => Ok(Some(OpenTalkEvent::Recording(
+                OpenTalkRecordingEvent::Error(err),
+            ))),
         }
     }
 
     pub(super) fn can_publish(&self) -> bool {
         let no_active_stream = self
-            .streams
+            .stream_states
             .values()
             .all(|s| matches!(s.status, StreamStatus::Inactive));
 
@@ -121,6 +180,6 @@ impl RoomRecordingState {
 
     // Update the recording state from a join-success state
     pub(super) fn update(&mut self, recording_state: RecordingState) {
-        self.streams = recording_state.targets;
+        self.stream_states = recording_state.stream_states;
     }
 }

@@ -4,7 +4,7 @@
 
 Supported modules
 
-- ✅ chat
+- ❌ chat
 - ✅ control
 - ✅ livekit
 - ✅ moderation

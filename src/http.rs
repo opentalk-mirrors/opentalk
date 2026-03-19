@@ -4,6 +4,13 @@
 
 use std::option::Option;
 
+use anyhow::Context;
+use openidconnect::url;
+use opentalk_roomserver_types::breakout::breakout_id::BreakoutId;
+use opentalk_types_api_internal::{
+    call_in::PostCallInStartRoomServerRequestBody, recording::RecordingTarget,
+};
+use rand::distr::SampleString;
 use reqwest::StatusCode;
 use types::{
     api::v1::{
@@ -11,29 +18,32 @@ use types::{
         rooms::{
             PostRoomsRequestBody, RoomResource,
             by_room_id::{
-                PostRoomsStartInvitedRequestBody, PostRoomsStartRequestBody, RoomsStartResponseBody,
+                PostRoomsRoomserverStartInvitedRequestBody, PostRoomsRoomserverStartRequestBody,
+                RoomserverStartResponseBody,
             },
         },
-        services::{call_in::PostCallInStartRequestBody, recording::PostRecordingStartRequestBody},
     },
     common::{
-        auth::TicketToken,
         call_in::{CallInId, CallInPassword},
         pagination::{Page, PageSize},
-        rooms::{BreakoutRoomId, RoomId, RoomPassword},
+        rooms::{RoomId, RoomPassword},
+        roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret},
+        users::DisplayName,
     },
 };
 
 use crate::{
     authentication::{
-        Authentication, ClientCredentialsAuthentication, DirectAccessCredentialsAuthentication,
-        NoAuthentication,
+        ApiKeyAuthentication, Authentication, ClientCredentialsAuthentication,
+        DirectAccessCredentialsAuthentication, NoAuthentication,
     },
-    config::{AuthConfig, ControllerConfig},
+    config::{AuthConfig, BaseUrl},
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum StartAsUserError {
+    #[error("Failed to construct destination url")]
+    UrlParseError(#[from] url::ParseError),
     #[error("Failed to get access token from authentication backend")]
     FailedToGetAccessToken(#[source] anyhow::Error),
     #[error("Failed to make the HTTP request")]
@@ -46,6 +56,8 @@ pub enum StartAsUserError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StartInvitedError {
+    #[error("Failed to construct destination url")]
+    UrlParseError(#[from] url::ParseError),
     #[error("Failed to make the HTTP request")]
     HttpFailure(#[from] reqwest::Error),
     #[error("Failed to parse HTTP response body")]
@@ -56,6 +68,8 @@ pub enum StartInvitedError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StartCallInError {
+    #[error("Failed to construct destination url")]
+    UrlParseError(#[from] url::ParseError),
     #[error("Failed to get access token from authentication backend")]
     FailedToGetAccessToken(#[source] anyhow::Error),
     #[error("Failed to make the HTTP request")]
@@ -70,6 +84,8 @@ pub enum StartCallInError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StartRecorderError {
+    #[error("Failed to construct destination url")]
+    UrlParseError(#[from] url::ParseError),
     #[error("Failed to get access token from authentication backend")]
     FailedToGetAccessToken(#[source] anyhow::Error),
     #[error("Failed to make the HTTP request")]
@@ -94,6 +110,8 @@ pub enum WebsocketError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateRoomError {
+    #[error("Failed to construct destination url")]
+    UrlParseError(#[from] url::ParseError),
     #[error("Failed to get access token from authentication backend")]
     FailedToGetAccessToken(#[source] anyhow::Error),
     #[error("Request failed because of: {0}")]
@@ -104,6 +122,8 @@ pub enum CreateRoomError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetRoomError {
+    #[error("Failed to construct destination url")]
+    UrlParseError(#[from] url::ParseError),
     #[error("Failed to get access token from authentication backend")]
     FailedToGetAccessToken(#[source] anyhow::Error),
     #[error("Request failed because of {0}")]
@@ -113,6 +133,7 @@ pub enum GetRoomError {
 }
 
 pub(crate) struct HttpClient {
+    device_secret: DeviceSecret,
     http_client: reqwest::Client,
     pub(crate) authentication: Box<dyn Authentication>,
 }
@@ -122,6 +143,7 @@ impl HttpClient {
         let http_client = reqwest::Client::new();
 
         let authentication: Box<dyn Authentication> = match config {
+            AuthConfig::ApiKey(api_key) => Box::new(ApiKeyAuthentication::from(api_key)),
             AuthConfig::ClientCredentials(config) => Box::new(
                 ClientCredentialsAuthentication::create(http_client.clone(), config).await?,
             ),
@@ -133,6 +155,10 @@ impl HttpClient {
         };
 
         Ok(Self {
+            device_secret: rand::distr::Alphanumeric
+                .sample_string(&mut rand::rng(), DEVICE_SECRET_MIN_LENGTH)
+                .parse()
+                .context("Failed to create device secret")?,
             http_client,
             authentication,
         })
@@ -140,11 +166,11 @@ impl HttpClient {
 
     pub(crate) async fn start_as_user(
         &self,
-        config: &ControllerConfig,
+        controller_url: &BaseUrl,
         room_id: RoomId,
-        breakout_room: Option<BreakoutRoomId>,
-    ) -> Result<TicketToken, StartAsUserError> {
-        let uri = format!("{}/rooms/{room_id}/start", config.v1_api_base_url());
+        display_name: Option<DisplayName>,
+    ) -> Result<RoomserverStartResponseBody, StartAsUserError> {
+        let url = controller_url.join(format!("v1/rooms/{room_id}/start"))?;
 
         let token = self
             .authentication
@@ -154,11 +180,11 @@ impl HttpClient {
 
         let response = self
             .http_client
-            .post(&uri)
+            .post(url)
             .bearer_auth(token.secret())
-            .json(&PostRoomsStartRequestBody {
-                breakout_room,
-                resumption: None,
+            .json(&PostRoomsRoomserverStartRequestBody {
+                device_secret: self.device_secret.clone(),
+                display_name,
             })
             .send()
             .await?;
@@ -169,73 +195,31 @@ impl HttpClient {
         log::trace!("start-authorized response status={status} body={response_body}");
 
         match status {
-            StatusCode::OK => {
-                let response = serde_json::from_str::<RoomsStartResponseBody>(&response_body)?;
-
-                Ok(response.ticket)
-            }
+            StatusCode::OK => Ok(serde_json::from_str::<RoomserverStartResponseBody>(
+                &response_body,
+            )?),
             status => Err(StartAsUserError::UnexpectedStatusCode(status)),
-        }
-    }
-
-    pub(crate) async fn start_as_recorder(
-        &self,
-        config: &ControllerConfig,
-        room_id: RoomId,
-        breakout_room: Option<BreakoutRoomId>,
-    ) -> Result<TicketToken, StartRecorderError> {
-        let uri = format!("{}/services/recording/start", config.v1_api_base_url());
-
-        let token = self
-            .authentication
-            .access_token()
-            .await
-            .map_err(StartRecorderError::FailedToGetAccessToken)?;
-
-        let response = self
-            .http_client
-            .post(&uri)
-            .bearer_auth(token.secret())
-            .json(&PostRecordingStartRequestBody {
-                room_id,
-                breakout_room,
-            })
-            .send()
-            .await?;
-
-        let status = response.status();
-        let response_body = response.text().await?;
-
-        log::trace!("start-authorized response status={status} body={response_body}");
-
-        match status {
-            StatusCode::OK => {
-                let response = serde_json::from_str::<RoomsStartResponseBody>(&response_body)?;
-
-                Ok(response.ticket)
-            }
-            status => Err(StartRecorderError::UnexpectedStatusCode(status)),
         }
     }
 
     pub(crate) async fn start_invited(
         &self,
-        config: &ControllerConfig,
+        controller_url: &BaseUrl,
         room_id: RoomId,
-        breakout_room: Option<BreakoutRoomId>,
         invite_code: String,
         password: Option<RoomPassword>,
-    ) -> Result<TicketToken, StartInvitedError> {
-        let uri = format!("{}/rooms/{room_id}/start_invited", config.v1_api_base_url());
+        display_name: DisplayName,
+    ) -> Result<RoomserverStartResponseBody, StartInvitedError> {
+        let url = controller_url.join(format!("v1/rooms/{room_id}/start_invited"))?;
 
         let response = self
             .http_client
-            .post(&uri)
-            .json(&PostRoomsStartInvitedRequestBody {
+            .post(url)
+            .json(&PostRoomsRoomserverStartInvitedRequestBody {
+                device_secret: self.device_secret.clone(),
                 password,
                 invite_code,
-                breakout_room,
-                resumption: None,
+                display_name,
             })
             .send()
             .await?;
@@ -247,21 +231,62 @@ impl HttpClient {
 
         match status {
             StatusCode::OK => {
-                let response = serde_json::from_str::<RoomsStartResponseBody>(&response_body)?;
+                let response = serde_json::from_str::<RoomserverStartResponseBody>(&response_body)?;
 
-                Ok(response.ticket)
+                Ok(response)
             }
             status => Err(StartInvitedError::UnexpectedStatusCode(status)),
         }
     }
 
+    pub(crate) async fn start_as_recorder(
+        &self,
+        controller_url: &BaseUrl,
+        room_id: RoomId,
+        breakout_id: Option<BreakoutId>,
+    ) -> Result<RoomserverStartResponseBody, StartRecorderError> {
+        let url = controller_url.join("/internal/recording/start")?;
+
+        let token = self
+            .authentication
+            .access_token()
+            .await
+            .map_err(StartRecorderError::FailedToGetAccessToken)?;
+
+        let response = self
+            .http_client
+            .post(url)
+            .bearer_auth(token.secret())
+            .json(&RecordingTarget {
+                room_id,
+                breakout_room: breakout_id.map(BreakoutId::into),
+            })
+            .send()
+            .await?;
+
+        let status = response.status();
+        let response_body = response.text().await?;
+
+        log::trace!("start-authorized response status={status} body={response_body}");
+
+        match status {
+            StatusCode::OK => {
+                let response = serde_json::from_str::<RoomserverStartResponseBody>(&response_body)?;
+
+                Ok(response)
+            }
+            status => Err(StartRecorderError::UnexpectedStatusCode(status)),
+        }
+    }
+
     pub(crate) async fn start_call_in(
         &self,
-        config: &ControllerConfig,
+        controller_url: &BaseUrl,
         id: CallInId,
         pin: CallInPassword,
-    ) -> Result<TicketToken, StartCallInError> {
-        let uri = format!("{}/services/call_in/start", config.v1_api_base_url());
+        display_name: DisplayName,
+    ) -> Result<RoomserverStartResponseBody, StartCallInError> {
+        let url = controller_url.join("/internal/call_in/start")?;
 
         let token = self
             .authentication
@@ -271,9 +296,13 @@ impl HttpClient {
 
         let response = self
             .http_client
-            .post(&uri)
+            .post(url)
             .bearer_auth(token.secret())
-            .json(&PostCallInStartRequestBody { id, pin })
+            .json(&PostCallInStartRoomServerRequestBody {
+                id,
+                pin,
+                display_name,
+            })
             .send()
             .await?;
 
@@ -284,9 +313,9 @@ impl HttpClient {
 
         match status {
             StatusCode::OK => {
-                let response = serde_json::from_str::<RoomsStartResponseBody>(&response_body)?;
+                let response = serde_json::from_str::<RoomserverStartResponseBody>(&response_body)?;
 
-                Ok(response.ticket)
+                Ok(response)
             }
             StatusCode::BAD_REQUEST => Err(StartCallInError::InvalidIdOrPin),
             status => Err(StartCallInError::UnexpectedStatusCode(status)),
@@ -296,12 +325,10 @@ impl HttpClient {
     /// Get a list ids of rooms that are accessible
     pub(crate) async fn get_rooms(
         &self,
-        config: &ControllerConfig,
+        controller_url: &BaseUrl,
         max: usize,
     ) -> Result<Vec<RoomResource>, GetRoomError> {
-        const PER_PAGE: i64 = 25;
-
-        let uri = format!("{}/rooms", config.v1_api_base_url());
+        let url = controller_url.join("v1/rooms")?;
 
         let mut ret = Vec::new();
 
@@ -315,9 +342,9 @@ impl HttpClient {
         for page in 1..=(max as i64) {
             let response = self
                 .http_client
-                .get(&uri)
+                .get(url.clone())
                 .query(&PagePaginationQuery {
-                    per_page: PageSize::from_i64_clamped(PER_PAGE),
+                    per_page: PageSize::MAX,
                     page: Page::from_i64_clamped(page),
                 })
                 .bearer_auth(token.secret())
@@ -332,7 +359,8 @@ impl HttpClient {
                 ret.extend(rooms.into_iter());
 
                 // Getting fewer results than requested, must be last page
-                if ret.len() >= max || (rooms_len as i64) < PER_PAGE {
+                if ret.len() >= max || PageSize::from_i64_clamped(rooms_len as i64) < PageSize::MAX
+                {
                     break;
                 }
             } else {
@@ -349,13 +377,13 @@ impl HttpClient {
     // Create a room and return it's id
     pub(crate) async fn create_room(
         &self,
-        config: &ControllerConfig,
+        controller_url: &BaseUrl,
         password: Option<RoomPassword>,
         enable_sip: bool,
         waiting_room: bool,
         e2e_encryption: bool,
     ) -> Result<RoomResource, CreateRoomError> {
-        let uri = format!("{}/rooms", config.v1_api_base_url());
+        let url = controller_url.join("v1/rooms")?;
         let token = self
             .authentication
             .access_token()
@@ -364,7 +392,7 @@ impl HttpClient {
 
         let response = self
             .http_client
-            .post(&uri)
+            .post(url)
             .bearer_auth(token.secret())
             .json(&PostRoomsRequestBody {
                 password,
