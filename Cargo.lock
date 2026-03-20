@@ -1222,9 +1222,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-image"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "293b1fb12ef138d9094d8cb1f195a1d678a2c0fcd84dfa5b6b23407417694768"
+checksum = "44641271f545e34f30ce311ce323cc42434a1f7abe05f27110af727a590ce743"
 dependencies = [
  "fast_image_resize",
  "num_cpus",
@@ -1260,9 +1260,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-sdp-types"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0f5c1f22ea6611587274ec277815629cfdcb0a657c298497aa754fac8674437"
+checksum = "7c122e3817bba68a867526c03e1616ebbcdaafc38b4d7fbaf87061f0e055e322"
 dependencies = [
  "bytes 1.11.1",
  "bytesstr",
