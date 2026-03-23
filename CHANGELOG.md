@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.1.0-beta.2] - 2026-03-23
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk Product version v26.1.0-beta.2 ([!141](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/141))
+- (deps) Update OpenTalk Controller v0.33.1 ([!141](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/141))
+- (deps) Update OpenTalk Obelisk v0.21.2 ([!141](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/141))
+
+### ⚙ Miscellaneous
+
+- (docs) Improve TURN and firewall config ([!139](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/139))
+
 ## [26.1.0-beta] - 2026-03-18
 
 ### 🚀 New features
