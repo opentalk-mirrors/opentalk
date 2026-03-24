@@ -16,7 +16,7 @@ obelisk_docker_compose_ulimits_nproc: 16384
 obelisk_docker_image_src: registry.heinlein.group/opentalk/obelisk
 obelisk_docker_extra_hosts:
   - host.docker.internal:host-gateway
-obelisk_docker_network_mode: ''
+obelisk_docker_network_mode: host
 obelisk_docker_ports:
   - "5060:5060"
 obelisk_environment_rust_log_level: info
