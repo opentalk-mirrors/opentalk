@@ -159,7 +159,7 @@ package:obelisk-container-build-mr:
       when: never
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   image:
-    name: quay.io/buildah/stable:v1.42.2
+    name: quay.io/buildah/stable:v1.43.0
     pull_policy: if-not-present
   before_script:
     - buildah login -u "$CI_REGISTRY_USER" --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -185,7 +185,7 @@ package:obelisk-container-build:
       when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   image:
-    name: quay.io/buildah/stable:v1.42.2
+    name: quay.io/buildah/stable:v1.43.0
     pull_policy: if-not-present
   before_script:
     - buildah login -u "$CI_REGISTRY_USER" --password $CI_REGISTRY_PASSWORD $CI_REGISTRY
