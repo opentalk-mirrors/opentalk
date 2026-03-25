@@ -3086,7 +3086,7 @@ dependencies = [
 name = "opentalk-obelisk"
 version = "0.21.0"
 dependencies = [
- "anstream 0.6.21",
+ "anstream 1.0.0",
  "anyhow",
  "async-trait",
  "base64 0.22.1",
