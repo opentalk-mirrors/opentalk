@@ -12,17 +12,18 @@
       - path:
           - services/opentalk-obelisk/compose.yml
     state: "{{ 'present' if compose_service_opentalk_obelisk_enabled | bool else 'absent' }}"
-  when: compose_service_opentalk_obelisk_enabled | bool
 
 - name: Render Obelisk compose file
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ obelisk_docker_compose_services_dir }}/opentalk-obelisk/compose.yml"
   notify: Restart Docker Service OpenTalk Obelisk
+  when: compose_service_opentalk_obelisk_enabled | bool
 
 - name: Check if all compose includes exist
   ansible.builtin.include_tasks:
     file: "{{ playbook_dir }}/../roles/opentalk_compose.docker_env/tasks/check_compose_includes.yml"
+  when: compose_service_opentalk_obelisk_enabled | bool
 
 - name: Manage OpenTalk Obelisk Docker Compose state
   community.docker.docker_compose_v2:

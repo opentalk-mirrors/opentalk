@@ -18,6 +18,7 @@
       until: keycloak_healthcheck.status == 200
       retries: 18
       delay: 10
+      when: not (keycloak_reachable | default(false))
 
     - name: Get Keycloak admin access token
       ansible.builtin.uri:

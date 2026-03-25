@@ -13,4 +13,3 @@
 - name: Include manage_docker_compose.yml
   ansible.builtin.include_tasks:
     file: manage_docker_compose.yml
-  when: compose_service_etherpad_enabled | bool

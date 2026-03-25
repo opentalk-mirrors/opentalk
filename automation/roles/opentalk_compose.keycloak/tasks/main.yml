@@ -16,8 +16,6 @@
   include_tasks: manage_docker_compose.yml
   when:
     - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
-    - compose_service_keycloak_enabled | default(true)
-    - compose_service_keycloak_enabled | bool
 
 - name: Include keycloak_permanent_admin.yml
   include_tasks: keycloak_permanent_admin.yml

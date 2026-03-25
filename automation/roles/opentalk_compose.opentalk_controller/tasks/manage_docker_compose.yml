@@ -12,17 +12,17 @@
       - path:
           - services/opentalk-controller/compose.yml
     state: "{{ 'present' if compose_service_opentalk_controller_enabled | bool else 'absent' }}"
-  when: compose_service_opentalk_controller_enabled | bool
-
 
 - name: Render Controller compose file
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ controller_docker_compose_services_dir }}/opentalk-controller/compose.yml"
+  when: compose_service_opentalk_controller_enabled | bool
 
 - name: Check if all compose includes exist
   ansible.builtin.include_tasks:
     file: "{{ playbook_dir }}/../roles/opentalk_compose.docker_env/tasks/check_compose_includes.yml"
+  when: compose_service_opentalk_controller_enabled | bool
 
 - name: Manage OpenTalk Controller Docker Compose state
   community.docker.docker_compose_v2:
@@ -34,4 +34,6 @@
     files:
       - compose.yml
     state: "{{ controller_docker_compose_services_state }}"
-  when: compose_includes_ready | default(false)
+  when:
+    - compose_service_opentalk_controller_enabled | bool
+    - compose_includes_ready | default(false)
