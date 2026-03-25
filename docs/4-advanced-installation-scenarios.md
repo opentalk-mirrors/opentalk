@@ -89,6 +89,8 @@ custom_certificates_ca_root_cert_file: ca.crt
 otctl deploy
 ```
 
+> **Note:** Keycloak is a Java application and uses the `KC_TRUSTSTORE_PATHS` environment variable to add the custom CA to its JVM truststore. This is required for all outbound TLS connections from Keycloak, including Identity Provider (IdP) federation connections to other Keycloak instances secured with this CA. The system CA store update (`update-ca-certificates`) alone is not sufficient for Java applications, which maintain their own trust chain independently.
+
 ### 1.3. Embedded Root CA and self-signed certificate creation
 
 OpenTalk can create a temporary (ephemeral) Root CA and use it to self‑sign TLS certificates for its services. This feature is intended for testing and non‑production scenarios.
@@ -148,6 +150,8 @@ Configuration is executed via the Keycloak Admin REST API. Ensure the OpenTalk h
 It is recommended to use a dedicated realm for OpenTalk. If the configured realm does not exist, it is created automatically.
 
 > **Warning:** If you point to an existing realm, OpenTalk-specific clients, roles, and other resources are added to that realm, which might be undesirable.
+
+> **Note:** If the external Keycloak is secured with a certificate issued by a custom CA, also configure `custom_certificates_ca_root_cert_file` in `settings.yml` (see [Section 1.2](#12-custom-ca-and-custom-tls-certificates)). This ensures all local OpenTalk services trust the custom CA for outbound HTTPS connections to Keycloak.
 
 #### 2.1.1 Stop all OpenTalk related services
 
@@ -220,6 +224,8 @@ It is assumed that:
 
 - You run your own external Keycloak installation with administrator access.
 - Network / DNS allows HTTPS access from the OpenTalk host to the external Keycloak OIDC endpoints.
+
+> **Note:** If the external Keycloak is secured with a certificate issued by a custom CA, also configure `custom_certificates_ca_root_cert_file` in `settings.yml` (see [Section 1.2](#12-custom-ca-and-custom-tls-certificates)). This ensures all local OpenTalk services trust the custom CA for outbound HTTPS connections to Keycloak.
 
 Stop all OpenTalk related services
 
