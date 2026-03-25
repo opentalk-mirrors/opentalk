@@ -5,29 +5,33 @@
 ---
 # tasks file for opentalk_compose.keycloak
 
+- name: Determine if running in demo-user mode
+  ansible.builtin.set_fact:
+    _keycloak_skip_for_demo_user: "{{ ansible_run_tags is defined and 'demo-user' in ansible_run_tags }}"
+
 - name: Include manage_keycloak_config.yml
   include_tasks: manage_keycloak_config.yml
   when:
-    - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
+    - not _keycloak_skip_for_demo_user
     - compose_service_keycloak_enabled | default(true)
     - compose_service_keycloak_enabled | bool
 
 - name: Include manage_docker_compose.yml
   include_tasks: manage_docker_compose.yml
   when:
-    - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
+    - not _keycloak_skip_for_demo_user
 
 - name: Include keycloak_permanent_admin.yml
   include_tasks: keycloak_permanent_admin.yml
   when:
-    - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
+    - not _keycloak_skip_for_demo_user
     - keycloak_manage_enabled is true
     - compose_service_keycloak_enabled | bool
 
 - name: Include manage_realm.yml
   include_tasks: manage_realm.yml
   when:
-    - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
+    - not _keycloak_skip_for_demo_user
     - keycloak_manage_enabled is true
     - compose_service_keycloak_enabled | bool
 
