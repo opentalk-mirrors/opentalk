@@ -20,12 +20,18 @@ services:
       - /bin/sh
       - -c
       - |
+{% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
+          update-ca-certificates
+{% endif %}
           /opt/keycloak/bin/kc.sh build
           /opt/keycloak/bin/kc.sh start --import-realm --optimized --verbose
     user: 0:0
     volumes:
       - ./import:/opt/keycloak/data/import:Z
       - "{{ keycloak_theme_path }}:/opt/keycloak/providers/keycloak-ot-theme.jar:Z"
+{% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
+      - /etc/opentalk-compose/ssl/{{ custom_certificates_ca_root_cert_file }}:/usr/local/share/ca-certificates/{{ custom_certificates_ca_root_cert_file }}
+{% endif %}
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: {{ keycloak_bootstrap_admin_username }}
       KC_BOOTSTRAP_ADMIN_PASSWORD: {{ keycloak_bootstrap_admin_password }}
@@ -38,6 +44,9 @@ services:
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: {{ keycloak_proxy_headers }}
       KC_HEALTH_ENABLED: "true"
+{% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
+      KC_TRUSTSTORE_PATHS: /usr/local/share/ca-certificates/{{ custom_certificates_ca_root_cert_file }}
+{% endif %}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.keycloak.service=keycloak"
