@@ -13,6 +13,12 @@
       - path:
           - services/opentalk-recorder/compose.yml
     state: "{{ 'present' if compose_service_opentalk_recorder_enabled | bool else 'absent' }}"
+  register: _blockinfile_result
+
+- name: Invalidate compose includes check on blockinfile change
+  ansible.builtin.set_fact:
+    compose_includes_ready: false
+  when: _blockinfile_result.changed
 
 - name: Render Recorder compose file
   ansible.builtin.template:
@@ -23,7 +29,9 @@
 - name: Check if all compose includes exist
   ansible.builtin.include_tasks:
     file: "{{ playbook_dir }}/../roles/opentalk_compose.docker_env/tasks/check_compose_includes.yml"
-  when: compose_service_opentalk_recorder_enabled | bool
+  when:
+    - compose_service_opentalk_recorder_enabled | bool
+    - not (compose_includes_ready | default(false))
 
 - name: Manage OpenTalk Recorder Docker Compose state
   community.docker.docker_compose_v2:

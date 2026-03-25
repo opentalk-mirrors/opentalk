@@ -12,6 +12,12 @@
       - path:
           - services/mailcrab/compose.yml
     state: "{{ 'present' if (compose_service_mailcrab_enabled | default(false)) | bool else 'absent' }}"
+  register: _blockinfile_result
+
+- name: Invalidate compose includes check on blockinfile change
+  ansible.builtin.set_fact:
+    compose_includes_ready: false
+  when: _blockinfile_result.changed
 
 - name: Render MailCrab compose file
   ansible.builtin.template:
@@ -22,7 +28,9 @@
 - name: Check if all compose includes exist
   ansible.builtin.include_tasks:
     file: "{{ playbook_dir }}/../roles/opentalk_compose.docker_env/tasks/check_compose_includes.yml"
-  when: (compose_service_mailcrab_enabled | default(false)) | bool
+  when:
+    - (compose_service_mailcrab_enabled | default(false)) | bool
+    - not (compose_includes_ready | default(false))
 
 - name: Manage MailCrab Docker Compose state
   community.docker.docker_compose_v2:
