@@ -12,16 +12,25 @@
       - path:
           - services/livekit-server/compose.yml
     state: "{{ 'present' if compose_service_livekit_server_enabled | bool else 'absent' }}"
-  when: compose_service_livekit_server_enabled | bool
+  register: _blockinfile_result
+
+- name: Invalidate compose includes check on blockinfile change
+  ansible.builtin.set_fact:
+    compose_includes_ready: false
+  when: _blockinfile_result.changed
 
 - name: Render LiveKit compose file
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ livekit_server_docker_compose_services_dir }}/livekit-server/compose.yml"
+  when: compose_service_livekit_server_enabled | bool
 
 - name: Check if all compose includes exist
   ansible.builtin.include_tasks:
     file: "{{ playbook_dir }}/../roles/opentalk_compose.docker_env/tasks/check_compose_includes.yml"
+  when:
+    - compose_service_livekit_server_enabled | bool
+    - not (compose_includes_ready | default(false))
 
 - name: Manage LiveKit Docker Compose state
   community.docker.docker_compose_v2:
@@ -32,4 +41,6 @@
     files:
       - compose.yml
     state: "{{ livekit_server_docker_compose_services_state }}"
-  when: compose_includes_ready | default(false)
+  when:
+    - compose_service_livekit_server_enabled | bool
+    - compose_includes_ready | default(false)

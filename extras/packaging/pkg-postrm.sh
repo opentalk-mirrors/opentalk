@@ -19,7 +19,7 @@ AUTOMATION_DIR="$PREFIX/automation"
 log() { echo "[postrm] $*"; }
 
 cleanup_ephemeral() {
-  rm -rf "$VENV_DIR" "$PY_DIR" "$SERVICES_DIR" "$COMPOSE_FILE" "$COMPOSE_ENV_FILE" "$COMMON_FILE"
+  rm -rf "$VENV_DIR" "$PY_DIR" "$SERVICES_DIR" "$COMPOSE_FILE" "$COMPOSE_ENV_FILE" "$COMMON_FILE" "$PREFIX/LICENSES"
   if [ -d "$RUNTIME_DIR" ]; then
     rm -rf "$RUNTIME_DIR"
     log "Removed runtime dir: $RUNTIME_DIR"

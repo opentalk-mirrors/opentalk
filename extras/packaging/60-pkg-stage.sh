@@ -49,6 +49,7 @@ RSYNC_EXCLUDES=(
   "--exclude" "/config/secrets"
   "--exclude" "/config/secrets/**"
   "--exclude" "/services/**"
+  "--exclude" "/LICENSES"
 )
 rsync -a "${RSYNC_EXCLUDES[@]}" "$ROOT/" "$PREFIX/"
 
