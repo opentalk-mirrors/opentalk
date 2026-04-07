@@ -22,17 +22,10 @@ stages:
     # Run on scheduled pipeline runs
     - if: $CI_PIPELINE_SOURCE == 'schedule'
 
-trigger_changelog_preview:
-  stage: trigger
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  variables:
-    PIPELINE_PROJECT_PATH: $CI_PROJECT_PATH
-    PIPELINE_MERGE_REQUEST_PROJECT_PATH: $CI_MERGE_REQUEST_SOURCE_PROJECT_PATH
-    PIPELINE_MERGE_REQUEST_SOURCE_BRANCH_NAME: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
-    PIPELINE_MERGE_REQUEST_IID: $CI_MERGE_REQUEST_IID
-  trigger: opentalk/tools/check-changelog
+include:
+  - project: opentalk/ci/templates/changelog
+    ref: v2
+    file: .gitlab-ci-template.yml
 
 lint:fmt:
   stage: lint
