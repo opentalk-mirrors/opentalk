@@ -22,11 +22,6 @@ stages:
     # Run on scheduled pipeline runs
     - if: $CI_PIPELINE_SOURCE == 'schedule'
 
-include:
-  - project: opentalk/ci/templates/changelog
-    ref: v2
-    file: .gitlab-ci-template.yml
-
 lint:fmt:
   stage: lint
   <<: *default_job_condition
