@@ -1,5 +1,5 @@
-SPDX-PackageDownloadLocation = "https://git.opentalk.dev/opentalk/backend/libs/opentalk-etherpad-client"
-SPDX-PackageName = "OpenTalk Etherpad Client"
+SPDX-PackageDownloadLocation = "https://git.opentalk.dev/opentalk/backend/libs/opentalk-report-generation"
+SPDX-PackageName = "OpenTalk report-generation"
 SPDX-PackageSupplier = "OpenTalk GmbH <mail@opentalk.eu>"
 version = 1
 
