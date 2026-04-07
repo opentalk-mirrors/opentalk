@@ -98,6 +98,17 @@ lint:shellcheck:
   script:
     - git ls-files --exclude='*.sh' --ignored -c -z | xargs -0r shellcheck
 
+lint:commit:
+  cache: {}
+  image: node:lts-alpine
+  stage: lint
+  <<: *default_job_condition
+  before_script:
+    - apk add --no-cache git
+    - npm install -g @commitlint/cli @commitlint/config-conventional
+  script:
+    - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
+
 test:cargo_test:
   stage: test
   needs: []
