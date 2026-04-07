@@ -80,6 +80,15 @@ ignore = [
   #
   # Dependency chain: typst 0.12.0 -> syntect 5.2.0 -> yaml-rust 0.4.5
   "RUSTSEC-2024-0320",
+
+  # Bincode unmaintained
+  # Dependency chain:
+  # ├ bincode v1.3.3
+  # └── syntect v5.3.0
+  #     ├── two-face v0.4.5
+  #     │   └── typst-library v0.14.2
+  #     │       ├── typst v0.14.2
+  "RUSTSEC-2025-0141",
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
@@ -198,6 +207,7 @@ deny = []
 skip = [
   { name = "bitflags", version = "1" },
   { name = "float-cmp", version = "0.9" },
+  { name = "gif", version = "0.13" },
   { name = "icu_collections", version = "1" },
   { name = "icu_properties", version = "1" },
   { name = "icu_properties_data", version = "1" },
@@ -205,6 +215,7 @@ skip = [
   { name = "imagesize", version = "0.13" },
   { name = "kurbo", version = "0.11" },
   { name = "litemap", version = "0.7" },
+  { name = "moxcms", version = "0.7" },
   { name = "phf", version = "0.12" },
   { name = "phf_shared", version = "0.12" },
   { name = "png", version = "0.17" },
@@ -216,6 +227,8 @@ skip = [
   { name = "zerotrie", version = "0.1" },
   { name = "zerovec", version = "0.10" },
   { name = "zerovec-derive", version = "0.10" },
+  { name = "zune-core", version = "0.4" },
+  { name = "zune-jpeg", version = "0.4" },
   #"ansi_term@0.11.0",
   #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason why it can't be updated/removed" },
 ]
