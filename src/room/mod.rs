@@ -271,6 +271,7 @@ impl Room {
                 CoreEvent::Closing { .. } => {}
                 CoreEvent::Error(..) => {}
                 CoreEvent::RoomParametersChanged { .. } => {}
+                CoreEvent::StorageQuotaChanged { .. } => {}
             },
             SignalingModuleEvent::Moderation(moderation_event) => {
                 return self.handle_moderation_event(moderation_event);
