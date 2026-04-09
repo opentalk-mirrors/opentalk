@@ -21,6 +21,10 @@
       retries: "{{ keycloak_wait_to_be_reachable_retries }}"
       delay: "{{ keycloak_wait_to_be_reachable_delay }}"
 
+    - name: Set keycloak_reachable fact
+      ansible.builtin.set_fact:
+        keycloak_reachable: true
+
     - name: "Check permanent admin exists | '{{ keycloak_permanent_admin_username }}'"
       ansible.builtin.uri:
         url: "{{ keycloak_base_url }}/realms/{{ keycloak_auth_realm }}/protocol/openid-connect/token"

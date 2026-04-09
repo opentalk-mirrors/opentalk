@@ -22,7 +22,7 @@
           'RedHat': '/etc/pki/ca-trust/source/anchors/' + self_signed_certificates_system_trust_name,
           'Suse': '/usr/share/pki/trust/anchors/' + self_signed_certificates_system_trust_name,
           'Debian': '/usr/local/share/ca-certificates/' + self_signed_certificates_system_trust_name
-        }[ansible_os_family] | default('/usr/local/share/ca-certificates/' + self_signed_certificates_system_trust_name) }}
+        }[ansible_facts['os_family']] | default('/usr/local/share/ca-certificates/' + self_signed_certificates_system_trust_name) }}
 
 - name: Initialize system_trust_dest with default
   ansible.builtin.set_fact:
@@ -36,7 +36,7 @@
 
 - name: Debug computed trust destination (pre-validation)
   ansible.builtin.debug:
-    msg: "Computed trust destination: {{ system_trust_dest }} (os_family={{ ansible_os_family }})"
+    msg: "Computed trust destination: {{ system_trust_dest }} (os_family={{ ansible_facts['os_family'] }})"
   when: system_trust_dest is defined
 
 - name: Fail if trust destination is empty
@@ -55,19 +55,19 @@
   ansible.builtin.package:
     name: ca-certificates
     state: present
-  when: ansible_os_family == 'Debian'
+  when: ansible_facts['os_family'] == 'Debian'
 
 - name: Ensure ca-certificates / update-ca-trust packages present (RedHat like)
   ansible.builtin.package:
     name: ca-certificates
     state: present
-  when: ansible_os_family == 'RedHat'
+  when: ansible_facts['os_family'] == 'RedHat'
 
 - name: Ensure ca-certificates package present (Suse like)
   ansible.builtin.package:
     name: ca-certificates
     state: present
-  when: ansible_os_family == 'Suse'
+  when: ansible_facts['os_family'] == 'Suse'
 
 - name: Copy CA certificate into system trust anchor directory
   ansible.builtin.copy:

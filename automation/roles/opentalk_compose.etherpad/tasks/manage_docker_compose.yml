@@ -12,16 +12,25 @@
       - path:
           - services/etherpad/compose.yml
     state: "{{ 'present' if compose_service_etherpad_enabled | bool else 'absent' }}"
-  when: compose_service_etherpad_enabled | bool
+  register: _blockinfile_result
+
+- name: Invalidate compose includes check on blockinfile change
+  ansible.builtin.set_fact:
+    compose_includes_ready: false
+  when: _blockinfile_result.changed
 
 - name: Render Etherpad compose file
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ etherpad_docker_compose_services_dir }}/etherpad/compose.yml"
+  when: compose_service_etherpad_enabled | bool
 
 - name: Check if all compose includes exist
   ansible.builtin.include_tasks:
     file: "{{ playbook_dir }}/../roles/opentalk_compose.docker_env/tasks/check_compose_includes.yml"
+  when:
+    - compose_service_etherpad_enabled | bool
+    - not (compose_includes_ready | default(false))
 
 - name: Manage Etherpad Docker Compose state
   community.docker.docker_compose_v2:
@@ -32,4 +41,6 @@
     files:
       - compose.yml
     state: "{{ etherpad_docker_compose_services_state }}"
-  when: compose_includes_ready | default(false)
+  when:
+    - compose_service_etherpad_enabled | bool
+    - compose_includes_ready | default(false)

@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-03-23
+Last updated: 2026-03-24
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -343,7 +343,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_docker_compose_ulimits_nproc` | integer | `16384` |
 | `obelisk_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
 | `obelisk_docker_image_src` | string | `registry.heinlein.group/opentalk/obelisk` |
-| `obelisk_docker_network_mode` | string | `` |
+| `obelisk_docker_network_mode` | string | `host` |
 | `obelisk_docker_ports` | list | `['5060:5060']` |
 | `obelisk_environment_gst_debug_level` | integer | `2` |
 | `obelisk_environment_rust_log_level` | string | `info` |
