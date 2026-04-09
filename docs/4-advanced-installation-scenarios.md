@@ -601,7 +601,9 @@ otctl deploy
 
 ## 6 S3 Storage Provider
 
-OpenTalk uses an S3-compatible object storage service for files such as recordings and PDF documents. Two providers are supported:
+OpenTalk uses an S3-compatible object storage service for files such as recordings and PDF documents. With opentalk-compose 26.1.0 Garage is the default storage provider. 
+
+Two providers are supported:
 
 | Provider | Description |
 |----------|-------------|
@@ -634,19 +636,19 @@ Garage does not provide a web UI. Use the Garage CLI inside the running containe
 
 ```bash
 # List buckets
-docker exec opentalk-garage-1 /garage bucket list
+otctl compose exec garage /garage bucket list
 
 # List API keys
-docker exec opentalk-garage-1 /garage key list
+otctl compose exec garage /garage key list
 
 # Show key details
-docker exec opentalk-garage-1 /garage key info opentalk-key
+otctl compose exec garage /garage key info opentalk-key
 
 # Show cluster status
-docker exec opentalk-garage-1 /garage status
+otctl compose exec garage /garage status
 
 # Show cluster layout
-docker exec opentalk-garage-1 /garage layout show
+otctl compose exec garage /garage layout show
 ```
 
 For more information, refer to the [Garage documentation](https://garagehq.deuxfleurs.fr/documentation/quick-start/).
@@ -661,8 +663,7 @@ You can migrate S3 data in either direction — MinIO → Garage or Garage → M
 > ```
 
 #### 6.3.1 Enable both providers in parallel
-
-Both providers must be running at the same time for the migration to work. Add the following to `/etc/opentalk-compose/settings.yml` and deploy:
+For a successful migration, both S3 providers must be running at the same time. Add the following to `/etc/opentalk-compose/settings.yml` and deploy:
 
 **MinIO → Garage** (Garage is not yet running):
 ```yaml
@@ -711,7 +712,7 @@ After migration, confirm the destination service is healthy and the controller i
 
 ```bash
 # For Garage as destination:
-docker exec opentalk-garage-1 /garage bucket info opentalk
+otctl compose exec garage /garage bucket info opentalk
 
 # For MinIO as destination:
 otctl compose exec minio mc ls local/opentalk
@@ -719,12 +720,12 @@ otctl compose exec minio mc ls local/opentalk
 
 #### 6.3.4 Clean up (optional)
 
-Once you have verified the migration, remove the old Docker volume to free disk space:
+Once you have verified the migration, remove the old docker volumes to free disk space:
 
 ```bash
 # After migrating away from MinIO:
-docker volume rm opentalk_minio
+otctl volumes rm opentalk_minio
 
 # After migrating away from Garage:
-docker volume rm opentalk_garage_data opentalk_garage_meta
+otctl volumes rm opentalk_garage_data opentalk_garage_meta
 ```
