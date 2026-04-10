@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.94.0-trixie
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.94.1-trixie
 
 .default_job_condition: &default_job_condition
   needs: []
