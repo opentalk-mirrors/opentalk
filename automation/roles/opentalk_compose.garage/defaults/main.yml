@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose.garage
+garage_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+garage_docker_compose_services_state: "{{ compose_service_garage_state | default('present') }}"
+garage_docker_compose_services_dir: "{{ services_dir }}"
+garage_docker_compose_project_src: "{{ deploy_dir }}"
+
+garage_docker_image_src: registry.heinlein.group/opentalk/garage
+
+garage_bucket_name: opentalk
+garage_s3_region: unknown
+garage_replication_factor: 1
+garage_db_engine: lmdb
+
+garage_s3_api_port: 3900
+garage_rpc_port: 3901
+garage_admin_api_port: 3903
+
+garage_rpc_bind_addr: "[::]:3901"
+garage_rpc_public_addr: "garage:3901"
+garage_s3_api_bind_addr: "[::]:3900"
+garage_admin_api_bind_addr: "[::]:3903"
+
+garage_key_name: opentalk-key
+garage_layout_zone: dc1
+garage_layout_capacity: 1G

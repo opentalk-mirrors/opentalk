@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose.s3_migrate
+
+# Run 'otctl deploy' automatically after migration to stop the source service.
+s3_migrate_run_deploy: true
+
+# S3 endpoints reachable from the host (exposed via 127.0.0.1 port binding).
+s3_migrate_minio_endpoint: "http://127.0.0.1:9000"
+s3_migrate_garage_endpoint: "http://127.0.0.1:3900"
+
+# Bucket name to migrate (must match the bucket used by both services).
+s3_migrate_bucket_name: "opentalk"
+
+# Path to the settings file that will be updated after migration.
+s3_migrate_settings_file: "{{ config_dir | default('/etc/opentalk-compose') }}/settings.yml"

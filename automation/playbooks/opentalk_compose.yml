@@ -63,10 +63,15 @@
         - role: opentalk_compose.secrets
       tags: [never, demo-user]
 
+    - role: opentalk_compose.garage
+      dependencies:
+        - role: opentalk_compose.secrets
+      tags: [garage, s3]
+
     - role: opentalk_compose.minio
       dependencies:
         - role: opentalk_compose.secrets
-      tags: [minio]
+      tags: [minio, s3]
 
     - role: opentalk_compose.rabbitmq
       dependencies:
@@ -127,3 +132,14 @@
       dependencies:
         - role: opentalk_compose.secrets
       tags: [ndt]
+
+  post_tasks:
+    - name: Warn if both S3 providers are active simultaneously
+      ansible.builtin.debug:
+        msg: >
+          WARNING: Both MinIO and Garage are running at the same time.
+          This is a temporary state intended for S3 data migration.
+          Run 'otctl migrate minio-to-garage' or 'otctl migrate garage-to-minio'
+          to transfer data and deactivate the old provider.
+      when: (compose_service_minio_enabled | default(false) | bool) and (compose_service_garage_enabled | default(false) | bool)
+      tags: [always]

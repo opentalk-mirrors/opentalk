@@ -20,6 +20,7 @@ postgres_version: 17.9-alpine
 traefik_version: v3.6.10
 minio_version: RELEASE.2025-10-15T17-29-55Z
 minio_client_version: RELEASE.2025-08-13T08-35-41Z
+garage_version: v2.2.0
 rabbitmq_version: 4.2.4-management-alpine
 mailcrab_version: v1.6.4
 livekit_version: v1.9.12

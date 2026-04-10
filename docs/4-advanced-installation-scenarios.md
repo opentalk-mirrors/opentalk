@@ -598,3 +598,134 @@ livekit_rtc_turn_servers:
 ```bash
 otctl deploy
 ```
+
+## 6 S3 Storage Provider
+
+OpenTalk uses an S3-compatible object storage service for files such as recordings and PDF documents. With opentalk-compose 26.1.0 Garage is the default storage provider. 
+
+Two providers are supported:
+
+| Provider | Description |
+|----------|-------------|
+| **Garage** (default) | Lightweight, self-contained S3-compatible storage. No web UI — administration via CLI. |
+| **MinIO** | object storage with a web console at `/adm/minio/`. MinIO is no longer maintained and the the repository is now officially archived. Currently, Minio support is maintained solely for backward compatibility |
+
+Normally only one provider is active at a time, selected via the `s3_storage_provider` variable in `settings.yml`. During a migration both providers can run in parallel — see [Section 6.3](#63-migrating-between-minio-and-garage).
+
+### 6.1 Choosing a provider
+
+New installations default to **Garage** — no additional configuration is required.
+
+To use **MinIO** instead, set:
+
+```yaml
+s3_storage_provider: minio
+```
+
+Then deploy:
+
+```bash
+otctl deploy
+```
+
+> **Backward compatibility:** Existing deployments that have `compose_service_minio_enabled: true` in their `settings.yml` will automatically continue using MinIO. You do not need to change your configuration; however, it is recommended to migrate to the new `s3_storage_provider` variable.
+
+### 6.2 Garage administration
+
+Garage does not provide a web UI. Use the Garage CLI inside the running container instead:
+
+```bash
+# List buckets
+otctl compose exec garage /garage bucket list
+
+# List API keys
+otctl compose exec garage /garage key list
+
+# Show key details
+otctl compose exec garage /garage key info opentalk-key
+
+# Show cluster status
+otctl compose exec garage /garage status
+
+# Show cluster layout
+otctl compose exec garage /garage layout show
+```
+
+For more information, refer to the [Garage documentation](https://garagehq.deuxfleurs.fr/documentation/quick-start/).
+
+### 6.3 Migrating between MinIO and Garage
+
+You can migrate S3 data in either direction — MinIO → Garage or Garage → MinIO — using the `otctl migrate` command. The command automates the full procedure: it installs `rclone` if needed, copies all objects between the two backends, updates `settings.yml`, and optionally runs a deployment to stop the source service.
+
+> **Important:** Back up your data before starting the migration.
+> ```bash
+> otctl backup
+> ```
+
+#### 6.3.1 Enable both providers in parallel
+For a successful migration, both S3 providers must be running at the same time. Add the following to `/etc/opentalk-compose/settings.yml` and deploy:
+
+**MinIO → Garage** (Garage is not yet running):
+```yaml
+compose_service_minio_enabled: true
+compose_service_garage_enabled: true
+```
+
+**Garage → MinIO** (MinIO is not yet running):
+```yaml
+compose_service_garage_enabled: true
+compose_service_minio_enabled: true
+```
+
+Then run `otctl deploy` to start both services. A warning will appear at the end of the deployment indicating that both providers are active and a migration should be performed.
+
+> **Note:** `s3_storage_provider` controls which S3 endpoint the controller uses. Leave it pointing at the current active provider until the migration is complete.
+
+#### 6.3.2 Run the migration
+
+```bash
+# Migrate from MinIO to Garage:
+otctl migrate minio-to-garage
+
+# Migrate from Garage to MinIO:
+otctl migrate garage-to-minio
+```
+
+The command will:
+
+1. Install `rclone` on the host if not already present (via `apt` or `dnf`).
+2. Verify that both containers are running and healthy.
+3. Copy all objects from the source bucket to the destination bucket.
+4. Verify that the object counts match.
+5. Update `settings.yml`: set `s3_storage_provider` to the destination and set `compose_service_<source>_enabled: false`.
+6. Run `otctl deploy` automatically to stop the source service and reconfigure the controller.
+
+To skip the automatic deploy after migration (e.g. to verify manually first):
+
+```bash
+otctl migrate minio-to-garage --no-deploy
+```
+
+#### 6.3.3 Verify
+
+After migration, confirm the destination service is healthy and the controller is using the new backend:
+
+```bash
+# For Garage as destination:
+otctl compose exec garage /garage bucket info opentalk
+
+# For MinIO as destination:
+otctl compose exec minio mc ls local/opentalk
+```
+
+#### 6.3.4 Clean up (optional)
+
+Once you have verified the migration, remove the old docker volumes to free disk space:
+
+```bash
+# After migrating away from MinIO:
+otctl volumes rm opentalk_minio
+
+# After migrating away from Garage:
+otctl volumes rm opentalk_garage_data opentalk_garage_meta
+```

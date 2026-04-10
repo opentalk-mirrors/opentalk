@@ -1,0 +1,166 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Garage cluster initialization (idempotent)
+# Runs after the container is started for the first time.
+# Each step checks if already completed before executing.
+
+- name: Wait for Garage to become healthy
+  community.docker.docker_container_info:
+    name: "{{ garage_docker_compose_project_name }}-garage-1"
+  register: garage_container_info
+  until: garage_container_info.container.State.Health.Status == "healthy"
+  retries: 30
+  delay: 5
+
+# --- Cluster Layout ---
+
+- name: Check current Garage layout
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      /garage layout show
+  register: garage_layout_show
+  changed_when: false
+
+- name: Get Garage node ID
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      /garage node id
+  register: garage_node_id_raw
+  changed_when: false
+  when: "'NO ROLE ASSIGNED' in garage_layout_show.stdout or 'Current cluster layout version: 0' in garage_layout_show.stdout"
+
+- name: Extract Garage node ID
+  ansible.builtin.set_fact:
+    garage_node_id: "{{ garage_node_id_raw.stdout.split('@')[0][:16] }}"
+  when: garage_node_id_raw is not skipped and garage_node_id_raw.rc == 0
+
+- name: Assign layout role to Garage node
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      /garage layout assign -z {{ garage_layout_zone }} -c {{ garage_layout_capacity }} {{ garage_node_id }}
+  when: garage_node_id is defined
+  register: garage_layout_assign
+
+- name: Apply Garage layout
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      /garage layout apply --version 1
+  when: garage_layout_assign is not skipped and garage_layout_assign is changed
+  register: garage_layout_apply
+
+# --- Bucket ---
+
+- name: Check if bucket exists
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      /garage bucket list
+  register: garage_bucket_list
+  changed_when: false
+
+- name: Create Garage bucket
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      /garage bucket create {{ garage_bucket_name }}
+  when: "garage_bucket_name not in garage_bucket_list.stdout"
+
+# --- API Key ---
+
+- name: Check if API key exists
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      /garage key list
+  register: garage_key_list
+  changed_when: false
+
+- name: Load existing secrets file
+  ansible.builtin.include_vars:
+    file: "{{ config_dir }}/secrets/secrets.yml"
+    name: existing_secrets_garage
+
+- name: Check if Garage S3 credentials are already stored
+  ansible.builtin.set_fact:
+    garage_credentials_stored: >-
+      {{ existing_secrets_garage.get('GARAGE_S3_SECRET_KEY', '') != ''
+         and existing_secrets_garage.get('GARAGE_S3_SECRET_KEY', '') != '(redacted)'
+         and existing_secrets_garage.get('GARAGE_S3_ACCESS_KEY', '') != '' }}
+
+# If the key exists in Garage but the secret was never persisted (e.g. a
+# previous run failed before saving), we must recreate it because
+# `garage key info` redacts the secret key.
+- name: Delete Garage API key (credentials were lost)
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      /garage key delete --yes {{ garage_key_name }}
+  when:
+    - "garage_key_name in garage_key_list.stdout"
+    - not garage_credentials_stored
+
+- name: Create Garage API key
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      /garage key create {{ garage_key_name }}
+  register: garage_key_create
+  when: "garage_key_name not in garage_key_list.stdout or not garage_credentials_stored"
+
+- name: Grant key permissions on bucket
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ garage_docker_compose_project_name }}-garage-1
+      /garage bucket allow --read --write --owner {{ garage_bucket_name }} --key {{ garage_key_name }}
+  when: garage_key_create is not skipped and garage_key_create is changed
+
+# --- Persist credentials ---
+# `garage key info` redacts the secret key, so we can only extract it
+# from the `garage key create` output.  On subsequent runs the
+# credentials are read back from secrets.yml.
+
+- name: Debug key create output
+  ansible.builtin.debug:
+    var: garage_key_create.stdout
+  when: garage_key_create is not skipped and garage_key_create is changed
+
+- name: Parse Key ID (access_key) from create output
+  ansible.builtin.set_fact:
+    garage_new_access_key: "{{ garage_key_create.stdout | regex_search('Key ID:\\s+(\\S+)', '\\1') | first }}"
+  when: garage_key_create is not skipped and garage_key_create is changed
+
+- name: Parse Secret key from create output
+  ansible.builtin.set_fact:
+    garage_new_secret_key: "{{ garage_key_create.stdout | regex_search('Secret key:\\s+(\\S+)', '\\1') | first }}"
+  when: garage_key_create is not skipped and garage_key_create is changed
+
+- name: Use existing credentials from secrets
+  ansible.builtin.set_fact:
+    garage_new_access_key: "{{ existing_secrets_garage.GARAGE_S3_ACCESS_KEY }}"
+    garage_new_secret_key: "{{ existing_secrets_garage.GARAGE_S3_SECRET_KEY }}"
+  when: garage_key_create is skipped or garage_key_create is not changed
+
+- name: Update secrets with Garage S3 credentials
+  ansible.builtin.copy:
+    dest: "{{ config_dir }}/secrets/secrets.yml"
+    mode: '0600'
+    content: |
+      # !!! DO NOT EDIT THIS FILE BY HAND !!!
+      # This configuration file is managed by ansible. Changes will be overwritten.
+
+      {{ existing_secrets_garage | combine({'GARAGE_S3_ACCESS_KEY': garage_new_access_key, 'GARAGE_S3_SECRET_KEY': garage_new_secret_key}) | to_nice_yaml(indent=2) }}
+  no_log: true
+  when: >
+    existing_secrets_garage.get('GARAGE_S3_ACCESS_KEY', '') != garage_new_access_key or
+    existing_secrets_garage.get('GARAGE_S3_SECRET_KEY', '') != garage_new_secret_key
+
+- name: Reload secrets into variables
+  ansible.builtin.include_vars:
+    file: "{{ config_dir }}/secrets/secrets.yml"
