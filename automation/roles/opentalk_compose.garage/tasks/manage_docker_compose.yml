@@ -3,6 +3,12 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
+- name: Stop and remove Garage container when disabled
+  community.docker.docker_container:
+    name: "{{ garage_docker_compose_project_name }}-garage-1"
+    state: absent
+  when: not (compose_service_garage_enabled | bool)
+
 - name: Garage Compose path include
   ansible.builtin.blockinfile:
     path: "{{ deploy_dir }}/compose.yml"
@@ -18,6 +24,7 @@
   ansible.builtin.template:
     src: compose.yml.j2
     dest: "{{ garage_docker_compose_services_dir }}/garage/compose.yml"
+  when: compose_service_garage_enabled | bool
 
 - name: Manage Garage Docker Compose state
   community.docker.docker_compose_v2:
@@ -28,3 +35,4 @@
     files:
       - compose.yml
     state: "{{ garage_docker_compose_services_state }}"
+  when: compose_service_garage_enabled | bool

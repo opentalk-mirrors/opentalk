@@ -3,6 +3,12 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
+- name: Stop and remove MinIO container when disabled
+  community.docker.docker_container:
+    name: "{{ minio_docker_compose_project_name }}-minio-1"
+    state: absent
+  when: not (compose_service_minio_enabled | bool)
+
 - name: MinIO Compose path include
   ansible.builtin.blockinfile:
     path: "{{ deploy_dir }}/compose.yml"

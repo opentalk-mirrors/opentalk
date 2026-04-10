@@ -19,7 +19,7 @@
 - name: Include manage_docker_compose.yml
   include_tasks: manage_docker_compose.yml
   when:
-    - not _keycloak_skip_for_demo_user
+    - ansible_run_tags is not defined or ('demo-user' not in ansible_run_tags)
 
 - name: Include keycloak_permanent_admin.yml
   include_tasks: keycloak_permanent_admin.yml

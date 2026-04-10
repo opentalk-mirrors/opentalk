@@ -46,7 +46,7 @@
           endpoint = {{ s3_migrate_source_endpoint }}
           access_key_id = {{ _s3_src_access_key }}
           secret_access_key = {{ _s3_src_secret_key }}
-          region = {{ 'garage' if s3_migration_source == 'garage' else '' }}
+          region = {{ garage_s3_region | default('unknown') if s3_migration_source == 'garage' else '' }}
           force_path_style = true
 
           [dest]
@@ -55,7 +55,7 @@
           endpoint = {{ s3_migrate_dest_endpoint }}
           access_key_id = {{ _s3_dst_access_key }}
           secret_access_key = {{ _s3_dst_secret_key }}
-          region = {{ 'garage' if s3_migration_destination == 'garage' else '' }}
+          region = {{ garage_s3_region | default('unknown') if s3_migration_destination == 'garage' else '' }}
           force_path_style = true
       no_log: true
 
@@ -97,7 +97,7 @@
           Re-run 'otctl migrate' to retry.
 
   always:
-    - name: Delete rclone config (ensure no credentials on disk)
+    - name: Delete rclone config
       ansible.builtin.file:
         path: "{{ _rclone_conf_tmp.path }}"
         state: absent

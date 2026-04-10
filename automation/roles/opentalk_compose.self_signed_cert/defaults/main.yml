@@ -10,7 +10,6 @@ self_signed_certificates_system_trust_dest_override: ""  # Optional explicit pat
 
 custom_certificates_certs_dir: /etc/opentalk-compose/ssl
 
-# custom_certificates_ssl_ca_file
 self_signed_certificates_ssl_certificate_ca_file: "{{ custom_certificates_ca_root_cert_file | default('ca.crt') }}"
 self_signed_certificates_ssl_certificate_fullchain_file: "{{ custom_certificates_ssl_certificate_fullchain_file | default('fullchain.crt') }}"
 self_signed_certificates_ssl_certificate_key_file: "{{ custom_certificates_ssl_certificate_key_file | default('privkey.key') }}"
@@ -43,3 +42,9 @@ self_signed_certificates_server_san_dns:
 self_signed_certificates_server_san_ip:
   - "127.0.0.1"
   - "::1"
+
+# Overrides in settings.yml defaults for custom certificates (if enabled)
+# custom_certificates_enabled: false
+# custom_certificates_fullchain_cert_file: fullchain.crt
+# custom_certificates_private_key_file: privkey.key
+# custom_certificates_ca_root_cert_file: ca.crt

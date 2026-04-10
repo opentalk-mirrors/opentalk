@@ -141,5 +141,5 @@
           This is a temporary state intended for S3 data migration.
           Run 'otctl migrate minio-to-garage' or 'otctl migrate garage-to-minio'
           to transfer data and deactivate the old provider.
-      when: (compose_service_minio_enabled | bool) and (compose_service_garage_enabled | bool)
+      when: (compose_service_minio_enabled | default(false) | bool) and (compose_service_garage_enabled | default(false) | bool)
       tags: [always]
