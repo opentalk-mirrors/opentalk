@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.1.0-beta.3] - 2026-04-10
+
+[26.1.0-beta.3]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.3
+
+### 🚀 New features
+
+- (keycloak) Add custom CA to keycloak truststore (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/146)
+- (ansible) Add Garage S3 storage role as default provider (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/136)
+- (garage) Integrate Garage as default S3 storage provider (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/136)
+
+### 📦 Dependencies
+
+- (deps) Update dependency community.general to v12.5.0 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/150)
+- (deps) Update dependency ansible-core to v2.20.4 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/148)
+- (deps) Update dependency community.docker to v5.1.0 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/149)
+- (deps) Update dependency community.docker to v5.2.0 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/152)
+- (deps) Update OpenTalk Product version v26.1.0-beta.3 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/151)
+- (deps) Update OpenTalk Web Frontend version v2.8.1 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/151)
+- (deps) Update OpenTalk Controller version v0.33.2 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/151)
+- (deps) Add garage version v2.2.0 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/136)
+
+### ⚙ Miscellaneous
+
+- (docs) Improve TURN and firewall config (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/139)
+- (docs) Update CHANGELOG (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/151)
+- (obelisk) Set network mode host by default (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/144)
+- (ansible) Improve service state handling (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/147)
+- (ansible) Cache check_compose_includes result and invalidate on blockinfile change (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/147)
+- (ansible) Add project_name in traefik service handler (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/147)
+- (ansible) Impove condition to not run when tag is demo-user (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/147)
+- (ansible) Short-circuit secrets generation loop when no keys are missing (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/147)
+- (packaging) Delete LICENSES folder after package remove (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/147)
+- (ci) Var PIPELINE_MERGE_REQUEST_TARGET_BRANCH_NAME added (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/151)
+- (docs) Update docs regarding garage migration (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/136)
+- (docs) Add garage support for config reference generation (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/136)
+
 ## [26.1.0-beta.2] - 2026-03-23
 
 ### 📦 Dependencies
