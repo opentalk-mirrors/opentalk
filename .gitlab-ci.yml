@@ -19,7 +19,7 @@ spec:
       regex: ^\d*$
       default: ''
 ---
-image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.94.0-trixie
+image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.94.1-trixie
 
 stages:
   - lint
