@@ -28,6 +28,18 @@ recorder_controller_insecure: "true"
 recorder_rabbitmq_uri: "amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F"
 recorder_rabbitmq_queue: opentalk_recorder
 
+# Optional orchestrator configuration
+# recorder_orchestrator_api_key_id: "orchestrator"
+# recorder_orchestrator_api_key_secret: "secret"
+# recorder_orchestrator_url: "http://127.0.0.1:11222"
+
+# Optional HTTP server configuration
+# recorder_http_host: "0.0.0.0"
+# recorder_http_port: 5555
+# recorder_http_api_keys:
+#   - id: "recorder"
+#     secret: "secret"
+
 recorder_recorder_display: "true"
 recorder_recorder_clock_format: "%d.%m.%y %X %Z"
 # recorder_hardware_acceleration_manufacturer: "intel"

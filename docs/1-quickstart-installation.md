@@ -208,7 +208,7 @@ grep DEMO_USER_PASSWORD /etc/opentalk-compose/secrets/secrets.yml
 Remove:
 
 ```bash
-otctl deploy --tags demo-user -e postInstall_demoUser_state=absent
+otctl deploy --tags demo-user -e keycloak_demo_user_state=absent
 ```
 
 Regular user management is done via Keycloak. Refer the docs [Managing OpenTalk Users](./3-managing-opentalk-users-in-keycloak.md).

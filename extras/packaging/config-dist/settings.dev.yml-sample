@@ -2,9 +2,17 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
----
-#OT_DOMAIN: localhost
+# Sample settings file for development environment
+# Copy to config/settings.yml and adjust as needed
 
+---
+ot_domain: localhost
+ot_ingress_port: 8080
+ot_ingress_protocol: http
+
+compose_project_name: "opentalk"
+
+deploy_dir: "../../"
 config_dir: "../../config"
 services_dir: "../../services"
 
@@ -117,7 +125,11 @@ keycloak_redirectUris_uris:
   - http://localhost:8080/join
   - http://localhost:8080/
 
-postInstall_demoUser_email: demo.user@localhost.localhost
+## Only useful when running on localhost
+keycloak_local_hostname: keycloak
+keycloak_local_port: 8000
+
+keycloak_demo_user_email: demo.user@localhost.localhost
 
 mailer_smtp_smtp_server: "smtp://mailcrab:1025?disable_starttls=true"
 mailer_smtp_from_name: "OpenTalk - localhost"
@@ -144,3 +156,7 @@ restore_volume_backups:
 
 # Directory on the host where backup archives are stored
 backup_target_dir: "~/tmp/backups"
+
+opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList: "{{ (ot_ingress_protocol, ot_domain, '*') | build_url }},{{ (ot_ingress_protocol, ot_domain, '*') | build_wildcard_url }}"
+
+outlook_add_in_labels_traefik_http_middlewares_outlook_add_in_cors_headers_accessControlAllowOriginList: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }},{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_wildcard_url }}"

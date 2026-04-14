@@ -6,6 +6,9 @@
 # This configuration file is managed by ansible. Changes will be overwritten.
 
 clock_format = "{{ obelisk_clock_format }}"
+{% if obelisk_language is defined and obelisk_language %}
+language = "{{ obelisk_language }}"
+{% endif %}
 
 [auth]
 issuer = "{{ obelisk_auth_issuer }}"
@@ -25,6 +28,12 @@ id = "{{ obelisk_sip_id }}"
 {% endif %}
 {% if obelisk_sip_contact is defined and obelisk_sip_contact %}
 contact = "{{ obelisk_sip_contact }}"
+{% endif %}
+{% if obelisk_sip_inbound_addr is defined and obelisk_sip_inbound_addr %}
+inbound_addr = "{{ obelisk_sip_inbound_addr }}"
+{% endif %}
+{% if obelisk_sip_inbound_media_ip is defined and obelisk_sip_inbound_media_ip %}
+inbound_media_ip = "{{ obelisk_sip_inbound_media_ip }}"
 {% endif %}
 {% if obelisk_sip_username is defined and obelisk_sip_username %}
 username = "{{ obelisk_sip_username }}"
@@ -52,10 +61,10 @@ enforce_qop = {{ obelisk_sip_enforce_qop | to_json }}
 max_audio_bitrate = "{{ obelisk_sip_max_audio_bitrate }}"
 {% endif %}
 {% if obelisk_sip_max_video_bitrate is defined and obelisk_sip_max_video_bitrate %}
-max_video_bitrate = "{{ obelisk_sip_max_video_bitrate }}"
+max_video_bitrate = {{ obelisk_sip_max_video_bitrate }}
 {% endif %}
-{% if obelisk_sip_offer_srtp is defined and obelisk_sip_offer_srtp %}
-offer_srtp = "{{ obelisk_sip_offer_srtp | to_json }}"
+{% if obelisk_sip_offer_srtp is defined and obelisk_sip_offer_srtp != '' %}
+offer_srtp = {{ obelisk_sip_offer_srtp | to_json }}
 {% endif %}
 
 [sip.rtp_port_range]

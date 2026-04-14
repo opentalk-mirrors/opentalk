@@ -15,6 +15,8 @@ keycloak_docker_compose_ulimits_nproc: 8192
 keycloak_db_docker_compose_ulimits_nofile_soft: 65536
 keycloak_db_docker_compose_ulimits_nofile_hard: 65536
 keycloak_db_docker_compose_ulimits_nproc: 8192
+keycloak_db_host_port: 5433
+keycloak_db_bind_interface: "127.0.0.1"
 
 keycloak_docker_image_src: registry.heinlein.group/opentalk/keycloak
 postgres_docker_image_src: registry.heinlein.group/opentalk/postgres
@@ -24,13 +26,14 @@ keycloak_docker_compose_state: present
 keycloak_wait_to_be_reachable_retries: 20
 keycloak_wait_to_be_reachable_delay: 10
 
-postInstall_demoUser_state: "present"
-postInstall_demoUser_enabled: "True"
-postInstall_demoUser_name: "demo"
-postInstall_demoUser_password: "{{ DEMO_USER_PASSWORD }}"
-postInstall_demoUser_email: "demo.user@example.com"
-postInstall_demoUser_firstName: "Test"
-postInstall_demoUser_lastName: "User"
+keycloak_demo_user_state: "present"
+keycloak_demo_user_enabled: true
+keycloak_demo_user_name: "demo"
+keycloak_demo_user_password: "{{ DEMO_USER_PASSWORD }}"
+keycloak_demo_user_email: "demo.user@example.com"
+keycloak_demo_user_firstName: "Test"
+keycloak_demo_user_lastName: "User"
+# keycloak_demo_user_force: false
 
 ## Only useful when running keycloak on localhost
 keycloak_local_hostname: ''

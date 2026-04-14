@@ -23,6 +23,7 @@ obelisk_environment_rust_log_level: info
 obelisk_environment_gst_debug_level: 2
 
 obelisk_clock_format: "%d.%m.%y %X %Z"
+# obelisk_language: "de"
 
 obelisk_auth_issuer: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
 obelisk_auth_client_id: "Obelisk"
@@ -35,6 +36,8 @@ obelisk_sip_addr: 0.0.0.0
 obelisk_sip_port: 5060
 obelisk_sip_id: ''
 obelisk_sip_contact: ''
+# obelisk_sip_inbound_addr: "192.0.2.1:5060"
+# obelisk_sip_inbound_media_ip: "192.0.2.1"
 obelisk_sip_username: ''
 obelisk_sip_password: ''
 obelisk_sip_realm: ''
