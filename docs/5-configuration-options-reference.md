@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-04-09
+Last updated: 2026-04-14
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -103,23 +103,68 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 |----------|------|---------------|
 | `garage_admin_api_bind_addr` | string | `[::]:3903` |
 | `garage_admin_api_port` | integer | `3903` |
+| `garage_admin_metrics_require_token` | string | `false` |
+| `garage_admin_metrics_token` | null | `null` |
+| `garage_admin_token_file` | string | `/run/secrets/garage_admin_token` |
+| `garage_admin_trace_sink` | string | `http://localhost:4317` |
+| `garage_allow_punycode` | string | `false` |
+| `garage_allow_world_readable_secrets` | string | `false` |
+| `garage_bind_host` | string | `127.0.0.1` |
+| `garage_block_max_concurrent_reads` | string | `16` |
+| `garage_block_max_concurrent_writes_per_request` | string | `10` |
+| `garage_block_ram_buffer_max` | string | `256MiB` |
+| `garage_block_size` | string | `1M` |
+| `garage_bootstrap_peers` | list | `[peer_id@host:port]` |
 | `garage_bucket_name` | string | `opentalk` |
+| `garage_compression_level` | string | `1` |
+| `garage_consistency_mode` | string | `consistent` |
+| `garage_consul_api` | string | `catalog` |
+| `garage_consul_ca_cert` | string | `/etc/consul/consul-ca.crt` |
+| `garage_consul_client_cert` | string | `/etc/consul/consul-client.crt` |
+| `garage_consul_client_key` | string | `/etc/consul/consul-client.key` |
+| `garage_consul_datacenters` | string | `[]` |
+| `garage_consul_http_addr` | string | `https://127.0.0.1:8500` |
+| `garage_consul_service_name` | string | `garage-daemon` |
+| `garage_consul_tags` | string | `[]` |
+| `garage_consul_tls_skip_verify` | string | `false` |
+| `garage_consul_token` | null | `null` |
+| `garage_data_dir` | string | `/var/lib/garage/data` |
+| `garage_data_fsync` | string | `false` |
 | `garage_db_engine` | string | `lmdb` |
+| `garage_disable_scrub` | string | `false` |
 | `garage_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `garage_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `garage_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `garage_docker_compose_services_state` | string | `{{ compose_service_garage_state \| default('present') }}` |
 | `garage_docker_image_src` | string | `registry.heinlein.group/opentalk/garage` |
+| `garage_k8s_namespace` | string | `garage` |
+| `garage_k8s_service_name` | string | `garage-daemon` |
+| `garage_k8s_skip_crd` | string | `false` |
 | `garage_key_name` | string | `opentalk-key` |
-| `garage_layout_capacity` | string | `1G` |
+| `garage_layout_capacity` | string | `32G` |
 | `garage_layout_zone` | string | `dc1` |
+| `garage_lmdb_map_size` | string | `1T` |
+| `garage_metadata_auto_snapshot_interval` | string | `6h` |
+| `garage_metadata_dir` | string | `/var/lib/garage/meta` |
+| `garage_metadata_fsync` | string | `true` |
+| `garage_metadata_snapshots_dir` | string | `/var/lib/garage/snapshots` |
 | `garage_replication_factor` | integer | `1` |
 | `garage_rpc_bind_addr` | string | `[::]:3901` |
+| `garage_rpc_bind_outgoing` | string | `false` |
 | `garage_rpc_port` | integer | `3901` |
 | `garage_rpc_public_addr` | string | `garage:3901` |
+| `garage_rpc_public_addr_subnet` | string | `192.168.0.0/24` |
+| `garage_rpc_secret_file` | string | `/run/secrets/garage_rpc_secret` |
 | `garage_s3_api_bind_addr` | string | `[::]:3900` |
 | `garage_s3_api_port` | integer | `3900` |
+| `garage_s3_api_root_domain` | string | `.s3.garage.localhost` |
 | `garage_s3_region` | string | `unknown` |
+| `garage_s3_web_add_host_to_metrics` | string | `false` |
+| `garage_s3_web_bind_addr` | string | `[::]:3902` |
+| `garage_s3_web_index` | string | `index.html` |
+| `garage_s3_web_port` | string | `3902` |
+| `garage_s3_web_root_domain` | string | `.web.garage` |
+| `garage_use_local_tz` | string | `false` |
 
 ## opentalk_compose.keycloak
 
@@ -142,9 +187,11 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_bootstrap_admin_password` | string | `{{ KC_BOOTSTRAP_ADMIN_PASSWORD }}` |
 | `keycloak_bootstrap_admin_remove` | boolean | `true` |
 | `keycloak_bootstrap_admin_username` | string | `bootstrap_admin` |
+| `keycloak_db_bind_interface` | string | `127.0.0.1` |
 | `keycloak_db_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `keycloak_db_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `keycloak_db_docker_compose_ulimits_nproc` | integer | `8192` |
+| `keycloak_db_host_port` | integer | `5433` |
 | `keycloak_db_password` | string | `{{ KEYCLOAK_DB_PASSWORD }}` |
 | `keycloak_db_schema` | string | `public` |
 | `keycloak_db_url_database` | string | `keycloak` |
@@ -152,6 +199,14 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_db_url_port` | integer | `5432` |
 | `keycloak_db_username` | string | `ot` |
 | `keycloak_db_vendor` | string | `postgres` |
+| `keycloak_demo_user_email` | string | `demo.user@example.com` |
+| `keycloak_demo_user_enabled` | boolean | `true` |
+| `keycloak_demo_user_firstName` | string | `Test` |
+| `keycloak_demo_user_force` | string | `false` |
+| `keycloak_demo_user_lastName` | string | `User` |
+| `keycloak_demo_user_name` | string | `demo` |
+| `keycloak_demo_user_password` | string | `{{ DEMO_USER_PASSWORD }}` |
+| `keycloak_demo_user_state` | string | `present` |
 | `keycloak_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `keycloak_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `keycloak_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -194,20 +249,13 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_realm_revoke_refresh_token` | boolean | `false` |
 | `keycloak_realm_sso_session_idle_timeout` | integer | `86400` |
 | `keycloak_realm_sso_session_max_lifespan` | integer | `2592000` |
-| `keycloak_redirectUris_uris` | list | `['{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/popup_callback', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/callback', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard/*', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/room/*', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/join', '{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/']` |
+| `keycloak_redirectUris_uris` | list | `[{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/popup_callback, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/callback, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard/*, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/room/*, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/join, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/]` |
 | `keycloak_spi_sticky_session_encoder_infinispan_should_attach_route` | string | `false` |
 | `keycloak_theme_path` | string | `{{ services_dir }}/keycloak/keycloak-ot-theme.jar` |
 | `keycloak_wait_to_be_reachable_delay` | integer | `10` |
 | `keycloak_wait_to_be_reachable_retries` | integer | `20` |
 | `offlineSessionIdleTimeout` | string | `Idle timeout for offline tokens (default: 30 days)` |
 | `offlineSessionMaxLifespan` | string | `Max lifetime for offline tokens (default: 60 days)` |
-| `postInstall_demoUser_email` | string | `demo.user@example.com` |
-| `postInstall_demoUser_enabled` | string | `True` |
-| `postInstall_demoUser_firstName` | string | `Test` |
-| `postInstall_demoUser_lastName` | string | `User` |
-| `postInstall_demoUser_name` | string | `demo` |
-| `postInstall_demoUser_password` | string | `{{ DEMO_USER_PASSWORD }}` |
-| `postInstall_demoUser_state` | string | `present` |
 | `postgres_docker_image_src` | string | `registry.heinlein.group/opentalk/postgres` |
 | `refreshTokenMaxReuse` | string | `How many times a refresh token can be reused (0 = unlimited, only if revokeRefreshToken is false)` |
 | `revokeRefreshToken` | string | `If true, refresh tokens can only be used once (default: false)` |
@@ -218,41 +266,115 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 | Variable | Type | Default Value |
 |----------|------|---------------|
-| `credential` | null | `null` |
 | `livekit_api_key_controller` | string | `{{ LIVEKIT_API_SECRET }}` |
+| `livekit_audio_active_level` | string | `30` |
+| `livekit_audio_active_red_encoding` | string | `true` |
+| `livekit_audio_min_percentile` | string | `40` |
+| `livekit_audio_smooth_intervals` | string | `4` |
+| `livekit_audio_update_interval` | string | `500` |
 | `livekit_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `livekit_docker_compose_ulimits_nofile_hard` | integer | `98304` |
 | `livekit_docker_compose_ulimits_nofile_soft` | integer | `98304` |
 | `livekit_docker_compose_ulimits_nproc` | integer | `16384` |
 | `livekit_docker_image_src` | string | `registry.heinlein.group/opentalk/livekit-server` |
+| `livekit_ingress_rtmp_base_url` | string | `rtmp://my.domain.com/live` |
+| `livekit_ingress_whip_base_url` | string | `http://my.domain.com/whip` |
+| `livekit_limit_bytes_per_sec` | string | `1000000000` |
+| `livekit_limit_max_attributes_size` | string | `0` |
+| `livekit_limit_max_metadata_size` | string | `0` |
+| `livekit_limit_max_participant_identity_length` | string | `0` |
+| `livekit_limit_max_room_name_length` | string | `0` |
+| `livekit_limit_num_tracks` | string | `-1` |
+| `livekit_limit_subscription_limit_audio` | string | `0` |
+| `livekit_limit_subscription_limit_video` | string | `0` |
 | `livekit_logging_json` | string | `false` |
 | `livekit_logging_level` | string | `info` |
+| `livekit_logging_pion_level` | string | `error` |
+| `livekit_logging_sample` | string | `false` |
+| `livekit_node_selector_algorithm` | string | `lowest` |
+| `livekit_node_selector_kind` | string | `sysload` |
+| `livekit_node_selector_regions` | list | `[{name: us-west-2, lat: 44.19, lon: -123.07}]` |
+| `livekit_node_selector_sort_by` | string | `sysload` |
+| `livekit_node_selector_sysload_limit` | string | `0.7` |
 | `livekit_port` | integer | `7880` |
 | `livekit_prometheus_port` | string | `6789` |
+| `livekit_psrpc_backoff` | string | `500ms` |
+| `livekit_psrpc_buffer_size` | string | `1000` |
+| `livekit_psrpc_max_attempts` | string | `3` |
+| `livekit_psrpc_timeout` | string | `500ms` |
+| `livekit_redis_address` | string | `redis.host:6379` |
+| `livekit_redis_cluster_addresses` | list | `[livekit-redis-node-0:6379]` |
+| `livekit_redis_db` | string | `0` |
+| `livekit_redis_password` | null | `null` |
+| `livekit_redis_sentinel_addresses` | list | `[livekit-redis-node-0:26379]` |
+| `livekit_redis_sentinel_master_name` | string | `livekit` |
+| `livekit_redis_sentinel_password` | null | `null` |
+| `livekit_redis_sentinel_username` | null | `null` |
+| `livekit_redis_tls_ca_cert_file` | null | `null` |
+| `livekit_redis_tls_client_cert_file` | null | `null` |
+| `livekit_redis_tls_client_key_file` | null | `null` |
+| `livekit_redis_tls_enabled` | string | `true` |
+| `livekit_redis_tls_insecure` | string | `false` |
+| `livekit_redis_tls_server_name` | null | `null` |
+| `livekit_redis_username` | null | `null` |
+| `livekit_region` | string | `us-west-2` |
+| `livekit_room_auto_create` | string | `true` |
+| `livekit_room_departure_timeout` | string | `20` |
+| `livekit_room_empty_timeout` | string | `300` |
+| `livekit_room_enable_remote_unmute` | string | `false` |
+| `livekit_room_enabled_codecs` | list | `[audio/opus, video/vp8]` |
+| `livekit_room_max_participants` | string | `0` |
+| `livekit_room_playout_delay_enabled` | string | `false` |
+| `livekit_room_playout_delay_max` | string | `2000` |
+| `livekit_room_playout_delay_min` | string | `100` |
+| `livekit_room_sync_streams` | string | `false` |
+| `livekit_rtc_allow_tcp_fallback` | string | `true` |
+| `livekit_rtc_batch_io_batch_size` | string | `128` |
+| `livekit_rtc_batch_io_max_flush_interval` | string | `2ms` |
+| `livekit_rtc_congestion_control_allow_pause` | string | `true` |
+| `livekit_rtc_congestion_control_enabled` | string | `true` |
+| `livekit_rtc_data_channel_max_buffered_amount` | string | `0` |
 | `livekit_rtc_enable_loopback_candidate` | boolean | `false` |
-| `livekit_rtc_ips_excludes` | list | `['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']` |
+| `livekit_rtc_interfaces_excludes` | list | `[docker0]` |
+| `livekit_rtc_interfaces_includes` | list | `[en0]` |
+| `livekit_rtc_ips_excludes` | list | `[10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]` |
 | `livekit_rtc_ips_includes` | list | `[]` |
 | `livekit_rtc_node_ip` | string | `{{ ansible_host }}` |
+| `livekit_rtc_packet_buffer_size_audio` | string | `200` |
+| `livekit_rtc_packet_buffer_size_video` | string | `500` |
+| `livekit_rtc_pli_throttle_high_quality` | string | `1s` |
+| `livekit_rtc_pli_throttle_low_quality` | string | `500ms` |
+| `livekit_rtc_pli_throttle_mid_quality` | string | `1s` |
 | `livekit_rtc_port_range_end` | integer | `65535` |
 | `livekit_rtc_port_range_start` | integer | `50000` |
-| `livekit_rtc_stun_servers` | null | `null` |
+| `livekit_rtc_strict_acks` | string | `true` |
+| `livekit_rtc_stun_servers` | list | `[stun.l.google.com:5349]` |
 | `livekit_rtc_tcp_port` | integer | `7881` |
-| `livekit_rtc_turn_servers` | null | `null` |
+| `livekit_rtc_turn_servers` | list | `[{host: turn.example.com, port: 443, protocol: tls, username: , credential: }, {host: turn.example.com, port: 443, protocol: tcp, username: , credential: }, {host: turn.example.com, port: 443, protocol: udp, username: , credential: }]` |
 | `livekit_rtc_udp_port` | string | `7882-7890` |
 | `livekit_rtc_use_external_ip` | boolean | `true` |
 | `livekit_rtc_use_ice_lite` | string | `false` |
+| `livekit_rtc_use_mdns` | string | `false` |
 | `livekit_server_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `livekit_server_docker_compose_services_dir` | string | `{{ services_dir }}` |
 | `livekit_server_docker_compose_services_state` | string | `{{ compose_service_livekit_server_state \| default('present') }}` |
+| `livekit_signal_relay_max_retry_interval` | string | `5s` |
+| `livekit_signal_relay_min_retry_interval` | string | `500ms` |
+| `livekit_signal_relay_retry_timeout` | string | `30s` |
+| `livekit_signal_relay_stream_buffer_size` | string | `1000` |
+| `livekit_turn_embedded_cert_file` | string | `/path/to/cert.pem` |
 | `livekit_turn_embedded_domain` | string | `{{ ot_domain }}` |
 | `livekit_turn_embedded_enabled` | boolean | `true` |
 | `livekit_turn_embedded_external_tls` | boolean | `true` |
+| `livekit_turn_embedded_key_file` | string | `/path/to/key.pem` |
+| `livekit_turn_embedded_relay_range_end` | string | `30000` |
+| `livekit_turn_embedded_relay_range_start` | string | `1024` |
 | `livekit_turn_embedded_tls_enabled` | boolean | `false` |
 | `livekit_turn_embedded_tls_port` | integer | `5349` |
 | `livekit_turn_embedded_udp_port` | integer | `3478` |
-| `port` | string | `443` |
-| `protocol` | string | `tls` |
-| `username` | null | `null` |
+| `livekit_webhook_api_key` | null | `null` |
+| `livekit_webhook_urls` | list | `[https://your-host.com/handler]` |
+| `secret` | null | `null` |
 
 ## opentalk_compose.mailcrab
 
@@ -313,10 +435,12 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_database_password` | string | `{{ CONTROLLER_DB_PASSWORD }}` |
 | `controller_database_port` | integer | `5432` |
 | `controller_database_user` | string | `ot` |
+| `controller_db_bind_interface` | string | `127.0.0.1` |
 | `controller_db_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `controller_db_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `controller_db_docker_compose_ulimits_nproc` | integer | `8192` |
-| `controller_defaults_disabled_features` | null | `null` |
+| `controller_db_host_port` | integer | `5432` |
+| `controller_defaults_disabled_features` | list | `[core::call_in, integration::outlook]` |
 | `controller_defaults_screen_share_requires_permission` | string | `true` |
 | `controller_defaults_user_language` | string | `en-US` |
 | `controller_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
@@ -326,29 +450,31 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `controller_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `controller_docker_compose_ulimits_nproc` | integer | `8192` |
-| `controller_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
+| `controller_docker_extra_hosts` | list | `[host.docker.internal:host-gateway]` |
 | `controller_docker_image_src` | string | `registry.heinlein.group/opentalk/controller` |
 | `controller_endpoints_disable_openapi` | string | `false` |
 | `controller_endpoints_disable_users_find` | string | `false` |
 | `controller_endpoints_disallow_custom_display_name` | string | `false` |
 | `controller_endpoints_event_invite_external_email_address` | string | `true` |
 | `controller_endpoints_users_find_use_kc` | string | `false` |
-| `controller_etcd_urls` | null | `null` |
+| `controller_etcd_urls` | list | `[etcd:2379]` |
 | `controller_etherpad_api_key` | string | `{{ ETHERPAD_API_KEY }}` |
 | `controller_etherpad_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/etherpad/` |
 | `controller_frontend_base_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
+| `controller_http_addr` | string | `::0` |
 | `controller_http_cors_allowed_origin` | string | `["*"]` |
 | `controller_http_port` | integer | `11311` |
+| `controller_http_service_api_keys` | list | `[{id: controller, secret: secret}]` |
 | `controller_livekit_api_key` | string | `controller` |
 | `controller_livekit_api_secret` | string | `{{ LIVEKIT_API_SECRET }}` |
 | `controller_livekit_public_url` | string | `wss://{{ (ot_domain, ot_ingress_port) \| build_host }}/livekit` |
 | `controller_livekit_service_url` | string | `http://host.docker.internal:7880` |
-| `controller_logging_default_directives` | list | `['ERROR', 'opentalk=INFO', 'pinky_swear=OFF', 'rustls=WARN', 'mio=ERROR', 'lapin=WARN', 'execution_id=trace']` |
+| `controller_logging_default_directives` | list | `[ERROR, opentalk=INFO, pinky_swear=OFF, rustls=WARN, mio=ERROR, lapin=WARN, execution_id=trace]` |
 | `controller_logging_otlp_tracing_endpoint` | string | `http://localhost:4317` |
 | `controller_logging_service_instance_id` | string | `627cc493-f310-47de-96bd-71410b7dec09` |
 | `controller_logging_service_name` | string | `controller` |
 | `controller_logging_service_namespace` | string | `opentalk` |
-| `controller_metrics_allowlist` | null | `null` |
+| `controller_metrics_allowlist` | list | `[127.0.0.0/24, ::ffff:0:0/96]` |
 | `controller_minio_access_key` | string | `{{ GARAGE_S3_ACCESS_KEY if (s3_storage_provider \| default('garage')) == 'garage' else 'minioadmin' }}` |
 | `controller_minio_bucket` | string | `opentalk` |
 | `controller_minio_secret_key` | string | `{{ GARAGE_S3_SECRET_KEY if (s3_storage_provider \| default('garage')) == 'garage' else MINIO_ROOT_PASSWORD }}` |
@@ -382,10 +508,10 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_spacedeck_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/whiteboard/` |
 | `controller_tariffs_assignment` | string | `static` |
 | `controller_tariffs_static_tariff_name` | string | `OpenTalkDefaultTariff` |
-| `controller_tariffs_status_mapping_default` | null | `null` |
-| `controller_tariffs_status_mapping_downgraded` | null | `null` |
+| `controller_tariffs_status_mapping_default` | list | `[default]` |
+| `controller_tariffs_status_mapping_downgraded` | list | `[unpaid]` |
 | `controller_tariffs_status_mapping_downgraded_tariff_name` | string | `basic` |
-| `controller_tariffs_status_mapping_paid` | null | `null` |
+| `controller_tariffs_status_mapping_paid` | list | `[paid, all_ok]` |
 | `controller_tenants_assignment` | string | `static` |
 | `controller_tenants_external_tenant_id_user_attribute_name` | string | `tenant_id` |
 | `controller_tenants_static_tenant_id` | string | `OpenTalkDefaultTenant` |
@@ -413,12 +539,13 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_docker_compose_ulimits_nofile_hard` | integer | `98304` |
 | `obelisk_docker_compose_ulimits_nofile_soft` | integer | `98304` |
 | `obelisk_docker_compose_ulimits_nproc` | integer | `16384` |
-| `obelisk_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
+| `obelisk_docker_extra_hosts` | list | `[host.docker.internal:host-gateway]` |
 | `obelisk_docker_image_src` | string | `registry.heinlein.group/opentalk/obelisk` |
 | `obelisk_docker_network_mode` | string | `host` |
-| `obelisk_docker_ports` | list | `['5060:5060']` |
+| `obelisk_docker_ports` | list | `[5060:5060]` |
 | `obelisk_environment_gst_debug_level` | integer | `2` |
 | `obelisk_environment_rust_log_level` | string | `info` |
+| `obelisk_language` | string | `de` |
 | `obelisk_monitoring_addr` | string | `0.0.0.0` |
 | `obelisk_monitoring_enable` | boolean | `true` |
 | `obelisk_monitoring_port` | integer | `11411` |
@@ -426,6 +553,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_sip_contact` | string | `` |
 | `obelisk_sip_enforce_qop` | boolean | `true` |
 | `obelisk_sip_id` | string | `` |
+| `obelisk_sip_inbound_addr` | string | `192.0.2.1:5060` |
+| `obelisk_sip_inbound_media_ip` | string | `192.0.2.1` |
 | `obelisk_sip_max_video_bitrate` | integer | `6000000` |
 | `obelisk_sip_nat_ping_delta` | string | `` |
 | `obelisk_sip_offer_srtp` | string | `` |
@@ -473,11 +602,17 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `recorder_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `recorder_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `recorder_docker_compose_ulimits_nproc` | integer | `8192` |
-| `recorder_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
+| `recorder_docker_extra_hosts` | list | `[host.docker.internal:host-gateway]` |
 | `recorder_docker_image_src` | string | `registry.heinlein.group/opentalk/recorder` |
 | `recorder_hardware_acceleration_device` | string | `/dev/dri/renderD129` |
 | `recorder_hardware_acceleration_manufacturer` | string | `intel` |
+| `recorder_http_api_keys` | list | `[{id: recorder, secret: secret}]` |
+| `recorder_http_host` | string | `0.0.0.0` |
+| `recorder_http_port` | string | `5555` |
 | `recorder_monitoring_port` | integer | `11411` |
+| `recorder_orchestrator_api_key_id` | string | `orchestrator` |
+| `recorder_orchestrator_api_key_secret` | string | `secret` |
+| `recorder_orchestrator_url` | string | `http://127.0.0.1:11222` |
 | `recorder_rabbitmq_queue` | string | `opentalk_recorder` |
 | `recorder_rabbitmq_uri` | string | `amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F` |
 | `recorder_recorder_clock_format` | string | `%d.%m.%y %X %Z` |
@@ -501,11 +636,12 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailer_monitoring_addr` | string | `0.0.0.0` |
 | `mailer_monitoring_port` | integer | `11411` |
 | `mailer_rabbit_mq_mail_task_queue` | string | `opentalk_mailer` |
+| `mailer_rabbit_mq_task_processing_timeout_seconds` | string | `1200` |
 | `mailer_rabbit_mq_url` | string | `amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F` |
 | `mailer_smtp_from_email` | string | `no-reply@{{ ot_domain }}` |
 | `mailer_smtp_from_name` | string | `OpenTalk - {{ ot_domain }}` |
 | `mailer_smtp_smtp_server` | string | `smtp://mailcrab:1025?disable_starttls=true` |
-| `mailer_support_contact_mail` | string | `support@{{ ot_domain }}` |
+| `mailer_support_contact_mail` | string | `support@example.com` |
 | `mailer_support_contact_phone` | string | `+49 123 456789` |
 | `mailer_template_builder_dashboard_event_link_builder` | string | `{base_url}/dashboard/meetings/view/{event_id}` |
 | `mailer_template_builder_guest_link_builder` | string | `{base_url}/invite/{invite_id}` |
@@ -625,8 +761,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `self_signed_certificates_server_locality` | string | `Berlin` |
 | `self_signed_certificates_server_organization` | string | `my Company` |
 | `self_signed_certificates_server_organizational_unit` | string | `IT Security` |
-| `self_signed_certificates_server_san_dns` | list | `['{{ ot_domain }}', '*.{{ ot_domain }}']` |
-| `self_signed_certificates_server_san_ip` | list | `['127.0.0.1', '::1']` |
+| `self_signed_certificates_server_san_dns` | list | `[{{ ot_domain }}, *.{{ ot_domain }}]` |
+| `self_signed_certificates_server_san_ip` | list | `[127.0.0.1, ::1]` |
 | `self_signed_certificates_server_state` | string | `Berlin` |
 | `self_signed_certificates_ssl_certificate_ca_file` | string | `{{ custom_certificates_ca_root_cert_file \| default('ca.crt') }}` |
 | `self_signed_certificates_ssl_certificate_fullchain_file` | string | `{{ custom_certificates_ssl_certificate_fullchain_file \| default('fullchain.crt') }}` |
@@ -673,10 +809,10 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `traefik_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `traefik_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `traefik_docker_compose_ulimits_nproc` | integer | `8192` |
-| `traefik_docker_extra_hosts` | list | `['host.docker.internal:host-gateway']` |
+| `traefik_docker_extra_hosts` | list | `[host.docker.internal:host-gateway]` |
 | `traefik_docker_image_src` | string | `registry.heinlein.group/opentalk/traefik` |
 | `traefik_docker_label_http_routers_dashboard_middlewares` | string | `dashboard-strip, default-auth@file` |
-| `traefik_docker_ports` | list | `[{'target': 80, 'published': 80, 'mode': 'host'}, {'target': 443, 'published': 443, 'mode': 'host'}, {'target': 8080, 'published': 7777}]` |
+| `traefik_docker_ports` | list | `[{target: 80, published: 80, mode: host}, {target: 443, published: 443, mode: host}, {target: 8080, published: 7777}]` |
 | `traefik_docker_restart` | string | `always` |
 | `traefik_entryPoints_ping_address` | string | `:8082` |
 | `traefik_entryPoints_web_address` | string | `:80` |

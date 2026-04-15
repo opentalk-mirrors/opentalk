@@ -85,6 +85,8 @@ services:
         soft: {{ keycloak_db_docker_compose_ulimits_nofile_soft }}
         hard: {{ keycloak_db_docker_compose_ulimits_nofile_hard }}
       nproc: {{ keycloak_db_docker_compose_ulimits_nproc }}
+    ports:
+      - {{ keycloak_db_bind_interface }}:{{ keycloak_db_host_port }}:5432
     volumes:
       - keycloak-db:/var/lib/postgresql/data
     restart: always

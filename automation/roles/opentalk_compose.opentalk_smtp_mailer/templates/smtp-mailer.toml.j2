@@ -8,6 +8,9 @@
 [rabbit_mq]
 url = "{{ mailer_rabbit_mq_url }}"
 mail_task_queue = "{{ mailer_rabbit_mq_mail_task_queue }}"
+{% if mailer_rabbit_mq_task_processing_timeout_seconds is defined %}
+task_processing_timeout_seconds = {{ mailer_rabbit_mq_task_processing_timeout_seconds }}
+{% endif %}
 
 [smtp]
 smtp_server = "{{ mailer_smtp_smtp_server }}"

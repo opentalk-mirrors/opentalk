@@ -41,6 +41,3 @@
     - keycloak_demo_user_enabled | default(true)
     - keycloak_manage_enabled is true
     - compose_service_keycloak_enabled | bool
-  tags:
-    - demo-user
-    - never

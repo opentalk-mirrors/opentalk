@@ -11,20 +11,72 @@ garage_docker_compose_project_src: "{{ deploy_dir }}"
 
 garage_docker_image_src: registry.heinlein.group/opentalk/garage
 
+# CLI defaults
+garage_key_name: opentalk-key
+garage_layout_zone: dc1
+garage_layout_capacity: 32G
+
 garage_bucket_name: opentalk
 garage_s3_region: unknown
 garage_replication_factor: 1
 garage_db_engine: lmdb
+# garage_consistency_mode: "consistent"
+# garage_metadata_snapshots_dir: /var/lib/garage/snapshots
+# garage_metadata_fsync: true
+# garage_data_fsync: false
+# garage_disable_scrub: false
+# garage_use_local_tz: false
+# garage_metadata_auto_snapshot_interval: "6h"
+# garage_block_size: "1M"
+# garage_block_ram_buffer_max: "256MiB"
+# garage_block_max_concurrent_reads: 16
+# garage_block_max_concurrent_writes_per_request: 10
+# garage_lmdb_map_size: "1T"
+# garage_compression_level: 1
 
+garage_bind_host: "127.0.0.1"
 garage_s3_api_port: 3900
 garage_rpc_port: 3901
 garage_admin_api_port: 3903
 
+garage_metadata_dir: /var/lib/garage/meta
+garage_data_dir: /var/lib/garage/data
+garage_rpc_secret_file: /run/secrets/garage_rpc_secret
+garage_admin_token_file: /run/secrets/garage_admin_token
+
 garage_rpc_bind_addr: "[::]:3901"
 garage_rpc_public_addr: "garage:3901"
+# garage_rpc_bind_outgoing: false
+# garage_rpc_public_addr_subnet: "192.168.0.0/24"
+# garage_allow_world_readable_secrets: false
+# garage_bootstrap_peers:
+#   - "peer_id@host:port"
+# garage_allow_punycode: false
 garage_s3_api_bind_addr: "[::]:3900"
+garage_s3_api_root_domain: ".s3.garage.localhost"
 garage_admin_api_bind_addr: "[::]:3903"
+# garage_admin_metrics_token: ""
+# garage_admin_metrics_require_token: false
+# garage_admin_trace_sink: "http://localhost:4317"
+# garage_s3_web_bind_addr: "[::]:3902"
+# garage_s3_web_root_domain: ".web.garage"
+# garage_s3_web_index: "index.html"
+# garage_s3_web_port: 3902
+# garage_s3_web_add_host_to_metrics: false
 
-garage_key_name: opentalk-key
-garage_layout_zone: dc1
-garage_layout_capacity: 1G
+# Consul service discovery
+# garage_consul_api: "catalog"
+# garage_consul_http_addr: "https://127.0.0.1:8500"
+# garage_consul_tls_skip_verify: false
+# garage_consul_service_name: "garage-daemon"
+# garage_consul_ca_cert: "/etc/consul/consul-ca.crt"
+# garage_consul_client_cert: "/etc/consul/consul-client.crt"
+# garage_consul_client_key: "/etc/consul/consul-client.key"
+# garage_consul_token: ""
+# garage_consul_tags: []
+# garage_consul_datacenters: []
+
+# Kubernetes service discovery
+# garage_k8s_namespace: "garage"
+# garage_k8s_service_name: "garage-daemon"
+# garage_k8s_skip_crd: false

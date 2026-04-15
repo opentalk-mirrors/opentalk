@@ -21,6 +21,27 @@ insecure = {{ recorder_controller_insecure }}
 uri = "{{ recorder_rabbitmq_uri }}"
 queue = "{{ recorder_rabbitmq_queue }}"
 
+{% if recorder_orchestrator_url is defined and recorder_orchestrator_url %}
+[orchestrator]
+{% if recorder_orchestrator_api_key_id is defined and recorder_orchestrator_api_key_secret is defined %}
+api_key = { id = "{{ recorder_orchestrator_api_key_id }}", secret = "{{ recorder_orchestrator_api_key_secret }}" }
+{% endif %}
+url = "{{ recorder_orchestrator_url }}"
+{% endif %}
+
+{% if recorder_http_host is defined or recorder_http_port is defined or recorder_http_api_keys is defined %}
+[http]
+{% if recorder_http_host is defined and recorder_http_host %}
+host = "{{ recorder_http_host }}"
+{% endif %}
+{% if recorder_http_port is defined and recorder_http_port %}
+port = "{{ recorder_http_port }}"
+{% endif %}
+{% if recorder_http_api_keys is defined and recorder_http_api_keys %}
+api_keys = [{% for key in recorder_http_api_keys %}{ id = "{{ key.id }}", secret = "{{ key.secret }}" }{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+{% endif %}
+
 [recorder]
 display = {{ recorder_recorder_display }}
 clock_format = "{{ recorder_recorder_clock_format }}"
