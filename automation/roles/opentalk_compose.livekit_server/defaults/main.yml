@@ -63,3 +63,116 @@ livekit_turn_embedded_external_tls: true
 
 # livekit_logging_json: "false"
 # livekit_logging_level: info
+# livekit_logging_pion_level: error
+# livekit_logging_sample: false
+
+# Redis (required for multi-node/distributed deployments)
+# livekit_redis_address: "redis.host:6379"
+# livekit_redis_db: 0
+# livekit_redis_username: ""
+# livekit_redis_password: ""
+# livekit_redis_sentinel_master_name: "livekit"
+# livekit_redis_sentinel_addresses:
+#   - "livekit-redis-node-0:26379"
+# livekit_redis_sentinel_username: ""
+# livekit_redis_sentinel_password: ""
+# livekit_redis_cluster_addresses:
+#   - "livekit-redis-node-0:6379"
+# livekit_redis_tls_enabled: true
+# livekit_redis_tls_insecure: false
+# livekit_redis_tls_server_name: ""
+# livekit_redis_tls_ca_cert_file: ""
+# livekit_redis_tls_client_cert_file: ""
+# livekit_redis_tls_client_key_file: ""
+
+# RTC advanced options
+# livekit_rtc_congestion_control_enabled: true
+# livekit_rtc_congestion_control_allow_pause: true
+# livekit_rtc_allow_tcp_fallback: true
+# livekit_rtc_packet_buffer_size_video: 500
+# livekit_rtc_packet_buffer_size_audio: 200
+# livekit_rtc_pli_throttle_low_quality: "500ms"
+# livekit_rtc_pli_throttle_mid_quality: "1s"
+# livekit_rtc_pli_throttle_high_quality: "1s"
+# livekit_rtc_interfaces_includes:
+#   - en0
+# livekit_rtc_interfaces_excludes:
+#   - docker0
+# livekit_rtc_use_mdns: false
+# livekit_rtc_strict_acks: true
+# livekit_rtc_batch_io_batch_size: 128
+# livekit_rtc_batch_io_max_flush_interval: "2ms"
+# livekit_rtc_data_channel_max_buffered_amount: 0
+
+# RTC turn_servers extra fields (add to entries in livekit_rtc_turn_servers):
+#   secret: ""
+#   ttl: 14400
+
+# Embedded TURN relay port range and TLS cert files
+# livekit_turn_embedded_relay_range_start: 1024
+# livekit_turn_embedded_relay_range_end: 30000
+# livekit_turn_embedded_cert_file: "/path/to/cert.pem"
+# livekit_turn_embedded_key_file: "/path/to/key.pem"
+
+# Default room settings
+# livekit_room_auto_create: true
+# livekit_room_empty_timeout: 300
+# livekit_room_departure_timeout: 20
+# livekit_room_max_participants: 0
+# livekit_room_enabled_codecs:
+#   - "audio/opus"
+#   - "video/vp8"
+# livekit_room_enable_remote_unmute: false
+# livekit_room_playout_delay_enabled: false
+# livekit_room_playout_delay_min: 100
+# livekit_room_playout_delay_max: 2000
+# livekit_room_sync_streams: false
+
+# Webhooks
+# livekit_webhook_api_key: ""
+# livekit_webhook_urls:
+#   - "https://your-host.com/handler"
+
+# Signal relay
+# livekit_signal_relay_retry_timeout: "30s"
+# livekit_signal_relay_min_retry_interval: "500ms"
+# livekit_signal_relay_max_retry_interval: "5s"
+# livekit_signal_relay_stream_buffer_size: 1000
+
+# PSRPC
+# livekit_psrpc_max_attempts: 3
+# livekit_psrpc_timeout: "500ms"
+# livekit_psrpc_backoff: "500ms"
+# livekit_psrpc_buffer_size: 1000
+
+# Audio sensitivity
+# livekit_audio_active_level: 30
+# livekit_audio_min_percentile: 40
+# livekit_audio_update_interval: 500
+# livekit_audio_smooth_intervals: 4
+# livekit_audio_active_red_encoding: true
+
+# Ingress
+# livekit_ingress_rtmp_base_url: "rtmp://my.domain.com/live"
+# livekit_ingress_whip_base_url: "http://my.domain.com/whip"
+
+# Region and node selector
+# livekit_region: "us-west-2"
+# livekit_node_selector_kind: "sysload"
+# livekit_node_selector_sort_by: "sysload"
+# livekit_node_selector_algorithm: "lowest"
+# livekit_node_selector_sysload_limit: 0.7
+# livekit_node_selector_regions:
+#   - name: us-west-2
+#     lat: 44.19
+#     lon: -123.07
+
+# Node limits
+# livekit_limit_num_tracks: -1
+# livekit_limit_bytes_per_sec: 1000000000
+# livekit_limit_subscription_limit_video: 0
+# livekit_limit_subscription_limit_audio: 0
+# livekit_limit_max_metadata_size: 0
+# livekit_limit_max_attributes_size: 0
+# livekit_limit_max_room_name_length: 0
+# livekit_limit_max_participant_identity_length: 0

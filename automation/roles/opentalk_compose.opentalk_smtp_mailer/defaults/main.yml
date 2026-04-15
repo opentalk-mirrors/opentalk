@@ -18,6 +18,7 @@ mailer_docker_image_src: registry.heinlein.group/opentalk/smtp-mailer
 
 mailer_rabbit_mq_url: "amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F"
 mailer_rabbit_mq_mail_task_queue: "opentalk_mailer"
+# mailer_rabbit_mq_task_processing_timeout_seconds: 1200
 
 mailer_smtp_smtp_server: "smtp://mailcrab:1025?disable_starttls=true"
 mailer_smtp_from_name: "OpenTalk - {{ ot_domain }}"
@@ -52,5 +53,6 @@ mailer_languages_default_language: "de-DE"
 mailer_monitoring_addr: "0.0.0.0"
 mailer_monitoring_port: 11411
 
-mailer_support_contact_phone: "+49 123 456789"
-mailer_support_contact_mail: "support@{{ ot_domain }}"
+# Optional support contact information
+# mailer_support_contact_phone: "+49 123 456789"
+# mailer_support_contact_mail: "support@example.com"

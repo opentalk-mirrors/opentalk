@@ -209,7 +209,7 @@ otctl deploy -t demo-user
 To remove the demo user, run this command:
 
 ```bash
-otctl deploy --tags demo-user -e postInstall_demoUser_state=absent
+otctl deploy --tags demo-user -e keycloak_demo_user_state=absent
 ```
 
 ### 2.2 Option 2 - Manual configuration of a remote Keycloak instance

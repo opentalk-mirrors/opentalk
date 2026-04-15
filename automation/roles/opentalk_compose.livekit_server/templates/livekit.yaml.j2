@@ -8,6 +8,61 @@
 # Reference: https://github.com/livekit/livekit/blob/master/config-sample.yaml
 
 port: {{ livekit_port }}
+
+{% if livekit_redis_address is defined and livekit_redis_address %}
+redis:
+  address: {{ livekit_redis_address }}
+{% if livekit_redis_db is defined %}
+  db: {{ livekit_redis_db }}
+{% endif %}
+{% if livekit_redis_username is defined and livekit_redis_username %}
+  username: {{ livekit_redis_username }}
+{% endif %}
+{% if livekit_redis_password is defined and livekit_redis_password %}
+  password: {{ livekit_redis_password }}
+{% endif %}
+{% if livekit_redis_sentinel_master_name is defined and livekit_redis_sentinel_master_name %}
+  sentinel_master_name: {{ livekit_redis_sentinel_master_name }}
+{% endif %}
+{% if livekit_redis_sentinel_addresses is defined and livekit_redis_sentinel_addresses %}
+  sentinel_addresses:
+{% for addr in livekit_redis_sentinel_addresses %}
+    - {{ addr }}
+{% endfor %}
+{% endif %}
+{% if livekit_redis_sentinel_username is defined and livekit_redis_sentinel_username %}
+  sentinel_username: {{ livekit_redis_sentinel_username }}
+{% endif %}
+{% if livekit_redis_sentinel_password is defined and livekit_redis_sentinel_password %}
+  sentinel_password: {{ livekit_redis_sentinel_password }}
+{% endif %}
+{% if livekit_redis_cluster_addresses is defined and livekit_redis_cluster_addresses %}
+  cluster_addresses:
+{% for addr in livekit_redis_cluster_addresses %}
+    - {{ addr }}
+{% endfor %}
+{% endif %}
+{% if livekit_redis_tls_enabled is defined %}
+  tls:
+    enabled: {{ livekit_redis_tls_enabled | to_json }}
+{% if livekit_redis_tls_insecure is defined %}
+    insecure: {{ livekit_redis_tls_insecure | to_json }}
+{% endif %}
+{% if livekit_redis_tls_server_name is defined and livekit_redis_tls_server_name %}
+    server_name: {{ livekit_redis_tls_server_name }}
+{% endif %}
+{% if livekit_redis_tls_ca_cert_file is defined and livekit_redis_tls_ca_cert_file %}
+    ca_cert_file: {{ livekit_redis_tls_ca_cert_file }}
+{% endif %}
+{% if livekit_redis_tls_client_cert_file is defined and livekit_redis_tls_client_cert_file %}
+    client_cert_file: {{ livekit_redis_tls_client_cert_file }}
+{% endif %}
+{% if livekit_redis_tls_client_key_file is defined and livekit_redis_tls_client_key_file %}
+    client_key_file: {{ livekit_redis_tls_client_key_file }}
+{% endif %}
+{% endif %}
+{% endif %}
+
 rtc:
   tcp_port: {{ livekit_rtc_tcp_port }}
 {% if livekit_rtc_port_range_start is defined and livekit_rtc_port_range_end is defined and (livekit_rtc_udp_port is not defined or not livekit_rtc_udp_port) %}
@@ -52,17 +107,84 @@ rtc:
 {% endif %}
 {% if livekit_rtc_turn_servers is defined and livekit_rtc_turn_servers %}
   turn_servers: 
-{% for t in livekit_rtc_turn_servers %}
-    - host: {{ t.host }}
-      port: {{ t.port|default(3478) }}
-      protocol: {{ t.protocol|default('udp') }}
-{% if t.username is defined and t.username %}
-      username: {{ t.username|default('') }}
+{% for turn in livekit_rtc_turn_servers %}
+    - host: {{ turn.host }}
+      port: {{ turn.port|default(3478) }}
+      protocol: {{ turn.protocol|default('udp') }}
+{% if turn.username is defined and turn.username %}
+      username: {{ turn.username|default('') }}
 {% endif %}
-{% if t.credential is defined and t.credential %}
-      credential: {{ t.credential|default('') }}
+{% if turn.credential is defined and turn.credential %}
+      credential: {{ turn.credential|default('') }}
+{% endif %}
+{% if turn.secret is defined and turn.secret %}
+      secret: {{ turn.secret }}
+{% endif %}
+{% if turn.ttl is defined %}
+      ttl: {{ turn.ttl }}
 {% endif %}
 {% endfor %}
+{% endif %}
+{% if livekit_rtc_congestion_control_enabled is defined %}
+  congestion_control:
+    enabled: {{ livekit_rtc_congestion_control_enabled | to_json }}
+{% if livekit_rtc_congestion_control_allow_pause is defined %}
+    allow_pause: {{ livekit_rtc_congestion_control_allow_pause | to_json }}
+{% endif %}
+{% endif %}
+{% if livekit_rtc_allow_tcp_fallback is defined %}
+  allow_tcp_fallback: {{ livekit_rtc_allow_tcp_fallback | to_json }}
+{% endif %}
+{% if livekit_rtc_packet_buffer_size_video is defined %}
+  packet_buffer_size_video: {{ livekit_rtc_packet_buffer_size_video }}
+{% endif %}
+{% if livekit_rtc_packet_buffer_size_audio is defined %}
+  packet_buffer_size_audio: {{ livekit_rtc_packet_buffer_size_audio }}
+{% endif %}
+{% if livekit_rtc_pli_throttle_low_quality is defined or livekit_rtc_pli_throttle_mid_quality is defined or livekit_rtc_pli_throttle_high_quality is defined %}
+  pli_throttle:
+{% if livekit_rtc_pli_throttle_low_quality is defined and livekit_rtc_pli_throttle_low_quality %}
+    low_quality: {{ livekit_rtc_pli_throttle_low_quality }}
+{% endif %}
+{% if livekit_rtc_pli_throttle_mid_quality is defined and livekit_rtc_pli_throttle_mid_quality %}
+    mid_quality: {{ livekit_rtc_pli_throttle_mid_quality }}
+{% endif %}
+{% if livekit_rtc_pli_throttle_high_quality is defined and livekit_rtc_pli_throttle_high_quality %}
+    high_quality: {{ livekit_rtc_pli_throttle_high_quality }}
+{% endif %}
+{% endif %}
+{% if livekit_rtc_interfaces_includes is defined or livekit_rtc_interfaces_excludes is defined %}
+  interfaces:
+{% if livekit_rtc_interfaces_includes is defined and livekit_rtc_interfaces_includes %}
+    includes:
+{% for iface in livekit_rtc_interfaces_includes %}
+      - {{ iface }}
+{% endfor %}
+{% endif %}
+{% if livekit_rtc_interfaces_excludes is defined and livekit_rtc_interfaces_excludes %}
+    excludes:
+{% for iface in livekit_rtc_interfaces_excludes %}
+      - {{ iface }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% if livekit_rtc_use_mdns is defined %}
+  use_mdns: {{ livekit_rtc_use_mdns | to_json }}
+{% endif %}
+{% if livekit_rtc_strict_acks is defined %}
+  strict_acks: {{ livekit_rtc_strict_acks | to_json }}
+{% endif %}
+{% if livekit_rtc_batch_io_batch_size is defined or livekit_rtc_batch_io_max_flush_interval is defined %}
+  batch_io:
+{% if livekit_rtc_batch_io_batch_size is defined %}
+    batch_size: {{ livekit_rtc_batch_io_batch_size }}
+{% endif %}
+{% if livekit_rtc_batch_io_max_flush_interval is defined and livekit_rtc_batch_io_max_flush_interval %}
+    max_flush_interval: {{ livekit_rtc_batch_io_max_flush_interval }}
+{% endif %}
+{% endif %}
+{% if livekit_rtc_data_channel_max_buffered_amount is defined %}
+  data_channel_max_buffered_amount: {{ livekit_rtc_data_channel_max_buffered_amount }}
 {% endif %}
 
 {% if livekit_turn_embedded_enabled is defined and livekit_turn_embedded_enabled %}
@@ -75,6 +197,16 @@ turn:
 {% if livekit_turn_embedded_tls_enabled is defined and livekit_turn_embedded_tls_enabled %}
   tls_port: {{ livekit_turn_embedded_tls_port }}
   external_tls: {{ livekit_turn_embedded_external_tls | to_json}}
+{% endif %}
+{% if livekit_turn_embedded_relay_range_start is defined and livekit_turn_embedded_relay_range_end is defined %}
+  relay_range_start: {{ livekit_turn_embedded_relay_range_start }}
+  relay_range_end: {{ livekit_turn_embedded_relay_range_end }}
+{% endif %}
+{% if livekit_turn_embedded_cert_file is defined and livekit_turn_embedded_cert_file %}
+  cert_file: {{ livekit_turn_embedded_cert_file }}
+{% endif %}
+{% if livekit_turn_embedded_key_file is defined and livekit_turn_embedded_key_file %}
+  key_file: {{ livekit_turn_embedded_key_file }}
 {% endif %}
 {% endif %}
 
@@ -95,4 +227,176 @@ logging:
   {% if livekit_logging_level is defined and livekit_logging_level %}
   level: {{ livekit_logging_level }}
   {% endif %}
+  {% if livekit_logging_pion_level is defined and livekit_logging_pion_level %}
+  pion_level: {{ livekit_logging_pion_level }}
+  {% endif %}
+  {% if livekit_logging_sample is defined %}
+  sample: {{ livekit_logging_sample | to_json }}
+  {% endif %}
+{% endif %}
+
+{% if livekit_room_auto_create is defined or livekit_room_empty_timeout is defined or livekit_room_departure_timeout is defined or livekit_room_max_participants is defined or livekit_room_enabled_codecs is defined or livekit_room_enable_remote_unmute is defined or livekit_room_playout_delay_enabled is defined or livekit_room_sync_streams is defined %}
+room:
+{% if livekit_room_auto_create is defined %}
+  auto_create: {{ livekit_room_auto_create | to_json }}
+{% endif %}
+{% if livekit_room_empty_timeout is defined %}
+  empty_timeout: {{ livekit_room_empty_timeout }}
+{% endif %}
+{% if livekit_room_departure_timeout is defined %}
+  departure_timeout: {{ livekit_room_departure_timeout }}
+{% endif %}
+{% if livekit_room_max_participants is defined %}
+  max_participants: {{ livekit_room_max_participants }}
+{% endif %}
+{% if livekit_room_enabled_codecs is defined and livekit_room_enabled_codecs %}
+  enabled_codecs:
+{% for codec in livekit_room_enabled_codecs %}
+    - mime: {{ codec }}
+{% endfor %}
+{% endif %}
+{% if livekit_room_enable_remote_unmute is defined %}
+  enable_remote_unmute: {{ livekit_room_enable_remote_unmute | to_json }}
+{% endif %}
+{% if livekit_room_playout_delay_enabled is defined %}
+  playout_delay:
+    enabled: {{ livekit_room_playout_delay_enabled | to_json }}
+{% if livekit_room_playout_delay_min is defined %}
+    min: {{ livekit_room_playout_delay_min }}
+{% endif %}
+{% if livekit_room_playout_delay_max is defined %}
+    max: {{ livekit_room_playout_delay_max }}
+{% endif %}
+{% endif %}
+{% if livekit_room_sync_streams is defined %}
+  sync_streams: {{ livekit_room_sync_streams | to_json }}
+{% endif %}
+{% endif %}
+
+{% if livekit_webhook_api_key is defined and livekit_webhook_api_key %}
+webhook:
+  api_key: {{ livekit_webhook_api_key }}
+{% if livekit_webhook_urls is defined and livekit_webhook_urls %}
+  urls:
+{% for url in livekit_webhook_urls %}
+    - {{ url }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if livekit_signal_relay_retry_timeout is defined or livekit_signal_relay_min_retry_interval is defined or livekit_signal_relay_max_retry_interval is defined or livekit_signal_relay_stream_buffer_size is defined %}
+signal_relay:
+{% if livekit_signal_relay_retry_timeout is defined and livekit_signal_relay_retry_timeout %}
+  retry_timeout: {{ livekit_signal_relay_retry_timeout }}
+{% endif %}
+{% if livekit_signal_relay_min_retry_interval is defined and livekit_signal_relay_min_retry_interval %}
+  min_retry_interval: {{ livekit_signal_relay_min_retry_interval }}
+{% endif %}
+{% if livekit_signal_relay_max_retry_interval is defined and livekit_signal_relay_max_retry_interval %}
+  max_retry_interval: {{ livekit_signal_relay_max_retry_interval }}
+{% endif %}
+{% if livekit_signal_relay_stream_buffer_size is defined %}
+  stream_buffer_size: {{ livekit_signal_relay_stream_buffer_size }}
+{% endif %}
+{% endif %}
+
+{% if livekit_psrpc_max_attempts is defined or livekit_psrpc_timeout is defined or livekit_psrpc_backoff is defined or livekit_psrpc_buffer_size is defined %}
+psrpc:
+{% if livekit_psrpc_max_attempts is defined %}
+  max_attempts: {{ livekit_psrpc_max_attempts }}
+{% endif %}
+{% if livekit_psrpc_timeout is defined and livekit_psrpc_timeout %}
+  timeout: {{ livekit_psrpc_timeout }}
+{% endif %}
+{% if livekit_psrpc_backoff is defined and livekit_psrpc_backoff %}
+  backoff: {{ livekit_psrpc_backoff }}
+{% endif %}
+{% if livekit_psrpc_buffer_size is defined %}
+  buffer_size: {{ livekit_psrpc_buffer_size }}
+{% endif %}
+{% endif %}
+
+{% if livekit_audio_active_level is defined or livekit_audio_min_percentile is defined or livekit_audio_update_interval is defined or livekit_audio_smooth_intervals is defined or livekit_audio_active_red_encoding is defined %}
+audio:
+{% if livekit_audio_active_level is defined %}
+  active_level: {{ livekit_audio_active_level }}
+{% endif %}
+{% if livekit_audio_min_percentile is defined %}
+  min_percentile: {{ livekit_audio_min_percentile }}
+{% endif %}
+{% if livekit_audio_update_interval is defined %}
+  update_interval: {{ livekit_audio_update_interval }}
+{% endif %}
+{% if livekit_audio_smooth_intervals is defined %}
+  smooth_intervals: {{ livekit_audio_smooth_intervals }}
+{% endif %}
+{% if livekit_audio_active_red_encoding is defined %}
+  active_red_encoding: {{ livekit_audio_active_red_encoding | to_json }}
+{% endif %}
+{% endif %}
+
+{% if livekit_ingress_rtmp_base_url is defined or livekit_ingress_whip_base_url is defined %}
+ingress:
+{% if livekit_ingress_rtmp_base_url is defined and livekit_ingress_rtmp_base_url %}
+  rtmp_base_url: {{ livekit_ingress_rtmp_base_url }}
+{% endif %}
+{% if livekit_ingress_whip_base_url is defined and livekit_ingress_whip_base_url %}
+  whip_base_url: {{ livekit_ingress_whip_base_url }}
+{% endif %}
+{% endif %}
+
+{% if livekit_region is defined and livekit_region %}
+region: {{ livekit_region }}
+{% endif %}
+
+{% if livekit_node_selector_kind is defined or livekit_node_selector_sort_by is defined or livekit_node_selector_sysload_limit is defined or livekit_node_selector_regions is defined %}
+node_selector:
+{% if livekit_node_selector_kind is defined and livekit_node_selector_kind %}
+  kind: {{ livekit_node_selector_kind }}
+{% endif %}
+{% if livekit_node_selector_sort_by is defined and livekit_node_selector_sort_by %}
+  sort_by: {{ livekit_node_selector_sort_by }}
+{% endif %}
+{% if livekit_node_selector_algorithm is defined and livekit_node_selector_algorithm %}
+  algorithm: {{ livekit_node_selector_algorithm }}
+{% endif %}
+{% if livekit_node_selector_sysload_limit is defined %}
+  sysload_limit: {{ livekit_node_selector_sysload_limit }}
+{% endif %}
+{% if livekit_node_selector_regions is defined and livekit_node_selector_regions %}
+  regions:
+{% for region in livekit_node_selector_regions %}
+    - name: {{ region.name }}
+      lat: {{ region.lat }}
+      lon: {{ region.lon }}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if livekit_limit_num_tracks is defined or livekit_limit_bytes_per_sec is defined or livekit_limit_subscription_limit_video is defined or livekit_limit_subscription_limit_audio is defined or livekit_limit_max_metadata_size is defined or livekit_limit_max_attributes_size is defined or livekit_limit_max_room_name_length is defined or livekit_limit_max_participant_identity_length is defined %}
+limit:
+{% if livekit_limit_num_tracks is defined %}
+  num_tracks: {{ livekit_limit_num_tracks }}
+{% endif %}
+{% if livekit_limit_bytes_per_sec is defined %}
+  bytes_per_sec: {{ livekit_limit_bytes_per_sec }}
+{% endif %}
+{% if livekit_limit_subscription_limit_video is defined %}
+  subscription_limit_video: {{ livekit_limit_subscription_limit_video }}
+{% endif %}
+{% if livekit_limit_subscription_limit_audio is defined %}
+  subscription_limit_audio: {{ livekit_limit_subscription_limit_audio }}
+{% endif %}
+{% if livekit_limit_max_metadata_size is defined %}
+  max_metadata_size: {{ livekit_limit_max_metadata_size }}
+{% endif %}
+{% if livekit_limit_max_attributes_size is defined %}
+  max_attributes_size: {{ livekit_limit_max_attributes_size }}
+{% endif %}
+{% if livekit_limit_max_room_name_length is defined %}
+  max_room_name_length: {{ livekit_limit_max_room_name_length }}
+{% endif %}
+{% if livekit_limit_max_participant_identity_length is defined %}
+  max_participant_identity_length: {{ livekit_limit_max_participant_identity_length }}
+{% endif %}
 {% endif %}

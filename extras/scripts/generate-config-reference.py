@@ -26,18 +26,52 @@ except ImportError:
     sys.exit(1)
 
 def _parse_commented_variables(text: str, variables: Dict[str, Any]) -> None:
-    """Extracts commented-out variable definitions from YAML text."""
-    commented_var_re = re.compile(r"^#\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:(.*)$")
-    for line in text.splitlines():
-        m = commented_var_re.match(line)
-        if m:
-            var_name = m.group(1)
-            if var_name not in variables:
-                raw_value = m.group(2).strip()
-                raw_value = re.sub(r"\s+#.*$", "", raw_value)
-                if len(raw_value) >= 2 and raw_value[0] == raw_value[-1] and raw_value[0] in ('"', "'"):
-                    raw_value = raw_value[1:-1]
-                variables[var_name] = raw_value if raw_value else None
+    """Extracts commented-out variable definitions from YAML text,
+    including multi-line list and dictionary values."""
+    header_re = re.compile(r"^#\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:(.*)$")
+    # Continuation line: comment with 2+ spaces indent (list items, dict keys under list, etc.)
+    # This excludes new variable headers which use exactly 1 space: "# var_name:"
+    continuation_re = re.compile(r"^#(\s{2,}.+)$")
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        m = header_re.match(lines[i])
+        if not m:
+            i += 1
+            continue
+        var_name = m.group(1)
+        if var_name in variables:
+            i += 1
+            continue
+        header_rest = m.group(2)
+        # Collect continuation lines (indented content under the variable)
+        block_lines = [f"{var_name}:{header_rest}"]
+        j = i + 1
+        while j < len(lines):
+            cm = continuation_re.match(lines[j])
+            if cm:
+                block_lines.append(cm.group(1))
+                j += 1
+            else:
+                break
+        if len(block_lines) > 1:
+            # Multi-line block: reconstruct YAML and parse
+            yaml_block = "\n".join(block_lines)
+            try:
+                data = yaml.safe_load(yaml_block)
+                if isinstance(data, dict) and var_name in data:
+                    variables[var_name] = data[var_name]
+                    i = j
+                    continue
+            except Exception:
+                pass
+        # Single-line or YAML parse failed: fall back to string extraction
+        raw_value = header_rest.strip()
+        raw_value = re.sub(r"\s+#.*$", "", raw_value)
+        if len(raw_value) >= 2 and raw_value[0] == raw_value[-1] and raw_value[0] in ('"', "'"):
+            raw_value = raw_value[1:-1]
+        variables[var_name] = raw_value if raw_value else None
+        i = j
 
 
 def get_role_variables(role_path: Path) -> Dict[str, Any]:
@@ -120,10 +154,27 @@ def infer_type(value: Any) -> str:
         return "null"
     return "string"
 
+def _format_list_item(item: Any) -> str:
+    """Formats a single list item for display."""
+    if isinstance(item, dict):
+        parts = [f"{k}: {v}" for k, v in item.items()]
+        return "{" + ", ".join(parts) + "}"
+    return str(item)
+
 def format_value(value: Any) -> str:
     """Formats a Python value for display in a Markdown table."""
     if isinstance(value, bool):
         return f"`{str(value).lower()}`"
+    if isinstance(value, list):
+        if not value:
+            return "`[]`"
+        items = [_format_list_item(item) for item in value]
+        return "`[" + ", ".join(items) + "]`"
+    if isinstance(value, dict):
+        if not value:
+            return "`{}`"
+        parts = [f"`{k}: {v}`" for k, v in value.items()]
+        return "<br>".join(parts)
     if isinstance(value, str):
         if not value:
             return "``"

@@ -61,7 +61,7 @@ services:
         hard: {{ controller_db_docker_compose_ulimits_nofile_hard }}
       nproc: {{ controller_db_docker_compose_ulimits_nproc }}
     ports:
-      - 127.0.0.1:5432:5432
+      - {{ controller_db_bind_interface }}:{{ controller_db_host_port }}:5432
     volumes:
       - controller-db:/var/lib/postgresql/data
     restart: always

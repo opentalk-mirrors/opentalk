@@ -4,6 +4,10 @@
 
 ---
 # defaults file for opentalk_compose.opentalk_controller
+#
+# NOTE! The values defined here are defaults and will be overwritten on package
+# updates. Custom values should therefore not be set here, but in
+# /etc/opentalk-compose/settings.yml instead.
 
 controller_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
 controller_docker_compose_services_state: "{{ compose_service_opentalk_controller_state | default('present') }}"
@@ -17,6 +21,8 @@ controller_docker_compose_ulimits_nproc: 8192
 controller_db_docker_compose_ulimits_nofile_soft: 65536
 controller_db_docker_compose_ulimits_nofile_hard: 65536
 controller_db_docker_compose_ulimits_nproc: 8192
+controller_db_host_port: 5432
+controller_db_bind_interface: "127.0.0.1"
 
 controller_docker_image_src: registry.heinlein.group/opentalk/controller
 postgres_docker_image_src: registry.heinlein.group/opentalk/postgres
@@ -24,9 +30,9 @@ controller_docker_extra_hosts:
   - host.docker.internal:host-gateway
 
 controller_frontend_base_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}"
-controller_operator_information_data_protection_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/data-protection"
-controller_operator_information_support_phone_number: "+49 123 4567890"
-controller_operator_information_support_email_address: "support@{{ ot_domain }}"
+# controller_operator_information_data_protection_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/data-protection"
+# controller_operator_information_support_phone_number: "+49 123 4567890"
+# controller_operator_information_support_email_address: "support@{{ ot_domain }}"
 controller_logging_default_directives:
   - "ERROR"
   - "opentalk=INFO"
@@ -48,7 +54,11 @@ controller_database_port: 5432
 controller_monitoring_port: 11411
 # controller_monitoring_addr: "0.0.0.0"
 controller_http_port: 11311
+# controller_http_addr: "::0"
 # controller_http_cors_allowed_origin: ["*"]
+# controller_http_service_api_keys:
+#   - id: "controller"
+#     secret: "secret"
 controller_oidc_authority: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
 controller_oidc_frontend_client_id: "Frontend"
 # controller_oidc_frontend_authority: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
