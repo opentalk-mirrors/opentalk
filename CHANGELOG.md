@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.1.0-beta.4] - 2026-04-15
+
+[26.1.0-beta.4]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.4
+
+### 🐛 Bug fixes
+
+- (s3-migrate) Migration failed on opensuse (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/155)
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk Recorder version 0.16.2 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/155)
+- (deps) Update OpenTalk Outlook Add-In version 0.3.5 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/155)
+- (deps) Update OpenTalk Product version 26.1.0-beta.4 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/155)
+
+### ⚙ Miscellaneous
+
+- (docs) Update CHANGELOG (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/155)
+- (ansible) Add missing config options, fix demo user and update config reference (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/155)
+
 ## [26.1.0-beta.3] - 2026-04-10
 
 [26.1.0-beta.3]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.3
