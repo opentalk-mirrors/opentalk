@@ -391,11 +391,38 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailcrab_docker_label_http_routers_minio_console_middlewares` | string | `default-auth@file` |
 | `mailcrab_webui_prefix` | string | `/adm/mailcrab` |
 
+## opentalk_compose.garage
+
+| Variable | Type | Default Value |
+|----------|------|---------------|
+| `garage_admin_api_bind_addr` | string | `[::]:3903` |
+| `garage_admin_api_port` | integer | `3903` |
+| `garage_bucket_name` | string | `opentalk` |
+| `garage_db_engine` | string | `lmdb` |
+| `garage_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
+| `garage_docker_compose_project_src` | string | `{{ deploy_dir }}` |
+| `garage_docker_compose_services_dir` | string | `{{ services_dir }}` |
+| `garage_docker_compose_services_state` | string | `{{ compose_service_garage_state \| default('present') }}` |
+| `garage_docker_image_src` | string | `registry.heinlein.group/opentalk/garage` |
+| `garage_key_name` | string | `opentalk-key` |
+| `garage_layout_capacity` | string | `1G` |
+| `garage_layout_zone` | string | `dc1` |
+| `garage_replication_factor` | integer | `1` |
+| `garage_rpc_bind_addr` | string | `[::]:3901` |
+| `garage_rpc_port` | integer | `3901` |
+| `garage_rpc_public_addr` | string | `garage:3901` |
+| `garage_s3_api_bind_addr` | string | `[::]:3900` |
+| `garage_s3_api_port` | integer | `3900` |
+| `garage_s3_region` | string | `garage` |
+
 ## opentalk_compose.minio
+
+> **Note:** MinIO is an alternative S3 storage provider. To use MinIO instead of the default Garage, set `s3_storage_provider: minio` in `settings.yml`.
 
 | Variable | Type | Default Value |
 |----------|------|---------------|
 | `minio_bucket_name` | string | `opentalk` |
+| `minio_s3_api_port` | integer | `9000` | Host port bound to `127.0.0.1` for the MinIO S3 API. Used by `rclone` during S3 migration. |
 | `minio_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `minio_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `minio_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -406,6 +433,17 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `minio_docker_image_src` | string | `registry.heinlein.group/opentalk/minio` |
 | `minio_docker_label_http_routers_minio_console_middlewares` | string | `minio-stripprefix` |
 | `minio_s3_api_port` | integer | `9000` |
+
+## opentalk_compose.s3_migrate
+
+| Variable | Type | Default Value | Description |
+|----------|------|---------------|-------------|
+| `s3_migration_source` | string | — | **Required.** Source provider: `minio` or `garage`. Pass via `-e s3_migration_source=minio`. |
+| `s3_migrate_run_deploy` | boolean | `true` | Run `otctl deploy` automatically after migration to stop the source service. Set to `false` to skip. |
+| `s3_migrate_minio_endpoint` | string | `http://127.0.0.1:9000` | MinIO S3 endpoint reachable from the host. |
+| `s3_migrate_garage_endpoint` | string | `http://127.0.0.1:3900` | Garage S3 endpoint reachable from the host. |
+| `s3_migrate_bucket_name` | string | `opentalk` | Bucket to migrate. |
+| `s3_migrate_settings_file` | string | `/etc/opentalk-compose/settings.yml` | Path to `settings.yml` that is updated after migration. |
 
 ## opentalk_compose.ndt
 

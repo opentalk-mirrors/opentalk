@@ -39,12 +39,9 @@ else
     export ANSIBLE_PYTHON_INTERPRETER="$PORTABLE_PY"
   fi
 fi
-# Inject interpreter extra var unless user already provided -e/--extra-vars
+# Inject interpreter extra var (multiple -e flags are additive in Ansible)
 if [ -n "${ANSIBLE_PYTHON_INTERPRETER:-}" ]; then
-  case " $* " in
-    *" -e "*|*" --extra-vars "*) ;; 
-    *) set -- -e "ansible_python_interpreter=${ANSIBLE_PYTHON_INTERPRETER}" "$@" ;;
-  esac
+  set -- -e "ansible_python_interpreter=${ANSIBLE_PYTHON_INTERPRETER}" "$@"
 fi
 
 if [ -z "${ANSIBLE_COLLECTIONS_PATHS:-}" ]; then
