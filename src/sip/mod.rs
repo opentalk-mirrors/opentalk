@@ -4,39 +4,32 @@
 
 use crate::http::HttpClient;
 use crate::media::{MediaPipeline, Track};
-use crate::settings::{DisplayNameSource, MonitoringSettings, Settings, SipRegistrarSettings};
+use crate::settings::{DisplayNameSource, MonitoringSettings, Settings};
 use crate::signaling::Signaling;
+use crate::sip::registration::RegistrationTask;
 use anyhow::{Context, Result, bail};
 use bytesstr::BytesStr;
-use service_probe::{ServiceState, set_service_state, start_probe};
-use sip_auth::{ClientAuthenticator, DigestUser, RequestParts, ResponseParts};
-use sip_auth::{DigestAuthenticator, DigestCredentials};
-use sip_core::transport::streaming::StreamingListenerBuilder;
-use sip_core::transport::tcp::{TcpConnector, TcpListener};
-use sip_core::transport::udp::Udp;
-use sip_core::transport::{TargetTransportInfo, TpHandle};
+use service_probe::{ServiceState, start_probe};
 use sip_core::{Endpoint, EndpointBuilder, IncomingRequest, Layer, MayTake};
-use sip_types::header::typed::{Contact, ContentType, FromTo, Refresher};
-use sip_types::print::AppendCtx;
+use sip_types::header::typed::{Contact, ContentType, Refresher};
 use sip_types::uri::{NameAddr, SipUri, SipUriUserPart};
 use sip_types::{Method, Name, StatusCode};
 use sip_ua::dialog::{Dialog, DialogLayer};
 use sip_ua::invite::InviteLayer;
 use sip_ua::invite::acceptor::InviteAcceptor;
-use sip_ua::register::Registration;
 use std::borrow::Cow;
 use std::net::{IpAddr, SocketAddr};
-use std::pin::pin;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::lookup_host;
 use tokio::signal::unix::{SignalKind, signal};
 use tokio::sync::broadcast;
-use tokio::time::{interval, sleep};
+use tokio::time::sleep;
 
 mod codec;
 mod media_control;
 mod options;
+mod registration;
 mod sdp;
 mod update;
 
@@ -253,34 +246,33 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
         app_data: parking_lot::RwLock::new(None),
     });
 
-    // Add TCP connector to allow the endpoint to create TCP connections
-    builder.add_transport_factory(Arc::new(TcpConnector::default()));
-
     // Add TLS connector to allow the endpoint to create TLS connections
-    builder.add_transport_factory(Arc::new(tokio_native_tls::TlsConnector::from(
+    builder.use_native_tls_connector(tokio_native_tls::TlsConnector::from(
         native_tls::TlsConnector::new()?,
-    )));
+    ));
 
     // Bind TCP transport if requested
     if settings.sip.transport.listen_tcp() {
-        TcpListener::new()
-            .spawn(
-                &mut builder,
-                format!("{}:{}", settings.sip.addr, settings.sip.port),
+        builder
+            .listen_tcp(
+                format!("{}:{}", settings.sip.addr, settings.sip.port)
+                    .parse()
+                    .context("Failed to parse socket-addr for TCP socket")?,
             )
             .await
-            .context("Failed to bind TCP socket")?;
+            .context("Failed to bind TCP listener")?;
     }
 
     // Bind UDP transport if requested
     let udp_transport = if settings.sip.transport.listen_udp() {
-        // Create a UDP socket to receive messages
-        let transport = Udp::spawn(
-            &mut builder,
-            format!("{}:{}", settings.sip.addr, settings.sip.port),
-        )
-        .await
-        .context("Failed to bind UDP Socket")?;
+        let transport = builder
+            .bind_udp(
+                format!("{}:{}", settings.sip.addr, settings.sip.port)
+                    .parse()
+                    .context("Failed to parse socket-addr for UDP socket")?,
+            )
+            .await
+            .context("Failed to bind UDP Socket")?;
 
         Some(transport)
     } else {
@@ -336,7 +328,7 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
     });
 
     if let Some(registrar) = &settings.sip.registrar {
-        register_with_registrar(
+        RegistrationTask::register_and_spawn(
             endpoint.clone(),
             pub_addr,
             id,
@@ -424,208 +416,4 @@ fn generate_contact_uri(settings: &Arc<Settings>, pub_addr: SocketAddr) -> Resul
 
     uri.parse()
         .with_context(|| format!("Failed to parse generated contact uri {uri:?}"))
-}
-
-/// Try to register with a SIP registrar, then spawn a task to keep that registration up
-async fn register_with_registrar(
-    endpoint: Endpoint,
-    pub_addr: SocketAddr,
-    id: SipUri,
-    contact: SipUri,
-    username: Option<String>,
-    settings: SipRegistrarSettings,
-    mut shutdown: broadcast::Receiver<()>,
-) -> Result<()> {
-    const REGISTRATION_EXPIRY: Duration = Duration::from_secs(300);
-
-    let registrar_uri: SipUri = maybe_add_sip_scheme(&settings.registrar)
-        .parse()
-        .context("Failed to parse registrar SIP uri")?;
-
-    // Check if we send the request to an outbound proxy or directly to the registrar uri
-    let target_uri = if let Some(outbound_proxy) = settings.outbound_proxy {
-        maybe_add_sip_scheme(&outbound_proxy)
-            .parse()
-            .context("Failed to parse outbound_proxy SIP uri")?
-    } else {
-        registrar_uri.clone()
-    };
-
-    // Select a transport for the URI to which to send the REGISTER to
-    let (transport, target_addr) =
-        endpoint
-            .select_transport(&target_uri)
-            .await
-            .with_context(|| {
-                format!(
-                    "Failed to select transport for '{}'",
-                    target_uri.default_print_ctx()
-                )
-            })?;
-
-    let mut registration = Registration::new(
-        NameAddr::uri(id),
-        Contact::new(NameAddr::uri(contact)),
-        registrar_uri,
-        REGISTRATION_EXPIRY,
-    );
-
-    let mut credentials = DigestCredentials::new();
-
-    // Add username & password credentials if both are set
-    if let Some((username, password)) = username.zip(settings.password) {
-        let credential = DigestUser::new(username, password);
-
-        if let Some(realm) = settings.realm {
-            credentials.add_for_realm(realm, credential);
-        } else {
-            credentials.set_default(credential);
-        }
-    }
-
-    let mut authenticator = DigestAuthenticator::new(credentials);
-    authenticator.enforce_qop = settings.enforce_qop;
-
-    // Create binding
-    let mut target = TargetTransportInfo {
-        via_host_port: Some(pub_addr.into()),
-        transport: Some((transport.clone(), target_addr)),
-    };
-
-    register(
-        &endpoint,
-        &mut target,
-        &mut registration,
-        &mut authenticator,
-        false,
-    )
-    .await?;
-
-    // Ping the sip server in an intervall to not loose the NAT binding
-    tokio::spawn(nat_keep_alive(
-        transport.clone(),
-        target_addr,
-        settings.nat_ping_delta,
-    ));
-
-    // Spawn a task that keeps the registration active
-    tokio::spawn(async move {
-        loop {
-            let shutdown_recv = pin!(shutdown.recv());
-
-            // Wait for either the the register interval to expire or the application shutdown signal
-            tokio::select! {
-                () = registration.wait_for_expiry() => {
-                    // fallthrough to refresh binding
-                }
-                _ = shutdown_recv => {
-                    // break out of loop to remove binding and exit the task
-                    break;
-                }
-            }
-
-            // Refresh binding
-            if let Err(e) = register(
-                &endpoint,
-                &mut target,
-                &mut registration,
-                &mut authenticator,
-                false,
-            )
-            .await
-            {
-                set_service_state(ServiceState::Up);
-                log::error!("Failed to refresh binding, {e:?}");
-            }
-        }
-
-        // Remove binding
-        if let Err(e) = register(
-            &endpoint,
-            &mut target,
-            &mut registration,
-            &mut authenticator,
-            true,
-        )
-        .await
-        {
-            set_service_state(ServiceState::Up);
-            log::error!("Failed to remove binding, {e:?}");
-        }
-    });
-
-    Ok(())
-}
-
-/// Send a register request and handle authentication using the given session and credentials
-async fn register(
-    endpoint: &Endpoint,
-    target: &mut TargetTransportInfo,
-    registration: &mut Registration,
-    authenticator: &mut DigestAuthenticator,
-    remove_binding: bool,
-) -> Result<()> {
-    loop {
-        let mut request = registration.create_register(remove_binding);
-        request.headers.insert_named(endpoint.allowed());
-        request
-            .headers
-            .edit(Name::TO, |to: &mut FromTo| to.tag = None)?;
-
-        authenticator.authorize_request(&mut request.headers);
-
-        let mut transaction = endpoint.send_request(request, target).await?;
-
-        let response = transaction.receive_final().await?;
-
-        let response_code = response.line.code;
-
-        match response_code.into_u16() {
-            200..=299 => {
-                if !remove_binding {
-                    registration.receive_success_response(response);
-                }
-                set_service_state(ServiceState::Ready);
-                return Ok(());
-            }
-            401 | 407 => authenticator.handle_rejection(
-                RequestParts {
-                    line: &transaction.request().msg.line,
-                    headers: &transaction.request().msg.headers,
-                    body: &transaction.request().msg.body,
-                },
-                ResponseParts {
-                    line: &response.line,
-                    headers: &response.headers,
-                    body: &response.body,
-                },
-            )?,
-            400..=499 if !remove_binding => {
-                if !registration.receive_error_response(response) {
-                    bail!("Registration failed with code '{response_code:?}'");
-                }
-            }
-            _ => bail!("Registration failed with code '{response_code:?}'"),
-        }
-    }
-}
-
-async fn nat_keep_alive(tp: TpHandle, target: SocketAddr, interval_delta: Duration) {
-    let mut interval = interval(interval_delta);
-
-    loop {
-        if let Err(e) = tp.send(b"\r\n", target).await {
-            log::error!("failed to send keep-alive, {e}");
-        }
-
-        interval.tick().await;
-    }
-}
-
-fn maybe_add_sip_scheme(i: &str) -> Cow<'_, str> {
-    if i.starts_with("sip:") || i.starts_with("sips:") {
-        Cow::Borrowed(i)
-    } else {
-        Cow::Owned(format!("sip:{i}"))
-    }
 }

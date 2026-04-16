@@ -11,7 +11,7 @@ use anyhow::{Context, Result, bail};
 use sip_types::{CodeKind, Method, Name, StatusCode, header::typed::ContentType};
 use sip_ua::invite::{
     create_ack,
-    session::{ReInviteReceived, RefreshNeeded},
+    session::{InviteSession, ReInviteReceived},
 };
 
 pub async fn apply_changes(
@@ -98,7 +98,8 @@ pub async fn apply_changes(
 pub async fn handle_reinvite(
     media: &mut MediaPipeline,
     media_session: &mut SessionState,
-    event: ReInviteReceived<'_>,
+    invite_session: &mut InviteSession,
+    event: ReInviteReceived,
 ) -> Result<()> {
     let request = &event.invite;
 
@@ -116,8 +117,7 @@ pub async fn handle_reinvite(
 
         let sdp_response = media_session.build_sdp().to_string();
 
-        let mut response = event
-            .session
+        let mut response = invite_session
             .dialog
             .create_response(request, StatusCode::OK, None)
             .context("Failed to create 200 OK response to INVITE")?;
@@ -128,12 +128,11 @@ pub async fn handle_reinvite(
 
         response.msg.body = sdp_response.into();
 
-        event.respond_success(response).await?;
+        event.respond_success(invite_session, response).await?;
     } else {
         media_session.setup_offer().await?;
 
-        let mut response = event
-            .session
+        let mut response = invite_session
             .dialog
             .create_response(request, StatusCode::OK, None)
             .context("Failed to create 200 OK response to INVITE")?;
@@ -143,7 +142,7 @@ pub async fn handle_reinvite(
             .insert(Name::CONTENT_TYPE, "application/sdp");
         response.msg.body = media_session.build_sdp().to_string().into();
 
-        let ack = event.respond_success(response).await?;
+        let ack = event.respond_success(invite_session, response).await?;
 
         let ack_body_is_sdp = ack
             .headers
@@ -166,13 +165,11 @@ pub async fn handle_reinvite(
 pub async fn refresh_invite_session(
     media: &mut MediaPipeline,
     media_session: &mut SessionState,
-    event: RefreshNeeded<'_>,
+    invite_session: &mut InviteSession,
 ) -> Result<()> {
-    let invite_session = event.session;
-
     invite_session.session_timer.reset();
 
-    let mut invite = invite_session.dialog.create_request(Method::INVITE);
+    let mut invite = invite_session.dialog.create_request(Method::INVITE, None);
     invite_session.session_timer.populate_refresh(&mut invite);
 
     let mut target_tp_info = invite_session.dialog.target_tp_info.lock().await;
