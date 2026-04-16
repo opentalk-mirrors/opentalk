@@ -76,14 +76,6 @@ webrtc-sys = "0.3"
 # Removes duplicate paste and therefore some compile time
 bitpattern = { git = 'https://github.com/kbalt/bitpattern', branch = 'remove-paste-010-patch' }
 
-# Until https://github.com/livekit/rust-sdks/pull/544 and https://github.com/livekit/rust-sdks/issues/546 are resolved
-webrtc-sys = { git = "https://github.com/kbalt/rust-sdks.git", rev = "bf5622058e2c2187436953ca13c4cc79176c0d74" }
-libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "bf5622058e2c2187436953ca13c4cc79176c0d74" }
-livekit = { git = "https://github.com/kbalt/rust-sdks.git", rev = "bf5622058e2c2187436953ca13c4cc79176c0d74" }
-livekit-api = { git = "https://github.com/kbalt/rust-sdks.git", rev = "bf5622058e2c2187436953ca13c4cc79176c0d74" }
-livekit-runtime = { git = "https://github.com/kbalt/rust-sdks.git", rev = "bf5622058e2c2187436953ca13c4cc79176c0d74" }
-livekit-protocol = { git = "https://github.com/kbalt/rust-sdks.git", rev = "bf5622058e2c2187436953ca13c4cc79176c0d74" }
-
 # Update libsrtp to 2.6 & newer bindgen version until https://github.com/HyeonuPark/srtp2-sys/pull/3 is merged
 srtp2-sys = { git = "https://github.com/kbalt/srtp2-sys.git", rev = "fb3d67b5ada52d242c2ab5a06e4e6e22db31d601" }
 

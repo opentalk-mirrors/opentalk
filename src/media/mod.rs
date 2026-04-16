@@ -759,11 +759,14 @@ impl MediaPipeline {
 async fn livekit_publish_video(
     local_participant: &LocalParticipant,
 ) -> Result<(TrackSid, NativeVideoSource)> {
-    let video_source = NativeVideoSource::new(VideoResolution {
-        // The resolution is arbitrary and doesn't really matter, since livekit adapts to any resolution we capture
-        width: 1920,
-        height: 1080,
-    });
+    let video_source = NativeVideoSource::new(
+        VideoResolution {
+            // The resolution is arbitrary and doesn't really matter, since livekit adapts to any resolution we capture
+            width: 1920,
+            height: 1080,
+        },
+        false,
+    );
 
     let track = local_participant
         .publish_track(
