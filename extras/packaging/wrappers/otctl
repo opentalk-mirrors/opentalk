@@ -75,6 +75,15 @@ Subcommands (most used first):
                 garage-to-minio  -> copy all objects from Garage to MinIO, update settings.yml
               Options:
                 --no-deploy      -> skip automatic deploy after migration
+  import      Import data into OpenTalk / Keycloak
+              Sub-commands:
+                users          -> bulk-import users from a CSV or JSON file
+              Options:
+                --users-file=<PATH>      -> path to CSV or JSON file (required)
+                --no-temporary           -> do not force password change on first login
+                --password-reset-email   -> send password reset email to all users
+                --default-password=<PW>  -> fallback password for users without one
+                --password-length=<N>    -> length of auto-generated passwords (default: 20)
   version     Show detected component versions
   compose     Run docker compose (passthrough)
   playbook    Run ansible-playbook (advanced)
@@ -103,7 +112,7 @@ usage_short() {
     c_hdr=$'\e[1;94m'; c_reset=$'\e[0m'
   fi
   cat <<EOF
-${c_hdr}otctl${c_reset} status|logs|restart|recreate|undeploy|tags|deploy|backup|up|down|ps|volumes|version|compose|playbook
+${c_hdr}otctl${c_reset} status|logs|restart|recreate|undeploy|tags|deploy|backup|up|down|ps|volumes|import|version|compose|playbook
 Hint: run 'otctl help' for details.
 EOF
 }
@@ -595,6 +604,73 @@ MHELP
     PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" \
       "$AUTOMATION/playbooks/s3_migrate.yml" \
       -e "$_migrate_extra_vars" "$@"
+    ;;
+  import)
+    import_what="${1:-}"; if [ $# -gt 0 ]; then shift; fi
+    case "$import_what" in
+      users)
+        _import_file=""
+        _import_extra_vars=""
+        _new_args=()
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --users-file=*)
+              _import_file="${1#--users-file=}"
+              shift ;;
+            --users-file)
+              shift
+              if [ -z "${1:-}" ]; then echo "[otctl] --users-file requires a value" >&2; exit 1; fi
+              _import_file="$1"
+              shift ;;
+            --no-temporary)
+              _import_extra_vars="${_import_extra_vars} import_users_password_temporary=false"
+              shift ;;
+            --password-reset-email)
+              _import_extra_vars="${_import_extra_vars} import_users_force_password_reset_email=true"
+              shift ;;
+            --default-password=*)
+              _import_extra_vars="${_import_extra_vars} import_users_default_password=${1#--default-password=}"
+              shift ;;
+            --default-password)
+              shift
+              if [ -z "${1:-}" ]; then echo "[otctl] --default-password requires a value" >&2; exit 1; fi
+              _import_extra_vars="${_import_extra_vars} import_users_default_password=$1"
+              shift ;;
+            --password-length=*)
+              _import_extra_vars="${_import_extra_vars} import_users_password_length=${1#--password-length=}"
+              shift ;;
+            --password-length)
+              shift
+              if [ -z "${1:-}" ]; then echo "[otctl] --password-length requires a value" >&2; exit 1; fi
+              _import_extra_vars="${_import_extra_vars} import_users_password_length=$1"
+              shift ;;
+            *) _new_args+=("$1"); shift ;;
+          esac
+        done
+        set -- "${_new_args[@]}"
+        if [ -z "$_import_file" ]; then
+          echo "[otctl] Missing --users-file argument. Usage: otctl import users --users-file=/path/to/users.csv" >&2; exit 1
+        fi
+        # Resolve to absolute path
+        if [[ "$_import_file" != /* ]]; then _import_file="$(cd "$(dirname "$_import_file")" && pwd)/$(basename "$_import_file")"; fi
+        _import_extra_vars="import_users_file=$_import_file${_import_extra_vars}"
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" \
+          "$AUTOMATION/playbooks/import_users.yml" \
+          -e "$_import_extra_vars" "$@"
+        ;;
+      ''|-h|--help|help)
+        cat <<'IHELP'
+otctl import users USAGE:
+  otctl import users --users-file=/path/to/users.csv                           # import users from CSV
+  otctl import users --users-file=/path/to/users.json                          # import users from JSON
+  otctl import users --users-file=users.csv --no-temporary                     # passwords are permanent
+  otctl import users --users-file=users.csv --password-reset-email             # send password reset email to all users
+  otctl import users --users-file=users.csv --default-password='ChangeMe!'     # set a fallback password
+  otctl import users --users-file=users.csv --password-length=32               # auto-generate 32-char passwords
+IHELP
+        exit 0 ;;
+      *) echo "[otctl] Unknown import target: $import_what (use 'users')" >&2; exit 1 ;;
+    esac
     ;;
   -h|--help|help) usage; exit 0 ;;
   "") usage_short; exit 0 ;;

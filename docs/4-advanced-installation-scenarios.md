@@ -150,7 +150,6 @@ Configuration is executed via the Keycloak Admin REST API. Ensure the OpenTalk h
 It is recommended to use a dedicated realm for OpenTalk. If the configured realm does not exist, it is created automatically.
 
 > **Warning:** If you point to an existing realm, OpenTalk-specific clients, roles, and other resources are added to that realm, which might be undesirable.
-
 > **Note:** If the external Keycloak is secured with a certificate issued by a custom CA, also configure `custom_certificates_ca_root_cert_file` in `settings.yml` (see [Section 1.2](#12-custom-ca-and-custom-tls-certificates)). This ensures all local OpenTalk services trust the custom CA for outbound HTTPS connections to Keycloak.
 
 #### 2.1.1 Stop all OpenTalk related services
@@ -322,7 +321,7 @@ otctl deploy
 #### 2.2.7 Common pitfalls
 
 | Symptom | Cause | Resolution |
-|---------|-------|-----------|
+| --------- | ------- | ----------- |
 | 403 on OIDC discovery | Incorrect `keycloak_base_url` (wrong host) | Fix URL and redeploy. |
 | CSP blocking | Domain or port missing in CSP | Add to `csp_allowed_extra_connect_src`. |
 | Missing clients after import | Incomplete import or wrong file | Re-sanitize and re-import. |
@@ -601,12 +600,12 @@ otctl deploy
 
 ## 6 S3 Storage Provider
 
-OpenTalk uses an S3-compatible object storage service for files such as recordings and PDF documents. With opentalk-compose 26.1.0 Garage is the default storage provider. 
+OpenTalk uses an S3-compatible object storage service for files such as recordings and PDF documents. With opentalk-compose 26.1.0 Garage is the default storage provider.
 
 Two providers are supported:
 
 | Provider | Description |
-|----------|-------------|
+| ------------ | ------------- |
 | **Garage** (default) | Lightweight, self-contained S3-compatible storage. No web UI — administration via CLI. |
 | **MinIO** | object storage with a web console at `/adm/minio/`. MinIO is no longer maintained and the the repository is now officially archived. Currently, Minio support is maintained solely for backward compatibility |
 
@@ -658,20 +657,24 @@ For more information, refer to the [Garage documentation](https://garagehq.deuxf
 You can migrate S3 data in either direction — MinIO → Garage or Garage → MinIO — using the `otctl migrate` command. The command automates the full procedure: it installs `rclone` if needed, copies all objects between the two backends, updates `settings.yml`, and optionally runs a deployment to stop the source service.
 
 > **Important:** Back up your data before starting the migration.
+>
 > ```bash
 > otctl backup
 > ```
 
 #### 6.3.1 Enable both providers in parallel
+
 For a successful migration, both S3 providers must be running at the same time. Add the following to `/etc/opentalk-compose/settings.yml` and deploy:
 
 **MinIO → Garage** (Garage is not yet running):
+
 ```yaml
 compose_service_minio_enabled: true
 compose_service_garage_enabled: true
 ```
 
 **Garage → MinIO** (MinIO is not yet running):
+
 ```yaml
 compose_service_garage_enabled: true
 compose_service_minio_enabled: true

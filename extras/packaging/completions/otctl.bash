@@ -36,6 +36,8 @@ _otctl() {
     logs)     COMPREPLY=( $(compgen -W "--since --follow --service --tail" -- "$cur") );;
     config)   COMPREPLY=( $(compgen -W "diff validate show path" -- "$cur") );;
     migrate)  COMPREPLY=( $(compgen -W "minio-to-garage garage-to-minio --no-deploy" -- "$cur") );;
+    import)   COMPREPLY=( $(compgen -W "users --help" -- "$cur") );;
+    users)    COMPREPLY=( $(compgen -W "--users-file= --no-temporary --password-reset-email --default-password= --password-length= --help" -- "$cur") );;
     *)        COMPREPLY=( $(compgen -W "$global_opts" -- "$cur") );;
   esac
 }

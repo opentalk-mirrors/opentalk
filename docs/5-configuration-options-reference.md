@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-04-14
+Last updated: 2026-04-16
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -165,6 +165,24 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `garage_s3_web_port` | string | `3902` |
 | `garage_s3_web_root_domain` | string | `.web.garage` |
 | `garage_use_local_tz` | string | `false` |
+
+## opentalk_compose.import_users
+
+| Variable | Type | Default Value |
+|----------|------|---------------|
+| `import_users_default_password` | null | `null` |
+| `import_users_enabled` | boolean | `true` |
+| `import_users_file` | string | `/path/to/users.csv` |
+| `import_users_force_password_reset_email` | boolean | `false` |
+| `import_users_password_length` | integer | `20` |
+| `import_users_password_temporary` | boolean | `true` |
+| `import_users_realm` | string | `{{ keycloak_realm \| default('opentalk') }}` |
+| `keycloak_auth_password` | string | `{{ keycloak_permanent_admin_password \| default(KC_PERMANENT_ADMIN_PASSWORD) }}` |
+| `keycloak_auth_realm` | string | `master` |
+| `keycloak_auth_username` | string | `{{ keycloak_permanent_admin_username \| default('admin') }}` |
+| `keycloak_base_url` | string | `{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) \| build_subdomain_url }}/auth` |
+| `keycloak_local_hostname` | string | `` |
+| `keycloak_local_port` | string | `{{ ot_ingress_port }}` |
 
 ## opentalk_compose.keycloak
 
@@ -391,38 +409,11 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailcrab_docker_label_http_routers_minio_console_middlewares` | string | `default-auth@file` |
 | `mailcrab_webui_prefix` | string | `/adm/mailcrab` |
 
-## opentalk_compose.garage
-
-| Variable | Type | Default Value |
-|----------|------|---------------|
-| `garage_admin_api_bind_addr` | string | `[::]:3903` |
-| `garage_admin_api_port` | integer | `3903` |
-| `garage_bucket_name` | string | `opentalk` |
-| `garage_db_engine` | string | `lmdb` |
-| `garage_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
-| `garage_docker_compose_project_src` | string | `{{ deploy_dir }}` |
-| `garage_docker_compose_services_dir` | string | `{{ services_dir }}` |
-| `garage_docker_compose_services_state` | string | `{{ compose_service_garage_state \| default('present') }}` |
-| `garage_docker_image_src` | string | `registry.heinlein.group/opentalk/garage` |
-| `garage_key_name` | string | `opentalk-key` |
-| `garage_layout_capacity` | string | `1G` |
-| `garage_layout_zone` | string | `dc1` |
-| `garage_replication_factor` | integer | `1` |
-| `garage_rpc_bind_addr` | string | `[::]:3901` |
-| `garage_rpc_port` | integer | `3901` |
-| `garage_rpc_public_addr` | string | `garage:3901` |
-| `garage_s3_api_bind_addr` | string | `[::]:3900` |
-| `garage_s3_api_port` | integer | `3900` |
-| `garage_s3_region` | string | `garage` |
-
 ## opentalk_compose.minio
-
-> **Note:** MinIO is an alternative S3 storage provider. To use MinIO instead of the default Garage, set `s3_storage_provider: minio` in `settings.yml`.
 
 | Variable | Type | Default Value |
 |----------|------|---------------|
 | `minio_bucket_name` | string | `opentalk` |
-| `minio_s3_api_port` | integer | `9000` | Host port bound to `127.0.0.1` for the MinIO S3 API. Used by `rclone` during S3 migration. |
 | `minio_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `minio_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `minio_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -433,17 +424,6 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `minio_docker_image_src` | string | `registry.heinlein.group/opentalk/minio` |
 | `minio_docker_label_http_routers_minio_console_middlewares` | string | `minio-stripprefix` |
 | `minio_s3_api_port` | integer | `9000` |
-
-## opentalk_compose.s3_migrate
-
-| Variable | Type | Default Value | Description |
-|----------|------|---------------|-------------|
-| `s3_migration_source` | string | — | **Required.** Source provider: `minio` or `garage`. Pass via `-e s3_migration_source=minio`. |
-| `s3_migrate_run_deploy` | boolean | `true` | Run `otctl deploy` automatically after migration to stop the source service. Set to `false` to skip. |
-| `s3_migrate_minio_endpoint` | string | `http://127.0.0.1:9000` | MinIO S3 endpoint reachable from the host. |
-| `s3_migrate_garage_endpoint` | string | `http://127.0.0.1:3900` | Garage S3 endpoint reachable from the host. |
-| `s3_migrate_bucket_name` | string | `opentalk` | Bucket to migrate. |
-| `s3_migrate_settings_file` | string | `/etc/opentalk-compose/settings.yml` | Path to `settings.yml` that is updated after migration. |
 
 ## opentalk_compose.ndt
 
