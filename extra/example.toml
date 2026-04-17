@@ -29,24 +29,17 @@
 
 # The port to bind the HTTP Server to.
 #port = 11411
-
-# Authentication configuration using OpenID Connect (OIDC).
-[auth]
-# The OIDC issuer url.
-issuer = "https://example.org/auth/realms/OpenTalk"
-
-# The client ID registered in the identity provider.
-client_id = "Transcription"
-
-# The client secret for the above client ID.
-client_secret = "Abc123"
+# The api keys for internal service endpoints
+#
+# The transcription service can have multiple api keys configured. An api key can be configured as string ("<key_id>:<key_secret>")
+# or as key/value pair ({id = "<key_id>", secret = "<key_secret>"}).
+api_keys = [{ id = "transcription", secret = "secret" }]
 
 [controller]
-# The url to the controller
-domain = "localhost:11311"
-
-# Whether to allow insecure connections (no TLS / certificate validation).
-insecure = true
+# The URL of the controller
+url = "http://localhost:8000"
+# The API to access the controller
+api_key = { "id" = "controller", "secret" = "secret" }
 
 # Monitoring endpoint configuration.
 # Provides Prometheus-compatible metrics for scraping.
@@ -55,7 +48,7 @@ insecure = true
 addr = "::1"
 
 # Port for the monitoring endpoint.
-port = 11411
+port = 11412
 
 [transcription]
 # Configuration of the transcription engine.

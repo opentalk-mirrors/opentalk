@@ -8,25 +8,37 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result, bail};
 use audio_nodes::AudioConvert;
 use ezk::{Source, SourceEvent};
 use ezk_audio::{Format, RawAudioConfigRange, SampleRate};
 use livekit::{
     RoomEvent,
-    id::TrackSid,
-    prelude::{RemoteParticipant, RemoteTrackPublication},
+    id::{ParticipantIdentity, TrackSid},
+    prelude::RemoteParticipant,
     track::{RemoteAudioTrack, RemoteTrack},
     webrtc::audio_stream::native::NativeAudioStream,
 };
 use opentalk_client_signaling::{
-    Event, OpenTalkEvent, OpenTalkTranscriptionServiceEvent, Room, TranscriptionSegment,
+    OpenTalkEvent, Room,
+    opentalk_roomserver_types::{
+        breakout::{breakout_id::BreakoutId, event::BreakoutEvent},
+        room_kind::RoomKind,
+    },
+    opentalk_roomserver_types_livekit::Credentials as LivekitCredentials,
+    opentalk_roomserver_types_transcription::{
+        segment::TranscriptionSegment, service::command::TranscriptionServiceCommand,
+    },
     types::{
-        common::time::Timestamp,
-        signaling::{ParticipantId, transcription::http::StartTranscriptionRequestBody},
+        common::{rooms::RoomId, time::Timestamp},
+        signaling::ParticipantId,
     },
 };
-use tokio::sync::{Mutex, mpsc};
+use opentalk_transcription_web_api::v1::TranscriptionTarget;
+use tokio::sync::{
+    Mutex,
+    mpsc::{self, UnboundedReceiver},
+};
 use voice_activity_detector::VoiceActivityDetector;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperState};
 
@@ -39,15 +51,66 @@ use crate::{
     },
 };
 
+pub(crate) struct LivekitRoom {
+    room: Option<livekit::Room>,
+    event_stream: UnboundedReceiver<RoomEvent>,
+}
+
+impl LivekitRoom {
+    pub(crate) async fn connect(creds: &LivekitCredentials) -> Result<Self> {
+        let url = creds
+            .service_url
+            .clone()
+            .unwrap_or(creds.public_url.clone());
+
+        let url = url.trim_end_matches('/');
+
+        let (room, event_stream) =
+            livekit::Room::connect(&url, &creds.token, livekit::RoomOptions::default())
+                .await
+                .context("failed to connect to livekit room")?;
+
+        Ok(Self {
+            room: Some(room),
+            event_stream,
+        })
+    }
+
+    pub(crate) async fn recv(&mut self) -> Option<RoomEvent> {
+        self.event_stream.recv().await
+    }
+}
+
+impl Drop for LivekitRoom {
+    fn drop(&mut self) {
+        let room = self.room.take().expect("livekit room must be some");
+
+        tokio::spawn(async move {
+            if let Err(err) = room.close().await {
+                log::error!("Failed to disconnect from livekit room: {err:?}");
+            }
+        });
+    }
+}
+
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+pub(crate) struct TranscriptionParticipant {
+    pub(crate) identity: ParticipantIdentity,
+    pub(crate) track_sid: TrackSid,
+}
+
 pub(crate) struct TranscriptionSession {
     app_state: Arc<AppState>,
 
     run: bool,
 
     room: Room,
+    room_id: RoomId,
+    livekit_room: LivekitRoom,
+
     language: Option<String>,
 
-    transcription: Arc<Mutex<HashMap<TrackSid, TranscriptionContext>>>,
+    transcription: Arc<Mutex<HashMap<TranscriptionParticipant, TranscriptionContext>>>,
 
     segments_rx: mpsc::Receiver<TranscriptionSegment>,
     segments_tx: mpsc::Sender<TranscriptionSegment>,
@@ -56,15 +119,26 @@ pub(crate) struct TranscriptionSession {
 impl TranscriptionSession {
     pub(crate) async fn create(
         app_state: Arc<AppState>,
-        room_info: StartTranscriptionRequestBody,
+        room_info: TranscriptionTarget,
     ) -> Result<TranscriptionSession> {
+        let breakout_id: Option<BreakoutId> = room_info
+            .breakout_room
+            .map(|breakout_id| BreakoutId::from(breakout_id));
+
         let mut room: Room = app_state
             .opentalk_client
-            .connect_recorder(room_info.room_id, room_info.breakout_room, true)
+            .connect_transcription(room_info.room_id, breakout_id)
             .await?
             .into();
 
-        room.transcription_service_api().send_started().await?;
+        if let Some(breakout_id) = room_info.breakout_room {
+            move_to_breakout_room(&mut room, breakout_id.into()).await?;
+        }
+
+        let credentials = room
+            .livekit_credentials()
+            .context("no livekit credentials available")?;
+        let livekit_room = LivekitRoom::connect(credentials).await?;
 
         let (segments_tx, segments_rx) = mpsc::channel(1000);
 
@@ -72,6 +146,8 @@ impl TranscriptionSession {
             app_state,
             run: true,
             room,
+            livekit_room,
+            room_id: room_info.room_id,
             language: room_info.language,
             transcription: Arc::new(Mutex::new(HashMap::new())),
             segments_rx,
@@ -80,6 +156,12 @@ impl TranscriptionSession {
     }
 
     pub(crate) async fn run(&mut self) -> Result<()> {
+        self.room
+            .transcription_service_api()
+            .context("transcription service api not available")?
+            .send_transcription_started()
+            .await?;
+
         let mut shutdown_rx = self.app_state.shutdown.resubscribe();
 
         while self.run {
@@ -92,15 +174,19 @@ impl TranscriptionSession {
                         },
                         Ok(event) => event,
                     };
-                    match event {
-                        Event::OpenTalk(event) => self.handle_opentalk_event(event),
-                        Event::LiveKit(event) => self.handle_livekit_event(event).await,
-                    }
+                    self.handle_opentalk_event(event).await?;
+                }
+                livekit_event = self.livekit_room.recv() => {
+                    self.handle_livekit_event(livekit_event.unwrap()).await?;
                 }
                 Some(segment) = self.segments_rx.recv() => {
                     log::debug!("Sending segment {segment:?}");
 
-                    self.room.transcription_service_api().send_segment(segment).await?;
+                    self.room
+                        .transcription_service_api()
+                        .context("transcription service api not available")?
+                        .send_transcription_segment(segment)
+                        .await?;
                 }
                 _ = shutdown_rx.wait_for_shutdown() => {
                     break;
@@ -108,52 +194,127 @@ impl TranscriptionSession {
             }
         }
 
-        self.room.transcription_service_api().send_stopped().await?;
+        Ok(())
+    }
+
+    async fn handle_opentalk_event(&mut self, event: OpenTalkEvent) -> Result<()> {
+        match event {
+            OpenTalkEvent::ParticipantLeft(..) => {
+                if self.room.active_participants().is_empty() {
+                    log::info!("No active participants left in the room, stopping transcription");
+                    self.run = false;
+                }
+            }
+            OpenTalkEvent::MovedToWaitingRoom => {
+                log::error!("Moved to waiting room, exiting room: {}", self.room_id);
+                self.run = false;
+            }
+            OpenTalkEvent::Breakout(breakout_event) => {
+                if let Err(err) = self.handle_breakout_event(breakout_event).await {
+                    log::warn!("Handling breakout event failed with {err:?}");
+                    return Err(err);
+                }
+            }
+            OpenTalkEvent::LiveKit(_)
+            | OpenTalkEvent::WaitingRoomAccepted
+            | OpenTalkEvent::Recording(_)
+            | OpenTalkEvent::ParticipantJoined(_)
+            | OpenTalkEvent::ParticipantUpdated {
+                previous: _,
+                updated: _,
+            }
+            | OpenTalkEvent::RecordingService(_) => {}
+            OpenTalkEvent::Transcription(..) => (),
+            OpenTalkEvent::TranscriptionService(transcription_service_command) => {
+                match transcription_service_command {
+                    TranscriptionServiceCommand::Stop => {
+                        log::debug!("Got stop event");
+                        self.room
+                            .transcription_service_api()
+                            .context("transcription service api not available")?
+                            .send_transcription_stopped()
+                            .await
+                            .context("failed to send transcription stopped event")?;
+
+                        self.run = false;
+                    }
+                }
+            }
+            OpenTalkEvent::Disconnected(disconnect_reason) => {
+                log::debug!("Got disconnected event: {disconnect_reason:?}");
+                self.run = false;
+            }
+        }
 
         Ok(())
     }
 
-    fn handle_opentalk_event(&mut self, event: OpenTalkEvent) {
-        match event {
-            OpenTalkEvent::TranscriptionService(event) => match event {
-                OpenTalkTranscriptionServiceEvent::Stop => {
-                    log::debug!("Got stop event");
-                    self.run = false;
-                }
-            },
-            OpenTalkEvent::Disconnected(..) => {
-                log::debug!("Got disconnected event");
-
-                self.run = false
-            }
-            _ => {}
-        }
-    }
-
-    async fn handle_livekit_event(&mut self, event: RoomEvent) {
+    async fn handle_livekit_event(&mut self, event: RoomEvent) -> Result<()> {
         log::trace!("livekit event: {event:?}");
 
         match event {
             RoomEvent::TrackSubscribed {
                 track: RemoteTrack::Audio(audio_track),
-                publication,
+                publication: _,
                 participant,
-            } => self.handle_new_audio_track(audio_track, publication, participant),
+            } => {
+                self.transcription.lock().await.insert(
+                    TranscriptionParticipant {
+                        identity: participant.identity().clone(),
+                        track_sid: audio_track.sid().clone(),
+                    },
+                    TranscriptionContext::new(
+                        self.app_state.whisper_context.clone(),
+                        self.language.clone(),
+                    )?,
+                );
+
+                log::debug!("Added new participant: {}", participant.identity());
+
+                self.handle_new_audio_track(audio_track, participant);
+            }
             _ => {}
         }
+
+        Ok(())
+    }
+
+    async fn handle_breakout_event(&mut self, breakout_event: BreakoutEvent) -> Result<()> {
+        match breakout_event {
+            BreakoutEvent::ParticipantSwitchedRoom { .. } => {
+                // nothing to do, participant tracks are added through livekit events and removed through track state
+            }
+            BreakoutEvent::Closed => {
+                if self.room.breakout_api().current_room() != RoomKind::Main {
+                    log::info!("Breakout room was closed, stopping transcription");
+                    self.run = false;
+                }
+            }
+            BreakoutEvent::Error(breakout_error) => {
+                log::error!("Received unexpected error from breakout module: {breakout_error:?}");
+            }
+
+            BreakoutEvent::Started { .. }
+            | BreakoutEvent::SwitchedRoom { .. }
+            | BreakoutEvent::CloseNotice { .. }
+            | BreakoutEvent::Closing { .. } => (),
+        }
+
+        Ok(())
     }
 
     fn handle_new_audio_track(
         &mut self,
         audio_track: RemoteAudioTrack,
-        publication: RemoteTrackPublication,
         participant: RemoteParticipant,
     ) {
         let language = self.language.clone();
         let whisper_context = self.app_state.whisper_context.clone();
+
         let transcription = self.transcription.clone();
 
-        let Ok(participant_id) = ParticipantId::from_str(participant.identity().as_str()) else {
+        let identity = participant.identity();
+        let Some((participant_id, ..)) = identity.as_str().split_once(':') else {
             log::warn!(
                 "Got new audio track from invalid participant identity {}",
                 participant.identity()
@@ -161,10 +322,16 @@ impl TranscriptionSession {
             return;
         };
 
+        let participant_id = ParticipantId::from_str(participant_id).unwrap(); // TODO: result return type
+
+        let transcription_participant = TranscriptionParticipant {
+            identity: participant.identity().clone(),
+            track_sid: audio_track.sid().clone(),
+        };
+
         let send_messages_tx = self.segments_tx.clone();
 
         tokio::spawn({
-            let publication = publication.clone();
             async move {
                 let mut audio_convert = AudioConvert::new(NativeAudioStreamSource {
                     stream: NativeAudioStream::new(
@@ -200,7 +367,7 @@ impl TranscriptionSession {
                                 &transcription,
                                 language.clone(),
                                 samples,
-                                &publication,
+                                &transcription_participant,
                                 &mut silence_buffer,
                                 &send_messages_tx,
                                 &participant_id,
@@ -220,19 +387,83 @@ impl TranscriptionSession {
     }
 }
 
+async fn move_to_breakout_room(room_state: &mut Room, breakout_target: BreakoutId) -> Result<()> {
+    log::info!("Moving to breakout room {breakout_target}");
+    let Some(breakout_config) = room_state.breakout_api().breakout_config() else {
+        return Err(anyhow::anyhow!(
+            "Received breakout target {breakout_target} but there are no breakout rooms configured"
+        ));
+    };
+
+    if !breakout_config
+        .rooms
+        .iter()
+        .any(|room| room.id == breakout_target)
+    {
+        return Err(anyhow::anyhow!(
+            "Got breakout target {breakout_target} but it was not found in the room's breakout configuration"
+        ));
+    }
+
+    room_state
+        .breakout_api()
+        .switch_room(RoomKind::Breakout(breakout_target))
+        .await?;
+
+    log::info!("Entering breakout room, waiting for breakout switch event...");
+    loop {
+        match room_state.recv().await? {
+            OpenTalkEvent::MovedToWaitingRoom => {
+                bail!("Recorder was moved to the waiting room, cannot start recording")
+            }
+            OpenTalkEvent::Breakout(breakout_event) => match breakout_event {
+                BreakoutEvent::SwitchedRoom { .. } => {
+                    log::info!("Received breakout switched room event, recording can be started");
+                    return Ok(());
+                }
+                BreakoutEvent::Closing { .. } | BreakoutEvent::Closed => {
+                    bail!("Targeted breakout room was closed, cannot start recording")
+                }
+                BreakoutEvent::Error(breakout_error) => {
+                    bail!("Error in breakout module: {breakout_error:?}")
+                }
+                _ => (),
+            },
+            OpenTalkEvent::Disconnected(disconnect_reason) => {
+                bail!("Disconnected from room with reason: {disconnect_reason:?}")
+            }
+            event => log::trace!("Received event while waiting for breakout switch: {event:?}"),
+        }
+    }
+}
+
 async fn on_new_frame(
     whisper_context: &Arc<WhisperContext>,
-    transcription: &Mutex<HashMap<TrackSid, TranscriptionContext>>,
+    transcription: &Arc<Mutex<HashMap<TranscriptionParticipant, TranscriptionContext>>>,
     language: Option<String>,
     samples: Vec<f32>,
-    publication: &RemoteTrackPublication,
+    transcription_participant: &TranscriptionParticipant,
     silence_buffer: &mut SilenceBuffer,
     send_messages_tx: &mpsc::Sender<TranscriptionSegment>,
     participant_id: &ParticipantId,
 ) {
     let mut whisper_guard = transcription.lock().await;
+
+    let track_id = whisper_guard.iter().find_map(|(participant, _context)| {
+        if participant == transcription_participant {
+            Some(participant.track_sid.to_string())
+        } else {
+            None
+        }
+    });
+
+    let Some(track_id) = track_id else {
+        log::error!("Failed to resolve track sid for participant: {transcription_participant:?}");
+        return;
+    };
+
     let whisper_entry = whisper_guard
-        .entry(publication.sid())
+        .entry(transcription_participant.clone())
         .or_insert_with(|| TranscriptionContext::new(whisper_context.clone(), language).unwrap());
     whisper_entry.extend_audio_frame(&samples);
 
@@ -263,7 +494,7 @@ async fn on_new_frame(
     if let Ok(data) = whisper_entry.transcribe_segment() {
         let segment = TranscriptionSegment {
             participant_id: *participant_id,
-            track_id: publication.sid().to_string(),
+            track_id,
             starts_at: whisper_entry.start_point,
             ends_at: Timestamp::now(),
             text: data,
@@ -300,9 +531,7 @@ impl TranscriptionContext {
             start_point: Timestamp::now(),
         })
     }
-}
 
-impl TranscriptionContext {
     pub(crate) fn extend_audio_frame(&mut self, samples: &Vec<f32>) {
         self.audio_queue.extend(samples);
     }
@@ -328,10 +557,20 @@ impl TranscriptionContext {
 
         self.state.full(params, &self.samples[..])?;
 
-        let num_segments = self.state.full_n_segments()?;
+        let num_segments = self.state.full_n_segments();
         for i in 0..num_segments {
-            let segment = self.state.full_get_segment_text(i)?;
-            segments.push(segment);
+            let segment = self
+                .state
+                .get_segment(i)
+                .with_context(|| format!("Couldn't get segment #{i}"))?;
+
+            let segmment_string = segment
+                .to_str_lossy()
+                .with_context(|| format!("Failed to get text for segment #{i}"))?;
+
+            if !segmment_string.is_empty() {
+                segments.push(segmment_string);
+            }
         }
 
         self.samples.clear();

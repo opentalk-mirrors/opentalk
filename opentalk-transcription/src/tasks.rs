@@ -28,6 +28,12 @@ impl ShutdownReceiver {
     }
 }
 
+impl Clone for ShutdownReceiver {
+    fn clone(&self) -> Self {
+        self.resubscribe()
+    }
+}
+
 /// Returned by managed tasks
 struct TaskFinished {
     /// The task name, used for logging purposes

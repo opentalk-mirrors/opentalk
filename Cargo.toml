@@ -16,39 +16,33 @@ version = "0.1.0"
 
 [workspace.dependencies]
 opentalk-transcription-web-api = { path = "opentalk-transcription-web-api", version = "0.1.0" }
-
 anstream = "1.0"
-anyhow = { version = "1", features = ["backtrace"] }
+anyhow = "1"
 async-trait = "0.1"
 audio-nodes = { package = "ezk-audio-nodes", version = "0.1" }
-axum = { version = "0.8.4", features = ["http2", "ws"] }
-clap = { version = "4.5", features = ["derive"] }
-config = { version = "0.15", default-features = false, features = ["toml"] }
+axum = "0.8.4"
+clap = "4.5"
+config = { version = "0.15", default-features = false }
 directories = "6.0"
 env_logger = "0.11"
 ezk = "0.1"
 ezk-audio = "0.1"
 futures = "0.3"
 itertools = "0.14"
-livekit = { version = "0.7", features = ["native-tls"] }
+livekit = "0.7"
 log = "0.4"
-openidconnect = "4"
-opentalk-client-signaling = { version = "0.2", default-features = false, features = [
-  "livekit",
-  "transcription-service",
-] }
+opentalk-service-auth = "0.2"
+opentalk-client-signaling = "0.8"
 opentalk-version = "0.4"
 opentalk-types-api-common = "0.7"
 opentalk-types-common = "0.44"
 owo-colors = "4.2"
 prometheus = { version = "0.14", default-features = false }
-serde = { version = "1.0", features = ["derive"] }
+serde = "1.0"
 service-probe = "0.4"
-tokio = { version = "1.45", features = ["macros", "rt-multi-thread", "signal"] }
+tokio = "1"
 voice_activity_detector = "0.2"
-whisper-rs = { git = "https://github.com/SoraTenshi/whisper-rs.git", rev = "a812820ec18a34da3930139b69e3130cb8195703", features = [
-  "log_backend",
-] }
+whisper-rs = "0.16"
 
 [patch.crates-io]
 libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
