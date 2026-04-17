@@ -72,6 +72,94 @@ For advanced use or automation, Keycloak provides a command-line tool (`kcadm.sh
 
 ---
 
+## Method C: Bulk User Import via otctl
+
+For importing a larger number of users at once, `otctl` provides the `import users` command. Users can be defined in a CSV or JSON file and are created in Keycloak automatically.
+
+### File Formats
+
+**CSV format** — the first row must be a header with the following columns:
+
+```csv
+username,email,firstName,lastName,password,enabled,tariff_id,tariff_status,tenant_id,password_reset_email
+j.doe,j.doe@example.org,Jane,Doe,S3curePW!,true,OpenTalkDefaultTariff,,,false
+m.mustermann,m.mustermann@example.org,Max,Mustermann,An0therPW!,true,OpenTalkDefaultTariff,,default,false
+a.schmidt,a.schmidt@example.org,Anna,Schmidt,,true,,,,true
+```
+
+**JSON format** — the file must contain a JSON array of user objects:
+
+```json
+[
+  {
+    "username": "j.doe",
+    "email": "j.doe@example.org",
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "password": "S3curePW!",
+    "enabled": true,
+    "tariff_id": "OpenTalkDefaultTariff",
+    "tenant_id": "",
+    "password_reset_email": false
+  }
+]
+```
+
+**Required fields:** `username`, `email`, `firstName`, `lastName`
+
+**Optional fields:**
+
+| Field | Description | Default |
+| ------- | ------------- | --------- |
+| `password` | User password. If empty, `--default-password` is used; if that is also unset, a random password is auto-generated (see below). Ignored when `password_reset_email` is `true`. | *(auto-generated)* |
+| `enabled` | Whether the user account is enabled. | `true` |
+| `tariff_id` | OpenTalk tariff identifier (e.g. `OpenTalkDefaultTariff`). | *(empty)* |
+| `tariff_status` | OpenTalk tariff status. | *(empty)* |
+| `tenant_id` | OpenTalk tenant identifier. | *(empty)* |
+| `password_reset_email` | When `true`, no initial password is set and Keycloak sends the user an email with a link to set their own password. The `password` field is ignored for these users. | `false` |
+
+Example files are shipped with the package at `/usr/share/opentalk-compose/examples/users.csv-sample` and `/usr/share/opentalk-compose/examples/users.json-sample`.
+
+### Usage
+
+```bash
+# Import users from a CSV file
+otctl import users --users-file=/path/to/users.csv
+
+# Import users from a JSON file
+otctl import users --users-file=/path/to/users.json
+
+# Make passwords permanent (users will NOT be prompted to change on first login)
+otctl import users --users-file=/path/to/users.csv --no-temporary
+
+# Force all users to receive a Keycloak password-reset email, regardless of the
+# per-user 'password_reset_email' field in the import file
+otctl import users --users-file=/path/to/users.csv --password-reset-email
+
+# Set a default password for all users that don't have one in the file
+otctl import users --users-file=/path/to/users.csv --default-password='ChangeMe!'
+
+# Auto-generate passwords with custom length (default: 20 characters)
+otctl import users --users-file=/path/to/users.csv --password-length=32
+```
+
+By default, all imported passwords are marked as **temporary** — users must change their password on first login. Use `--no-temporary` to override this behavior.
+
+The `--password-reset-email` flag is a **hard override**: it forces the email-based password reset for every user in the file, even if individual records have `password_reset_email: false`. Without the flag, the per-user field in the import file is used.
+
+#### Password resolution order
+
+When a user record has no `password` field (or it is empty), the password is determined in this order:
+
+1. **`--password-reset-email`** — if set (globally or per-user), no password is assigned. The user receives an email to set their own password.
+2. **`--default-password=X`** — the given password X is used for all users without a password.
+3. **Auto-generation** — a random password of `--password-length` characters (default: 20) is generated and printed to the console.
+
+!!! note
+    The import is **additive and idempotent**: existing users with the same username are updated, no users are deleted.
+
+---
+
 ## Additional Notes
 
 - If SMTP is not configured, invitation and verification emails will not be sent.

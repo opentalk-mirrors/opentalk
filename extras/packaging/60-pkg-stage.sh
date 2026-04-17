@@ -110,6 +110,14 @@ if [[ -f "$REALM_EXAMPLE_SRC" ]]; then
   install -m0644 "$REALM_EXAMPLE_SRC" "$EXAMPLES_DIR/export-opentalk-realm-and-users.json"
 fi
 
+# Ship example user import files (if present)
+for _uf in users.csv-sample users.json-sample; do
+  if [[ -f "$ROOT/extras/packaging/config-dist/$_uf" ]]; then
+    echo "[stage] Including example user import file: $_uf"
+    install -m0644 "$ROOT/extras/packaging/config-dist/$_uf" "$EXAMPLES_DIR/$_uf"
+  fi
+done
+
 # Vendor Collections
 SRC_VENDOR_EMB="$EMB/vendor"
 SRC_VENDOR_BUILD="$ROOT/build/vendor"

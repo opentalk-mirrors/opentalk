@@ -1,0 +1,49 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Import users into Keycloak from a CSV or JSON file.
+#
+# Required parameter (pass with -e):
+#   import_users_file: /path/to/users.csv   # or /path/to/users.json
+#
+# Optional parameters:
+#   import_users_default_password: 'changeme'    # fallback password if not in file
+#   import_users_password_temporary: true         # user must change password on first login
+#   import_users_enabled: true                    # enable users by default
+#   import_users_realm: opentalk                  # target Keycloak realm
+
+- name: Import Users
+  hosts: localhost
+  gather_facts: true
+  vars_files:
+    - ../../.versions.yml
+    - /etc/opentalk-compose/settings.yml
+
+  pre_tasks:
+    - name: Abort if import_users_file not set
+      ansible.builtin.fail:
+        msg: >-
+          import_users_file must be set.
+          Use: otctl import users /path/to/users.csv
+            or otctl import users /path/to/users.json
+      when: import_users_file is not defined
+      tags: ["always"]
+
+    - block:
+        - name: Check for secrets vars file
+          ansible.builtin.stat:
+            path: "{{ config_dir | default('/etc/opentalk-compose') }}/secrets/secrets.yml"
+          register: secrets_file
+        - name: Load secrets
+          ansible.builtin.include_vars: "{{ config_dir | default('/etc/opentalk-compose') }}/secrets/secrets.yml"
+          when: secrets_file.stat.exists
+        - name: Fail if secrets file is missing
+          ansible.builtin.fail:
+            msg: "Secrets file '{{ config_dir | default('/etc/opentalk-compose') }}/secrets/secrets.yml' not found. Run 'otctl deploy' first."
+          when: not secrets_file.stat.exists
+      tags: ["always"]
+
+  roles:
+    - role: opentalk_compose.import_users
