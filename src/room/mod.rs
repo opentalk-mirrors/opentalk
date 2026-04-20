@@ -128,6 +128,7 @@ pub enum DisconnectReason {
     WebsocketClosed,
     Kicked,
     Banned,
+    DebriefingStarted,
 }
 
 #[derive(Debug, Clone)]
@@ -336,7 +337,9 @@ impl Room {
             ModerationEvent::ParticipantBanned(..) => Ok(None),
             ModerationEvent::ParticipantUnbanned { .. } => Ok(None),
             ModerationEvent::RoleUpdated { .. } => Ok(None),
-            ModerationEvent::DebriefingStarted { .. } => Ok(None),
+            ModerationEvent::DebriefingStarted { .. } => Ok(Some(OpenTalkEvent::Disconnected(
+                DisconnectReason::DebriefingStarted,
+            ))),
             ModerationEvent::WaitingRoomEnabled => Ok(None),
             ModerationEvent::WaitingRoomDisabled => Ok(None),
             ModerationEvent::SentToWaitingRoom => {
