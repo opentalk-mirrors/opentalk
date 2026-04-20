@@ -852,3 +852,5 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `traefik_providers_docker_exposedByDefault` | boolean | `false` |
 | `traefik_providers_file_directory` | string | `/etc/traefik/dynamic` |
 | `traefik_providers_file_watch` | boolean | `true` |
+| `csp_allowed_extra_img_src` | list | `[]` — Additional sources for `img-src` in the CSP header, e.g. `[https://avatars.example.com]` |
+| `csp_allowed_extra_connect_src` | list | `[]` — Additional sources for `connect-src` in the CSP header, e.g. `[https://keycloak.example.com]` |
