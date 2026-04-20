@@ -172,8 +172,8 @@ impl Signaling {
 
         while matches!(self.state, State::Running) {
             tokio::select! {
-                event = self.sip.drive() => {
-                    match handle_sip_event(event?, &mut self.media, &mut self.media_session).await {
+                event = self.sip.run() => {
+                    match handle_sip_event(&mut self.sip, event?, &mut self.media, &mut self.media_session).await {
                         Ok(Some(state)) => self.state = state,
                         Ok(None) => {}
                         Err(e) => {
@@ -437,7 +437,7 @@ impl Signaling {
 
         let mut target_tp_info = self.sip.dialog.target_tp_info.lock().await;
 
-        let mut request = self.sip.dialog.create_request(Method::INFO);
+        let mut request = self.sip.dialog.create_request(Method::INFO, None);
         request
             .headers
             .insert(Name::CONTENT_TYPE, "application/media_control+xml");
@@ -657,8 +657,8 @@ impl Signaling {
                     // Participant got accepted, break out of loop
                     return Ok(Some(join_result?));
                 }
-                sip_event = self.sip.drive() => {
-                    if let Some(state) = handle_sip_event(sip_event?, &mut self.media, &mut self.media_session).await? {
+                sip_event = self.sip.run() => {
+                    if let Some(state) = handle_sip_event(&mut self.sip, sip_event?, &mut self.media, &mut self.media_session).await? {
                         // Got hung up, return
                         self.state = state;
                         return Ok(None)
@@ -871,30 +871,32 @@ impl Signaling {
 }
 
 async fn handle_sip_event(
-    event: InviteSessionEvent<'_>,
+    invite_session: &mut InviteSession,
+    event: InviteSessionEvent,
     media: &mut MediaPipeline,
     media_session: &mut SessionState,
 ) -> Result<Option<State>> {
     match event {
-        InviteSessionEvent::RefreshNeeded(event) => {
-            if let Err(e) = refresh_invite_session(media, media_session, event).await {
+        InviteSessionEvent::RefreshNeeded => {
+            if let Err(e) = refresh_invite_session(media, media_session, invite_session).await {
                 log::error!("failed to refresh the INVITE session, {e:?}");
                 return Ok(Some(State::Quitting));
             }
         }
         InviteSessionEvent::ReInviteReceived(event) => {
-            if let Err(e) = handle_reinvite(media, media_session, event).await {
+            if let Err(e) = handle_reinvite(media, media_session, invite_session, event).await {
                 log::error!("failed to handle re-invite, {e:?}");
                 return Ok(Some(State::Quitting));
             }
         }
         InviteSessionEvent::Bye(event) => {
-            event.process_default().await?;
+            invite_session.handle_bye(event).await?;
             return Ok(Some(State::Terminated));
         }
         InviteSessionEvent::Terminated => {
             return Ok(Some(State::Terminated));
         }
+        InviteSessionEvent::Notify(..) => {}
     }
 
     Ok(None)
