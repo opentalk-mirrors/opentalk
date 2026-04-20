@@ -49,7 +49,7 @@ ignore = [
   "RUSTSEC-2025-0134",
 
   # Rand is unsound with a custom logger using `rand::rng()`
-  # 
+  #
   # Unaffected, log feature not enabled
   "RUSTSEC-2026-0097",
 
@@ -59,6 +59,10 @@ ignore = [
   # rustls-webpki Name constraints were accepted for certificates asserting a wildcard name
   "RUSTSEC-2026-0099",
 
+  # AWS-LC X.509 Name Constraints Bypass via Wildcard/Unicode CN
+  "RUSTSEC-2026-0044",
+  # CRL Distribution Point Scope Check Logic Error in AWS-LC
+  "RUSTSEC-2026-0048",
 ]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
