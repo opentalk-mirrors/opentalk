@@ -19,6 +19,7 @@ mod websocket;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    ensure_crypto_provider();
     match std::env::args().next() {
         Some(s) if s.contains("k3k-obelisk") => {
             use owo_colors::OwoColorize as _;
@@ -85,4 +86,24 @@ async fn main() -> Result<()> {
     log::info!("Obelisk exiting, bye!");
 
     Ok(())
+}
+
+/// `rustls` and `jsonwebtoken` depend on a `CryptoProvider` being configured.
+/// If no provider was explicitly configured, a provider will be derived from
+/// the enabled features. Since there are many crates that depend on rustls and
+/// `jsonwebtoken`, we don't have complete control over the enabled features.
+/// If the configuration via feature is ambiguous these crates will panic.
+///
+/// Here we ensure that these crates are explicitly configured.
+fn ensure_crypto_provider() {
+    rustls::crypto::CryptoProvider::install_default(rustls::crypto::aws_lc_rs::default_provider())
+        .expect("valid default crypto provider expected");
+
+    // This should not be necessary, but we add it anyways to prevent future code
+    // changes to introduce a panic.
+    // jsonwebtoken is used without any crypto (dangerous, insecure decode).
+    jsonwebtoken::crypto::CryptoProvider::install_default(
+        &jsonwebtoken::crypto::aws_lc::DEFAULT_PROVIDER,
+    )
+    .expect("valid default crypto provider expected");
 }
