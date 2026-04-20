@@ -713,7 +713,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `opentalk_web_frontend_environment_oidc_client_id` | string | `{{ controller_oidc_frontend_client_id \| default('Frontend') }}` |
 | `opentalk_web_frontend_environment_oidc_issuer` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}` |
 | `opentalk_web_frontend_environment_suppress_browser_compatibility_info` | boolean | `false` |
-| `opentalk_web_frontend_environment_video_backgrounds` | string | `[{`<br>`  altText: 'OpenTalk',`<br>`  url: '/assets/videoBackgrounds/elevate-bg.png',`<br>`  thumb: '/assets/videoBackgrounds/thumbs/elevate-bg-thumb.png',`<br>`}]` |
+| `opentalk_web_frontend_environment_video_backgrounds` | string | undefined (commented out). When defined, backgrounds directory is mounted as volume. Example: `[{ altText: 'My BG', url: '/assets/videoBackgrounds/my-bg.png', thumb: '/assets/videoBackgrounds/thumbs/my-bg-thumb.png' }]` |
+| `opentalk_web_frontend_backgrounds_dir` | string | `/var/opt/opentalk-compose/backgrounds` |
 | `opentalk_web_frontend_environment_waiting_room_default_value` | string | `{{ WAITING_ROOM_DEFAULT_VALUE \| default(false) }}` |
 | `opentalk_web_frontend_labels_traefik_enable` | boolean | `true` |
 | `opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
