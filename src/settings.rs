@@ -5,8 +5,9 @@
 use anyhow::{Context, Result, bail};
 use config::{Config, Environment, File, FileFormat, FileSourceFile};
 use itertools::Itertools;
-use openidconnect::{ClientId, ClientSecret, IssuerUrl};
+use opentalk_client_signaling::BaseUrl;
 use opentalk_compositor::ClockFormat;
+use opentalk_service_auth::ApiKey;
 use owo_colors::OwoColorize as _;
 use serde::Deserialize;
 use std::{
@@ -22,7 +23,6 @@ pub struct Settings {
     #[serde(default)]
     pub language: Language,
 
-    pub auth: AuthSettings,
     pub monitoring: Option<MonitoringSettings>,
     pub controller: ControllerSettings,
     pub sip: SipSettings,
@@ -182,17 +182,9 @@ impl ConfigSearchPath {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct AuthSettings {
-    pub issuer: IssuerUrl,
-    pub client_id: ClientId,
-    pub client_secret: ClientSecret,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct ControllerSettings {
-    pub domain: String,
-    #[serde(default)]
-    pub insecure: bool,
+    pub url: BaseUrl,
+    pub api_key: ApiKey,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -323,26 +315,31 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::env;
+    use std::{env, str::FromStr};
 
     #[test]
     fn settings_env_vars_overwite_config() -> anyhow::Result<()> {
         // Sanity check
         let settings = Settings::load(Some(&"./extra/example.toml".to_string()))?;
 
-        assert_eq!(settings.controller.domain, "localhost:8000");
-        assert_eq!(settings.sip.port, 5060u16);
+        assert_eq!(
+            settings.controller.url,
+            BaseUrl::try_from(url::Url::from_str("http://localhost:8000").unwrap()).unwrap()
+        );
 
         // Set environment variables to overwrite default config file
-        let env_controller_domain = "localhost:8080".to_string();
+        let env_controller_url = "https://localhost:443".to_string();
         let env_sip_port: u16 = 5070;
         unsafe {
-            env::set_var("OPENTALK_OBLSK_CONTROLLER__DOMAIN", &env_controller_domain);
+            env::set_var("OPENTALK_OBLSK_CONTROLLER__URL", &env_controller_url);
             env::set_var("OPENTALK_OBLSK_SIP__PORT", env_sip_port.to_string());
         }
         let settings = Settings::load(Some(&"./extra/example.toml".to_string()))?;
 
-        assert_eq!(settings.controller.domain, env_controller_domain);
+        assert_eq!(
+            settings.controller.url,
+            BaseUrl::try_from(url::Url::from_str(&env_controller_url).unwrap()).unwrap()
+        );
         assert_eq!(settings.sip.port, env_sip_port);
 
         Ok(())

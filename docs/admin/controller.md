@@ -8,15 +8,19 @@ sidebar_position: 3
 
 The section in the [configuration file](configuration.md) is called `controller`.
 
-| Field      | Type     | Required | Default value | Description                                                              |
-| ---------- | -------- | -------- | ------------- | ------------------------------------------------------------------------ |
-| `domain`   | `string` | yes      | -             | The host and optional port of the controller in the format `host[:port]` |
-| `insecure` | `bool`   | no       | false         | `true` to disable transport security to the controller                   |
+| Field     | Type              | Required | Default value | Description                                 |
+| --------- | ----------------- | -------- | ------------- | ------------------------------------------- |
+| `url`     | `string`          | yes      | -             | The URL of the Controller                   |
+| `api_key` | `string`/`ApiKey` | yes      | -             | The API key for the Controllers service API |
+
+### API Key
+
+The API Key for the Controller can be configured as string (<key_id>:<key_secret>) or as key/value pair ({id = "<key_id>", secret = "<key_secret>"})
 
 ### Example
 
 ```toml
 [controller]
-domain = "localhost:11311"
-insecure = true
+url = "http://localhost8000"
+api_key = { "id" = "controller", "secret" = "examplesecret" }
 ```

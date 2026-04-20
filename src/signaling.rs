@@ -2,20 +2,27 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::http::{HttpClient, InvalidCredentials};
 use crate::media::{MediaEvent, MediaPipeline, Track, TrackController};
 use crate::settings::Settings;
 use crate::sip::{SessionState, handle_reinvite, refresh_invite_session};
-use crate::websocket::{JoinState, JoinSuccess, Participant, Websocket, WebsocketEvent};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use bytes::Bytes;
 use bytesstr::BytesStr;
-use opentalk_compositor::livekit::DisconnectReason;
-use opentalk_compositor::livekit::track::TrackKind;
+use opentalk_client_signaling::client::JoinResult;
+use opentalk_client_signaling::http::StartCallInError;
+use opentalk_client_signaling::opentalk_roomserver_types::breakout::event::BreakoutEvent;
+use opentalk_client_signaling::opentalk_roomserver_types::connection_id::ConnectionId;
+use opentalk_client_signaling::opentalk_roomserver_types_livekit::MicrophoneRestrictionState;
+use opentalk_client_signaling::types::common::users::DisplayName;
+use opentalk_client_signaling::types::signaling::ParticipantId;
+use opentalk_client_signaling::{
+    CallInConnectToken, DisconnectReason, OpenTalkClient, OpenTalkEvent, OpenTalkLiveKitEvent,
+    OpenTalkRecordingEvent, Participant, Room,
+};
+use opentalk_compositor::livekit::{DisconnectReason as LiveKitDisconnectReason, track::TrackKind};
 use opentalk_compositor::{Mixer, MixerParameters};
 use sip_types::{Method, Name};
 use sip_ua::invite::session::{InviteSession, InviteSessionEvent};
-use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::future::pending;
 use std::pin::Pin;
@@ -23,10 +30,6 @@ use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::{broadcast, mpsc};
 use tokio::time::{Duration, Sleep, sleep};
-use types_common::streaming::StreamingTargetId;
-use types_signaling_livekit::MicrophoneRestrictionState;
-use types_signaling_livekit::event::LiveKitEvent;
-use types_signaling_recording::{StreamKind, StreamStatus, StreamTarget};
 
 // DTMF digit bindings
 const DTMF_STOP_CURRENT_TRACK: u8 = 0;
@@ -57,17 +60,18 @@ enum State {
 pub struct Signaling {
     settings: Arc<Settings>,
 
-    http_client: Arc<HttpClient>,
+    opentalk_client: Arc<OpenTalkClient>,
 
     /// Name of the user (usually the phone number or Anonymous)
     name: Option<BytesStr>,
 
     /// The SIP session
     sip: InviteSession,
-    /// The websocket connection to the controller
-    /// Will be initialized once the user typed in
-    /// the correct digits to enter a room
-    websocket: Option<Websocket>,
+
+    /// Connect token which will be held while the announcement for joining a room plays
+    connect_token: Option<CallInConnectToken>,
+    /// OpenTalk room connection
+    opentalk_room: Option<Room>,
 
     /// Handle to the media task
     media: MediaPipeline,
@@ -93,13 +97,9 @@ pub struct Signaling {
     /// has the client the hand raised
     hand_raised: bool,
 
-    microphone_restriction: MicrophoneRestrictionState,
+    // Tracks if the user has been informed of an active recording
+    have_active_running_recording: bool,
     recording_consent_state: RecordingConsentState,
-    streaming_targets: BTreeMap<StreamingTargetId, StreamTarget>,
-
-    /// List of participants inside the room,
-    /// unused before initiating the websocket connection
-    participants: Vec<Participant>,
 
     /// Application shutdown signal
     shutdown: broadcast::Receiver<()>,
@@ -125,7 +125,7 @@ impl Signaling {
     #[expect(clippy::too_many_arguments)]
     pub fn new(
         settings: Arc<Settings>,
-        http_client: Arc<HttpClient>,
+        opentalk_client: Arc<OpenTalkClient>,
         name: Option<BytesStr>,
         sip: InviteSession,
         media: MediaPipeline,
@@ -135,12 +135,13 @@ impl Signaling {
     ) -> Self {
         let (timeout_sender, timeout_receiver) = mpsc::channel(1);
 
-        Self {
+        Signaling {
             settings,
-            http_client,
+            opentalk_client,
             name,
             sip,
-            websocket: None,
+            connect_token: None,
+            opentalk_room: None,
             media,
             media_session,
             last_fast_picture_update_request_sent: None,
@@ -151,10 +152,8 @@ impl Signaling {
             audio_muted: false,
             video_muted: false,
             hand_raised: false,
-            microphone_restriction: MicrophoneRestrictionState::Disabled,
+            have_active_running_recording: false,
             recording_consent_state: RecordingConsentState::None,
-            streaming_targets: BTreeMap::new(),
-            participants: Vec::new(),
             shutdown,
             pin_entry_timeout_sender: timeout_sender,
             pin_entry_timeout_receiver: timeout_receiver,
@@ -191,8 +190,8 @@ impl Signaling {
                     // Update pre-conference UI
                     self.media.ui_controller.set(self.dtmf_id.clone(), self.dtmf_pw.clone());
                 }
-                event = websocket_receive(&mut self.websocket) => {
-                    if let Err(e) = Box::pin(self.handle_websocket_event(event, closed_finished_channel_tx.clone())).await {
+                event = opentalk_room_receive(&mut self.opentalk_room) => {
+                    if let Err(e) = Box::pin(self.handle_opentalk_room_event(event, closed_finished_channel_tx.clone())).await {
                         log::error!("failed to handle websocket event, {e:?}");
                     }
                 }
@@ -202,7 +201,10 @@ impl Signaling {
                     self.track_controller.play_track(self.settings.language, Track::InputInvalid);
                 }
                 _ = welcome_finished_channel_rx.recv() => {
-                    self.join().await.context("Failed to join the room")?;
+                    if let Err(e) = self.connect_to_conference().await  {
+                        log::error!("Failed to join conference, {e:?}");
+                        self.state = State::Quitting;
+                    }
                 }
                 _ = closed_finished_channel_rx.recv() => {
                     self.state = State::Quitting;
@@ -236,10 +238,10 @@ impl Signaling {
     }
 
     async fn close_websocket(&mut self) -> Result<()> {
-        if let Some(websocket) = &mut self.websocket {
-            websocket.close().await?;
-            self.websocket = None;
+        if let Some(room) = self.opentalk_room.take() {
+            room.close().await?;
         }
+
         Ok(())
     }
 
@@ -275,7 +277,7 @@ impl Signaling {
                             }
 
                             if self.dtmf_pw.len() == 10 {
-                                match self.connect_websocket().await {
+                                match self.start_connect_to_conference().await {
                                     Ok(()) => {
                                         self.track_controller.play_track_and_respond(
                                             self.settings.language,
@@ -283,19 +285,22 @@ impl Signaling {
                                             welcome_finished_responder,
                                         );
                                     }
-                                    Err(e) if e.is::<InvalidCredentials>() => {
-                                        self.dtmf_id.clear();
-                                        self.dtmf_pw.clear();
-
-                                        self.track_controller.play_track(
-                                            self.settings.language,
-                                            Track::InputInvalid,
-                                        );
-                                        return Ok(());
-                                    }
                                     Err(e) => {
-                                        log::error!("failed to join, {e}");
-                                        return Err(e);
+                                        if let Some(StartCallInError::InvalidIdOrPin) =
+                                            e.downcast_ref::<StartCallInError>()
+                                        {
+                                            self.dtmf_id.clear();
+                                            self.dtmf_pw.clear();
+
+                                            self.track_controller.play_track(
+                                                self.settings.language,
+                                                Track::InputInvalid,
+                                            );
+                                            return Ok(());
+                                        } else {
+                                            log::error!("failed to join, {e}");
+                                            return Err(e);
+                                        }
                                     }
                                 }
                             } else {
@@ -335,7 +340,7 @@ impl Signaling {
                         self.toggle_video_mute(true);
                     }
                     DTMF_TOGGLE_HAND_RAISE => {
-                        if let Some(websocket) = &mut self.websocket {
+                        if let Some(opentalk_room) = &mut self.opentalk_room {
                             self.hand_raised = !self.hand_raised;
                             self.track_controller.play_track(
                                 self.settings.language,
@@ -346,12 +351,12 @@ impl Signaling {
                                 },
                             );
 
-                            websocket.send_hand_action(self.hand_raised).await?;
+                            opentalk_room.set_hand_raised(self.hand_raised).await?;
                         }
                     }
                     DTMF_REJECT_RECORDING => {
                         // Reject recording
-                        let Some(websocket) = &mut self.websocket else {
+                        let Some(opentalk_room) = &mut self.opentalk_room else {
                             return Ok(());
                         };
 
@@ -360,7 +365,7 @@ impl Signaling {
                             RecordingConsentState::WaitingForConsent
                                 | RecordingConsentState::Accepted
                         ) {
-                            websocket.set_consent(false).await?;
+                            opentalk_room.set_recording_consent(false).await?;
                             self.track_controller
                                 .play_track(self.settings.language, Track::ConsentReject);
                             self.recording_consent_state = RecordingConsentState::Rejected;
@@ -372,7 +377,7 @@ impl Signaling {
                     }
                     DTMF_ACCEPT_RECORDING => {
                         // Accept recording
-                        let Some(websocket) = &mut self.websocket else {
+                        let Some(opentalk_room) = &mut self.opentalk_room else {
                             return Ok(());
                         };
 
@@ -381,7 +386,7 @@ impl Signaling {
                             RecordingConsentState::WaitingForConsent
                                 | RecordingConsentState::Rejected
                         ) {
-                            websocket.set_consent(true).await?;
+                            opentalk_room.set_recording_consent(true).await?;
                             self.track_controller
                                 .play_track(self.settings.language, Track::ConsentAccept);
                             self.recording_consent_state = RecordingConsentState::Accepted;
@@ -413,7 +418,7 @@ impl Signaling {
             MediaEvent::Disconnected(disconnect_reason) => {
                 // When the participant was removed, he probably was moved into the waiting room.
                 // Wait for the waiting room notification
-                if disconnect_reason == DisconnectReason::ParticipantRemoved.into() {
+                if disconnect_reason == LiveKitDisconnectReason::ParticipantRemoved.into() {
                     self.livekit_disconnection_grace_period =
                         Some(Box::pin(sleep(Duration::from_secs(3))));
                 } else {
@@ -456,73 +461,53 @@ impl Signaling {
         Ok(())
     }
 
-    #[expect(clippy::too_many_lines)]
-    async fn handle_websocket_event(
+    async fn handle_opentalk_room_event(
         &mut self,
-        event: Result<WebsocketEvent>,
+        event: Result<OpenTalkEvent>,
         closed_finished_responder: broadcast::Sender<()>,
     ) -> Result<()> {
+        let opentalk_room = self
+            .opentalk_room
+            .as_mut()
+            .context("Called handle_opentalk_room_event without a room set")?;
+
         match event? {
-            WebsocketEvent::Joined(participant) => {
-                log::debug!("Participant {} joined!", participant.id);
-
-                if let Some(compositor) = &mut self.media.compositor {
-                    compositor.add_participant(
-                        &participant.id.to_string().into(),
-                        participant.control.display_name.to_string(),
-                    );
-                }
-
-                self.participants.push(participant);
+            OpenTalkEvent::ParticipantJoined(participant) => {
+                self.handle_participant_joined(&participant);
             }
-            WebsocketEvent::Update(updated) => {
-                let Some(current) = self.participants.iter_mut().find(|p| p.id == updated.id)
-                else {
-                    log::error!("Got update for unknown participant {:?}", updated.id);
-                    return Ok(());
-                };
-
+            OpenTalkEvent::ParticipantUpdated { previous, updated } => {
                 if let Some(compositor) = &mut self.media.compositor
-                    && current.control.display_name != updated.control.display_name
+                    && previous.display_name != updated.display_name
                 {
                     compositor.add_participant(
-                        &current.id.to_string().into(),
-                        updated.control.display_name.to_string(),
+                        &updated.id.to_string().into(),
+                        updated.display_name.to_string(),
                     );
                 }
-
-                *current = updated;
             }
-            WebsocketEvent::Left(assoc) => {
-                self.participants.retain(|p| p.id != assoc.id);
-
-                if let Some(compositor) = &mut self.media.compositor {
-                    compositor.remove_participant(&assoc.id.to_string().into());
-                }
+            OpenTalkEvent::ParticipantLeft(participant_id, connection_id) => {
+                self.handle_participant_left(participant_id, connection_id);
             }
-            WebsocketEvent::SessionEnded { .. } => {
-                self.close_websocket().await?;
-                self.track_controller.play_track_and_respond(
-                    self.settings.language,
-                    Track::ConferenceClosed,
-                    closed_finished_responder,
-                );
-            }
-            WebsocketEvent::MovedToWaitingRoom => {
-                self.participants.clear();
+            OpenTalkEvent::MovedToWaitingRoom => {
                 self.media.remove_compositor().await;
-
-                if let Some(join_result) = self.wait_in_waiting_room_until_accepted().await? {
-                    self.handle_join_result(join_result).await?;
-                }
             }
-            WebsocketEvent::LiveKitEvent(event) => match event {
-                LiveKitEvent::MicrophoneRestrictionsEnabled(unrestricted_participants) => {
-                    let websocket = self.websocket.as_mut().unwrap();
 
-                    let is_unrestricted = unrestricted_participants
-                        .unrestricted_participants
-                        .contains(&websocket.id.expect("id must be set"));
+            OpenTalkEvent::WaitingRoomAccepted => {
+                opentalk_room
+                    .enter_from_waiting_room()
+                    .await
+                    .context("Failed to enter conference from waiting room")?;
+
+                self.media.ui_controller.set_waiting_room(false);
+
+                self.handle_join_result().await?;
+            }
+            OpenTalkEvent::LiveKit(event) => match event {
+                OpenTalkLiveKitEvent::MicrophoneRestrictionEnabled {
+                    unrestricted_participants,
+                } => {
+                    let is_unrestricted =
+                        unrestricted_participants.contains(&opentalk_room.participant_id());
 
                     // if is restricted, mute and play the track
                     if !is_unrestricted {
@@ -533,18 +518,9 @@ impl Signaling {
                         );
                     }
 
-                    self.microphone_restriction = MicrophoneRestrictionState::Enabled {
-                        unrestricted_participants: unrestricted_participants
-                            .unrestricted_participants
-                            .into_iter()
-                            .collect(),
-                    };
-
                     self.evaluate_microphone_publish_state().await;
                 }
-                LiveKitEvent::MicrophoneRestrictionsDisabled => {
-                    self.microphone_restriction = MicrophoneRestrictionState::Disabled;
-
+                OpenTalkLiveKitEvent::MicrophoneRestrictionDisabled => {
                     self.track_controller
                         .play_track(self.settings.language, Track::MicrophonesRestrictionLifted);
 
@@ -552,25 +528,53 @@ impl Signaling {
                 }
                 _ => {}
             },
-            WebsocketEvent::Disconnected => {
-                self.state = State::Quitting;
+            OpenTalkEvent::Disconnected(reason) => {
+                match reason {
+                    DisconnectReason::WebsocketClosed => {
+                        log::error!("Unexpected close of websocket to room");
+                        self.state = State::Quitting;
+                    }
+                    DisconnectReason::Kicked | DisconnectReason::Banned => {
+                        self.track_controller.play_track_and_respond(
+                            self.settings.language,
+                            Track::ModeratorKicked,
+                            closed_finished_responder,
+                        );
+                    }
+                    DisconnectReason::DebriefingStarted => {
+                        self.track_controller.play_track_and_respond(
+                            self.settings.language,
+                            Track::ConferenceClosed,
+                            closed_finished_responder,
+                        );
+                    }
+                }
+
+                self.opentalk_room = None;
             }
-            WebsocketEvent::StreamUpdated(updated) => {
-                let prev_recording_active = self.is_any_recording_active();
+            OpenTalkEvent::Recording(event) => self.handle_recording_event(event).await?,
+            OpenTalkEvent::RecordingService(..) => {
+                // ignore
+            }
+            OpenTalkEvent::Breakout(breakout_event) => {
+                self.handle_breakout_event(breakout_event)?
+            }
+        }
 
-                // Find the streaming target and update the status of it
-                //
-                // insert a placeholder state to avoid any odd behavior where we receive unknown streaming target ids
-                self.streaming_targets
-                    .entry(updated.target_id)
-                    .or_insert_with(|| StreamTarget {
-                        name: String::new(),
-                        kind: StreamKind::Recording,
-                        status: StreamStatus::Inactive,
-                    })
-                    .status = updated.status;
+        Ok(())
+    }
 
-                let now_recording_active = self.is_any_recording_active();
+    async fn handle_recording_event(&mut self, event: OpenTalkRecordingEvent) -> Result<()> {
+        let opentalk_room = self
+            .opentalk_room
+            .as_mut()
+            .context("Called handle_recording_event without a room set")?;
+
+        match event {
+            OpenTalkRecordingEvent::StreamTargetsUpdated { .. }
+            | OpenTalkRecordingEvent::RecordingStateUpdate { .. } => {
+                let prev_recording_active = self.have_active_running_recording;
+                let now_recording_active = is_any_recording_active(opentalk_room);
 
                 // check if a recording was started
                 if !prev_recording_active && now_recording_active {
@@ -597,104 +601,169 @@ impl Signaling {
                     self.recording_consent_state = RecordingConsentState::None;
                 }
 
+                self.have_active_running_recording = now_recording_active;
+
                 self.evaluate_microphone_publish_state().await;
+            }
+            OpenTalkRecordingEvent::Error(..) => {
+                // ignore
             }
         }
 
         Ok(())
     }
 
-    /// Connect to websocket & verify that the credentials are correct
-    async fn connect_websocket(&mut self) -> Result<()> {
-        let ticket = self
-            .http_client
-            .start(&self.settings.controller, &self.dtmf_id, &self.dtmf_pw)
-            .await?;
+    fn handle_breakout_event(&mut self, breakout_event: BreakoutEvent) -> Result<()> {
+        let opentalk_room = self
+            .opentalk_room
+            .as_mut()
+            .context("Called handle_breakout_event without a room set")?;
 
-        self.websocket = Some(Websocket::connect(&self.settings.controller, ticket).await?);
+        match &breakout_event {
+            BreakoutEvent::ParticipantSwitchedRoom {
+                participant_id,
+                old_room,
+                new_room,
+                module_data: _,
+            } => {
+                let current_room = &opentalk_room.breakout_api().current_room();
+
+                let participant = opentalk_room
+                    .participants()
+                    .get(participant_id)
+                    .context("Failed to get participant state")?
+                    .clone();
+
+                if old_room == current_room {
+                    for connection in participant.connections {
+                        self.handle_participant_left(participant.id, connection);
+                    }
+                } else if new_room == current_room {
+                    self.handle_participant_joined(&participant);
+                }
+            }
+            BreakoutEvent::SwitchedRoom { .. } => {
+                // Obelisk currently doesn't support joining breakout rooms, so SwitchedRoom events
+                // are not expected to be received
+                bail!("Got unexpected SwitchedRoom event");
+            }
+            BreakoutEvent::Started { .. }
+            | BreakoutEvent::CloseNotice { .. }
+            | BreakoutEvent::Closing { .. }
+            | BreakoutEvent::Closed
+            | BreakoutEvent::Error(..) => {}
+        }
 
         Ok(())
     }
 
-    /// Join the room after the welcome message has been played or skipped
-    async fn join(&mut self) -> Result<()> {
-        let websocket = self
-            .websocket
-            .as_mut()
-            .context("Tried to join without websocket")?;
+    fn handle_participant_joined(&mut self, participant: &Participant) {
+        log::debug!("Participant {} joined!", participant.id);
 
+        if let Some(compositor) = &mut self.media.compositor {
+            for connection_id in &participant.connections {
+                compositor.add_participant(
+                    &format!("{}:{connection_id}", participant.id).into(),
+                    participant.display_name.to_string(),
+                );
+            }
+        }
+    }
+
+    fn handle_participant_left(
+        &mut self,
+        participant_id: ParticipantId,
+        connection_id: ConnectionId,
+    ) {
+        if let Some(compositor) = &mut self.media.compositor {
+            compositor.remove_participant(&format!("{participant_id}:{connection_id}").into());
+        }
+    }
+
+    /// Called when the id & pin are entered, checks validity and stored the connect token, which is used after the announcement is played out or skipped
+    async fn start_connect_to_conference(&mut self) -> Result<()> {
         let name = self.name.as_ref().map_or("Anonymous", |s| s.as_str());
 
-        let join_result = match websocket.join(name).await? {
-            JoinState::Joined(join_result) => join_result,
-            JoinState::InWaitingRoom => {
-                if let Some(join_result) = self.wait_in_waiting_room_until_accepted().await? {
-                    join_result
-                } else {
-                    // We hung up, return
-                    return Ok(());
-                }
+        let connect_token = self
+            .opentalk_client
+            .start_call_in(
+                self.dtmf_id
+                    .clone()
+                    .parse()
+                    .context("Failed to parse dtmf id to CallInId")?,
+                self.dtmf_pw
+                    .clone()
+                    .parse()
+                    .context("Failed to parse dtmf password to CallInPassword")?,
+                DisplayName::from_str_lossy(name),
+            )
+            .await
+            .context("Failed to connect to conference")?;
+
+        self.connect_token = Some(connect_token);
+
+        Ok(())
+    }
+
+    async fn connect_to_conference(&mut self) -> Result<()> {
+        let connect_token = self
+            .connect_token
+            .take()
+            .context("Called connect_to_conference without connect_token set")?;
+
+        let join_result = self
+            .opentalk_client
+            .connect_call_in(connect_token)
+            .await
+            .context("Failed to connect to conference")?;
+
+        match join_result {
+            JoinResult::InRoom(room) => {
+                self.opentalk_room = Some(room);
+                self.handle_join_result().await?;
+            }
+            JoinResult::InWaitingRoom(room) => {
+                self.track_controller
+                    .play_track(self.settings.language, Track::WaitingRoomEntered);
+
+                self.media.ui_controller.set_waiting_room(true);
+
+                self.opentalk_room = Some(room);
             }
         };
 
-        self.handle_join_result(join_result).await
+        Ok(())
     }
 
-    /// Wait in the waiting room until accepted or the call is hung up
-    async fn wait_in_waiting_room_until_accepted(&mut self) -> Result<Option<JoinSuccess>> {
-        self.media.ui_controller.set_waiting_room(true);
+    async fn handle_join_result(&mut self) -> Result<()> {
+        let room = self
+            .opentalk_room
+            .as_mut()
+            .context("Called handle_join_result with a current room")?;
 
-        let websocket = self.websocket.as_mut().unwrap();
-        self.track_controller
-            .play_track(self.settings.language, Track::WaitingRoomEntered);
-
-        let mut wait_until_accepted =
-            std::pin::pin!(websocket.wait_until_accepted_into_waiting_room());
-
-        loop {
-            tokio::select! {
-                join_result = &mut wait_until_accepted => {
-                    // Participant got accepted, break out of loop
-                    return Ok(Some(join_result?));
-                }
-                sip_event = self.sip.run() => {
-                    if let Some(state) = handle_sip_event(&mut self.sip, sip_event?, &mut self.media, &mut self.media_session).await? {
-                        // Got hung up, return
-                        self.state = state;
-                        return Ok(None)
-                    }
-                }
-            }
-        }
-    }
-
-    async fn handle_join_result(&mut self, join_result: JoinSuccess) -> Result<()> {
-        self.participants = join_result.participants;
+        let credentials = room
+            .livekit_credentials()
+            .context("Joined room is missing the livekit module")?
+            .clone();
 
         let mut compositor = Mixer::new(MixerParameters {
             target_fps: u16::try_from(self.media.target_fps)
                 .expect("conversion to u16 not possible"),
             clock_format: self.settings.clock_format.clone(),
-            livekit_url: join_result
-                .livekit
-                .credentials
-                .service_url
-                .unwrap_or(join_result.livekit.credentials.public_url),
-            livekit_token: join_result.livekit.credentials.token,
+            livekit_url: credentials.service_url.unwrap_or(credentials.public_url),
+            livekit_token: credentials.token,
             auto_subscribe: false,
         })
         .await
         .context("Failed to create Mixer")?;
 
-        for participant in &self.participants {
-            if participant.control.left_at.is_some() {
-                continue;
+        for participant in room.participants().values() {
+            for connection_id in &participant.connections {
+                compositor.add_participant(
+                    &format!("{}:{}", participant.id, connection_id).into(),
+                    participant.display_name.to_string(),
+                );
             }
-
-            compositor.add_participant(
-                &participant.id.to_string().into(),
-                participant.control.display_name.to_string(),
-            );
         }
 
         self.media
@@ -702,21 +771,23 @@ impl Signaling {
             .await
             .context("Failed to add compositor to media pipeline")?;
 
-        self.streaming_targets = join_result.recording.map(|r| r.targets).unwrap_or_default();
-
-        if self.is_any_recording_active() {
+        if is_any_recording_active(room) {
             self.track_controller
                 .play_track(self.settings.language, Track::ConsentInfo);
             self.recording_consent_state = RecordingConsentState::WaitingForConsent;
         }
 
-        self.microphone_restriction = join_result.livekit.microphone_restriction_state;
+        let participant_id = room.participant_id();
 
-        let microphone_enable = match &self.microphone_restriction {
-            types_signaling_livekit::MicrophoneRestrictionState::Disabled => true,
-            types_signaling_livekit::MicrophoneRestrictionState::Enabled {
+        let livekit_api = room
+            .livekit_api()
+            .context("Room is missing the livekit module")?;
+
+        let microphone_enable = match livekit_api.microphone_restriction_state() {
+            MicrophoneRestrictionState::Disabled => true,
+            MicrophoneRestrictionState::Enabled {
                 unrestricted_participants,
-            } => unrestricted_participants.contains(&join_result.id),
+            } => unrestricted_participants.contains(&participant_id),
         };
 
         if !microphone_enable {
@@ -729,21 +800,19 @@ impl Signaling {
         Ok(())
     }
 
-    fn is_any_recording_active(&mut self) -> bool {
-        self.streaming_targets.values().any(|target| {
-            matches!(
-                target.status,
-                StreamStatus::Starting | StreamStatus::Active | StreamStatus::Paused
-            )
-        })
-    }
-
     // Evaluate if the microphone should be published or not
     async fn evaluate_microphone_publish_state(&mut self) {
-        let websocket = self.websocket.as_mut().unwrap();
-        let participant_id = websocket.id.expect("participant id must be set");
+        let Some(opentalk_room) = &mut self.opentalk_room else {
+            return;
+        };
 
-        let mut publish = match &self.microphone_restriction {
+        let participant_id = opentalk_room.participant_id();
+
+        let Some(livekit_api) = opentalk_room.livekit_api() else {
+            return;
+        };
+
+        let mut publish = match livekit_api.microphone_restriction_state() {
             MicrophoneRestrictionState::Disabled => true,
             MicrophoneRestrictionState::Enabled {
                 unrestricted_participants,
@@ -870,6 +939,18 @@ impl Signaling {
     }
 }
 
+fn is_any_recording_active(opentalk_room: &mut Room) -> bool {
+    let Some(recording_api) = opentalk_room.recording_api() else {
+        return false;
+    };
+
+    recording_api.recording_status().is_running()
+        || recording_api
+            .streams()
+            .iter()
+            .any(|(_, streaming_target)| streaming_target.status.is_running())
+}
+
 async fn handle_sip_event(
     invite_session: &mut InviteSession,
     event: InviteSessionEvent,
@@ -902,9 +983,9 @@ async fn handle_sip_event(
     Ok(None)
 }
 
-async fn websocket_receive(websocket: &mut Option<Websocket>) -> Result<WebsocketEvent> {
-    if let Some(websocket) = websocket {
-        websocket.receive().await
+async fn opentalk_room_receive(room: &mut Option<Room>) -> Result<OpenTalkEvent> {
+    if let Some(room) = room {
+        room.recv().await
     } else {
         pending().await
     }

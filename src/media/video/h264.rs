@@ -182,6 +182,7 @@ impl H264Decoder {
             rotation: VideoRotation::VideoRotation0,
             timestamp_us: i64::try_from(self.init.elapsed().as_micros())
                 .expect("conversion to i64 not possible"),
+            frame_metadata: None,
             buffer,
         }))
     }

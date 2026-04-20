@@ -8,24 +8,9 @@ clock_format = "%x %X %Z"
 # Language of the audio cue to be played to the callee
 language = "de"
 
-# Obelisk OIDC authentication
-#
-# The Client requires a service account with the `opentalk-call-in` realm-role set.
-[auth]
-# OIDC issuer url
-issuer = "http://localhost/auth/realms/Example"
-# OIDC client ID
-client_id = "Obelisk"
-# OIDC client secret
-client_secret = "obeliskclientsecret"
-
 [controller]
-# host-port of the controller
-domain = "localhost:8000"
-
-# Optional flag to use http/ws instead of their TLS counterparts
-#insecure = false
-
+url = "http://localhost:8000"
+api_key = { "id" = "controller", "secret" = "examplesecret" }
 
 [monitoring]
 addr = "0.0.0.0"

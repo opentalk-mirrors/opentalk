@@ -13,7 +13,6 @@ title: Obelisk
 
 ### Services required by {{ product_name }} Obelisk
 
-- [Auth](auth.md)
 - [Controller](controller.md)
 - [Monitoring](monitoring.md)
 - [SIP Provider](sip.md)
