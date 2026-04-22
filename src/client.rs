@@ -9,7 +9,7 @@ use types::{
     api::v1::rooms::{RoomResource, by_room_id::RoomserverStartResponseBody},
     common::{
         call_in::{CallInId, CallInPassword},
-        rooms::{RoomId, RoomPassword},
+        rooms::{GuestAccess, RoomId, RoomPassword},
         users::DisplayName,
     },
 };
@@ -168,6 +168,7 @@ impl OpenTalkClient {
         password: Option<RoomPassword>,
         enable_sip: bool,
         waiting_room: bool,
+        guest_access: GuestAccess,
         e2e_encryption: bool,
     ) -> Result<RoomResource, CreateRoomError> {
         self.http
@@ -176,6 +177,7 @@ impl OpenTalkClient {
                 password,
                 enable_sip,
                 waiting_room,
+                guest_access,
                 e2e_encryption,
             )
             .await

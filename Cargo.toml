@@ -35,22 +35,22 @@ serde_json = "1.0"
 thiserror = "2.0"
 tokio = { version = "1.51", features = ["macros"] }
 tt = { package = "tokio-tungstenite", version = "0.29", default-features = false, features = ["connect", "handshake"] }
-types = { version = "0.66", package = "opentalk-types", default-features = false, features = [
+types = { version = "0.67", package = "opentalk-types", default-features = false, features = [
   "api",
   "serde",
   "signaling",
 ] }
 webrtc-sys = "0.3"
 
-opentalk-roomserver-client = "0.0.32"
-opentalk-roomserver-types = "0.0.32"
-opentalk-roomserver-types-livekit = "0.0.32"
-opentalk-roomserver-types-moderation = "0.0.32"
-opentalk-roomserver-types-raise-hands = "0.0.32"
-opentalk-roomserver-types-recording = "0.0.32"
+opentalk-roomserver-client = "0.0.34"
+opentalk-roomserver-types = "0.0.34"
+opentalk-roomserver-types-livekit = "0.0.34"
+opentalk-roomserver-types-moderation = "0.0.34"
+opentalk-roomserver-types-raise-hands = "0.0.34"
+opentalk-roomserver-types-recording = "0.0.34"
 opentalk-service-auth = "0.2"
 opentalk-types-api-internal = "0.2.0"
-rand = "0.10.0"
+rand = "0.10.1"
 
 [build-dependencies]
 anyhow = "1"
