@@ -103,7 +103,7 @@ impl OpenTalkClient {
         self.connect_common(response).await
     }
 
-    /// Connect as authenticated opentalk user
+    /// Connect as recording service
     pub async fn connect_recorder(
         &self,
         room_id: RoomId,
@@ -112,6 +112,21 @@ impl OpenTalkClient {
         let response = self
             .http
             .start_as_recorder(&self.controller_url, room_id, breakout_id)
+            .await
+            .context("Failed to send start HTTP request")?;
+
+        self.connect_common(response).await
+    }
+
+    /// Connect as transcription service
+    pub async fn connect_transcription(
+        &self,
+        room_id: RoomId,
+        breakout_id: Option<BreakoutId>,
+    ) -> Result<JoinResult> {
+        let response = self
+            .http
+            .start_as_transcription(&self.controller_url, room_id, breakout_id)
             .await
             .context("Failed to send start HTTP request")?;
 

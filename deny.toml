@@ -42,10 +42,6 @@ yanked = "deny"
 # output a note when they are encountered.
 ignore = [
   "RUSTSEC-2023-0071",
-  "RUSTSEC-2025-0134",
-  "RUSTSEC-2026-0098",
-  "RUSTSEC-2026-0099",
-  "RUSTSEC-2026-0104",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -65,7 +61,6 @@ ignore = [
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
 allow = [
-  "Apache-2.0 WITH LLVM-exception",
   "Apache-2.0",
   "BSD-2-Clause",
   "BSD-3-Clause",
@@ -166,25 +161,17 @@ skip = [
   { name = "getrandom", version = "=0.3.4" },
   { name = "getrandom", version = "0.2" },
   { name = "getrandom", version = "0.3" },
-  { name = "heck", version = "=0.4.1" },
   { name = "itertools", version = "=0.10.5" },
-  { name = "itertools", version = "=0.11.0" },
-  { name = "itertools", version = "=0.12.1" },
   { name = "litemap", version = "=0.7.5" },
-  { name = "openssl-probe", version = "=0.2.1" },
   { name = "rand_chacha", version = "0.3" },
   { name = "rand_core", version = "=0.10.1" },
   { name = "rand_core", version = "=0.6" },
   { name = "rand", version = "0.10.1" },
   { name = "rand", version = "0.8" },
   { name = "reqwest", version = "=0.12.28" },
-  { name = "rustls-native-certs", version = "=0.6.3" },
-  { name = "rustls-webpki", version = "=0.101.7" },
-  { name = "rustls", version = "=0.21.12" },
   { name = "thiserror-impl", version = "1" },
   { name = "thiserror", version = "1" },
   { name = "tinystr", version = "=0.7.6" },
-  { name = "tokio-rustls", version = "=0.24.1" },
   { name = "untrusted", version = "=0.7.1" },
   { name = "writeable", version = "=0.5.5" },
 ]
