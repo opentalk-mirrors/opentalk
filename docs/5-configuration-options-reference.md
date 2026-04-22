@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-04-16
+Last updated: 2026-04-22
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -569,7 +569,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_monitoring_port` | integer | `11411` |
 | `obelisk_sip_addr` | string | `0.0.0.0` |
 | `obelisk_sip_contact` | string | `` |
-| `obelisk_sip_enforce_qop` | boolean | `true` |
+| `obelisk_sip_display_name_source` | string | `` |
+| `obelisk_sip_encode_video_at_half_bitrate` | string | `` |
+| `obelisk_sip_enforce_qop` | boolean | `false` |
 | `obelisk_sip_id` | string | `` |
 | `obelisk_sip_inbound_addr` | string | `192.0.2.1:5060` |
 | `obelisk_sip_inbound_media_ip` | string | `192.0.2.1` |
@@ -584,6 +586,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_sip_rtp_port_range_end` | integer | `49999` |
 | `obelisk_sip_rtp_port_range_start` | integer | `40000` |
 | `obelisk_sip_stun_server` | string | `` |
+| `obelisk_sip_transport` | string | `` |
 | `obelisk_sip_username` | string | `` |
 
 ## opentalk_compose.opentalk_outlook_add_in
