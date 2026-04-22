@@ -26,7 +26,7 @@ use types::{
     common::{
         call_in::{CallInId, CallInPassword},
         pagination::{Page, PageSize},
-        rooms::{RoomId, RoomPassword},
+        rooms::{GuestAccess, RoomId, RoomPassword},
         roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret},
         users::DisplayName,
     },
@@ -356,7 +356,7 @@ impl HttpClient {
 
                 let rooms_len = rooms.len();
 
-                ret.extend(rooms.into_iter());
+                ret.extend(rooms);
 
                 // Getting fewer results than requested, must be last page
                 if ret.len() >= max || PageSize::from_i64_clamped(rooms_len as i64) < PageSize::MAX
@@ -381,6 +381,7 @@ impl HttpClient {
         password: Option<RoomPassword>,
         enable_sip: bool,
         waiting_room: bool,
+        guest_access: GuestAccess,
         e2e_encryption: bool,
     ) -> Result<RoomResource, CreateRoomError> {
         let url = controller_url.join("v1/rooms")?;
@@ -398,6 +399,7 @@ impl HttpClient {
                 password,
                 enable_sip,
                 waiting_room,
+                guest_access: Some(guest_access),
                 e2e_encryption,
             })
             .send()
