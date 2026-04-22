@@ -5,6 +5,14 @@
   ],
   "reviewers": [
     "@opentalk/tools/renovate-reviewers/libs"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "opentalk-*"
+      ],
+      "groupName": "opentalk",
+      "groupSlug": "opentalk"
+    }
   ]
 }
-
