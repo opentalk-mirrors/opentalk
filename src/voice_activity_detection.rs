@@ -2,9 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{fs::File, io::Write, time::Duration};
-
-use anyhow::Result;
+use std::time::Duration;
 
 use crate::{
     audio::{CHANNELS, SAMPLE_RATE},

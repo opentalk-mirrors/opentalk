@@ -5,7 +5,7 @@
 use std::{
     collections::{HashMap, VecDeque},
     str::FromStr,
-    sync::{Arc, atomic::AtomicU32},
+    sync::Arc,
 };
 
 use anyhow::Result;
@@ -102,7 +102,7 @@ impl TranscriptionSession {
 
                     self.room.transcription_service_api().send_segment(segment).await?;
                 }
-                _ = shutdown_rx.recv() => {
+                _ = shutdown_rx.wait_for_shutdown() => {
                     break;
                 }
             }

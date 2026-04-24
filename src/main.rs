@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{net::IpAddr, sync::Arc};
+use std::{sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
 use axum::{
@@ -16,32 +16,36 @@ use opentalk_client_signaling::{
     config::{ClientConfig, ClientCredentialsAuthConfig},
     types::signaling::transcription::http::StartTranscriptionRequestBody,
 };
-use service_probe::{ServiceState, set_service_state, start_probe};
+use service_probe::{ServiceState, set_service_state, start_probe, stop_probe};
 use settings::Settings;
 use tokio::{
     net::TcpListener,
     select,
     signal::{
-        ctrl_c,
+        self,
         unix::{SignalKind, signal},
     },
-    sync::{Mutex, broadcast},
+    sync::Mutex,
     task::JoinHandle,
+    time::timeout,
 };
 use transcription::TranscriptionSession;
 use whisper_rs::{WhisperContext, WhisperContextParameters, install_logging_hooks};
+
+use crate::tasks::{ShutdownReceiver, Tasks};
 
 mod audio;
 mod cli;
 mod metrics;
 mod settings;
+mod tasks;
 mod transcription;
 mod voice_activity_detection;
 
 pub(crate) struct AppState {
     pub(crate) tasks: Arc<Mutex<Vec<JoinHandle<Result<()>>>>>,
     pub(crate) settings: Arc<Settings>,
-    pub(crate) shutdown: broadcast::Receiver<()>,
+    pub(crate) shutdown: ShutdownReceiver,
     pub(crate) whisper_context: Arc<WhisperContext>,
     pub(crate) prometheus_state: Arc<metrics::PrometheusState>,
     pub(crate) opentalk_client: Arc<OpenTalkClient>,
@@ -61,6 +65,39 @@ impl Clone for AppState {
 }
 
 impl AppState {
+    pub(crate) async fn new(
+        settings: Arc<Settings>,
+        shutdown_signal: ShutdownReceiver,
+    ) -> Result<Self> {
+        let opentalk_client = OpenTalkClient::create(ClientConfig {
+            auth: AuthConfig::ClientCredentials(ClientCredentialsAuthConfig {
+                issuer: settings.auth.issuer.clone(),
+                client_id: settings.auth.client_id.clone(),
+                client_secret: settings.auth.client_secret.clone(),
+            }),
+            controller: ControllerConfig {
+                domain: settings.controller.domain.clone(),
+                insecure: settings.controller.insecure,
+            },
+        })
+        .await?;
+
+        let whisper_context = WhisperContext::new_with_params(
+            &settings.transcription.model,
+            WhisperContextParameters::default(),
+        )
+        .context("Failed to create whisper context")?;
+
+        Ok(Self {
+            tasks: Arc::new(Mutex::new(Vec::new())),
+            settings: settings.clone(),
+            shutdown: shutdown_signal,
+            whisper_context: Arc::new(whisper_context),
+            prometheus_state: Arc::new(metrics::PrometheusState::new()),
+            opentalk_client: Arc::new(opentalk_client),
+        })
+    }
+
     pub(crate) async fn spawn_session(
         &self,
         room_info: StartTranscriptionRequestBody,
@@ -98,67 +135,39 @@ async fn main() -> Result<()> {
 
     let settings = Arc::new(Settings::load(args.config.as_ref()).context("Failed to read config")?);
 
-    let opentalk_client = OpenTalkClient::create(ClientConfig {
-        auth: AuthConfig::ClientCredentials(ClientCredentialsAuthConfig {
-            issuer: settings.auth.issuer.clone(),
-            client_id: settings.auth.client_id.clone(),
-            client_secret: settings.auth.client_secret.clone(),
-        }),
-        controller: ControllerConfig {
-            domain: settings.controller.domain.clone(),
-            insecure: settings.controller.insecure,
-        },
-    })
-    .await?;
-
-    let whisper_context = WhisperContext::new_with_params(
-        &settings.transcription.model,
-        WhisperContextParameters::default(),
-    )?;
-
-    let (shutdown_tx, shutdown_rx) = broadcast::channel(1);
-
-    let transcription = AppState {
-        tasks: Arc::new(Mutex::new(Vec::new())),
-        settings: settings.clone(),
-        shutdown: shutdown_rx,
-        whisper_context: Arc::new(whisper_context),
-        prometheus_state: Arc::new(metrics::PrometheusState::new()),
-        opentalk_client: Arc::new(opentalk_client),
-    };
-
     start_probe(
         settings.monitoring.addr,
         settings.monitoring.port,
         ServiceState::Up,
     )
-    .await?;
+    .await
+    .context("Failed to start monitoring endpoint")?;
 
-    let mut sig_term = signal(SignalKind::terminate()).expect("can not setup SIGTERM handler");
-    select! {
-        _ = ctrl_c() => { log::info!("received Ctrl-C"); }
-        _ = sig_term.recv() => { log::info!("received SIGTERM"); }
-        result = run_axum_server(settings.http.addr, settings.http.port, transcription.clone()) => { result?; }
-    }
+    let mut tasks = Tasks::new();
 
-    log::debug!("Stop Transcription service");
-    shutdown_tx.send(())?;
+    tasks.spawn("shutdown_signal_handler", |shutdown| async move {
+        run_shutdown_signal_handler(shutdown).await;
+        Ok(())
+    });
 
-    let mut tasks = transcription.tasks.lock().await;
-    tasks.retain(|task| !task.is_finished());
+    tasks.spawn("webserver", move |shutdown| {
+        run_web_server(settings.clone(), shutdown)
+    });
 
-    if !tasks.is_empty() {
-        log::info!("waiting for remaining {} tasks to finish", tasks.len());
-        join_all(tasks.iter_mut()).await;
-    }
-    log::info!("All tasks are finished");
+    tasks.wait_for_shutdown().await?;
+    stop_probe().await;
 
     Ok(())
 }
 
-async fn run_axum_server(address: IpAddr, port: u16, transcription: AppState) -> Result<()> {
-    let transcription_model_name = transcription.settings.transcription.model.clone();
-    let prometheus_state = transcription.prometheus_state.clone();
+async fn run_web_server(settings: Arc<Settings>, mut shutdown: ShutdownReceiver) -> Result<()> {
+    let addr = settings.http.addr;
+    let port = settings.http.port;
+
+    let transcription_model_name = settings.transcription.model.clone();
+
+    let app_state = AppState::new(settings.clone(), shutdown.resubscribe()).await?;
+    let prometheus_state = app_state.prometheus_state.clone();
 
     // TODO: Add Metrics endpoint
     // TODO: Add bearer token verification
@@ -169,14 +178,45 @@ async fn run_axum_server(address: IpAddr, port: u16, transcription: AppState) ->
             "/model",
             get(async move || transcription_model_name.clone()),
         )
-        .with_state(transcription);
+        .with_state(app_state.clone());
 
-    let listener = TcpListener::bind((address, port)).await?;
+    let listener = TcpListener::bind((addr, port)).await?;
 
-    // Server up and running, ready to process requests
     set_service_state(ServiceState::Ready);
 
-    axum::serve(listener, app).await?;
+    let result = axum::serve(listener, app)
+        .with_graceful_shutdown(async move { shutdown.wait_for_shutdown().await })
+        .await;
+
+    // Settings the service state from `Ready` to `Up` after the web server has stopped
+    set_service_state(ServiceState::Up);
+
+    if let Err(e) = result {
+        log::error!("Web server exited with error: {e}");
+    }
+
+    // Wait for all remaining transcription tasks to finish
+    let mut transcription_tasks = app_state.tasks.lock().await;
+    transcription_tasks.retain(|task| !task.is_finished());
+
+    if !transcription_tasks.is_empty() {
+        log::info!(
+            "waiting for {} remaining transcription tasks to finish",
+            transcription_tasks.len()
+        );
+
+        match timeout(
+            Duration::from_secs(10),
+            join_all(transcription_tasks.iter_mut()),
+        )
+        .await
+        {
+            Ok(_) => log::info!("All transcription tasks are finished"),
+            Err(_) => log::error!("Timeout while waiting for transcription tasks to finish"),
+        }
+    } else {
+        log::info!("All transcription tasks are finished");
+    }
 
     Ok(())
 }
@@ -186,4 +226,18 @@ async fn start_transcription(
     Json(room_info): Json<StartTranscriptionRequestBody>,
 ) {
     transcription.spawn_session(room_info).await.unwrap();
+}
+
+async fn run_shutdown_signal_handler(mut shutdown_signal: ShutdownReceiver) {
+    let mut sig_term = signal(SignalKind::terminate()).expect("cannot setup SIGTERM handler");
+    select! {
+        _ = signal::ctrl_c() => { log::debug!("received Ctrl-C"); }
+        _ = sig_term.recv() => { log::debug!("received SIGTERM"); }
+        _ = shutdown_signal.wait_for_shutdown() => {
+            log::trace!("Shutdown handler received shutdown signal from application state");
+            return;
+        }
+    }
+
+    log::info!("Received shutdown signal...");
 }
