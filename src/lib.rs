@@ -13,7 +13,7 @@ pub mod http;
 
 pub mod upload;
 
-pub use client::OpenTalkClient;
+pub use client::{CallInConnectToken, OpenTalkClient};
 pub use config::{AuthConfig, BaseUrl};
 pub use opentalk_roomserver_types;
 pub use opentalk_roomserver_types_livekit;

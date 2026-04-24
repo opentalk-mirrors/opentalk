@@ -86,20 +86,33 @@ impl OpenTalkClient {
         .await
     }
 
-    /// Connect as call-in service. Requires service authentication
-    pub async fn connect_call_in(
+    /// Connect as call-in service. Requires ApiKey authentication
+    ///
+    /// Flow for call-in is separated into two steps since services will need to verify the input
+    /// using the start endpoint, without immediately joining the conference.
+    pub async fn start_call_in(
         &self,
         id: CallInId,
         pin: CallInPassword,
         display_name: DisplayName,
-        #[cfg(feature = "livekit")] use_livekit: bool,
-    ) -> Result<JoinResult> {
-        let response = self
+    ) -> Result<CallInConnectToken> {
+        let start_response = self
             .http
             .start_call_in(&self.controller_url, id, pin, display_name)
             .await
             .context("Failed to send start-call-in HTTP request")?;
 
+        Ok(CallInConnectToken {
+            response: start_response,
+        })
+    }
+
+    /// Connect as call-in service. Requires a [`CallInConnectToken`] from [`Self::start_call_in`]
+    pub async fn connect_call_in(
+        &self,
+        CallInConnectToken { response }: CallInConnectToken,
+        #[cfg(feature = "livekit")] use_livekit: bool,
+    ) -> Result<JoinResult> {
         self.connect_common(
             response,
             #[cfg(feature = "livekit")]
@@ -195,4 +208,10 @@ impl From<JoinResult> for Room {
             JoinResult::InRoom(room) | JoinResult::InWaitingRoom(room) => room,
         }
     }
+}
+
+/// Intermediate type used by [`OpenTalkClient::start_call_in`] & [`OpenTalkClient::connect_call_in`]
+#[derive(Debug)]
+pub struct CallInConnectToken {
+    response: RoomserverStartResponseBody,
 }
