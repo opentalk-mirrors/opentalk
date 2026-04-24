@@ -63,13 +63,11 @@ repos:
     rev: v6.2.0
     hooks:
       - id: reuse-lint-file
-  - repo: https://github.com/markdownlint/markdownlint
-    rev: v0.15.0
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.22.1
     hooks:
-      - id: markdownlint
+      - id: markdownlint-cli2-docker
         args:
-          - --style
-          - .markdown_style.rb
           - --warnings
   # No official hooks for commitlint available, this one seems actively maintained
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
