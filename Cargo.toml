@@ -2,26 +2,24 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
-[package]
+[workspace]
+members = ["opentalk-transcription", "opentalk-transcription-web-api"]
+resolver = "2"
+
+[workspace.package]
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
 edition = "2024"
-homepage = "https://opentalk.eu/"
 license = "EUPL-1.2"
-name = "opentalk-transcription"
 publish = false
 repository = "https://gitlab.opencode.de/opentalk/transcription"
 version = "0.1.0"
-build = "build.rs"
 
-[features]
-default = ["vulkan"]
-cuda = ["whisper-rs/cuda"]
-sycl = ["whisper-rs/intel-sycl"]
-vulkan = ["whisper-rs/vulkan"]
+[workspace.dependencies]
+opentalk-transcription-web-api = { path = "opentalk-transcription-web-api", version = "0.1.0" }
 
-[dependencies]
 anstream = "1.0"
 anyhow = { version = "1", features = ["backtrace"] }
+async-trait = "0.1"
 audio-nodes = { package = "ezk-audio-nodes", version = "0.1" }
 axum = { version = "0.8.4", features = ["http2", "ws"] }
 clap = { version = "4.5", features = ["derive"] }
@@ -40,6 +38,8 @@ opentalk-client-signaling = { version = "0.2", default-features = false, feature
   "transcription-service",
 ] }
 opentalk-version = "0.4"
+opentalk-types-api-common = "0.7"
+opentalk-types-common = "0.44"
 owo-colors = "4.2"
 prometheus = { version = "0.14", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
@@ -49,10 +49,6 @@ voice_activity_detector = "0.2"
 whisper-rs = { git = "https://github.com/SoraTenshi/whisper-rs.git", rev = "a812820ec18a34da3930139b69e3130cb8195703", features = [
   "log_backend",
 ] }
-
-[build-dependencies]
-anyhow = "1"
-opentalk-version = "0.4"
 
 [patch.crates-io]
 libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }
