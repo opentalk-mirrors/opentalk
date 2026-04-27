@@ -7,10 +7,6 @@ use std::{
     future::pending,
 };
 
-#[cfg(feature = "livekit")]
-use ::livekit::{
-    Room as LiveKitRoom, RoomEvent as LiveKitRoomEvent, RoomOptions as LiveKitRoomOptions,
-};
 use anyhow::{Context, Result, bail};
 use opentalk_roomserver_client::api::{
     command::SignalingModuleCommand,
@@ -62,8 +58,6 @@ pub struct Room {
 
     participants: HashMap<ParticipantId, Participant>,
 
-    #[cfg(feature = "livekit")]
-    use_livekit: bool,
     recording_service_state: Option<RoomRecordingServiceState>,
 }
 
@@ -72,14 +66,6 @@ enum WaitingRoomState {
     InWaitingRoom,
     Accepted,
     None,
-}
-
-#[derive(Debug)]
-#[allow(clippy::large_enum_variant)]
-pub enum Event {
-    OpenTalk(OpenTalkEvent),
-    #[cfg(feature = "livekit")]
-    LiveKit(LiveKitRoomEvent),
 }
 
 /// Event originating from the OpenTalk signaling
@@ -131,10 +117,7 @@ pub enum DisconnectReason {
 }
 
 impl Room {
-    pub(crate) fn new(
-        signaling: SignalingConnection,
-        #[cfg(feature = "livekit")] use_livekit: bool,
-    ) -> Self {
+    pub(crate) fn new(signaling: SignalingConnection) -> Self {
         Self {
             signaling,
             id: ParticipantId::nil(),
@@ -146,8 +129,6 @@ impl Room {
             event_info: None,
             participants: HashMap::new(),
 
-            #[cfg(feature = "livekit")]
-            use_livekit,
             recording_service_state: None,
         }
     }
@@ -156,34 +137,20 @@ impl Room {
     ///
     /// This function is cancellation safe and can be called in any state the room is in,
     /// except after being disconnected after which it may wait forever or return an error.
-    pub async fn recv(&mut self) -> Result<Event> {
-        #[cfg(feature = "livekit")]
-        async fn recv_livekit(state: &mut Option<RoomLiveKitState>) -> Option<LiveKitRoomEvent> {
-            match state {
-                Some(state) => state.recv().await,
-                None => pending().await,
-            }
-        }
-
+    pub async fn recv(&mut self) -> Result<OpenTalkEvent> {
         match self.waiting_room_state {
             WaitingRoomState::InWaitingRoom => {
                 self.wait_until_accepted().await?;
-                return Ok(Event::OpenTalk(OpenTalkEvent::WaitingRoomAccepted));
+                return Ok(OpenTalkEvent::WaitingRoomAccepted);
             }
             WaitingRoomState::Accepted => pending().await,
             WaitingRoomState::None => {}
         }
 
         loop {
-            #[cfg(not(feature = "livekit"))]
             let event = {
                 let payload = self.signaling.receive().await?;
                 self.parse_opentalk_event(payload)?
-            };
-            #[cfg(feature = "livekit")]
-            let event = tokio::select! {
-                payload = self.signaling.receive() => self.parse_opentalk_event(payload?).await?.map(Event::OpenTalk),
-                room_event = recv_livekit(&mut self.livekit_state) => room_event.map(Event::LiveKit),
             };
 
             if let Some(event) = event {
@@ -192,7 +159,7 @@ impl Room {
         }
     }
 
-    async fn parse_opentalk_event(
+    fn parse_opentalk_event(
         &mut self,
         event: Option<SignalingEvent>,
     ) -> Result<Option<OpenTalkEvent>> {
@@ -264,7 +231,7 @@ impl Room {
                 CoreEvent::StorageQuotaChanged { .. } => {}
             },
             SignalingModuleEvent::Breakout(breakout_event) => {
-                return self.handle_breakout_event(breakout_event).await;
+                return self.handle_breakout_event(breakout_event);
             }
             SignalingModuleEvent::Moderation(moderation_event) => {
                 return self.handle_moderation_event(moderation_event);
@@ -373,7 +340,7 @@ impl Room {
         }
     }
 
-    pub(crate) async fn handle_breakout_event(
+    pub(crate) fn handle_breakout_event(
         &mut self,
         breakout_event: BreakoutEvent,
     ) -> Result<Option<OpenTalkEvent>> {
@@ -412,7 +379,7 @@ impl Room {
                 peer_data,
             } => {
                 self.breakout_state.current_room = *new_room;
-                self.handle_module_data(own_data).await?;
+                self.handle_module_data(own_data)?;
 
                 for (participant, peer_module_data) in peer_data {
                     if let Some(participant) = self.participants.get_mut(participant) {
@@ -504,7 +471,7 @@ impl Room {
                     self.participants.insert(participant.id, participant);
                 }
 
-                self.handle_module_data(&join_success.module_data).await?;
+                self.handle_module_data(&join_success.module_data)?;
 
                 self.event_info = join_success.event_info;
 
@@ -528,37 +495,12 @@ impl Room {
         Ok(())
     }
 
-    async fn handle_module_data(&mut self, module_data: &ModuleData) -> Result<()> {
+    fn handle_module_data(&mut self, module_data: &ModuleData) -> Result<()> {
         // livekit
         let state = module_data
             .get::<LiveKitState>()?
             .context("ModuleData does not contain livekit module")?;
-
-        #[cfg(feature = "livekit")]
-        {
-            let (room, events) = if self.use_livekit {
-                let (room, events) = LiveKitRoom::connect(
-                    state
-                        .credentials
-                        .service_url
-                        .as_ref()
-                        .unwrap_or(&state.credentials.public_url),
-                    &state.credentials.token,
-                    LiveKitRoomOptions::default(),
-                )
-                .await?;
-
-                (Some(room), Some(events))
-            } else {
-                (None, None)
-            };
-
-            self.livekit_state = Some(RoomLiveKitState::new(room, events, state));
-        }
-        #[cfg(not(feature = "livekit"))]
-        {
-            self.livekit_state = Some(RoomLiveKitState::new(state));
-        }
+        self.livekit_state = Some(RoomLiveKitState::new(state));
 
         // recording
         if let Some(mut recording_state) = module_data
@@ -652,18 +594,6 @@ impl Room {
         self.livekit_state.as_ref().map(|state| &state.credentials)
     }
 
-    /// Returns the livekit room handle if available
-    ///
-    /// This is always available if `use_livekit` has been set to true
-    ///
-    /// Returns `None`` when inside the waiting room
-    #[cfg(feature = "livekit")]
-    pub fn livekit_room(&self) -> Option<&LiveKitRoom> {
-        self.livekit_state
-            .as_ref()
-            .and_then(|livekit_state| livekit_state.room.as_ref())
-    }
-
     /// Set the current consent to be recording in any recording or stream
     ///
     /// # Errors
@@ -712,18 +642,6 @@ impl Room {
 
     /// Closes all connection to the room
     pub async fn close(mut self) -> Result<()> {
-        #[cfg(feature = "livekit")]
-        if let Some(livekit_room) = self
-            .livekit_state
-            .as_mut()
-            .and_then(|state| state.room.take())
-        {
-            livekit_room
-                .close()
-                .await
-                .context("Failed to close livekit room")?;
-        }
-
         self.signaling
             .close()
             .await
@@ -758,20 +676,5 @@ impl Room {
         self.recording_service_state
             .is_some()
             .then_some(RecordingServiceApi { room: self })
-    }
-}
-
-impl Drop for Room {
-    fn drop(&mut self) {
-        #[cfg(feature = "livekit")]
-        if let Some(livekit_room) = self
-            .livekit_state
-            .as_mut()
-            .and_then(|state| state.room.take())
-        {
-            tokio::spawn(async move {
-                let _ = livekit_room.close().await;
-            });
-        }
     }
 }
