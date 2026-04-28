@@ -3,51 +3,42 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use std::{
-    any::type_name,
-    collections::{BTreeMap, BTreeSet, HashMap, hash_map::Entry},
+    collections::{HashMap, hash_map::Entry},
     future::pending,
 };
 
-#[cfg(feature = "livekit")]
-use ::livekit::{
-    Room as LiveKitRoom, RoomEvent as LiveKitRoomEvent, RoomOptions as LiveKitRoomOptions,
-};
 use anyhow::{Context, Result, bail};
-use chrono::{DateTime, Utc};
 use opentalk_roomserver_client::api::{
     command::SignalingModuleCommand,
     event::{SignalingEvent, SignalingModuleEvent},
     signaling::SignalingConnection,
 };
 use opentalk_roomserver_types::{
+    breakout::{event::BreakoutEvent, module_data::BreakoutModuleData},
     connection_id::ConnectionId,
-    core::{CoreCommand, CoreEvent, state::CoreState},
-    join::{event_info::EventInfo, join_success::JoinSuccess},
-    shared_json::SharedJson,
+    core::{CoreCommand, CoreEvent},
+    join::event_info::EventInfo,
+    room_kind::RoomKind,
 };
 use opentalk_roomserver_types_livekit::{Credentials, LiveKitState};
 use opentalk_roomserver_types_moderation::event::ModerationEvent;
-use opentalk_roomserver_types_raise_hands::{
-    command::RaiseHandsCommand, event::RaiseHandsEvent, state::RaisedHandPeerState,
-};
+use opentalk_roomserver_types_raise_hands::{command::RaiseHandsCommand, event::RaiseHandsEvent};
 use opentalk_roomserver_types_recording::{
-    command::RecordingCommand, event::RecordingEvent, peer_state::RecordingPeerState,
-    state::RecordingState,
+    command::RecordingCommand, event::RecordingEvent, state::RecordingState,
 };
-use serde::Deserialize;
-use types::{
-    common::{modules::ModuleId, users::DisplayName},
-    signaling::{ParticipantId, SignalingModulePeerFrontendData},
-};
+use types::signaling::{ModuleData, ParticipantId};
 
 use crate::room::{livekit::RoomLiveKitState, recording::RoomRecordingState};
 
+mod breakout;
 mod livekit;
+mod participant;
 mod recording;
-
 mod recording_service;
 
+pub use breakout::{BreakoutApi, BreakoutConfig, BreakoutState};
 pub use livekit::{LiveKitApi, OpenTalkLiveKitEvent};
+pub use participant::Participant;
 pub use recording::{OpenTalkRecordingEvent, RecorderAction, RecordingApi};
 use recording_service::RoomRecordingServiceState;
 pub use recording_service::{OpenTalkRecordingServiceEvent, RecordingServiceApi};
@@ -61,13 +52,12 @@ pub struct Room {
     waiting_room_state: WaitingRoomState,
     livekit_state: Option<RoomLiveKitState>,
     recording_state: Option<RoomRecordingState>,
+    breakout_state: BreakoutState,
 
     event_info: Option<EventInfo>,
 
     participants: HashMap<ParticipantId, Participant>,
 
-    #[cfg(feature = "livekit")]
-    use_livekit: bool,
     recording_service_state: Option<RoomRecordingServiceState>,
 }
 
@@ -76,14 +66,6 @@ enum WaitingRoomState {
     InWaitingRoom,
     Accepted,
     None,
-}
-
-#[derive(Debug)]
-#[allow(clippy::large_enum_variant)]
-pub enum Event {
-    OpenTalk(OpenTalkEvent),
-    #[cfg(feature = "livekit")]
-    LiveKit(LiveKitRoomEvent),
 }
 
 /// Event originating from the OpenTalk signaling
@@ -116,6 +98,9 @@ pub enum OpenTalkEvent {
     /// All events from the recording module
     Recording(OpenTalkRecordingEvent),
 
+    /// All Breakout events
+    Breakout(BreakoutEvent),
+
     /// All events from the recording-service module
     RecordingService(OpenTalkRecordingServiceEvent),
 
@@ -131,34 +116,19 @@ pub enum DisconnectReason {
     DebriefingStarted,
 }
 
-#[derive(Debug, Clone)]
-pub struct Participant {
-    pub id: ParticipantId,
-    pub hand_is_up: bool,
-    pub display_name: DisplayName,
-    pub joined_at: DateTime<Utc>,
-    pub left_at: Option<DateTime<Utc>>,
-    pub consents_recording: bool,
-    pub connections: BTreeSet<ConnectionId>,
-}
-
 impl Room {
-    pub(crate) fn new(
-        signaling: SignalingConnection,
-        #[cfg(feature = "livekit")] use_livekit: bool,
-    ) -> Self {
+    pub(crate) fn new(signaling: SignalingConnection) -> Self {
         Self {
             signaling,
             id: ParticipantId::nil(),
             waiting_room_state: WaitingRoomState::None,
             livekit_state: None,
             recording_state: None,
+            breakout_state: BreakoutState::default(),
 
             event_info: None,
             participants: HashMap::new(),
 
-            #[cfg(feature = "livekit")]
-            use_livekit,
             recording_service_state: None,
         }
     }
@@ -167,34 +137,20 @@ impl Room {
     ///
     /// This function is cancellation safe and can be called in any state the room is in,
     /// except after being disconnected after which it may wait forever or return an error.
-    pub async fn recv(&mut self) -> Result<Event> {
-        #[cfg(feature = "livekit")]
-        async fn recv_livekit(state: &mut Option<RoomLiveKitState>) -> Option<LiveKitRoomEvent> {
-            match state {
-                Some(state) => state.recv().await,
-                None => pending().await,
-            }
-        }
-
+    pub async fn recv(&mut self) -> Result<OpenTalkEvent> {
         match self.waiting_room_state {
             WaitingRoomState::InWaitingRoom => {
                 self.wait_until_accepted().await?;
-                return Ok(Event::OpenTalk(OpenTalkEvent::WaitingRoomAccepted));
+                return Ok(OpenTalkEvent::WaitingRoomAccepted);
             }
             WaitingRoomState::Accepted => pending().await,
             WaitingRoomState::None => {}
         }
 
         loop {
-            #[cfg(not(feature = "livekit"))]
             let event = {
-                let payload = self.signaling.recv().await?;
-                self.parse_opentalk_event(payload)?.map(Event::OpenTalk)
-            };
-            #[cfg(feature = "livekit")]
-            let event = tokio::select! {
-                payload = self.signaling.receive() => self.parse_opentalk_event(payload?)?.map(Event::OpenTalk),
-                room_event = recv_livekit(&mut self.livekit_state) => room_event.map(Event::LiveKit),
+                let payload = self.signaling.receive().await?;
+                self.parse_opentalk_event(payload)?
             };
 
             if let Some(event) = event {
@@ -237,7 +193,7 @@ impl Room {
                         }
                         Entry::Vacant(vacant_entry) => {
                             let participant =
-                                parse_participant(participant_id, [connection_id], &peer_data)?;
+                                Participant::new(participant_id, [connection_id], &peer_data)?;
                             vacant_entry.insert(participant.clone());
                             participant
                         }
@@ -274,6 +230,9 @@ impl Room {
                 CoreEvent::RoomParametersChanged { .. } => {}
                 CoreEvent::StorageQuotaChanged { .. } => {}
             },
+            SignalingModuleEvent::Breakout(breakout_event) => {
+                return self.handle_breakout_event(breakout_event);
+            }
             SignalingModuleEvent::Moderation(moderation_event) => {
                 return self.handle_moderation_event(moderation_event);
             }
@@ -381,6 +340,68 @@ impl Room {
         }
     }
 
+    pub(crate) fn handle_breakout_event(
+        &mut self,
+        breakout_event: BreakoutEvent,
+    ) -> Result<Option<OpenTalkEvent>> {
+        match &breakout_event {
+            BreakoutEvent::Started {
+                started_by: _,
+                rooms,
+                expires_at,
+                assignment,
+            } => {
+                self.breakout_state.set_config(BreakoutConfig {
+                    rooms: rooms.clone(),
+                    expires_at: *expires_at,
+                    assignment: *assignment,
+                });
+            }
+            BreakoutEvent::ParticipantSwitchedRoom {
+                participant_id,
+                old_room: _,
+                new_room,
+                module_data,
+            } => {
+                if let Some(participant) = self.participants.get_mut(participant_id) {
+                    participant.handle_breakout_switch(*new_room, module_data)?;
+                } else {
+                    log::error!(
+                        "Received breakout switch event for unknown participant {participant_id}"
+                    );
+                    return Ok(None);
+                }
+            }
+            BreakoutEvent::SwitchedRoom {
+                own_data,
+                old_room: _,
+                new_room,
+                peer_data,
+            } => {
+                self.breakout_state.current_room = *new_room;
+                self.handle_module_data(own_data)?;
+
+                for (participant, peer_module_data) in peer_data {
+                    if let Some(participant) = self.participants.get_mut(participant) {
+                        participant.handle_breakout_switch(*new_room, peer_module_data)?;
+                    }
+                }
+            }
+            BreakoutEvent::Closed => {
+                self.breakout_state.current_room = RoomKind::Main;
+                self.breakout_state.config = None;
+            }
+            // these events are forwarded to the client but don't require any state changes in the Room struct
+            BreakoutEvent::CloseNotice { .. } | BreakoutEvent::Closing { .. } => (),
+
+            BreakoutEvent::Error(breakout_error) => {
+                log::error!("Received breakout error event: {breakout_error:?}");
+            }
+        }
+
+        Ok(Some(OpenTalkEvent::Breakout(breakout_event)))
+    }
+
     /// Wait until accepted into the room, while inside the waiting room
     ///
     /// If the function completes, the [`OpenTalkEvent::WaitingRoomAccepted`] will not be returned by the call to [`recv`](Self::recv).
@@ -438,7 +459,7 @@ impl Room {
 
                 self.participants.clear();
                 for opentalk_participant in &join_success.participants {
-                    let participant = parse_participant(
+                    let participant = Participant::new(
                         opentalk_participant.id,
                         opentalk_participant
                             .connections
@@ -450,25 +471,7 @@ impl Room {
                     self.participants.insert(participant.id, participant);
                 }
 
-                self.set_livekit_state(&join_success).await?;
-
-                // Set or update recording state after joining from waiting room
-                if let Some(mut recording_state) = join_success
-                    .get_module::<RecordingState>()
-                    .context("Failed to parse recording module state")?
-                {
-                    if let Some(state) = recording_state.service.take() {
-                        self.recording_service_state = Some(RoomRecordingServiceState::new(state));
-                    }
-
-                    if let Some(room_recording_state) = &mut self.recording_state {
-                        room_recording_state.update(recording_state);
-                    } else {
-                        self.recording_state = Some(RoomRecordingState::new(recording_state));
-                    }
-                } else {
-                    self.recording_state = None;
-                }
+                self.handle_module_data(&join_success.module_data)?;
 
                 self.event_info = join_success.event_info;
 
@@ -492,35 +495,47 @@ impl Room {
         Ok(())
     }
 
-    async fn set_livekit_state(&mut self, join_success: &JoinSuccess) -> Result<()> {
-        let state = join_success
-            .get_module::<LiveKitState>()?
-            .context("JoinSuccess does not contain livekit module")?;
+    fn handle_module_data(&mut self, module_data: &ModuleData) -> Result<()> {
+        // livekit
+        let state = module_data
+            .get::<LiveKitState>()?
+            .context("ModuleData does not contain livekit module")?;
+        self.livekit_state = Some(RoomLiveKitState::new(state));
 
-        #[cfg(feature = "livekit")]
+        // recording
+        if let Some(mut recording_state) = module_data
+            .get::<RecordingState>()
+            .context("Failed to parse recording module state")?
         {
-            let (room, events) = if self.use_livekit {
-                let (room, events) = LiveKitRoom::connect(
-                    state
-                        .credentials
-                        .service_url
-                        .as_ref()
-                        .unwrap_or(&state.credentials.public_url),
-                    &state.credentials.token,
-                    LiveKitRoomOptions::default(),
-                )
-                .await?;
+            if let Some(state) = recording_state.service.take() {
+                self.recording_service_state = Some(RoomRecordingServiceState::new(state));
+            }
 
-                (Some(room), Some(events))
+            if let Some(room_recording_state) = &mut self.recording_state {
+                room_recording_state.update(recording_state);
             } else {
-                (None, None)
-            };
-
-            self.livekit_state = Some(RoomLiveKitState::new(room, events, state));
+                self.recording_state = Some(RoomRecordingState::new(recording_state));
+            }
+        } else {
+            self.recording_state = None;
         }
-        #[cfg(not(feature = "livekit"))]
+
+        // breakout
+        if let Some(breakout_config) = module_data
+            .get::<BreakoutModuleData>()
+            .context("Failed to parse breakout module state")?
         {
-            self.livekit_state = Some(RoomLiveKitState::new(state));
+            self.breakout_state.current_room = breakout_config.room;
+
+            if breakout_config.rooms.is_empty() {
+                self.breakout_state.config = None;
+            } else {
+                self.breakout_state.config = Some(BreakoutConfig {
+                    rooms: breakout_config.rooms,
+                    expires_at: breakout_config.expires,
+                    assignment: None,
+                });
+            }
         }
 
         Ok(())
@@ -579,18 +594,6 @@ impl Room {
         self.livekit_state.as_ref().map(|state| &state.credentials)
     }
 
-    /// Returns the livekit room handle if available
-    ///
-    /// This is always available if `use_livekit` has been set to true
-    ///
-    /// Returns `None`` when inside the waiting room
-    #[cfg(feature = "livekit")]
-    pub fn livekit_room(&self) -> Option<&LiveKitRoom> {
-        self.livekit_state
-            .as_ref()
-            .and_then(|livekit_state| livekit_state.room.as_ref())
-    }
-
     /// Set the current consent to be recording in any recording or stream
     ///
     /// # Errors
@@ -639,18 +642,6 @@ impl Room {
 
     /// Closes all connection to the room
     pub async fn close(mut self) -> Result<()> {
-        #[cfg(feature = "livekit")]
-        if let Some(livekit_room) = self
-            .livekit_state
-            .as_mut()
-            .and_then(|state| state.room.take())
-        {
-            livekit_room
-                .close()
-                .await
-                .context("Failed to close livekit room")?;
-        }
-
         self.signaling
             .close()
             .await
@@ -675,69 +666,15 @@ impl Room {
             .then_some(RecordingApi { room: self })
     }
 
+    /// Access the [`BreakoutApi`] which contains functions to interact with the breakout module
+    pub fn breakout_api(&mut self) -> BreakoutApi<'_> {
+        BreakoutApi { room: self }
+    }
+
     /// Access the [`RecordingServiceApi`] which contains functions to interact with the recording service module
     pub fn recording_service_api(&mut self) -> Option<RecordingServiceApi<'_>> {
         self.recording_service_state
             .is_some()
             .then_some(RecordingServiceApi { room: self })
     }
-}
-
-impl Drop for Room {
-    fn drop(&mut self) {
-        #[cfg(feature = "livekit")]
-        if let Some(livekit_room) = self
-            .livekit_state
-            .as_mut()
-            .and_then(|state| state.room.take())
-        {
-            tokio::spawn(async move {
-                let _ = livekit_room.close().await;
-            });
-        }
-    }
-}
-
-fn parse_participant(
-    participant_id: ParticipantId,
-    connection_ids: impl IntoIterator<Item = ConnectionId>,
-    module_data: &BTreeMap<ModuleId, SharedJson>,
-) -> Result<Participant> {
-    let core_state: CoreState = get_module(module_data)?.context("Missing core module")?;
-    let raise_hands_state: Option<RaisedHandPeerState> = get_module(module_data)?;
-
-    let consents_recording =
-        if let Ok(Some(recording_peer_state)) = get_module::<RecordingPeerState>(module_data) {
-            recording_peer_state.consents_recording
-        } else {
-            false
-        };
-
-    Ok(Participant {
-        id: participant_id,
-        hand_is_up: raise_hands_state.is_some(),
-        display_name: core_state.display_name,
-        joined_at: core_state.joined_at.into(),
-        left_at: core_state.left_at.map(Into::into),
-        consents_recording,
-        connections: BTreeSet::from_iter(connection_ids),
-    })
-}
-
-fn get_module<T: SignalingModulePeerFrontendData>(
-    module_data: &BTreeMap<ModuleId, SharedJson>,
-) -> Result<Option<T>> {
-    module_data
-        .get(&T::NAMESPACE.unwrap())
-        .map(parse_module)
-        .transpose()
-}
-
-fn parse_module<T: for<'a> Deserialize<'a>>(json: &SharedJson) -> Result<T> {
-    serde_json::from_value(json.clone_inner()).with_context(|| {
-        format!(
-            "Failed to parse {} from participant peer data",
-            type_name::<T>()
-        )
-    })
 }

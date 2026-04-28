@@ -3,15 +3,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use std::collections::BTreeSet;
-#[cfg(feature = "livekit")]
-use std::future::pending;
 
-#[cfg(feature = "livekit")]
-use ::livekit::{Room as LiveKitRoom, RoomEvent as LiveKitRoomEvent};
 use opentalk_roomserver_types_livekit::{Credentials, LiveKitState, MicrophoneRestrictionState};
 use opentalk_roomserver_types_moderation::event::ModerationEvent;
-#[cfg(feature = "livekit")]
-use tokio::sync::mpsc::UnboundedReceiver;
 use types::signaling::ParticipantId;
 
 use crate::{Room, room::OpenTalkEvent};
@@ -51,11 +45,6 @@ impl LiveKitApi<'_> {
 
 #[derive(Debug)]
 pub(super) struct RoomLiveKitState {
-    #[cfg(feature = "livekit")]
-    pub(super) room: Option<LiveKitRoom>,
-    #[cfg(feature = "livekit")]
-    events: Option<UnboundedReceiver<LiveKitRoomEvent>>,
-
     pub(super) credentials: Credentials,
 
     // Set of participants that are allowed to talk, if the value is set
@@ -63,16 +52,8 @@ pub(super) struct RoomLiveKitState {
 }
 
 impl RoomLiveKitState {
-    pub(super) fn new(
-        #[cfg(feature = "livekit")] room: Option<LiveKitRoom>,
-        #[cfg(feature = "livekit")] events: Option<UnboundedReceiver<LiveKitRoomEvent>>,
-        state: LiveKitState,
-    ) -> Self {
+    pub(super) fn new(state: LiveKitState) -> Self {
         Self {
-            #[cfg(feature = "livekit")]
-            room,
-            #[cfg(feature = "livekit")]
-            events,
             credentials: state.credentials,
             microphone_restriction_state: state.microphone_restriction_state,
         }
@@ -116,14 +97,6 @@ impl RoomLiveKitState {
             MicrophoneRestrictionState::Enabled {
                 unrestricted_participants,
             } => unrestricted_participants.contains(&id),
-        }
-    }
-
-    #[cfg(feature = "livekit")]
-    pub(super) async fn recv(&mut self) -> Option<LiveKitRoomEvent> {
-        match &mut self.events {
-            Some(events) => events.recv().await,
-            None => pending().await,
         }
     }
 }

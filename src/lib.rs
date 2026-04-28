@@ -21,8 +21,8 @@ pub use opentalk_roomserver_types_moderation;
 pub use opentalk_roomserver_types_raise_hands;
 pub use opentalk_roomserver_types_recording;
 pub use room::{
-    DisconnectReason, Event, LiveKitApi, OpenTalkEvent, OpenTalkLiveKitEvent,
-    OpenTalkRecordingEvent, OpenTalkRecordingServiceEvent, Participant, RecorderAction,
-    RecordingApi, RecordingServiceApi, Room,
+    BreakoutApi, BreakoutConfig, BreakoutState, DisconnectReason, LiveKitApi, OpenTalkEvent,
+    OpenTalkLiveKitEvent, OpenTalkRecordingEvent, OpenTalkRecordingServiceEvent, Participant,
+    RecorderAction, RecordingApi, RecordingServiceApi, Room,
 };
 pub use types;

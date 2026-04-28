@@ -17,7 +17,10 @@ use opentalk_roomserver_types_recording::{
 };
 use types::{common::streaming::StreamingTargetId, signaling::ParticipantId};
 
-use crate::{Participant, Room, room::OpenTalkEvent};
+use crate::{
+    Room,
+    room::{OpenTalkEvent, participant::Participant},
+};
 
 /// OpenTalk recording module events
 #[derive(Debug)]
@@ -181,5 +184,6 @@ impl RoomRecordingState {
     // Update the recording state from a join-success state
     pub(super) fn update(&mut self, recording_state: RecordingState) {
         self.stream_states = recording_state.stream_states;
+        self.recording_state = recording_state.recording_state;
     }
 }

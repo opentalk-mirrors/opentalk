@@ -76,7 +76,6 @@ allow = [
   "MIT",
   "MPL-2.0",
   "Unicode-3.0",
-  "Zlib",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
@@ -164,14 +163,10 @@ deny = [
 skip = [
   { name = "base64", version = "=0.21.7" },
   { name = "cpufeatures", version = "=0.2.17" },
-  { name = "darling_core", version = "=0.14.4" },
-  { name = "darling_macro", version = "=0.14.4" },
-  { name = "darling", version = "=0.14.4" },
   { name = "getrandom", version = "=0.3.4" },
   { name = "getrandom", version = "0.2" },
   { name = "getrandom", version = "0.3" },
   { name = "heck", version = "=0.4.1" },
-  { name = "http", version = "=0.2.12" },
   { name = "itertools", version = "=0.10.5" },
   { name = "itertools", version = "=0.11.0" },
   { name = "itertools", version = "=0.12.1" },
@@ -186,14 +181,10 @@ skip = [
   { name = "rustls-native-certs", version = "=0.6.3" },
   { name = "rustls-webpki", version = "=0.101.7" },
   { name = "rustls", version = "=0.21.12" },
-  { name = "strsim", version = "=0.10.0" },
-  { name = "syn", version = "=1.0.109" },
   { name = "thiserror-impl", version = "1" },
   { name = "thiserror", version = "1" },
   { name = "tinystr", version = "=0.7.6" },
   { name = "tokio-rustls", version = "=0.24.1" },
-  { name = "tokio-tungstenite", version = "0.20.1" },
-  { name = "tungstenite", version = "0.20.1" },
   { name = "untrusted", version = "=0.7.1" },
   { name = "writeable", version = "=0.5.5" },
 ]
