@@ -10,12 +10,10 @@ use clap::Parser;
 use service_probe_client::is_ready;
 
 mod cli;
-mod http;
 mod media;
 mod settings;
 mod signaling;
 mod sip;
-mod websocket;
 
 #[tokio::main]
 async fn main() -> Result<()> {

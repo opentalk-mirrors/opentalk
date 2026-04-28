@@ -17,9 +17,9 @@ environment. It reads the settings in this order:
 
 Functionality that can be configured through the configuration file:
 
-- [Auth](auth.md)
 - [Controller](controller.md)
 - [SIP](sip.md)
+- [Monitoring](monitoring.md)
 
 ## General configuration
 
@@ -71,23 +71,13 @@ clock_format = "%x %X %Z"
 # Language of the audio cue to be played to the callee
 language = "de"
 
-# Obelisk OIDC authentication
-#
-# The Client requires a service account with the `opentalk-call-in` realm-role set.
-[auth]
-# OIDC issuer url
-issuer = "http://localhost/auth/realms/Example"
-# OIDC client ID
-client_id = "Obelisk"
-# OIDC client secret
-client_secret = "obeliskclientsecret"
-
 [controller]
-# host-port of the controller
-domain = "localhost:8000"
+url = "http://localhost:8000"
+api_key = { "id" = "controller", "secret" = "examplesecret" }
 
-# Optional flag to use http/ws instead of their TLS counterparts
-#insecure = false
+[monitoring]
+addr = "0.0.0.0"
+port = 11411
 
 [sip]
 
@@ -97,6 +87,14 @@ addr = "0.0.0.0"
 # Port to bind to (5060 is SIP default)
 port = 5060
 
+# Inbound address to use in SIP and SDP messages.
+# This setting should only be used in NAT scenarios where using a STUN server is not possible.
+#inbound_addr = "192.0.2.1:5060"
+
+# Inbound media ip which is constrained to only SDP. Overrides the value of `inbound_addr`
+# for SDP and sets the inbound IP for media (RTP / RTCP).
+#inbound_media_ip = "192.0.2.1:5061"
+
 # ID of this SIP endpoint, used for creating the From/To header in SIP REGISTER messages
 # When not set, it is generated as `sip:<username>@<regisrar-host>` if a registrar is configured.
 # If no registrar is configured it is generated the same way as the contact uri (see below).
@@ -105,11 +103,12 @@ port = 5060
 # Contact uri of this SIP endpoint, used for creating the SIP Contact header
 # When not set, it is generated as `sip:<username>@<addr>` where `addr` may be replaced by the
 # public address discovered using the stun-server.
-#contact = "sip:alice@example.org"
+#contact = "sip:alice@192.168.1.100"
 
 # Username/Password pair.
 # Usually provided by the SIP provider
 username = "alice"
+
 password = "mysecurepassword"
 
 # Realm of the given username/password pair
@@ -128,20 +127,24 @@ registrar = "sip:sip.example.org"
 stun_server = "stun.example.org:3478"
 
 # Enforce quality of protection on SIP authentication
-# (reuse of nonce + nonce-count instead of requesting a new nonce for each request)
+# (reuse of nonce + nonce-count instead of
+#  requesting a new nonce for each request)
 #
 # Can cause compatibility issues on older registrars.
 enforce_qop = true
 
-# Maximum video bitrate in kbits/s
-#max_video_bitrate = 6000
+# Maximum video bitrate in bits/s
+#max_video_bitrate = 6000000
+
+# Offer SRTP as media transport when obelisk is creating the initial SDP offer
+#offer_srtp = false
 
 # The port range for the SIP RTP/RTCP connections (inclusive).
 #
 # Defaults to 40000 - 49999
 [sip.rtp_port_range]
-start = 40000
 end = 49999
+start = 40000
 ```
 
 <!-- end:fromfile:toml:config/example.toml -->

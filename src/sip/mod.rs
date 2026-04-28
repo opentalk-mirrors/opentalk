@@ -2,13 +2,14 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::http::HttpClient;
 use crate::media::{MediaPipeline, Track};
 use crate::settings::{DisplayNameSource, MonitoringSettings, Settings};
 use crate::signaling::Signaling;
 use crate::sip::registration::RegistrationTask;
 use anyhow::{Context, Result, bail};
 use bytesstr::BytesStr;
+use opentalk_client_signaling::config::ClientConfig;
+use opentalk_client_signaling::{AuthConfig, OpenTalkClient};
 use service_probe::{ServiceState, start_probe};
 use sip_core::{Endpoint, EndpointBuilder, IncomingRequest, Layer, MayTake};
 use sip_types::header::typed::{Contact, ContentType, Refresher};
@@ -45,7 +46,7 @@ struct AppData {
 /// This layer is the application layer of the SIP endpoint and handles incoming INVITE requests
 struct AppLayer {
     settings: Arc<Settings>,
-    http_client: Arc<HttpClient>,
+    opentalk_client: Arc<OpenTalkClient>,
     shutdown: broadcast::Sender<()>,
     app_data: parking_lot::RwLock<Option<AppData>>,
 }
@@ -199,7 +200,7 @@ impl AppLayer {
 
         let mut signaling = Signaling::new(
             self.settings.clone(),
-            self.http_client.clone(),
+            self.opentalk_client.clone(),
             name,
             session,
             media,
@@ -235,13 +236,16 @@ pub(crate) async fn run(settings: Arc<Settings>) -> Result<()> {
 
     let (shutdown, _) = broadcast::channel(1);
 
-    let http_client = HttpClient::discover(&settings.auth)
-        .await
-        .context("failed to discover oidc issuer")?;
+    let opentalk_client = OpenTalkClient::create(ClientConfig {
+        auth: AuthConfig::ApiKey(settings.controller.api_key.clone()),
+        controller: settings.controller.url.clone(),
+    })
+    .await
+    .context("Failed to create OpenTalkClient")?;
 
     builder.add_layer(AppLayer {
         settings: settings.clone(),
-        http_client: Arc::new(http_client),
+        opentalk_client: Arc::new(opentalk_client),
         shutdown: shutdown.clone(),
         app_data: parking_lot::RwLock::new(None),
     });
