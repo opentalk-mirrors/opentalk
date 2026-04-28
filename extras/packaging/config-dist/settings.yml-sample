@@ -37,8 +37,14 @@ compose_service_mailcrab_enabled: false
 # mailer_smtp_from_name: "OpenTalk - {{ ot_domain }}"
 # mailer_smtp_from_email: "no-reply@{{ ot_domain }}"
 # mailer_frontend_base_url: "https://{{ ot_domain }}"
+# mailer_frontend_data_protection_url: "https://opentalk.example.org/dataprotection"
 # mailer_support_contact_phone: "+49 123 456789"
 # mailer_support_contact_mail: "support@{{ ot_domain }}"
+
+# OpenTalk Controller config
+# controller_operator_information_data_protection_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/data-protection"
+# controller_operator_information_support_phone_number: "+49 123 4567890"
+# controller_operator_information_support_email_address: "support@{{ ot_domain }}"
 
 # SIP Settings for the Obelik Service
 # obelisk_sip_username: "username"
