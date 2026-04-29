@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+build = "build.rs"
+default-run = "opentalk-transcription"
+edition.workspace = true
+license.workspace = true
+name = "opentalk-transcription"
+publish = false
+version.workspace = true
+
+[features]
+default = ["vulkan"]
+cuda = ["whisper-rs/cuda"]
+sycl = ["whisper-rs/intel-sycl"]
+vulkan = ["whisper-rs/vulkan"]
+
+[dependencies]
+anstream.workspace = true
+anyhow = { workspace = true, features = ["backtrace"] }
+audio-nodes.workspace = true
+axum = { workspace = true, features = ["macros", "http2", "ws"] }
+clap = { workspace = true, features = ["derive"] }
+config = { workspace = true, features = ["toml"] }
+directories.workspace = true
+env_logger.workspace = true
+ezk.workspace = true
+ezk-audio.workspace = true
+futures.workspace = true
+itertools.workspace = true
+livekit = { workspace = true, features = ["native-tls"] }
+log.workspace = true
+openidconnect.workspace = true
+opentalk-client-signaling.workspace = true
+opentalk-version.workspace = true
+owo-colors.workspace = true
+prometheus = { workspace = true, default-features = false }
+serde = { workspace = true, features = ["derive"] }
+service-probe.workspace = true
+tokio = { workspace = true, features = [
+  "macros",
+  "rt-multi-thread",
+  "signal",
+] }
+voice_activity_detector.workspace = true
+whisper-rs = { workspace = true, features = [ "log_backend" ] }
+
+[build-dependencies]
+anyhow.workspace = true
+opentalk-version.workspace = true

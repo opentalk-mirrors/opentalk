@@ -73,7 +73,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -84,7 +84,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -295,6 +295,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31b698c5f9a010f6573133b09e0de5408834d0c82f8d7475a89fc1867a71cd90"
 dependencies = [
  "axum-core",
+ "axum-macros",
  "base64 0.22.1",
  "bytes",
  "form_urlencoded",
@@ -341,6 +342,17 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "axum-macros"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7aa268c23bfbbd2c4363b9cd302a4f504fb2a9dfe7e3451d66f35dd392e20aca"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1086,7 +1098,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1249,7 +1261,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1920,7 +1932,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.3",
  "tokio",
  "tower-service",
  "tracing",
@@ -2715,7 +2727,7 @@ version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51e219e79014df21a225b1860a479e2dcd7cbd9130f4defd4bd0e191ea31d67d"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.1",
  "chrono",
  "getrandom 0.2.17",
  "http 1.4.0",
@@ -2878,13 +2890,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-transcription-web-api"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "opentalk-types-api-common 0.7.2",
+ "opentalk-types-common 0.44.0",
+ "serde",
+]
+
+[[package]]
 name = "opentalk-types"
 version = "0.60.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09a050868bcdd8ce02c2aa5c7057ebe13258638922bcb78f2d53a6fc400dbd1c"
 dependencies = [
  "opentalk-types-api-v1",
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "opentalk-types-signaling-automod",
  "opentalk-types-signaling-breakout",
@@ -2915,10 +2938,28 @@ checksum = "38a94060aa855222985b08f0d68953b8350a17662e13f1d373da4ccbbd236ad3"
 dependencies = [
  "base64 0.22.1",
  "derive_more",
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "postcard",
  "serde",
- "snafu",
+ "snafu 0.8.9",
+]
+
+[[package]]
+name = "opentalk-types-api-common"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b44e93e4b665b0dfa904a0df3eefef1898bfa8ed5f6c544a7c69e5890004122e"
+dependencies = [
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "derive_more",
+ "http 1.4.0",
+ "opentalk-types-common 0.44.0",
+ "postcard",
+ "serde",
+ "serde_json",
+ "snafu 0.9.0",
 ]
 
 [[package]]
@@ -2930,8 +2971,8 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "derive_more",
- "opentalk-types-api-common",
- "opentalk-types-common",
+ "opentalk-types-api-common 0.6.1",
+ "opentalk-types-common 0.42.3",
  "serde",
  "serde_with",
  "url",
@@ -2949,11 +2990,33 @@ dependencies = [
  "email_address",
  "icu_locid",
  "itertools 0.14.0",
- "opentalk-types-common-identifiers",
- "opentalk-types-common-macros",
+ "opentalk-types-common-identifiers 0.33.0",
+ "opentalk-types-common-macros 0.32.0",
  "serde",
  "serde_with",
- "snafu",
+ "snafu 0.8.9",
+ "strum",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "opentalk-types-common"
+version = "0.44.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab91de665be29e0e4d5d28738a405d3c2cf819bd4bf5555e35f963662900d68f"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "derive_more",
+ "email_address",
+ "icu_locid",
+ "itertools 0.14.0",
+ "opentalk-types-common-identifiers 0.34.1",
+ "opentalk-types-common-macros 0.33.0",
+ "serde",
+ "serde_with",
+ "snafu 0.9.0",
  "strum",
  "url",
  "uuid",
@@ -2968,7 +3031,19 @@ dependencies = [
  "derive_more",
  "serde",
  "serde_with",
- "snafu",
+ "snafu 0.8.9",
+]
+
+[[package]]
+name = "opentalk-types-common-identifiers"
+version = "0.34.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36d700a6111121551fa2a357077097fa28e6f8d1baf97dd435420971ac10c343"
+dependencies = [
+ "derive_more",
+ "serde",
+ "serde_with",
+ "snafu 0.9.0",
 ]
 
 [[package]]
@@ -2977,7 +3052,20 @@ version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5aff14ff5815976bbedb0c652565beb6e88e80e6886f15eca25a734deab2d344"
 dependencies = [
- "opentalk-types-common-identifiers",
+ "opentalk-types-common-identifiers 0.33.0",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "opentalk-types-common-macros"
+version = "0.33.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4db3542ad75eaca20ff237188eb424256d43f099f7db94b35d734fce11e08158"
+dependencies = [
+ "opentalk-types-common-identifiers 0.34.1",
  "proc-macro-crate",
  "proc-macro2",
  "quote",
@@ -2991,7 +3079,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f201faccdedd5b62b3cacdb05c0bf545d1678332bcc2e3d97bef6fcf9a56d1d"
 dependencies = [
  "derive_more",
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "serde",
  "serde_json",
  "strum",
@@ -3004,7 +3092,7 @@ version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abe61434db7379fa3341b1fcdd50cd312550effc7acf318b7c2787eaaf5f2a2f"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
 ]
@@ -3015,7 +3103,7 @@ version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f0397fb598ebf48eb82fd31d8c3b6bb39dffe350470df7722229ab4ec16fe5f"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
 ]
@@ -3027,7 +3115,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0ed9098aa6a1696c94a8e2b78a4620d7318322b323f3cbb46190651e79a2993"
 dependencies = [
  "derive_more",
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
  "uuid",
@@ -3039,7 +3127,7 @@ version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aaddf7f51c097bffc3a71ea0682d3e32518db7a9168d71e61842cc4307814a61"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
  "serde_json",
@@ -3052,7 +3140,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd1fd9fe42739c3bf421093bbeb238883ae696fb33930d387c688457d63f30a1"
 dependencies = [
  "bytes",
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
 ]
@@ -3066,11 +3154,11 @@ dependencies = [
  "basen",
  "chrono",
  "derive_more",
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
  "serde_json",
- "snafu",
+ "snafu 0.8.9",
  "uuid",
 ]
 
@@ -3080,7 +3168,7 @@ version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db69dae47cf25b510d18d41d8d5ef4e4227a96b305dd9147f903dfb5d8f0fdc7"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
 ]
@@ -3091,7 +3179,7 @@ version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddb9cb668274611c4eb2182410f028bf31b1813a724be77cd5519d9f73076e80"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
 ]
@@ -3102,7 +3190,7 @@ version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2a8bd9cdacecb7992b403fe9eff9e03132765c8df942056ab7d818eb2a0f427"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "serde",
 ]
 
@@ -3112,7 +3200,7 @@ version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d33c2d2b6d9a7a416511837514e909d14bc3b0dd287224529bb33eff81ac9ebc"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
 ]
@@ -3125,7 +3213,7 @@ checksum = "6551df7a41f38346b630300d2034eef7f4272dde740616ecf0b383597f7b47d7"
 dependencies = [
  "chrono",
  "derive_more",
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
  "uuid",
@@ -3138,7 +3226,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aebfef9be0b96bc5f95548351d1d41f4ddbcdf89331bba068f3da37a9bf6f1d2"
 dependencies = [
  "derive_more",
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
  "url",
@@ -3150,7 +3238,7 @@ version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "715df7c28d3cdaa02afc34cc445a8b8c1ecbe7676ac6e011cb3f924a082cbbe7"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "opentalk-types-signaling-recording",
  "serde",
@@ -3163,7 +3251,7 @@ version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "accd5db36b6893be6c88318290e0386b9ed885ab7c006bc47f412459cf3da685"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
 ]
@@ -3175,7 +3263,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77b27fb2fc0ff546ccf9cf078547ec9d0fa43c09a89ce8ab5c83ad5eb83368dd"
 dependencies = [
  "derive_more",
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
  "strum",
@@ -3189,7 +3277,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "512c13f77383f2fbf160bbbd1cc0f7758f975554794231c3dce7b7b29408079c"
 dependencies = [
  "derive_more",
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
  "uuid",
@@ -3201,7 +3289,7 @@ version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4834826d006157ec97b417bc849d1c86bc027911feeaffb76dc5ab4e50c2280"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
 ]
@@ -3212,7 +3300,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "311050f962be634cd914eaba6cb3e10640f4d24ef04c17781bed15ccc51bc189"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
 ]
@@ -3223,7 +3311,7 @@ version = "0.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58449c926f1ef0d083e2a75b24edb5e7a3bcaaee1b0664bf98bbb5439ae4386f"
 dependencies = [
- "opentalk-types-common",
+ "opentalk-types-common 0.42.3",
  "opentalk-types-signaling",
  "serde",
  "url",
@@ -3677,7 +3765,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
- "heck 0.4.1",
+ "heck 0.5.0",
  "itertools 0.12.1",
  "log",
  "multimap",
@@ -3726,7 +3814,7 @@ dependencies = [
  "quinn-udp",
  "rustc-hash",
  "rustls 0.23.38",
- "socket2 0.5.10",
+ "socket2 0.6.3",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -3763,7 +3851,7 @@ dependencies = [
  "cfg_aliases",
  "libc",
  "once_cell",
- "socket2 0.5.10",
+ "socket2 0.6.3",
  "tracing",
  "windows-sys 0.60.2",
 ]
@@ -4127,7 +4215,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4480,7 +4568,7 @@ dependencies = [
  "hyper-util",
  "log",
  "service-probe-common",
- "snafu",
+ "snafu 0.8.9",
  "tokio",
 ]
 
@@ -4583,7 +4671,16 @@ version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e84b3f4eacbf3a1ce05eac6763b4d629d60cbc94d632e4092c54ade71f1e1a2"
 dependencies = [
- "snafu-derive",
+ "snafu-derive 0.8.9",
+]
+
+[[package]]
+name = "snafu"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1d4bced6a69f90b2056c03dcff2c4737f98d6fb9e0853493996e1d253ca29c6"
+dependencies = [
+ "snafu-derive 0.9.0",
 ]
 
 [[package]]
@@ -4592,7 +4689,19 @@ version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "snafu-derive"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54254b8531cafa275c5e096f62d48c81435d1015405a91198ddb11e967301d40"
+dependencies = [
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -4615,7 +4724,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a766e1110788c36f4fa1c2b71b387a7815aa65f88ce0229841826633d93723e"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4772,7 +4881,7 @@ dependencies = [
  "getrandom 0.4.2",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5676,7 +5785,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

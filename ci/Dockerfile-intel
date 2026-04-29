@@ -44,9 +44,9 @@ WORKDIR /app
 
 COPY Cargo.toml Cargo.toml
 COPY Cargo.lock Cargo.lock
-COPY src src
+COPY opentalk-transcription opentalk-transcription
+COPY opentalk-transcription-web-api opentalk-transcription-web-api
 COPY models models
-COPY build.rs build.rs
 
 RUN cargo build --locked --release --features sycl
 
