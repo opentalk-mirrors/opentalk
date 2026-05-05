@@ -173,7 +173,8 @@ keycloak_realm: opentalk
 keycloak_admin_username: admin
 keycloak_admin_password: *****
 
-csp_allowed_extra_connect_src: https://keycloak.example.com
+csp_allowed_extra_connect_src:
+  - https://keycloak.example.com
 ```
 
 If you have a brand‑new vanilla Keycloak instance and you are still using the initial bootstrap admin user, you can **additionally** set `keycloak_bootstrap_admin_username` and `keycloak_bootstrap_admin_password`. The tooling will first authenticate against the Keycloak API using these bootstrap credentials, **create** the permanent admin account defined by `keycloak_admin_username` and `keycloak_admin_password`, then remove the bootstrap admin user.
@@ -188,7 +189,8 @@ keycloak_admin_password: *****
 keycloak_bootstrap_admin_username: bootstrap_admin
 keycloak_bootstrap_admin_password: ******
 
-csp_allowed_extra_connect_src: https://keycloak.example.com
+csp_allowed_extra_connect_src:
+  - https://keycloak.example.com
 ```
 
 #### 2.1.3 Generate OpenTalk configuration and start the services
@@ -254,7 +256,8 @@ keycloak_base_url: https://keycloak.example.com/auth
 keycloak_realm: opentalk
 
 # If the external domain differs from the OpenTalk domain, allow it in CSP
-csp_allowed_extra_connect_src: https://keycloak.example.com
+csp_allowed_extra_connect_src:
+  - https://keycloak.example.com
 ```
 
 Save the file but do not start OpenTalk yet.
@@ -496,7 +499,8 @@ controller_livekit_api_key: "generated key"
 controller_livekit_api_secret: "generated secret"
 
 # Add the WebSocket address to the Content Security Policy Content Security Policy (CSP)
-csp_allowed_extra_connect_src: "wss://livekit.example.com"
+csp_allowed_extra_connect_src:
+  - wss://livekit.example.com
 ```
 
 #### 4.2.3 Deploy changes and start OpenTalk Services
