@@ -20,7 +20,7 @@ services:
 {% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
     entrypoint: []
     command: >
-       /bin/bash -c "update-ca-certificates; exec /opentalk-roomserver/opentalk-roomserver"
+       /bin/sh -c "update-ca-certificates; exec /opentalk-roomserver/opentalk-roomserver"
     user: root
 {% endif %}
     environment:
