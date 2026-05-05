@@ -28,12 +28,19 @@ opentalk_web_frontend_environment_ndt_server: "{{ (ot_domain, ot_ingress_port) |
 opentalk_web_frontend_environment_change_password_url: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}/account/"
 opentalk_web_frontend_environment_error_report_address: "{{ ERROR_REPORT_ADDRESS | default('reports@example.com') }}"
 opentalk_web_frontend_environment_libravatar_default_image: "{{ LIBRAVATAR_DEFAULT_IMAGE | default('identicon') }}"
-opentalk_web_frontend_environment_video_backgrounds: >-
-  [{
-    altText: 'OpenTalk',
-    url: '/assets/videoBackgrounds/elevate-bg.png',
-    thumb: '/assets/videoBackgrounds/thumbs/elevate-bg-thumb.png',
-  }]
+# Custom video backgrounds for the web frontend.
+# When defined, the backgrounds directory is mounted into the container.
+# Format: JSON array of objects with altText, url, and thumb properties.
+# Example:
+# opentalk_web_frontend_environment_video_backgrounds: >-
+#   [{
+#     altText: 'My Background',
+#     url: '/assets/videoBackgrounds/my-bg.png',
+#     thumb: '/assets/videoBackgrounds/thumbs/my-bg-thumb.png',
+#   }]
+
+opentalk_web_frontend_backgrounds_dir: /var/opt/opentalk-compose/backgrounds
+
 opentalk_web_frontend_environment_is_beta_release: "{{ IS_BETA_RELEASE | default(false) }}"
 opentalk_web_frontend_environment_feature_user_search: "{{ FEATURE_USER_SEARCH | default(true) }}"
 opentalk_web_frontend_environment_feature_timer: "{{ FEATURE_TIMER | default(true) }}"

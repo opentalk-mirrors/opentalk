@@ -5,10 +5,13 @@
 
 mkdir -p /var/opt/opentalk-compose/data
 mkdir -p /var/opt/opentalk-compose/backups
+mkdir -p /var/opt/opentalk-compose/backgrounds/thumbs
 chmod 755 /var/opt/opentalk-compose/data
 chmod 755 /var/opt/opentalk-compose/backups
+chmod 755 /var/opt/opentalk-compose/backgrounds
 chown root:root /var/opt/opentalk-compose/data
 chown root:root /var/opt/opentalk-compose/backups
+chown root:root /var/opt/opentalk-compose/backgrounds
 
 MAN_FILE=/usr/share/man/man1/opentalk-compose.1
 CFORGE_CMD=/usr/bin/cforge
