@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-- name: Ensure OpenTalk Roomserver Service directory
+- name: Ensure OpenTalk Orchestrator Service directory
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory

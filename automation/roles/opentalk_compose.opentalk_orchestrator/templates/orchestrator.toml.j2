@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [http]
-address = "0.0.0.0"
-port = 11222
-api_keys = [{ id = "orchestrator", secret = "{{ ORCHESTRATOR_API_SECRET }}" }]
+address = "{{ orchestrator_http_address }}"
+port = {{ orchestrator_http_port }}
+api_keys = [{ id = "{{ orchestrator_api_key_id }}", secret = "{{ ORCHESTRATOR_API_SECRET }}" }]
 
 [services]
-keys = [{ id = "roomserver", secret = "{{ ROOMSERVER_API_SECRET }}" }]
+keys = [{ id = "{{ orchestrator_services_key_id }}", secret = "{{ ROOMSERVER_API_SECRET }}" }]

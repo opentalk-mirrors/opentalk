@@ -7,7 +7,7 @@
 
 # The IPv4/IPv6 address to bind the HTTP server to.
 # Binds to all interfaces by default:
-address = "0.0.0.0"
+address = "{{ roomserver_http_address }}"
 
 # All IPv6 interfaces:
 #address = "::"
@@ -17,7 +17,7 @@ address = "0.0.0.0"
 #address = "::1"
 
 # The URL of the roomserver that is reachable by internal services
-service_url = "http://roomserver:11333"
+service_url = "{{ roomserver_service_url }}"
 
 # The publicly reachable URL of this server
 public_url = "{{ roomserver_public_url }}/roomserver"
@@ -26,10 +26,10 @@ public_url = "{{ roomserver_public_url }}/roomserver"
 #
 # The roomserver can have multiple api keys configured. An api key can be configured as string ("<key_id>:<key_secret>")
 # or as key/value pair ({id = "<key_id>", secret = "<key_secret>"}).
-api_keys = [{ id = "roomserver", secret = "{{ ROOMSERVER_API_SECRET }}" }]
+api_keys = [{ id = "{{ roomserver_api_key_id }}", secret = "{{ ROOMSERVER_API_SECRET }}" }]
 
 # The port to bind the HTTP server to (defaults to 11333)
-port = 11333
+port = {{ roomserver_http_port }}
 
 # Disable the OpenAPI endpoint under `/docs/openapi.json` and the corresponding
 # swagger endpoint under `/swagger`.
@@ -41,31 +41,40 @@ port = 11333
 # If not configured, assets and module resources will be saved in memory.
 
 # The URL of the controller
-url = "http://controller:11311"
+url = "{{ roomserver_controller_url }}"
 
 # The api key for the controllers service API
-api_key = { "id" = "controller", "secret" = "{{ CONTROLLER_API_SECRET }}" }
+api_key = { "id" = "{{ roomserver_controller_api_key_id }}", "secret" = "{{ CONTROLLER_API_SECRET }}" }
 
+{% if roomserver_monitoring_addr is defined or roomserver_monitoring_port is defined %}
+[monitoring]
+# Monitoring settings
+{% if roomserver_monitoring_addr is defined %}
+addr = "{{ roomserver_monitoring_addr }}"
+{% endif %}
+{% if roomserver_monitoring_port is defined %}
+port = {{ roomserver_monitoring_port }}
+{% endif %}
+{% else %}
 [monitoring]
 # Monitoring settings
 
 # Monitoring is optional and disabled by default
 # addr = "0.0.0.0"
 # port = 11411
+{% endif %}
 
 [metrics]
 # Metrics settings
 
 # Metrics is optional and disabled by default
+{% if roomserver_metrics_port is defined %}
+port = {{ roomserver_metrics_port }}
+{% else %}
 #port = 11412
+{% endif %}
 # IP addresses allowed to access the metrics endpoint
-#allowlist = []
-
-# Allow access from localhost
-#allowlist = ["127.0.0.0/24", "::ffff:0:0/96"]
-
-# Allow access from localhost and docker network
-allowlist = ["127.0.0.0/24", "::ffff:0:0/96", "172.16.0.0/12"]
+allowlist = {{ roomserver_metrics_allowlist | to_json }}
 
 #[tracing]
 # Tracing settings
@@ -87,7 +96,7 @@ allowlist = ["127.0.0.0/24", "::ffff:0:0/96", "172.16.0.0/12"]
 [defaults]
 # When true, participants can't share their screens unless permission is granted by a moderator.
 # Moderators can always share their screen.
-screen_share_requires_permission = false
+screen_share_requires_permission = {{ roomserver_screen_share_requires_permission | lower }}
 
 #[reports.typst]
 # The location where typst looks for packages.
@@ -97,7 +106,7 @@ screen_share_requires_permission = false
 # Optional orchestrator configuration
 [orchestrator]
 # The API key of the orchestrator
-api_key = { id = "orchestrator", secret = "{{ ORCHESTRATOR_API_SECRET }}" }
+api_key = { id = "{{ roomserver_orchestrator_api_key_id }}", secret = "{{ ORCHESTRATOR_API_SECRET }}" }
 # The orchestrator URL
 url = "http://orchestrator:11222"
 {% endif %}
