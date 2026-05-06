@@ -163,7 +163,7 @@ otctl down
 
 #### 2.1.2 Adjust Keycloak Settings in settings.yml
 
-Edit `/etc/opentalk-compose/settings.yml` and add the configuration below. The following example assumes the external Keycloak is reachable at `https://keycloak.example.com/auth`; replace the host with your own. The local Keycloak service will be disabled. Traefik sets Content Security Policies (CSP) by default. If the external Keycloak runs under a different domain, add that domain to the CSP (for example via `csp_allowed_extra_connect_src`).
+Edit `/etc/opentalk-compose/settings.yml` and add the configuration below. The following example assumes the external Keycloak is reachable at `https://keycloak.example.com/auth`; replace the host with your own. The local Keycloak service will be disabled. Traefik sets Content Security Policies (CSP) by default. If the external Keycloak runs under a different domain, add that domain to the CSP (for example via `traefik_csp_allowed_extra_connect_src`).
 
 ```yaml
 compose_service_keycloak_enabled: false
@@ -173,7 +173,7 @@ keycloak_realm: opentalk
 keycloak_admin_username: admin
 keycloak_admin_password: *****
 
-csp_allowed_extra_connect_src:
+traefik_csp_allowed_extra_connect_src:
   - https://keycloak.example.com
 ```
 
@@ -189,7 +189,7 @@ keycloak_admin_password: *****
 keycloak_bootstrap_admin_username: bootstrap_admin
 keycloak_bootstrap_admin_password: ******
 
-csp_allowed_extra_connect_src:
+traefik_csp_allowed_extra_connect_src:
   - https://keycloak.example.com
 ```
 
@@ -256,7 +256,7 @@ keycloak_base_url: https://keycloak.example.com/auth
 keycloak_realm: opentalk
 
 # If the external domain differs from the OpenTalk domain, allow it in CSP
-csp_allowed_extra_connect_src:
+traefik_csp_allowed_extra_connect_src:
   - https://keycloak.example.com
 ```
 
@@ -326,7 +326,7 @@ otctl deploy
 | Symptom | Cause | Resolution |
 | --------- | ------- | ----------- |
 | 403 on OIDC discovery | Incorrect `keycloak_base_url` (wrong host) | Fix URL and redeploy. |
-| CSP blocking | Domain or port missing in CSP | Add to `csp_allowed_extra_connect_src`. |
+| CSP blocking | Domain or port missing in CSP | Add to `traefik_csp_allowed_extra_connect_src`. |
 | Missing clients after import | Incomplete import or wrong file | Re-sanitize and re-import. |
 | Login redirect loop | Realm name or redirect URIs mismatch domain | Align realm name & client redirect URIs. |
 
@@ -499,7 +499,7 @@ controller_livekit_api_key: "generated key"
 controller_livekit_api_secret: "generated secret"
 
 # Add the WebSocket address to the Content Security Policy Content Security Policy (CSP)
-csp_allowed_extra_connect_src:
+traefik_csp_allowed_extra_connect_src:
   - wss://livekit.example.com
 ```
 
