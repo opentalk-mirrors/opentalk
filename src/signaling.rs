@@ -166,6 +166,10 @@ impl Signaling {
     pub async fn run(&mut self) -> Result<()> {
         let (welcome_finished_channel_tx, mut welcome_finished_channel_rx) =
             broadcast::channel::<()>(3);
+
+        let (waiting_room_accepted_channel_tx, mut waiting_room_accepted_channel_rx) =
+            broadcast::channel::<()>(3);
+
         let (closed_finished_channel_tx, mut closed_finished_channel_rx) =
             broadcast::channel::<()>(3);
 
@@ -191,7 +195,11 @@ impl Signaling {
                     self.media.ui_controller.set(self.dtmf_id.clone(), self.dtmf_pw.clone());
                 }
                 event = opentalk_room_receive(&mut self.opentalk_room) => {
-                    if let Err(e) = Box::pin(self.handle_opentalk_room_event(event, closed_finished_channel_tx.clone())).await {
+                    if let Err(e) = Box::pin(self.handle_opentalk_room_event(
+                        event,
+                        waiting_room_accepted_channel_tx.clone(),
+                        closed_finished_channel_tx.clone())
+                    ).await {
                         log::error!("failed to handle websocket event, {e:?}");
                     }
                 }
@@ -203,6 +211,12 @@ impl Signaling {
                 _ = welcome_finished_channel_rx.recv() => {
                     if let Err(e) = self.connect_to_conference().await  {
                         log::error!("Failed to join conference, {e:?}");
+                        self.state = State::Quitting;
+                    }
+                }
+                _ = waiting_room_accepted_channel_rx.recv() => {
+                    if let Err(e) = self.enter_from_waiting_room().await  {
+                        log::error!("Failed to enter from waiting room, {e:?}");
                         self.state = State::Quitting;
                     }
                 }
@@ -464,6 +478,7 @@ impl Signaling {
     async fn handle_opentalk_room_event(
         &mut self,
         event: Result<OpenTalkEvent>,
+        waiting_room_accepted_responder: broadcast::Sender<()>,
         closed_finished_responder: broadcast::Sender<()>,
     ) -> Result<()> {
         let opentalk_room = self
@@ -489,18 +504,18 @@ impl Signaling {
                 self.handle_participant_left(participant_id, connection_id);
             }
             OpenTalkEvent::MovedToWaitingRoom => {
+                self.track_controller
+                    .play_track(self.settings.language, Track::ModeratorSendWaitingRoom);
+
                 self.media.remove_compositor().await;
             }
 
             OpenTalkEvent::WaitingRoomAccepted => {
-                opentalk_room
-                    .enter_from_waiting_room()
-                    .await
-                    .context("Failed to enter conference from waiting room")?;
-
-                self.media.ui_controller.set_waiting_room(false);
-
-                self.handle_join_result().await?;
+                self.track_controller.play_track_and_respond(
+                    self.settings.language,
+                    Track::WelcomeUsage,
+                    waiting_room_accepted_responder,
+                );
             }
             OpenTalkEvent::LiveKit(event) => match event {
                 OpenTalkLiveKitEvent::MicrophoneRestrictionEnabled {
@@ -731,6 +746,24 @@ impl Signaling {
                 self.opentalk_room = Some(room);
             }
         };
+
+        Ok(())
+    }
+
+    async fn enter_from_waiting_room(&mut self) -> Result<()> {
+        let opentalk_room = self
+            .opentalk_room
+            .as_mut()
+            .context("Called enter_from_waiting_room without opentalk_room set")?;
+
+        opentalk_room
+            .enter_from_waiting_room()
+            .await
+            .context("Failed to enter conference from waiting room")?;
+
+        self.media.ui_controller.set_waiting_room(false);
+
+        self.handle_join_result().await?;
 
         Ok(())
     }
