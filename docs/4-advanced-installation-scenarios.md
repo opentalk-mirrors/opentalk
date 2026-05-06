@@ -736,3 +736,55 @@ otctl volumes rm opentalk_minio
 # After migrating away from Garage:
 otctl volumes rm opentalk_garage_data opentalk_garage_meta
 ```
+
+## 7 Customizing the web frontend
+
+### 7.1 Custom video backgrounds
+
+The web frontend ships with a built-in set of default video backgrounds (for
+example the OpenTalk "elevate" background) that users can choose from in the
+conference UI. These defaults are used as long as no custom configuration is
+provided.
+
+If you want to offer your own curated set of backgrounds, set
+`opentalk_web_frontend_environment_video_backgrounds` in
+`/etc/opentalk-compose/settings.yml`. **Configuring this variable replaces the
+built-in defaults entirely** — the shipped backgrounds will no longer be
+available unless you include them in your own list.
+
+To enable custom backgrounds:
+
+1. Define the backgrounds in `settings.yml` as a JSON array. Each entry must
+   provide `altText`, `url` and `thumb`. The `url` and `thumb` paths are
+   served from `/assets/videoBackgrounds/` inside the container.
+
+   ```yaml
+   opentalk_web_frontend_environment_video_backgrounds: >-
+     [{
+       altText: 'Office',
+       url: '/assets/videoBackgrounds/office.png',
+       thumb: '/assets/videoBackgrounds/thumbs/office-thumb.png',
+     },
+     {
+       altText: 'Beach',
+       url: '/assets/videoBackgrounds/beach.png',
+       thumb: '/assets/videoBackgrounds/thumbs/beach-thumb.png',
+     }]
+   ```
+
+2. Place the referenced image files on the host. The default location is
+   `/var/opt/opentalk-compose/backgrounds/` for full-size images and
+   `/var/opt/opentalk-compose/backgrounds/thumbs/` for thumbnails. The
+   directory is created automatically when the variable is non-empty and is
+   mounted read-only into the web frontend container at
+   `/usr/share/nginx/html/assets/videoBackgrounds`. Override the host path
+   with `opentalk_web_frontend_backgrounds_dir` if needed.
+
+3. Apply the configuration:
+
+   ```bash
+   otctl deploy
+   ```
+
+If the variable is left at its default empty value, no host volume is mounted
+and the frontend continues to use its built-in default backgrounds.
