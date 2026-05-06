@@ -23,8 +23,10 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `compose_service_mailcrab_enabled` | boolean | `false` |
 | `compose_service_opentalk_controller_enabled` | boolean | `true` |
 | `compose_service_opentalk_obelisk_enabled` | boolean | `false` |
+| `compose_service_opentalk_orchestrator_enabled` | boolean | `false` |
 | `compose_service_opentalk_outlook_add_in_enabled` | boolean | `false` |
 | `compose_service_opentalk_recorder_enabled` | boolean | `true` |
+| `compose_service_opentalk_roomserver_enabled` | boolean | `true` |
 | `compose_service_opentalk_smtp_mailer_enabled` | boolean | `false` |
 | `compose_service_opentalk_web_frontend_enabled` | boolean | `true` |
 | `compose_service_rabbitmq_enabled` | boolean | `true` |
@@ -627,6 +629,25 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_sip_transport` | string | `` |
 | `obelisk_sip_username` | string | `` |
 
+## opentalk_compose.opentalk_orchestrator
+
+| Variable | Type | Default Value |
+|----------|------|---------------|
+| `orchestrator_api_key_id` | string | `orchestrator` |
+| `orchestrator_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
+| `orchestrator_docker_compose_project_src` | string | `{{ deploy_dir }}` |
+| `orchestrator_docker_compose_services_dir` | string | `{{ services_dir }}` |
+| `orchestrator_docker_compose_services_state` | string | `{{ compose_service_opentalk_orchestrator_state \| default('present') }}` |
+| `orchestrator_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `orchestrator_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `orchestrator_docker_compose_ulimits_nproc` | integer | `8192` |
+| `orchestrator_docker_image_src` | string | `git.opentalk.dev:5050/opentalk/backend/services/orchestrator` |
+| `orchestrator_http_address` | string | `0.0.0.0` |
+| `orchestrator_http_port` | integer | `11222` |
+| `orchestrator_logging_default_directives` | string | `orchestrator=info` |
+| `orchestrator_public_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
+| `orchestrator_services_key_id` | string | `roomserver` |
+
 ## opentalk_compose.opentalk_outlook_add_in
 
 | Variable | Type | Default Value |
@@ -676,6 +697,34 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `recorder_rabbitmq_uri` | string | `amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F` |
 | `recorder_recorder_clock_format` | string | `%d.%m.%y %X %Z` |
 | `recorder_recorder_display` | string | `true` |
+
+## opentalk_compose.opentalk_roomserver
+
+| Variable | Type | Default Value |
+|----------|------|---------------|
+| `roomserver_api_key_id` | string | `roomserver` |
+| `roomserver_controller_api_key_id` | string | `controller` |
+| `roomserver_controller_url` | string | `http://controller:11311` |
+| `roomserver_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
+| `roomserver_docker_compose_project_src` | string | `{{ deploy_dir }}` |
+| `roomserver_docker_compose_services_dir` | string | `{{ services_dir }}` |
+| `roomserver_docker_compose_services_state` | string | `{{ compose_service_opentalk_roomserver_state \| default('present') }}` |
+| `roomserver_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `roomserver_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `roomserver_docker_compose_ulimits_nproc` | integer | `8192` |
+| `roomserver_docker_image_src` | string | `registry.heinlein.group/opentalk/roomserver` |
+| `roomserver_http_address` | string | `0.0.0.0` |
+| `roomserver_http_port` | integer | `11333` |
+| `roomserver_logging_default_directives` | string | `opentalk=debug` |
+| `roomserver_metrics_allowlist` | list | `[127.0.0.0/24, ::ffff:0:0/96, 172.16.0.0/12]` |
+| `roomserver_metrics_port` | string | `11412` |
+| `roomserver_monitoring_addr` | string | `0.0.0.0` |
+| `roomserver_monitoring_port` | string | `11411` |
+| `roomserver_orchestrator_api_key_id` | string | `orchestrator` |
+| `roomserver_orchestrator_url` | string | `http://orchestrator:11222` |
+| `roomserver_public_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
+| `roomserver_screen_share_requires_permission` | boolean | `false` |
+| `roomserver_service_url` | string | `http://roomserver:{{ roomserver_http_port }}` |
 
 ## opentalk_compose.opentalk_smtp_mailer
 
@@ -752,7 +801,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `opentalk_web_frontend_environment_oidc_client_id` | string | `{{ controller_oidc_frontend_client_id \| default('Frontend') }}` |
 | `opentalk_web_frontend_environment_oidc_issuer` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}` |
 | `opentalk_web_frontend_environment_suppress_browser_compatibility_info` | boolean | `false` |
-| `opentalk_web_frontend_environment_video_backgrounds` | string | `` |
+| `opentalk_web_frontend_environment_video_backgrounds` | string | `[{`<br>`  altText: 'My Background',`<br>`  url: '/assets/videoBackgrounds/my-bg.png',`<br>`  thumb: '/assets/videoBackgrounds/thumbs/my-bg-thumb.png',`<br>`}]` |
 | `opentalk_web_frontend_environment_waiting_room_default_value` | string | `{{ WAITING_ROOM_DEFAULT_VALUE \| default(false) }}` |
 | `opentalk_web_frontend_labels_traefik_enable` | boolean | `true` |
 | `opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
