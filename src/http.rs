@@ -11,7 +11,7 @@ use opentalk_types_api_internal::{
     call_in::PostCallInStartRoomServerRequestBody, recording::RecordingTarget,
 };
 use rand::distr::SampleString;
-use reqwest::StatusCode;
+use reqwest::{StatusCode, Url};
 use types::{
     api::v1::{
         pagination::PagePaginationQuery,
@@ -246,7 +246,25 @@ impl HttpClient {
         breakout_id: Option<BreakoutId>,
     ) -> Result<RoomserverStartResponseBody, StartRecorderError> {
         let url = controller_url.join("/internal/recording/start")?;
+        self.start_as_service(url, room_id, breakout_id).await
+    }
 
+    pub(crate) async fn start_as_transcription(
+        &self,
+        controller_url: &BaseUrl,
+        room_id: RoomId,
+        breakout_id: Option<BreakoutId>,
+    ) -> Result<RoomserverStartResponseBody, StartRecorderError> {
+        let url = controller_url.join("/internal/transcription/start")?;
+        self.start_as_service(url, room_id, breakout_id).await
+    }
+
+    async fn start_as_service(
+        &self,
+        controller_url: Url,
+        room_id: RoomId,
+        breakout_id: Option<BreakoutId>,
+    ) -> Result<RoomserverStartResponseBody, StartRecorderError> {
         let token = self
             .authentication
             .access_token()
@@ -255,7 +273,7 @@ impl HttpClient {
 
         let response = self
             .http_client
-            .post(url)
+            .post(controller_url)
             .bearer_auth(token.secret())
             .json(&RecordingTarget {
                 room_id,

@@ -26,22 +26,33 @@ use opentalk_roomserver_types_raise_hands::{command::RaiseHandsCommand, event::R
 use opentalk_roomserver_types_recording::{
     command::RecordingCommand, event::RecordingEvent, state::RecordingState,
 };
+use opentalk_roomserver_types_transcription::{
+    event::TranscriptionEvent, service::command::TranscriptionServiceCommand,
+    state::TranscriptionState,
+};
+use recording_service::RoomRecordingServiceState;
 use types::signaling::{ModuleData, ParticipantId};
 
-use crate::room::{livekit::RoomLiveKitState, recording::RoomRecordingState};
+use crate::room::{
+    livekit::RoomLiveKitState, recording::RoomRecordingState, transcription::RoomTranscriptionState,
+};
 
 mod breakout;
 mod livekit;
 mod participant;
 mod recording;
+mod transcription;
+
 mod recording_service;
+mod transcription_service;
 
 pub use breakout::{BreakoutApi, BreakoutConfig, BreakoutState};
 pub use livekit::{LiveKitApi, OpenTalkLiveKitEvent};
 pub use participant::Participant;
 pub use recording::{OpenTalkRecordingEvent, RecorderAction, RecordingApi};
-use recording_service::RoomRecordingServiceState;
 pub use recording_service::{OpenTalkRecordingServiceEvent, RecordingServiceApi};
+pub use transcription::TranscriptionApi;
+pub use transcription_service::TranscriptionServiceApi;
 
 #[derive(Debug)]
 pub struct Room {
@@ -53,6 +64,7 @@ pub struct Room {
     livekit_state: Option<RoomLiveKitState>,
     recording_state: Option<RoomRecordingState>,
     breakout_state: BreakoutState,
+    transcription_state: Option<RoomTranscriptionState>,
 
     event_info: Option<EventInfo>,
 
@@ -95,14 +107,20 @@ pub enum OpenTalkEvent {
     /// All events from the livekit module
     LiveKit(OpenTalkLiveKitEvent),
 
-    /// All events from the recording module
-    Recording(OpenTalkRecordingEvent),
-
     /// All Breakout events
     Breakout(BreakoutEvent),
 
+    /// All events from the recording module
+    Recording(OpenTalkRecordingEvent),
+
     /// All events from the recording-service module
     RecordingService(OpenTalkRecordingServiceEvent),
+
+    /// All events from the transcription module
+    Transcription(TranscriptionEvent),
+
+    /// All events from the transcription service module
+    TranscriptionService(TranscriptionServiceCommand),
 
     /// The participant was disconnected from the room. The [`Room`] must no longer be used.
     Disconnected(DisconnectReason),
@@ -125,6 +143,7 @@ impl Room {
             livekit_state: None,
             recording_state: None,
             breakout_state: BreakoutState::default(),
+            transcription_state: None,
 
             event_info: None,
             participants: HashMap::new(),
@@ -276,6 +295,16 @@ impl Room {
                     }
                 }
             },
+            SignalingModuleEvent::Transcription(transcription_event) => match transcription_event {
+                TranscriptionEvent::ServiceCommand { command } => {
+                    return Ok(Some(OpenTalkEvent::TranscriptionService(command)));
+                }
+                event => {
+                    if let Some(transcription_state) = &mut self.transcription_state {
+                        return transcription_state.handle_websocket_event(event);
+                    }
+                }
+            },
             _ => {}
         };
 
@@ -287,7 +316,7 @@ impl Room {
         moderation_event: ModerationEvent,
     ) -> Result<Option<OpenTalkEvent>> {
         match moderation_event {
-            ModerationEvent::Kicked => {
+            ModerationEvent::Kicked { .. } => {
                 Ok(Some(OpenTalkEvent::Disconnected(DisconnectReason::Kicked)))
             }
             ModerationEvent::Banned => {
@@ -520,6 +549,16 @@ impl Room {
             self.recording_state = None;
         }
 
+        // transcription
+        if let Some(transcription_state) = module_data
+            .get::<TranscriptionState>()
+            .context("Failed to parse transcription module state")?
+        {
+            self.transcription_state = Some(RoomTranscriptionState::new(transcription_state));
+        } else {
+            self.transcription_state = None;
+        }
+
         // breakout
         if let Some(breakout_config) = module_data
             .get::<BreakoutModuleData>()
@@ -676,5 +715,19 @@ impl Room {
         self.recording_service_state
             .is_some()
             .then_some(RecordingServiceApi { room: self })
+    }
+
+    /// Access the [`TranscriptionApi`] which contains function to interact with the transcription module
+    pub fn transcription_api(&mut self) -> Option<TranscriptionApi<'_>> {
+        self.transcription_state
+            .is_some()
+            .then_some(TranscriptionApi { room: self })
+    }
+
+    /// Access the [`TranscriptionServiceApi`] which contains functions to interact with the transcription service module
+    pub fn transcription_service_api(&mut self) -> Option<TranscriptionServiceApi<'_>> {
+        self.transcription_state
+            .is_some()
+            .then_some(TranscriptionServiceApi { room: self })
     }
 }
