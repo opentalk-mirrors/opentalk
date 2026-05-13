@@ -7,18 +7,16 @@ use std::{net::IpAddr, path::PathBuf};
 use anyhow::{Context, Result, bail};
 use config::{Config, Environment, File, FileFormat, FileSourceFile};
 use itertools::Itertools;
-use openidconnect::{ClientId, ClientSecret, IssuerUrl};
+use opentalk_client_signaling::BaseUrl;
+use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use owo_colors::OwoColorize;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Settings {
-    pub(crate) http: HttpSettings,
-    #[serde(default)]
-    pub(crate) monitoring: MonitoringSettings,
-    pub(crate) auth: AuthSettings,
     pub(crate) controller: ControllerSettings,
-    #[serde(default)]
+    pub(crate) http: HttpSettings,
+    pub(crate) monitoring: Option<MonitoringSettings>,
     pub(crate) transcription: TranscriptionSettings,
 }
 
@@ -111,6 +109,8 @@ pub(crate) struct HttpSettings {
     pub(crate) addr: IpAddr,
     #[serde(default = "default_http_port")]
     pub(crate) port: u16,
+
+    pub(crate) api_keys: ApiKeys,
 }
 
 fn default_http_address() -> IpAddr {
@@ -147,17 +147,9 @@ impl Default for MonitoringSettings {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct AuthSettings {
-    pub(crate) issuer: IssuerUrl,
-    pub(crate) client_id: ClientId,
-    pub(crate) client_secret: ClientSecret,
-}
-
-#[derive(Debug, Deserialize)]
 pub(crate) struct ControllerSettings {
-    pub(crate) domain: String,
-    #[serde(default)]
-    pub(crate) insecure: bool,
+    pub(crate) url: BaseUrl,
+    pub(crate) api_key: ApiKey,
 }
 
 #[derive(Clone, Debug, Deserialize)]

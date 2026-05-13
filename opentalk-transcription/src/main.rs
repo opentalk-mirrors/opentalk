@@ -5,17 +5,12 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
-use axum::{
-    Router,
-    extract::{Json, State},
-    routing::{get, post},
-};
+use async_trait::async_trait;
+use axum::{Router, routing::get};
 use futures::future::join_all;
-use opentalk_client_signaling::{
-    AuthConfig, ControllerConfig, OpenTalkClient,
-    config::{ClientConfig, ClientCredentialsAuthConfig},
-    types::signaling::transcription::http::StartTranscriptionRequestBody,
-};
+use opentalk_client_signaling::{AuthConfig, OpenTalkClient, config::ClientConfig};
+use opentalk_transcription_web_api::v1::{self, TranscriptionBackend, TranscriptionTarget};
+use opentalk_types_api_common::error::ApiError;
 use service_probe::{ServiceState, set_service_state, start_probe, stop_probe};
 use settings::Settings;
 use tokio::{
@@ -42,26 +37,13 @@ mod tasks;
 mod transcription;
 mod voice_activity_detection;
 
+#[derive(Clone)]
 pub(crate) struct AppState {
     pub(crate) tasks: Arc<Mutex<Vec<JoinHandle<Result<()>>>>>,
-    pub(crate) settings: Arc<Settings>,
     pub(crate) shutdown: ShutdownReceiver,
     pub(crate) whisper_context: Arc<WhisperContext>,
     pub(crate) prometheus_state: Arc<metrics::PrometheusState>,
     pub(crate) opentalk_client: Arc<OpenTalkClient>,
-}
-
-impl Clone for AppState {
-    fn clone(&self) -> Self {
-        Self {
-            tasks: self.tasks.clone(),
-            settings: self.settings.clone(),
-            shutdown: self.shutdown.resubscribe(),
-            whisper_context: self.whisper_context.clone(),
-            prometheus_state: self.prometheus_state.clone(),
-            opentalk_client: self.opentalk_client.clone(),
-        }
-    }
 }
 
 impl AppState {
@@ -70,15 +52,8 @@ impl AppState {
         shutdown_signal: ShutdownReceiver,
     ) -> Result<Self> {
         let opentalk_client = OpenTalkClient::create(ClientConfig {
-            auth: AuthConfig::ClientCredentials(ClientCredentialsAuthConfig {
-                issuer: settings.auth.issuer.clone(),
-                client_id: settings.auth.client_id.clone(),
-                client_secret: settings.auth.client_secret.clone(),
-            }),
-            controller: ControllerConfig {
-                domain: settings.controller.domain.clone(),
-                insecure: settings.controller.insecure,
-            },
+            auth: AuthConfig::ApiKey(settings.controller.api_key.clone()),
+            controller: settings.controller.url.clone(),
         })
         .await?;
 
@@ -90,23 +65,26 @@ impl AppState {
 
         Ok(Self {
             tasks: Arc::new(Mutex::new(Vec::new())),
-            settings: settings.clone(),
             shutdown: shutdown_signal,
             whisper_context: Arc::new(whisper_context),
             prometheus_state: Arc::new(metrics::PrometheusState::new()),
             opentalk_client: Arc::new(opentalk_client),
         })
     }
+}
 
-    pub(crate) async fn spawn_session(
-        &self,
-        room_info: StartTranscriptionRequestBody,
-    ) -> Result<()> {
+#[async_trait]
+impl TranscriptionBackend for AppState {
+    async fn init(&self, room_info: TranscriptionTarget) -> Result<(), ApiError> {
         let context = Arc::new(self.clone());
         log::debug!("Start Transcription session {:?}", room_info.room_id);
         let mut session = TranscriptionSession::create(context, room_info)
             .await
-            .context("transcription session failed to start")?;
+            .map_err(|err| {
+                log::error!("Failed to create transcription session: {err:?}");
+
+                ApiError::internal()
+            })?;
 
         let task = tokio::spawn(async move {
             if let Err(ref error) = session.run().await {
@@ -135,13 +113,11 @@ async fn main() -> Result<()> {
 
     let settings = Arc::new(Settings::load(args.config.as_ref()).context("Failed to read config")?);
 
-    start_probe(
-        settings.monitoring.addr,
-        settings.monitoring.port,
-        ServiceState::Up,
-    )
-    .await
-    .context("Failed to start monitoring endpoint")?;
+    if let Some(monitoring) = &settings.monitoring {
+        start_probe(monitoring.addr, monitoring.port, ServiceState::Up)
+            .await
+            .context("Failed to start monitoring endpoint")?;
+    }
 
     let mut tasks = Tasks::new();
 
@@ -169,10 +145,14 @@ async fn run_web_server(settings: Arc<Settings>, mut shutdown: ShutdownReceiver)
     let app_state = AppState::new(settings.clone(), shutdown.resubscribe()).await?;
     let prometheus_state = app_state.prometheus_state.clone();
 
-    // TODO: Add Metrics endpoint
-    // TODO: Add bearer token verification
+    let auth_middleware = settings
+        .http
+        .api_keys
+        .auth_middleware()
+        .context("Invalid API key configuration")?;
+
     let app = Router::new()
-        .route("/start", post(start_transcription))
+        .merge(v1::routes().layer(auth_middleware))
         .route("/metrics", get(async move || prometheus_state.metrics()))
         .route(
             "/model",
@@ -219,13 +199,6 @@ async fn run_web_server(settings: Arc<Settings>, mut shutdown: ShutdownReceiver)
     }
 
     Ok(())
-}
-
-async fn start_transcription(
-    State(transcription): State<AppState>,
-    Json(room_info): Json<StartTranscriptionRequestBody>,
-) {
-    transcription.spawn_session(room_info).await.unwrap();
 }
 
 async fn run_shutdown_signal_handler(mut shutdown_signal: ShutdownReceiver) {
