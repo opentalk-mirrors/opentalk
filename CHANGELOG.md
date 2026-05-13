@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.1.0-beta.5] - 2026-05-12
+
+[26.1.0-beta.5]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.5
+
+### 🚀 New features
+
+- (ansible) Add bulk user import via CSV/JSON to keycloak ([!157](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/157))
+- (web-frontend) Add support for custom video backgrounds via host volume mount ([!160](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/160))
+- (traefik) Add csp_allowed_extra_img_src variable to extend img-src in CSP header ([!162](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/162))
+
+### 📦 Dependencies
+
+- (deps) Update dependency ansible-core to v2.20.5 ([!161](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/161))
+- (deps) Update dependency community.crypto to v3.2.0 ([!158](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/158))
+- (deps) Update dependency community.general to v12.6.0 ([!159](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/159))
+- (deps) Update OpenTalk Web Frontend version 2.8.2 ([!169](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/169))
+- (deps) Update OpenTalk Controller version 0.33.3 ([!169](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/169))
+- (deps) Update OpenTalk Product version 26.1.0-beta.5 ([!169](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/169))
+
+### ⚙ Miscellaneous
+
+- (docs) Add commented production-relevant settings to settings.yml ([!164](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/164))
+- (obelisk) Update default values and add missing options ([!163](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/163))
+- (docs) Update CHANGELOG ([!169](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/169))
+
 ## [26.1.0-beta.4] - 2026-04-15
 
 [26.1.0-beta.4]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.4
