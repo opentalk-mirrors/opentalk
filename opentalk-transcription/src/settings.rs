@@ -8,6 +8,7 @@ use anyhow::{Context, Result, bail};
 use config::{Config, Environment, File, FileFormat, FileSourceFile};
 use itertools::Itertools;
 use opentalk_client_signaling::BaseUrl;
+use opentalk_orchestrator_client::OrchestratorConfig;
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use owo_colors::OwoColorize;
 use serde::Deserialize;
@@ -18,6 +19,7 @@ pub(crate) struct Settings {
     pub(crate) http: HttpSettings,
     pub(crate) monitoring: Option<MonitoringSettings>,
     pub(crate) transcription: TranscriptionSettings,
+    pub(crate) orchestrator: Option<OrchestratorConfig>,
 }
 
 impl Settings {

@@ -2,13 +2,21 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{sync::Arc, time::Duration};
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    fs,
+    sync::Arc,
+    time::Duration,
+};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use async_trait::async_trait;
 use axum::{Router, routing::get};
 use futures::future::join_all;
 use opentalk_client_signaling::{AuthConfig, OpenTalkClient, config::ClientConfig};
+use opentalk_orchestrator_client::{
+    ServiceAddress, TranscriptionEvent, TranscriptionResource, client::OrchestratorHandle,
+};
 use opentalk_transcription_web_api::v1::{self, TranscriptionBackend, TranscriptionTarget};
 use opentalk_types_api_common::error::ApiError;
 use service_probe::{ServiceState, set_service_state, start_probe, stop_probe};
@@ -27,28 +35,38 @@ use tokio::{
 use transcription::TranscriptionSession;
 use whisper_rs::{WhisperContext, WhisperContextParameters, install_logging_hooks};
 
-use crate::tasks::{ShutdownReceiver, Tasks};
+use crate::{
+    orchestrator::OrchestratorStateProvider,
+    tasks::{ShutdownReceiver, Tasks},
+};
 
 mod audio;
 mod cli;
 mod metrics;
+mod orchestrator;
 mod settings;
 mod tasks;
 mod transcription;
 mod voice_activity_detection;
 
+pub(crate) type TranscriptionTasks =
+    Arc<Mutex<HashMap<TranscriptionTarget, JoinHandle<Result<()>>>>>;
+
 #[derive(Clone)]
 pub(crate) struct AppState {
-    pub(crate) tasks: Arc<Mutex<Vec<JoinHandle<Result<()>>>>>,
-    pub(crate) shutdown: ShutdownReceiver,
+    pub(crate) tasks: TranscriptionTasks,
     pub(crate) whisper_context: Arc<WhisperContext>,
     pub(crate) prometheus_state: Arc<metrics::PrometheusState>,
     pub(crate) opentalk_client: Arc<OpenTalkClient>,
+    pub(crate) orchestrator_handle: Option<OrchestratorHandle>,
+    pub(crate) shutdown: ShutdownReceiver,
 }
 
 impl AppState {
     pub(crate) async fn new(
         settings: Arc<Settings>,
+        transcription_tasks: TranscriptionTasks,
+        orchestrator_handle: Option<OrchestratorHandle>,
         shutdown_signal: ShutdownReceiver,
     ) -> Result<Self> {
         let opentalk_client = OpenTalkClient::create(ClientConfig {
@@ -57,6 +75,15 @@ impl AppState {
         })
         .await?;
 
+        if !fs::exists(&settings.transcription.model)
+            .context("Failed to check if model path is valid")?
+        {
+            bail!(
+                "Failed to load model '{}', file does not exist",
+                settings.transcription.model
+            )
+        }
+
         let whisper_context = WhisperContext::new_with_params(
             &settings.transcription.model,
             WhisperContextParameters::default(),
@@ -64,21 +91,22 @@ impl AppState {
         .context("Failed to create whisper context")?;
 
         Ok(Self {
-            tasks: Arc::new(Mutex::new(Vec::new())),
-            shutdown: shutdown_signal,
+            tasks: transcription_tasks,
             whisper_context: Arc::new(whisper_context),
             prometheus_state: Arc::new(metrics::PrometheusState::new()),
             opentalk_client: Arc::new(opentalk_client),
+            orchestrator_handle,
+            shutdown: shutdown_signal,
         })
     }
 }
 
 #[async_trait]
 impl TranscriptionBackend for AppState {
-    async fn init(&self, room_info: TranscriptionTarget) -> Result<(), ApiError> {
+    async fn init(&self, target: TranscriptionTarget) -> Result<(), ApiError> {
         let context = Arc::new(self.clone());
-        log::debug!("Start Transcription session {:?}", room_info.room_id);
-        let mut session = TranscriptionSession::create(context, room_info)
+        log::debug!("Start Transcription session {:?}", target.room_id);
+        let session = TranscriptionSession::create(context, target.clone())
             .await
             .map_err(|err| {
                 log::error!("Failed to create transcription session: {err:?}");
@@ -86,15 +114,69 @@ impl TranscriptionBackend for AppState {
                 ApiError::internal()
             })?;
 
+        let tasks = Arc::clone(&self.tasks);
+        let orchestrator_handle = self.orchestrator_handle.clone();
+        let transcription_target = target.clone();
+
         let task = tokio::spawn(async move {
-            if let Err(ref error) = session.run().await {
-                log::error!("transcription session failed:\n{error:?}",);
+            match session.run().await {
+                Ok(()) => {
+                    log::debug!(
+                        "Transcription session for room {} finished",
+                        transcription_target.room_id
+                    );
+                }
+                Err(e) => {
+                    log::error!(
+                        "Transcription session for room {} exited with error: {e:?}",
+                        transcription_target.room_id
+                    );
+                }
+            }
+
+            if tasks.lock().await.remove(&transcription_target).is_none() {
+                log::error!(
+                    "Transcription session for room {:?} was not found in the task list",
+                    transcription_target.room_id
+                );
+            }
+
+            if let Some(orchestrator_handle) = orchestrator_handle {
+                if let Err(e) = orchestrator_handle
+                    .send_event(TranscriptionEvent::RemoveTranscription(
+                        TranscriptionResource {
+                            room_id: transcription_target.room_id,
+                            breakout_id: transcription_target.breakout_room,
+                        },
+                    ))
+                    .await
+                {
+                    log::error!(
+                        "Failed to notify orchestrator about removed transcription session: {e:?}"
+                    );
+                }
             }
 
             Ok(())
         });
 
-        self.tasks.lock().await.push(task);
+        let mut tasks = self.tasks.lock().await;
+
+        match tasks.entry(target) {
+            Entry::Occupied(occupied_entry) => {
+                log::error!(
+                    "Received request to start transcription for room {:?} but a session is already running",
+                    occupied_entry.key().room_id
+                );
+                task.abort();
+
+                return Err(ApiError::conflict()
+                    .with_message("A transcription session is already running for this room"));
+            }
+            Entry::Vacant(vacant_entry) => {
+                vacant_entry.insert(task);
+            }
+        }
 
         Ok(())
     }
@@ -126,8 +208,45 @@ async fn main() -> Result<()> {
         Ok(())
     });
 
+    let transcription_tasks: TranscriptionTasks = Arc::new(Mutex::new(HashMap::new()));
+
+    let mut orchestrator_handle = None;
+
+    if let Some(orchestrator_config) = &settings.orchestrator {
+        let transcription_key_ids = settings
+            .http
+            .api_keys
+            .inner()
+            .iter()
+            .map(|api_key| api_key.id.clone());
+
+        let state_provider = OrchestratorStateProvider::new(Arc::clone(&transcription_tasks));
+
+        let (client, handle) = opentalk_orchestrator_client::OrchestratorClient::create(
+            orchestrator_config.clone(),
+            transcription_key_ids,
+        )
+        .await;
+        orchestrator_handle = Some(handle);
+
+        let client_address = ServiceAddress::Port(settings.http.port);
+
+        tasks.spawn("orchestrator_client", move |mut shutdown| async move {
+            client
+                .run(client_address, state_provider, async move {
+                    let _ = shutdown.wait_for_shutdown().await;
+                })
+                .await
+        });
+    }
+
     tasks.spawn("webserver", move |shutdown| {
-        run_web_server(settings.clone(), shutdown)
+        run_web_server(
+            Arc::clone(&settings),
+            Arc::clone(&transcription_tasks),
+            orchestrator_handle,
+            shutdown,
+        )
     });
 
     tasks.wait_for_shutdown().await?;
@@ -136,13 +255,24 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn run_web_server(settings: Arc<Settings>, mut shutdown: ShutdownReceiver) -> Result<()> {
+async fn run_web_server(
+    settings: Arc<Settings>,
+    transcription_tasks: TranscriptionTasks,
+    orchestrator_handle: Option<OrchestratorHandle>,
+    mut shutdown: ShutdownReceiver,
+) -> Result<()> {
     let addr = settings.http.addr;
     let port = settings.http.port;
 
     let transcription_model_name = settings.transcription.model.clone();
 
-    let app_state = AppState::new(settings.clone(), shutdown.resubscribe()).await?;
+    let app_state = AppState::new(
+        settings.clone(),
+        transcription_tasks,
+        orchestrator_handle,
+        shutdown.resubscribe(),
+    )
+    .await?;
     let prometheus_state = app_state.prometheus_state.clone();
 
     let auth_middleware = settings
@@ -177,7 +307,7 @@ async fn run_web_server(settings: Arc<Settings>, mut shutdown: ShutdownReceiver)
 
     // Wait for all remaining transcription tasks to finish
     let mut transcription_tasks = app_state.tasks.lock().await;
-    transcription_tasks.retain(|task| !task.is_finished());
+    transcription_tasks.retain(|_, task| !task.is_finished());
 
     if !transcription_tasks.is_empty() {
         log::info!(
@@ -187,7 +317,7 @@ async fn run_web_server(settings: Arc<Settings>, mut shutdown: ShutdownReceiver)
 
         match timeout(
             Duration::from_secs(10),
-            join_all(transcription_tasks.iter_mut()),
+            join_all(transcription_tasks.iter_mut().map(|(_, task)| task)),
         )
         .await
         {

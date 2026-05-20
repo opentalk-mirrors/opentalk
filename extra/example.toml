@@ -55,3 +55,10 @@ port = 11412
 
 # Path to the whisper model file to load.
 #model = "models/ggml-large-v3-turbo.bin"
+
+# Optional orchestrator configuration
+#[orchestrator]
+# The API key of the orchestrator
+#api_key = { id = "orchestrator", secret = "secret" }
+# The orchestrator URL
+#url = "http://127.0.0.1:11222"
