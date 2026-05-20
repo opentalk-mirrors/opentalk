@@ -34,8 +34,8 @@ pub struct User {
     pub username: String,
     pub enabled: bool,
     pub email_verified: bool,
-    pub first_name: String,
-    pub last_name: String,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
     pub email: String,
     #[serde(default)]
     pub attributes: serde_json::Map<String, serde_json::Value>,
@@ -294,10 +294,10 @@ pub struct TenantFilter<'a> {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn deserialize_user() {
+    fn deserialize_complete_user() {
         use super::*;
 
-        let json_with_email = serde_json::json!({
+        let json = serde_json::json!({
             "id": "someid",
             "username": "someuser",
             "enabled": true,
@@ -306,6 +306,51 @@ mod tests {
             "lastName": "somelastname",
             "email": "someemail",
         });
+
+        let result: ParseResult = serde_json::from_value(json).unwrap();
+
+        assert!(matches!(result, ParseResult::User(_)));
+    }
+
+    #[test]
+    fn deserialize_user_without_first_name() {
+        use super::*;
+
+        let json = serde_json::json!({
+            "id": "someid",
+            "username": "someuser",
+            "enabled": true,
+            "emailVerified": true,
+            "lastName": "somelastname",
+            "email": "someemail",
+        });
+
+        let result: ParseResult = serde_json::from_value(json).unwrap();
+
+        assert!(matches!(result, ParseResult::User(_)));
+    }
+
+    #[test]
+    fn deserialize_user_without_lastname() {
+        use super::*;
+
+        let json = serde_json::json!({
+            "id": "someid",
+            "username": "someuser",
+            "enabled": true,
+            "emailVerified": true,
+            "firstName": "somefirstname",
+            "email": "someemail",
+        });
+
+        let result: ParseResult = serde_json::from_value(json).unwrap();
+
+        assert!(matches!(result, ParseResult::User(_)));
+    }
+
+    #[test]
+    fn deserialize_user_without_email() {
+        use super::*;
 
         let json_without_email = serde_json::json!({
             "id": "someid",
@@ -316,10 +361,8 @@ mod tests {
             "lastName": "somelastname",
         });
 
-        let parse_result_user: ParseResult = serde_json::from_value(json_with_email).unwrap();
-        let parse_result_failure: ParseResult = serde_json::from_value(json_without_email).unwrap();
+        let result: ParseResult = serde_json::from_value(json_without_email).unwrap();
 
-        assert!(matches!(parse_result_user, ParseResult::User(_)));
-        assert!(matches!(parse_result_failure, ParseResult::Failure {}));
+        assert!(matches!(result, ParseResult::Failure {}));
     }
 }
