@@ -7,6 +7,7 @@ use anyhow::{Context, Result, ensure};
 use ezk::{BoxedSourceCancelSafe, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange};
 use ezk_rtp::{Rtp, RtpConfig, RtpConfigRange, RtpPacket, Session, rtcp_types::Compound};
 use owo_colors::OwoColorize;
+use parking_lot::Mutex;
 use sdp_types::SrtpSuite;
 use srtp::{CryptoPolicy, StreamPolicy};
 use std::{collections::HashMap, future::pending, io, net::SocketAddr, sync::Arc, time::Duration};
@@ -17,8 +18,10 @@ use tokio::{
 };
 
 pub struct RtpSessions {
-    on_err: Arc<Box<dyn Fn() + Send + Sync>>,
     sessions: HashMap<MediaSessionId, Entry>,
+
+    on_err: Arc<Box<dyn Fn() + Send + Sync>>,
+    timestamp_last_activity_from_peer: Arc<Mutex<Instant>>,
 }
 
 #[derive(Debug)]
@@ -33,6 +36,7 @@ impl RtpSessions {
         Self {
             on_err: Arc::new(Box::new(on_err)),
             sessions: HashMap::new(),
+            timestamp_last_activity_from_peer: Arc::new(Mutex::new(Instant::now())),
         }
     }
 
@@ -203,6 +207,7 @@ impl RtpSessions {
                     rtcp_socket.clone(),
                     remote_rtp_addr,
                     remote_rtcp_addr,
+                    self.timestamp_last_activity_from_peer.clone(),
                 )
                 .run(),
             );
@@ -291,7 +296,7 @@ struct RtpTask {
     rtp_receiver_sink: Option<mpsc::Sender<RtpPacket>>,
 
     /// Timestamp we've last received a RTP or RTCP package from the caller
-    timestamp_last_activity_from_peer: Instant,
+    timestamp_last_activity_from_peer: Arc<Mutex<Instant>>,
 }
 
 enum State {
@@ -311,6 +316,7 @@ impl RtpTask {
         rtcp_socket: Arc<UdpSocket>,
         remote_rtp_addr: SocketAddr,
         remote_rtcp_addr: SocketAddr,
+        timestamp_last_activity_from_peer: Arc<Mutex<Instant>>,
     ) -> Self {
         Self {
             state: State::Ok,
@@ -325,7 +331,7 @@ impl RtpTask {
             encode_buf: Vec::new(),
             rtp_sender_source: None,
             rtp_receiver_sink: None,
-            timestamp_last_activity_from_peer: Instant::now(),
+            timestamp_last_activity_from_peer,
         }
     }
 
@@ -361,7 +367,7 @@ impl RtpTask {
                 // Send out RTCP packets in a fixed interval
                 _ = rtcp_interval.tick() => {
                     // Use the interval to check for activity timeout
-                    if self.timestamp_last_activity_from_peer.elapsed() > Duration::from_secs(5) {
+                    if self.timestamp_last_activity_from_peer.lock().elapsed() > Duration::from_secs(5) {
                         log::warn!("terminating call, no media was received for some time");
                         (self.on_err)();
                         return;
@@ -530,7 +536,7 @@ impl RtpTask {
             return;
         }
 
-        self.timestamp_last_activity_from_peer = Instant::now();
+        *self.timestamp_last_activity_from_peer.lock() = Instant::now();
 
         match RtpPacket::parse(&buf[..]) {
             Ok(pkg) => self.session.recv_rtp(pkg),
@@ -552,7 +558,7 @@ impl RtpTask {
             return;
         }
 
-        self.timestamp_last_activity_from_peer = Instant::now();
+        *self.timestamp_last_activity_from_peer.lock() = Instant::now();
 
         let compound = match Compound::parse(buf) {
             Ok(compound) => compound,
