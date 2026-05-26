@@ -33,6 +33,7 @@ livekit = "0.7"
 log = "0.4"
 opentalk-service-auth = "0.2"
 opentalk-client-signaling = "0.8"
+opentalk-orchestrator-client = "0.8"
 opentalk-version = "0.4"
 opentalk-types-api-common = "0.7"
 opentalk-types-common = "0.44"
@@ -43,6 +44,7 @@ service-probe = "0.4"
 tokio = "1"
 voice_activity_detector = "0.2"
 whisper-rs = "0.16"
+sysinfo = "0.39"
 
 [patch.crates-io]
 libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }

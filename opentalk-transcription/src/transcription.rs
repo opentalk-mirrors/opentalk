@@ -83,7 +83,10 @@ impl LivekitRoom {
 
 impl Drop for LivekitRoom {
     fn drop(&mut self) {
-        let room = self.room.take().expect("livekit room must be some");
+        let Some(room) = self.room.take() else {
+            // Room was already taken/dropped, nothing to do
+            return;
+        };
 
         tokio::spawn(async move {
             if let Err(err) = room.close().await {
@@ -155,7 +158,7 @@ impl TranscriptionSession {
         })
     }
 
-    pub(crate) async fn run(&mut self) -> Result<()> {
+    pub(crate) async fn run(mut self) -> Result<()> {
         self.room
             .transcription_service_api()
             .context("transcription service api not available")?
@@ -193,6 +196,14 @@ impl TranscriptionSession {
                 }
             }
         }
+
+        if let Some(livekit_room) = self.livekit_room.room.take() {
+            if let Err(e) = livekit_room.close().await {
+                log::error!("Failed to disconnect from livekit room: {e:?}");
+            }
+        }
+
+        self.room.close().await?;
 
         Ok(())
     }
