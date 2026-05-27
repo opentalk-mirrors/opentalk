@@ -15,7 +15,7 @@ opentalk_smtp_mailer_version: v0.17.0
 opentalk_outlook_add_in_version: v0.3.6-1
 spacedeck_version: v3.0.2
 etherpad_version: v2.0.3
-keycloak_version: 26.5.5
+keycloak_version: 26.5.7
 postgres_version: 17.9-alpine
 traefik_version: v3.6.10
 minio_version: RELEASE.2025-10-15T17-29-55Z
