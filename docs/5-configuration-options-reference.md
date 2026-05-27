@@ -437,20 +437,19 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 > **Note:** MinIO is an alternative S3 storage provider. To use MinIO instead of the default Garage, set `s3_storage_provider: minio` in `settings.yml`.
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
-| `minio_bucket_name` | string | `opentalk` |
+| Variable | Type | Default Value | Description |
+|----------|------|---------------|-------------|
+| `minio_bucket_name` | string | `opentalk` | |
+| `minio_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` | |
+| `minio_docker_compose_project_src` | string | `{{ deploy_dir }}` | |
+| `minio_docker_compose_services_dir` | string | `{{ services_dir }}` | |
+| `minio_docker_compose_services_state` | string | `{{ compose_service_minio_state \| default('present') }}` | |
+| `minio_docker_compose_ulimits_nofile_hard` | integer | `65536` | |
+| `minio_docker_compose_ulimits_nofile_soft` | integer | `65536` | |
+| `minio_docker_compose_ulimits_nproc` | integer | `8192` | |
+| `minio_docker_image_src` | string | `registry.heinlein.group/opentalk/minio` | |
+| `minio_docker_label_http_routers_minio_console_middlewares` | string | `minio-stripprefix` | |
 | `minio_s3_api_port` | integer | `9000` | Host port bound to `127.0.0.1` for the MinIO S3 API. Used by `rclone` during S3 migration. |
-| `minio_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
-| `minio_docker_compose_project_src` | string | `{{ deploy_dir }}` |
-| `minio_docker_compose_services_dir` | string | `{{ services_dir }}` |
-| `minio_docker_compose_services_state` | string | `{{ compose_service_minio_state \| default('present') }}` |
-| `minio_docker_compose_ulimits_nofile_hard` | integer | `65536` |
-| `minio_docker_compose_ulimits_nofile_soft` | integer | `65536` |
-| `minio_docker_compose_ulimits_nproc` | integer | `8192` |
-| `minio_docker_image_src` | string | `registry.heinlein.group/opentalk/minio` |
-| `minio_docker_label_http_routers_minio_console_middlewares` | string | `minio-stripprefix` |
-| `minio_s3_api_port` | integer | `9000` |
 
 ## opentalk_compose.s3_migrate
 
