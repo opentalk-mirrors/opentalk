@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-04-14
+Last updated: 2026-04-22
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -165,6 +165,24 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `garage_s3_web_port` | string | `3902` |
 | `garage_s3_web_root_domain` | string | `.web.garage` |
 | `garage_use_local_tz` | string | `false` |
+
+## opentalk_compose.import_users
+
+| Variable | Type | Default Value |
+|----------|------|---------------|
+| `import_users_default_password` | null | `null` |
+| `import_users_enabled` | boolean | `true` |
+| `import_users_file` | string | `/path/to/users.csv` |
+| `import_users_force_password_reset_email` | boolean | `false` |
+| `import_users_password_length` | integer | `20` |
+| `import_users_password_temporary` | boolean | `true` |
+| `import_users_realm` | string | `{{ keycloak_realm \| default('opentalk') }}` |
+| `keycloak_auth_password` | string | `{{ keycloak_permanent_admin_password \| default(KC_PERMANENT_ADMIN_PASSWORD) }}` |
+| `keycloak_auth_realm` | string | `master` |
+| `keycloak_auth_username` | string | `{{ keycloak_permanent_admin_username \| default('admin') }}` |
+| `keycloak_base_url` | string | `{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) \| build_subdomain_url }}/auth` |
+| `keycloak_local_hostname` | string | `` |
+| `keycloak_local_port` | string | `{{ ot_ingress_port }}` |
 
 ## opentalk_compose.keycloak
 
@@ -589,7 +607,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_monitoring_port` | integer | `11411` |
 | `obelisk_sip_addr` | string | `0.0.0.0` |
 | `obelisk_sip_contact` | string | `` |
-| `obelisk_sip_enforce_qop` | boolean | `true` |
+| `obelisk_sip_display_name_source` | string | `` |
+| `obelisk_sip_encode_video_at_half_bitrate` | string | `` |
+| `obelisk_sip_enforce_qop` | boolean | `false` |
 | `obelisk_sip_id` | string | `` |
 | `obelisk_sip_inbound_addr` | string | `192.0.2.1:5060` |
 | `obelisk_sip_inbound_media_ip` | string | `192.0.2.1` |
@@ -604,6 +624,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_sip_rtp_port_range_end` | integer | `49999` |
 | `obelisk_sip_rtp_port_range_start` | integer | `40000` |
 | `obelisk_sip_stun_server` | string | `` |
+| `obelisk_sip_transport` | string | `` |
 | `obelisk_sip_username` | string | `` |
 
 ## opentalk_compose.opentalk_outlook_add_in
@@ -730,7 +751,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `opentalk_web_frontend_environment_oidc_client_id` | string | `{{ controller_oidc_frontend_client_id \| default('Frontend') }}` |
 | `opentalk_web_frontend_environment_oidc_issuer` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}` |
 | `opentalk_web_frontend_environment_suppress_browser_compatibility_info` | boolean | `false` |
-| `opentalk_web_frontend_environment_video_backgrounds` | string | `[{`<br>`  altText: 'OpenTalk',`<br>`  url: '/assets/videoBackgrounds/elevate-bg.png',`<br>`  thumb: '/assets/videoBackgrounds/thumbs/elevate-bg-thumb.png',`<br>`}]` |
+| `opentalk_web_frontend_environment_video_backgrounds` | string | undefined (commented out). When defined, backgrounds directory is mounted as volume. Example: `[{ altText: 'My BG', url: '/assets/videoBackgrounds/my-bg.png', thumb: '/assets/videoBackgrounds/thumbs/my-bg-thumb.png' }]` |
+| `opentalk_web_frontend_backgrounds_dir` | string | `/var/opt/opentalk-compose/backgrounds` |
 | `opentalk_web_frontend_environment_waiting_room_default_value` | string | `{{ WAITING_ROOM_DEFAULT_VALUE \| default(false) }}` |
 | `opentalk_web_frontend_labels_traefik_enable` | boolean | `true` |
 | `opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
@@ -868,3 +890,5 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `traefik_providers_docker_exposedByDefault` | boolean | `false` |
 | `traefik_providers_file_directory` | string | `/etc/traefik/dynamic` |
 | `traefik_providers_file_watch` | boolean | `true` |
+| `csp_allowed_extra_img_src` | list | `[]` — Additional sources for `img-src` in the CSP header, e.g. `[https://avatars.example.com]` |
+| `csp_allowed_extra_connect_src` | list | `[]` — Additional sources for `connect-src` in the CSP header, e.g. `[https://keycloak.example.com]` |

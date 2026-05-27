@@ -1,0 +1,4 @@
+username,email,firstName,lastName,password,enabled,tariff_id,tariff_status,tenant_id,password_reset_email
+j.doe,j.doe@example.org,Jane,Doe,S3curePW!,true,OpenTalkDefaultTariff,,,false
+m.mustermann,m.mustermann@example.org,Max,Mustermann,An0therPW!,true,OpenTalkDefaultTariff,,default,false
+a.schmidt,a.schmidt@example.org,Anna,Schmidt,,true,,,,true

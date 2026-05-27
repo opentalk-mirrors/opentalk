@@ -22,7 +22,9 @@ insecure = {{ obelisk_controller_insecure | to_json }}
 [sip]
 addr = "{{ obelisk_sip_addr }}"
 port = {{ obelisk_sip_port }}
-
+{% if obelisk_sip_transport is defined and obelisk_sip_transport %}
+transport = "{{ obelisk_sip_transport }}"
+{% endif %}
 {% if obelisk_sip_id is defined and obelisk_sip_id %}
 id = "{{ obelisk_sip_id }}"
 {% endif %}
@@ -62,6 +64,12 @@ max_audio_bitrate = "{{ obelisk_sip_max_audio_bitrate }}"
 {% endif %}
 {% if obelisk_sip_max_video_bitrate is defined and obelisk_sip_max_video_bitrate %}
 max_video_bitrate = {{ obelisk_sip_max_video_bitrate }}
+{% endif %}
+{% if obelisk_sip_encode_video_at_half_bitrate is defined and obelisk_sip_encode_video_at_half_bitrate != '' %}
+encode_video_at_half_bitrate = {{ obelisk_sip_encode_video_at_half_bitrate | to_json }}
+{% endif %}
+{% if obelisk_sip_display_name_source is defined and obelisk_sip_display_name_source %}
+display_name_source = "{{ obelisk_sip_display_name_source }}"
 {% endif %}
 {% if obelisk_sip_offer_srtp is defined and obelisk_sip_offer_srtp != '' %}
 offer_srtp = {{ obelisk_sip_offer_srtp | to_json }}
