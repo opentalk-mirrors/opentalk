@@ -44,18 +44,6 @@ ignore = [
 
   # paste - no longer maintained
   "RUSTSEC-2024-0436",
-
-  # rustls-pemfile is unmaintained
-  "RUSTSEC-2025-0134",
-
-  # rustls-webpki Name constraints for URI names were incorrectly accepted
-  "RUSTSEC-2026-0098",
-
-  # rustls-webpki@0.101.7 Name constraints were accepted for certificates asserting a wildcard name
-  "RUSTSEC-2026-0099",
-
-  # rustls-webpki@0.101.7 Reachable panic in certificate revocation list parsing
-  "RUSTSEC-2026-0104",
 ]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
