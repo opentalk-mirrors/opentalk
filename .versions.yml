@@ -7,7 +7,7 @@
 opentalk_product_version: v26.1.0-beta.7
 
 # OpenTalk related Container Image Versions
-opentalk_controller_version: v0.33.4
+opentalk_controller_version: v0.33.5
 opentalk_web_frontend_version: v2.8.3
 opentalk_recorder_version: v0.16.2
 opentalk_obelisk_version: v0.21.2
