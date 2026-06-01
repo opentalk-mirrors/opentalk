@@ -29,6 +29,8 @@ postgres_docker_image_src: registry.heinlein.group/opentalk/postgres
 controller_docker_extra_hosts:
   - host.docker.internal:host-gateway
 
+controller_roomserver_kind: "external"
+
 controller_frontend_base_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}"
 # controller_operator_information_data_protection_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/data-protection"
 # controller_operator_information_support_phone_number: "+49 123 4567890"

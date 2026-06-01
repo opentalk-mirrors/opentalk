@@ -28,10 +28,10 @@ support_email_address = "{{ controller_operator_information_support_email_addres
 kind = "{{ controller_roomserver_kind | default('external') }}"
 {% if (controller_roomserver_kind | default('external')) == 'external' %}
 {% if compose_service_opentalk_orchestrator_enabled is defined and compose_service_opentalk_orchestrator_enabled %}
-url = "http://orchestrator:11222/roomserver/"
+service_url = "http://orchestrator:11222/roomserver/"
 api_key = { id = "orchestrator", secret = "{{ ORCHESTRATOR_API_SECRET }}" }
 {% else %}
-url = "http://roomserver:11333"
+service_url = "http://roomserver:11333"
 api_key = {id = "roomserver", secret = "{{ ROOMSERVER_API_SECRET}}" }
 {% endif %}
 {% endif %}
