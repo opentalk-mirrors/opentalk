@@ -103,6 +103,7 @@ audio_files! {
     "moderator_resumed", ModeratorResumed;
     "moderator_send_waiting_room", ModeratorSendWaitingRoom;
     "waiting_room_entered", WaitingRoomEntered;
+    "waiting_room_please_hold", WaitingRoomPleaseHold;
     "welcome_conference_id", WelcomeConferenceId;
     "welcome_passcode", WelcomePasscode;
     "welcome_refused", WelcomeRefused;
@@ -119,6 +120,8 @@ audio_files! {
     "off", Off;
 }
 
+wav_file!(WAITING_ROOM_LOOP => "../../audio/waiting_room_loop.wav");
+
 /// Handle to the elements element data
 ///
 /// Used to set the track the component should play
@@ -127,6 +130,15 @@ pub(crate) struct TrackController {
 }
 
 impl TrackController {
+    pub fn play_waiting_room_loop(&self, play: bool) {
+        let mut data = self.data.lock();
+
+        if data.play_waiting_room_loop != play {
+            data.play_waiting_room_loop = play;
+            data.waiting_room_loop_cursor = 0;
+        }
+    }
+
     pub fn play_track_and_respond(
         &self,
         language: Language,
@@ -175,6 +187,8 @@ impl TrackController {
 
 struct ElementData {
     queue: VecDeque<PlayingTrack>,
+    play_waiting_room_loop: bool,
+    waiting_room_loop_cursor: usize,
 }
 
 struct PlayingTrack {
@@ -187,21 +201,35 @@ struct PlayingTrack {
 impl ElementData {
     fn write_samples(&mut self, mut dst: &mut [i16]) {
         while let Some(front) = self.queue.front_mut() {
-            let amt = dst.len().min(front.track_data.len() - front.cursor);
-            if amt == 0 {
+            if dst.is_empty() {
                 return;
             }
-
-            dst[..amt].copy_from_slice(&front.track_data[front.cursor..front.cursor + amt]);
-            dst = &mut dst[amt..];
-            front.cursor += amt;
 
             if front.cursor == front.track_data.len() {
                 if let Some(sender) = &front.playback_finished_responder {
                     let _ = sender.send(());
                 }
                 self.queue.pop_front();
+                continue;
             }
+
+            let amt = dst.len().min(front.track_data.len() - front.cursor);
+            dst[..amt].copy_from_slice(&front.track_data[front.cursor..front.cursor + amt]);
+            dst = &mut dst[amt..];
+            front.cursor += amt;
+        }
+
+        if self.play_waiting_room_loop {
+            // Create iterator yielding samples from the last cursor
+            let start_index = self.waiting_room_loop_cursor % WAITING_ROOM_LOOP.len();
+            let mut samples = WAITING_ROOM_LOOP[start_index..]
+                .iter()
+                // Chain once to loop track
+                .chain(WAITING_ROOM_LOOP.iter());
+
+            dst.fill_with(|| *samples.next().unwrap_or(&0));
+
+            self.waiting_room_loop_cursor += dst.len();
         }
     }
 }
@@ -217,6 +245,8 @@ impl TrackSource {
         Self {
             data: Arc::new(Mutex::new(ElementData {
                 queue: VecDeque::new(),
+                play_waiting_room_loop: false,
+                waiting_room_loop_cursor: 0,
             })),
             interval: interval(Duration::from_millis(20)),
             timestamp: 0,
