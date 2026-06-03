@@ -53,6 +53,12 @@ pub enum ModerationEvent {
         issued_by: ParticipantId,
     },
 
+    /// Guests are now allowed to participate in the meeting
+    GuestAccessEnabled,
+
+    /// Guests are no longer allowed to participate in the meeting
+    GuestAccessDisabled,
+
     /// Sent when the waiting room state changed
     WaitingRoomUpdated {
         /// The new state of the waiting room
@@ -268,6 +274,50 @@ mod tests {
             issued_by: ParticipantId::nil(),
         };
         let produced = serde_json::from_value(json).unwrap();
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_guest_access_enabled() {
+        let produced = serde_json::to_string_pretty(&ModerationEvent::GuestAccessEnabled).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "guest_access_enabled"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_guest_access_enabled() {
+        let produced = serde_json::from_value(json!({
+            "message": "guest_access_enabled"
+        }))
+        .unwrap();
+        let expected = ModerationEvent::GuestAccessEnabled;
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_guest_access_disabled() {
+        let produced = serde_json::to_string_pretty(&ModerationEvent::GuestAccessDisabled).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "guest_access_disabled"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_guest_access_disabled() {
+        let produced = serde_json::from_value(json!({
+            "message": "guest_access_disabled"
+        }))
+        .unwrap();
+        let expected = ModerationEvent::GuestAccessDisabled;
 
         assert_eq!(expected, produced);
     }

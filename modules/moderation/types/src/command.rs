@@ -38,6 +38,12 @@ pub enum ModerationCommand {
     /// Start the debriefing
     Debrief(KickScope),
 
+    /// Allow guests to participate in the meeting.
+    EnableGuestAccess,
+
+    /// Disallow guests to participate in the meeting.
+    DisableGuestAccess,
+
     /// Set the state of the waiting room
     ChangeWaitingRoomState {
         /// The new state of the waiting room
@@ -228,6 +234,48 @@ mod tests {
         let expected = ModerationCommand::Debrief(KickScope::UsersAndGuests);
 
         assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn serialize_enable_guest_access() {
+        let cmd = ModerationCommand::EnableGuestAccess;
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "enable_guest_access"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_enable_guest_access() {
+        let json = json!({
+            "action": "enable_guest_access",
+        });
+        let produced = serde_json::from_value(json).unwrap();
+
+        assert_eq!(ModerationCommand::EnableGuestAccess, produced);
+    }
+
+    #[test]
+    fn serialize_disable_guest_access() {
+        let cmd = ModerationCommand::DisableGuestAccess;
+
+        assert_snapshot!(serde_json::to_string_pretty(&cmd).unwrap(), @r#"
+        {
+          "action": "disable_guest_access"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_disable_guest_access() {
+        let json = json!({
+            "action": "disable_guest_access",
+        });
+        let produced = serde_json::from_value(json).unwrap();
+
+        assert_eq!(ModerationCommand::DisableGuestAccess, produced);
     }
 
     #[test]

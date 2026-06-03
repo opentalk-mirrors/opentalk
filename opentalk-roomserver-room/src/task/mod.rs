@@ -646,7 +646,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 conference_connections.extend(state.connections());
             }
 
-            if !lobby_connections.is_empty() && conference_connections.is_empty() {
+            if lobby_connections.is_empty() && conference_connections.is_empty() {
                 tracing::error!(
                     "Failed to get connections for unknown participant {participant_id}"
                 );

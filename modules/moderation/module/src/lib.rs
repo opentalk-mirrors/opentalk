@@ -7,6 +7,7 @@ use std::{
 };
 
 use anyhow::{Context as _, anyhow};
+use itertools::Itertools as _;
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_shared_folder::{SharedFolderModule, UpdateSharedFolder};
 use opentalk_roomserver_signaling::{
@@ -181,6 +182,8 @@ impl SignalingModule for ModerationModule {
                 new_role,
             } => Self::update_participant_role(ctx, sender, participant_id, new_role),
             ModerationCommand::Debrief(kick_scope) => Self::debrief(ctx, sender, kick_scope),
+            ModerationCommand::EnableGuestAccess => Self::enable_guest_access(ctx, sender),
+            ModerationCommand::DisableGuestAccess => Self::disable_guest_access(ctx, sender),
             ModerationCommand::ChangeWaitingRoomState { new_state: state } => {
                 Self::set_waiting_room_state(ctx, sender, state)
             }
@@ -492,6 +495,80 @@ impl ModerationModule {
             },
         )?;
         ctx.kick_participants(kicked, KickReason::Debriefed);
+
+        Ok(())
+    }
+
+    fn enable_guest_access(
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        ctx.room_task_info.room.guest_access = true;
+
+        // Notify everyone that guest access was enabled
+        ctx.send_ws_message(
+            ctx.participants.connected().ids(),
+            ModerationEvent::GuestAccessEnabled,
+        )?;
+
+        Ok(())
+    }
+
+    fn disable_guest_access(
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+    ) -> Result<(), SignalingModuleError<ModerationError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(ModerationError::InsufficientPermissions.into());
+        }
+
+        ctx.room_task_info.room.guest_access = false;
+
+        let mut non_guests = Vec::new();
+        let mut guests = Vec::new();
+        for (&id, state) in ctx.participants.connected().iter() {
+            if state.kind.is_guest_or_callin() {
+                guests.push(id);
+            } else {
+                non_guests.push(id);
+            }
+        }
+
+        // Notify guests in the conference that they will be kicked
+        ctx.send_ws_message(
+            guests.clone(),
+            ModerationEvent::Kicked {
+                reason: KickReason::GuestAccessDisabled,
+            },
+        )?;
+
+        // Collect guests that are connected to the lobby
+        let lobby_guests = ctx
+            .lobby_participants
+            .iter()
+            .filter_map(|(id, state)| state.kind.is_guest_or_callin().then_some(*id));
+
+        // Notify guests in the lobby that they will be kicked
+        ctx.send_ws_message_to_lobby(
+            lobby_guests.clone(),
+            ModerationEvent::Kicked {
+                reason: KickReason::GuestAccessDisabled,
+            },
+        )?;
+
+        // Notify everyone else that guest access was disabled
+        ctx.send_ws_message(non_guests, ModerationEvent::GuestAccessDisabled)?;
+
+        // Kick all guests from the conference and the lobby. A guest can be connected to both at
+        // the same time, so deduplicate to avoid kicking the same participant twice.
+        ctx.kick_participants(
+            guests.into_iter().chain(lobby_guests).unique().collect(),
+            KickReason::GuestAccessDisabled,
+        );
 
         Ok(())
     }

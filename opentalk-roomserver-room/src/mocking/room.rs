@@ -212,6 +212,11 @@ impl TestRoomBuilder {
         self
     }
 
+    pub fn guest_access(mut self, guest_access: bool) -> Self {
+        self.room_parameters.guest_access = guest_access;
+        self
+    }
+
     pub fn spawn(self) -> TestRoom {
         TestRoom::spawn(
             self.room_id,

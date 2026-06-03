@@ -19,6 +19,8 @@ pub enum DisconnectReason {
     Banned,
     /// The participant was sent to the waiting room
     SentToWaitingRoom,
+    /// The participant is a guest and guest access has been disabled
+    GuestAccessDisabled,
     /// The participant was removed due to an internal error
     InternalError,
 }

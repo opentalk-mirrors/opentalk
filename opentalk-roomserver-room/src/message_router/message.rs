@@ -29,6 +29,9 @@ pub enum CloseReason {
     /// The participant was banned from the room
     Banned,
 
+    /// The participant is a guest and guest access has been disabled
+    GuestAccessDisabled,
+
     InternalError,
 }
 
@@ -40,6 +43,7 @@ impl From<CloseReason> for DisconnectReason {
             CloseReason::Kicked => DisconnectReason::Kicked,
             CloseReason::Debriefed => DisconnectReason::Debriefed,
             CloseReason::Banned => DisconnectReason::Banned,
+            CloseReason::GuestAccessDisabled => DisconnectReason::GuestAccessDisabled,
             CloseReason::InternalError | CloseReason::TaskClosed => DisconnectReason::InternalError,
         }
     }
@@ -50,6 +54,7 @@ impl From<KickReason> for CloseReason {
         match value {
             KickReason::Kicked => CloseReason::Kicked,
             KickReason::Debriefed => CloseReason::Debriefed,
+            KickReason::GuestAccessDisabled => CloseReason::GuestAccessDisabled,
         }
     }
 }

@@ -17,6 +17,7 @@ workspace = true
 
 [dependencies]
 anyhow.workspace = true
+itertools.workspace = true
 opentalk-roomserver-module-livekit.workspace = true
 opentalk-roomserver-module-shared-folder.workspace = true
 opentalk-roomserver-signaling.workspace = true
