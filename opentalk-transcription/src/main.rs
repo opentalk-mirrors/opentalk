@@ -5,6 +5,7 @@
 use std::{
     collections::{HashMap, hash_map::Entry},
     fs,
+    process::exit,
     sync::Arc,
     time::Duration,
 };
@@ -20,6 +21,7 @@ use opentalk_orchestrator_client::{
 use opentalk_transcription_web_api::v1::{self, TranscriptionBackend, TranscriptionTarget};
 use opentalk_types_api_common::error::ApiError;
 use service_probe::{ServiceState, set_service_state, start_probe, stop_probe};
+use service_probe_client::is_ready;
 use settings::Settings;
 use tokio::{
     net::TcpListener,
@@ -36,6 +38,7 @@ use transcription::TranscriptionSession;
 use whisper_rs::{WhisperContext, WhisperContextParameters, install_logging_hooks};
 
 use crate::{
+    cli::Commands,
     orchestrator::OrchestratorStateProvider,
     tasks::{ShutdownReceiver, Tasks},
 };
@@ -189,11 +192,40 @@ async fn main() -> Result<()> {
     install_logging_hooks();
 
     let args = cli::parse_args();
-    if !args.should_start() {
+    if args.should_print() {
         return Ok(());
     }
 
     let settings = Arc::new(Settings::load(args.config.as_ref()).context("Failed to read config")?);
+    if let Some(Commands::Health { endpoint }) = args.command {
+        let Some(monitoring_endpoint) = endpoint.or_else(|| {
+            settings.monitoring.as_ref().map(|monitoring_settings| {
+                format!(
+                    "http://{}:{}",
+                    monitoring_settings.addr, monitoring_settings.port
+                )
+                .parse()
+                .expect("valid endpoint can be built from monitoring settings")
+            })
+        }) else {
+            log::warn!("Monitoring not configured and no url endpoint parameter given");
+            exit(1);
+        };
+        return match is_ready(&monitoring_endpoint).await {
+            Ok(true) => {
+                log::info!("READY");
+                Ok(())
+            }
+            Ok(false) => {
+                log::info!("Not Ready");
+                exit(1)
+            }
+            Err(err) => {
+                log::error!("Err: {err}");
+                exit(-1)
+            }
+        };
+    }
 
     if let Some(monitoring) = &settings.monitoring {
         start_probe(monitoring.addr, monitoring.port, ServiceState::Up)
