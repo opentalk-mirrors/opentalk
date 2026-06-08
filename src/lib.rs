@@ -36,8 +36,8 @@
 
 use anyhow::Context as _;
 use clap::ArgAction;
-use vergen::{BuildBuilder, CargoBuilder, Emitter, RustcBuilder};
-use vergen_git2::Git2Builder;
+use vergen::{Build, Cargo, Emitter, Rustc};
+use vergen_git2::Git2;
 
 /// This macro will expand to a module `build_info` which contains a struct `BuildInfo`.
 /// The struct can be used to access build information.
@@ -182,16 +182,16 @@ impl InfoArgs {
 pub fn collect_build_information() -> anyhow::Result<()> {
     let mut emitter = Emitter::default();
     let builder = emitter
-        .add_instructions(&CargoBuilder::all_cargo().context("Failed to build cargo variables")?)
+        .add_instructions(&Cargo::all_cargo())
         .context("Failed to add cargo instructions")?
-        .add_instructions(&BuildBuilder::all_build().context("Failed to build builder variables")?)
+        .add_instructions(&Build::all_build())
         .context("Failed to add builder variables")?
-        .add_instructions(&RustcBuilder::all_rustc().context("Failed to build rustc variables")?)
+        .add_instructions(&Rustc::all_rustc())
         .context("Failed to add rustc variables")?;
 
     if is_contained_in_git()? {
         builder
-            .add_instructions(&Git2Builder::all_git().context("Failed to build git variables")?)
+            .add_instructions(&Git2::all_git())
             .context("Failed to add git variables")?;
     }
     builder.emit().context("Failed to emit")?;
