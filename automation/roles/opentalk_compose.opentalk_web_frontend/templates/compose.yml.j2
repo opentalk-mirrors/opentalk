@@ -18,7 +18,7 @@ services:
 {% endfor %}
 {% endif %}
     restart: always
-{% if opentalk_web_frontend_environment_video_backgrounds is defined %}
+{% if opentalk_web_frontend_environment_video_backgrounds | default('') | length > 0 %}
     volumes:
       - {{ opentalk_web_frontend_backgrounds_dir }}:/usr/share/nginx/html/assets/videoBackgrounds:ro
 {% endif %}
@@ -35,7 +35,7 @@ services:
       CHANGE_PASSWORD_URL: {{ opentalk_web_frontend_environment_change_password_url }}
       ERROR_REPORT_ADDRESS: {{ opentalk_web_frontend_environment_error_report_address }}
       LIBRAVATAR_DEFAULT_IMAGE: {{ opentalk_web_frontend_environment_libravatar_default_image }}
-{% if opentalk_web_frontend_environment_video_backgrounds is defined %}
+{% if opentalk_web_frontend_environment_video_backgrounds | default('') | length > 0 %}
       VIDEO_BACKGROUNDS: >-
         {{ opentalk_web_frontend_environment_video_backgrounds | string | indent(8) }}
 {% endif %}

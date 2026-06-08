@@ -29,15 +29,11 @@ opentalk_web_frontend_environment_change_password_url: "{{ keycloak_base_url }}/
 opentalk_web_frontend_environment_error_report_address: "{{ ERROR_REPORT_ADDRESS | default('reports@example.com') }}"
 opentalk_web_frontend_environment_libravatar_default_image: "{{ LIBRAVATAR_DEFAULT_IMAGE | default('identicon') }}"
 # Custom video backgrounds for the web frontend.
-# When defined, the backgrounds directory is mounted into the container.
-# Format: JSON array of objects with altText, url, and thumb properties.
-# Example:
-# opentalk_web_frontend_environment_video_backgrounds: >-
-#   [{
-#     altText: 'My Background',
-#     url: '/assets/videoBackgrounds/my-bg.png',
-#     thumb: '/assets/videoBackgrounds/thumbs/my-bg-thumb.png',
-#   }]
+# Set this to a JSON array of objects with altText, url and thumb properties to
+# enable. When non-empty, the backgrounds directory is mounted into the
+# container as a read-only volume.
+# See docs/5-configuration-options-reference.md for a configuration example.
+opentalk_web_frontend_environment_video_backgrounds: ""
 
 opentalk_web_frontend_backgrounds_dir: /var/opt/opentalk-compose/backgrounds
 

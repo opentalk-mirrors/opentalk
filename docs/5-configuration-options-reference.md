@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-04-22
+Last updated: 2026-05-06
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -721,6 +721,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 | Variable | Type | Default Value |
 |----------|------|---------------|
+| `opentalk_web_frontend_backgrounds_dir` | string | `/var/opt/opentalk-compose/backgrounds` |
 | `opentalk_web_frontend_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `opentalk_web_frontend_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `opentalk_web_frontend_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -750,8 +751,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `opentalk_web_frontend_environment_oidc_client_id` | string | `{{ controller_oidc_frontend_client_id \| default('Frontend') }}` |
 | `opentalk_web_frontend_environment_oidc_issuer` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}` |
 | `opentalk_web_frontend_environment_suppress_browser_compatibility_info` | boolean | `false` |
-| `opentalk_web_frontend_environment_video_backgrounds` | string | undefined (commented out). When defined, backgrounds directory is mounted as volume. Example: `[{ altText: 'My BG', url: '/assets/videoBackgrounds/my-bg.png', thumb: '/assets/videoBackgrounds/thumbs/my-bg-thumb.png' }]` |
-| `opentalk_web_frontend_backgrounds_dir` | string | `/var/opt/opentalk-compose/backgrounds` |
+| `opentalk_web_frontend_environment_video_backgrounds` | string | `` |
 | `opentalk_web_frontend_environment_waiting_room_default_value` | string | `{{ WAITING_ROOM_DEFAULT_VALUE \| default(false) }}` |
 | `opentalk_web_frontend_labels_traefik_enable` | boolean | `true` |
 | `opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
@@ -889,5 +889,3 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `traefik_providers_docker_exposedByDefault` | boolean | `false` |
 | `traefik_providers_file_directory` | string | `/etc/traefik/dynamic` |
 | `traefik_providers_file_watch` | boolean | `true` |
-| `csp_allowed_extra_img_src` | list | `[]` — Additional sources for `img-src` in the CSP header, e.g. `[https://avatars.example.com]` |
-| `csp_allowed_extra_connect_src` | list | `[]` — Additional sources for `connect-src` in the CSP header, e.g. `[https://keycloak.example.com]` |
