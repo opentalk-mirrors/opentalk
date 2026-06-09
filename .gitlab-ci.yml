@@ -82,7 +82,7 @@ lint:unnecessary_dependencies:
 lint:yaml:
   stage: lint
   <<: *default_job_condition
-  image: alpine:3.23
+  image: alpine:3.24
   before_script:
     - apk add --no-cache yamllint
   script: yamllint .
