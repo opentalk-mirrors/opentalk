@@ -861,6 +861,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `traefik_basicAuth_dashboard_admin` | string | `admin` |
 | `traefik_basicAuth_dashboard_admin_password` | string | `{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD }}` |
 | `traefik_basicAuth_dashboard_admin_password_salt` | string | `{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD_SALT }}` |
+| `traefik_csp_allowed_extra_connect_src` | list | `[]` — Additional sources for `connect-src` in the CSP header, e.g. `[https://keycloak.example.com]` |
+| `traefik_csp_allowed_extra_img_src` | list | `[]` — Additional sources for `img-src` in the CSP header, e.g. `[https://avatars.example.com]` |
 | `traefik_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `traefik_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `traefik_docker_compose_services_dir` | string | `{{ services_dir }}` |
