@@ -28,9 +28,7 @@
 - name: Check if all compose includes exist
   ansible.builtin.include_tasks:
     file: "{{ playbook_dir }}/../roles/opentalk_compose.docker_env/tasks/check_compose_includes.yml"
-  when:
-    - compose_service_opentalk_roomserver_enabled | bool
-    - not (compose_includes_ready | default(false))
+  when: not (compose_includes_ready | default(false))
 
 - name: Manage OpenTalk Roomserver Docker Compose state
   community.docker.docker_compose_v2:
@@ -41,6 +39,4 @@
     files:
       - compose.yml
     state: "{{ roomserver_docker_compose_services_state }}"
-  when:
-    - compose_service_opentalk_roomserver_enabled | bool
-    - compose_includes_ready | default(false)
+  when: compose_includes_ready | default(false)
