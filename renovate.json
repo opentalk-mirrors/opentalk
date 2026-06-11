@@ -5,5 +5,14 @@
   ],
   "reviewers": [
     "@opentalk/tools/renovate-reviewers/libs"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "^vergen*"
+      ],
+      "groupName": "vergen",
+      "groupSlug": "vergen"
+    }
   ]
 }
