@@ -6,7 +6,8 @@
 // this causes clippy to fail in the build_info! macro.
 #![allow(clippy::format_push_string)]
 
-use clap::{ArgAction, Parser};
+use clap::{ArgAction, Parser, Subcommand};
+use reqwest::Url;
 
 #[derive(Parser, Debug, Clone)]
 pub(crate) struct Args {
@@ -25,12 +26,24 @@ pub(crate) struct Args {
     /// - `/etc/opentalk/transcription.toml`
     #[clap(short, long, verbatim_doc_comment)]
     pub(crate) config: Option<String>,
+
+    #[clap(subcommand)]
+    pub(crate) command: Option<Commands>,
+}
+
+#[derive(Debug, Subcommand, Clone)]
+pub enum Commands {
+    /// Return the readiness state
+    Health {
+        /// The monitoring endpoint can be provided optionally
+        endpoint: Option<Url>,
+    },
 }
 
 impl Args {
-    /// Returns true if we want to startup the controller after we finished the cli part
-    pub(crate) fn should_start(&self) -> bool {
-        !self.version
+    /// Returns true if we want to print version
+    pub(crate) fn should_print(&self) -> bool {
+        self.version
     }
 }
 
