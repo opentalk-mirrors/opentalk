@@ -75,6 +75,10 @@ waiting_room_entered:
     "Sie haben den Warteraum betreten. Bitte warten Sie, bis der Moderator Sie einlässt.",
     "You have entered the waiting room. Please wait for the moderator to let you into the conference.";
 
+waiting_room_please_hold:
+    "Bitte warten. Sie werden in Kürze verbunden.",
+    "Please hold. You will be connected shortly.";
+
 welcome_conference_id:
     "Willkommen bei OpenTalk. Bitte geben Sie die Konferenz-kennung ein.",
     "Welcome to OpenTalk. Please enter the conference ID.";
