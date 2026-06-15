@@ -12,7 +12,7 @@ use opentalk_roomserver_types::{
 
 /// Information associated with a participant that joined the waiting room.
 #[derive(Debug, Clone)]
-pub struct WaitingParticipant {
+pub struct LobbyParticipant {
     /// The kind of the participant
     pub kind: ClientKind,
 

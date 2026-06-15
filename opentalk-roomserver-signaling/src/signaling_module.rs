@@ -97,7 +97,7 @@ pub trait SignalingModule: Send + Sync + Sized + SignalingModuleDescription {
     ) -> Result<(), SignalingModuleError<Self::Error>>;
 
     #[allow(unused_variables)]
-    fn on_websocket_message_waiting_room(
+    fn on_websocket_message_lobby(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,

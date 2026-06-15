@@ -37,7 +37,7 @@
 //! # [`ConnectionId`] and [`ParticipantId`]
 //!
 //! Every connection to a Room is identified by the [`ConnectionId`]. The connection ID is generated
-//! by [`MessageRouter::add_conference_connection`]/[`MessageRouter::add_waiting_room_connection`].
+//! by [`MessageRouter::add_conference_connection`]/[`MessageRouter::add_lobby_connection`].
 //!
 //! For registered users, the [`ParticipantId`] is derived from the [`UserId`] that is part of the
 //! [`PublicUserProfile`]. Guests and services don't have a such a profile. These clients provide a
@@ -69,12 +69,12 @@ use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
     instruction::Instruction,
     internal_module_message::InterModuleMessage,
+    lobby_participant::LobbyParticipant,
     loopback::{LoopbackFuture, LoopbackMessage},
     module_context::ModuleMessage,
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
     signaling_module::SignalingModuleInitData,
-    waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
@@ -113,8 +113,8 @@ pub mod context;
 pub mod core;
 pub mod handle;
 mod livekit;
+pub mod lobby;
 pub mod timeout;
-pub mod waiting_room;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RoomTaskApiError {
@@ -168,8 +168,8 @@ pub struct RoomTask<Socket: SignalingSocket + 'static> {
 
     ctx: RoomTaskContext,
 
-    /// Collection of participants in the waiting room.
-    waiting_participants: HashMap<ParticipantId, WaitingParticipant>,
+    /// Collection of participants in the lobby.
+    lobby_participants: HashMap<ParticipantId, LobbyParticipant>,
 
     /// Set of participants that are banned from the room
     banned_participants: HashMap<ParticipantId, BannedParticipant>,
@@ -251,7 +251,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 loopback_futures,
                 participants: Participants::new(),
                 modules,
-                waiting_participants: HashMap::new(),
+                lobby_participants: HashMap::new(),
                 banned_participants: HashMap::new(),
                 quota_timeout: Timeout::new(Duration::from_secs(time_limit)),
                 metrics: Metrics::new(),
@@ -479,7 +479,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             msg.origin,
             &mut self.info,
             &mut self.participants,
-            &mut self.waiting_participants,
+            &mut self.lobby_participants,
             &mut self.banned_participants,
             msg.timestamp,
             Arc::clone(&self.ctx.asset_storage),
@@ -521,7 +521,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     message,
                 } => self
                     .message_router
-                    .waiting_room
+                    .lobby
                     .send_event([connection_id], message),
                 ModuleMessage::InternalCommand(inter_module_message) => {
                     self.handle_internal_command(
@@ -567,7 +567,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             origin,
             &mut self.info,
             &mut self.participants,
-            &mut self.waiting_participants,
+            &mut self.lobby_participants,
             &mut self.banned_participants,
             timestamp,
             Arc::clone(&self.ctx.asset_storage),
@@ -614,8 +614,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 reason,
             } => self.kick_participants(origin, participants, reason.into()),
             Instruction::Ban { participant } => self.ban_participants(origin, participant),
-            Instruction::BanWaiting { participant } => {
-                self.ban_waiting_participants(participant);
+            Instruction::BanLobby { participant } => {
+                self.ban_lobby_participants(participant);
                 Ok(())
             }
             Instruction::MoveToWaitingRoom { participant } => {
@@ -673,17 +673,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         Ok(())
     }
 
-    fn ban_waiting_participants(&mut self, participant_id: ParticipantId) {
-        let Some(waiting_participant) = self.waiting_participants.get(&participant_id) else {
+    fn ban_lobby_participants(&mut self, participant_id: ParticipantId) {
+        let Some(lobby_participant) = self.lobby_participants.get(&participant_id) else {
             tracing::error!("Failed to ban participant, {participant_id} does not exist");
             return;
         };
 
         let connections: Vec<ConnectionId> =
-            waiting_participant.connections.keys().copied().collect();
+            lobby_participant.connections.keys().copied().collect();
 
         for connection_id in connections {
-            self.disconnect_waiting_participant(participant_id, connection_id);
+            self.disconnect_lobby_participant(participant_id, connection_id);
         }
     }
 
@@ -728,10 +728,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         message_envelope: MessageEnvelope<SignalingMessage>,
     ) -> Result<(), FatalError> {
         if self
-            .waiting_participants
+            .lobby_participants
             .contains_key(&message_envelope.participant_id)
         {
-            self.handle_waiting_room_message(message_envelope)
+            self.handle_lobby_message(message_envelope)
         } else {
             self.handle_conference_message(message_envelope)
         }
@@ -767,7 +767,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(level = "info", skip_all, parent = &span, fields(participant_id = %participant_id))]
-    fn handle_waiting_room_message(
+    fn handle_lobby_message(
         &mut self,
         MessageEnvelope {
             participant_id,
@@ -781,11 +781,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 tracing::trace!(
                     "Websocket closed for participant {participant_id}: {close_reason:?}"
                 );
-                self.disconnect_waiting_participant(participant_id, connection_id);
+                self.disconnect_lobby_participant(participant_id, connection_id);
                 Ok(())
             }
             SignalingMessage::Command(signaling_command) => {
-                self.handle_waiting_room_command(signaling_command, participant_id, connection_id)
+                self.handle_lobby_command(signaling_command, participant_id, connection_id)
             }
         }
     }
@@ -837,7 +837,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    fn handle_waiting_room_command(
+    fn handle_lobby_command(
         &mut self,
         signaling_command: SignalingCommand,
         participant_id: ParticipantId,
@@ -853,7 +853,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         match &signaling_command.namespace {
             m if *m == CORE_MODULE_ID => {
-                self.handle_waiting_room_core_command(participant_origin, signaling_command);
+                self.handle_lobby_core_command(participant_origin, signaling_command);
                 Ok(())
             }
             _ => {
@@ -898,7 +898,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             origin,
             &mut self.info,
             &mut self.participants,
-            &mut self.waiting_participants,
+            &mut self.lobby_participants,
             &mut self.banned_participants,
             timestamp,
             Arc::clone(&self.ctx.asset_storage),
@@ -957,7 +957,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         let result = if join_waiting_room {
             self.message_router
-                .add_waiting_room_connection(participant_id, socket)
+                .add_lobby_connection(participant_id, socket)
         } else {
             self.message_router
                 .add_conference_connection(participant_id, socket)
@@ -969,11 +969,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         if join_waiting_room {
             if let Err(err) =
-                self.join_waiting_room(connection_id, participant_id, device_id, client_parameters)
+                self.join_lobby(connection_id, participant_id, device_id, client_parameters)
             {
                 tracing::error!("failed to add participant to waiting room {err:#?}");
 
-                self.disconnect_waiting_participant(participant_id, connection_id);
+                self.disconnect_lobby_participant(participant_id, connection_id);
             }
         } else {
             self.join_room(
@@ -1009,7 +1009,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .connected()
             .iter()
             .count()
-            .saturating_add(self.waiting_participants.len())
+            .saturating_add(self.lobby_participants.len())
             .try_into()
             .unwrap_or(u64::MAX);
 
@@ -1166,8 +1166,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
     ) -> &mut ScopedRouter {
-        if self.waiting_participants.contains_key(&participant_id) {
-            &mut self.message_router.waiting_room
+        if self.lobby_participants.contains_key(&participant_id) {
+            &mut self.message_router.lobby
         } else {
             &mut self.message_router.conference
         }

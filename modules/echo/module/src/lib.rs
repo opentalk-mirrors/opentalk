@@ -78,7 +78,7 @@ impl SignalingModule for EchoModule {
         Ok(())
     }
 
-    fn on_websocket_message_waiting_room(
+    fn on_websocket_message_lobby(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
@@ -86,7 +86,7 @@ impl SignalingModule for EchoModule {
         payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match payload {
-            EchoCommand::Ping => ctx.send_ws_message_to_waiting_room([sender], EchoEvent::Pong)?,
+            EchoCommand::Ping => ctx.send_ws_message_to_lobby([sender], EchoEvent::Pong)?,
         }
         Ok(())
     }

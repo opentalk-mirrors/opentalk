@@ -52,7 +52,7 @@ type CommandStream = Box<dyn Stream<Item = MessageEnvelope<SignalingMessage>> + 
 ///
 /// Provides the interface for communication between client and [`RoomTask`](super::task::RoomTask)
 pub struct MessageRouter {
-    pub waiting_room: ScopedRouter,
+    pub lobby: ScopedRouter,
 
     pub conference: ScopedRouter,
 
@@ -70,7 +70,7 @@ impl MessageRouter {
         commands.push(Box::new(stream::pending()));
 
         Self {
-            waiting_room: ScopedRouter::new(app_state.clone(), rate_limit),
+            lobby: ScopedRouter::new(app_state.clone(), rate_limit),
             conference: ScopedRouter::new(app_state, rate_limit),
             commands,
         }
@@ -85,25 +85,25 @@ impl MessageRouter {
             .add_connection(participant_id, websocket, &mut self.commands)
     }
 
-    pub fn add_waiting_room_connection<S: SignalingSocket + 'static>(
+    pub fn add_lobby_connection<S: SignalingSocket + 'static>(
         &mut self,
         participant_id: ParticipantId,
         websocket: S,
     ) -> Result<ConnectionId, AlreadyConnectedError> {
-        self.waiting_room
+        self.lobby
             .add_connection(participant_id, websocket, &mut self.commands)
     }
 
     /// Upgrade the specified connections from the waiting room to the conference
     pub fn upgrade_connections<'a>(&mut self, connections: impl Iterator<Item = &'a ConnectionId>) {
-        Self::move_connections(&mut self.waiting_room, &mut self.conference, connections);
+        Self::move_connections(&mut self.lobby, &mut self.conference, connections);
     }
 
     pub fn move_to_waiting_room<'a>(
         &mut self,
         connections: impl Iterator<Item = &'a ConnectionId>,
     ) {
-        Self::move_connections(&mut self.conference, &mut self.waiting_room, connections);
+        Self::move_connections(&mut self.conference, &mut self.lobby, connections);
     }
 
     fn move_connections<'a>(
@@ -129,10 +129,7 @@ impl MessageRouter {
             // This should never return `None`, because we push a pending stream into the commands
             let msg = self.commands.next().await.expect("Command stream ended");
             if self.conference.connections.contains_key(&msg.connection_id)
-                || self
-                    .waiting_room
-                    .connections
-                    .contains_key(&msg.connection_id)
+                || self.lobby.connections.contains_key(&msg.connection_id)
             {
                 break msg;
             }
@@ -145,7 +142,7 @@ impl MessageRouter {
                 msg.participant_id,
             );
             self.conference.remove_connection(msg.connection_id);
-            self.waiting_room.remove_connection(msg.connection_id);
+            self.lobby.remove_connection(msg.connection_id);
         }
 
         msg
@@ -155,7 +152,7 @@ impl MessageRouter {
         self.conference
             .disconnects
             .drain()
-            .chain(self.waiting_room.disconnects.drain())
+            .chain(self.lobby.disconnects.drain())
             .collect()
     }
 }

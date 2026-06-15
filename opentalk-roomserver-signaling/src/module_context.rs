@@ -31,6 +31,7 @@ use crate::{
     event_origin::EventOrigin,
     instruction::Instruction,
     internal_module_message::InterModuleMessage,
+    lobby_participant::LobbyParticipant,
     loopback::{LoopbackFuture, LoopbackMessage},
     participant_state::{ParticipantState, Participants},
     room_info::RoomTaskInfo,
@@ -44,7 +45,6 @@ use crate::{
         },
         module_resources::{ModuleResourceStorage, provider::ModuleResourceProvider},
     },
-    waiting_participant::WaitingParticipant,
 };
 
 #[derive(Debug)]
@@ -74,7 +74,7 @@ where
     messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
     /// Contains all participants including disconnected ones
     pub participants: &'ctx mut Participants,
-    pub waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
+    pub lobby_participants: &'ctx mut HashMap<ParticipantId, LobbyParticipant>,
     pub banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
     pub timestamp: Timestamp,
     loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
@@ -96,7 +96,7 @@ where
         room_task_info: &'ctx mut RoomTaskInfo,
         messages: &'ctx mut RefCell<Vec<ModuleMessage>>,
         participants: &'ctx mut Participants,
-        waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
+        lobby_participants: &'ctx mut HashMap<ParticipantId, LobbyParticipant>,
         banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
         timestamp: Timestamp,
         loopback_futures: &'ctx mut FuturesUnordered<LoopbackFuture>,
@@ -110,7 +110,7 @@ where
             room_task_info,
             messages,
             participants,
-            waiting_participants,
+            lobby_participants,
             banned_participants,
             timestamp,
             loopback_futures,
@@ -128,7 +128,7 @@ where
             room_task_info: self.room_task_info,
             messages: self.messages,
             participants: self.participants,
-            waiting_participants: self.waiting_participants,
+            lobby_participants: self.lobby_participants,
             banned_participants: self.banned_participants,
             timestamp: self.timestamp,
             loopback_futures: self.loopback_futures,
@@ -217,7 +217,7 @@ where
         Ok(())
     }
 
-    pub fn send_ws_message_to_waiting_room(
+    pub fn send_ws_message_to_lobby(
         &self,
         participant_ids: impl IntoIterator<Item = ParticipantId>,
         msg: M::Outgoing,
@@ -234,7 +234,7 @@ where
             .into();
 
         for participant_id in participant_ids {
-            let Some(waiting_participant) = self.waiting_participants.get(&participant_id) else {
+            let Some(waiting_participant) = self.lobby_participants.get(&participant_id) else {
                 tracing::error!(
                     "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
                     M::NAMESPACE
@@ -333,9 +333,9 @@ where
         self.messages.get_mut().push(command);
     }
 
-    pub fn ban_waiting_participant(&mut self, participant: ParticipantId) {
+    pub fn ban_lobby_participant(&mut self, participant: ParticipantId) {
         let command: ModuleMessage =
-            ModuleMessage::Instruction(Instruction::BanWaiting { participant });
+            ModuleMessage::Instruction(Instruction::BanLobby { participant });
         self.messages.get_mut().push(command);
     }
 
@@ -389,10 +389,7 @@ where
                 connection_id: participant_origin.connection_id,
                 message: shared_json,
             });
-        } else if self
-            .waiting_participants
-            .contains_key(&participant_origin.id)
-        {
+        } else if self.lobby_participants.contains_key(&participant_origin.id) {
             messages.push(ModuleMessage::WaitingRoomWebsocket {
                 connection_id: participant_origin.connection_id,
                 message: shared_json,

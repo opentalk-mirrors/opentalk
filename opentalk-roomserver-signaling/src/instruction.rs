@@ -13,7 +13,7 @@ pub enum Instruction {
     Ban {
         participant: ParticipantId,
     },
-    BanWaiting {
+    BanLobby {
         participant: ParticipantId,
     },
     MoveToWaitingRoom {

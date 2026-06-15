@@ -268,15 +268,15 @@ impl ModerationModule {
             return Err(ModerationError::AlreadyBanned.into());
         }
 
-        let user_info = if let Some(waiting) = ctx.waiting_participants.get(&target) {
-            let user_info = waiting
+        let user_info = if let Some(participant) = ctx.lobby_participants.get(&target) {
+            let user_info = participant
                 .kind
                 .user_info()
                 .cloned()
                 .ok_or(ModerationError::CannotBanGuests)?;
 
-            ctx.send_ws_message_to_waiting_room([target], ModerationEvent::Banned)?;
-            ctx.ban_waiting_participant(target);
+            ctx.send_ws_message_to_lobby([target], ModerationEvent::Banned)?;
+            ctx.ban_lobby_participant(target);
             user_info
         } else if let Some(target_state) = ctx.participants.all_unfiltered.get(&target) {
             let user_info = target_state
@@ -474,8 +474,7 @@ impl ModerationModule {
             WaitingRoom::Disabled => {
                 // Waiting room disabled, let everyone in
                 // we need to collect here since two references to `ctx` are not allowed
-                let waiting_participants: Vec<_> =
-                    ctx.waiting_participants.keys().copied().collect();
+                let waiting_participants: Vec<_> = ctx.lobby_participants.keys().copied().collect();
 
                 for p in waiting_participants {
                     Self::accept_waiting_participant_unchecked(ctx, p)?;
@@ -484,7 +483,7 @@ impl ModerationModule {
             WaitingRoom::ForGuests => {
                 // Waiting room enabled for guests, let invited registered users in
                 let waiting_participants: Vec<_> = ctx
-                    .waiting_participants
+                    .lobby_participants
                     .iter()
                     .filter_map(|(id, state)| {
                         if state.kind.is_registered_non_callin_user() {
@@ -544,7 +543,7 @@ impl ModerationModule {
         ctx: &mut ModuleContext<'_, Self>,
         target: ParticipantId,
     ) -> Result<(), SignalingModuleError<ModerationError>> {
-        let Some(participant) = ctx.waiting_participants.get_mut(&target) else {
+        let Some(participant) = ctx.lobby_participants.get_mut(&target) else {
             tracing::debug!(
                 "Failed to send `accept` to waiting participant: participant not known ({target})"
             );
@@ -554,7 +553,7 @@ impl ModerationModule {
         participant.accepted = true;
 
         tracing::trace!("accept participant: {target}");
-        ctx.send_ws_message_to_waiting_room([target], ModerationEvent::Accepted)?;
+        ctx.send_ws_message_to_lobby([target], ModerationEvent::Accepted)?;
 
         ctx.send_ws_message(
             ctx.participants.connected().moderators().ids(),
@@ -822,7 +821,7 @@ impl ModerationModule {
             waiting_room: ctx.room_task_info.room.waiting_room,
             guest_access: ctx.room_task_info.room.guest_access,
             waiting_room_participants: ctx
-                .waiting_participants
+                .lobby_participants
                 .iter()
                 .map(WaitingParticipantPeerData::from)
                 .collect(),

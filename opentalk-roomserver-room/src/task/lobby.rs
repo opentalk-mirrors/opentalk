@@ -8,7 +8,7 @@ use std::{
 
 use chrono::Utc;
 use opentalk_roomserver_signaling::{
-    event_origin::EventOrigin, waiting_participant::WaitingParticipant,
+    event_origin::EventOrigin, lobby_participant::LobbyParticipant,
 };
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
@@ -24,23 +24,21 @@ use crate::task::RoomTask;
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     #[tracing::instrument(level = "debug", skip(self))]
-    pub(super) fn disconnect_waiting_participant(
+    pub(super) fn disconnect_lobby_participant(
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
     ) {
-        let Entry::Occupied(mut waiting) = self.waiting_participants.entry(participant_id) else {
+        let Entry::Occupied(mut participant) = self.lobby_participants.entry(participant_id) else {
             tracing::error!("Attempted to disconnect waiting participant who does not exist");
             return;
         };
 
-        self.message_router
-            .waiting_room
-            .remove_connection(connection_id);
+        self.message_router.lobby.remove_connection(connection_id);
 
-        waiting.get_mut().connections.remove(&connection_id);
-        if waiting.get().connections.is_empty() {
-            waiting.remove();
+        participant.get_mut().connections.remove(&connection_id);
+        if participant.get().connections.is_empty() {
+            participant.remove();
         }
 
         let moderator_ids = self.participants.connected().moderators().connection_ids();
@@ -60,7 +58,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn join_waiting_room(
+    pub fn join_lobby(
         &mut self,
         connection_id: ConnectionId,
         participant_id: ParticipantId,
@@ -70,7 +68,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let joined_at;
         let display_name = client_parameters.kind.display_name();
         let avatar_url = client_parameters.kind.avatar_url().map(str::to_string);
-        let connection_ids = match self.waiting_participants.entry(participant_id) {
+        let connection_ids = match self.lobby_participants.entry(participant_id) {
             Entry::Occupied(mut occupied_entry) => {
                 // The user joins with a second device. The client parameter (e.g. username, role)
                 // could have changed since the last connect. If the participant is
@@ -84,7 +82,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
             Entry::Vacant(vacant_entry) => {
                 joined_at = Utc::now();
-                vacant_entry.insert(WaitingParticipant {
+                vacant_entry.insert(LobbyParticipant {
                     kind: client_parameters.kind,
                     role: client_parameters.role,
                     connections: HashMap::from_iter([(connection_id, device_id)]),
@@ -96,7 +94,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         };
 
-        self.message_router.waiting_room.serialize_and_send(
+        self.message_router.lobby.serialize_and_send(
             [connection_id],
             CORE_MODULE_ID,
             None,
@@ -140,9 +138,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.message_router
             .move_to_waiting_room(connection_ids.clone());
 
-        self.waiting_participants.insert(
+        self.lobby_participants.insert(
             participant_id,
-            WaitingParticipant {
+            LobbyParticipant {
                 connections: connections.clone(),
                 accepted: false,
                 role: state.role,

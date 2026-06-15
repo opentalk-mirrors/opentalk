@@ -173,7 +173,7 @@ where
                 participant_id: sender,
                 connection_id,
                 command,
-            } => self.handle_waiting_room_ws_event(ctx, sender, connection_id, &command),
+            } => self.handle_lobby_ws_event(ctx, sender, connection_id, &command),
             DynEvent::LoopbackEvent(result) => self.handle_loopback_event(ctx, result),
             DynEvent::InternalCommand { sender, command } => {
                 self.handle_internal_command(ctx, &sender, command)
@@ -349,7 +349,7 @@ where
     }
 
     #[tracing::instrument(skip_all, fields(opentalk.command.sender = %sender, opentalk.module = %M::NAMESPACE))]
-    fn handle_waiting_room_ws_event(
+    fn handle_lobby_ws_event(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
         sender: ParticipantId,
@@ -378,7 +378,7 @@ where
         }
 
         self.module
-            .on_websocket_message_waiting_room(ctx, sender, connection_id, payload)?;
+            .on_websocket_message_lobby(ctx, sender, connection_id, payload)?;
 
         Ok(())
     }

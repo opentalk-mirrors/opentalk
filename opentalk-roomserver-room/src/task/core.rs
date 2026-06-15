@@ -91,7 +91,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    pub(crate) fn handle_waiting_room_core_command(
+    pub(crate) fn handle_lobby_core_command(
         &mut self,
         participant_origin: ParticipantOrigin,
         command: SignalingCommand,
@@ -100,7 +100,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             Ok(command) => command,
             Err(err) => {
                 tracing::debug!("received unsupported core command from waiting room");
-                self.message_router.waiting_room.send_error(
+                self.message_router.lobby.send_error(
                     participant_origin.connection_id,
                     participant_origin.transaction_id,
                     SignalingError::InvalidJson {
@@ -169,7 +169,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_origin: ParticipantOrigin,
     ) -> Result<(), SignalingModuleError<CoreError>> {
-        let Entry::Occupied(participant) = self.waiting_participants.entry(participant_origin.id)
+        let Entry::Occupied(participant) = self.lobby_participants.entry(participant_origin.id)
         else {
             tracing::debug!("Failed to enter room: participant not known");
             return Err(CoreError::UnknownParticipant.into());
@@ -389,7 +389,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     origin,
                     &mut self.info,
                     &mut self.participants,
-                    &mut self.waiting_participants,
+                    &mut self.lobby_participants,
                     &mut self.banned_participants,
                     timestamp,
                     Arc::clone(&self.ctx.asset_storage),
@@ -440,7 +440,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             EventOrigin::Internal,
             &mut self.info,
             &mut self.participants,
-            &mut self.waiting_participants,
+            &mut self.lobby_participants,
             &mut self.banned_participants,
             timestamp,
             Arc::clone(&self.ctx.asset_storage),
@@ -730,7 +730,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         )?;
 
         self.message_router
-            .waiting_room
+            .lobby
             .serialize_and_broadcast(CORE_MODULE_ID, None, event)?;
 
         Ok(())

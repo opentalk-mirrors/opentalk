@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use chrono::{DateTime, Utc};
-use opentalk_roomserver_signaling::waiting_participant::WaitingParticipant;
+use opentalk_roomserver_signaling::lobby_participant::LobbyParticipant;
 use opentalk_roomserver_types::{connection_id::ConnectionId, room_parameters::WaitingRoom};
 use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::ParticipantId;
@@ -50,8 +50,8 @@ pub struct WaitingParticipantPeerData {
     pub avatar_url: Option<String>,
 }
 
-impl From<(&ParticipantId, &WaitingParticipant)> for WaitingParticipantPeerData {
-    fn from((&participant_id, state): (&ParticipantId, &WaitingParticipant)) -> Self {
+impl From<(&ParticipantId, &LobbyParticipant)> for WaitingParticipantPeerData {
+    fn from((&participant_id, state): (&ParticipantId, &LobbyParticipant)) -> Self {
         Self {
             participant_id,
             connections: state.connections.keys().copied().collect(),
