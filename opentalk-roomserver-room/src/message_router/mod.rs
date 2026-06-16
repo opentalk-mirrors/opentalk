@@ -95,25 +95,22 @@ impl MessageRouter {
     }
 
     /// Upgrade the specified connections from the waiting room to the conference
-    pub fn upgrade_connections<'a>(&mut self, connections: impl Iterator<Item = &'a ConnectionId>) {
+    pub fn upgrade_connections(&mut self, connections: impl Iterator<Item = ConnectionId>) {
         Self::move_connections(&mut self.lobby, &mut self.conference, connections);
     }
 
-    pub fn move_to_waiting_room<'a>(
-        &mut self,
-        connections: impl Iterator<Item = &'a ConnectionId>,
-    ) {
+    pub fn move_to_waiting_room(&mut self, connections: impl Iterator<Item = ConnectionId>) {
         Self::move_connections(&mut self.conference, &mut self.lobby, connections);
     }
 
-    fn move_connections<'a>(
+    fn move_connections(
         from: &mut ScopedRouter,
         to: &mut ScopedRouter,
-        connections: impl Iterator<Item = &'a ConnectionId>,
+        connections: impl Iterator<Item = ConnectionId>,
     ) {
         for connection_id in connections {
-            if let Some(handle) = from.connections.remove(connection_id) {
-                to.connections.insert(*connection_id, handle);
+            if let Some(handle) = from.connections.remove(&connection_id) {
+                to.connections.insert(connection_id, handle);
             } else {
                 tracing::error!("Trying to move unknown connection {connection_id}");
             }

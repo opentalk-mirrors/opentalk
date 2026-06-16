@@ -56,7 +56,7 @@ pub enum ReportRole {
 impl From<(Role, &ClientKind)> for ReportRole {
     fn from(value: (Role, &ClientKind)) -> Self {
         match value {
-            (.., ClientKind::Guest { .. }) => ReportRole::Guest,
+            (.., ClientKind::Guest) => ReportRole::Guest,
             (Role::User, ..) => ReportRole::User,
             (Role::Moderator, ..) => ReportRole::Moderator,
         }

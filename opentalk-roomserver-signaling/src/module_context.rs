@@ -243,9 +243,9 @@ where
             };
             let mut messages = self.messages.borrow_mut();
 
-            for (connection_id, ..) in &waiting_participant.connections {
+            for connection_id in waiting_participant.all_connection_ids() {
                 messages.push(ModuleMessage::WaitingRoomWebsocket {
-                    connection_id: *connection_id,
+                    connection_id,
                     message: shared_json.clone(),
                 });
             }
@@ -383,22 +383,36 @@ where
         if self
             .participants
             .connected()
-            .contains(&participant_origin.id)
+            .get(&participant_origin.id)
+            .is_some_and(|state| {
+                state
+                    .connections
+                    .contains_key(&participant_origin.connection_id)
+            })
         {
             messages.push(ModuleMessage::Websocket {
                 connection_id: participant_origin.connection_id,
                 message: shared_json,
             });
-        } else if self.lobby_participants.contains_key(&participant_origin.id) {
+        } else if self
+            .lobby_participants
+            .get(&participant_origin.id)
+            .is_some_and(|state| {
+                state
+                    .all_connection_ids()
+                    .any(|id| id == participant_origin.connection_id)
+            })
+        {
             messages.push(ModuleMessage::WaitingRoomWebsocket {
                 connection_id: participant_origin.connection_id,
                 message: shared_json,
             });
         } else {
             tracing::error!(
-                "Module '{}' attempted to send a websocket error message to unknown participant {}",
+                "Module '{}' attempted to send a websocket error message to unknown participant {} or connection {}",
                 M::NAMESPACE,
                 participant_origin.id,
+                participant_origin.connection_id,
             );
         }
     }

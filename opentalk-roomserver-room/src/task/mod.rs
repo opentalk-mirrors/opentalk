@@ -89,7 +89,8 @@ use opentalk_roomserver_types::{
 };
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
-    modules::ModuleId, rooms::RoomId, roomserver::DeviceSecret, tariffs::QuotaType, time::Timestamp,
+    modules::ModuleId, rooms::RoomId, roomserver::DeviceSecret, tariffs::QuotaType,
+    time::Timestamp, users::DisplayName,
 };
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, oneshot};
@@ -679,9 +680,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return;
         };
 
-        let connections: Vec<ConnectionId> =
-            lobby_participant.connections.keys().copied().collect();
-
+        let connections: Vec<ConnectionId> = lobby_participant.all_connection_ids().collect();
         for connection_id in connections {
             self.disconnect_lobby_participant(participant_id, connection_id);
         }
@@ -729,7 +728,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) -> Result<(), FatalError> {
         if self
             .lobby_participants
-            .contains_key(&message_envelope.participant_id)
+            .get(&message_envelope.participant_id)
+            .is_some_and(|participant| {
+                participant
+                    .all_connection_ids()
+                    .any(|id| id == message_envelope.connection_id)
+            })
         {
             self.handle_lobby_message(message_envelope)
         } else {
@@ -930,8 +934,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return Ok(());
         }
 
-        let role = client_parameters.role;
-
         // If we ever run into the issue of an uuid collision, a guest could hijack a user session
         // and vice versa. We'd rather decline the new connection when the participant id is
         // known, but the participant kinds differ.
@@ -943,47 +945,22 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return Ok(());
         }
 
-        let join_waiting_room = self
-            .info
-            .room
-            .waiting_room
-            .applies_to(&client_parameters.kind)
-            && !role.is_moderator()
-            && self
-                .participants
-                .all_unfiltered
-                .get(&participant_id)
-                .is_none_or(|participant| participant.in_waiting_room);
-
-        let result = if join_waiting_room {
-            self.message_router
-                .add_lobby_connection(participant_id, socket)
-        } else {
-            self.message_router
-                .add_conference_connection(participant_id, socket)
-        };
-        let Ok(connection_id) = result else {
+        let Ok(connection_id) = self
+            .message_router
+            .add_lobby_connection(participant_id, socket)
+        else {
             tracing::debug!("rejecting participant connection: already connected");
             return Ok(());
         };
 
-        if join_waiting_room {
-            if let Err(err) =
-                self.join_lobby(connection_id, participant_id, device_id, client_parameters)
-            {
-                tracing::error!("failed to add participant to waiting room {err:#?}");
+        if let Err(err) =
+            self.join_lobby(connection_id, participant_id, device_id, client_parameters)
+        {
+            tracing::error!("failed to add participant to waiting room {err:#?}");
 
-                self.disconnect_lobby_participant(participant_id, connection_id);
-            }
-        } else {
-            self.join_room(
-                participant_id,
-                connection_id,
-                device_id,
-                client_parameters.kind,
-                client_parameters.role,
-            )?;
+            self.disconnect_lobby_participant(participant_id, connection_id);
         }
+
         Ok(())
     }
 
@@ -1022,15 +999,17 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         connection_id: ConnectionId,
         device_id: DeviceId,
         client_kind: ClientKind,
+        display_name: DisplayName,
         mut role: Role,
     ) -> Result<(), FatalError> {
         match self.participants.all_unfiltered.entry(participant_id) {
             Occupied(mut occupied) => {
                 let state = occupied.get_mut();
-                // Set join/leave timestamps when this is the first device
+                // Set join/leave timestamps & display name when this is the first device
                 if !state.is_connected() {
                     state.joined_at = Utc::now();
                     state.left_at = None;
+                    state.display_name = display_name;
                 }
                 state.in_waiting_room = false;
                 state.connections.insert(connection_id, device_id);
@@ -1040,6 +1019,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 vacant
                     .insert(ParticipantState::new(
                         client_kind.clone(),
+                        display_name,
                         role,
                         Utc::now(),
                         false,
@@ -1049,13 +1029,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         }
 
-        if let Err(err) = self.participant_joined(
-            participant_id,
-            connection_id,
-            device_id,
-            client_kind.clone(),
-            role,
-        ) {
+        if let Err(err) =
+            self.participant_joined(participant_id, connection_id, client_kind.clone(), role)
+        {
             tracing::error!("failed to add participant to conference {err:#?}");
 
             self.disconnect_participant(
@@ -1179,10 +1155,10 @@ fn build_participant_id(kind: &ClientKind, device_id: DeviceId) -> ParticipantId
         ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
             participant_id_from_uuid(profile.id)
         }
-        ClientKind::Guest { .. }
+        ClientKind::Guest
         | ClientKind::Recorder { .. }
         | ClientKind::Transcription { .. }
-        | ClientKind::CallIn { .. } => participant_id_from_uuid(device_id),
+        | ClientKind::CallIn => participant_id_from_uuid(device_id),
     }
 }
 

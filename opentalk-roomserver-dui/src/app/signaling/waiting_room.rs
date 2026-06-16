@@ -11,7 +11,7 @@ use opentalk_roomserver_client::api::{
 };
 use opentalk_roomserver_types::{
     connection_id::ConnectionId,
-    core::{CORE_MODULE_ID, CoreCommand, CoreEvent, LeftWaitingRoom, state::CoreState},
+    core::{CORE_MODULE_ID, CoreEvent, LeftWaitingRoom, state::CoreState},
     disconnect_reason::DisconnectReason,
     join::join_success::JoinSuccess,
     room_parameters::WaitingRoom,
@@ -132,9 +132,6 @@ impl WaitingRoomPlugin {
                     ));
                 }
 
-                if ui.button("Enter").clicked() {
-                    return Some(SignalingModuleCommand::Core(CoreCommand::EnterRoom));
-                }
                 None
             })
             .inner;

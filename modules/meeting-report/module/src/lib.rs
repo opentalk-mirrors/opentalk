@@ -162,7 +162,7 @@ impl MeetingReportModule {
             .iter()
             .map(|(id, state)| ReportParticipant {
                 id: *id,
-                name: state.kind.display_name().to_string(),
+                name: state.display_name.to_string(),
                 role: (state.role, &state.kind).into(),
                 email: include_email_addresses
                     .then(|| state.kind.email())

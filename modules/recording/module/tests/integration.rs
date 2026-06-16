@@ -8,7 +8,7 @@ use axum::{Json, routing::post};
 use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_module_recording::RecordingModule;
 use opentalk_roomserver_room::mocking::{
-    participant::MockParticipant,
+    participant::MockParticipantJoined,
     room::{TestRoom, flush_connected_events, flush_disconnected_events},
 };
 use opentalk_roomserver_types::{
@@ -18,7 +18,6 @@ use opentalk_roomserver_types::{
     },
     core::CoreEvent,
     disconnect_reason::DisconnectReason,
-    join::join_success::JoinSuccess,
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_recording::{
@@ -123,8 +122,8 @@ fn create_room(mock_recorder: &MockRecorderTask) -> TestRoom {
 }
 
 async fn recorder_update_recording_status(
-    recorder: &mut MockParticipant<JoinSuccess>,
-    other: &mut [&mut MockParticipant<JoinSuccess>],
+    recorder: &mut MockParticipantJoined,
+    other: &mut [&mut MockParticipantJoined],
     new_status: RecordingStatus,
 ) {
     recorder
@@ -150,8 +149,8 @@ async fn recorder_update_recording_status(
 async fn start_recording(
     mock_recorder: &mut MockRecorderTask,
     room: &mut TestRoom,
-    issuer: &mut MockParticipant<JoinSuccess>,
-    others: &mut [&mut MockParticipant<JoinSuccess>],
+    issuer: &mut MockParticipantJoined,
+    others: &mut [&mut MockParticipantJoined],
 ) {
     issuer
         .send_command::<RecordingModule>(RecordingCommand::StartRecording, None)
@@ -177,8 +176,8 @@ async fn start_recording(
 }
 
 async fn recorder_update_streaming_status(
-    recorder: &mut MockParticipant<JoinSuccess>,
-    other: &mut [&mut MockParticipant<JoinSuccess>],
+    recorder: &mut MockParticipantJoined,
+    other: &mut [&mut MockParticipantJoined],
     new_status: StreamStatus,
 ) {
     recorder
@@ -216,8 +215,8 @@ async fn recorder_update_streaming_status(
 async fn start_streaming(
     mock_recorder: &mut MockRecorderTask,
     room: &mut TestRoom,
-    issuer: &mut MockParticipant<JoinSuccess>,
-    others: &mut [&mut MockParticipant<JoinSuccess>],
+    issuer: &mut MockParticipantJoined,
+    others: &mut [&mut MockParticipantJoined],
 ) {
     issuer
         .send_command::<RecordingModule>(

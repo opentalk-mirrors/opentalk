@@ -8,7 +8,10 @@ use std::{
 
 use chrono::Utc;
 use opentalk_roomserver_signaling::{
-    event_origin::EventOrigin, lobby_participant::LobbyParticipant,
+    event_origin::EventOrigin,
+    lobby_participant::{
+        LobbyConnection, LobbyParticipant, WaitingRoomState, can_enter_conference,
+    },
 };
 use opentalk_roomserver_types::{
     client_parameters::ClientParameters,
@@ -36,24 +39,26 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         self.message_router.lobby.remove_connection(connection_id);
 
-        participant.get_mut().connections.remove(&connection_id);
-        if participant.get().connections.is_empty() {
+        let connection = participant.get_mut().remove_connection(connection_id);
+        if !participant.get().is_connected() {
             participant.remove();
         }
 
-        let moderator_ids = self.participants.connected().moderators().connection_ids();
-
-        let res = self.message_router.conference.serialize_and_send(
-            moderator_ids,
-            CORE_MODULE_ID,
-            None,
-            CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
-                id: participant_id,
-                connection_ids: HashSet::from_iter([connection_id]),
-            }),
-        );
-        if let Err(e) = res {
-            tracing::warn!("Failed to send disconnect message to moderator: {e:?}");
+        // Only notify moderators in case the participant was in the waiting room.
+        if connection.is_some_and(|con| con.in_waiting_room) {
+            let moderator_ids = self.participants.connected().moderators().connection_ids();
+            let res = self.message_router.conference.serialize_and_send(
+                moderator_ids,
+                CORE_MODULE_ID,
+                None,
+                CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
+                    id: participant_id,
+                    connection_ids: HashSet::from_iter([connection_id]),
+                }),
+            );
+            if let Err(e) = res {
+                tracing::warn!("Failed to send disconnect message to moderator: {e:?}");
+            }
         }
     }
 
@@ -65,61 +70,59 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         device_id: DeviceId,
         client_parameters: ClientParameters,
     ) -> Result<(), FatalError> {
-        let joined_at;
-        let display_name = client_parameters.kind.display_name();
-        let avatar_url = client_parameters.kind.avatar_url().map(str::to_string);
-        let connection_ids = match self.lobby_participants.entry(participant_id) {
+        let can_enter = can_enter_conference(
+            participant_id,
+            &self.participants.all_unfiltered,
+            self.info.room.waiting_room,
+            &client_parameters.kind,
+            client_parameters.role,
+        );
+
+        match self.lobby_participants.entry(participant_id) {
             Entry::Occupied(mut occupied_entry) => {
                 // The user joins with a second device. The client parameter (e.g. username, role)
                 // could have changed since the last connect. If the participant is
                 // already connected we ignore the new client parameter.
-
                 let state = occupied_entry.get_mut();
-                state.connections.insert(connection_id, device_id);
-                joined_at = state.joined_at;
-
-                state.connections.keys().copied().collect()
+                state.insert_lobby_connection(connection_id, device_id);
             }
             Entry::Vacant(vacant_entry) => {
-                joined_at = Utc::now();
-                vacant_entry.insert(LobbyParticipant {
-                    kind: client_parameters.kind,
-                    role: client_parameters.role,
-                    connections: HashMap::from_iter([(connection_id, device_id)]),
-                    accepted: false,
-                    joined_at,
-                });
-
-                vec![connection_id]
+                let connections = HashMap::from_iter([(
+                    connection_id,
+                    LobbyConnection {
+                        device_id,
+                        in_waiting_room: false,
+                    },
+                )]);
+                vacant_entry.insert(LobbyParticipant::new(
+                    client_parameters.kind,
+                    client_parameters.role,
+                    connections,
+                    can_enter,
+                    None,
+                ));
             }
         };
+
+        let display_name = Self::derive_display_name(
+            self.participants.connected().get(&participant_id),
+            self.lobby_participants.get(&participant_id),
+        );
 
         self.message_router.lobby.serialize_and_send(
             [connection_id],
             CORE_MODULE_ID,
             None,
-            CoreEvent::InWaitingRoom {
+            CoreEvent::JoinedLobby {
                 connection_id,
                 participant_id,
-            },
-        )?;
-
-        let moderator_ids = self.participants.connected().moderators().connection_ids();
-
-        self.message_router.conference.serialize_and_send(
-            moderator_ids,
-            CORE_MODULE_ID,
-            None,
-            CoreEvent::JoinedWaitingRoom {
-                participant_id,
-                connection_ids,
-                joined_at,
+                device_id,
+                can_enter,
                 display_name,
-                avatar_url,
             },
         )?;
 
-        tracing::debug!("Participant entered waiting room");
+        tracing::debug!("Participant entered lobby");
         Ok(())
     }
 
@@ -136,23 +139,44 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let connections = mem::take(&mut state.connections);
         let connection_ids = connections.keys();
         self.message_router
-            .move_to_waiting_room(connection_ids.clone());
+            .move_to_waiting_room(connection_ids.clone().copied());
 
-        self.lobby_participants.insert(
-            participant_id,
-            LobbyParticipant {
-                connections: connections.clone(),
-                accepted: false,
-                role: state.role,
-                kind: state.kind.clone(),
-                joined_at: Utc::now(),
-            },
-        );
+        match self.lobby_participants.entry(participant_id) {
+            Entry::Occupied(mut occupied) => occupied.get_mut().extend_waiting_connections(
+                connections
+                    .iter()
+                    .map(|(connection_id, device_id)| (*connection_id, *device_id)),
+            ),
+            Entry::Vacant(vacant) => {
+                let connections = connections
+                    .iter()
+                    .map(|(&connection_id, &device_id)| {
+                        (
+                            connection_id,
+                            LobbyConnection {
+                                device_id,
+                                in_waiting_room: true,
+                            },
+                        )
+                    })
+                    .collect();
+                vacant.insert(LobbyParticipant::new(
+                    state.kind.clone(),
+                    state.role,
+                    connections,
+                    false,
+                    Some(WaitingRoomState {
+                        display_name: state.display_name.clone(),
+                        joined_at: Utc::now(),
+                    }),
+                ));
+            }
+        }
 
         state.in_waiting_room = true;
 
         let connection_ids: Vec<ConnectionId> = connection_ids.copied().collect();
-        let display_name = state.kind.display_name();
+        let display_name = state.display_name.clone();
         let avatar_url = state.kind.avatar_url().map(str::to_owned);
         let room = state.room;
 

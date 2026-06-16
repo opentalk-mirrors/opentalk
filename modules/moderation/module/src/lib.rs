@@ -11,6 +11,7 @@ use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_shared_folder::{SharedFolderModule, UpdateSharedFolder};
 use opentalk_roomserver_signaling::{
     banned_participant::BannedParticipant,
+    lobby_participant::LobbyParticipant,
     module_context::{ChannelDroppedError, ModuleContext},
     participant_state::ParticipantState,
     signaling_module::{
@@ -40,6 +41,12 @@ use opentalk_roomserver_types_moderation::{
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::oneshot;
+
+struct EntryChange {
+    now_allowed: Vec<ParticipantId>,
+    now_blocked: Vec<ParticipantId>,
+    now_accepted: Vec<ParticipantId>,
+}
 
 pub struct ModerationModule {
     change_display_name_restriction_state: ChangeDisplayNameRestrictionState,
@@ -470,40 +477,72 @@ impl ModerationModule {
             return Ok(());
         }
 
-        match state {
-            WaitingRoom::Disabled => {
-                // Waiting room disabled, let everyone in
-                // we need to collect here since two references to `ctx` are not allowed
-                let waiting_participants: Vec<_> = ctx.lobby_participants.keys().copied().collect();
+        let EntryChange {
+            now_accepted,
+            now_allowed,
+            now_blocked,
+        } = Self::partition_lobby_by_entry_change(
+            ctx.lobby_participants,
+            &ctx.participants.all_unfiltered,
+            state,
+        );
 
-                for p in waiting_participants {
-                    Self::accept_waiting_participant_unchecked(ctx, p)?;
-                }
-            }
-            WaitingRoom::ForGuests => {
-                // Waiting room enabled for guests, let invited registered users in
-                let waiting_participants: Vec<_> = ctx
-                    .lobby_participants
-                    .iter()
-                    .filter_map(|(id, state)| {
-                        if state.kind.is_registered_non_callin_user() {
-                            Some(*id)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
+        ctx.send_ws_message_to_lobby(
+            now_allowed,
+            ModerationEvent::EntryPermissionChanged { can_enter: true },
+        )?;
 
-                for p in waiting_participants {
-                    Self::accept_waiting_participant_unchecked(ctx, p)?;
-                }
-            }
-            WaitingRoom::ForEveryone => {}
+        ctx.send_ws_message_to_lobby(
+            now_blocked,
+            ModerationEvent::EntryPermissionChanged { can_enter: false },
+        )?;
+
+        for &participant_id in &now_accepted {
+            ctx.send_ws_message(
+                ctx.participants.moderators().connected().ids(),
+                ModerationEvent::ParticipantAccepted { participant_id },
+            )?;
         }
+        ctx.send_ws_message_to_lobby(now_accepted, ModerationEvent::Accepted)?;
 
         Self::update_waiting_room(ctx, state)?;
 
         Ok(())
+    }
+
+    fn partition_lobby_by_entry_change(
+        lobby_participants: &mut HashMap<ParticipantId, LobbyParticipant>,
+        conference_participants: &HashMap<ParticipantId, ParticipantState>,
+        waiting_room: WaitingRoom,
+    ) -> EntryChange {
+        let mut now_allowed = Vec::new();
+        let mut now_blocked = Vec::new();
+        let mut now_accepted = Vec::new();
+
+        for (&id, participant) in lobby_participants.iter_mut() {
+            let allowed = participant.can_enter(id, conference_participants, waiting_room);
+
+            // When the participant is in the waiting room
+            if participant.waiting_room_state.is_some() {
+                if allowed && !participant.accepted {
+                    participant.accepted = true;
+                    now_accepted.push(id);
+                }
+            } else if allowed != participant.accepted {
+                participant.accepted = allowed;
+                if allowed {
+                    now_allowed.push(id);
+                } else {
+                    now_blocked.push(id);
+                }
+            }
+        }
+
+        EntryChange {
+            now_allowed,
+            now_blocked,
+            now_accepted,
+        }
     }
 
     fn split_by_kick_scope(
@@ -627,11 +666,11 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         };
 
-        let ClientKind::Guest { display_name } = &mut participant.kind else {
+        if participant.kind != ClientKind::Guest {
             return Err(ModerationError::CannotChangeNameOfRegisteredUsers.into());
         };
 
-        let old_name = mem::replace(display_name, new_name.clone());
+        let old_name = mem::replace(&mut participant.display_name, new_name.clone());
 
         ctx.send_ws_message(
             ctx.participants.connected().ids(),
@@ -823,7 +862,18 @@ impl ModerationModule {
             waiting_room_participants: ctx
                 .lobby_participants
                 .iter()
-                .map(WaitingParticipantPeerData::from)
+                .filter_map(|(id, state)| {
+                    state.waiting_room_state.as_ref().map(|waiting_room_state| {
+                        WaitingParticipantPeerData {
+                            participant_id: *id,
+                            connections: state.waiting_room_connection_ids().collect(),
+                            accepted: state.accepted,
+                            joined_at: waiting_room_state.joined_at,
+                            display_name: waiting_room_state.display_name.clone(),
+                            avatar_url: state.kind.avatar_url().map(String::from),
+                        }
+                    })
+                })
                 .collect(),
             banned_participants: ctx
                 .banned_participants
@@ -831,5 +881,309 @@ impl ModerationModule {
                 .map(BannedParticipantInfo::from)
                 .collect(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use opentalk_roomserver_signaling::{
+        lobby_participant::{LobbyParticipant, WaitingRoomState},
+        participant_state::ParticipantState,
+    };
+    use opentalk_roomserver_types::{
+        client_parameters::{ClientKind, Role},
+        public_user_profile::PublicUserProfile,
+        room_parameters::WaitingRoom,
+    };
+    use opentalk_types_common::{time::Timestamp, users::DisplayName, utils::ExampleData};
+    use opentalk_types_signaling::ParticipantId;
+
+    use super::ModerationModule;
+    use crate::EntryChange;
+
+    fn lobby_participant(
+        kind: ClientKind,
+        accepted: bool,
+        waiting_room_state: Option<WaitingRoomState>,
+    ) -> LobbyParticipant {
+        LobbyParticipant::new(
+            kind,
+            Role::User,
+            HashMap::new(),
+            accepted,
+            waiting_room_state,
+        )
+    }
+
+    fn registered() -> ClientKind {
+        ClientKind::Registered {
+            profile: PublicUserProfile::example_data(),
+        }
+    }
+
+    fn waiting_room_state() -> WaitingRoomState {
+        WaitingRoomState {
+            display_name: DisplayName::from_str_lossy("Alice"),
+            joined_at: Timestamp::unix_epoch().into(),
+        }
+    }
+
+    #[test]
+    fn accepted_waiting_participants_never_change() {
+        let participant_id = ParticipantId::from_u128(1);
+        let mut lobby_participants = HashMap::from_iter([(
+            participant_id,
+            lobby_participant(ClientKind::Guest, true, Some(waiting_room_state())),
+        )]);
+
+        let EntryChange {
+            now_allowed,
+            now_blocked,
+            now_accepted,
+        } = ModerationModule::partition_lobby_by_entry_change(
+            &mut lobby_participants,
+            &HashMap::new(),
+            WaitingRoom::Disabled,
+        );
+
+        assert!(now_allowed.is_empty());
+        assert!(now_blocked.is_empty());
+        assert!(now_accepted.is_empty());
+        assert!(lobby_participants[&participant_id].accepted);
+
+        let EntryChange {
+            now_allowed,
+            now_blocked,
+            now_accepted,
+        } = ModerationModule::partition_lobby_by_entry_change(
+            &mut lobby_participants,
+            &HashMap::new(),
+            WaitingRoom::ForEveryone,
+        );
+
+        assert!(now_allowed.is_empty());
+        assert!(now_blocked.is_empty());
+        assert!(now_accepted.is_empty());
+        assert!(lobby_participants[&participant_id].accepted);
+
+        let EntryChange {
+            now_allowed,
+            now_blocked,
+            now_accepted,
+        } = ModerationModule::partition_lobby_by_entry_change(
+            &mut lobby_participants,
+            &HashMap::new(),
+            WaitingRoom::ForGuests,
+        );
+
+        assert!(now_allowed.is_empty());
+        assert!(now_blocked.is_empty());
+        assert!(now_accepted.is_empty());
+        assert!(lobby_participants[&participant_id].accepted);
+    }
+
+    #[test]
+    fn lobby_guests_gain_entry_when_waiting_room_disabled() {
+        let participant_id = ParticipantId::from_u128(1);
+        let mut lobby_participants = HashMap::from_iter([(
+            participant_id,
+            lobby_participant(ClientKind::Guest, false, None),
+        )]);
+
+        let EntryChange {
+            now_allowed,
+            now_blocked,
+            now_accepted,
+        } = ModerationModule::partition_lobby_by_entry_change(
+            &mut lobby_participants,
+            &HashMap::new(),
+            WaitingRoom::Disabled,
+        );
+
+        assert_eq!(now_allowed, vec![participant_id]);
+        assert!(now_blocked.is_empty());
+        assert!(now_accepted.is_empty());
+        assert!(lobby_participants[&participant_id].accepted);
+    }
+
+    #[test]
+    fn lobby_guests_lose_entry_when_waiting_room_enabled_for_everyone() {
+        let participant_id = ParticipantId::from_u128(1);
+        let mut lobby_participants = HashMap::from_iter([(
+            participant_id,
+            lobby_participant(ClientKind::Guest, true, None),
+        )]);
+
+        let EntryChange {
+            now_allowed,
+            now_blocked,
+            now_accepted,
+        } = ModerationModule::partition_lobby_by_entry_change(
+            &mut lobby_participants,
+            &HashMap::new(),
+            WaitingRoom::ForEveryone,
+        );
+
+        assert!(now_allowed.is_empty());
+        assert_eq!(now_blocked, vec![participant_id]);
+        assert!(now_accepted.is_empty());
+        assert!(!lobby_participants[&participant_id].accepted);
+    }
+
+    #[test]
+    fn lobby_guests_unchanged_when_waiting_room_already_matches_entry() {
+        let participant_id = ParticipantId::from_u128(1);
+
+        // Already blocked; a stricter waiting room keeps them blocked.
+        let mut lobby_participants = HashMap::from_iter([(
+            participant_id,
+            lobby_participant(ClientKind::Guest, false, None),
+        )]);
+        let EntryChange {
+            now_allowed,
+            now_blocked,
+            now_accepted,
+        } = ModerationModule::partition_lobby_by_entry_change(
+            &mut lobby_participants,
+            &HashMap::new(),
+            WaitingRoom::ForEveryone,
+        );
+        assert!(now_allowed.is_empty());
+        assert!(now_blocked.is_empty());
+        assert!(now_accepted.is_empty());
+        assert!(!lobby_participants[&participant_id].accepted);
+    }
+
+    #[test]
+    fn waiting_room_guests_accepted_when_waiting_room_disabled() {
+        let participant_id = ParticipantId::from_u128(1);
+        let mut lobby_participants = HashMap::from_iter([(
+            participant_id,
+            lobby_participant(ClientKind::Guest, false, Some(waiting_room_state())),
+        )]);
+
+        let EntryChange {
+            now_allowed,
+            now_blocked,
+            now_accepted,
+        } = ModerationModule::partition_lobby_by_entry_change(
+            &mut lobby_participants,
+            &HashMap::new(),
+            WaitingRoom::Disabled,
+        );
+
+        assert!(now_allowed.is_empty());
+        assert!(now_blocked.is_empty());
+        assert_eq!(now_accepted, vec![participant_id]);
+        assert!(lobby_participants[&participant_id].accepted);
+    }
+
+    #[test]
+    fn waiting_room_guests_unchanged_when_waiting_room_enabled_for_everyone() {
+        let participant_id = ParticipantId::from_u128(1);
+        let mut lobby_participants = HashMap::from_iter([(
+            participant_id,
+            lobby_participant(ClientKind::Guest, false, Some(waiting_room_state())),
+        )]);
+
+        let EntryChange {
+            now_allowed,
+            now_blocked,
+            now_accepted,
+        } = ModerationModule::partition_lobby_by_entry_change(
+            &mut lobby_participants,
+            &HashMap::new(),
+            WaitingRoom::ForEveryone,
+        );
+
+        assert!(now_allowed.is_empty());
+        assert!(now_blocked.is_empty());
+        assert!(now_accepted.is_empty());
+        assert!(!lobby_participants[&participant_id].accepted);
+    }
+
+    #[test]
+    fn enabling_waiting_room_for_guests_admits_registered_users_and_blocks_guests() {
+        let registered_in_lobby = ParticipantId::from_u128(1);
+        let guest_in_lobby = ParticipantId::from_u128(2);
+        let registered_in_waiting_room = ParticipantId::from_u128(3);
+        let guest_in_wating_room = ParticipantId::from_u128(4);
+
+        let mut lobby_participants = HashMap::from_iter([
+            (
+                registered_in_lobby,
+                lobby_participant(registered(), false, None),
+            ),
+            (
+                guest_in_lobby,
+                lobby_participant(ClientKind::Guest, true, None),
+            ),
+            (
+                registered_in_waiting_room,
+                lobby_participant(registered(), false, Some(waiting_room_state())),
+            ),
+            (
+                guest_in_wating_room,
+                lobby_participant(ClientKind::Guest, false, Some(waiting_room_state())),
+            ),
+        ]);
+
+        let EntryChange {
+            now_allowed,
+            now_blocked,
+            now_accepted,
+        } = ModerationModule::partition_lobby_by_entry_change(
+            &mut lobby_participants,
+            &HashMap::new(),
+            WaitingRoom::ForGuests,
+        );
+
+        assert_eq!(now_allowed, vec![registered_in_lobby]);
+        assert_eq!(now_blocked, vec![guest_in_lobby]);
+        assert_eq!(now_accepted, vec![registered_in_waiting_room]);
+
+        assert!(lobby_participants[&registered_in_lobby].accepted);
+        assert!(!lobby_participants[&guest_in_lobby].accepted);
+        assert!(lobby_participants[&registered_in_waiting_room].accepted);
+        assert!(!lobby_participants[&guest_in_wating_room].accepted);
+    }
+
+    #[test]
+    fn lobby_guests_keep_entry_when_already_in_conference() {
+        let participant_id = ParticipantId::from_u128(1);
+        let mut lobby_participants = HashMap::from_iter([(
+            participant_id,
+            lobby_participant(ClientKind::Guest, true, None),
+        )]);
+
+        // The guest already has a conference presence (e.g. reconnecting with another device),
+        // so they may re-enter even though `ForEveryone` would otherwise block a guest.
+        let conference_participants = HashMap::from_iter([(
+            participant_id,
+            ParticipantState::new(
+                ClientKind::Guest,
+                DisplayName::from_str_lossy("Alice"),
+                Role::User,
+                Timestamp::unix_epoch().into(),
+                false,
+            ),
+        )]);
+
+        let EntryChange {
+            now_allowed,
+            now_blocked,
+            now_accepted,
+        } = ModerationModule::partition_lobby_by_entry_change(
+            &mut lobby_participants,
+            &conference_participants,
+            WaitingRoom::ForEveryone,
+        );
+
+        assert!(now_allowed.is_empty());
+        assert!(now_blocked.is_empty());
+        assert!(now_accepted.is_empty());
+        assert!(lobby_participants[&participant_id].accepted);
     }
 }

@@ -44,25 +44,30 @@ export class ClientBuilder {
     // Connect websocket
     const ws = new WebSocket(signalingUrl);
 
-    // Wait until we receive the join_success message
     await new Promise((resolve, reject) => {
-      // Fail if we don't receive the join_success message in time
+      // Fail if we don't receive the joined_lobby message in time
       const timerId = setTimeout(() => {
-        const msg = 'Timeout waiting for join_success message';
+        const msg = 'Timeout waiting for joined_lobby message';
         reject(new Error(msg));
         exec.test.abort(msg);
       }, 1_000);
 
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
-        if (message.payload.message === 'join_success') {
+        if (message.payload.message == 'joined_lobby') {
           clearTimeout(timerId);
           resolve();
         }
       };
     });
 
-    return new Client(ws);
+    const client = new Client(ws);
+    let response = await client.sendEnterRoom(0);
+    if (response.message !== 'join_success') {
+      exec.test.abort('Failed to join room');
+    }
+
+    return client;
   }
 }
 
@@ -101,6 +106,15 @@ export class Client {
     });
     sendCommand(this.ws, namespace, payload, transactionId);
     return promise;
+  }
+
+  /**
+   * Sends the core command to enter the room
+   * @param {number} transactionId - The transaction ID of the command
+   * @returns {Promise<any>} The corresponding event send by the RoomServer
+   */
+  sendEnterRoom(transactionId) {
+    return this.sendCommand('core', { action: 'enter_room' }, transactionId);
   }
 
   /**

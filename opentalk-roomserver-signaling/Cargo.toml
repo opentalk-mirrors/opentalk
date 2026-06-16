@@ -33,3 +33,6 @@ serde_json = { workspace = true, features = ["raw_value"] }
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+opentalk-types-signaling = { workspace = true, features = ["rand"] }

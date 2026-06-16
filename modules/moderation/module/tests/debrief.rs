@@ -5,7 +5,7 @@ use std::collections::BTreeSet;
 
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_room::mocking::{
-    participant::{MockParticipant, ReceiveError},
+    participant::{MockParticipantJoined, ReceiveError},
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
@@ -13,7 +13,6 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     core::CoreEvent,
     disconnect_reason::DisconnectReason,
-    join::join_success::JoinSuccess,
     kick_reason::KickReason,
     room_parameters::WaitingRoom,
     signaling::websocket::{CloseFrame, SignalingSocketMessage},
@@ -247,7 +246,7 @@ async fn debrief_guests() {
 }
 
 async fn verify_disconnects(
-    participant: &mut MockParticipant<JoinSuccess>,
+    participant: &mut MockParticipantJoined,
     expected: BTreeSet<(ParticipantId, ConnectionId)>,
     expect_self_kick: bool,
 ) {

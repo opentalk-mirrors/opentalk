@@ -23,7 +23,7 @@ use opentalk_types_common::{
     events::EventTitle,
     rooms::{RoomId, RoomPassword},
     roomserver::DeviceSecret,
-    users::{DisplayName, UserId},
+    users::UserId,
     utils::ExampleData,
 };
 use testcontainers::{
@@ -203,9 +203,7 @@ async fn request_token_guest_access_disabled() {
     let guest_client_params = ClientParameters {
         device_secret: DeviceSecret::from_str("guest device secret")
             .expect("Device secret must be valid"),
-        kind: ClientKind::Guest {
-            display_name: DisplayName::from_str_lossy("Gustav Guest"),
-        },
+        kind: ClientKind::Guest,
         role: Role::User,
     };
     let mut room_parameters = RoomParameters::example_data();

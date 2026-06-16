@@ -345,7 +345,13 @@ mod tests {
             .accept_signaling_socket(socket, ClientParameters::example_data())
             .await
             .unwrap();
-        let mut participant = participant.join_success().await.unwrap();
+        let mut participant = participant
+            .enter_lobby()
+            .await
+            .unwrap()
+            .enter_room(None)
+            .await
+            .unwrap();
 
         // Delete the room via the registry, as the web api does.
         registry.delete_room(room_id).await;

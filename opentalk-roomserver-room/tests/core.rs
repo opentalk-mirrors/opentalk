@@ -28,14 +28,8 @@ async fn join_success() {
     let alice = room.join_alice_moderator(0).await;
 
     let join_success = alice.join_success();
-    assert_json_snapshot!(join_success, {
-        ".connection_id" => "[uuid]",
-        ".device_id" => "[uuid]",
-    }, @r#"
+    assert_json_snapshot!(join_success, @r#"
     {
-      "id": "00000000-0000-0000-0000-0000000a11ce",
-      "connection_id": "[uuid]",
-      "device_id": "[uuid]",
       "connections": [],
       "display_name": "Alice the angry",
       "avatar_url": "https://example.com/avatar-of-alice",
@@ -88,16 +82,11 @@ async fn participant_joined() {
     let bob = room.join_bob(0).await;
 
     assert_json_snapshot!(bob.join_success(), {
-      ".connection_id" => "[uuid]",
-      ".device_id" => "[uuid]",
       ".participants[0].connections[0].connection_id" => "[uuid]",
       ".participants[0].connections[0].device_id" => "[uuid]",
       ".participants[0].module_data.core.joined_at" => "[timestamp]",
     }, @r#"
     {
-      "id": "00000000-0000-0000-0000-000000000b0b",
-      "connection_id": "[uuid]",
-      "device_id": "[uuid]",
       "connections": [],
       "display_name": "Bob the bold",
       "avatar_url": "https://example.com/avatar-of-bob",
@@ -202,7 +191,7 @@ async fn already_in_room() {
     let mut alice = room.join_alice_moderator(0).await;
 
     alice
-        .send_core_command(CoreCommand::EnterRoom, None)
+        .send_core_command(CoreCommand::EnterRoom { display_name: None }, None)
         .await
         .unwrap();
 

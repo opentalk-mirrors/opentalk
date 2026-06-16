@@ -8,7 +8,7 @@ use axum::{Json, routing::post};
 use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_module_transcription::TranscriptionModule;
 use opentalk_roomserver_room::mocking::{
-    participant::MockParticipant,
+    participant::MockParticipantJoined,
     room::{TestRoom, flush_connected_events, flush_disconnected_events},
 };
 use opentalk_roomserver_types::{
@@ -18,7 +18,6 @@ use opentalk_roomserver_types::{
         event::BreakoutEvent,
     },
     core::CoreEvent,
-    join::join_success::JoinSuccess,
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_transcription::{
@@ -108,8 +107,8 @@ async fn start_transcription(
     transcription: &mut MockTranscriptionTask,
     room: &mut TestRoom,
     room_kind: RoomKind,
-    issuer: &mut MockParticipant<JoinSuccess>,
-    others: &mut [&mut MockParticipant<JoinSuccess>],
+    issuer: &mut MockParticipantJoined,
+    others: &mut [&mut MockParticipantJoined],
 ) {
     issuer
         .send_command::<TranscriptionModule>(

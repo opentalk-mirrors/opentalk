@@ -314,3 +314,53 @@ async fn ban_waiting_participant() {
         .unwrap_err();
     assert_eq!(error.status, StatusCode::FORBIDDEN);
 }
+
+#[test_log::test(tokio::test)]
+async fn ban_lobby_participant() {
+    let mut room = TestRoom::builder()
+        .waiting_room(WaitingRoom::ForEveryone)
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut bob = room.lobby_bob(0).await;
+    let mut alice = room.join_alice_moderator(0).await;
+
+    alice
+        .send_command::<ModerationModule>(ModerationCommand::Ban { target: bob.id() }, None)
+        .await
+        .unwrap();
+
+    // Bob receives the banned event
+    let event = bob.receive_event::<ModerationModule>().await.unwrap();
+    assert_eq!(event.payload, ModerationEvent::Banned);
+
+    assert_eq!(
+        bob.receive_close_frame().await.unwrap(),
+        Some(CloseFrame {
+            code: 1000,
+            reason: "closed by server".to_string(),
+        })
+    );
+
+    // Alice receives the event that a bob got banned
+    let event = alice.receive::<ModerationEvent>().await.unwrap();
+    assert_matches!(
+        event.payload,
+        ModerationEvent::ParticipantBanned(BannedParticipantInfo {
+            participant_id,
+            banned_participant
+        })
+        if participant_id == bob.id()
+        // Can't get display name from bob because he never joined
+        && banned_participant.display_name == DisplayName::from_str_lossy("Bob the bold")
+    );
+
+    let error = room
+        .room_handle
+        .reject_if_banned(UserId::from(Uuid::from(bob.id())))
+        .await
+        .unwrap_err();
+    assert_eq!(error.status, StatusCode::FORBIDDEN);
+
+    // Alice does not receive a disconnect event for bob because he was only was in the lobby
+    assert!(alice.received_nothing())
+}

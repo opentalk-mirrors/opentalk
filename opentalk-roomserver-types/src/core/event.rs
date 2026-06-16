@@ -10,7 +10,7 @@ use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    connection_id::ConnectionId, disconnect_reason::DisconnectReason,
+    connection_id::ConnectionId, device_id::DeviceId, disconnect_reason::DisconnectReason,
     join::join_success::JoinSuccess, room_parameters_patch::RoomParametersPatch,
     shared_json::SharedJson, signaling::module_error::SignalingModuleError,
 };
@@ -63,11 +63,28 @@ pub enum CoreEvent {
     /// Sent to the moderators when a participant left the waiting room
     LeftWaitingRoom(LeftWaitingRoom),
 
-    /// Sent to participants who are placed into a waiting room
-    InWaitingRoom {
+    /// Sent to participants who entered the lobby
+    JoinedLobby {
+        /// The id of the participant who joined
         connection_id: ConnectionId,
+
+        /// The connection id of the participant who joined
         participant_id: ParticipantId,
+
+        /// The device id of the participant who joined
+        device_id: DeviceId,
+
+        /// When `true`, the participant can enter the conference immedidiately. If `false`, they
+        /// have to be accepted by a moderator first.
+        can_enter: bool,
+        /// The display name of the participant when they're already in the conference with another
+        /// connection. [`None`] otherwise.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        display_name: Option<DisplayName>,
     },
+
+    /// Sent to participants who entered the waiting room
+    InWaitingRoom,
 
     /// The room is being closed, further commands will be discarded
     Closing { reason: RoomCloseReason },
@@ -126,11 +143,20 @@ pub enum RoomCloseReason {
 pub enum CoreError {
     /// The requested participant is not connected
     UnknownParticipant,
+    /// The connection id is not known
+    UnknownConnection,
     /// The participant cannot enter the room because they were not accepted by a moderator yet.
     NotAccepted,
+    /// The participant is already accepted and does not need to go into the waiting room.
+    AlreadyAccepted,
     /// The participant sent a [`CoreCommand::EnterRoom`](super::command::CoreCommand::EnterRoom),
     /// but is already in the room.
     AlreadyInRoom,
+    /// The participant must provide a display name
+    DisplayNameRequired,
+    /// The participant already provided a display name, e.g., by joining the room with another
+    /// connection.
+    DisplayNameAlreadyProvided,
 }
 
 impl From<CoreError> for SignalingModuleError<CoreError> {
@@ -166,9 +192,6 @@ mod tests {
     #[test]
     fn serialize_join_success() {
         let join_success = JoinSuccess {
-            id: ParticipantId::nil(),
-            connection_id: ConnectionId::nil(),
-            device_id: DeviceId::nil(),
             connections: vec![],
             display_name: DisplayName::example_data(),
             avatar_url: None,
@@ -200,9 +223,6 @@ mod tests {
         assert_snapshot!(produced, @r#"
         {
           "message": "join_success",
-          "id": "00000000-0000-0000-0000-000000000000",
-          "connection_id": "00000000-0000-0000-0000-000000000000",
-          "device_id": "00000000-0000-0000-0000-000000000000",
           "connections": [],
           "display_name": "Alice Adams",
           "role": "guest",
@@ -359,17 +379,22 @@ mod tests {
 
     #[test]
     fn serialize_in_waiting_room() {
-        let produced = serde_json::to_string_pretty(&CoreEvent::InWaitingRoom {
+        let produced = serde_json::to_string_pretty(&CoreEvent::JoinedLobby {
             connection_id: ConnectionId::from_u128(1),
             participant_id: ParticipantId::from_u128(2),
+            device_id: DeviceId::from_u128(3),
+            can_enter: false,
+            display_name: None,
         })
         .unwrap();
 
         assert_snapshot!(produced, @r#"
         {
-          "message": "in_waiting_room",
+          "message": "joined_lobby",
           "connection_id": "00000000-0000-0000-0000-000000000001",
-          "participant_id": "00000000-0000-0000-0000-000000000002"
+          "participant_id": "00000000-0000-0000-0000-000000000002",
+          "device_id": "00000000-0000-0000-0000-000000000003",
+          "can_enter": false
         }
         "#);
     }
