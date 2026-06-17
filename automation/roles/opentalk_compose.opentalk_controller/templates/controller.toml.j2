@@ -23,6 +23,41 @@ support_email_address = "{{ controller_operator_information_support_email_addres
 {% endif %}
 {% endif %}
 
+{% if (controller_roomserver_kind | default('external')) == 'internal' or (compose_service_opentalk_roomserver_enabled is defined and compose_service_opentalk_roomserver_enabled) %}
+[roomserver]
+kind = "{{ controller_roomserver_kind | default('external') }}"
+{% if (controller_roomserver_kind | default('external')) == 'external' %}
+{% if compose_service_opentalk_orchestrator_enabled is defined and compose_service_opentalk_orchestrator_enabled %}
+url = "http://orchestrator:11222/roomserver/"
+api_key = { id = "orchestrator", secret = "{{ ORCHESTRATOR_API_SECRET }}" }
+{% else %}
+url = "http://roomserver:11333"
+api_key = {id = "roomserver", secret = "{{ ROOMSERVER_API_SECRET}}" }
+{% endif %}
+{% endif %}
+
+[roomserver.websocket_rate_limit]
+disabled = false
+tokens_per_second = 10
+token_bucket_size = 30
+
+#The Modules that are enabled in the roomserver
+[roomserver.modules.chat]
+[roomserver.modules.chat.rate_limit]
+tokens_per_second = 3
+token_bucket_size = 10
+slow_down_threshold = 0.8
+[roomserver.modules.e2ee]
+[roomserver.modules.livekit]
+api_key = "{{ controller_livekit_api_key }}"
+api_secret = "{{ controller_livekit_api_secret }}"
+public_url = "{{ controller_livekit_public_url }}"
+service_url = "{{ controller_livekit_service_url }}"
+[roomserver.modules.echo]
+[roomserver.modules.polls]
+[roomserver.modules.timer]
+{% endif %}
+
 [logging]
 {% if controller_logging_default_directives is defined and controller_logging_default_directives %}
 default_directives = [
