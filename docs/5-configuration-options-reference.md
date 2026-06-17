@@ -290,6 +290,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `livekit_audio_min_percentile` | string | `40` |
 | `livekit_audio_smooth_intervals` | string | `4` |
 | `livekit_audio_update_interval` | string | `500` |
+| `livekit_bind_addresses` | list | `[0.0.0.0, ::]` |
 | `livekit_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `livekit_docker_compose_ulimits_nofile_hard` | integer | `98304` |
 | `livekit_docker_compose_ulimits_nofile_soft` | integer | `98304` |
