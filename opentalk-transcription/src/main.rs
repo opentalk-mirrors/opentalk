@@ -44,13 +44,13 @@ use crate::{
 };
 
 mod audio;
+mod audio_processing;
 mod cli;
 mod metrics;
 mod orchestrator;
 mod settings;
 mod tasks;
 mod transcription;
-mod voice_activity_detection;
 
 pub(crate) type TranscriptionTasks =
     Arc<Mutex<HashMap<TranscriptionTarget, JoinHandle<Result<()>>>>>;

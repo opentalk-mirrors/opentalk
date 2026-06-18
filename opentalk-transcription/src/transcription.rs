@@ -2,22 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    collections::{HashMap, VecDeque},
-    str::FromStr,
-    sync::Arc,
-};
+use std::{str::FromStr, sync::Arc};
 
 use anyhow::{Context, Result, bail};
-use audio_nodes::AudioConvert;
-use ezk::{Source, SourceEvent};
-use ezk_audio::{Format, RawAudioConfigRange, SampleRate};
 use livekit::{
     RoomEvent,
-    id::{ParticipantIdentity, TrackSid},
     prelude::RemoteParticipant,
     track::{RemoteAudioTrack, RemoteTrack},
-    webrtc::audio_stream::native::NativeAudioStream,
 };
 use opentalk_client_signaling::{
     OpenTalkEvent, Room,
@@ -35,19 +26,13 @@ use opentalk_client_signaling::{
     },
 };
 use opentalk_transcription_web_api::v1::TranscriptionTarget;
-use tokio::sync::{
-    Mutex,
-    mpsc::{self, UnboundedReceiver},
-};
-use voice_activity_detector::VoiceActivityDetector;
-use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperState};
+use tokio::sync::mpsc::{self, UnboundedReceiver};
 
 use crate::{
     AppState,
-    audio::{CHANNELS, NativeAudioStreamSource, SAMPLE_RATE},
-    voice_activity_detection::{
-        MINIMUM_SAMPLES, POST_BUFFER_LENGTH, SAMPLE_SIZE, SilenceBuffer, detect_speech,
-        sample_block_per_duration,
+    audio_processing::{
+        audio_source::AudioSource, transcription::TranscriptionStage,
+        voice_activity_detection::VadStage,
     },
 };
 
@@ -96,12 +81,6 @@ impl Drop for LivekitRoom {
     }
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub(crate) struct TranscriptionParticipant {
-    pub(crate) identity: ParticipantIdentity,
-    pub(crate) track_sid: TrackSid,
-}
-
 pub(crate) struct TranscriptionSession {
     app_state: Arc<AppState>,
 
@@ -112,8 +91,6 @@ pub(crate) struct TranscriptionSession {
     livekit_room: LivekitRoom,
 
     language: Option<String>,
-
-    transcription: Arc<Mutex<HashMap<TranscriptionParticipant, TranscriptionContext>>>,
 
     segments_rx: mpsc::Receiver<TranscriptionSegment>,
     segments_tx: mpsc::Sender<TranscriptionSegment>,
@@ -152,7 +129,6 @@ impl TranscriptionSession {
             livekit_room,
             room_id: room_info.room_id,
             language: room_info.language,
-            transcription: Arc::new(Mutex::new(HashMap::new())),
             segments_rx,
             segments_tx,
         })
@@ -268,22 +244,7 @@ impl TranscriptionSession {
                 track: RemoteTrack::Audio(audio_track),
                 publication: _,
                 participant,
-            } => {
-                self.transcription.lock().await.insert(
-                    TranscriptionParticipant {
-                        identity: participant.identity().clone(),
-                        track_sid: audio_track.sid().clone(),
-                    },
-                    TranscriptionContext::new(
-                        self.app_state.whisper_context.clone(),
-                        self.language.clone(),
-                    )?,
-                );
-
-                log::debug!("Added new participant: {}", participant.identity());
-
-                self.handle_new_audio_track(audio_track, participant);
-            }
+            } => self.handle_new_audio_track(audio_track, participant),
             _ => {}
         }
 
@@ -319,11 +280,6 @@ impl TranscriptionSession {
         audio_track: RemoteAudioTrack,
         participant: RemoteParticipant,
     ) {
-        let language = self.language.clone();
-        let whisper_context = self.app_state.whisper_context.clone();
-
-        let transcription = self.transcription.clone();
-
         let identity = participant.identity();
         let Some((participant_id, ..)) = identity.as_str().split_once(':') else {
             log::warn!(
@@ -334,64 +290,62 @@ impl TranscriptionSession {
         };
 
         let participant_id = ParticipantId::from_str(participant_id).unwrap(); // TODO: result return type
+        let track_id = audio_track.sid().to_string();
 
-        let transcription_participant = TranscriptionParticipant {
-            identity: participant.identity().clone(),
-            track_sid: audio_track.sid().clone(),
-        };
+        let whisper_context = self.app_state.whisper_context.clone();
+        let language = self.language.clone();
+        let send_tx = self.segments_tx.clone();
 
-        let send_messages_tx = self.segments_tx.clone();
+        tokio::spawn(async move {
+            let mut audio_source = match AudioSource::new(audio_track).await {
+                Ok(source) => source,
+                Err(err) => {
+                    log::error!("Failed to create AudioSource: {err:?}");
+                    return;
+                }
+            };
+            let mut vad = match VadStage::new() {
+                Ok(vad) => vad,
+                Err(err) => {
+                    log::error!("Failed to create VoiceActivityDetector: {err:?}");
+                    return;
+                }
+            };
+            let mut transcription = match TranscriptionStage::new(whisper_context, language) {
+                Ok(transcription) => transcription,
+                Err(err) => {
+                    log::error!("Failed to create Transcription stage: {err:?}");
+                    return;
+                }
+            };
 
-        tokio::spawn({
-            async move {
-                let mut audio_convert = AudioConvert::new(NativeAudioStreamSource {
-                    stream: NativeAudioStream::new(
-                        audio_track.rtc_track(),
-                        SAMPLE_RATE as i32,
-                        CHANNELS as i32,
-                    ),
-                    timestamp: 0,
-                });
+            loop {
+                let Some(samples) = audio_source.next_samples().await else {
+                    break;
+                };
 
-                audio_convert
-                    .negotiate_config(vec![RawAudioConfigRange {
-                        sample_rate: ezk::ValueRange::Value(SampleRate(SAMPLE_RATE)),
-                        channels: ezk::ValueRange::Value(ezk_audio::Channels::NotPositioned(
-                            CHANNELS,
-                        )),
-                        format: ezk::ValueRange::Value(Format::F32),
-                    }])
-                    .await
-                    .unwrap();
+                let Some(speech_segment) = vad.process(samples) else {
+                    continue;
+                };
 
-                let mut silence_buffer = SilenceBuffer::Silence;
-                loop {
-                    match audio_convert.next_event().await {
-                        Ok(SourceEvent::Frame(frame)) => {
-                            let samples = frame.into_data().samples.into_samples::<f32>();
-                            log::trace!(
-                                "new raw audio frame with length: {} received.",
-                                samples.len()
-                            );
-                            on_new_frame(
-                                &whisper_context,
-                                &transcription,
-                                language.clone(),
-                                samples,
-                                &transcription_participant,
-                                &mut silence_buffer,
-                                &send_messages_tx,
-                                &participant_id,
-                            )
-                            .await;
-                        }
-                        Ok(source_event) => {
-                            log::warn!("Received event: {source_event:?}");
-                        }
-                        Err(err) => {
-                            log::error!("Received error on event retrieval: {err:?}");
+                let started_at = speech_segment.started_at;
+                match transcription.transcribe(speech_segment) {
+                    Ok(text) if !text.is_empty() => {
+                        let segment = TranscriptionSegment {
+                            participant_id,
+                            track_id: track_id.clone(),
+                            starts_at: started_at,
+                            ends_at: Timestamp::now(),
+                            text,
+                        };
+
+                        if send_tx.send(segment).await.is_err() {
+                            log::debug!("Segment channel closed, stopping audio pipeline");
+                            break;
                         }
                     }
+                    Ok(_) => {}
+                    Err(e) => log::error!("Transcription failed: {e:?}"),
                 }
             }
         });
@@ -445,147 +399,5 @@ async fn move_to_breakout_room(room_state: &mut Room, breakout_target: BreakoutI
             }
             event => log::trace!("Received event while waiting for breakout switch: {event:?}"),
         }
-    }
-}
-
-async fn on_new_frame(
-    whisper_context: &Arc<WhisperContext>,
-    transcription: &Arc<Mutex<HashMap<TranscriptionParticipant, TranscriptionContext>>>,
-    language: Option<String>,
-    samples: Vec<f32>,
-    transcription_participant: &TranscriptionParticipant,
-    silence_buffer: &mut SilenceBuffer,
-    send_messages_tx: &mpsc::Sender<TranscriptionSegment>,
-    participant_id: &ParticipantId,
-) {
-    let mut whisper_guard = transcription.lock().await;
-
-    let track_id = whisper_guard.iter().find_map(|(participant, _context)| {
-        if participant == transcription_participant {
-            Some(participant.track_sid.to_string())
-        } else {
-            None
-        }
-    });
-
-    let Some(track_id) = track_id else {
-        log::error!("Failed to resolve track sid for participant: {transcription_participant:?}");
-        return;
-    };
-
-    let whisper_entry = whisper_guard
-        .entry(transcription_participant.clone())
-        .or_insert_with(|| TranscriptionContext::new(whisper_context.clone(), language).unwrap());
-    whisper_entry.extend_audio_frame(&samples);
-
-    let detected = detect_speech(whisper_entry).await;
-    if detected {
-        *silence_buffer = SilenceBuffer::HadActivity(Vec::with_capacity(
-            sample_block_per_duration(SAMPLE_RATE, CHANNELS, POST_BUFFER_LENGTH),
-        ));
-    } else if let SilenceBuffer::HadActivity(activity) = silence_buffer {
-        activity.extend(&samples);
-    }
-
-    let SilenceBuffer::HadActivity(silence) = silence_buffer else {
-        return;
-    };
-
-    if silence.len() < sample_block_per_duration(SAMPLE_RATE, CHANNELS, POST_BUFFER_LENGTH) {
-        return;
-    }
-
-    log::debug!(
-        "silence buffer exceeded minimum size of: {}",
-        sample_block_per_duration(SAMPLE_RATE, CHANNELS, POST_BUFFER_LENGTH)
-    );
-    whisper_entry.samples.extend(silence.iter());
-    *silence_buffer = SilenceBuffer::Silence;
-
-    if let Ok(data) = whisper_entry.transcribe_segment() {
-        let segment = TranscriptionSegment {
-            participant_id: *participant_id,
-            track_id,
-            starts_at: whisper_entry.start_point,
-            ends_at: Timestamp::now(),
-            text: data,
-        };
-
-        send_messages_tx.send(segment).await.unwrap();
-    }
-}
-
-pub(crate) struct TranscriptionContext {
-    state: WhisperState,
-    language: Option<String>,
-    pub(crate) audio_queue: VecDeque<f32>,
-    pub(crate) samples: Vec<f32>,
-    pub(crate) voice_activity_detector: VoiceActivityDetector,
-    pub(crate) start_point: Timestamp,
-}
-
-impl TranscriptionContext {
-    pub(crate) fn new(context: Arc<WhisperContext>, language: Option<String>) -> Result<Self> {
-        let state = context.create_state()?;
-        let audio_samples = VecDeque::with_capacity(SAMPLE_SIZE * 2);
-        let voice_activity_detector = VoiceActivityDetector::builder()
-            .sample_rate(SAMPLE_RATE)
-            .chunk_size(SAMPLE_SIZE)
-            .build()?;
-
-        Ok(TranscriptionContext {
-            state,
-            language,
-            audio_queue: audio_samples,
-            samples: (0..MINIMUM_SAMPLES).map(|_| 0.0).collect(),
-            voice_activity_detector,
-            start_point: Timestamp::now(),
-        })
-    }
-
-    pub(crate) fn extend_audio_frame(&mut self, samples: &Vec<f32>) {
-        self.audio_queue.extend(samples);
-    }
-
-    pub(crate) fn transcribe_segment(&mut self) -> Result<String> {
-        let sample_duration = self.samples.len() as f32 / SAMPLE_RATE as f32 / CHANNELS as f32;
-
-        if sample_duration < 1.0 {
-            self.samples
-                .resize((SAMPLE_RATE * CHANNELS * 2) as usize, 0.0);
-        }
-
-        let mut segments = Vec::new();
-
-        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-
-        params.set_language(self.language.as_deref());
-
-        params.set_print_special(false);
-        params.set_print_progress(false);
-        params.set_print_realtime(false);
-        params.set_print_timestamps(false);
-
-        self.state.full(params, &self.samples[..])?;
-
-        let num_segments = self.state.full_n_segments();
-        for i in 0..num_segments {
-            let segment = self
-                .state
-                .get_segment(i)
-                .with_context(|| format!("Couldn't get segment #{i}"))?;
-
-            let segmment_string = segment
-                .to_str_lossy()
-                .with_context(|| format!("Failed to get text for segment #{i}"))?;
-
-            if !segmment_string.is_empty() {
-                segments.push(segmment_string);
-            }
-        }
-
-        self.samples.clear();
-
-        Ok(segments.join("").trim().to_owned())
     }
 }
