@@ -156,7 +156,13 @@ impl TranscriptionSession {
                     self.handle_opentalk_event(event).await?;
                 }
                 livekit_event = self.livekit_room.recv() => {
-                    self.handle_livekit_event(livekit_event.unwrap()).await?;
+                    match livekit_event {
+                        Some(event) => self.handle_livekit_event(event).await?,
+                        None => {
+                            log::info!("LiveKit event stream closed, stopping transcription");
+                            self.run = false;
+                        }
+                    }
                 }
                 Some(segment) = self.segments_rx.recv() => {
                     log::debug!("Sending segment {segment:?}");
@@ -289,7 +295,15 @@ impl TranscriptionSession {
             return;
         };
 
-        let participant_id = ParticipantId::from_str(participant_id).unwrap(); // TODO: result return type
+        let participant_id = match ParticipantId::from_str(participant_id) {
+            Ok(participant_id) => participant_id,
+            Err(err) => {
+                log::warn!(
+                    "Got new audio track from participant with unparseable id {participant_id:?}: {err:?}"
+                );
+                return;
+            }
+        };
         let track_id = audio_track.sid().to_string();
 
         let whisper_context = self.app_state.whisper_context.clone();

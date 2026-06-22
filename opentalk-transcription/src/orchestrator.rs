@@ -39,7 +39,6 @@ impl StateProvider for OrchestratorStateProvider {
 
         let rooms = tasks
             .keys()
-            .cloned()
             .map(|target| TranscriptionResource {
                 room_id: target.room_id,
                 breakout_id: target.breakout_room,

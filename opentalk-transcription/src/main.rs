@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, process::ExitCode, sync::Arc};
 
 use anyhow::{Context, Result};
 use opentalk_orchestrator_client::ServiceAddress;
@@ -29,14 +29,14 @@ mod transcription;
 pub(crate) use app::{AppState, TranscriptionTasks};
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<ExitCode> {
     env_logger::init();
 
     install_logging_hooks();
 
     let args = cli::parse_args();
     if args.should_print() {
-        return Ok(());
+        return Ok(ExitCode::SUCCESS);
     }
 
     let settings =
@@ -54,9 +54,8 @@ async fn main() -> Result<()> {
 
     let mut tasks = Tasks::new();
 
-    tasks.spawn("shutdown_signal_handler", |shutdown| async move {
-        signal::run_shutdown_signal_handler(shutdown).await;
-        Ok(())
+    tasks.spawn("shutdown_signal_handler", |shutdown| {
+        signal::run_shutdown_signal_handler(shutdown)
     });
 
     let transcription_tasks: TranscriptionTasks = Arc::new(Mutex::new(HashMap::new()));
@@ -103,5 +102,5 @@ async fn main() -> Result<()> {
     tasks.wait_for_shutdown().await?;
     stop_probe().await;
 
-    Ok(())
+    Ok(ExitCode::SUCCESS)
 }

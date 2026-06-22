@@ -116,8 +116,8 @@ impl TranscriptionBackend for AppState {
                 );
             }
 
-            if let Some(orchestrator_handle) = orchestrator_handle {
-                if let Err(e) = orchestrator_handle
+            if let Some(orchestrator_handle) = orchestrator_handle
+                && let Err(e) = orchestrator_handle
                     .send_event(TranscriptionEvent::RemoveTranscription(
                         TranscriptionResource {
                             room_id: transcription_target.room_id,
@@ -125,11 +125,10 @@ impl TranscriptionBackend for AppState {
                         },
                     ))
                     .await
-                {
-                    log::error!(
-                        "Failed to notify orchestrator about removed transcription session: {e:?}"
-                    );
-                }
+            {
+                log::error!(
+                    "Failed to notify orchestrator about removed transcription session: {e:?}"
+                );
             }
 
             Ok(())

@@ -5,14 +5,18 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
-use axum::{Router, routing::get};
+use axum::{Router, response::IntoResponse, routing::get};
 use futures::future::join_all;
 use opentalk_orchestrator_client::client::OrchestratorHandle;
 use opentalk_transcription_web_api::v1;
+use reqwest::StatusCode;
 use service_probe::{ServiceState, set_service_state};
 use tokio::{net::TcpListener, time::timeout};
 
-use crate::{AppState, TranscriptionTasks, settings::Settings, tasks::ShutdownReceiver};
+use crate::{
+    AppState, TranscriptionTasks, metrics::PrometheusState, settings::Settings,
+    tasks::ShutdownReceiver,
+};
 
 pub(crate) async fn run_web_server(
     settings: Arc<Settings>,
@@ -42,14 +46,19 @@ pub(crate) async fn run_web_server(
 
     let app = Router::new()
         .merge(v1::routes().layer(auth_middleware))
-        .route("/metrics", get(async move || prometheus_state.metrics()))
+        .route(
+            "/metrics",
+            get(async move || metrics_endpoint(prometheus_state)),
+        )
         .route(
             "/model",
             get(async move || transcription_model_name.clone()),
         )
         .with_state(app_state.clone());
 
-    let listener = TcpListener::bind((addr, port)).await?;
+    let listener = TcpListener::bind((addr, port))
+        .await
+        .with_context(|| format!("Failed to bind HTTP server to {addr}:{port}"))?;
 
     set_service_state(ServiceState::Ready);
 
@@ -88,4 +97,14 @@ pub(crate) async fn run_web_server(
     }
 
     Ok(())
+}
+
+fn metrics_endpoint(prometheus_state: Arc<PrometheusState>) -> impl IntoResponse {
+    match prometheus_state.metrics() {
+        Ok(metrics) => (StatusCode::OK, metrics).into_response(),
+        Err(err) => {
+            log::error!("Failed to get prometheus metrics: {err:?}");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
 }
