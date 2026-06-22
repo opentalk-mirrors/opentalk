@@ -18,6 +18,11 @@ use crate::{
     tasks::ShutdownReceiver,
 };
 
+/// Runs the HTTP API server until a shutdown is requested.
+///
+/// Serves the transcription web API (behind API-key authentication), the Prometheus `/metrics`
+/// endpoint and a `/model` endpoint. On shutdown it waits for the remaining transcription tasks
+/// to finish, up to a fixed grace period.
 pub(crate) async fn run_web_server(
     settings: Arc<Settings>,
     transcription_tasks: TranscriptionTasks,

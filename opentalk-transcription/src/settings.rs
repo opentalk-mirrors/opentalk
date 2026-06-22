@@ -15,14 +15,24 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Settings {
+    /// Connection details for the OpenTalk controller.
     pub(crate) controller: ControllerSettings,
+    /// HTTP API server configuration.
     pub(crate) http: HttpSettings,
+    /// Optional monitoring endpoint. Monitoring is disabled when absent.
     pub(crate) monitoring: Option<MonitoringSettings>,
+    /// Transcription engine configuration.
     pub(crate) transcription: TranscriptionSettings,
+    /// Optional orchestrator client configuration. The orchestrator is disabled when absent.
     pub(crate) orchestrator: Option<OrchestratorConfig>,
 }
 
 impl Settings {
+    /// Loads the settings from the configuration file and environment variables.
+    ///
+    /// Environment variables prefixed with `OPENTALK_TRANSCRIPTION__` override file values, with
+    /// nested fields separated by `__`. The configuration file is discovered via
+    /// [`discover_config_file`] unless an explicit path is provided.
     pub(crate) fn load(config_arg_path: Option<&str>) -> Result<Self> {
         Config::builder()
             .add_source(discover_config_file(config_arg_path)?)
@@ -112,11 +122,14 @@ impl ConfigSearchPath {
 
 #[derive(Debug, Clone, Deserialize)]
 pub(crate) struct HttpSettings {
+    /// Address the HTTP API server binds to. Defaults to `0.0.0.0`.
     #[serde(default = "default_http_address")]
     pub(crate) addr: IpAddr,
+    /// Port the HTTP API server binds to. Defaults to `11411`.
     #[serde(default = "default_http_port")]
     pub(crate) port: u16,
 
+    /// API keys accepted on the internal service endpoints.
     pub(crate) api_keys: ApiKeys,
 }
 
@@ -130,8 +143,10 @@ fn default_http_port() -> u16 {
 
 #[derive(Debug, Clone, Deserialize)]
 pub(crate) struct MonitoringSettings {
+    /// Address the monitoring endpoint binds to. Defaults to `0.0.0.0`.
     #[serde(default = "default_monitoring_http_address")]
     pub(crate) addr: IpAddr,
+    /// Port the monitoring endpoint binds to. Defaults to `11412`.
     #[serde(default = "default_monitoring_http_port")]
     pub(crate) port: u16,
 }
@@ -155,12 +170,15 @@ impl Default for MonitoringSettings {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct ControllerSettings {
+    /// Base URL of the OpenTalk controller.
     pub(crate) url: BaseUrl,
+    /// API key used to authenticate against the controller.
     pub(crate) api_key: ApiKey,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct TranscriptionSettings {
+    /// Path to the whisper.cpp `ggml` model file to load.
     #[serde(default = "default_model")]
     pub(crate) model: String,
 }

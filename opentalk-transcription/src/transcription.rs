@@ -36,6 +36,9 @@ use crate::{
     },
 };
 
+/// A connection to a LiveKit room together with its event stream.
+///
+/// On drop, any still-open room is closed in a detached task.
 pub(crate) struct LivekitRoom {
     room: Option<livekit::Room>,
     event_stream: UnboundedReceiver<RoomEvent>,
@@ -81,6 +84,10 @@ impl Drop for LivekitRoom {
     }
 }
 
+/// A running transcription session for a single OpenTalk room.
+///
+/// It bridges OpenTalk and LiveKit room events, spawns a transcription pipeline per audio track
+/// and forwards the resulting [`TranscriptionSegment`]s back to the controller.
 pub(crate) struct TranscriptionSession {
     app_state: Arc<AppState>,
 
@@ -97,6 +104,9 @@ pub(crate) struct TranscriptionSession {
 }
 
 impl TranscriptionSession {
+    /// Connects to the controller and the LiveKit room for the given target.
+    ///
+    /// When a breakout room is targeted, the session moves into it before returning.
     pub(crate) async fn create(
         app_state: Arc<AppState>,
         room_info: TranscriptionTarget,
@@ -134,6 +144,8 @@ impl TranscriptionSession {
         })
     }
 
+    /// Runs the session event loop until the room ends, a stop is requested or the service shuts
+    /// down, then disconnects from both the LiveKit and the OpenTalk room.
     pub(crate) async fn run(mut self) -> Result<()> {
         self.room
             .transcription_service_api()

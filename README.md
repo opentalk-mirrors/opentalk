@@ -131,3 +131,8 @@ image, execute in the root of the repository:
 docker build -f ci/Dockerfile-vulkan . --tag <your tag>
 docker build -f ci/Dockerfile-intel . --tag <your tag>
 ```
+
+## Administration
+
+See the [administration guide](docs/admin/README.md) for configuration and
+operational details.

@@ -2,6 +2,17 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+//! OpenTalk Transcription service.
+//!
+//! This binary joins OpenTalk conference rooms, receives the participants' audio
+//! tracks via LiveKit and transcribes their speech with a local whisper.cpp
+//! model. The resulting transcript segments are sent back to the OpenTalk
+//! controller.
+//!
+//! [`main`] wires together the configuration, logging, the HTTP API, the
+//! optional orchestrator client and the per-room transcription sessions, and
+//! drives their shared lifecycle through [`tasks::Tasks`].
+
 use std::{collections::HashMap, process::ExitCode, sync::Arc};
 
 use anyhow::{Context, Result};

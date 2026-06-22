@@ -29,15 +29,30 @@ pub(crate) type TranscriptionTasks =
 
 #[derive(Clone)]
 pub(crate) struct AppState {
+    /// The currently running transcription sessions.
     pub(crate) tasks: TranscriptionTasks,
+    /// The shared whisper.cpp context that all sessions create their inference state from.
     pub(crate) whisper_context: Arc<WhisperContext>,
+    /// The Prometheus metrics registry exposed on the `/metrics` endpoint.
     pub(crate) prometheus_state: Arc<metrics::PrometheusState>,
+    /// The client used to communicate with the OpenTalk controller.
     pub(crate) opentalk_client: Arc<OpenTalkClient>,
+    /// Handle to the orchestrator client, if the orchestrator is configured.
     pub(crate) orchestrator_handle: Option<OrchestratorHandle>,
+    /// Receiver that is triggered when the service is shutting down.
     pub(crate) shutdown: ShutdownReceiver,
 }
 
 impl AppState {
+    /// Creates the shared application state.
+    ///
+    /// This connects to the OpenTalk controller and loads the whisper model into a
+    /// [`WhisperContext`], which is the expensive, long-lived resource shared by all sessions.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the controller client cannot be created or if the configured model
+    /// file does not exist or cannot be loaded.
     pub(crate) async fn new(
         settings: Arc<Settings>,
         transcription_tasks: TranscriptionTasks,
@@ -78,6 +93,11 @@ impl AppState {
 
 #[async_trait]
 impl TranscriptionBackend for AppState {
+    /// Starts a transcription session for the given target room.
+    ///
+    /// The session runs as a detached task that removes itself from [`AppState::tasks`] and
+    /// notifies the orchestrator once it finishes. Returns a conflict error if a session is
+    /// already running for the same target.
     async fn init(&self, target: TranscriptionTarget) -> Result<(), ApiError> {
         let context = Arc::new(self.clone());
         log::debug!("Start Transcription session {:?}", target.room_id);
