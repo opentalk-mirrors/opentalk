@@ -18,6 +18,7 @@ mod audio;
 mod audio_processing;
 mod cli;
 mod commands;
+mod logging;
 mod metrics;
 mod orchestrator;
 mod server;
@@ -30,7 +31,7 @@ pub(crate) use app::{AppState, TranscriptionTasks};
 
 #[tokio::main]
 async fn main() -> Result<ExitCode> {
-    env_logger::init();
+    logging::init();
 
     install_logging_hooks();
 
