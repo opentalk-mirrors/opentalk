@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0] - 2026-06-15
+
+[0.22.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.21.0...v0.22.0
+
+### 🚀 New features
+
+- Read SDP imageattr for H.264 payloads to find target resolution [[#38](https://git.opentalk.dev/opentalk/product/tickets/-/work_items/38)]
+- Log unknown config file fields
+- Migrate to roomserver api ([#254](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/work_items/254))
+- Play hold melody while in waiting-room ([#127](https://git.opentalk.dev/opentalk/product/tickets/-/work_items/127))
+
+### 🐛 Bug fixes
+
+- Add missing fmtp line for H.264 payloads in SDP answer ([#38](https://git.opentalk.dev/opentalk/product/tickets/-/work_items/38), [#248](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/248))
+- Do not discard H.264 FU-A packets when depayloading ([#38](https://git.opentalk.dev/opentalk/product/tickets/-/work_items/38))
+- Change add-sender log from debug to trace
+- Correctly apply video bitrate limit to H.264 max-br parameter ([#38](https://git.opentalk.dev/opentalk/product/tickets/-/work_items/38))
+- Evaluate all offered H.264 payload types for best compatibility ([#38](https://git.opentalk.dev/opentalk/product/tickets/-/work_items/38), [#249](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/249))
+- Ensure CryptoProvider is configured
+- Detect interrupted connections to trunk & update ready state accordingly ([#98](https://git.opentalk.dev/opentalk/product/tickets/-/work_items/98))
+- Only terminate call when all RTP sessions are timing out ([#53](https://git.opentalk.dev/opentalk/product/tickets/-/work_items/53))
+- Always write algorithm field in authenticate header ([#265](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/work_items/265))
+- Play track when accepted from waiting room ([#127](https://git.opentalk.dev/opentalk/product/tickets/-/work_items/127))
+
+### 📦 Dependencies
+
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.94.0
+- (deps) Update ezk-rs
+- (deps) Update rust crate anstream to v1
+- (deps) Update quay.io/buildah/stable docker tag to v1.43.0
+- (deps) Lock file maintenance
+- (deps) Update rust crate tt to 0.29
+- (deps) Update livekit sdk
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.4
+
+### Ci
+
+- Use changelog preview template
+- (pre-commit) Use same markdownlint from CI in pre-commit
+
 ## [0.21.0] - 2026-03-09
 
 [0.21.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.20.12...v0.21.0
