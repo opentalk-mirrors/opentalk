@@ -254,6 +254,41 @@ where
         Ok(())
     }
 
+    /// Send a websocket message of type [`SignalingModule::Outgoing`] to the given `connection_ids`
+    /// in the lobby
+    ///
+    /// The message is always scoped to the [`SignalingModule::NAMESPACE`]
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` when the [`SignalingModule::Outgoing`] type failed to be serialized.
+    pub fn send_ws_message_to_lobby_connections(
+        &self,
+        connection_ids: impl IntoIterator<Item = ConnectionId>,
+        msg: M::Outgoing,
+    ) -> Result<(), FatalError> {
+        let event = SignalingEvent {
+            namespace: M::NAMESPACE,
+            transaction_id: self.event_origin.transaction_id(),
+            timestamp: Timestamp::now(),
+            payload: msg,
+        };
+        let shared_json: SharedRawJson = serde_json::value::to_raw_value(&event)
+            .context("Failed to serialize internal websocket payload type")
+            .map_err(FatalError)?
+            .into();
+
+        let mut messages = self.messages.borrow_mut();
+        for connection_id in connection_ids {
+            messages.push(ModuleMessage::WaitingRoomWebsocket {
+                connection_id,
+                message: shared_json.clone(),
+            });
+        }
+
+        Ok(())
+    }
+
     /// Send a websocket command received from one `source_connection` to all
     /// other connections of the same participant.
     ///

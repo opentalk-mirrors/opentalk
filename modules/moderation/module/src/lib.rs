@@ -6,7 +6,7 @@ use std::{
     mem,
 };
 
-use anyhow::anyhow;
+use anyhow::{Context as _, anyhow};
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_module_shared_folder::{SharedFolderModule, UpdateSharedFolder};
 use opentalk_roomserver_signaling::{
@@ -101,6 +101,24 @@ impl SignalingModule for ModerationModule {
         connection_id: ConnectionId,
         is_first_connection: bool,
     ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
+        if is_first_connection {
+            let display_name = ctx
+                .participant_state(participant_id)
+                .with_context(|| format!("Participant {participant_id} has no state"))?
+                .display_name
+                .clone();
+
+            // Notify other connections in the lobby that the display name was assigned
+            if ctx.lobby_participants.contains_key(&participant_id) {
+                ctx.send_ws_message_to_lobby(
+                    [participant_id],
+                    ModerationEvent::DisplayNameAssigned {
+                        new_name: Some(display_name),
+                    },
+                )?;
+            }
+        }
+
         let moderator_data = ctx
             .is_moderator(participant_id)
             .then(|| Self::moderator_data(ctx));
@@ -124,6 +142,26 @@ impl SignalingModule for ModerationModule {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
+        // Check if this is the last connection
+        if ctx
+            .participant_state(participant_id)
+            .is_some_and(|state| state.is_connected())
+        {
+            return Ok(());
+        }
+
+        if let Some(lobby_state) = ctx.lobby_participants.get(&participant_id) {
+            // Exclude the disconnecting connection to prevent it from receiving the event when
+            // switching to the waiting room
+            let connection_ids = lobby_state
+                .all_connection_ids()
+                .filter(|id| *id != connection_id);
+            ctx.send_ws_message_to_lobby_connections(
+                connection_ids,
+                ModerationEvent::DisplayNameAssigned { new_name: None },
+            )?;
+        }
+
         Ok(())
     }
 
@@ -671,14 +709,22 @@ impl ModerationModule {
         };
 
         let old_name = mem::replace(&mut participant.display_name, new_name.clone());
-
         ctx.send_ws_message(
             ctx.participants.connected().ids(),
             ModerationEvent::DisplayNameChanged {
                 target,
                 issued_by: sender,
                 old_name,
-                new_name,
+                new_name: new_name.clone(),
+            },
+        )?;
+
+        // Notify other connections in in the lobby of the affected participant about the name
+        // change
+        ctx.send_ws_message_to_lobby(
+            [target],
+            ModerationEvent::DisplayNameAssigned {
+                new_name: Some(new_name),
             },
         )?;
 

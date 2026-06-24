@@ -474,7 +474,23 @@ async fn lobby_devices_enter_conference_independently() {
         .await
         .unwrap();
     let event = alice_0.receive::<CoreEvent>().await.unwrap().payload;
-    assert_matches!(event, CoreEvent::JoinSuccess(_));
+    let CoreEvent::JoinSuccess(join_success) = event else {
+        panic!("Expected JoinSuccess, got {event:#?}");
+    };
+
+    // Alice receives the DisplayNameAssigned event on device 1 because her first device joined the
+    // room
+    let event = alice_1
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::DisplayNameAssigned {
+            new_name: Some(join_success.display_name),
+        }
+    );
 
     // Device 1 is not dragged into the conference; it stays in the lobby.
     assert!(alice_1.received_nothing());
@@ -612,7 +628,23 @@ async fn entering_conference_from_waiting_room_leaves_lobby_devices_behind() {
         .await
         .unwrap();
     let event = bob_0.receive::<CoreEvent>().await.unwrap().payload;
-    assert_matches!(event, CoreEvent::JoinSuccess(..));
+    let CoreEvent::JoinSuccess(join_success) = event else {
+        panic!("Expected JoinSuccess, got {event:#?}");
+    };
+
+    // Bob receives the DisplayNameAssigned event on device 1 because her first device joined the
+    // room
+    let event = bob_1
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::DisplayNameAssigned {
+            new_name: Some(join_success.display_name),
+        }
+    );
 
     // Device 1 is not dragged along; it stays in the lobby.
     assert!(bob_1.received_nothing());

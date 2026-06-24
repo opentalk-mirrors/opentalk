@@ -336,7 +336,7 @@ impl MockParticipantLobby {
 
     /// 1. Send [`CoreCommand::EnterRoom`]
     /// 2. Receive [`CoreEvent::JoinSuccess`]
-    pub(crate) async fn enter_room(
+    pub async fn enter_room(
         mut self,
         display_name: Option<DisplayName>,
     ) -> Result<MockParticipantJoined, ParticipantError> {
