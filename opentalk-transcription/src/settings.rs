@@ -24,10 +24,14 @@ pub(crate) struct Settings {
 
 impl Settings {
     pub(crate) fn load(config_arg_path: Option<&String>) -> Result<Self> {
-        // FIXME
         Config::builder()
             .add_source(discover_config_file(config_arg_path)?)
-            .add_source(Environment::with_prefix("OPENTALK_REC").separator("__"))
+            .add_source(
+                Environment::with_prefix("OPENTALK_TRANSCRIPTION")
+                    .prefix_separator("_")
+                    .separator("__")
+                    .list_separator(","),
+            )
             .build()?
             .try_deserialize()
             .context("Failed to parse configuration file")
