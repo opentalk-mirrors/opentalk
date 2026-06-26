@@ -615,10 +615,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 reason,
             } => self.kick_participants(origin, participants, reason.into()),
             Instruction::Ban { participant } => self.ban_participants(origin, participant),
-            Instruction::BanLobby { participant } => {
-                self.ban_lobby_participants(participant);
-                Ok(())
-            }
             Instruction::MoveToWaitingRoom { participant } => {
                 self.move_to_waiting_room(participant)
             }
@@ -632,22 +628,42 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         reason: CloseReason,
     ) -> Result<(), FatalError> {
         for participant_id in participants {
-            let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
+            let mut lobby_connections = Vec::new();
+            let mut conference_connections = Vec::new();
+
+            if let Some(state) = self.lobby_participants.get_mut(&participant_id) {
+                state.accepted = false;
+                state.role = Role::User;
+
+                lobby_connections.extend(state.all_connection_ids());
+            }
+
+            if let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) {
+                // Ensure the kicked participant can not skip the waiting room
+                state.in_waiting_room = true;
+                state.role = Role::User;
+
+                conference_connections.extend(state.connections());
+            }
+
+            if !lobby_connections.is_empty() && conference_connections.is_empty() {
                 tracing::error!(
                     "Failed to get connections for unknown participant {participant_id}"
                 );
                 continue;
-            };
+            }
 
-            // Ensure the kicked participant can not skip the waiting room
-            state.in_waiting_room = true;
-            state.role = Role::User;
+            // Disconnect the lobby connections first, so they don't receive events produced by the
+            // conference connections disconnecting (e.g. `CoreEvent::DisplayNameAssigned`).
+            for connection_id in lobby_connections {
+                self.disconnect_lobby_participant(participant_id, connection_id);
+            }
 
-            let connections: Vec<ConnectionId> = state.connections().collect();
-            for connection_id in connections {
+            for connection_id in conference_connections {
                 self.disconnect_participant(origin, participant_id, connection_id, reason)?;
             }
         }
+
         Ok(())
     }
 
@@ -656,14 +672,29 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         origin: EventOrigin,
         participant_id: ParticipantId,
     ) -> Result<(), FatalError> {
-        let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
+        let mut lobby_connections = Vec::new();
+        let mut conference_connections = Vec::new();
+
+        if let Some(state) = self.lobby_participants.get(&participant_id) {
+            lobby_connections.extend(state.all_connection_ids());
+        }
+
+        if let Some(state) = self.participants.all_unfiltered.get(&participant_id) {
+            conference_connections.extend(state.connections());
+        }
+
+        if lobby_connections.is_empty() && conference_connections.is_empty() {
             tracing::error!("Failed to ban participant, {participant_id} does not exist");
             return Ok(());
         };
 
-        let connections: Vec<ConnectionId> = state.connections().collect();
+        // Disconnect the lobby connections first, so they don't receive events produced by the
+        // conference connections disconnecting (e.g. `CoreEvent::DisplayNameAssigned`).
+        for connection_id in lobby_connections {
+            self.disconnect_lobby_participant(participant_id, connection_id);
+        }
 
-        for connection_id in connections {
+        for connection_id in conference_connections {
             self.disconnect_participant(
                 origin,
                 participant_id,
@@ -671,19 +702,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 CloseReason::Banned,
             )?;
         }
+
         Ok(())
-    }
-
-    fn ban_lobby_participants(&mut self, participant_id: ParticipantId) {
-        let Some(lobby_participant) = self.lobby_participants.get(&participant_id) else {
-            tracing::error!("Failed to ban participant, {participant_id} does not exist");
-            return;
-        };
-
-        let connections: Vec<ConnectionId> = lobby_participant.all_connection_ids().collect();
-        for connection_id in connections {
-            self.disconnect_lobby_participant(participant_id, connection_id);
-        }
     }
 
     #[tracing::instrument(level = "info", skip_all)]

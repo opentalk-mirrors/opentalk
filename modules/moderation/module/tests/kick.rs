@@ -4,7 +4,10 @@
 use std::assert_matches;
 
 use opentalk_roomserver_module_moderation::ModerationModule;
-use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
+use opentalk_roomserver_room::mocking::{
+    participant::MockParticipant,
+    room::{TestRoom, flush_connected_events},
+};
 use opentalk_roomserver_types::{
     client_parameters::Role, core::CoreEvent, disconnect_reason::DisconnectReason,
     kick_reason::KickReason, room_parameters::WaitingRoom, signaling::websocket::CloseFrame,
@@ -15,6 +18,20 @@ use opentalk_roomserver_types_moderation::{
     state::ModeratorJoinInfo,
 };
 use opentalk_types_signaling::ParticipantId;
+
+async fn receive_waiting_room_updated<S>(
+    participants: &mut [&mut MockParticipant<S>],
+    new_state: WaitingRoom,
+) {
+    for participant in participants {
+        let event = participant
+            .receive_event::<ModerationModule>()
+            .await
+            .unwrap()
+            .payload;
+        assert_eq!(event, ModerationEvent::WaitingRoomUpdated { new_state });
+    }
+}
 
 #[test_log::test(tokio::test)]
 async fn insufficient_permissions() {
@@ -174,29 +191,7 @@ async fn kick_participant() {
         .unwrap();
 
     // The waiting room gets enabled
-    let event = alice
-        .receive_event::<ModerationModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        ModerationEvent::WaitingRoomUpdated {
-            new_state: WaitingRoom::ForEveryone
-        }
-    );
-
-    let event = bob
-        .receive_event::<ModerationModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        ModerationEvent::WaitingRoomUpdated {
-            new_state: WaitingRoom::ForEveryone
-        }
-    );
+    receive_waiting_room_updated(&mut [&mut alice, &mut bob], WaitingRoom::ForEveryone).await;
 
     // Bob receives the kicked event
     let event = bob.receive_event::<ModerationModule>().await.unwrap();
@@ -247,29 +242,7 @@ async fn kick_guest() {
         .unwrap();
 
     // The waiting room gets enabled
-    let event = alice
-        .receive_event::<ModerationModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        ModerationEvent::WaitingRoomUpdated {
-            new_state: WaitingRoom::ForGuests
-        }
-    );
-
-    let event = gustav
-        .receive_event::<ModerationModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        ModerationEvent::WaitingRoomUpdated {
-            new_state: WaitingRoom::ForGuests
-        }
-    );
+    receive_waiting_room_updated(&mut [&mut alice, &mut gustav], WaitingRoom::ForGuests).await;
 
     // Gustav receives the kicked event
     let event = gustav.receive_event::<ModerationModule>().await.unwrap();
@@ -325,6 +298,91 @@ async fn cannot_kick_room_owner() {
         event,
         ModerationEvent::Error(ModerationError::CannotKickRoomOwner)
     );
+
+    assert!(alice.received_nothing());
+}
+
+#[test_log::test(tokio::test)]
+async fn kick_affects_lobby_and_conference() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob_conference = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+    let mut bob_lobby = room.lobby_bob(1).await;
+
+    // Alice kicks Bob
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::Kick {
+                target: bob_conference.id(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    receive_waiting_room_updated(
+        &mut [&mut alice, &mut bob_conference],
+        WaitingRoom::ForEveryone,
+    )
+    .await;
+
+    // Bob receives the kicked event in the conference
+    let event = bob_conference
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::Kicked {
+            reason: KickReason::Kicked
+        }
+    );
+
+    // Bob receives the kicked event in the lobby
+    let event = bob_lobby
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::Kicked {
+            reason: KickReason::Kicked
+        }
+    );
+
+    // Bobs connection in the lobby is closed
+    assert_eq!(
+        bob_conference.receive_close_frame().await.unwrap(),
+        Some(CloseFrame {
+            code: 1000,
+            reason: "closed by server".to_string(),
+        })
+    );
+
+    // Bobs connection in the lobby is closed
+    assert_eq!(
+        bob_lobby.receive_close_frame().await.unwrap(),
+        Some(CloseFrame {
+            code: 1000,
+            reason: "closed by server".to_string(),
+        })
+    );
+
+    // Alice only gets notified about bob disconnecting from the conference
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert!(matches!(
+        event.payload,
+        CoreEvent::ParticipantDisconnected {
+            participant_id,
+            reason,
+            ..
+        } if participant_id == bob_conference.id() && reason == DisconnectReason::Kicked,
+    ));
 
     assert!(alice.received_nothing());
 }

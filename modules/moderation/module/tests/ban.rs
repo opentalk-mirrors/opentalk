@@ -364,3 +364,92 @@ async fn ban_lobby_participant() {
     // Alice does not receive a disconnect event for bob because he was only was in the lobby
     assert!(alice.received_nothing())
 }
+
+#[test_log::test(tokio::test)]
+async fn ban_affects_lobby_and_conference() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob_conference = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+    let mut bob_lobby = room.lobby_bob(1).await;
+
+    // Alice bans Bob
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::Ban {
+                target: bob_conference.id(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Bob receives the banned event in the conference
+    let event = bob_conference
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, ModerationEvent::Banned);
+
+    // Bob receives the banned event in the lobby
+    let event = bob_lobby
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, ModerationEvent::Banned);
+
+    // Bobs connection in the conference is closed
+    assert_eq!(
+        bob_conference.receive_close_frame().await.unwrap(),
+        Some(CloseFrame {
+            code: 1000,
+            reason: "closed by server".to_string(),
+        })
+    );
+
+    // Bobs connection in the lobby is closed. If the lobby connection received a
+    // `DisplayNameAssigned` event from the conference connection disconnecting, this would fail
+    // with an unexpected message instead of a close frame.
+    assert_eq!(
+        bob_lobby.receive_close_frame().await.unwrap(),
+        Some(CloseFrame {
+            code: 1000,
+            reason: "closed by server".to_string(),
+        })
+    );
+
+    // Alice only gets notified about bob disconnecting from the conference
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert_matches!(
+        event.payload,
+        CoreEvent::ParticipantDisconnected {
+            participant_id,
+            reason,
+            ..
+        } if participant_id == bob_conference.id() && reason == DisconnectReason::Banned,
+    );
+
+    // Alice receives the event that bob got banned
+    let event = alice.receive::<ModerationEvent>().await.unwrap();
+    assert_matches!(
+        event.payload,
+        ModerationEvent::ParticipantBanned(BannedParticipantInfo {
+            participant_id,
+            banned_participant
+        }) if participant_id == bob_conference.id()
+            && &banned_participant.display_name == bob_conference.display_name()
+    );
+
+    assert!(alice.received_nothing());
+
+    let error = room
+        .room_handle
+        .reject_if_banned(UserId::from(Uuid::from(bob_conference.id())))
+        .await
+        .unwrap_err();
+    assert_eq!(error.status, StatusCode::FORBIDDEN);
+}

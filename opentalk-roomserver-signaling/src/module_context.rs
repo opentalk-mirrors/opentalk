@@ -368,12 +368,6 @@ where
         self.messages.get_mut().push(command);
     }
 
-    pub fn ban_lobby_participant(&mut self, participant: ParticipantId) {
-        let command: ModuleMessage =
-            ModuleMessage::Instruction(Instruction::BanLobby { participant });
-        self.messages.get_mut().push(command);
-    }
-
     /// Move the specified participant to the waiting room
     pub fn move_to_waiting_room(&mut self, participant: ParticipantId) {
         let command = ModuleMessage::Instruction(Instruction::MoveToWaitingRoom { participant });

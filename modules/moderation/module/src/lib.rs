@@ -281,12 +281,20 @@ impl ModerationModule {
 
         Self::enable_waiting_room_for_participant(ctx, target)?;
 
+        // Send the kick event to the targets connection in the conference and the lobby
         ctx.send_ws_message(
             [target],
             ModerationEvent::Kicked {
                 reason: KickReason::Kicked,
             },
         )?;
+        ctx.send_ws_message_to_lobby(
+            [target],
+            ModerationEvent::Kicked {
+                reason: KickReason::Kicked,
+            },
+        )?;
+
         ctx.kick_participants(Vec::from_iter([target]), KickReason::Kicked);
 
         Ok(())
@@ -313,32 +321,25 @@ impl ModerationModule {
             return Err(ModerationError::AlreadyBanned.into());
         }
 
-        let user_info = if let Some(participant) = ctx.lobby_participants.get(&target) {
-            let user_info = participant
-                .kind
-                .user_info()
-                .cloned()
-                .ok_or(ModerationError::CannotBanGuests)?;
+        let user_info = ctx
+            .participants
+            .all_unfiltered
+            .get(&target)
+            .map(|state| state.kind.user_info())
+            .or_else(|| {
+                ctx.lobby_participants
+                    .get(&target)
+                    .map(|state| state.kind.user_info())
+            })
+            .ok_or(ModerationError::UnknownParticipant)?
+            .ok_or(ModerationError::CannotBanGuests)?
+            .clone();
 
-            ctx.send_ws_message_to_lobby([target], ModerationEvent::Banned)?;
-            ctx.ban_lobby_participant(target);
-            user_info
-        } else if let Some(target_state) = ctx.participants.all_unfiltered.get(&target) {
-            let user_info = target_state
-                .kind
-                .user_info()
-                .cloned()
-                .ok_or(ModerationError::CannotBanGuests)?;
+        // Notify all connections of the participant, in the conference and the lobby
+        ctx.send_ws_message([target], ModerationEvent::Banned)?;
+        ctx.send_ws_message_to_lobby([target], ModerationEvent::Banned)?;
 
-            if target_state.is_connected() {
-                ctx.send_ws_message([target], ModerationEvent::Banned)?;
-            }
-
-            ctx.ban_participant(target);
-            user_info
-        } else {
-            return Err(ModerationError::UnknownParticipant.into());
-        };
+        ctx.ban_participant(target);
 
         let banned_participant = BannedParticipant {
             display_name: user_info.display_name,
