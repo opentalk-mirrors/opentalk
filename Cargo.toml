@@ -47,6 +47,7 @@ tokio = "1"
 voice_activity_detector = "0.2"
 whisper-rs = "0.16"
 sysinfo = "0.39"
+temp-env = "0.3"
 
 [patch.crates-io]
 libwebrtc = { git = "https://github.com/kbalt/rust-sdks.git", rev = "702f3ffa72a6b312b66cb658709eb64595d51b84" }

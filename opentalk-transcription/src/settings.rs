@@ -23,13 +23,16 @@ pub(crate) struct Settings {
 }
 
 impl Settings {
-    pub(crate) fn load(config_arg_path: Option<&String>) -> Result<Self> {
+    pub(crate) fn load(config_arg_path: Option<&str>) -> Result<Self> {
         Config::builder()
             .add_source(discover_config_file(config_arg_path)?)
             .add_source(
                 Environment::with_prefix("OPENTALK_TRANSCRIPTION")
                     .prefix_separator("_")
                     .separator("__")
+                    // try_parsing, list_separator and with_list_parse_key are required
+                    // to parse sequences from the environment
+                    .try_parsing(true)
                     .list_separator(","),
             )
             .build()?
@@ -38,9 +41,7 @@ impl Settings {
     }
 }
 
-fn discover_config_file(
-    config_arg_path: Option<&String>,
-) -> Result<File<FileSourceFile, FileFormat>> {
+fn discover_config_file(config_arg_path: Option<&str>) -> Result<File<FileSourceFile, FileFormat>> {
     if let Some(path) = config_arg_path {
         return Ok(File::new(path, FileFormat::Toml));
     }
@@ -173,5 +174,60 @@ impl Default for TranscriptionSettings {
         Self {
             model: default_model(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use opentalk_service_auth::{ApiKey, service::ApiKeys};
+
+    use super::Settings;
+
+    #[test]
+    fn should_parse_array_from_env() {
+        temp_env::with_vars(
+            [(
+                "OPENTALK_TRANSCRIPTION_HTTP__API_KEYS",
+                Some("roomserver:secret1,recorder:secret2"),
+            )],
+            || {
+                let config = Settings::load(Some("../extra/example.toml")).unwrap();
+
+                assert_eq!(
+                    config.http.api_keys,
+                    ApiKeys::new(vec![
+                        ApiKey {
+                            id: "roomserver".into(),
+                            secret: "secret1".into()
+                        },
+                        ApiKey {
+                            id: "recorder".into(),
+                            secret: "secret2".into()
+                        }
+                    ])
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn should_parse_array_from_env_single() {
+        temp_env::with_vars(
+            [(
+                "OPENTALK_TRANSCRIPTION_HTTP__API_KEYS",
+                Some("roomserver:secret1"),
+            )],
+            || {
+                let config = Settings::load(Some("../extra/example.toml")).unwrap();
+
+                assert_eq!(
+                    config.http.api_keys,
+                    ApiKeys::new(vec![ApiKey {
+                        id: "roomserver".into(),
+                        secret: "secret1".into()
+                    }])
+                );
+            },
+        );
     }
 }
