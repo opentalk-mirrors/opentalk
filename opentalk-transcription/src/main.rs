@@ -196,7 +196,8 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    let settings = Arc::new(Settings::load(args.config.as_ref()).context("Failed to read config")?);
+    let settings =
+        Arc::new(Settings::load(args.config.as_deref()).context("Failed to read config")?);
     if let Some(Commands::Health { endpoint }) = args.command {
         let Some(monitoring_endpoint) = endpoint.or_else(|| {
             settings.monitoring.as_ref().map(|monitoring_settings| {

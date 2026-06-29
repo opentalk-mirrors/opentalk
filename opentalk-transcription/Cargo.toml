@@ -53,6 +53,9 @@ opentalk-orchestrator-client = { workspace = true, features = [
   "transcription-service",
 ] }
 
+[dev-dependencies]
+temp-env.workspace = true
+
 [build-dependencies]
 anyhow.workspace = true
 opentalk-version.workspace = true
