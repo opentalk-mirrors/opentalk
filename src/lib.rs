@@ -35,7 +35,8 @@ pub use report_date_time::{ReportDateTime, ToReportDateTime};
 pub use report_generation_error::ReportGenerationError;
 use report_generation_error::{CompilationSnafu, DumpDirectoryCreationSnafu, DumpFileExportSnafu};
 use snafu::ResultExt;
-use typst::{World as _, diag::SourceResult, syntax::package::PackageSpec};
+pub use typst::syntax::{RootedPath, VirtualPath, VirtualRoot};
+use typst::{WorldExt, diag::SourceResult, syntax::package::PackageSpec};
 use typst_pdf::PdfOptions;
 use world::World;
 
@@ -61,7 +62,7 @@ pub struct GenerateOptions<'a> {
 /// Generate a pdf file from a typst source string and data.
 pub fn generate_pdf_report(
     source: String,
-    data: BTreeMap<&Path, (Option<PackageSpec>, Cow<'static, [u8]>)>,
+    data: BTreeMap<&str, (Option<PackageSpec>, Cow<'static, [u8]>)>,
     generate_options: &GenerateOptions,
 ) -> Result<Vec<u8>, ReportGenerationError> {
     if let Some(dump_path) = generate_options.dump_to_path {
@@ -79,7 +80,7 @@ pub fn generate_pdf_report(
         }
     }
 
-    let mut world = World::new(source, data);
+    let mut world = World::new(source, data)?;
 
     if let Some(packages_path) = generate_options.packages_path {
         world.load_packages(packages_path)?;
@@ -89,11 +90,7 @@ pub fn generate_pdf_report(
         Ok(d) => Ok(d),
         Err(e) => {
             for diagnostic in &e {
-                let range = world
-                    .source(*world::MAIN_ID)
-                    .expect("Source not found")
-                    .range(diagnostic.span);
-
+                let range = world.range(diagnostic.span);
                 log::warn!("{}: {:?}", diagnostic.message, range);
             }
             CompilationSnafu { warnings: e }.fail()
