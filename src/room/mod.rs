@@ -328,8 +328,7 @@ impl Room {
             ModerationEvent::DebriefingStarted { .. } => Ok(Some(OpenTalkEvent::Disconnected(
                 DisconnectReason::DebriefingStarted,
             ))),
-            ModerationEvent::WaitingRoomEnabled => Ok(None),
-            ModerationEvent::WaitingRoomDisabled => Ok(None),
+            ModerationEvent::WaitingRoomUpdated { .. } => Ok(None),
             ModerationEvent::SentToWaitingRoom => {
                 self.waiting_room_state = WaitingRoomState::InWaitingRoom;
                 Ok(Some(OpenTalkEvent::MovedToWaitingRoom))
