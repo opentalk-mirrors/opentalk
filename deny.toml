@@ -97,6 +97,35 @@ ignore = [
   #     └── krilla-svg
   #         └── typst-pdf
   "RUSTSEC-2026-0192",
+
+  # quick-xml
+  #
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0194
+  # | Quadratic run time when checking a start tag for duplicate attribute names.
+  # |
+  # | A start tag with many attributes triggers an O(n^2) duplicate-name check, letting an
+  # | attacker force excessive CPU usage while parsing untrusted XML.
+  # | Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+  #
+  # quick-xml is pulled in transitively as a build-dependency of phonenumber (v0.38.x) and via
+  # plist -> syntect -> two-face -> typst-library (v0.39.x). No updated version in the compatible
+  # range is available yet, so we have to wait until these dependencies become compatible / updated.
+  "RUSTSEC-2026-0194",
+
+  # quick-xml
+  #
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0195
+  # | Unbounded namespace-declaration allocation in `NsReader` enables memory-exhaustion denial of service.
+  # |
+  # | `NsReader` resolves namespaces before yielding events, allocating resolver heap proportional to the
+  # | number of xmlns declarations on a start tag with no upper bound, allowing an attacker to force large
+  # | heap allocations while parsing untrusted XML.
+  # | Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+  #
+  # quick-xml is pulled in transitively as a build-dependency of phonenumber (v0.38.x) and via
+  # plist -> syntect -> two-face -> typst-library (v0.39.x). No updated version in the compatible
+  # range is available yet, so we have to wait until these dependencies become compatible / updated.
+  "RUSTSEC-2026-0195",
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
