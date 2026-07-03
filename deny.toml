@@ -89,6 +89,43 @@ ignore = [
   #     │   └── typst-library v0.14.2
   #     │       ├── typst v0.14.2
   "RUSTSEC-2025-0141",
+
+  # ttf-parser is unmaintained
+  # Dependency chain:
+  # ├ ttf-parser
+  # └── fontdb
+  #     └── krilla-svg
+  #         └── typst-pdf
+  "RUSTSEC-2026-0192",
+
+  # quick-xml
+  #
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0194
+  # | Quadratic run time when checking a start tag for duplicate attribute names.
+  # |
+  # | A start tag with many attributes triggers an O(n^2) duplicate-name check, letting an
+  # | attacker force excessive CPU usage while parsing untrusted XML.
+  # | Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+  #
+  # quick-xml is pulled in transitively as a build-dependency of phonenumber (v0.38.x) and via
+  # plist -> syntect -> two-face -> typst-library (v0.39.x). No updated version in the compatible
+  # range is available yet, so we have to wait until these dependencies become compatible / updated.
+  "RUSTSEC-2026-0194",
+
+  # quick-xml
+  #
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0195
+  # | Unbounded namespace-declaration allocation in `NsReader` enables memory-exhaustion denial of service.
+  # |
+  # | `NsReader` resolves namespaces before yielding events, allocating resolver heap proportional to the
+  # | number of xmlns declarations on a start tag with no upper bound, allowing an attacker to force large
+  # | heap allocations while parsing untrusted XML.
+  # | Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+  #
+  # quick-xml is pulled in transitively as a build-dependency of phonenumber (v0.38.x) and via
+  # plist -> syntect -> two-face -> typst-library (v0.39.x). No updated version in the compatible
+  # range is available yet, so we have to wait until these dependencies become compatible / updated.
+  "RUSTSEC-2026-0195",
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
@@ -205,32 +242,11 @@ deny = []
 
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
-  { name = "bitflags", version = "1" },
-  { name = "float-cmp", version = "0.9" },
-  { name = "gif", version = "0.13" },
-  { name = "icu_collections", version = "1" },
-  { name = "icu_properties", version = "1" },
-  { name = "icu_properties_data", version = "1" },
-  { name = "icu_provider", version = "1" },
-  { name = "imagesize", version = "0.13" },
-  { name = "kurbo", version = "0.11" },
-  { name = "litemap", version = "0.7" },
-  { name = "moxcms", version = "0.7" },
+  { name = "hashbrown", version = "0.16" },
   { name = "phf", version = "0.12" },
   { name = "phf_shared", version = "0.12" },
-  { name = "png", version = "0.17" },
-  { name = "tinystr", version = "0.7" },
+  { name = "roxmltree", version = "0.20" },
   { name = "windows-sys", version = "0.59" },
-  { name = "writeable", version = "0.5" },
-  { name = "yoke", version = "0.7" },
-  { name = "yoke-derive", version = "0.7" },
-  { name = "zerotrie", version = "0.1" },
-  { name = "zerovec", version = "0.10" },
-  { name = "zerovec-derive", version = "0.10" },
-  { name = "zune-core", version = "0.4" },
-  { name = "zune-jpeg", version = "0.4" },
-  #"ansi_term@0.11.0",
-  #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason why it can't be updated/removed" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive

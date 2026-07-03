@@ -22,11 +22,11 @@ glob = "0.3.3"
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 snafu = "0.9"
-typst = "0.14.0"
-typst-kit = { version = "0.14.0", default-features = false, features = [
-  "embed-fonts",
+typst = "0.15.0"
+typst-kit = { version = "0.15.0", default-features = false, features = [
+  "embedded-fonts",
 ] }
-typst-pdf = "0.14.0"
+typst-pdf = "0.15.0"
 
 [dev-dependencies]
 pretty_assertions = "1"

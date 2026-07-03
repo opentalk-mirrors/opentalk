@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use ecow::EcoVec;
 use snafu::Snafu;
-use typst::diag::SourceDiagnostic;
+use typst::{diag::SourceDiagnostic, syntax::PathError};
 
 /// An error that can happen during report generation
 #[derive(Debug, Snafu)]
@@ -162,5 +162,22 @@ pub enum ReportGenerationError {
 
         /// The source of the error
         source: std::io::Error,
+    },
+
+    /// A file path of the package is not valid UTF-8
+    #[snafu(display("Package path {path:?} isn't valid UTF-8"))]
+    PackageFilePathNotUtf8 {
+        /// The path that isn't valid UTF-8
+        path: PathBuf,
+    },
+
+    /// A file path of the package contains characters not supported by the typst crate
+    #[snafu(display("Package path {path:?} is not supported by typst"))]
+    PackagePathNotSupported {
+        /// The path that contains characters not supported by the typst crate
+        path: PathBuf,
+
+        /// The source of the error
+        source: PathError,
     },
 }

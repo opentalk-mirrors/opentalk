@@ -5,5 +5,12 @@
   ],
   "reviewers": [
     "@opentalk/tools/renovate-reviewers/libs"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": ["typst-*"],
+      "groupName": "typst",
+      "groupSlug": "typst"
+    },
   ]
 }

@@ -4,10 +4,9 @@
 //
 use std::{
     borrow::Cow,
-    collections::BTreeMap,
+    collections::{BTreeMap, HashMap},
     fs::DirEntry,
     path::{Path, PathBuf},
-    sync::LazyLock,
 };
 
 use chrono::{DateTime, Datelike as _, FixedOffset, Local, Utc};
@@ -15,20 +14,21 @@ use snafu::{OptionExt as _, ResultExt as _};
 use typst::{
     Library, LibraryExt as _,
     diag::{FileError, FileResult},
-    foundations::{Bytes, Datetime},
+    foundations::{Bytes, Datetime, Duration},
     syntax::{
-        FileId, Source, VirtualPath,
+        FileId, RootedPath, Source, VirtualPath, VirtualRoot,
         package::{PackageSpec, PackageVersion},
     },
     text::{Font, FontBook},
     utils::LazyHash,
 };
-use typst_kit::fonts::{FontSlot, Fonts};
+use typst_kit::fonts::{self, FontStore};
 
 use crate::{
     ReportGenerationError,
     report_generation_error::{
-        PackageFileGlobSnafu, PackageFileReadSnafu, PackageVersionInvalidGlobPatternSnafu,
+        PackageFileGlobSnafu, PackageFilePathNotUtf8Snafu, PackageFileReadSnafu,
+        PackagePathNotSupportedSnafu, PackageVersionInvalidGlobPatternSnafu,
         PackageVersionInvalidUtf8ForGlobSnafu, ReadPackageDirSnafu,
         ReadPackageVersionDirectorySnafu, ReadPackageVersionFileNameNotUtf8Snafu,
         ReadPackageVersionFileNameSnafu, ReadPackagesDirEntrySnafu, ReadPackagesDirSnafu,
@@ -36,27 +36,26 @@ use crate::{
     },
 };
 
-pub(crate) static MAIN_ID: LazyLock<FileId> =
-    LazyLock::new(|| FileId::new_fake(VirtualPath::new("<main>")));
+pub fn main_id() -> FileId {
+    let vpath = VirtualPath::new("<main>").expect("Hardcoded path is valid");
+    FileId::unique(RootedPath::new(VirtualRoot::Project, vpath))
+}
 
 pub struct World {
     main: Source,
-    fonts: Vec<FontSlot>,
+    fonts: FontStore,
     now: DateTime<Utc>,
     library: LazyHash<Library>,
-    book: LazyHash<FontBook>,
-    files: BTreeMap<FileId, Bytes>,
+    files: HashMap<FileId, Bytes>,
 }
 
 impl World {
     pub fn new(
         text: String,
-        files: BTreeMap<&Path, (Option<PackageSpec>, Cow<'static, [u8]>)>,
-    ) -> Self {
-        let fonts = Fonts::searcher()
-            .include_system_fonts(false)
-            .include_embedded_fonts(true)
-            .search();
+        files: BTreeMap<&str, (Option<PackageSpec>, Cow<'static, [u8]>)>,
+    ) -> Result<Self, ReportGenerationError> {
+        let mut fonts = FontStore::new();
+        fonts.extend(fonts::embedded());
 
         let library = Library::builder().build();
 
@@ -66,22 +65,26 @@ impl World {
                 let path = if path.starts_with("/") || path.starts_with("@") {
                     VirtualPath::new(path)
                 } else {
-                    VirtualPath::new(Path::new("/").join(path))
-                };
+                    VirtualPath::new(format!("/{path}"))
+                }
+                .with_context(|_| PackagePathNotSupportedSnafu { path })?;
                 log::debug!("Adding file for package {package:?}: {path:?}");
-                let file_id = FileId::new(package, path);
-                (file_id, Bytes::new(data))
+                let root = match package {
+                    Some(spec) => VirtualRoot::Package(spec),
+                    None => VirtualRoot::Project,
+                };
+                let file_id = FileId::new(RootedPath::new(root, path));
+                Ok((file_id, Bytes::new(data)))
             })
-            .collect();
+            .collect::<Result<_, ReportGenerationError>>()?;
 
-        Self {
-            main: Source::new(*MAIN_ID, text),
-            fonts: fonts.fonts,
+        Ok(Self {
+            main: Source::new(main_id(), text),
+            fonts,
             now: Utc::now(),
             library: LazyHash::new(library),
-            book: LazyHash::new(fonts.book),
             files,
-        }
+        })
     }
 
     pub fn load_packages(&mut self, packages_path: &Path) -> Result<(), ReportGenerationError> {
@@ -268,10 +271,15 @@ impl World {
                 let data = std::fs::read(&file_path).with_context(|_| PackageFileReadSnafu {
                     path: file_path.to_path_buf(),
                 })?;
-                let file_id = FileId::new(
-                    Some(package_spec.clone()),
-                    VirtualPath::new(Path::new("/").join(relative)),
-                );
+                let absolute = Path::new("/").join(relative);
+                let Some(path) = absolute.to_str() else {
+                    return PackageFilePathNotUtf8Snafu { path: absolute }.fail();
+                };
+                let vpath = VirtualPath::new(path)
+                    .with_context(|_| PackagePathNotSupportedSnafu { path: absolute })?;
+                let rooted_path =
+                    RootedPath::new(VirtualRoot::Package(package_spec.clone()), vpath);
+                let file_id = FileId::new(rooted_path);
                 let _ = self.files.insert(file_id, Bytes::new(data));
             }
         }
@@ -285,15 +293,15 @@ impl typst::World for World {
     }
 
     fn book(&self) -> &LazyHash<FontBook> {
-        &self.book
+        self.fonts.book()
     }
 
     fn main(&self) -> FileId {
-        *MAIN_ID
+        self.main.id()
     }
 
     fn source(&self, id: FileId) -> FileResult<Source> {
-        if id == *MAIN_ID {
+        if id == self.main.id() {
             Ok(self.main.clone())
         } else {
             self.files
@@ -304,7 +312,7 @@ impl typst::World for World {
     }
 
     fn file(&self, id: FileId) -> FileResult<Bytes> {
-        if id == *MAIN_ID {
+        if id == self.main.id() {
             Ok(Bytes::new(self.main.text().to_string()))
         } else {
             self.files.get(&id).cloned().ok_or(FileError::NotSource)
@@ -312,14 +320,14 @@ impl typst::World for World {
     }
 
     fn font(&self, index: usize) -> Option<Font> {
-        self.fonts.get(index).and_then(FontSlot::get)
+        self.fonts.font(index)
     }
 
-    fn today(&self, offset: Option<i64>) -> Option<Datetime> {
+    fn today(&self, offset: Option<Duration>) -> Option<Datetime> {
         let with_offset = match offset {
             None => self.now.with_timezone(&Local).fixed_offset(),
-            Some(hours) => {
-                let seconds = i32::try_from(hours).ok()?.checked_mul(3600)?;
+            Some(duration) => {
+                let seconds = duration.seconds() as i32;
                 self.now.with_timezone(&FixedOffset::east_opt(seconds)?)
             }
         };
@@ -328,5 +336,16 @@ impl typst::World for World {
             with_offset.month().try_into().ok()?,
             with_offset.day().try_into().ok()?,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::world::main_id;
+
+    #[test]
+    fn main_id_is_valid() {
+        let id = main_id();
+        assert_eq!(id.vpath().get_without_slash(), "<main>");
     }
 }
