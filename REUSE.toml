@@ -21,6 +21,7 @@ path = [
   "Cargo.lock",
   ".gitattributes",
   ".gitignore",
+  "docs/**.md",
   "renovate.json",
 ]
 precedence = "aggregate"

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+//! Audio plumbing that adapts a LiveKit native audio stream into an [`ezk`] [`Source`].
+
 use ezk::{ConfigRange, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange};
 use ezk_audio::{
     Channels, Format, RawAudio, RawAudioConfig, RawAudioConfigRange, RawAudioFrame, SampleRate,
@@ -9,12 +11,18 @@ use ezk_audio::{
 use futures::StreamExt;
 use livekit::webrtc::audio_stream::native::NativeAudioStream;
 
+/// Sample rate expected by the transcription pipeline, in Hz.
 pub(crate) const SAMPLE_RATE: u32 = 16_000;
+/// Number of audio channels expected by the transcription pipeline.
 pub(crate) const CHANNELS: u32 = 1;
+/// Sample format produced by the LiveKit native audio stream.
 pub(crate) const FORMAT: Format = Format::I16;
 
+/// An [`ezk`] [`Source`] that yields frames from a LiveKit [`NativeAudioStream`].
 pub(crate) struct NativeAudioStreamSource {
+    /// The underlying LiveKit audio stream.
     pub(crate) stream: NativeAudioStream,
+    /// Running sample count used as the presentation timestamp of the emitted frames.
     pub(crate) timestamp: u64,
 }
 

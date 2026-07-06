@@ -9,12 +9,14 @@ use sysinfo::{CpuRefreshKind, RefreshKind, System};
 
 use crate::TranscriptionTasks;
 
+/// Reports the service's running transcriptions and load to the orchestrator.
 pub(crate) struct OrchestratorStateProvider {
     tasks: TranscriptionTasks,
     system: System,
 }
 
 impl OrchestratorStateProvider {
+    /// Creates a new state provider backed by the shared set of transcription tasks.
     pub fn new(tasks: TranscriptionTasks) -> Self {
         let mut system = System::new_with_specifics(
             RefreshKind::nothing().with_cpu(CpuRefreshKind::nothing().with_cpu_usage()),
@@ -24,6 +26,7 @@ impl OrchestratorStateProvider {
         Self { tasks, system }
     }
 
+    /// Returns the current global CPU usage as a percentage clamped to `0..=100`.
     fn calculate_load(&mut self) -> u8 {
         self.system.refresh_cpu_usage();
         let cpu_usage = self.system.global_cpu_usage();
@@ -39,7 +42,6 @@ impl StateProvider for OrchestratorStateProvider {
 
         let rooms = tasks
             .keys()
-            .cloned()
             .map(|target| TranscriptionResource {
                 room_id: target.room_id,
                 breakout_id: target.breakout_room,
