@@ -1481,9 +1481,9 @@ dependencies = [
 
 [[package]]
 name = "ezk-sip-types"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f44b953e855d47e775703b4642140b12fbb76ff6166223e1be16c7a81ea6ca45"
+checksum = "e7b5dad1c6e05c13ab69ed6a08262cecab2447493acc39875f1c76f0be377587"
 dependencies = [
  "anyhow",
  "bytes 1.11.1",
