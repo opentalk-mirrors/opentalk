@@ -44,6 +44,14 @@ ignore = [
 
   # paste - no longer maintained
   "RUSTSEC-2024-0436",
+
+  # ttf-parser is unmaintained
+  # ├ ttf-parser
+  # └── fontdb
+  #     └── krilla-svg
+  #         └── typst-pdf
+  #             └── opentalk-report-generation
+  "RUSTSEC-2026-0192",
 ]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
