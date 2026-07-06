@@ -242,11 +242,10 @@ deny = []
 
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
-  { name = "hashbrown", version = "0.16" },
   { name = "phf", version = "0.12" },
   { name = "phf_shared", version = "0.12" },
+  { name = "quick-xml", version = "0.38" },
   { name = "roxmltree", version = "0.20" },
-  { name = "windows-sys", version = "0.59" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
