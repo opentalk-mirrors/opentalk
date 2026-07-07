@@ -46,7 +46,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `backup_dir_config` | string | `{{ backup_dir }}/config` |
 | `backup_dir_sql_dumps` | string | `{{ backup_dir }}/dumps` |
 | `backup_dir_volumes` | string | `{{ backup_dir }}/volumes` |
-| `backup_docker_volume_list` | string | `{{`<br>`  ( [compose_project_name ~ '_garage_meta', compose_project_name ~ '_garage_data']`<br>`    if (s3_storage_provider \| default('garage')) == 'garage'`<br>`    else [compose_project_name ~ '_minio'] )`<br>`  + [compose_project_name ~ '_rabbitmq', compose_project_name ~ '_traefik']`<br>`}}` |
+| `backup_docker_volume_list` | string | `{{`<br>`  ( [compose_project_name ~ '_garage_meta', compose_project_name ~ '_garage_data']`<br>`    if (s3_storage_provider &#124; default('garage')) == 'garage'`<br>`    else [compose_project_name ~ '_minio'] )`<br>`  + [compose_project_name ~ '_rabbitmq', compose_project_name ~ '_traefik']`<br>`}}` |
 | `backup_docker_volume_restore_files` | list | `[]` |
 | `backup_retention_max_age_days` | integer | `7` |
 | `backup_retention_max_items` | integer | `5` |
