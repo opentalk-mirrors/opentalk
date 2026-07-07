@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
-FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.94.0-trixie AS builder
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.96.0-trixie AS builder
 
 RUN apt-get --update install -y build-essential libclang-dev
 

@@ -579,7 +579,9 @@ impl Signaling {
                 self.opentalk_room = None;
             }
             OpenTalkEvent::Recording(event) => self.handle_recording_event(event).await?,
-            OpenTalkEvent::RecordingService(..) => {
+            OpenTalkEvent::RecordingService(..)
+            | OpenTalkEvent::Transcription(..)
+            | OpenTalkEvent::TranscriptionService(..) => {
                 // ignore
             }
             OpenTalkEvent::Breakout(breakout_event) => {
