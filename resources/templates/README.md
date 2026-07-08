@@ -128,7 +128,7 @@ Variables:
 | event.call_in.sip_tel      | string         | Telephone number to call                          |
 | event.call_in.sip_id       | string         | Id of the room to enter                           |
 | event.call_in.sip_password | string         | Password of the room to enter                     |
-| invite_link                | string         | Invite link to the room of the meeting            |
+| join_link                  | string         | Link href to the meeting room                     |
 | support                    | object or null | Support contact information                       |
 | support.phone              | string         | The support phone number                          |
 | support.mail               | string         | The support email address                         |

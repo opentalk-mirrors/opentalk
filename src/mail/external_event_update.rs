@@ -34,10 +34,7 @@ fn build_template_context(
     context.insert("invitee", &obj.invitee);
     context.insert("inviter", &obj.inviter);
     context.insert("event", &obj.event);
-    context.insert(
-        "invite_link",
-        &builder.create_room_invite_link(&obj.invite_code),
-    );
+    context.insert("join_link", &builder.create_join_link(&obj.event));
     context.insert("support", &builder.support_contact);
     context.insert("data_protection_url", &builder.frontend.data_protection_url);
     context
@@ -104,10 +101,7 @@ impl MailTemplate for ExternalEventUpdate {
         let language = negotiate_language(language);
 
         let mut context = tera::Context::new();
-        context.insert(
-            "meeting_link",
-            &builder.create_room_invite_link(&self.invite_code),
-        );
+        context.insert("meeting_link", &builder.create_join_link(&self.event));
         context.insert("language", &language);
         context.insert("event", &self.event);
         context.insert("data_protection_url", &builder.frontend.data_protection_url);

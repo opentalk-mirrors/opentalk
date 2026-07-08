@@ -361,7 +361,6 @@ impl ExampleData for protocol::v1::ExternalEventInvite {
             invitee: external_invitee(email_address),
             event: generate_example_event(EVENT_DESCRIPTION_EXTERNAL.to_string())?,
             inviter: registered_inviter(language, email_address),
-            invite_code: Uuid::from_u128(0xa3e92829_b599_4985_9d0d_8e070a8b0000).into(),
         })
     }
 }
