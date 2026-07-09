@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.1.1-beta.1] - 2026-07-09
+
+[26.1.1-beta.1]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.1-beta.1
+
+### 🐛 Bug fixes
+
+- (docs) Fix bad escaping of | in configuration options reference (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk product version v26.1.1-beta.1 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update OpenTalk web frontend version v2.8.5 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update OpenTalk obelisk version v0.21.3 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update OpenTalk outlook add-in version v0.3.6-2 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update keycloak version 26.6.3 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update postgresql version 17.10 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update traefik version v3.7.7 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update garage version v2.3.0 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update mailcrab version v1.7.0 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update NDT server version v0.25.3 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+
+### ⚙ Miscellaneous
+
+- (docs) Update CHANGELOG (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+
 ## [26.1.0-beta.5] - 2026-05-12
 
 [26.1.0-beta.5]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.5
