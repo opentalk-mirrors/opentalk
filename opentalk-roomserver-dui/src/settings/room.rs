@@ -108,7 +108,6 @@ pub fn default_room_parameters() -> RoomParameters {
                 }),
             }),
         }),
-        invite_code: None,
         tariff: TariffDetails {
             id: TariffId::from_u128(0x2da2b825_6db9_4dc4_b9e6_b4fd64e66a16),
             name: "Starter tariff".to_string(),
