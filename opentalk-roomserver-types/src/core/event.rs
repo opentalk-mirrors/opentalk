@@ -212,7 +212,6 @@ mod tests {
                 created_by: UserInfo::example_data(),
             },
             meeting_details: MeetingDetails {
-                invite_code_id: None,
                 call_in: None,
                 streaming_links: vec![],
             },

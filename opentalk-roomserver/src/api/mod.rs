@@ -612,7 +612,6 @@ mod test {
             waiting_room: WaitingRoom::Disabled,
             call_in: None,
             event: None,
-            invite_code: None,
             tariff: TariffDetails::example_data(),
             streaming_targets: vec![],
             show_meeting_details: true,

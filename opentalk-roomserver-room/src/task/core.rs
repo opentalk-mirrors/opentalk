@@ -774,7 +774,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             });
 
         let meeting_details = MeetingDetails {
-            invite_code_id: self.info.room.invite_code,
             call_in: self.info.room.call_in.clone(),
             streaming_links: self
                 .info
@@ -1082,7 +1081,6 @@ mod tests {
                 created_by: UserInfo::example_data(),
             },
             meeting_details: MeetingDetails {
-                invite_code_id: None,
                 call_in: None,
                 streaming_links: vec![],
             },
