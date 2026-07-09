@@ -94,6 +94,7 @@ audio_files! {
     "consent_info", ConsentInfo;
     "consent_invalid", ConsentInvalid;
     "consent_reject", ConsentReject;
+    "entering_conference", EnteringConference;
     "input_invalid", InputInvalid;
     "input_timeout", InputTimeout;
     "moderator_kicked", ModeratorKicked;
