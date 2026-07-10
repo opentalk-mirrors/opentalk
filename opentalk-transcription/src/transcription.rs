@@ -2,7 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{str::FromStr, sync::Arc};
+use std::{
+    str::FromStr,
+    sync::Arc,
+    time::{Instant, SystemTime},
+};
 
 use anyhow::{Context, Result, bail};
 use livekit::{
@@ -31,7 +35,7 @@ use tokio::sync::mpsc::{self, UnboundedReceiver};
 use crate::{
     AppState,
     audio_processing::{
-        audio_source::AudioSource, transcription::TranscriptionStage,
+        self, audio_source::AudioSource, transcription::TranscriptionStage,
         voice_activity_detection::VadStage,
     },
 };
@@ -334,6 +338,7 @@ impl TranscriptionSession {
         };
         let track_id = audio_track.sid().to_string();
 
+        let settings = self.app_state.settings.clone();
         let whisper_context = self.app_state.whisper_context.clone();
         let language = self.language.clone();
         let send_tx = self.segments_tx.clone();
@@ -366,17 +371,29 @@ impl TranscriptionSession {
                     break;
                 };
 
-                let Some(speech_segment) = vad.process(samples) else {
+                let Some(mut speech_segment) = vad.process(samples) else {
                     continue;
                 };
 
-                let started_at = speech_segment.started_at;
-                match transcription.transcribe(speech_segment) {
-                    Ok(text) if !text.is_empty() => {
+                // Convert Instant to DateTime UTC using SystemTime
+                let instant_now = Instant::now();
+                let system_now = SystemTime::now();
+                let starts_at = (system_now - (instant_now - speech_segment.started_at)).into();
+
+                match transcription.transcribe(&mut speech_segment) {
+                    Ok(text) => {
+                        if let Some(dump_dir) = &settings.transcription.dump_dir {
+                            audio_processing::dump::dump(&speech_segment, &text, dump_dir);
+                        }
+
+                        if text.is_empty() {
+                            continue;
+                        }
+
                         let segment = TranscriptionSegment {
                             participant_id,
                             track_id: track_id.clone(),
-                            starts_at: started_at,
+                            starts_at,
                             ends_at: Timestamp::now(),
                             text,
                         };
@@ -386,7 +403,6 @@ impl TranscriptionSession {
                             break;
                         }
                     }
-                    Ok(_) => {}
                     Err(e) => log::error!("Transcription failed: {e:?}"),
                 }
             }

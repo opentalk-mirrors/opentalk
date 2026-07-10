@@ -29,6 +29,7 @@ pub(crate) type TranscriptionTasks =
 
 #[derive(Clone)]
 pub(crate) struct AppState {
+    pub(crate) settings: Arc<Settings>,
     /// The currently running transcription sessions.
     pub(crate) tasks: TranscriptionTasks,
     /// The shared whisper.cpp context that all sessions create their inference state from.
@@ -81,6 +82,7 @@ impl AppState {
         .context("Failed to create whisper context")?;
 
         Ok(Self {
+            settings,
             tasks: transcription_tasks,
             whisper_context: Arc::new(whisper_context),
             prometheus_state: Arc::new(metrics::PrometheusState::new()),
