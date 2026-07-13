@@ -86,6 +86,9 @@ ignore = [
   # (via syntect -> plist -> two-face). We have to wait until typst-library
   # updates its dependency tree to receive a compatible version.
   "RUSTSEC-2026-0195",
+
+  # rustybuzz is unmaintained
+  "RUSTSEC-2026-0206",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -432,6 +435,7 @@ skip = [
   { name = "rustix", version = "0.38" },
   { name = "serde_spanned", version = "0.6" },
   { name = "sha1", version = "0.10" },
+  { name = "sha2", version = "0.10" },
   { name = "smithay-client-toolkit", version = "0.19" },
   { name = "snafu", version = "0.8" },
   { name = "snafu-derive", version = "0.8" },
