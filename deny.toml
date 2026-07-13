@@ -126,6 +126,14 @@ ignore = [
   # plist -> syntect -> two-face -> typst-library (v0.39.x). No updated version in the compatible
   # range is available yet, so we have to wait until these dependencies become compatible / updated.
   "RUSTSEC-2026-0195",
+
+  # rustybuzz is unmaintained
+  #
+  #  rustybuzz
+  #  └── krilla
+  #      └── krilla-svg
+  #          └── typst-pdf
+  "RUSTSEC-2026-0206",
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
