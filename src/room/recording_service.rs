@@ -15,7 +15,7 @@ use opentalk_roomserver_types_recording::{
         state::{RecordingServiceState, ServiceStreamingTarget},
     },
 };
-use types::common::streaming::StreamingTargetId;
+use opentalk_types::common::streaming::StreamingTargetId;
 
 use super::{OpenTalkEvent, Room};
 

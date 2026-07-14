@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 
 use opentalk_roomserver_types_livekit::{Credentials, LiveKitState, MicrophoneRestrictionState};
 use opentalk_roomserver_types_moderation::event::ModerationEvent;
-use types::signaling::ParticipantId;
+use opentalk_types::signaling::ParticipantId;
 
 use crate::{Room, room::OpenTalkEvent};
 

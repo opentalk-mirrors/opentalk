@@ -30,8 +30,8 @@ use opentalk_roomserver_types_transcription::{
     event::TranscriptionEvent, service::command::TranscriptionServiceCommand,
     state::TranscriptionState,
 };
+use opentalk_types::signaling::{ModuleData, ParticipantId};
 use recording_service::RoomRecordingServiceState;
-use types::signaling::{ModuleData, ParticipantId};
 
 use crate::room::{
     livekit::RoomLiveKitState, recording::RoomRecordingState, transcription::RoomTranscriptionState,

@@ -7,12 +7,7 @@ use std::option::Option;
 use anyhow::Context;
 use openidconnect::url;
 use opentalk_roomserver_types::breakout::breakout_id::BreakoutId;
-use opentalk_types_api_internal::{
-    call_in::PostCallInStartRoomServerRequestBody, recording::RecordingTarget,
-};
-use rand::distr::SampleString;
-use reqwest::{StatusCode, Url};
-use types::{
+use opentalk_types::{
     api::v1::{
         pagination::PagePaginationQuery,
         rooms::{
@@ -31,6 +26,11 @@ use types::{
         users::DisplayName,
     },
 };
+use opentalk_types_api_internal::{
+    call_in::PostCallInStartRoomServerRequestBody, recording::RecordingTarget,
+};
+use rand::distr::SampleString;
+use reqwest::{StatusCode, Url};
 
 use crate::{
     authentication::{
@@ -103,7 +103,7 @@ pub enum WebsocketError {
     #[error("Invalid header value")]
     InvalidHeader,
     #[error("Connecting to websocket failed: {0}")]
-    ConnectionFailed(#[source] tt::tungstenite::Error),
+    ConnectionFailed(#[source] tokio_tungstenite::tungstenite::Error),
     #[error("Uri can't be turned into request")]
     UriConversionFailed,
 }

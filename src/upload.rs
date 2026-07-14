@@ -10,7 +10,7 @@ use std::{
 use futures_util::{SinkExt, Stream, StreamExt};
 use openidconnect::{AccessToken, http::Response};
 use reqwest::header::HeaderValue;
-use tt::{
+use tokio_tungstenite::{
     WebSocketStream,
     tungstenite::{Message, client::IntoClientRequest},
 };
@@ -24,7 +24,7 @@ pub enum UploadingError {
     #[error("Heartbeat response timed out")]
     HeartbeatTimeout,
     #[error("Stream failed with '{0}'")]
-    StreamError(#[from] tt::tungstenite::Error),
+    StreamError(#[from] tokio_tungstenite::tungstenite::Error),
     #[error("Sending through channel failed")]
     ChannelError,
     #[error("Authentication failed")]
@@ -40,7 +40,7 @@ impl OpenTalkClient {
         token: AccessToken,
     ) -> Result<
         (
-            WebSocketStream<tt::MaybeTlsStream<tokio::net::TcpStream>>,
+            WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
             Response<Option<Vec<u8>>>,
         ),
         WebsocketError,
@@ -55,7 +55,7 @@ impl OpenTalkClient {
                 .map_err(|_| WebsocketError::InvalidHeader)?,
         );
 
-        tt::connect_async(request)
+        tokio_tungstenite::connect_async(request)
             .await
             .map_err(WebsocketError::ConnectionFailed)
     }
@@ -116,7 +116,7 @@ impl OpenTalkClient {
                         return Err(UploadingError::HeartbeatTimeout);
                     }
 
-                    tx.send(tt::tungstenite::Message::Ping("heartbeat".into()))
+                    tx.send(tokio_tungstenite::tungstenite::Message::Ping("heartbeat".into()))
                         .await?;
                 }
                 result = receiver.next() => {
@@ -129,7 +129,7 @@ impl OpenTalkClient {
                     };
 
                     let part_num = u32::from_be_bytes(bytes[..4].try_into().unwrap_or_default());
-                    tx.send(tt::tungstenite::Message::Binary(bytes.into()))
+                    tx.send(tokio_tungstenite::tungstenite::Message::Binary(bytes.into()))
                         .await?;
 
                     // Limit the chunk count to the fixed maximum chunk amount
