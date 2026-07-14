@@ -15,7 +15,7 @@ use opentalk_roomserver_types_recording::{
     event::{RecordingError, RecordingEvent},
     state::RecordingState,
 };
-use types::{common::streaming::StreamingTargetId, signaling::ParticipantId};
+use opentalk_types::{common::streaming::StreamingTargetId, signaling::ParticipantId};
 
 use crate::{
     Room,

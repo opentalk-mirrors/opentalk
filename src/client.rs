@@ -5,7 +5,7 @@
 use anyhow::{Context, Result};
 use opentalk_roomserver_client::api::signaling::SignalingConnection;
 use opentalk_roomserver_types::breakout::breakout_id::BreakoutId;
-use types::{
+use opentalk_types::{
     api::v1::rooms::{RoomResource, by_room_id::RoomserverStartResponseBody},
     common::{
         call_in::{CallInId, CallInPassword},

@@ -14,7 +14,7 @@ use opentalk_roomserver_types::{
     },
     room_kind::RoomKind,
 };
-use types::common::time::Timestamp;
+use opentalk_types::common::time::Timestamp;
 
 use crate::Room;
 

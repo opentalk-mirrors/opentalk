@@ -15,11 +15,11 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_raise_hands::state::RaisedHandPeerState;
 use opentalk_roomserver_types_recording::peer_state::RecordingPeerState;
-use serde::Deserialize;
-use types::{
+use opentalk_types::{
     common::{modules::ModuleId, users::DisplayName},
     signaling::{ParticipantId, SignalingModulePeerFrontendData},
 };
+use serde::Deserialize;
 
 #[derive(Debug, Clone)]
 pub struct Participant {
