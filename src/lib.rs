@@ -23,8 +23,8 @@ pub use opentalk_roomserver_types_recording;
 pub use opentalk_roomserver_types_transcription;
 pub use opentalk_types;
 pub use room::{
-    BreakoutApi, BreakoutConfig, BreakoutState, DisconnectReason, LiveKitApi, OpenTalkEvent,
-    OpenTalkLiveKitEvent, OpenTalkRecordingEvent, OpenTalkRecordingServiceEvent, Participant,
-    RecorderAction, RecordingApi, RecordingServiceApi, Room, TranscriptionApi,
+    BreakoutApi, BreakoutConfig, BreakoutState, DisconnectReason, JoinedLobby, LiveKitApi,
+    OpenTalkEvent, OpenTalkLiveKitEvent, OpenTalkRecordingEvent, OpenTalkRecordingServiceEvent,
+    Participant, RecorderAction, RecordingApi, RecordingServiceApi, Room, TranscriptionApi,
     TranscriptionServiceApi,
 };

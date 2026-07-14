@@ -7,7 +7,7 @@ use std::{
     future::pending,
 };
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 use opentalk_roomserver_client::api::{
     command::SignalingModuleCommand,
     event::{SignalingEvent, SignalingModuleEvent},
@@ -30,7 +30,10 @@ use opentalk_roomserver_types_transcription::{
     event::TranscriptionEvent, service::command::TranscriptionServiceCommand,
     state::TranscriptionState,
 };
-use opentalk_types::signaling::{ModuleData, ParticipantId};
+use opentalk_types::{
+    common::users::DisplayName,
+    signaling::{ModuleData, ParticipantId},
+};
 use recording_service::RoomRecordingServiceState;
 
 use crate::room::{
@@ -75,14 +78,33 @@ pub struct Room {
 
 #[derive(Debug, PartialEq, Eq)]
 enum WaitingRoomState {
+    InLobby,
     InWaitingRoom,
     Accepted,
     None,
 }
 
+pub struct JoinedLobby {
+    pub room: Room,
+    /// The participant is allowed to join the conference when `true`. Otherwise they have to go trough the waiting
+    /// room.
+    pub can_enter: bool,
+    /// The display name of the participant in the conference.
+    pub display_name: Option<DisplayName>,
+}
+
 /// Event originating from the OpenTalk signaling
 #[derive(Debug)]
 pub enum OpenTalkEvent {
+    /// The permission to enter the conference changed while this connection was in the lobby.
+    EntryPermissionChanged {
+        /// `true` when the participant can enter the conference without going through the waiting room.
+        can_enter: bool,
+    },
+
+    /// The display name changed in the conference while this connection was in the lobby
+    DisplayNameAssigned(Option<DisplayName>),
+
     /// A participant joined the room
     ParticipantJoined(Participant),
 
@@ -100,8 +122,7 @@ pub enum OpenTalkEvent {
     /// The participant was moved to the waiting room
     MovedToWaitingRoom,
 
-    /// The participant was accepted from the waiting room and may now join the conference with
-    /// [`Room::enter_from_waiting_room`].
+    /// The participant was accepted from the waiting room and may now join the conference with [`Room::enter_room`].
     WaitingRoomAccepted,
 
     /// All events from the livekit module
@@ -163,7 +184,7 @@ impl Room {
                 return Ok(OpenTalkEvent::WaitingRoomAccepted);
             }
             WaitingRoomState::Accepted => pending().await,
-            WaitingRoomState::None => {}
+            WaitingRoomState::None | WaitingRoomState::InLobby => {}
         }
 
         loop {
@@ -190,13 +211,16 @@ impl Room {
 
         match event.payload {
             SignalingModuleEvent::Core(core_event) => match core_event {
+                CoreEvent::JoinedLobby { .. } => {
+                    bail!("Got unexpected JoinedLobby");
+                }
                 CoreEvent::JoinSuccess(..) => {
                     bail!("Got unexpected JoinSuccess");
                 }
                 CoreEvent::JoinBlocked { .. } => {
                     bail!("Got unexpected JoinBlocked");
                 }
-                CoreEvent::InWaitingRoom { .. } => {
+                CoreEvent::InWaitingRoom => {
                     bail!("Got unexpected InWaitingRoom");
                 }
                 CoreEvent::ParticipantConnected {
@@ -316,6 +340,12 @@ impl Room {
         moderation_event: ModerationEvent,
     ) -> Result<Option<OpenTalkEvent>> {
         match moderation_event {
+            ModerationEvent::EntryPermissionChanged { can_enter } => {
+                Ok(Some(OpenTalkEvent::EntryPermissionChanged { can_enter }))
+            }
+            ModerationEvent::DisplayNameAssigned { new_name } => {
+                Ok(Some(OpenTalkEvent::DisplayNameAssigned(new_name)))
+            }
             ModerationEvent::Kicked { .. } => {
                 Ok(Some(OpenTalkEvent::Disconnected(DisconnectReason::Kicked)))
             }
@@ -453,74 +483,99 @@ impl Room {
         }
     }
 
-    /// Enter the room from inside the waiting room.
-    ///
-    /// This function may only be called after receiving the [`OpenTalkEvent::WaitingRoomAccepted`] or completing the
-    /// future returned by [`wait_until_accepted`](Self::wait_until_accepted).
-    ///
-    /// # Errors
-    /// When not in waiting room
-    /// When the signaling message couldn't be sent
-    pub async fn enter_from_waiting_room(&mut self) -> Result<()> {
-        if self.waiting_room_state != WaitingRoomState::Accepted {
-            bail!("Not in waiting room, or not yet accepted")
-        }
-
-        self.signaling
-            .send(&SignalingModuleCommand::Core(CoreCommand::EnterRoom).into())
-            .await?;
-
-        self.join().await
-    }
-
-    pub(crate) async fn join(&mut self) -> Result<()> {
-        let first_message = self
-            .signaling
-            .receive()
-            .await
-            .context("Failed to receive message")?
-            .context("Unexpected end of websocket stream")?;
-
-        match first_message.payload {
-            SignalingModuleEvent::Core(CoreEvent::JoinSuccess(join_success)) => {
-                self.id = join_success.id;
-
-                self.participants.clear();
-                for opentalk_participant in &join_success.participants {
-                    let participant = Participant::new(
-                        opentalk_participant.id,
-                        opentalk_participant
-                            .connections
-                            .iter()
-                            .map(|i| i.connection_id),
-                        &opentalk_participant.module_data,
-                    )?;
-
-                    self.participants.insert(participant.id, participant);
-                }
-
-                self.handle_module_data(&join_success.module_data)?;
-
-                self.event_info = join_success.event_info;
-
-                self.waiting_room_state = WaitingRoomState::None;
-            }
-            SignalingModuleEvent::Core(CoreEvent::InWaitingRoom {
+    pub(crate) async fn join_lobby(mut self) -> Result<JoinedLobby> {
+        let event = self.recv_event().await?;
+        match event {
+            SignalingModuleEvent::Core(CoreEvent::JoinedLobby {
                 connection_id: _,
                 participant_id,
+                device_id: _,
+                can_enter,
+                display_name,
             }) => {
                 self.id = participant_id;
-                self.waiting_room_state = WaitingRoomState::InWaitingRoom;
+                self.waiting_room_state = WaitingRoomState::InLobby;
+
+                Ok(JoinedLobby {
+                    room: self,
+                    can_enter,
+                    display_name,
+                })
             }
             SignalingModuleEvent::Core(CoreEvent::JoinBlocked { reason }) => {
                 bail!("Join Blocked, {reason:?}");
             }
             message => {
-                bail!("received neither JoinSuccess, nor InWaitingRoom, got: {message:?}")
+                bail!("Received unexpected event: {message:?}")
             }
         }
+    }
+
+    pub async fn enter_waiting_room(&mut self, display_name: Option<DisplayName>) -> Result<()> {
+        if self.waiting_room_state != WaitingRoomState::InLobby {
+            bail!("Not in lobby");
+        }
+
+        self.signaling
+            .send(
+                &SignalingModuleCommand::Core(CoreCommand::EnterWaitingRoom { display_name })
+                    .into(),
+            )
+            .await
+            .context("Failed to send command")?;
+
+        let event = self.recv_event().await?;
+        ensure!(
+            matches!(event, SignalingModuleEvent::Core(CoreEvent::InWaitingRoom)),
+            "Received unexpected event: {event:?}"
+        );
+
+        self.waiting_room_state = WaitingRoomState::InWaitingRoom;
 
         Ok(())
+    }
+
+    pub async fn enter_room(&mut self, display_name: Option<DisplayName>) -> Result<()> {
+        self.signaling
+            .send(&SignalingModuleCommand::Core(CoreCommand::EnterRoom { display_name }).into())
+            .await
+            .context("Failed to send command")?;
+
+        let event = self.recv_event().await?;
+        let SignalingModuleEvent::Core(CoreEvent::JoinSuccess(join_success)) = event else {
+            bail!("Received unexpected event: {event:?}");
+        };
+
+        self.participants.clear();
+        for opentalk_participant in &join_success.participants {
+            let participant = Participant::new(
+                opentalk_participant.id,
+                opentalk_participant
+                    .connections
+                    .iter()
+                    .map(|i| i.connection_id),
+                &opentalk_participant.module_data,
+            )?;
+
+            self.participants.insert(participant.id, participant);
+        }
+
+        self.handle_module_data(&join_success.module_data)?;
+
+        self.event_info = join_success.event_info;
+        self.waiting_room_state = WaitingRoomState::None;
+
+        Ok(())
+    }
+
+    async fn recv_event(&mut self) -> Result<SignalingModuleEvent> {
+        Ok(self
+            .signaling
+            .receive()
+            .await
+            .context("Failed to receive message")?
+            .context("Unexpected end of websocket stream")?
+            .payload)
     }
 
     fn handle_module_data(&mut self, module_data: &ModuleData) -> Result<()> {
