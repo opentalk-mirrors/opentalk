@@ -30,7 +30,7 @@ opentalk-roomserver-types-raise-hands = "0.2.0"
 opentalk-roomserver-types-recording = "0.2.0"
 opentalk-roomserver-types-transcription = "0.2.0"
 opentalk-service-auth = "0.2"
-opentalk-types = { version = "0.67", default-features = false, features = [
+opentalk-types = { version = "0.68", default-features = false, features = [
   "api",
   "serde",
   "signaling",

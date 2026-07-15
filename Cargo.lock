@@ -2103,9 +2103,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types"
-version = "0.67.1"
+version = "0.68.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbec5b199c9077c27154f91de6ab39ceba093fb4c9827e22a7cab85b63daaf14"
+checksum = "3c163b466d6e3c78826515d51b2c55ed83ddb0b3eb2bafa5655f6c13374cd925"
 dependencies = [
  "opentalk-types-api-v1",
  "opentalk-types-common",
@@ -2145,9 +2145,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-v1"
-version = "0.58.1"
+version = "0.59.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cce39497f0addb2a9168a54e538ced0cb23851305d71b1ae2d4f2bd122068015"
+checksum = "e24dd41984673c325d6d47ffd4b2a8c2fe36824763c945607885745b05202fcd"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -3254,9 +3254,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "syn"
-version = "2.0.118"
+version = "2.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b9ae57f904213ebb649ce6895b8a66c66f0203b9319718f69a5612a065b1422"
+checksum = "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3452,9 +3452,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "1.1.2+spec-1.1.0"
+version = "1.1.3+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81f3d15e84cbcd896376e6730314d59fb5a87f31e4b038454184435cd57defee"
+checksum = "53c96ecdfa941c8fc4fcaed14f99ada8ebed502eef533015095a07e3301d4c3c"
 dependencies = [
  "serde_core",
  "serde_spanned",
@@ -3474,9 +3474,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.25.12+spec-1.1.0"
+version = "0.25.13+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2153edc6955a6c354fad8f5efd38b6a8769bdccf9fe50f8e1329f81b0baa5d7"
+checksum = "6975367e4d2ef766d86af01ffad14b622fecc8d4357a998fbc4deb6e9bacaf9b"
 dependencies = [
  "indexmap 2.14.0",
  "toml_datetime",
