@@ -9,7 +9,7 @@ use opentalk_types::{
     api::v1::rooms::{RoomResource, by_room_id::RoomserverStartResponseBody},
     common::{
         call_in::{CallInId, CallInPassword},
-        rooms::{GuestAccess, RoomId, RoomPassword},
+        rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
         users::DisplayName,
     },
 };
@@ -55,7 +55,7 @@ impl OpenTalkClient {
     pub async fn connect_invited(
         &self,
         room_id: RoomId,
-        invite_code: String,
+        invite_code: InviteCode,
         password: Option<RoomPassword>,
         display_name: DisplayName,
     ) -> Result<JoinResult> {

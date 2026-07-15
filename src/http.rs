@@ -12,16 +12,13 @@ use opentalk_types::{
         pagination::PagePaginationQuery,
         rooms::{
             PostRoomsRequestBody, RoomResource,
-            by_room_id::{
-                PostRoomsRoomserverStartInvitedRequestBody, PostRoomsRoomserverStartRequestBody,
-                RoomserverStartResponseBody,
-            },
+            by_room_id::{PostRoomsRoomserverStartRequestBody, RoomserverStartResponseBody},
         },
     },
     common::{
         call_in::{CallInId, CallInPassword},
         pagination::{Page, PageSize},
-        rooms::{GuestAccess, RoomId, RoomPassword},
+        rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
         roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret},
         users::DisplayName,
     },
@@ -185,6 +182,8 @@ impl HttpClient {
             .json(&PostRoomsRoomserverStartRequestBody {
                 device_secret: self.device_secret.clone(),
                 display_name,
+                password: None,
+                invite_code: None,
             })
             .send()
             .await?;
@@ -206,20 +205,20 @@ impl HttpClient {
         &self,
         controller_url: &BaseUrl,
         room_id: RoomId,
-        invite_code: String,
+        invite_code: InviteCode,
         password: Option<RoomPassword>,
         display_name: DisplayName,
     ) -> Result<RoomserverStartResponseBody, StartInvitedError> {
-        let url = controller_url.join(format!("v1/rooms/{room_id}/start_invited"))?;
+        let url = controller_url.join(format!("v1/rooms/{room_id}/start"))?;
 
         let response = self
             .http_client
             .post(url)
-            .json(&PostRoomsRoomserverStartInvitedRequestBody {
+            .json(&PostRoomsRoomserverStartRequestBody {
                 device_secret: self.device_secret.clone(),
                 password,
-                invite_code,
-                display_name,
+                invite_code: Some(invite_code),
+                display_name: Some(display_name),
             })
             .send()
             .await?;
