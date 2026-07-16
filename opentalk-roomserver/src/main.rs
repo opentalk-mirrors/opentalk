@@ -35,6 +35,8 @@ mod tcp_multi_listener;
 
 mod trace;
 
+use tcp_multi_listener::MultiListener;
+
 const SHUTDOWN_GRACE_PERIOD: Duration = Duration::from_secs(42);
 
 pub(crate) async fn wait_shutdown(mut app_state: watch::Receiver<ApplicationState>) {
@@ -46,6 +48,30 @@ pub(crate) async fn wait_shutdown(mut app_state: watch::Receiver<ApplicationStat
 
 pub fn decorate_error(decoration: &'static str) -> impl Fn(anyhow::Error) -> anyhow::Error {
     move |err| err.context(decoration)
+}
+
+/// Resolves the socket addresses for the given `address` and `port` and binds a
+/// [`MultiListener`] to serve the metrics endpoint on all of them.
+async fn bind_metrics_listener(address: &str, port: u16) -> anyhow::Result<MultiListener> {
+    let addresses: Vec<_> = (address, port)
+        .to_socket_addrs()
+        .with_context(|| {
+            format!("Failed to determine socket address for http.address: '{address}'")
+        })?
+        .collect();
+
+    MultiListener::bind(addresses.clone())
+        .await
+        .with_context(|| {
+            format!(
+                "Failed to bind metrics to: {}",
+                addresses
+                    .iter()
+                    .map(|addr| format!("{addr}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })
 }
 
 async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
@@ -73,20 +99,12 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
 
     let mut metric_layer = None;
     if let Some(metric) = &settings.metrics {
-        let addresses = (settings.http.address.as_ref(), metric.port)
-            .to_socket_addrs()
-            .with_context(|| {
-                format!(
-                    "Failed to determine socket address for http.address: '{}'",
-                    settings.http.address
-                )
-            })?
-            .collect();
+        let listener = bind_metrics_listener(settings.http.address.as_ref(), metric.port).await?;
 
         let (m_layer, metric_handle) = metrics::build_prometheus_layer();
         set.spawn(
             metrics::run_metric_server(
-                addresses,
+                listener,
                 metric.allowlist.clone(),
                 metric_handle,
                 app_state.subscribe(),

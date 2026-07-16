@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::net::SocketAddr;
-
 use anyhow::Context as _;
 use axum::{
     Router,
@@ -60,7 +58,7 @@ pub(super) fn build_prometheus_layer<'a>() -> (
 }
 
 pub(crate) async fn run_metric_server<H>(
-    addresses: Vec<SocketAddr>,
+    listener: MultiListener,
     allowlist: Vec<IpInet>,
     metric_handle: H,
     app_state: watch::Receiver<ApplicationState>,
@@ -76,18 +74,6 @@ where
     let router = Router::<MetricContext<H>>::new()
         .route("/metrics", get(metrics))
         .with_state(ctx);
-    let listener = MultiListener::bind(addresses.clone())
-        .await
-        .with_context(|| {
-            format!(
-                "Failed to bind metrics to: {}",
-                addresses
-                    .iter()
-                    .map(|addr| format!("{addr}"))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        })?;
     tracing::info!(
         "Listening for metrics on {}",
         listener.local_addr().expect("Failed to get local address")
@@ -174,15 +160,16 @@ mod tests {
     use std::{
         net::{IpAddr, Ipv4Addr, SocketAddr},
         time::Duration,
-        vec,
     };
 
+    use axum::serve::Listener as _;
+    use cidr::IpInet;
     use opentalk_roomserver_common::application_state::ApplicationState;
     use reqwest::StatusCode;
     use tokio::{net::TcpStream, sync::watch};
 
     use super::run_metric_server;
-    use crate::metrics::MetricHandle;
+    use crate::{metrics::MetricHandle, tcp_multi_listener::MultiListener};
 
     const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
     const RESPONSE: &str = "metrics";
@@ -209,24 +196,38 @@ mod tests {
         .expect("metrics server did not become ready in time");
     }
 
-    #[test_log::test(tokio::test)]
-    async fn allowlist_not_configured() {
-        // Using a different port for each test to avoid conflicts when run in parallel
-        const PORT: u16 = 11410;
-
-        // Start the metric server without any allowed IPs
+    /// Binds a metrics server to a random free port (port `0`, allocated by the OS)
+    /// and starts it. Returns the address the server is listening on together with
+    /// the [`watch::Sender`] that must be kept alive for the server to keep running.
+    async fn start_server(allowlist: Vec<IpInet>) -> (SocketAddr, watch::Sender<ApplicationState>) {
         let (app_state, _) = watch::channel(ApplicationState::Running);
-        let addresses = vec![SocketAddr::new(LOCALHOST, PORT)];
+
+        let listener = MultiListener::bind([SocketAddr::new(LOCALHOST, 0)])
+            .await
+            .expect("failed to bind metrics listener");
+        let addr = listener
+            .local_addr()
+            .expect("failed to get local address")
+            .addrs[0];
+
         tokio::spawn(run_metric_server(
-            addresses,
-            vec![],
+            listener,
+            allowlist,
             MockMetricHandle,
             app_state.subscribe(),
         ));
 
-        wait_for_server(SocketAddr::new(LOCALHOST, PORT)).await;
+        wait_for_server(addr).await;
 
-        let status = reqwest::get(format!("http://{LOCALHOST}:{PORT}/metrics"))
+        (addr, app_state)
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn allowlist_not_configured() {
+        // Start the metric server without any allowed IPs
+        let (addr, _app_state) = start_server(vec![]).await;
+
+        let status = reqwest::get(format!("http://{addr}/metrics"))
             .await
             .unwrap()
             .status();
@@ -235,21 +236,10 @@ mod tests {
 
     #[test_log::test(tokio::test)]
     async fn localhost_forbidden() {
-        const PORT: u16 = 11411;
+        // Start the metric server allowing only a different IP than localhost
+        let (addr, _app_state) = start_server(vec![Ipv4Addr::new(192, 168, 0, 1).into()]).await;
 
-        // Start the metric server without any allowed IPs
-        let (app_state, _) = watch::channel(ApplicationState::Running);
-        let addresses = vec![SocketAddr::new(LOCALHOST, PORT)];
-        tokio::spawn(run_metric_server(
-            addresses,
-            vec![Ipv4Addr::new(192, 168, 0, 1).into()],
-            MockMetricHandle,
-            app_state.subscribe(),
-        ));
-
-        wait_for_server(SocketAddr::new(LOCALHOST, PORT)).await;
-
-        let status = reqwest::get(format!("http://{LOCALHOST}:{PORT}/metrics"))
+        let status = reqwest::get(format!("http://{addr}/metrics"))
             .await
             .unwrap()
             .status();
@@ -258,21 +248,10 @@ mod tests {
 
     #[test_log::test(tokio::test)]
     async fn localhost_allowed() {
-        const PORT: u16 = 11412;
-
         // Start the metric server allowing localhost
-        let (app_state, _) = watch::channel(ApplicationState::Running);
-        let addresses = vec![SocketAddr::new(LOCALHOST, PORT)];
-        tokio::spawn(run_metric_server(
-            addresses,
-            vec![LOCALHOST.into()],
-            MockMetricHandle,
-            app_state.subscribe(),
-        ));
+        let (addr, _app_state) = start_server(vec![LOCALHOST.into()]).await;
 
-        wait_for_server(SocketAddr::new(LOCALHOST, PORT)).await;
-
-        let response = reqwest::get(format!("http://{LOCALHOST}:{PORT}/metrics"))
+        let response = reqwest::get(format!("http://{addr}/metrics"))
             .await
             .unwrap();
 
