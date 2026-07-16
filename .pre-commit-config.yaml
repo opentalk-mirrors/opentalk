@@ -35,7 +35,7 @@ repos:
           - --workspace
           - --no-deps
   - repo: https://github.com/EmbarkStudios/cargo-deny
-    rev: 0.18.3
+    rev: 0.20.2
     hooks:
       - id: cargo-deny
         args:
@@ -47,7 +47,10 @@ repos:
           - --deny
           - license-not-encountered
           - --deny
+          - license-exception-not-encountered
+          - --deny
           - advisory-not-detected
+          - --hide-inclusion-graph
   - repo: https://github.com/weichweich/olpat
     rev: v0.10.0
     hooks:
