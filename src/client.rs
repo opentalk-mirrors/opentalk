@@ -9,7 +9,7 @@ use opentalk_types::{
     api::v1::rooms::{RoomResource, by_room_id::RoomserverStartResponseBody},
     common::{
         call_in::{CallInId, CallInPassword},
-        rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
+        rooms::{GuestAccess, RoomId, RoomPassword},
         users::DisplayName,
     },
 };
@@ -47,29 +47,6 @@ impl OpenTalkClient {
             .start_as_user(&self.controller_url, room_id, display_name)
             .await
             .context("Failed to send start HTTP request")?;
-
-        self.connect_common(response).await
-    }
-
-    /// Connect using an invite code, does not require any authentication
-    pub async fn connect_invited(
-        &self,
-        room_id: RoomId,
-        invite_code: InviteCode,
-        password: Option<RoomPassword>,
-        display_name: DisplayName,
-    ) -> Result<JoinResult> {
-        let response = self
-            .http
-            .start_invited(
-                &self.controller_url,
-                room_id,
-                invite_code,
-                password,
-                display_name,
-            )
-            .await
-            .context("Failed to send start-call-in HTTP request")?;
 
         self.connect_common(response).await
     }

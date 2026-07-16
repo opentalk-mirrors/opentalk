@@ -18,7 +18,7 @@ use opentalk_types::{
     common::{
         call_in::{CallInId, CallInPassword},
         pagination::{Page, PageSize},
-        rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
+        rooms::{GuestAccess, RoomId, RoomPassword},
         roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret},
         users::DisplayName,
     },
@@ -183,7 +183,6 @@ impl HttpClient {
                 device_secret: self.device_secret.clone(),
                 display_name,
                 password: None,
-                invite_code: None,
             })
             .send()
             .await?;
@@ -198,43 +197,6 @@ impl HttpClient {
                 &response_body,
             )?),
             status => Err(StartAsUserError::UnexpectedStatusCode(status)),
-        }
-    }
-
-    pub(crate) async fn start_invited(
-        &self,
-        controller_url: &BaseUrl,
-        room_id: RoomId,
-        invite_code: InviteCode,
-        password: Option<RoomPassword>,
-        display_name: DisplayName,
-    ) -> Result<RoomserverStartResponseBody, StartInvitedError> {
-        let url = controller_url.join(format!("v1/rooms/{room_id}/start"))?;
-
-        let response = self
-            .http_client
-            .post(url)
-            .json(&PostRoomsRoomserverStartRequestBody {
-                device_secret: self.device_secret.clone(),
-                password,
-                invite_code: Some(invite_code),
-                display_name: Some(display_name),
-            })
-            .send()
-            .await?;
-
-        let status = response.status();
-        let response_body = response.text().await?;
-
-        log::trace!("start-invited response status={status} body={response_body}");
-
-        match status {
-            StatusCode::OK => {
-                let response = serde_json::from_str::<RoomserverStartResponseBody>(&response_body)?;
-
-                Ok(response)
-            }
-            status => Err(StartInvitedError::UnexpectedStatusCode(status)),
         }
     }
 

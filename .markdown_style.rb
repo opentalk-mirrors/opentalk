@@ -27,4 +27,3 @@ exclude_rule 'MD046'
 # See also https://github.com/markdownlint/markdownlint/issues/472
 exclude_rule 'MD055'
 exclude_rule 'MD057'
-
