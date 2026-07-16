@@ -48,12 +48,11 @@ repos:
           - license-not-encountered
           - --deny
           - advisory-not-detected
-  # There currently is no official taplo hook, but this one got recommended in the corresponding issue
-  - repo: https://github.com/ComPWA/taplo-pre-commit
-    rev: v0.9.3
+  - repo: https://github.com/weichweich/olpat
+    rev: v0.10.0
     hooks:
-      - id: taplo-format
-      - id: taplo-lint
+      - id: olpat-format
+      - id: olpat-lint
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.38.0
     hooks:
