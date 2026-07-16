@@ -418,7 +418,7 @@ impl TimerModule {
         };
 
         if !timer.config.ready_check_enabled {
-            return Err(TimerError::ReadyCheckNotEnabled)?;
+            Err(TimerError::ReadyCheckNotEnabled)?;
         }
 
         let ready_participants = self

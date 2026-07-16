@@ -8,7 +8,7 @@ use icu_locid::{LanguageIdentifier, langid};
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::{EventDescription, EventId, EventTitle},
-    rooms::{RoomPassword, invite_codes::InviteCode},
+    rooms::RoomPassword,
     shared_folders::SharedFolder,
     streaming::RoomStreamingTarget,
     tariffs::QuotaType,
@@ -51,12 +51,6 @@ pub struct RoomParameters {
     // combined with example data.
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub event: Option<EventContext>,
-
-    // Field is non-required already, utoipa adds a `nullable: true` entry
-    // by default which creates a false positive in the spectral linter when
-    // combined with example data.
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub invite_code: Option<InviteCode>,
 
     pub tariff: TariffDetails,
 
@@ -124,7 +118,6 @@ impl Debug for RoomParameters {
             .field("waiting_room", &self.waiting_room)
             .field("call_in", &self.call_in)
             .field("event", &self.event)
-            .field("invite_code", &self.invite_code)
             .field("tariff", &self.tariff)
             .field("streaming_targets", &self.streaming_targets)
             .field("e2e_encryption", &self.e2e_encryption)
@@ -142,7 +135,6 @@ impl ExampleData for RoomParameters {
             waiting_room: WaitingRoom::Disabled,
             call_in: Some(CallInInfo::example_data()),
             event: Some(EventContext::example_data()),
-            invite_code: Some(InviteCode::example_data()),
             tariff: TariffDetails::example_data(),
             streaming_targets: vec![RoomStreamingTarget::example_data()],
             show_meeting_details: true,
@@ -282,7 +274,6 @@ mod tests {
                 },
                 "title": "Team Event"
             },
-            "invite_code": "00000000-0000-0000-0000-0000deadbeef",
             "tariff": {
                 "id": "00000000-0000-0000-0000-000000000000",
                 "name": "Starter tariff",
