@@ -12,7 +12,6 @@ edition = "2024"
 license = "EUPL-1.2"
 publish = false
 repository = "https://gitlab.opencode.de/opentalk/transcription"
-version = "0.1.0"
 
 [workspace.dependencies]
 opentalk-transcription-web-api = { path = "opentalk-transcription-web-api", version = "0.1.0" }
