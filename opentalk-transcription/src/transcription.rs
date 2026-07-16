@@ -20,7 +20,7 @@ use opentalk_client_signaling::{
     opentalk_roomserver_types_transcription::{
         segment::TranscriptionSegment, service::command::TranscriptionServiceCommand,
     },
-    types::{
+    opentalk_types::{
         common::{rooms::RoomId, time::Timestamp},
         signaling::ParticipantId,
     },
