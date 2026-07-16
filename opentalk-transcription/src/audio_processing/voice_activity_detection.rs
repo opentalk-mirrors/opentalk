@@ -5,7 +5,7 @@
 use std::{collections::VecDeque, time::Duration};
 
 use anyhow::Result;
-use opentalk_client_signaling::types::common::time::Timestamp;
+use opentalk_client_signaling::opentalk_types::common::time::Timestamp;
 use voice_activity_detector::VoiceActivityDetector;
 
 use crate::audio::{CHANNELS, SAMPLE_RATE};

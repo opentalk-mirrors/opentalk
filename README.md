@@ -32,23 +32,47 @@ The default build uses the Vulkan backend, which runs on a wide range of GPUs.
 Building `whisper-rs` compiles the bundled whisper.cpp C++ sources, so a C/C++
 toolchain and CMake are always required. On Debian/Ubuntu:
 
+On Debian/Ubuntu:
+
 ```sh
 apt-get install build-essential pkg-config clang libclang-dev cmake libssl-dev
+```
+
+On Fedora:
+
+```sh
+dnf install gcc gcc-c++ make pkgconf-pkg-config clang clang-devel cmake openssl-devel
 ```
 
 ### Vulkan (default)
 
 In addition to the common dependencies, the Vulkan backend needs the Vulkan
-loader, headers and the shader compiler:
+loader, headers and the shader compiler.
+
+On Debian/Ubuntu:
 
 ```sh
 apt-get install libvulkan-dev glslc
 ```
 
-At runtime a Vulkan loader and a driver for your GPU are required, for example:
+On Fedora:
+
+```sh
+dnf install vulkan-loader-devel vulkan-headers glslc
+```
+
+At runtime a Vulkan loader and a driver for your GPU are required, for example.
+
+On Debian/Ubuntu:
 
 ```sh
 apt-get install libvulkan1 mesa-vulkan-drivers
+```
+
+On Fedora:
+
+```sh
+dnf install vulkan-loader mesa-vulkan-drivers
 ```
 
 ### NVIDIA CUDA
@@ -72,6 +96,13 @@ additionally needs:
 ```sh
 apt-get install libomp-dev intel-oneapi-mkl-devel intel-oneapi-mkl clinfo \
     intel-media-va-driver intel-gpu-tools
+```
+
+On Fedora:
+
+```sh
+dnf install libomp-devel intel-oneapi-mkl-devel intel-oneapi-mkl clinfo \
+    intel-media-driver intel-gpu-tools
 ```
 
 The oneAPI environment must be sourced before building or running, see the

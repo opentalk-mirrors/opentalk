@@ -21,6 +21,7 @@ path = [
   "Cargo.lock",
   ".gitattributes",
   ".gitignore",
+  "CHANGELOG.md",
   "docs/**.md",
   "renovate.json",
 ]
