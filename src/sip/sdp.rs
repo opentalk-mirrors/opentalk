@@ -17,7 +17,7 @@ use ezk_sdp_types::{
     Origin, Rtcp, RtpMap, SessionDescription, SrtpCrypto, SrtpKeyingMaterial, SrtpSuite,
     TaggedAddress, Time, TransportProtocol,
 };
-use rand::RngCore;
+use rand::Rng;
 use std::{
     io,
     net::{IpAddr, SocketAddr, ToSocketAddrs},

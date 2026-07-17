@@ -3727,7 +3727,7 @@ dependencies = [
  "opentalk-version",
  "owo-colors",
  "parking_lot",
- "rand 0.9.4",
+ "rand 0.10.1",
  "rtp",
  "rustls",
  "serde",
