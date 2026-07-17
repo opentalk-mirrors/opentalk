@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use async_trait::async_trait;
-use sip_core::{Endpoint, IncomingRequest, MayTake};
-use sip_types::{Method, StatusCode, header::typed::Contact};
-use sip_ua::dialog::Usage;
+use ezk_sip_core::{Endpoint, IncomingRequest, MayTake};
+use ezk_sip_types::{Method, StatusCode, header::typed::Contact};
+use ezk_sip_ua::dialog::Usage;
 
 /// Simple Dialog Usage which handles OPTIONS requests inside a dialog
 pub(super) struct OptionsUsage {

@@ -5,22 +5,22 @@
 use std::{borrow::Cow, net::SocketAddr, time::Duration};
 
 use anyhow::{Context, Result, bail};
-use service_probe::{ServiceState, set_service_state};
-use sip_auth::{
+use ezk_sip_auth::{
     ClientAuthenticator, DigestAuthenticator, DigestCredentials, DigestUser, RequestParts,
     ResponseParts,
 };
-use sip_core::{
+use ezk_sip_core::{
     Endpoint,
     transport::{TargetTransportInfo, TransportState},
 };
-use sip_types::{
+use ezk_sip_types::{
     StatusCode,
     header::typed::Contact,
     print::AppendCtx,
     uri::{NameAddr, SipUri},
 };
-use sip_ua::register::Registration;
+use ezk_sip_ua::register::Registration;
+use service_probe::{ServiceState, set_service_state};
 use tokio::{
     sync::{broadcast, watch},
     time::{Interval, interval, sleep},

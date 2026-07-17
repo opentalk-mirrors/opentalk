@@ -4,11 +4,11 @@
 
 use crate::media::{DEFAULT_FPS, codec::Codec};
 use crate::settings::Settings;
+use ezk_sdp_types::{ImageAttrSets, ImageAttrXyRange, MediaDescription, RtpMap};
 use h264_profile_level_id::{Level, Profile};
 use openh264::OpenH264API;
 use openh264::encoder::{Level as OpenH264Level, Profile as OpenH264Profile};
 use openh264_sys2::API;
-use sdp_types::{ImageAttrSets, ImageAttrXyRange, MediaDescription, RtpMap};
 use std::cmp;
 use std::mem::MaybeUninit;
 use std::str::FromStr;
@@ -271,7 +271,7 @@ pub fn choose_video_codec(
 }
 
 fn clamp_resolution_by_imageattr(
-    imageattr: &sdp_types::ImageAttr,
+    imageattr: &ezk_sdp_types::ImageAttr,
     width: &mut u32,
     height: &mut u32,
 ) {

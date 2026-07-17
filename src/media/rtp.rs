@@ -6,9 +6,9 @@ use crate::sip::{MediaSessionId, SrtpInfo};
 use anyhow::{Context, Result, ensure};
 use ezk::{BoxedSourceCancelSafe, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange};
 use ezk_rtp::{Rtp, RtpConfig, RtpConfigRange, RtpPacket, Session, rtcp_types::Compound};
+use ezk_sdp_types::SrtpSuite;
 use owo_colors::OwoColorize;
 use parking_lot::Mutex;
-use sdp_types::SrtpSuite;
 use srtp::{CryptoPolicy, StreamPolicy};
 use std::{collections::HashMap, future::pending, io, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{
@@ -234,26 +234,26 @@ impl RtpSessions {
 
 fn srtp_suite_to_policy(suite: &SrtpSuite) -> CryptoPolicy {
     match suite {
-        sdp_types::SrtpSuite::AES_CM_128_HMAC_SHA1_80 => {
+        ezk_sdp_types::SrtpSuite::AES_CM_128_HMAC_SHA1_80 => {
             srtp::CryptoPolicy::aes_cm_128_hmac_sha1_80()
         }
-        sdp_types::SrtpSuite::AES_CM_128_HMAC_SHA1_32 => {
+        ezk_sdp_types::SrtpSuite::AES_CM_128_HMAC_SHA1_32 => {
             srtp::CryptoPolicy::aes_cm_128_hmac_sha1_32()
         }
-        sdp_types::SrtpSuite::AES_192_CM_HMAC_SHA1_80 => {
+        ezk_sdp_types::SrtpSuite::AES_192_CM_HMAC_SHA1_80 => {
             srtp::CryptoPolicy::aes_cm_192_hmac_sha1_80()
         }
-        sdp_types::SrtpSuite::AES_192_CM_HMAC_SHA1_32 => {
+        ezk_sdp_types::SrtpSuite::AES_192_CM_HMAC_SHA1_32 => {
             srtp::CryptoPolicy::aes_cm_192_hmac_sha1_32()
         }
-        sdp_types::SrtpSuite::AES_256_CM_HMAC_SHA1_80 => {
+        ezk_sdp_types::SrtpSuite::AES_256_CM_HMAC_SHA1_80 => {
             srtp::CryptoPolicy::aes_cm_256_hmac_sha1_80()
         }
-        sdp_types::SrtpSuite::AES_256_CM_HMAC_SHA1_32 => {
+        ezk_sdp_types::SrtpSuite::AES_256_CM_HMAC_SHA1_32 => {
             srtp::CryptoPolicy::aes_cm_256_hmac_sha1_32()
         }
-        sdp_types::SrtpSuite::AEAD_AES_128_GCM => srtp::CryptoPolicy::aes_gcm_128_16_auth(),
-        sdp_types::SrtpSuite::AEAD_AES_256_GCM => srtp::CryptoPolicy::aes_gcm_256_16_auth(),
+        ezk_sdp_types::SrtpSuite::AEAD_AES_128_GCM => srtp::CryptoPolicy::aes_gcm_128_16_auth(),
+        ezk_sdp_types::SrtpSuite::AEAD_AES_256_GCM => srtp::CryptoPolicy::aes_gcm_256_16_auth(),
         _ => unimplemented!(),
     }
 }
