@@ -103,6 +103,7 @@ impl TestRoomBuilder {
                 waiting_room: WaitingRoom::Disabled,
                 call_in: None,
                 event: None,
+                invite_code: None,
                 tariff: TariffDetails {
                     id: TariffId::from_u128(1),
                     name: "Default Tariff".to_string(),
