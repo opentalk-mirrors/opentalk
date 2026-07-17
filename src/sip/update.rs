@@ -8,8 +8,8 @@ use super::{
 };
 use crate::media::MediaPipeline;
 use anyhow::{Context, Result, bail};
-use sip_types::{CodeKind, Method, Name, StatusCode, header::typed::ContentType};
-use sip_ua::invite::{
+use ezk_sip_types::{CodeKind, Method, Name, StatusCode, header::typed::ContentType};
+use ezk_sip_ua::invite::{
     create_ack,
     session::{InviteSession, ReInviteReceived},
 };
@@ -210,7 +210,7 @@ pub async fn refresh_invite_session(
                 endpoint
                     .send_outgoing_request(&mut ack)
                     .await
-                    .map_err(sip_core::Error::from)?;
+                    .map_err(ezk_sip_core::Error::from)?;
 
                 // Resend ACK if the transaction receives additional responses
                 tokio::spawn(async move {

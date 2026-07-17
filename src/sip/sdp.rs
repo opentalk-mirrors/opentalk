@@ -12,12 +12,12 @@ use base64::prelude::*;
 use bytes::Bytes;
 use bytesstr::BytesStr;
 use core::fmt;
-use rand::RngCore;
-use sdp_types::{
+use ezk_sdp_types::{
     Connection, Direction, Fmtp, IceOptions, Media, MediaDescription, MediaType as SdpMediaType,
     Origin, Rtcp, RtpMap, SessionDescription, SrtpCrypto, SrtpKeyingMaterial, SrtpSuite,
     TaggedAddress, Time, TransportProtocol,
 };
+use rand::Rng;
 use std::{
     io,
     net::{IpAddr, SocketAddr, ToSocketAddrs},

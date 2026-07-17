@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use sdp_types::MediaType as SdpMediaType;
+use ezk_sdp_types::MediaType as SdpMediaType;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MediaType {

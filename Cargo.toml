@@ -30,6 +30,12 @@ ezk-g711 = "0.2"
 ezk-g722 = "0.1"
 ezk-image = "0.4"
 ezk-rtp = "0.2"
+ezk-sdp-types = "0.6"
+ezk-sip-auth = "0.5"
+ezk-sip-core = { version = "0.9", features = ["tls-native-tls"] }
+ezk-sip-types = "0.6"
+ezk-sip-ua = { version = "0.9", default-features = false }
+ezk-stun-types = "0.3"
 futures = "0.3"
 h264-profile-level-id = "0.2"
 hound = "3.5"
@@ -46,21 +52,15 @@ opentalk-service-auth = "0.2"
 opentalk-version = "0.4.0"
 owo-colors = "4"
 parking_lot = "0.12"
-rand = "0.9"
+rand = "0.10"
 rtp = "0.17"
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
-sdp-types = { version = "0.6", package = "ezk-sdp-types" }
 serde = { version = "1", features = ["derive"] }
 serde_ignored = "0.1.14"
 serde_path_to_error = "0.1.20"
 service-probe = "0.4"
 service-probe-client = "0.4"
-sip-auth = { version = "0.5", package = "ezk-sip-auth" }
-sip-core = { version = "0.9", package = "ezk-sip-core", features = ["tls-native-tls"] }
-sip-types = { version = "0.6", package = "ezk-sip-types" }
-sip-ua = { version = "0.9", package = "ezk-sip-ua", default-features = false }
 srtp = "0.7"
-stun-types = { version = "0.3", package = "ezk-stun-types" }
 thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "signal"] }
 tokio-native-tls = "0.3"

@@ -46,7 +46,7 @@ use opentalk_compositor::{
         },
     },
 };
-use rand::Rng;
+use rand::RngExt;
 use rtp::{RtpMpscSource, RtpSessions};
 use std::{
     collections::HashMap,
