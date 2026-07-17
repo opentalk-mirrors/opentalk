@@ -37,7 +37,7 @@ log.workspace = true
 opentalk-client-signaling.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum"] }
 opentalk-transcription-web-api = "0.2.0"
-opentalk-types-api-common = "0.8.0"
+opentalk-types-api-common = "0.9.0"
 opentalk-version.workspace = true
 owo-colors.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-native-roots"] }
@@ -49,7 +49,7 @@ service-probe-client.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
 voice_activity_detector.workspace = true
 whisper-rs = { workspace = true, features = ["log_backend"] }
-opentalk-orchestrator-client = { version = "0.9.0", features = [
+opentalk-orchestrator-client = { version = "0.10.0", features = [
   "transcription-service",
 ] }
 
