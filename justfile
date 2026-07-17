@@ -134,22 +134,11 @@ update-changelog CRATE VERSION: _check_opentalk_git_cliff _check_yq
     #!/usr/bin/env bash
     set -euo pipefail
 
+    [[ {{ CRATE }} = {{ binary_crate }} ]] || exit 0
+
     if [ -z "${GITLAB_TOKEN:-}" ] && [ -f "$HOME/.gitlab_token" ]; then
         GITLAB_TOKEN=$(cat $HOME/.gitlab_token)
     fi
-
-    if [[ {{ CRATE }} = {{ binary_crate }} ]]; then
-        changelog="CHANGELOG.md"
-        include_path=()
-    else
-        manifest=$(just _crate-manifest {{ CRATE }})
-        dir=$(realpath --relative-to . "$(dirname "$manifest")")
-        changelog="$dir/CHANGELOG.md"
-        include_path=(--include-path "$dir/**")
-    fi
-
-    # create the changelog if it doesn't exist yet
-    [[ -f $changelog ]] || touch "$changelog"
 
     # Update Changelog
     GITLAB_TOKEN=$GITLAB_TOKEN \
@@ -157,9 +146,8 @@ update-changelog CRATE VERSION: _check_opentalk_git_cliff _check_yq
     GITLAB_REPO=opentalk/backend/services/roomserver \
     opentalk-git-cliff \
         --unreleased \
-        "${include_path[@]}" \
         --tag "v{{ VERSION }}" \
-        --prepend "$changelog"
+        --prepend CHANGELOG.md
 
 # Create the release commit
 commit-release +CRATES=binary_crate: _check_yq
