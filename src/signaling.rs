@@ -10,7 +10,6 @@ use bytes::Bytes;
 use bytesstr::BytesStr;
 use ezk_sip_types::{Method, Name};
 use ezk_sip_ua::invite::session::{InviteSession, InviteSessionEvent};
-use opentalk_client_signaling::client::JoinResult;
 use opentalk_client_signaling::http::StartCallInError;
 use opentalk_client_signaling::opentalk_roomserver_types::breakout::event::BreakoutEvent;
 use opentalk_client_signaling::opentalk_roomserver_types::connection_id::ConnectionId;
@@ -18,7 +17,7 @@ use opentalk_client_signaling::opentalk_roomserver_types_livekit::MicrophoneRest
 use opentalk_client_signaling::opentalk_types::common::users::DisplayName;
 use opentalk_client_signaling::opentalk_types::signaling::ParticipantId;
 use opentalk_client_signaling::{
-    CallInConnectToken, DisconnectReason, OpenTalkClient, OpenTalkEvent, OpenTalkLiveKitEvent,
+    DisconnectReason, JoinedLobby, OpenTalkClient, OpenTalkEvent, OpenTalkLiveKitEvent,
     OpenTalkRecordingEvent, Participant, Room,
 };
 use opentalk_compositor::livekit::{DisconnectReason as LiveKitDisconnectReason, track::TrackKind};
@@ -68,10 +67,9 @@ pub struct Signaling {
     /// The SIP session
     sip: InviteSession,
 
-    /// Connect token which will be held while the announcement for joining a room plays
-    connect_token: Option<CallInConnectToken>,
     /// OpenTalk room connection
     opentalk_room: Option<Room>,
+    join_state: JoinState,
 
     waiting_room_please_hold_interval: Pin<Box<Interval>>,
 
@@ -115,6 +113,36 @@ pub struct Signaling {
     livekit_disconnection_grace_period: Option<Pin<Box<Sleep>>>,
 }
 
+/// Represents the current stage of the participant while joining a conference.
+///
+/// The participant progresses through these states in order:
+///
+/// * [`EnteringPin`](JoinState::EnteringPin)
+/// * entering the [`Lobby`](JoinState::Lobby)
+/// * optionally the [`WaitingRoom`](JoinState::WaitingRoom)
+/// * finally the [`Room`](JoinState::Room)
+#[derive(Debug, Default)]
+enum JoinState {
+    /// The participant is entering the room id and pin via DTMF.
+    #[default]
+    EnteringPin,
+    /// The websocket connection was established but has not yet entered the waiting room or the room.
+    Lobby {
+        /// `true` when allowed to enter the room without going through the waiting room.
+        can_enter: bool,
+        /// The display name assigned by the server in case another connection of the same participant is already
+        /// connected.
+        display_name: Option<DisplayName>,
+    },
+    /// The participant is in the waiting room, waiting to be accepted by a moderator.
+    WaitingRoom {
+        /// `true` when the welcome message was already played before entering the waiting room.
+        welcome_played: bool,
+    },
+    /// The participant has joined the conference room.
+    Room,
+}
+
 enum RecordingConsentState {
     None,
     WaitingForConsent,
@@ -142,8 +170,8 @@ impl Signaling {
             opentalk_client,
             name,
             sip,
-            connect_token: None,
             opentalk_room: None,
+            join_state: JoinState::default(),
             waiting_room_please_hold_interval: Box::pin(interval(Duration::from_secs(30))),
             media,
             media_session,
@@ -217,14 +245,26 @@ impl Signaling {
                     self.track_controller.play_track(self.settings.language, Track::InputInvalid);
                 }
                 _ = welcome_finished_channel_rx.recv() => {
-                    if let Err(e) = self.connect_to_conference().await  {
+                    // The can_enter state might have changed while the welcome message was playing, e.g. due to a
+                    // moderator enabling the waiting room in the meantime. Check again and enter the waiting room if
+                    // we are no longer allowed to enter directly.
+                    let result = match &self.join_state {
+                       JoinState::Lobby { can_enter: true, display_name: _ } => self.enter_room().await,
+                       JoinState::Lobby { can_enter: false, display_name: _ } => self.enter_waiting_room(true).await,
+                       JoinState::EnteringPin | JoinState::WaitingRoom { .. } | JoinState::Room => {
+                          log::warn!("received welcome finished event while not entering the pin or already in the waiting room or room");
+                          Ok(())
+                       }
+                    };
+
+                    if let Err(e) = result {
                         log::error!("Failed to join conference, {e:?}");
                         self.state = State::Quitting;
                     }
                 }
                 _ = waiting_room_accepted_channel_rx.recv() => {
-                    if let Err(e) = self.enter_from_waiting_room().await  {
-                        log::error!("Failed to enter from waiting room, {e:?}");
+                    if let Err(e) = self.enter_room().await {
+                        log::error!("failed to enter from waiting room, {e:?}");
                         self.state = State::Quitting;
                     }
                 }
@@ -299,30 +339,21 @@ impl Signaling {
                             }
 
                             if self.dtmf_pw.len() == 10 {
-                                match self.start_connect_to_conference().await {
-                                    Ok(()) => {
-                                        self.track_controller.play_track_and_respond(
-                                            self.settings.language,
-                                            Track::WelcomeUsage,
-                                            welcome_finished_responder,
-                                        );
-                                    }
-                                    Err(e) => {
-                                        if let Some(StartCallInError::InvalidIdOrPin) =
-                                            e.downcast_ref::<StartCallInError>()
-                                        {
-                                            self.dtmf_id.clear();
-                                            self.dtmf_pw.clear();
+                                if let Err(e) = self.connect(welcome_finished_responder).await {
+                                    if let Some(StartCallInError::InvalidIdOrPin) =
+                                        e.downcast_ref::<StartCallInError>()
+                                    {
+                                        self.dtmf_id.clear();
+                                        self.dtmf_pw.clear();
 
-                                            self.track_controller.play_track(
-                                                self.settings.language,
-                                                Track::InputInvalid,
-                                            );
-                                            return Ok(());
-                                        } else {
-                                            log::error!("failed to join, {e}");
-                                            return Err(e);
-                                        }
+                                        self.track_controller.play_track(
+                                            self.settings.language,
+                                            Track::InputInvalid,
+                                        );
+                                        return Ok(());
+                                    } else {
+                                        log::error!("failed to join, {e}");
+                                        return Err(e);
                                     }
                                 }
                             } else {
@@ -495,6 +526,23 @@ impl Signaling {
             .context("Called handle_opentalk_room_event without a room set")?;
 
         match event? {
+            OpenTalkEvent::EntryPermissionChanged { can_enter } => {
+                let JoinState::Lobby {
+                    can_enter: allowed, ..
+                } = &mut self.join_state
+                else {
+                    log::warn!("received entry permission change outside the lobby");
+                    return Ok(());
+                };
+                *allowed = can_enter;
+            }
+            OpenTalkEvent::DisplayNameAssigned(display_name) => match &mut self.join_state {
+                JoinState::Lobby {
+                    display_name: name,
+                    can_enter: _,
+                } => *name = display_name,
+                JoinState::EnteringPin | JoinState::Room | JoinState::WaitingRoom { .. } => {}
+            },
             OpenTalkEvent::ParticipantJoined(participant) => {
                 self.handle_participant_joined(&participant);
             }
@@ -521,10 +569,22 @@ impl Signaling {
             }
 
             OpenTalkEvent::WaitingRoomAccepted => {
+                let JoinState::WaitingRoom { welcome_played } = &mut self.join_state else {
+                    log::warn!("received accepted outside the waiting room");
+                    return Ok(());
+                };
+
                 self.track_controller.play_waiting_room_loop(false);
+                let track = if *welcome_played {
+                    Track::EnteringConference
+                } else {
+                    *welcome_played = true;
+                    Track::WelcomeUsage
+                };
+
                 self.track_controller.play_track_and_respond(
                     self.settings.language,
-                    Track::WelcomeUsage,
+                    track,
                     waiting_room_accepted_responder,
                 );
             }
@@ -708,10 +768,8 @@ impl Signaling {
         }
     }
 
-    /// Called when the id & pin are entered, checks validity and stored the connect token, which is used after the announcement is played out or skipped
-    async fn start_connect_to_conference(&mut self) -> Result<()> {
-        let name = self.name.as_ref().map_or("Anonymous", |s| s.as_str());
-
+    /// Called when the id & pin are entered
+    async fn connect(&mut self, welcome_finished_responder: broadcast::Sender<()>) -> Result<()> {
         let connect_token = self
             .opentalk_client
             .start_call_in(
@@ -723,61 +781,109 @@ impl Signaling {
                     .clone()
                     .parse()
                     .context("Failed to parse dtmf password to CallInPassword")?,
-                DisplayName::from_str_lossy(name),
             )
             .await
             .context("Failed to connect to conference")?;
 
-        self.connect_token = Some(connect_token);
-
-        Ok(())
-    }
-
-    async fn connect_to_conference(&mut self) -> Result<()> {
-        let connect_token = self
-            .connect_token
-            .take()
-            .context("Called connect_to_conference without connect_token set")?;
-
-        let join_result = self
+        log::debug!("Connecting to roomserver");
+        let JoinedLobby {
+            room,
+            can_enter,
+            display_name,
+        } = self
             .opentalk_client
             .connect_call_in(connect_token)
             .await
             .context("Failed to connect to conference")?;
 
-        match join_result {
-            JoinResult::InRoom(room) => {
-                self.opentalk_room = Some(room);
-                self.handle_join_result().await?;
-            }
-            JoinResult::InWaitingRoom(room) => {
-                self.waiting_room_please_hold_interval.reset();
-                self.track_controller
-                    .play_track(self.settings.language, Track::WaitingRoomEntered);
-                self.track_controller.play_waiting_room_loop(true);
-                self.media.ui_controller.set_waiting_room(true);
-
-                self.opentalk_room = Some(room);
-            }
+        self.join_state = JoinState::Lobby {
+            can_enter,
+            display_name,
         };
+        self.opentalk_room = Some(room);
+
+        if can_enter {
+            // Play welcome message
+            self.track_controller.play_track_and_respond(
+                self.settings.language,
+                Track::WelcomeUsage,
+                welcome_finished_responder,
+            );
+
+            Ok(())
+        } else {
+            self.enter_waiting_room(false).await
+        }
+    }
+
+    fn display_name(&self) -> DisplayName {
+        let name = self.name.as_ref().map_or("Anonymous", |s| s.as_str());
+        DisplayName::from_str_lossy(name)
+    }
+
+    /// Enter the waiting room and play the waiting room message.
+    ///
+    /// * `welcome_played`: Whether or not the welcome message was already played before entering the waiting room.
+    async fn enter_waiting_room(&mut self, welcome_played: bool) -> Result<()> {
+        let JoinState::Lobby {
+            can_enter,
+            display_name,
+        } = &self.join_state
+        else {
+            bail!("enter_waiting_room called outside the lobby");
+        };
+
+        if *can_enter {
+            bail!("enter_waiting_room called when allowed to enter room")
+        }
+
+        let display_name = display_name.is_none().then(|| self.display_name());
+        let room = self
+            .opentalk_room
+            .as_mut()
+            .context("Called enter_waiting_room without opentalk_room set")?;
+
+        room.enter_waiting_room(display_name)
+            .await
+            .context("Failed to join waiting room")?;
+
+        self.join_state = JoinState::WaitingRoom { welcome_played };
+
+        // Play waiting room message
+        self.waiting_room_please_hold_interval.reset();
+        self.track_controller
+            .play_track(self.settings.language, Track::WaitingRoomEntered);
+        self.track_controller.play_waiting_room_loop(true);
+        self.media.ui_controller.set_waiting_room(true);
 
         Ok(())
     }
 
-    async fn enter_from_waiting_room(&mut self) -> Result<()> {
-        let opentalk_room = self
+    async fn enter_room(&mut self) -> Result<()> {
+        let display_name = match &self.join_state {
+            JoinState::EnteringPin => bail!("enter_room called before entering lobby"),
+            JoinState::Lobby {
+                can_enter: true,
+                display_name,
+            } => display_name.is_none().then(|| self.display_name()),
+            JoinState::Lobby {
+                can_enter: false,
+                display_name: _,
+            } => bail!("enter_room called when not allowed to enter"),
+            JoinState::WaitingRoom { welcome_played: _ } => None,
+            JoinState::Room => bail!("enter_room called when already in the room"),
+        };
+
+        let room = self
             .opentalk_room
             .as_mut()
-            .context("Called enter_from_waiting_room without opentalk_room set")?;
+            .context("Called enter_room without opentalk_room set")?;
 
-        opentalk_room
-            .enter_from_waiting_room()
-            .await
-            .context("Failed to enter conference from waiting room")?;
+        room.enter_room(display_name).await?;
 
-        self.handle_join_result().await?;
+        self.join_state = JoinState::Room;
 
-        Ok(())
+        self.handle_join_result().await
     }
 
     async fn handle_join_result(&mut self) -> Result<()> {
