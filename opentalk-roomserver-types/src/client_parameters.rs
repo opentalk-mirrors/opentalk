@@ -4,7 +4,7 @@
 use opentalk_types_common::{
     roomserver::DeviceSecret,
     time::TimeZone,
-    users::{DisplayName, UserId, UserInfo},
+    users::{UserId, UserInfo},
     utils::ExampleData,
 };
 use opentalk_types_signaling::ParticipationVisibility;
@@ -35,7 +35,7 @@ pub enum ClientKind {
     Registered { profile: PublicUserProfile },
 
     /// A guest participant
-    Guest { display_name: DisplayName },
+    Guest,
 
     /// Invisible recording participant
     Recorder {
@@ -52,7 +52,7 @@ pub enum ClientKind {
     },
 
     /// Telephone call-In participant which identifies via a meeting id & pin
-    CallIn { display_name: DisplayName },
+    CallIn,
 
     /// Same as `ClientKind::CallIn` but the controller may associate a user to the call-in
     /// participant if phonenumber matching is enabled
@@ -65,23 +65,10 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(profile.id)
             }
-            ClientKind::Guest { .. }
+            ClientKind::Guest
             | ClientKind::Recorder { .. }
-            | ClientKind::CallIn { .. }
+            | ClientKind::CallIn
             | ClientKind::Transcription { .. } => None,
-        }
-    }
-
-    pub fn display_name(&self) -> DisplayName {
-        match self {
-            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
-                profile.user_info.display_name.clone()
-            }
-            ClientKind::Recorder { .. } => DisplayName::from_str_lossy("recorder"),
-            ClientKind::Transcription { .. } => DisplayName::from_str_lossy("transcription"),
-            ClientKind::CallIn { display_name } | ClientKind::Guest { display_name } => {
-                display_name.clone()
-            }
         }
     }
 
@@ -90,9 +77,9 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(&profile.email)
             }
-            ClientKind::Guest { .. }
+            ClientKind::Guest
             | ClientKind::Recorder { .. }
-            | ClientKind::CallIn { .. }
+            | ClientKind::CallIn
             | ClientKind::Transcription { .. } => None,
         }
     }
@@ -102,8 +89,8 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(&profile.user_info.avatar_url)
             }
-            ClientKind::CallIn { .. }
-            | ClientKind::Guest { .. }
+            ClientKind::CallIn
+            | ClientKind::Guest
             | ClientKind::Recorder { .. }
             | ClientKind::Transcription { .. } => None,
         }
@@ -114,8 +101,8 @@ impl ClientKind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                 Some(&profile.user_info)
             }
-            ClientKind::CallIn { .. }
-            | ClientKind::Guest { .. }
+            ClientKind::CallIn
+            | ClientKind::Guest
             | ClientKind::Recorder { .. }
             | ClientKind::Transcription { .. } => None,
         }
@@ -124,10 +111,10 @@ impl ClientKind {
     pub fn participant_kind(&self) -> ParticipationKind {
         match &self {
             ClientKind::Registered { .. } => ParticipationKind::Registered,
-            ClientKind::Guest { .. } => ParticipationKind::Guest,
+            ClientKind::Guest => ParticipationKind::Guest,
             ClientKind::Recorder { .. } => ParticipationKind::Recorder,
             ClientKind::Transcription { .. } => ParticipationKind::Transcription,
-            ClientKind::CallIn { .. } => ParticipationKind::CallIn,
+            ClientKind::CallIn => ParticipationKind::CallIn,
             ClientKind::RegisteredCallIn { .. } => ParticipationKind::RegisteredCallIn,
         }
     }
@@ -135,8 +122,8 @@ impl ClientKind {
     pub fn is_service(&self) -> bool {
         match self {
             ClientKind::Registered { .. }
-            | ClientKind::Guest { .. }
-            | ClientKind::CallIn { .. }
+            | ClientKind::Guest
+            | ClientKind::CallIn
             | ClientKind::RegisteredCallIn { .. } => false,
             ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => true,
         }
@@ -146,10 +133,10 @@ impl ClientKind {
     pub fn is_registered_non_callin_user(&self) -> bool {
         match self {
             ClientKind::Registered { .. } => true,
-            ClientKind::Guest { .. }
+            ClientKind::Guest
             | ClientKind::Recorder { .. }
             | ClientKind::Transcription { .. }
-            | ClientKind::CallIn { .. }
+            | ClientKind::CallIn
             | ClientKind::RegisteredCallIn { .. } => false,
         }
     }
@@ -159,9 +146,7 @@ impl ClientKind {
             ClientKind::Registered { .. }
             | ClientKind::Recorder { .. }
             | ClientKind::Transcription { .. } => false,
-            ClientKind::Guest { .. }
-            | ClientKind::CallIn { .. }
-            | ClientKind::RegisteredCallIn { .. } => true,
+            ClientKind::Guest | ClientKind::CallIn | ClientKind::RegisteredCallIn { .. } => true,
         }
     }
 
@@ -171,8 +156,8 @@ impl ClientKind {
                 Some(profile.timezone)
             }
             ClientKind::Recorder { .. }
-            | ClientKind::CallIn { .. }
-            | ClientKind::Guest { .. }
+            | ClientKind::CallIn
+            | ClientKind::Guest
             | ClientKind::Transcription { .. } => None,
         }
     }
@@ -182,8 +167,8 @@ impl ClientKind {
     pub fn visibility(&self) -> ParticipationVisibility {
         match self {
             ClientKind::Registered { .. }
-            | ClientKind::Guest { .. }
-            | ClientKind::CallIn { .. }
+            | ClientKind::Guest
+            | ClientKind::CallIn
             | ClientKind::RegisteredCallIn { .. } => ParticipationVisibility::Visible,
             ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => {
                 ParticipationVisibility::Hidden
@@ -244,10 +229,10 @@ impl From<&ClientKind> for ParticipationKind {
     fn from(value: &ClientKind) -> Self {
         match value {
             ClientKind::Registered { .. } => Self::Registered,
-            ClientKind::Guest { .. } => Self::Guest,
+            ClientKind::Guest => Self::Guest,
             ClientKind::Recorder { .. } => Self::Recorder,
             ClientKind::Transcription { .. } => Self::Transcription,
-            ClientKind::CallIn { .. } => Self::CallIn,
+            ClientKind::CallIn => Self::CallIn,
             ClientKind::RegisteredCallIn { .. } => Self::RegisteredCallIn,
         }
     }
@@ -255,7 +240,7 @@ impl From<&ClientKind> for ParticipationKind {
 
 #[cfg(test)]
 mod tests {
-    use opentalk_types_common::{roomserver::DeviceSecret, users::DisplayName, utils::ExampleData};
+    use opentalk_types_common::{roomserver::DeviceSecret, utils::ExampleData};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
@@ -270,9 +255,7 @@ mod tests {
     fn guest() {
         let client_parameter = ClientParameters {
             device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Guest {
-                display_name: DisplayName::from_str_lossy("test"),
-            },
+            kind: ClientKind::Guest,
             role: Role::User,
         };
         assert_eq!(
@@ -289,7 +272,6 @@ mod tests {
                     "role": "user",
                     "device_secret": "v3rys3cr3tD3v1ce5tr1ng",
                     "kind": "guest",
-                    "display_name": "test"
                 }
             )
         );
@@ -366,9 +348,7 @@ mod tests {
     fn call_in() {
         let client_parameter = ClientParameters {
             device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::CallIn {
-                display_name: DisplayName::from_str_lossy("1001"),
-            },
+            kind: ClientKind::CallIn,
             role: Role::User,
         };
         assert_eq!(
@@ -384,7 +364,6 @@ mod tests {
                 "role": "user",
                 "device_secret": "v3rys3cr3tD3v1ce5tr1ng",
                 "kind": "call_in",
-                "display_name": "1001"
             })
         );
     }

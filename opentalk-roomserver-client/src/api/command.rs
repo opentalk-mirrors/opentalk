@@ -170,7 +170,7 @@ mod tests {
     fn serialize_command_core() {
         let command = SignalingCommand {
             transaction_id: None,
-            payload: SignalingModuleCommand::Core(CoreCommand::EnterRoom),
+            payload: SignalingModuleCommand::Core(CoreCommand::EnterRoom { display_name: None }),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
         assert_snapshot!(raw, @r#"

@@ -13,9 +13,6 @@ pub enum Instruction {
     Ban {
         participant: ParticipantId,
     },
-    BanWaiting {
-        participant: ParticipantId,
-    },
     MoveToWaitingRoom {
         participant: ParticipantId,
     },

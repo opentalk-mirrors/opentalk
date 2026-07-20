@@ -573,9 +573,7 @@ mod test {
     fn guest_client_parameters() -> ClientParameters {
         ClientParameters {
             device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Guest {
-                display_name: DisplayName::from_str_lossy("tester"),
-            },
+            kind: ClientKind::Guest,
             role: Role::User,
         }
     }

@@ -91,7 +91,7 @@ async fn waiting_participants_dont_receive_broadcasts() {
     assert_eq!(event, ModerationEvent::Accepted);
 
     charlie
-        .send_core_command(CoreCommand::EnterRoom, None)
+        .send_core_command(CoreCommand::EnterRoom { display_name: None }, None)
         .await
         .unwrap();
     let mut charlie = charlie.join_success().await.unwrap();

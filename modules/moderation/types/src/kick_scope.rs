@@ -27,7 +27,7 @@ impl KickScope {
     pub fn kicks(&self, role: Role, kind: &ClientKind) -> bool {
         match self {
             KickScope::Guests => {
-                matches!(kind, ClientKind::Guest { .. } | ClientKind::CallIn { .. })
+                matches!(kind, ClientKind::Guest | ClientKind::CallIn)
             }
             KickScope::UsersAndGuests => !matches!(role, Role::Moderator),
             KickScope::All => true,
@@ -50,24 +50,20 @@ mod tests {
         client_parameters::{ClientKind, Role},
         public_user_profile::PublicUserProfile,
     };
-    use opentalk_types_common::{users::DisplayName, utils::ExampleData};
+    use opentalk_types_common::utils::ExampleData;
 
     use super::KickScope;
 
     #[test]
     fn guests_scope_kicks_call_in() {
-        let kind = ClientKind::CallIn {
-            display_name: DisplayName::from_str_lossy("1001"),
-        };
+        let kind = ClientKind::CallIn;
 
         assert!(KickScope::Guests.kicks(Role::User, &kind));
     }
 
     #[test]
     fn guests_scope_kicks_guest() {
-        let kind = ClientKind::Guest {
-            display_name: DisplayName::from_str_lossy("Gustav"),
-        };
+        let kind = ClientKind::Guest;
 
         assert!(KickScope::Guests.kicks(Role::User, &kind));
     }

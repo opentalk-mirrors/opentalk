@@ -15,6 +15,10 @@ pub const SUBMIT_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::C
 pub const DISCONNECT_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::D);
 pub const CLEAR_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::X);
 
+pub const ENTER_ROOM_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::CTRL, Key::J);
+pub const ENTER_WAITING_ROOM_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::CTRL, Key::K);
+
 pub const PREVIOUS_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::CTRL, Key::ArrowUp);
 pub const SUCCESSOR_SHORTCUT: KeyboardShortcut =

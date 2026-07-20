@@ -10,6 +10,7 @@ use opentalk_roomserver_types::{
     device_id::DeviceId,
     room_kind::RoomKind,
 };
+use opentalk_types_common::users::DisplayName;
 use opentalk_types_signaling::{ParticipantId, ParticipationVisibility};
 
 use crate::participant_filter::{ParticipantsFiltered, ParticipantsFilteredMut};
@@ -78,6 +79,8 @@ pub struct ParticipantState {
     /// The kind of the participant
     pub kind: ClientKind,
 
+    pub display_name: DisplayName,
+
     /// The role that the participant assumes in the meeting.
     pub role: Role,
 
@@ -97,6 +100,7 @@ pub struct ParticipantState {
 impl ParticipantState {
     pub fn new(
         kind: ClientKind,
+        display_name: DisplayName,
         role: Role,
         joined_at: DateTime<Utc>,
         in_waiting_room: bool,
@@ -104,6 +108,7 @@ impl ParticipantState {
         Self {
             room: RoomKind::Main,
             kind,
+            display_name,
             role,
             connections: HashMap::new(),
             joined_at,
@@ -156,13 +161,16 @@ mod tests {
         let mut participants = Participants::new();
 
         let connected_participant_0 = ParticipantId::generate();
+        let profile = PublicUserProfile::example_data();
+        let display_name = profile.user_info.display_name.clone();
         participants.all_unfiltered.insert(
             connected_participant_0,
             ParticipantState {
                 room: RoomKind::Main,
                 kind: ClientKind::Registered {
-                    profile: PublicUserProfile::example_data(),
+                    profile: profile.clone(),
                 },
+                display_name: display_name.clone(),
                 role: Role::Moderator,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -176,9 +184,8 @@ mod tests {
             connected_participant_1,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest {
-                    display_name: DisplayName::from_str_lossy("Guest"),
-                },
+                kind: ClientKind::Guest,
+                display_name: DisplayName::from_str_lossy("Guest"),
                 role: Role::User,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -192,9 +199,8 @@ mod tests {
             disconnected_participant,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Registered {
-                    profile: PublicUserProfile::example_data(),
-                },
+                kind: ClientKind::Registered { profile },
+                display_name,
                 role: Role::Moderator,
                 connections: HashMap::from([]),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -225,13 +231,16 @@ mod tests {
         let mut participants = Participants::new();
 
         let connected_breakout = ParticipantId::generate();
+        let profile = PublicUserProfile::example_data();
+        let display_name = profile.user_info.display_name.clone();
         participants.all_unfiltered.insert(
             connected_breakout,
             ParticipantState {
                 room: RoomKind::Breakout(BreakoutId::from(0)),
                 kind: ClientKind::Registered {
-                    profile: PublicUserProfile::example_data(),
+                    profile: profile.clone(),
                 },
+                display_name: display_name.clone(),
                 role: Role::Moderator,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -245,9 +254,8 @@ mod tests {
             disconnected_breakout,
             ParticipantState {
                 room: RoomKind::Breakout(BreakoutId::from(0)),
-                kind: ClientKind::Guest {
-                    display_name: DisplayName::from_str_lossy("Guest"),
-                },
+                kind: ClientKind::Guest,
+                display_name: DisplayName::from_str_lossy("Guest"),
                 role: Role::User,
                 connections: HashMap::from([]),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -261,9 +269,8 @@ mod tests {
             disconnected_main,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Registered {
-                    profile: PublicUserProfile::example_data(),
-                },
+                kind: ClientKind::Registered { profile },
+                display_name,
                 role: Role::Moderator,
                 connections: HashMap::from([]),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -342,13 +349,16 @@ mod tests {
         let mut participants = Participants::new();
 
         let user = ParticipantId::generate();
+        let profile = PublicUserProfile::example_data();
+        let display_name = profile.user_info.display_name.clone();
         participants.all_unfiltered.insert(
             user,
             ParticipantState {
                 room: RoomKind::Main,
                 kind: ClientKind::Registered {
-                    profile: PublicUserProfile::example_data(),
+                    profile: profile.clone(),
                 },
+                display_name: display_name.clone(),
                 role: Role::Moderator,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -362,9 +372,8 @@ mod tests {
             guest,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest {
-                    display_name: DisplayName::from_str_lossy("Guest"),
-                },
+                kind: ClientKind::Guest,
+                display_name: DisplayName::from_str_lossy("Guest"),
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -381,6 +390,7 @@ mod tests {
                 kind: ClientKind::Recorder {
                     room: RoomKind::Main,
                 },
+                display_name: DisplayName::from_str_lossy("Recorder"),
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -413,13 +423,14 @@ mod tests {
         let mut participants = Participants::new();
 
         let user = ParticipantId::generate();
+        let profile = PublicUserProfile::example_data();
+        let display_name = profile.user_info.display_name.clone();
         participants.all_unfiltered.insert(
             user,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Registered {
-                    profile: PublicUserProfile::example_data(),
-                },
+                kind: ClientKind::Registered { profile },
+                display_name,
                 role: Role::Moderator,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -433,9 +444,8 @@ mod tests {
             guest,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest {
-                    display_name: DisplayName::from_str_lossy("Guest"),
-                },
+                kind: ClientKind::Guest,
+                display_name: DisplayName::from_str_lossy("Guest"),
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -452,6 +462,7 @@ mod tests {
                 kind: ClientKind::Recorder {
                     room: RoomKind::Main,
                 },
+                display_name: DisplayName::from_str_lossy("Recorder"),
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -475,13 +486,14 @@ mod tests {
         let mut participants = Participants::new();
 
         let user = ParticipantId::generate();
+        let profile = PublicUserProfile::example_data();
+        let display_name = profile.user_info.display_name.clone();
         participants.all_unfiltered.insert(
             user,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Registered {
-                    profile: PublicUserProfile::example_data(),
-                },
+                kind: ClientKind::Registered { profile },
+                display_name,
                 role: Role::Moderator,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -495,9 +507,8 @@ mod tests {
             guest,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest {
-                    display_name: DisplayName::from_str_lossy("Guest"),
-                },
+                kind: ClientKind::Guest,
+                display_name: DisplayName::from_str_lossy("Guest"),
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
@@ -514,6 +525,7 @@ mod tests {
                 kind: ClientKind::Recorder {
                     room: RoomKind::Main,
                 },
+                display_name: DisplayName::from_str_lossy("Recorder"),
                 role: Role::User,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,

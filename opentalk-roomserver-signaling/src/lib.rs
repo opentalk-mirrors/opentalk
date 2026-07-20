@@ -12,6 +12,7 @@ pub mod instruction;
 /// The [`internal_module_message`] module is intended for internal use only
 #[doc(hidden)]
 pub mod internal_module_message;
+pub mod lobby_participant;
 pub mod localization;
 /// The [`loopback`] module is intended for internal use only
 #[doc(hidden)]
@@ -23,4 +24,3 @@ pub mod room_info;
 pub mod signaling_event;
 pub mod signaling_module;
 pub mod storage;
-pub mod waiting_participant;

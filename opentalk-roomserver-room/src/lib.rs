@@ -68,7 +68,6 @@ mod tests {
         rooms::RoomId,
         roomserver::DeviceSecret,
         tariffs::{QuotaType, TariffId},
-        users::DisplayName,
         utils::ExampleData,
     };
     use tokio::{sync::watch, time::sleep};
@@ -125,9 +124,7 @@ mod tests {
         let (socket, _) = create_participant_connection();
         let client_parameters = ClientParameters {
             device_secret: DeviceSecret::example_data(),
-            kind: client_parameters::ClientKind::Guest {
-                display_name: DisplayName::from_str_lossy("tester"),
-            },
+            kind: client_parameters::ClientKind::Guest,
             role: client_parameters::Role::Moderator,
         };
 
@@ -180,9 +177,7 @@ mod tests {
                 socket,
                 ClientParameters {
                     device_secret: "Device Secret Charlie".parse().unwrap(),
-                    kind: client_parameters::ClientKind::Guest {
-                        display_name: "Charlie".parse().unwrap(),
-                    },
+                    kind: client_parameters::ClientKind::Guest,
                     role: Role::User,
                 },
             )

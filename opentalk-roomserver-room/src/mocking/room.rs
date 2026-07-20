@@ -36,6 +36,7 @@ use opentalk_types_common::{
     rooms::{RoomId, RoomPassword},
     streaming::RoomStreamingTarget,
     tariffs::{QuotaType, TariffId},
+    users::DisplayName,
 };
 use tokio::{sync::watch, task::JoinHandle};
 
@@ -44,7 +45,8 @@ use crate::{
     ModuleRegistry, RoomTaskHandle, RoomTaskHandleError,
     mocking::{
         participant::{
-            MockParticipantWaiting, alice_public_profile, create_participant_connection,
+            MockParticipantLobby, MockParticipantWaiting, ParticipantError, alice_public_profile,
+            create_participant_connection,
         },
         socket::MockSocket,
     },
@@ -58,7 +60,7 @@ use crate::{
 #[derive(Debug)]
 pub enum Error {
     RoomHandle(RoomTaskHandleError<MockSocket>),
-    Participant(ReceiveError),
+    Participant(ParticipantError),
 }
 
 impl From<RoomTaskHandleError<MockSocket>> for Error {
@@ -67,9 +69,15 @@ impl From<RoomTaskHandleError<MockSocket>> for Error {
     }
 }
 
+impl From<ParticipantError> for Error {
+    fn from(error: ParticipantError) -> Self {
+        Self::Participant(error)
+    }
+}
+
 impl From<ReceiveError> for Error {
     fn from(error: ReceiveError) -> Self {
-        Self::Participant(error)
+        Self::Participant(error.into())
     }
 }
 
@@ -268,25 +276,52 @@ impl TestRoom {
     pub async fn join_participant(
         &mut self,
         client_parameters: ClientParameters,
+        display_name: Option<DisplayName>,
     ) -> Result<MockParticipantJoined, Error> {
         let (socket, participant) = create_participant_connection();
         self.room_handle
             .accept_signaling_socket(socket, client_parameters)
             .await?;
-        let participant = participant.join_success().await?;
+        let participant = participant.enter_lobby().await?;
+        // Only provide a display name if the participant doesn't have one yet.
+        let display_name = if participant.display_name().is_some() {
+            None
+        } else {
+            display_name
+        };
 
-        Ok(participant)
+        Ok(participant.enter_room(display_name).await?)
     }
 
     pub async fn enter_waiting_room(
         &mut self,
         client_parameters: ClientParameters,
+        display_name: Option<DisplayName>,
     ) -> Result<MockParticipantWaiting, Error> {
         let (socket, participant) = create_participant_connection();
         self.room_handle
             .accept_signaling_socket(socket, client_parameters)
             .await?;
-        let participant = participant.join_waiting_room().await?;
+        let participant = participant.enter_lobby().await?;
+        // Only provide a display name if the participant doesn't have one yet.
+        let display_name = if participant.display_name().is_some() {
+            None
+        } else {
+            display_name
+        };
+
+        Ok(participant.enter_waiting_room(display_name).await?)
+    }
+
+    pub async fn enter_lobby(
+        &mut self,
+        client_parameters: ClientParameters,
+    ) -> Result<MockParticipantLobby, Error> {
+        let (socket, participant) = create_participant_connection();
+        self.room_handle
+            .accept_signaling_socket(socket, client_parameters)
+            .await?;
+        let participant = participant.enter_lobby().await?;
 
         Ok(participant)
     }
@@ -294,6 +329,13 @@ impl TestRoom {
     pub async fn join_alice_moderator(&mut self, device_number: usize) -> MockParticipantJoined {
         MockParticipantJoining::alice(device_number)
             .join(self)
+            .await
+            .unwrap()
+    }
+
+    pub async fn alice_moderator_lobby(&mut self, device_number: usize) -> MockParticipantLobby {
+        MockParticipantJoining::alice(device_number)
+            .enter_lobby(self)
             .await
             .unwrap()
     }
@@ -362,9 +404,23 @@ impl TestRoom {
             .unwrap()
     }
 
+    pub async fn lobby_bob(&mut self, device_number: usize) -> MockParticipantLobby {
+        MockParticipantJoining::bob(device_number)
+            .enter_lobby(self)
+            .await
+            .unwrap()
+    }
+
     pub async fn waiting_room_bob(&mut self, device_number: usize) -> MockParticipantWaiting {
         MockParticipantJoining::bob(device_number)
             .enter_waiting_room(self)
+            .await
+            .unwrap()
+    }
+
+    pub async fn lobby_charlie(&mut self, device_number: usize) -> MockParticipantLobby {
+        MockParticipantJoining::charlie(device_number)
+            .enter_lobby(self)
             .await
             .unwrap()
     }
@@ -376,9 +432,23 @@ impl TestRoom {
             .unwrap()
     }
 
+    pub async fn lobby_dave(&mut self, device_number: usize) -> MockParticipantLobby {
+        MockParticipantJoining::dave(device_number)
+            .enter_lobby(self)
+            .await
+            .unwrap()
+    }
+
     pub async fn waiting_room_dave(&mut self, device_number: usize) -> MockParticipantWaiting {
         MockParticipantJoining::dave(device_number)
             .enter_waiting_room(self)
+            .await
+            .unwrap()
+    }
+
+    pub async fn lobby_gustav_guest(&mut self) -> MockParticipantLobby {
+        MockParticipantJoining::gustav()
+            .enter_lobby(self)
             .await
             .unwrap()
     }

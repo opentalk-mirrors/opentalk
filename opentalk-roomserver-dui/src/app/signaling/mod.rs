@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use egui::{InnerResponse, Response, RichText, TextEdit, Widget as _, style::ScrollAnimation};
+use opentalk_roomserver_client::api::command::{SignalingCommand, SignalingModuleCommand};
+use opentalk_roomserver_types::core::CoreCommand;
 use tokio::{
     runtime::Runtime,
     sync::mpsc::{UnboundedReceiver, UnboundedSender, error::TryRecvError},
@@ -17,7 +19,10 @@ use crate::{
         error::RunnerGoneError,
         event_widget::EventWidget,
         json_edit::json_editor,
-        shortcuts::{CLEAR_SHORTCUT, DISCONNECT_SHORTCUT, SEND_SHORTCUT},
+        shortcuts::{
+            CLEAR_SHORTCUT, DISCONNECT_SHORTCUT, ENTER_ROOM_SHORTCUT, ENTER_WAITING_ROOM_SHORTCUT,
+            SEND_SHORTCUT,
+        },
         signaling::{
             breakout::BreakoutPlugin,
             filtered_vec::FilteredVec,
@@ -168,6 +173,30 @@ impl SignalingView {
                     || ui.input_mut(|i| i.consume_shortcut(&DISCONNECT_SHORTCUT))
                 {
                     command_tx.send(RunnerCommand::Close)?;
+                }
+
+                // Quick access to the lobby join flow, so the conference can be entered without
+                // hand-crafting the core commands.
+                let enter_room_btn = egui::Button::new("Enter Room")
+                    .shortcut_text(ui.format_shortcut(&ENTER_ROOM_SHORTCUT));
+                if ui.add(enter_room_btn).clicked()
+                    || ui.input_mut(|i| i.consume_shortcut(&ENTER_ROOM_SHORTCUT))
+                {
+                    Self::send_core_command(
+                        command_tx,
+                        CoreCommand::EnterRoom { display_name: None },
+                    )?;
+                }
+
+                let enter_waiting_room_btn = egui::Button::new("Enter Waiting Room")
+                    .shortcut_text(ui.format_shortcut(&ENTER_WAITING_ROOM_SHORTCUT));
+                if ui.add(enter_waiting_room_btn).clicked()
+                    || ui.input_mut(|i| i.consume_shortcut(&ENTER_WAITING_ROOM_SHORTCUT))
+                {
+                    Self::send_core_command(
+                        command_tx,
+                        CoreCommand::EnterWaitingRoom { display_name: None },
+                    )?;
                 }
             }
             SignalingState::Disconnect => {
@@ -464,6 +493,25 @@ impl SignalingView {
     ) -> Result<(), RunnerGoneError> {
         let mut message = String::new();
         std::mem::swap(&mut message, &mut self.edit_message);
+        command_tx.send(RunnerCommand::Send { message })?;
+
+        Ok(())
+    }
+
+    /// Serialize a [`CoreCommand`] and send it over the signaling connection.
+    fn send_core_command(
+        command_tx: &UnboundedSender<RunnerCommand>,
+        command: CoreCommand,
+    ) -> Result<(), RunnerGoneError> {
+        let message = match serde_json::to_string(&SignalingCommand::from(
+            SignalingModuleCommand::Core(command),
+        )) {
+            Ok(message) => message,
+            Err(error) => {
+                log::error!("Failed to serialize core command: {error}");
+                return Ok(());
+            }
+        };
         command_tx.send(RunnerCommand::Send { message })?;
 
         Ok(())

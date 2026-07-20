@@ -563,7 +563,7 @@ impl TrainingParticipationReportModule {
                 (
                     id,
                     ctx.participant_state(id)
-                        .map(|state| state.kind.display_name()),
+                        .map(|state| state.display_name.clone()),
                 )
             })
             .collect();

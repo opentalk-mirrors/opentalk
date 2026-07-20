@@ -7,6 +7,7 @@ use futures::stream::FuturesUnordered;
 use opentalk_roomserver_signaling::{
     banned_participant::BannedParticipant,
     event_origin::EventOrigin,
+    lobby_participant::LobbyParticipant,
     loopback::LoopbackFuture,
     module_context::{ModuleContext, ModuleMessage},
     participant_state::Participants,
@@ -15,7 +16,6 @@ use opentalk_roomserver_signaling::{
     storage::{
         assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
     },
-    waiting_participant::WaitingParticipant,
 };
 use opentalk_roomserver_types::room_kind::RoomKind;
 use opentalk_types_common::{rooms::RoomId, time::Timestamp};
@@ -29,7 +29,7 @@ pub struct DynModuleContext<'ctx> {
     pub event_origin: EventOrigin,
     pub room_task_info: &'ctx mut RoomTaskInfo,
     pub participants: &'ctx mut Participants,
-    pub waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
+    pub lobby_participants: &'ctx mut HashMap<ParticipantId, LobbyParticipant>,
     pub banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
     pub timestamp: Timestamp,
     pub assets: Arc<dyn AssetStorageProvider>,
@@ -46,7 +46,7 @@ impl<'ctx> DynModuleContext<'ctx> {
         event_origin: EventOrigin,
         room_task_info: &'ctx mut RoomTaskInfo,
         participants: &'ctx mut Participants,
-        waiting_participants: &'ctx mut HashMap<ParticipantId, WaitingParticipant>,
+        lobby_participants: &'ctx mut HashMap<ParticipantId, LobbyParticipant>,
         banned_participants: &'ctx mut HashMap<ParticipantId, BannedParticipant>,
         timestamp: Timestamp,
         assets: Arc<dyn AssetStorageProvider>,
@@ -60,7 +60,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             event_origin,
             room_task_info,
             participants,
-            waiting_participants,
+            lobby_participants,
             banned_participants,
             timestamp,
             assets,
@@ -78,7 +78,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             event_origin: self.event_origin,
             room_task_info: self.room_task_info,
             participants: self.participants,
-            waiting_participants: self.waiting_participants,
+            lobby_participants: self.lobby_participants,
             banned_participants: self.banned_participants,
             timestamp: self.timestamp,
             assets: Arc::clone(&self.assets),
@@ -96,7 +96,7 @@ impl<'ctx> DynModuleContext<'ctx> {
             self.room_task_info,
             self.messages,
             self.participants,
-            self.waiting_participants,
+            self.lobby_participants,
             self.banned_participants,
             self.timestamp,
             self.loopback_futures,

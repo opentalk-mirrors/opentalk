@@ -228,9 +228,9 @@ impl WaitingRoom {
     fn min_strictness(kind: &ClientKind) -> Option<WaitingRoom> {
         match kind {
             ClientKind::Registered { .. } => Some(WaitingRoom::ForEveryone),
-            ClientKind::Guest { .. }
-            | ClientKind::CallIn { .. }
-            | ClientKind::RegisteredCallIn { .. } => Some(WaitingRoom::ForGuests),
+            ClientKind::Guest | ClientKind::CallIn | ClientKind::RegisteredCallIn { .. } => {
+                Some(WaitingRoom::ForGuests)
+            }
             ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => None,
         }
     }
@@ -239,7 +239,7 @@ impl WaitingRoom {
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
-    use opentalk_types_common::{users::DisplayName, utils::ExampleData};
+    use opentalk_types_common::utils::ExampleData;
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
@@ -410,18 +410,6 @@ mod tests {
         }
     }
 
-    fn guest() -> ClientKind {
-        ClientKind::Guest {
-            display_name: DisplayName::from_str_lossy("Guest"),
-        }
-    }
-
-    fn call_in() -> ClientKind {
-        ClientKind::CallIn {
-            display_name: DisplayName::from_str_lossy("1001"),
-        }
-    }
-
     fn registered_call_in() -> ClientKind {
         ClientKind::RegisteredCallIn {
             profile: PublicUserProfile::example_data(),
@@ -445,8 +433,8 @@ mod tests {
         let waiting_room = WaitingRoom::Disabled;
 
         assert!(!waiting_room.applies_to(&registered()));
-        assert!(!waiting_room.applies_to(&guest()));
-        assert!(!waiting_room.applies_to(&call_in()));
+        assert!(!waiting_room.applies_to(&ClientKind::Guest));
+        assert!(!waiting_room.applies_to(&ClientKind::CallIn));
         assert!(!waiting_room.applies_to(&registered_call_in()));
         assert!(!waiting_room.applies_to(&recorder()));
         assert!(!waiting_room.applies_to(&transcription()));
@@ -457,8 +445,8 @@ mod tests {
         let waiting_room = WaitingRoom::ForGuests;
 
         assert!(!waiting_room.applies_to(&registered()));
-        assert!(waiting_room.applies_to(&guest()));
-        assert!(waiting_room.applies_to(&call_in()));
+        assert!(waiting_room.applies_to(&ClientKind::Guest));
+        assert!(waiting_room.applies_to(&ClientKind::CallIn));
         assert!(waiting_room.applies_to(&registered_call_in()));
         assert!(!waiting_room.applies_to(&recorder()));
         assert!(!waiting_room.applies_to(&transcription()));
@@ -469,8 +457,8 @@ mod tests {
         let waiting_room = WaitingRoom::ForEveryone;
 
         assert!(waiting_room.applies_to(&registered()));
-        assert!(waiting_room.applies_to(&guest()));
-        assert!(waiting_room.applies_to(&call_in()));
+        assert!(waiting_room.applies_to(&ClientKind::Guest));
+        assert!(waiting_room.applies_to(&ClientKind::CallIn));
         assert!(waiting_room.applies_to(&registered_call_in()));
         assert!(!waiting_room.applies_to(&recorder()));
         assert!(!waiting_room.applies_to(&transcription()));
@@ -483,11 +471,11 @@ mod tests {
             WaitingRoom::ForEveryone
         );
         assert_eq!(
-            WaitingRoom::Disabled.raise_to_include(&guest()),
+            WaitingRoom::Disabled.raise_to_include(&ClientKind::Guest),
             WaitingRoom::ForGuests
         );
         assert_eq!(
-            WaitingRoom::Disabled.raise_to_include(&call_in()),
+            WaitingRoom::Disabled.raise_to_include(&ClientKind::CallIn),
             WaitingRoom::ForGuests
         );
         assert_eq!(

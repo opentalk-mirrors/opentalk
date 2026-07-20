@@ -304,11 +304,8 @@ components:
         - type: object
           description: A guest participant
           required:
-            - display_name
             - kind
           properties:
-            display_name:
-              $ref: "#/components/schemas/DisplayName"
             kind:
               type: string
               enum:
@@ -345,11 +342,8 @@ components:
         - type: object
           description: Telephone call-In participant which identifies via a meeting id & pin
           required:
-            - display_name
             - kind
           properties:
-            display_name:
-              $ref: "#/components/schemas/DisplayName"
             kind:
               type: string
               enum:

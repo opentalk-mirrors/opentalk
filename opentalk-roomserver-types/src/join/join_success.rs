@@ -8,12 +8,10 @@ use opentalk_types_common::{
     events::MeetingDetails, features::FeatureId, modules::ModuleId, time::Timestamp,
     users::DisplayName,
 };
-use opentalk_types_signaling::{ParticipantId, Role};
+use opentalk_types_signaling::Role;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    connection_id::ConnectionId,
-    device_id::DeviceId,
     join::{connection_info::ConnectionInfo, event_info::EventInfo, participant::Participant},
     room_info::RoomInfo,
     tariff_details::TariffDetails,
@@ -22,15 +20,6 @@ use crate::{
 /// The data received by a participant upon successfully joining a meeting
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct JoinSuccess {
-    /// The id of the participant who joined
-    pub id: ParticipantId,
-
-    /// The connection id of the participant who joined
-    pub connection_id: ConnectionId,
-
-    /// The device id of the participant who joined
-    pub device_id: DeviceId,
-
     /// The other active connections and devices of the participant who joined
     pub connections: Vec<ConnectionInfo>,
 

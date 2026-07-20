@@ -127,8 +127,8 @@ impl SignalingModule for MeetingNotesModule {
             .with_context(|| {
                 anyhow!("Participant {participant_id:?} joined without participant state")
             })?
-            .kind
-            .display_name();
+            .display_name
+            .clone();
         ctx.spawn(loopback::generate_url(
             Arc::clone(&self.etherpad),
             participant_id,
@@ -334,7 +334,7 @@ impl MeetingNotesModule {
                         participant_id: *participant_id,
                         connection_id: *connection_id,
                         readonly: !writers.contains(participant_id),
-                        display_name: state.kind.display_name(),
+                        display_name: state.display_name.clone(),
                         existing_session_id: None,
                     })
             })
@@ -592,7 +592,7 @@ impl MeetingNotesModule {
                     participant_id: *participant_id,
                     connection_id,
                     readonly,
-                    display_name: state.kind.display_name(),
+                    display_name: state.display_name.clone(),
                     existing_session_id: room_sessions
                         .and_then(|sessions| sessions.get(&connection_id).map(|s| s.id.clone())),
                 });

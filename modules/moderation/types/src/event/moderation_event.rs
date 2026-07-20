@@ -65,6 +65,12 @@ pub enum ModerationEvent {
     /// Sent to a participant when they are accepted by the moderator from the waiting room
     Accepted,
 
+    /// Sent to a participant in the lobby when their permission to enter the conference changed
+    EntryPermissionChanged {
+        /// Whether the participant may now enter the conference
+        can_enter: bool,
+    },
+
     /// Sent to moderators when a participant was accepted
     ParticipantAccepted { participant_id: ParticipantId },
 
@@ -78,6 +84,14 @@ pub enum ModerationEvent {
         old_name: DisplayName,
         /// The new display name
         new_name: DisplayName,
+    },
+
+    /// Sent to a connection in the lobby when the participants display name changes in the
+    /// conference
+    DisplayNameAssigned {
+        /// The new name. [`None`] when all other connections left the conference and the
+        /// participant is now free to choose a display name.
+        new_name: Option<DisplayName>,
     },
 
     /// The moderator enabled the display name restriction state. Only participants listed in
@@ -398,6 +412,61 @@ mod tests {
             old_name: "Alice".parse().expect("valid display name"),
             new_name: "Bob".parse().expect("valid display name"),
         };
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_display_name_assigned() {
+        let produced = serde_json::to_string_pretty(&ModerationEvent::DisplayNameAssigned {
+            new_name: Some("Bob".parse().expect("valid display name")),
+        })
+        .unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "display_name_assigned",
+          "new_name": "Bob"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_display_name_assigned() {
+        let produced = serde_json::from_value(json!({
+            "message": "display_name_assigned",
+            "new_name": "Bob"
+        }))
+        .unwrap();
+        let expected = ModerationEvent::DisplayNameAssigned {
+            new_name: Some("Bob".parse().expect("valid display name")),
+        };
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_display_name_assigned_none() {
+        let produced =
+            serde_json::to_string_pretty(&ModerationEvent::DisplayNameAssigned { new_name: None })
+                .unwrap();
+
+        assert_snapshot!(produced, @r#"
+        {
+          "message": "display_name_assigned",
+          "new_name": null
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_display_name_assigned_none() {
+        let produced = serde_json::from_value(json!({
+            "message": "display_name_assigned",
+            "new_name": null
+        }))
+        .unwrap();
+        let expected = ModerationEvent::DisplayNameAssigned { new_name: None };
 
         assert_eq!(expected, produced);
     }

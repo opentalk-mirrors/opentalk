@@ -117,13 +117,28 @@ impl From<Elapsed> for SendError {
     }
 }
 
+pub struct JoinedState {
+    join_success: JoinSuccess,
+    participant_id: ParticipantId,
+    connection_id: ConnectionId,
+}
+
+pub struct LobbyState {
+    connection_id: ConnectionId,
+    participant_id: ParticipantId,
+    can_enter: bool,
+    display_name: Option<DisplayName>,
+}
+
 pub struct WaitingRoomState {
     connection_id: ConnectionId,
     participant_id: ParticipantId,
+    display_name: Option<DisplayName>,
 }
 
 pub type MockParticipantJoining = MockParticipant<()>;
-pub type MockParticipantJoined = MockParticipant<JoinSuccess>;
+pub type MockParticipantJoined = MockParticipant<JoinedState>;
+pub type MockParticipantLobby = MockParticipant<LobbyState>;
 pub type MockParticipantWaiting = MockParticipant<WaitingRoomState>;
 
 pub struct MockParticipant<S> {
@@ -142,36 +157,25 @@ impl<S: std::fmt::Debug> std::fmt::Debug for MockParticipant<S> {
 }
 
 impl MockParticipant<()> {
-    pub(crate) async fn join_success(mut self) -> Result<MockParticipantJoined, ReceiveError> {
+    pub(crate) async fn enter_lobby(mut self) -> Result<MockParticipantLobby, ReceiveError> {
         let event = self.receive().await?;
 
-        if let CoreEvent::JoinSuccess(msg) = event.payload {
-            Ok(MockParticipant {
-                sender: self.sender,
-                receiver: self.receiver,
-                state: *msg,
-            })
-        } else {
-            Err(ReceiveError::UnexpectedCoreEvent(event.payload))
-        }
-    }
-
-    pub(crate) async fn join_waiting_room(
-        mut self,
-    ) -> Result<MockParticipantWaiting, ReceiveError> {
-        let event = self.receive().await?;
-
-        if let CoreEvent::InWaitingRoom {
+        if let CoreEvent::JoinedLobby {
             connection_id,
             participant_id,
+            device_id: _,
+            can_enter,
+            display_name,
         } = event.payload
         {
             Ok(MockParticipant {
                 sender: self.sender,
                 receiver: self.receiver,
-                state: WaitingRoomState {
+                state: LobbyState {
                     connection_id,
                     participant_id,
+                    can_enter,
+                    display_name,
                 },
             })
         } else {
@@ -182,15 +186,15 @@ impl MockParticipant<()> {
 
 impl MockParticipantJoined {
     pub fn join_success(&self) -> &JoinSuccess {
-        &self.state
+        &self.state.join_success
     }
 
     pub fn id(&self) -> ParticipantId {
-        self.state.id
+        self.state.participant_id
     }
 
     pub fn display_name(&self) -> &DisplayName {
-        &self.state.display_name
+        &self.state.join_success.display_name
     }
 
     pub fn connection_id(&self) -> ConnectionId {
@@ -273,17 +277,110 @@ impl MockParticipantJoined {
             receiver: self.receiver,
             state: WaitingRoomState {
                 connection_id: self.state.connection_id,
-                participant_id: self.state.id,
+                participant_id: self.state.participant_id,
+                display_name: None,
             },
         }
     }
 }
 
+impl MockParticipantLobby {
+    pub fn can_enter(&self) -> bool {
+        self.state.can_enter
+    }
+
+    pub fn display_name(&self) -> Option<&DisplayName> {
+        self.state.display_name.as_ref()
+    }
+
+    pub fn id(&self) -> ParticipantId {
+        self.state.participant_id
+    }
+
+    pub fn connection_id(&self) -> ConnectionId {
+        self.state.connection_id
+    }
+
+    /// 1. Send [`CoreCommand::EnterWaitingRoom`]
+    /// 2. Receive [`CoreEvent::InWaitingRoom`]
+    pub(crate) async fn enter_waiting_room(
+        mut self,
+        display_name: Option<DisplayName>,
+    ) -> Result<MockParticipantWaiting, ParticipantError> {
+        self.send_core_command(
+            CoreCommand::EnterWaitingRoom {
+                display_name: if self.state.display_name.is_some() {
+                    None
+                } else {
+                    display_name
+                },
+            },
+            None,
+        )
+        .await?;
+        let event = self.receive().await?;
+        if matches!(event.payload, CoreEvent::InWaitingRoom) {
+            Ok(MockParticipantWaiting {
+                sender: self.sender,
+                receiver: self.receiver,
+                state: WaitingRoomState {
+                    connection_id: self.state.connection_id,
+                    participant_id: self.state.participant_id,
+                    display_name: self.state.display_name,
+                },
+            })
+        } else {
+            Err(ReceiveError::UnexpectedCoreEvent(event.payload).into())
+        }
+    }
+
+    /// 1. Send [`CoreCommand::EnterRoom`]
+    /// 2. Receive [`CoreEvent::JoinSuccess`]
+    pub async fn enter_room(
+        mut self,
+        display_name: Option<DisplayName>,
+    ) -> Result<MockParticipantJoined, ParticipantError> {
+        self.send_core_command(
+            CoreCommand::EnterRoom {
+                display_name: if self.state.display_name.is_some() {
+                    None
+                } else {
+                    display_name
+                },
+            },
+            None,
+        )
+        .await?;
+
+        let event = self.receive().await?;
+        if let CoreEvent::JoinSuccess(msg) = event.payload {
+            Ok(MockParticipantJoined {
+                sender: self.sender,
+                receiver: self.receiver,
+                state: JoinedState {
+                    join_success: *msg,
+                    participant_id: self.state.participant_id,
+                    connection_id: self.state.connection_id,
+                },
+            })
+        } else {
+            Err(ReceiveError::UnexpectedCoreEvent(event.payload).into())
+        }
+    }
+}
+
 impl MockParticipantWaiting {
+    pub fn display_name(&self) -> Option<&DisplayName> {
+        self.state.display_name.as_ref()
+    }
+
     /// 1. Receive `ModerationEvent::Accepted`
     /// 2. Send [`CoreCommand::EnterRoom`]
     /// 3. Receive [`JoinSuccess`]
-    pub async fn enter_room(mut self) -> Result<MockParticipantJoined, ParticipantError> {
+    pub async fn enter_room(
+        mut self,
+        display_name: Option<DisplayName>,
+    ) -> Result<MockParticipantJoined, ParticipantError> {
         let Some(received) = timeout(SOCKET_TIMEOUT, self.receiver.next())
             .await
             .map_err(|err| ParticipantError::Receive(err.into()))?
@@ -309,7 +406,12 @@ impl MockParticipantWaiting {
             other => return Err(ReceiveError::UnexpectedMessage(other).into()),
         };
 
-        self.send_core_command(CoreCommand::EnterRoom, None)
+        let display_name = if self.state.display_name.is_some() {
+            None
+        } else {
+            display_name
+        };
+        self.send_core_command(CoreCommand::EnterRoom { display_name }, None)
             .await
             .map_err(ParticipantError::from)?;
 
@@ -323,7 +425,11 @@ impl MockParticipantWaiting {
             Ok(MockParticipant {
                 sender: self.sender,
                 receiver: self.receiver,
-                state: *msg,
+                state: JoinedState {
+                    join_success: *msg,
+                    participant_id: self.state.participant_id,
+                    connection_id: self.state.connection_id,
+                },
             })
         } else {
             Err(ReceiveError::UnexpectedCoreEvent(event.payload).into())
@@ -363,18 +469,7 @@ impl<S> MockParticipant<S> {
     }
 
     pub fn charlie(device_number: usize) -> MockParticipantBuilder<PublicUserProfile> {
-        let profile = PublicUserProfile {
-            id: UserId::from_u128(0xcca211e),
-            email: "charlie@example.com".to_string(),
-            user_info: UserInfo {
-                title: "".parse().expect("Valid title"),
-                firstname: "Charlie".to_string(),
-                lastname: "Clownfisch".to_string(),
-                display_name: "Charlie the charming".parse().expect("Valid DisplayName"),
-                avatar_url: "https://example.com/avatar-of-alice".to_string(),
-            },
-            timezone: TimeZone::example_data(),
-        };
+        let profile = charlie_public_user_profile();
 
         MockParticipantBuilder {
             profile,
@@ -716,6 +811,21 @@ pub fn bob_public_user_profile() -> PublicUserProfile {
     }
 }
 
+pub fn charlie_public_user_profile() -> PublicUserProfile {
+    PublicUserProfile {
+        id: UserId::from_u128(0xcca211e),
+        email: "charlie@example.com".to_string(),
+        user_info: UserInfo {
+            title: "".parse().expect("Valid title"),
+            firstname: "Charlie".to_string(),
+            lastname: "Clownfisch".to_string(),
+            display_name: "Charlie the charming".parse().expect("Valid DisplayName"),
+            avatar_url: "https://example.com/avatar-of-alice".to_string(),
+        },
+        timezone: TimeZone::example_data(),
+    }
+}
+
 pub fn frank_public_user_profile() -> PublicUserProfile {
     PublicUserProfile {
         id: UserId::from_u128(0xf9a00),
@@ -809,13 +919,16 @@ impl MockParticipantBuilder<PublicUserProfile> {
     }
 
     pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
-        room.join_participant(ClientParameters {
-            device_secret: self.secret,
-            kind: ClientKind::Registered {
-                profile: self.profile,
+        room.join_participant(
+            ClientParameters {
+                device_secret: self.secret,
+                kind: ClientKind::Registered {
+                    profile: self.profile,
+                },
+                role: self.role,
             },
-            role: self.role,
-        })
+            None,
+        )
         .await
     }
 
@@ -823,7 +936,24 @@ impl MockParticipantBuilder<PublicUserProfile> {
         self,
         room: &mut TestRoom,
     ) -> Result<MockParticipantWaiting, room::Error> {
-        room.enter_waiting_room(ClientParameters {
+        room.enter_waiting_room(
+            ClientParameters {
+                device_secret: self.secret,
+                kind: ClientKind::Registered {
+                    profile: self.profile,
+                },
+                role: self.role,
+            },
+            None,
+        )
+        .await
+    }
+
+    pub async fn enter_lobby(
+        self,
+        room: &mut TestRoom,
+    ) -> Result<MockParticipantLobby, room::Error> {
+        room.enter_lobby(ClientParameters {
             device_secret: self.secret,
             kind: ClientKind::Registered {
                 profile: self.profile,
@@ -843,11 +973,24 @@ impl MockParticipantBuilder<DisplayName> {
     }
 
     pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
-        room.join_participant(ClientParameters {
-            device_secret: self.secret,
-            kind: ClientKind::Guest {
-                display_name: self.profile,
+        room.join_participant(
+            ClientParameters {
+                device_secret: self.secret,
+                kind: ClientKind::Guest,
+                role: self.role,
             },
+            Some(self.profile),
+        )
+        .await
+    }
+
+    pub async fn enter_lobby(
+        self,
+        room: &mut TestRoom,
+    ) -> Result<MockParticipantLobby, room::Error> {
+        room.enter_lobby(ClientParameters {
+            device_secret: self.secret,
+            kind: ClientKind::Guest,
             role: self.role,
         })
         .await
@@ -857,13 +1000,14 @@ impl MockParticipantBuilder<DisplayName> {
         self,
         room: &mut TestRoom,
     ) -> Result<MockParticipantWaiting, room::Error> {
-        room.enter_waiting_room(ClientParameters {
-            device_secret: self.secret,
-            kind: ClientKind::Guest {
-                display_name: self.profile,
+        room.enter_waiting_room(
+            ClientParameters {
+                device_secret: self.secret,
+                kind: ClientKind::Guest,
+                role: self.role,
             },
-            role: self.role,
-        })
+            Some(self.profile),
+        )
         .await
     }
 }
@@ -873,13 +1017,16 @@ pub struct RegisteredCallIn(PublicUserProfile);
 
 impl MockParticipantBuilder<RegisteredCallIn> {
     pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
-        room.join_participant(ClientParameters {
-            device_secret: self.secret,
-            kind: ClientKind::RegisteredCallIn {
-                profile: self.profile.0,
+        room.join_participant(
+            ClientParameters {
+                device_secret: self.secret,
+                kind: ClientKind::RegisteredCallIn {
+                    profile: self.profile.0,
+                },
+                role: self.role,
             },
-            role: self.role,
-        })
+            None,
+        )
         .await
     }
 }
@@ -893,11 +1040,14 @@ impl MockRecorderBuilder {
         room: &mut TestRoom,
         room_kind: RoomKind,
     ) -> Result<MockParticipantJoined, room::Error> {
-        room.join_participant(ClientParameters {
-            device_secret: self.secret,
-            kind: ClientKind::Recorder { room: room_kind },
-            role: Role::User,
-        })
+        room.join_participant(
+            ClientParameters {
+                device_secret: self.secret,
+                kind: ClientKind::Recorder { room: room_kind },
+                role: Role::User,
+            },
+            None,
+        )
         .await
     }
 }
@@ -911,11 +1061,14 @@ impl MockTranscriptionBuilder {
         room: &mut TestRoom,
         room_kind: RoomKind,
     ) -> Result<MockParticipantJoined, room::Error> {
-        room.join_participant(ClientParameters {
-            device_secret: self.secret,
-            kind: ClientKind::Transcription { room: room_kind },
-            role: Role::User,
-        })
+        room.join_participant(
+            ClientParameters {
+                device_secret: self.secret,
+                kind: ClientKind::Transcription { room: room_kind },
+                role: Role::User,
+            },
+            None,
+        )
         .await
     }
 }

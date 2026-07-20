@@ -8,9 +8,11 @@ use std::{
 };
 
 use anyhow::{Context, anyhow};
+use chrono::Utc;
 use futures::SinkExt as _;
 use opentalk_roomserver_signaling::{
     event_origin::{EventOrigin, ParticipantOrigin},
+    lobby_participant::{LobbyConnection, LobbyParticipant, WaitingRoomState},
     module_context::ModuleMessage,
     participant_state::ParticipantState,
 };
@@ -21,7 +23,6 @@ use opentalk_roomserver_types::{
         CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, JoinBlockedReason, LeftWaitingRoom,
         RoomCloseReason, state::CoreState,
     },
-    device_id::DeviceId,
     disconnect_reason::DisconnectReason,
     error::SignalingError,
     join::{
@@ -41,7 +42,7 @@ use opentalk_roomserver_types::{
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     events::MeetingDetails, features::FeatureId, modules::ModuleId, streaming::StreamingLink,
-    tariffs::QuotaType, time::Timestamp,
+    tariffs::QuotaType, time::Timestamp, users::DisplayName,
 };
 use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
 
@@ -73,12 +74,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         let result = match core_command {
-            CoreCommand::EnterRoom => self.message_router.conference.serialize_and_send(
-                [participant_origin.connection_id],
-                CORE_MODULE_ID,
-                command.transaction_id,
-                CoreEvent::Error(CoreError::AlreadyInRoom),
-            ),
+            CoreCommand::EnterRoom { .. } | CoreCommand::EnterWaitingRoom { .. } => {
+                self.message_router.conference.serialize_and_send(
+                    [participant_origin.connection_id],
+                    CORE_MODULE_ID,
+                    command.transaction_id,
+                    CoreEvent::Error(CoreError::AlreadyInRoom),
+                )
+            }
         };
 
         if let Err(err) = result {
@@ -91,7 +94,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    pub(crate) fn handle_waiting_room_core_command(
+    pub(crate) fn handle_lobby_core_command(
         &mut self,
         participant_origin: ParticipantOrigin,
         command: SignalingCommand,
@@ -100,7 +103,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             Ok(command) => command,
             Err(err) => {
                 tracing::debug!("received unsupported core command from waiting room");
-                self.message_router.waiting_room.send_error(
+                self.message_router.lobby.send_error(
                     participant_origin.connection_id,
                     participant_origin.transaction_id,
                     SignalingError::InvalidJson {
@@ -112,7 +115,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         };
 
         let result = match core_command {
-            CoreCommand::EnterRoom => self.enter_room(participant_origin),
+            CoreCommand::EnterRoom { display_name } => {
+                self.enter_room(participant_origin, display_name)
+            }
+            CoreCommand::EnterWaitingRoom { display_name } => {
+                self.enter_waiting_room(participant_origin, display_name)
+            }
         };
 
         let router = self.message_router_for_participant(participant_origin.id);
@@ -165,11 +173,84 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
+    fn enter_waiting_room(
+        &mut self,
+        participant_origin: ParticipantOrigin,
+        display_name: Option<DisplayName>,
+    ) -> Result<(), SignalingModuleError<CoreError>> {
+        let Some(participant) = self.lobby_participants.get_mut(&participant_origin.id) else {
+            tracing::debug!("Failed to enter waiting room: participant not known");
+            return Err(CoreError::UnknownParticipant.into());
+        };
+
+        if participant.accepted {
+            tracing::debug!("Failed to enter waiting room: participant already accepted");
+            return Err(CoreError::AlreadyAccepted.into());
+        }
+
+        let display_name = Self::require_display_name(
+            self.participants.connected().get(&participant_origin.id),
+            participant,
+            display_name,
+        )?;
+        let connection_id = participant_origin.connection_id;
+        let Some(connection) = participant.connection_mut(connection_id) else {
+            tracing::debug!("Failed to enter waiting room: connection not known");
+            return Err(CoreError::UnknownConnection.into());
+        };
+
+        if connection.in_waiting_room {
+            tracing::debug!("Connection already in waiting room");
+            self.message_router.lobby.serialize_and_send(
+                [connection_id],
+                CORE_MODULE_ID,
+                participant_origin.transaction_id,
+                CoreEvent::InWaitingRoom,
+            )?;
+
+            return Ok(());
+        }
+
+        connection.in_waiting_room = true;
+        let joined_at = Utc::now();
+        participant.waiting_room_state = Some(WaitingRoomState {
+            display_name: display_name.clone(),
+            joined_at,
+        });
+
+        // Notify the moderators that the participant wants to join
+        self.message_router.conference.serialize_and_send(
+            self.participants.connected().moderators().connection_ids(),
+            CORE_MODULE_ID,
+            None,
+            CoreEvent::JoinedWaitingRoom {
+                participant_id: participant_origin.id,
+                connection_ids: participant.waiting_room_connection_ids().collect(),
+                joined_at,
+                display_name,
+                avatar_url: participant.kind.avatar_url().map(ToString::to_string),
+            },
+        )?;
+
+        // Notify the participant that they're now in the waiting room
+        self.message_router.lobby.serialize_and_send(
+            [connection_id],
+            CORE_MODULE_ID,
+            participant_origin.transaction_id,
+            CoreEvent::InWaitingRoom,
+        )?;
+
+        tracing::debug!("Participant entered waiting room");
+
+        Ok(())
+    }
+
     fn enter_room(
         &mut self,
         participant_origin: ParticipantOrigin,
+        display_name: Option<DisplayName>,
     ) -> Result<(), SignalingModuleError<CoreError>> {
-        let Entry::Occupied(participant) = self.waiting_participants.entry(participant_origin.id)
+        let Entry::Occupied(mut participant) = self.lobby_participants.entry(participant_origin.id)
         else {
             tracing::debug!("Failed to enter room: participant not known");
             return Err(CoreError::UnknownParticipant.into());
@@ -179,34 +260,131 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             tracing::debug!("Failed to enter room: participant not yet accepted");
             return Err(CoreError::NotAccepted.into());
         }
-        let participant = participant.remove();
 
-        let moderator_ids = self.participants.connected().moderators().connection_ids();
-
-        self.message_router.conference.serialize_and_send(
-            moderator_ids,
-            CORE_MODULE_ID,
-            None,
-            CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
-                id: participant_origin.id,
-                connection_ids: participant.connections.keys().copied().collect(),
-            }),
+        let display_name = Self::require_display_name(
+            self.participants.connected().get(&participant_origin.id),
+            participant.get(),
+            display_name,
         )?;
+        let role = participant.get().role;
+        let client_kind = participant.get().kind.clone();
 
-        self.message_router
-            .upgrade_connections(participant.connections.keys());
+        let Entry::Occupied(connection) = participant
+            .get_mut()
+            .connection_entry(participant_origin.connection_id)
+        else {
+            tracing::debug!("Failed to enter room: connection not known");
+            return Err(CoreError::UnknownConnection.into());
+        };
 
-        for (&connection_id, &device_id) in &participant.connections {
+        // If the participant was in the waiting room, notify moderators that they left
+        let connections = if connection.get().in_waiting_room {
+            let moderator_ids = self.participants.connected().moderators().connection_ids();
+            self.message_router.conference.serialize_and_send(
+                moderator_ids,
+                CORE_MODULE_ID,
+                None,
+                CoreEvent::LeftWaitingRoom(LeftWaitingRoom {
+                    id: participant_origin.id,
+                    connection_ids: participant.get().waiting_room_connection_ids().collect(),
+                }),
+            )?;
+
+            // When coming from the waiting room, all waiting connections enter the room together...
+            self.message_router
+                .upgrade_connections(participant.get().waiting_room_connection_ids());
+            participant.get_mut().drain_waiting_connections().collect()
+        } else {
+            // ...otherwise only the single connection that requested to enter does.
+            let (
+                connection_id,
+                LobbyConnection {
+                    device_id,
+                    in_waiting_room: _,
+                },
+            ) = connection.remove_entry();
+            self.message_router
+                .upgrade_connections([connection_id].into_iter());
+            vec![(connection_id, device_id)]
+        };
+
+        if !participant.get().is_connected() {
+            participant.remove();
+        }
+
+        for (connection_id, device_id) in connections {
             self.join_room(
                 participant_origin.id,
                 connection_id,
                 device_id,
-                participant.kind.clone(),
-                participant.role,
+                client_kind.clone(),
+                display_name.clone(),
+                role,
             )?;
         }
 
         Ok(())
+    }
+
+    /// Derives the display name for a participant based on their current state in the conference
+    /// and lobby.
+    pub fn derive_display_name(
+        conference: Option<&ParticipantState>,
+        lobby: Option<&LobbyParticipant>,
+    ) -> Option<DisplayName> {
+        // TODO: if we want to prevent registered users from changing their display name, we need to
+        // fall back to the name from their profile here
+        conference
+            .as_ref()
+            .map(|state| state.display_name.clone())
+            .or_else(|| {
+                lobby.and_then(|state| {
+                    state
+                        .waiting_room_state
+                        .as_ref()
+                        .map(|state| state.display_name.clone())
+                })
+            })
+    }
+
+    /// Determine the participant's display name based on the provided display name and the
+    /// participant's state in the conference and lobby.
+    fn require_display_name(
+        conference: Option<&ParticipantState>,
+        lobby: &LobbyParticipant,
+        provided: Option<DisplayName>,
+    ) -> Result<DisplayName, CoreError> {
+        // Derive the display name in the following order of precedence:
+        // 1. Conference state (when the participant already has a connection in the conference)
+        // 2. Waiting room state (when the participant already has a waiting connection)
+        // 3. Value provided with the command
+        // 4. Public user profile (registered users) or a fixed default (services)
+        let derived = Self::derive_display_name(conference, Some(lobby));
+
+        // Participants must provide a display name only when they haven't done so already.
+        // Providing a display name twice is considered an error.
+        match (provided, derived) {
+            (Some(provided_name), Some(derived_name)) if provided_name == derived_name => {
+                // Providing the same display name twice is ok
+                Ok(derived_name)
+            }
+            (Some(_), Some(_)) => Err(CoreError::DisplayNameAlreadyProvided),
+            (Some(name), None) => Ok(name),
+            (None, Some(name)) => Ok(name),
+            (None, None) => match &lobby.kind {
+                // When the user isn't already part of the conference and provided no display name,
+                // fall back to the display name from their profile (if registered) or a fixed
+                // default for services.
+                ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
+                    Ok(profile.user_info.display_name.clone())
+                }
+                ClientKind::Recorder { .. } => Ok(DisplayName::from_str_lossy("recorder")),
+                ClientKind::Transcription { .. } => {
+                    Ok(DisplayName::from_str_lossy("transcription"))
+                }
+                ClientKind::CallIn | ClientKind::Guest => Err(CoreError::DisplayNameRequired),
+            },
+        }
     }
 
     /// A participant connected to the conference
@@ -221,7 +399,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
-        device_id: DeviceId,
         client_kind: ClientKind,
         role: RoomserverClientRole,
     ) -> Result<(), FatalError> {
@@ -265,7 +442,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let join_success_msg = self.build_join_success(
             participant_id,
             connection_id,
-            device_id,
             client_kind,
             role,
             own_data,
@@ -389,7 +565,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     origin,
                     &mut self.info,
                     &mut self.participants,
-                    &mut self.waiting_participants,
+                    &mut self.lobby_participants,
                     &mut self.banned_participants,
                     timestamp,
                     Arc::clone(&self.ctx.asset_storage),
@@ -440,7 +616,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             EventOrigin::Internal,
             &mut self.info,
             &mut self.participants,
-            &mut self.waiting_participants,
+            &mut self.lobby_participants,
             &mut self.banned_participants,
             timestamp,
             Arc::clone(&self.ctx.asset_storage),
@@ -470,7 +646,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &self,
         participant_id: ParticipantId,
         connection_id: ConnectionId,
-        device_id: DeviceId,
         client_kind: ClientKind,
         role: RoomserverClientRole,
         module_data: ModuleData,
@@ -507,18 +682,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .participants
             .all_unfiltered
             .get(&participant_id)
-            .map(|state| state.kind.display_name())
-            .unwrap_or_else(|| client_kind.display_name());
+            .map(|state| state.display_name.clone())
+            .ok_or_else(|| FatalError(anyhow!("Participant state not found")))?;
         let (role, avatar_url, is_room_owner) = match client_kind {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => (
                 role.to_opentalk_types_signaling_role(),
                 Some(profile.user_info.avatar_url),
                 self.info.room.created_by.id == profile.id,
             ),
-            ClientKind::Guest { .. }
+            ClientKind::Guest
             | ClientKind::Transcription { .. }
             | ClientKind::Recorder { .. }
-            | ClientKind::CallIn { .. } => (Role::Guest, None, false),
+            | ClientKind::CallIn => (Role::Guest, None, false),
         };
 
         let event_info = self
@@ -573,9 +748,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let enabled_modules = self.enabled_modules();
 
         Ok(JoinSuccess {
-            id: participant_id,
-            connection_id,
-            device_id,
             connections: other_connections,
             display_name,
             avatar_url,
@@ -633,7 +805,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return Err(FatalError(anyhow::anyhow!("joining participant not found")));
         };
         let data = CoreState {
-            display_name: joinee.kind.display_name(),
+            display_name: joinee.display_name.clone(),
             role: joinee.role,
             avatar_url: joinee.kind.avatar_url().map(|s| s.to_owned()),
             participation_kind: joinee.kind.participant_kind(),
@@ -665,7 +837,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         peer_data: &mut BTreeMap<ModuleId, SharedJson>,
     ) -> Result<(), FatalError> {
         let data = CoreState {
-            display_name: state.kind.display_name(),
+            display_name: state.display_name.clone(),
             role: state.role,
             avatar_url: state.kind.avatar_url().map(str::to_owned),
             participation_kind: state.kind.participant_kind(),
@@ -730,7 +902,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         )?;
 
         self.message_router
-            .waiting_room
+            .lobby
             .serialize_and_broadcast(CORE_MODULE_ID, None, event)?;
 
         Ok(())
@@ -762,16 +934,27 @@ impl RequestedModuleActions {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, BTreeSet};
+    use std::{
+        assert_matches,
+        collections::{BTreeMap, BTreeSet, HashMap},
+    };
 
+    use chrono::DateTime;
     use insta::assert_snapshot;
-    use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
+    use opentalk_roomserver_signaling::{
+        lobby_participant::{LobbyParticipant, WaitingRoomState},
+        participant_state::ParticipantState,
+        signaling_event::SignalingEvent,
+    };
     use opentalk_roomserver_types::{
+        client_parameters::{ClientKind, Role as ClientRole},
         connection_id::ConnectionId,
-        core::CORE_MODULE_ID,
+        core::{CORE_MODULE_ID, CoreError},
         device_id::DeviceId,
         join::{connection_info::ConnectionInfo, join_success::JoinSuccess},
+        public_user_profile::PublicUserProfile,
         room_info::RoomInfo,
+        room_kind::RoomKind,
         tariff_details::TariffDetails,
     };
     use opentalk_types_common::{
@@ -782,11 +965,12 @@ mod tests {
         users::{DisplayName, UserInfo},
         utils::ExampleData,
     };
-    use opentalk_types_signaling::{ModuleData, ParticipantId, Role, SignalingModuleFrontendData};
+    use opentalk_types_signaling::{ModuleData, Role, SignalingModuleFrontendData};
     use serde::{Deserialize, Serialize};
     use serde_json::json;
 
-    use super::CoreEvent;
+    use super::{CoreEvent, RoomTask};
+    use crate::mocking::socket::MockSocket;
 
     fn test_module_data() -> ModuleData {
         #[derive(Debug, Serialize, Deserialize)]
@@ -814,9 +998,6 @@ mod tests {
     #[test]
     fn serialize_signaling_event_success() {
         let join_success = JoinSuccess {
-            id: ParticipantId::nil(),
-            connection_id: ConnectionId::from_u128(0x1),
-            device_id: DeviceId::from_u128(0x2),
             connections: vec![ConnectionInfo {
                 connection_id: ConnectionId::from_u128(0x3),
                 device_id: DeviceId::from_u128(0x4),
@@ -860,9 +1041,6 @@ mod tests {
           "timestamp": "1970-01-01T00:00:00Z",
           "payload": {
             "message": "join_success",
-            "id": "00000000-0000-0000-0000-000000000000",
-            "connection_id": "00000000-0000-0000-0000-000000000001",
-            "device_id": "00000000-0000-0000-0000-000000000002",
             "connections": [
               {
                 "connection_id": "00000000-0000-0000-0000-000000000003",
@@ -973,5 +1151,248 @@ mod tests {
         });
 
         let _: SignalingEvent<CoreEvent> = serde_json::from_value(json).unwrap();
+    }
+
+    /// Builds a lobby participant of the given kind, optionally with a name set in the waiting
+    /// room.
+    fn lobby_participant(kind: ClientKind, waiting_room_name: Option<&str>) -> LobbyParticipant {
+        LobbyParticipant::new(
+            kind,
+            ClientRole::User,
+            HashMap::new(),
+            false,
+            waiting_room_name.map(|name| WaitingRoomState {
+                display_name: DisplayName::from_str_lossy(name),
+                joined_at: DateTime::UNIX_EPOCH,
+            }),
+        )
+    }
+
+    /// Builds the conference state of a connected participant with the given display name.
+    fn participant_state(kind: ClientKind, name: &str) -> ParticipantState {
+        ParticipantState::new(
+            kind,
+            DisplayName::from_str_lossy(name),
+            ClientRole::User,
+            DateTime::UNIX_EPOCH,
+            false,
+        )
+    }
+
+    #[test]
+    fn require_display_name_uses_the_conference_name_when_none_is_provided() {
+        let conference = participant_state(ClientKind::Guest, "Conference Name");
+        let lobby = lobby_participant(ClientKind::Guest, None);
+
+        let name =
+            RoomTask::<MockSocket>::require_display_name(Some(&conference), &lobby, None).unwrap();
+
+        assert_eq!(name, DisplayName::from_str_lossy("Conference Name"));
+    }
+
+    #[test]
+    fn require_display_name_rejects_a_name_provided_while_in_the_conference() {
+        let conference = participant_state(ClientKind::Guest, "Conference Name");
+        let lobby = lobby_participant(ClientKind::Guest, None);
+
+        let err = RoomTask::<MockSocket>::require_display_name(
+            Some(&conference),
+            &lobby,
+            Some(DisplayName::from_str_lossy("Other Name")),
+        )
+        .unwrap_err();
+
+        assert_matches!(err, CoreError::DisplayNameAlreadyProvided);
+    }
+
+    #[test]
+    fn require_display_name_prefers_conference_name_over_waiting_room_name() {
+        let conference = participant_state(ClientKind::Guest, "Conference Name");
+        let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
+
+        let name =
+            RoomTask::<MockSocket>::require_display_name(Some(&conference), &lobby, None).unwrap();
+
+        assert_eq!(name, DisplayName::from_str_lossy("Conference Name"));
+    }
+
+    #[test]
+    fn require_display_name_uses_waiting_room_name_when_none_is_provided() {
+        let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
+
+        let name = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap();
+
+        assert_eq!(name, DisplayName::from_str_lossy("Waiting Room Name"));
+    }
+
+    #[test]
+    fn require_display_name_rejects_a_name_provided_while_in_the_waiting_room() {
+        let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
+
+        let err = RoomTask::<MockSocket>::require_display_name(
+            None,
+            &lobby,
+            Some(DisplayName::from_str_lossy("Other Name")),
+        )
+        .unwrap_err();
+
+        assert_matches!(err, CoreError::DisplayNameAlreadyProvided);
+    }
+
+    #[test]
+    fn require_display_name_requires_a_name_from_guests() {
+        let lobby = lobby_participant(ClientKind::Guest, None);
+
+        let err = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap_err();
+
+        assert_matches!(err, CoreError::DisplayNameRequired);
+    }
+
+    #[test]
+    fn require_display_name_accepts_a_name_from_guests() {
+        let lobby = lobby_participant(ClientKind::Guest, None);
+
+        let name = RoomTask::<MockSocket>::require_display_name(
+            None,
+            &lobby,
+            Some(DisplayName::from_str_lossy("Gustav")),
+        )
+        .unwrap();
+
+        assert_eq!(name, DisplayName::from_str_lossy("Gustav"));
+    }
+
+    #[test]
+    fn require_display_name_requires_a_name_from_call_in_participants() {
+        let lobby = lobby_participant(ClientKind::CallIn, None);
+
+        let err = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap_err();
+
+        assert_matches!(err, CoreError::DisplayNameRequired);
+    }
+
+    #[test]
+    fn require_display_name_accepts_a_name_from_call_in_participants() {
+        let lobby = lobby_participant(ClientKind::CallIn, None);
+
+        let name = RoomTask::<MockSocket>::require_display_name(
+            None,
+            &lobby,
+            Some(DisplayName::from_str_lossy("1234")),
+        )
+        .unwrap();
+
+        assert_eq!(name, DisplayName::from_str_lossy("1234"));
+    }
+
+    #[test]
+    fn require_display_name_falls_back_to_the_profile_name_for_registered_users() {
+        let profile = PublicUserProfile::example_data();
+        let expected = profile.user_info.display_name.clone();
+        let lobby = lobby_participant(ClientKind::Registered { profile }, None);
+
+        let name = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap();
+
+        assert_eq!(name, expected);
+    }
+
+    #[test]
+    fn require_display_name_lets_registered_users_override_their_profile_name() {
+        let lobby = lobby_participant(
+            ClientKind::Registered {
+                profile: PublicUserProfile::example_data(),
+            },
+            None,
+        );
+
+        let name = RoomTask::<MockSocket>::require_display_name(
+            None,
+            &lobby,
+            Some(DisplayName::from_str_lossy("Custom Name")),
+        )
+        .unwrap();
+
+        assert_eq!(name, DisplayName::from_str_lossy("Custom Name"));
+    }
+
+    #[test]
+    fn require_display_name_falls_back_to_the_profile_name_for_registered_call_in_participants() {
+        let profile = PublicUserProfile::example_data();
+        let expected = profile.user_info.display_name.clone();
+        let lobby = lobby_participant(ClientKind::RegisteredCallIn { profile }, None);
+
+        let name = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap();
+
+        assert_eq!(name, expected);
+    }
+
+    #[test]
+    fn require_display_name_uses_a_fixed_default_for_recorders() {
+        let lobby = lobby_participant(
+            ClientKind::Recorder {
+                room: RoomKind::Main,
+            },
+            None,
+        );
+
+        let name = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap();
+
+        assert_eq!(name, DisplayName::from_str_lossy("recorder"));
+    }
+
+    #[test]
+    fn require_display_name_uses_a_fixed_default_for_transcriptions() {
+        let lobby = lobby_participant(
+            ClientKind::Transcription {
+                room: RoomKind::Main,
+            },
+            None,
+        );
+
+        let name = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap();
+
+        assert_eq!(name, DisplayName::from_str_lossy("transcription"));
+    }
+
+    #[test]
+    fn derive_display_name_returns_none_for_guests_without_prior_presence() {
+        let lobby = lobby_participant(ClientKind::Guest, None);
+
+        let name = RoomTask::<MockSocket>::derive_display_name(None, Some(&lobby));
+
+        assert_eq!(name, None);
+    }
+
+    #[test]
+    fn derive_display_name_does_not_fall_back_to_the_profile_name_for_registered_users() {
+        let lobby = lobby_participant(
+            ClientKind::Registered {
+                profile: PublicUserProfile::example_data(),
+            },
+            None,
+        );
+
+        let name = RoomTask::<MockSocket>::derive_display_name(None, Some(&lobby));
+
+        assert_eq!(name, None);
+    }
+
+    #[test]
+    fn derive_display_name_uses_the_waiting_room_name() {
+        let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
+
+        let name = RoomTask::<MockSocket>::derive_display_name(None, Some(&lobby));
+
+        assert_eq!(name, Some(DisplayName::from_str_lossy("Waiting Room Name")));
+    }
+
+    #[test]
+    fn derive_display_name_prefers_the_conference_name_over_the_waiting_room_name() {
+        let conference = participant_state(ClientKind::Guest, "Conference Name");
+        let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
+
+        let name = RoomTask::<MockSocket>::derive_display_name(Some(&conference), Some(&lobby));
+
+        assert_eq!(name, Some(DisplayName::from_str_lossy("Conference Name")));
     }
 }

@@ -5,7 +5,7 @@ use std::{assert_matches, num::NonZero};
 
 use opentalk_roomserver_module_chat::ChatModule;
 use opentalk_roomserver_room::mocking::{
-    participant::MockParticipant,
+    participant::{JoinedState, MockParticipant, MockParticipantJoined},
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_signaling::signaling_module::SignalingModule;
@@ -16,7 +16,6 @@ use opentalk_roomserver_types::{
         event::BreakoutEvent,
     },
     core::CoreEvent,
-    join::join_success::JoinSuccess,
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_chat::{
@@ -930,7 +929,7 @@ struct BreakoutScenario<S> {
 /// Starts three breakout rooms with alice, bob and charlie
 ///
 /// Alice and Bob will join the first breakout room but charlie will stay in the main room
-async fn start_breakout_scenario() -> BreakoutScenario<JoinSuccess> {
+async fn start_breakout_scenario() -> BreakoutScenario<JoinedState> {
     let mut room = TestRoom::builder().register_module::<ChatModule>().spawn();
 
     let mut alice = room.join_alice_moderator(1).await;
@@ -1212,7 +1211,7 @@ async fn other_breakout_room_history_chunk() {
 }
 
 async fn get_chunk(
-    participant: &mut MockParticipant<JoinSuccess>,
+    participant: &mut MockParticipantJoined,
     scope: Scope,
     message_index: u32,
 ) -> ChatChunk {
@@ -1248,8 +1247,8 @@ async fn get_chunk(
 }
 
 async fn fill_messages(
-    sender: &mut MockParticipant<JoinSuccess>,
-    receivers: &mut [&mut MockParticipant<JoinSuccess>],
+    sender: &mut MockParticipantJoined,
+    receivers: &mut [&mut MockParticipantJoined],
     scope: Scope,
     content: &str,
     message_count: u32,
@@ -1637,7 +1636,7 @@ async fn search_private_chat_history() {
 }
 
 async fn search(
-    participant: &mut MockParticipant<JoinSuccess>,
+    participant: &mut MockParticipantJoined,
     search_scope: Scope,
     message_index: Option<u32>,
     term: &str,
