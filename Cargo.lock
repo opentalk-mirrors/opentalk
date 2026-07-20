@@ -6001,9 +6001,9 @@ dependencies = [
  "testcontainers",
  "thiserror 2.0.20",
  "tokio",
- "tokio-tungstenite 0.29.0",
+ "tokio-tungstenite 0.30.0",
  "tracing",
- "tungstenite 0.29.0",
+ "tungstenite 0.30.0",
  "url",
 ]
 
@@ -6083,7 +6083,7 @@ dependencies = [
  "futures",
  "opentalk-roomserver-types",
  "tokio",
- "tokio-tungstenite 0.29.0",
+ "tokio-tungstenite 0.30.0",
  "tracing",
  "url",
 ]
@@ -6650,7 +6650,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.20",
  "tokio",
- "tokio-tungstenite 0.29.0",
+ "tokio-tungstenite 0.30.0",
  "tokio-util",
  "url",
  "utoipa",
@@ -9999,7 +9999,10 @@ dependencies = [
  "futures-util",
  "log",
  "rustls",
+ "rustls-native-certs",
+ "rustls-pki-types",
  "tokio",
+ "tokio-rustls",
  "tungstenite 0.30.0",
 ]
 
@@ -10352,6 +10355,8 @@ dependencies = [
  "httparse",
  "log",
  "rand 0.10.2",
+ "rustls",
+ "rustls-pki-types",
  "sha1 0.11.0",
  "thiserror 2.0.20",
 ]
