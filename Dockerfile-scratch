@@ -5,7 +5,7 @@
 ARG typst_plugins_version=dev
 ARG typst_plugins_flavor=scratch
 
-FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.97.0-alpine AS builder
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.97.1-alpine AS builder
 
 RUN mkdir /opentalk-roomserver
 WORKDIR /opentalk-roomserver

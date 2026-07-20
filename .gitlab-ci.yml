@@ -171,7 +171,7 @@ test:load_typst_plugins:
     - cp -r /usr/share/typst target/typst
 
 test:cargo_test:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.97.0-trixie
+  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.97.1-trixie
   stage: test
   <<: *default_job_condition
   tags:
@@ -223,7 +223,7 @@ test:load:
 
 build:
   # we need alpine here, so that this binary can be used in the `test:load` job, which uses an alpine based K6 image.
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.97.0-alpine
+  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.97.1-alpine
   stage: build
   needs: []
   rules:
