@@ -11,7 +11,7 @@ use livekit::{
     track::{RemoteAudioTrack, RemoteTrack},
 };
 use opentalk_client_signaling::{
-    OpenTalkEvent, Room,
+    JoinedLobby, OpenTalkEvent, Room,
     opentalk_roomserver_types::{
         breakout::{breakout_id::BreakoutId, event::BreakoutEvent},
         room_kind::RoomKind,
@@ -21,7 +21,7 @@ use opentalk_client_signaling::{
         segment::TranscriptionSegment, service::command::TranscriptionServiceCommand,
     },
     opentalk_types::{
-        common::{rooms::RoomId, time::Timestamp},
+        common::{rooms::RoomId, time::Timestamp, users::DisplayName},
         signaling::ParticipantId,
     },
 };
@@ -35,6 +35,8 @@ use crate::{
         voice_activity_detection::VadStage,
     },
 };
+
+const DISPLAY_NAME: &str = "transcription";
 
 /// A connection to a LiveKit room together with its event stream.
 ///
@@ -115,11 +117,23 @@ impl TranscriptionSession {
             .breakout_room
             .map(|breakout_id| BreakoutId::from(breakout_id));
 
-        let mut room: Room = app_state
+        let JoinedLobby {
+            mut room,
+            can_enter,
+            display_name,
+        } = app_state
             .opentalk_client
             .connect_transcription(room_info.room_id, breakout_id)
-            .await?
-            .into();
+            .await?;
+
+        if !can_enter {
+            bail!("not allowed to enter the room");
+        }
+
+        let display_name = display_name
+            .is_none()
+            .then(|| DisplayName::from_str_lossy(DISPLAY_NAME));
+        room.enter_room(display_name).await?;
 
         if let Some(breakout_id) = room_info.breakout_room {
             move_to_breakout_room(&mut room, breakout_id.into()).await?;
@@ -228,7 +242,9 @@ impl TranscriptionSession {
                 previous: _,
                 updated: _,
             }
-            | OpenTalkEvent::RecordingService(_) => {}
+            | OpenTalkEvent::RecordingService(_)
+            | OpenTalkEvent::EntryPermissionChanged { can_enter: _ }
+            | OpenTalkEvent::DisplayNameAssigned(_) => {}
             OpenTalkEvent::Transcription(..) => (),
             OpenTalkEvent::TranscriptionService(transcription_service_command) => {
                 match transcription_service_command {
