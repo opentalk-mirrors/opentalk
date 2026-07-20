@@ -2843,7 +2843,7 @@ checksum = "998b056554fbe42e03ae0e152895cd1a7e1002aec800fdc6635d20270260c46f"
 dependencies = [
  "bit-set 0.8.0",
  "regex-automata",
- "regex-syntax",
+ "regex-syntax 0.8.11",
 ]
 
 [[package]]
@@ -4937,7 +4937,7 @@ dependencies = [
  "itoa",
  "log",
  "md-5",
- "nom",
+ "nom 8.0.0",
  "rand 0.10.2",
  "rangemap",
  "sha2 0.10.9",
@@ -4945,6 +4945,15 @@ dependencies = [
  "thiserror 2.0.19",
  "ttf-parser",
  "weezl",
+]
+
+[[package]]
+name = "lru-cache"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31e24f1ad8321ca0e8a1e0ac13f23cb668e6f5466c2c57319f6a5cf1cc8e3b1c"
+dependencies = [
+ "linked-hash-map",
 ]
 
 [[package]]
@@ -5059,6 +5068,12 @@ dependencies = [
  "mime",
  "unicase",
 ]
+
+[[package]]
+name = "minimal-lexical"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "miniz_oxide"
@@ -5202,6 +5217,16 @@ name = "nohash-hasher"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
+
+[[package]]
+name = "nom"
+version = "7.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
+dependencies = [
+ "memchr",
+ "minimal-lexical",
+]
 
 [[package]]
 name = "nom"
@@ -5763,6 +5788,12 @@ name = "once_cell_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
+
+[[package]]
+name = "oncemutex"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44d11de466f4a3006fe8a5e7ec84e93b79c70cb992ae0aa0eb631ad2df8abfe2"
 
 [[package]]
 name = "openssl-probe"
@@ -6520,6 +6551,7 @@ dependencies = [
  "opentalk-types-api-internal",
  "opentalk-types-common",
  "opentalk-types-signaling",
+ "phonenumber",
  "pretty_assertions",
  "reqwest 0.13.4",
  "serde",
@@ -7269,7 +7301,7 @@ checksum = "914a1c2265c98e2446911282c6ac86d8524f495792c38c5bd884f80499c7538a"
 dependencies = [
  "parse-display-derive",
  "regex",
- "regex-syntax",
+ "regex-syntax 0.8.11",
 ]
 
 [[package]]
@@ -7281,7 +7313,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "regex",
- "regex-syntax",
+ "regex-syntax 0.8.11",
  "structmeta",
  "syn 2.0.119",
 ]
@@ -7504,6 +7536,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e57fef6bc5981e38c2ce2d63bfa546861309f875b8a75f092d1d54ae2d64f266"
 dependencies = [
  "siphasher",
+]
+
+[[package]]
+name = "phonenumber"
+version = "0.3.10+9.0.33"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66d85d3cc5477bfe2f357939e7f02a5a566632508633af1a2c37577d0bef87d9"
+dependencies = [
+ "either",
+ "fnv",
+ "nom 7.1.3",
+ "once_cell",
+ "postcard",
+ "quick-xml 0.41.0",
+ "regex",
+ "regex-cache",
+ "serde",
+ "serde_derive",
+ "strum 0.27.2",
+ "thiserror 2.0.19",
 ]
 
 [[package]]
@@ -8272,7 +8324,7 @@ dependencies = [
  "aho-corasick",
  "memchr",
  "regex-automata",
- "regex-syntax",
+ "regex-syntax 0.8.11",
 ]
 
 [[package]]
@@ -8283,7 +8335,19 @@ checksum = "8fcfdb36bda0c880c5931cdc7a2bcdc8ba4556847b9d912bca70bc94708711ad"
 dependencies = [
  "aho-corasick",
  "memchr",
- "regex-syntax",
+ "regex-syntax 0.8.11",
+]
+
+[[package]]
+name = "regex-cache"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f7b62d69743b8b94f353b6b7c3deb4c5582828328bcb8d5fedf214373808793"
+dependencies = [
+ "lru-cache",
+ "oncemutex",
+ "regex",
+ "regex-syntax 0.6.29",
 ]
 
 [[package]]
@@ -8291,6 +8355,12 @@ name = "regex-lite"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cab834c73d247e67f4fae452806d17d3c7501756d98c8808d7c9c7aa7d18f973"
+
+[[package]]
+name = "regex-syntax"
+version = "0.6.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
 
 [[package]]
 name = "regex-syntax"
@@ -9535,7 +9605,7 @@ dependencies = [
  "fnv",
  "once_cell",
  "plist",
- "regex-syntax",
+ "regex-syntax 0.8.11",
  "serde",
  "serde_derive",
  "serde_json",
@@ -10455,7 +10525,7 @@ dependencies = [
  "png",
  "rayon",
  "regex",
- "regex-syntax",
+ "regex-syntax 0.8.11",
  "roxmltree 0.21.1",
  "rust_decimal",
  "rustc-hash 2.1.3",

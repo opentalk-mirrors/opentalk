@@ -150,6 +150,17 @@ impl ClientKind {
         }
     }
 
+    /// Returns `true` if the participant is a call-in user, otherwise return `false`.
+    pub fn is_call_in(&self) -> bool {
+        match self {
+            ClientKind::Registered { .. }
+            | ClientKind::Guest
+            | ClientKind::Recorder { .. }
+            | ClientKind::Transcription { .. } => false,
+            ClientKind::CallIn | ClientKind::RegisteredCallIn { .. } => true,
+        }
+    }
+
     pub fn time_zone(&self) -> Option<TimeZone> {
         match self {
             ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
