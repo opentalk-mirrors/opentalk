@@ -15,8 +15,8 @@ use opentalk_client_signaling::http::StartCallInError;
 use opentalk_client_signaling::opentalk_roomserver_types::breakout::event::BreakoutEvent;
 use opentalk_client_signaling::opentalk_roomserver_types::connection_id::ConnectionId;
 use opentalk_client_signaling::opentalk_roomserver_types_livekit::MicrophoneRestrictionState;
-use opentalk_client_signaling::types::common::users::DisplayName;
-use opentalk_client_signaling::types::signaling::ParticipantId;
+use opentalk_client_signaling::opentalk_types::common::users::DisplayName;
+use opentalk_client_signaling::opentalk_types::signaling::ParticipantId;
 use opentalk_client_signaling::{
     CallInConnectToken, DisconnectReason, OpenTalkClient, OpenTalkEvent, OpenTalkLiveKitEvent,
     OpenTalkRecordingEvent, Participant, Room,
