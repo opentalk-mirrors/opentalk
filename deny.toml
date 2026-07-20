@@ -172,6 +172,7 @@ skip = [
   { name = "thiserror-impl", version = "1" },
   { name = "thiserror", version = "1" },
   { name = "tinystr", version = "=0.7.6" },
+  { name = "syn", version = "^2.0.0" },
   { name = "untrusted", version = "=0.7.1" },
   { name = "writeable", version = "=0.5.5" },
 ]
