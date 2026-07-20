@@ -20,7 +20,6 @@ use opentalk_types::{
         pagination::{Page, PageSize},
         rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
         roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret},
-        users::DisplayName,
     },
 };
 use opentalk_types_api_internal::{
@@ -165,7 +164,6 @@ impl HttpClient {
         &self,
         controller_url: &BaseUrl,
         room_id: RoomId,
-        display_name: Option<DisplayName>,
     ) -> Result<RoomserverStartResponseBody, StartAsUserError> {
         let url = controller_url.join(format!("v1/rooms/{room_id}/start"))?;
 
@@ -181,7 +179,6 @@ impl HttpClient {
             .bearer_auth(token.secret())
             .json(&PostRoomsRoomserverStartRequestBody {
                 device_secret: self.device_secret.clone(),
-                display_name,
                 password: None,
                 invite_code: None,
             })
@@ -207,7 +204,6 @@ impl HttpClient {
         room_id: RoomId,
         invite_code: InviteCode,
         password: Option<RoomPassword>,
-        display_name: DisplayName,
     ) -> Result<RoomserverStartResponseBody, StartInvitedError> {
         let url = controller_url.join(format!("v1/rooms/{room_id}/start"))?;
 
@@ -218,7 +214,6 @@ impl HttpClient {
                 device_secret: self.device_secret.clone(),
                 password,
                 invite_code: Some(invite_code),
-                display_name: Some(display_name),
             })
             .send()
             .await?;
@@ -301,7 +296,6 @@ impl HttpClient {
         controller_url: &BaseUrl,
         id: CallInId,
         pin: CallInPassword,
-        display_name: DisplayName,
     ) -> Result<RoomserverStartResponseBody, StartCallInError> {
         let url = controller_url.join("/internal/call_in/start")?;
 
@@ -315,11 +309,7 @@ impl HttpClient {
             .http_client
             .post(url)
             .bearer_auth(token.secret())
-            .json(&PostCallInStartRoomServerRequestBody {
-                id,
-                pin,
-                display_name,
-            })
+            .json(&PostCallInStartRoomServerRequestBody { id, pin })
             .send()
             .await?;
 

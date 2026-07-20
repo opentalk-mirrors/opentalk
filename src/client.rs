@@ -10,14 +10,13 @@ use opentalk_types::{
     common::{
         call_in::{CallInId, CallInPassword},
         rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
-        users::DisplayName,
     },
 };
 
 use crate::{
     config::{BaseUrl, ClientConfig},
     http::{CreateRoomError, GetRoomError, HttpClient},
-    room::Room,
+    room::{JoinedLobby, Room},
 };
 
 pub struct OpenTalkClient {
@@ -37,14 +36,10 @@ impl OpenTalkClient {
     }
 
     /// Connect as authenticated opentalk user
-    pub async fn connect_as_user(
-        &self,
-        display_name: Option<DisplayName>,
-        room_id: RoomId,
-    ) -> Result<JoinResult> {
+    pub async fn connect_as_user(&self, room_id: RoomId) -> Result<JoinedLobby> {
         let response = self
             .http
-            .start_as_user(&self.controller_url, room_id, display_name)
+            .start_as_user(&self.controller_url, room_id)
             .await
             .context("Failed to send start HTTP request")?;
 
@@ -57,17 +52,10 @@ impl OpenTalkClient {
         room_id: RoomId,
         invite_code: InviteCode,
         password: Option<RoomPassword>,
-        display_name: DisplayName,
-    ) -> Result<JoinResult> {
+    ) -> Result<JoinedLobby> {
         let response = self
             .http
-            .start_invited(
-                &self.controller_url,
-                room_id,
-                invite_code,
-                password,
-                display_name,
-            )
+            .start_invited(&self.controller_url, room_id, invite_code, password)
             .await
             .context("Failed to send start-call-in HTTP request")?;
 
@@ -82,11 +70,10 @@ impl OpenTalkClient {
         &self,
         id: CallInId,
         pin: CallInPassword,
-        display_name: DisplayName,
     ) -> Result<CallInConnectToken> {
         let start_response = self
             .http
-            .start_call_in(&self.controller_url, id, pin, display_name)
+            .start_call_in(&self.controller_url, id, pin)
             .await
             .context("Failed to send start-call-in HTTP request")?;
 
@@ -99,7 +86,7 @@ impl OpenTalkClient {
     pub async fn connect_call_in(
         &self,
         CallInConnectToken { response }: CallInConnectToken,
-    ) -> Result<JoinResult> {
+    ) -> Result<JoinedLobby> {
         self.connect_common(response).await
     }
 
@@ -108,7 +95,7 @@ impl OpenTalkClient {
         &self,
         room_id: RoomId,
         breakout_id: Option<BreakoutId>,
-    ) -> Result<JoinResult> {
+    ) -> Result<JoinedLobby> {
         let response = self
             .http
             .start_as_recorder(&self.controller_url, room_id, breakout_id)
@@ -123,7 +110,7 @@ impl OpenTalkClient {
         &self,
         room_id: RoomId,
         breakout_id: Option<BreakoutId>,
-    ) -> Result<JoinResult> {
+    ) -> Result<JoinedLobby> {
         let response = self
             .http
             .start_as_transcription(&self.controller_url, room_id, breakout_id)
@@ -133,7 +120,7 @@ impl OpenTalkClient {
         self.connect_common(response).await
     }
 
-    async fn connect_common(&self, response: RoomserverStartResponseBody) -> Result<JoinResult> {
+    async fn connect_common(&self, response: RoomserverStartResponseBody) -> Result<JoinedLobby> {
         let connection = SignalingConnection::connect(
             response
                 .roomserver_address
@@ -144,15 +131,9 @@ impl OpenTalkClient {
         .await
         .context("Failed to connect to roomserver signaling")?;
 
-        let mut room = Room::new(connection);
+        let room = Room::new(connection);
 
-        room.join().await?;
-
-        if room.is_in_waiting_room() {
-            Ok(JoinResult::InWaitingRoom(room))
-        } else {
-            Ok(JoinResult::InRoom(room))
-        }
+        room.join_lobby().await
     }
 
     pub async fn get_rooms(&self, max: usize) -> Result<Vec<RoomResource>, GetRoomError> {
@@ -177,19 +158,6 @@ impl OpenTalkClient {
                 e2e_encryption,
             )
             .await
-    }
-}
-
-pub enum JoinResult {
-    InRoom(Room),
-    InWaitingRoom(Room),
-}
-
-impl From<JoinResult> for Room {
-    fn from(join_result: JoinResult) -> Self {
-        match join_result {
-            JoinResult::InRoom(room) | JoinResult::InWaitingRoom(room) => room,
-        }
     }
 }
 
