@@ -474,6 +474,11 @@ components:
       maxLength: 255
       minLength: 1
       pattern: "^[_0-9a-z]*$"
+    InviteCode:
+      type: string
+      format: uuid
+      description: An invite code
+      example: 00000000-0000-0000-0000-0000deadbeef
     ModuleFeatureId:
       anyOf:
         - type: string
@@ -660,6 +665,8 @@ components:
         guest_access:
           type: boolean
           description: "When `true`, guests are allowed to participate in the meeting."
+        invite_code:
+          $ref: "#/components/schemas/InviteCode"
         module_settings:
           $ref: "#/components/schemas/ModuleSettings"
           description: Additional configuration options that are used by modules during initialization.
@@ -725,6 +732,7 @@ components:
           title: Team Event
         fallback_language: en
         guest_access: false
+        invite_code: 00000000-0000-0000-0000-0000deadbeef
         module_settings:
           livekit:
             api_key: devkey
@@ -1053,6 +1061,7 @@ components:
             title: Team Event
           fallback_language: en
           guest_access: false
+          invite_code: 00000000-0000-0000-0000-0000deadbeef
           module_settings:
             livekit:
               api_key: devkey
