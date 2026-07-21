@@ -6173,6 +6173,7 @@ version = "0.3.0"
 dependencies = [
  "anyhow",
  "http 1.4.2",
+ "itertools 0.15.0",
  "livekit",
  "opentalk-roomserver-module-livekit",
  "opentalk-roomserver-module-shared-folder",

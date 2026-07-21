@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 pub enum KickReason {
     Kicked,
     Debriefed,
+    GuestAccessDisabled,
 }
 
 #[cfg(test)]
@@ -46,6 +47,22 @@ mod tests {
     fn deserialize_debrief() {
         let produced: KickReason = serde_json::from_value(json!("debriefed")).unwrap();
         let expected = KickReason::Debriefed;
+
+        assert_eq!(produced, expected);
+    }
+
+    #[test]
+    fn serialize_guest_access_disabled() {
+        let reason = KickReason::GuestAccessDisabled;
+        let produced = serde_json::to_string_pretty(&reason).unwrap();
+
+        assert_snapshot!(produced, @r#""guest_access_disabled""#);
+    }
+
+    #[test]
+    fn deserialize_guest_access_disabled() {
+        let produced: KickReason = serde_json::from_value(json!("guest_access_disabled")).unwrap();
+        let expected = KickReason::GuestAccessDisabled;
 
         assert_eq!(produced, expected);
     }
