@@ -163,7 +163,7 @@ otctl down
 
 #### 2.1.2 Adjust Keycloak Settings in settings.yml
 
-Edit `/etc/opentalk-compose/settings.yml` and add the configuration below. The following example assumes the external Keycloak is reachable at `https://keycloak.example.com/auth`; replace the host with your own. The local Keycloak service will be disabled. Traefik sets Content Security Policies (CSP) by default. If the external Keycloak runs under a different domain, add that domain to the CSP (for example via `csp_allowed_extra_connect_src`).
+Edit `/etc/opentalk-compose/settings.yml` and add the configuration below. The following example assumes the external Keycloak is reachable at `https://keycloak.example.com/auth`; replace the host with your own. The local Keycloak service will be disabled. Traefik sets Content Security Policies (CSP) by default. If the external Keycloak runs under a different domain, add that domain to the CSP (for example via `traefik_csp_allowed_extra_connect_src`).
 
 ```yaml
 compose_service_keycloak_enabled: false
@@ -173,7 +173,7 @@ keycloak_realm: opentalk
 keycloak_admin_username: admin
 keycloak_admin_password: *****
 
-csp_allowed_extra_connect_src:
+traefik_csp_allowed_extra_connect_src:
   - https://keycloak.example.com
 ```
 
@@ -189,7 +189,7 @@ keycloak_admin_password: *****
 keycloak_bootstrap_admin_username: bootstrap_admin
 keycloak_bootstrap_admin_password: ******
 
-csp_allowed_extra_connect_src:
+traefik_csp_allowed_extra_connect_src:
   - https://keycloak.example.com
 ```
 
@@ -256,7 +256,7 @@ keycloak_base_url: https://keycloak.example.com/auth
 keycloak_realm: opentalk
 
 # If the external domain differs from the OpenTalk domain, allow it in CSP
-csp_allowed_extra_connect_src:
+traefik_csp_allowed_extra_connect_src:
   - https://keycloak.example.com
 ```
 
@@ -326,7 +326,7 @@ otctl deploy
 | Symptom | Cause | Resolution |
 | --------- | ------- | ----------- |
 | 403 on OIDC discovery | Incorrect `keycloak_base_url` (wrong host) | Fix URL and redeploy. |
-| CSP blocking | Domain or port missing in CSP | Add to `csp_allowed_extra_connect_src`. |
+| CSP blocking | Domain or port missing in CSP | Add to `traefik_csp_allowed_extra_connect_src`. |
 | Missing clients after import | Incomplete import or wrong file | Re-sanitize and re-import. |
 | Login redirect loop | Realm name or redirect URIs mismatch domain | Align realm name & client redirect URIs. |
 
@@ -499,7 +499,7 @@ controller_livekit_api_key: "generated key"
 controller_livekit_api_secret: "generated secret"
 
 # Add the WebSocket address to the Content Security Policy Content Security Policy (CSP)
-csp_allowed_extra_connect_src:
+traefik_csp_allowed_extra_connect_src:
   - wss://livekit.example.com
 ```
 
@@ -736,3 +736,55 @@ otctl volumes rm opentalk_minio
 # After migrating away from Garage:
 otctl volumes rm opentalk_garage_data opentalk_garage_meta
 ```
+
+## 7 Customizing the web frontend
+
+### 7.1 Custom video backgrounds
+
+The web frontend ships with a built-in set of default video backgrounds (for
+example the OpenTalk "elevate" background) that users can choose from in the
+conference UI. These defaults are used as long as no custom configuration is
+provided.
+
+If you want to offer your own curated set of backgrounds, set
+`opentalk_web_frontend_environment_video_backgrounds` in
+`/etc/opentalk-compose/settings.yml`. **Configuring this variable replaces the
+built-in defaults entirely** — the shipped backgrounds will no longer be
+available unless you include them in your own list.
+
+To enable custom backgrounds:
+
+1. Define the backgrounds in `settings.yml` as a JSON array. Each entry must
+   provide `altText`, `url` and `thumb`. The `url` and `thumb` paths are
+   served from `/assets/videoBackgrounds/` inside the container.
+
+   ```yaml
+   opentalk_web_frontend_environment_video_backgrounds: >-
+     [{
+       altText: 'Office',
+       url: '/assets/videoBackgrounds/office.png',
+       thumb: '/assets/videoBackgrounds/thumbs/office-thumb.png',
+     },
+     {
+       altText: 'Beach',
+       url: '/assets/videoBackgrounds/beach.png',
+       thumb: '/assets/videoBackgrounds/thumbs/beach-thumb.png',
+     }]
+   ```
+
+2. Place the referenced image files on the host. The default location is
+   `/var/opt/opentalk-compose/backgrounds/` for full-size images and
+   `/var/opt/opentalk-compose/backgrounds/thumbs/` for thumbnails. The
+   directory is created automatically when the variable is non-empty and is
+   mounted read-only into the web frontend container at
+   `/usr/share/nginx/html/assets/videoBackgrounds`. Override the host path
+   with `opentalk_web_frontend_backgrounds_dir` if needed.
+
+3. Apply the configuration:
+
+   ```bash
+   otctl deploy
+   ```
+
+If the variable is left at its default empty value, no host volume is mounted
+and the frontend continues to use its built-in default backgrounds.

@@ -8,6 +8,12 @@
 # Reference: https://github.com/livekit/livekit/blob/master/config-sample.yaml
 
 port: {{ livekit_port }}
+{% if livekit_bind_addresses is defined and livekit_bind_addresses %}
+bind_addresses:
+{% for addr in livekit_bind_addresses %}
+  - {{ addr }}
+{% endfor %}
+{% endif %}
 
 {% if livekit_redis_address is defined and livekit_redis_address %}
 redis:

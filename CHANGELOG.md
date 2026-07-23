@@ -30,6 +30,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (docs) Update CHANGELOG (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
 
+## [26.1.0-beta.6] - 2026-05-27
+
+[26.1.0-beta.6]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.6
+
+### 🐛 Bug fixes
+
+- (docs) Add garage and s3_migrate sections, fix duplicate minio_s3_api_port entry
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk Product version v26.1.0-beta.6 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
+- (deps) Update OpenTalk Controller version 0.33.4 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
+- (deps) Update OpenTalk Outlook Add-In version v0.3.6-1 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
+- (deps) Update Keycloak to version v26.5.7 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
+- (deps) Update RabbitMQ to version v4.2.7 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
+
 ## [26.1.0-beta.5] - 2026-05-12
 
 [26.1.0-beta.5]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.5

@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Ensure OpenTalk Orchestrator Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ orchestrator_docker_compose_services_dir }}"
+    - "{{ orchestrator_docker_compose_services_dir }}/opentalk-orchestrator"
+    - "{{ orchestrator_docker_compose_services_dir }}/opentalk-orchestrator/config"
+
+- name: "Render OpenTalk Orchestrator static config | {{ orchestrator_docker_compose_services_dir }}/opentalk-orchestrator/config/orchestrator.toml"
+  ansible.builtin.template:
+    src: orchestrator.toml.j2
+    dest: "{{ orchestrator_docker_compose_services_dir }}/opentalk-orchestrator/config/orchestrator.toml"
+    mode: '0644'
+  notify: Restart Docker Service OpenTalk Orchestrator

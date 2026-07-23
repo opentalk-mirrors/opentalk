@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-04-22
+Last updated: 2026-06-01
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -23,8 +23,10 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `compose_service_mailcrab_enabled` | boolean | `false` |
 | `compose_service_opentalk_controller_enabled` | boolean | `true` |
 | `compose_service_opentalk_obelisk_enabled` | boolean | `false` |
+| `compose_service_opentalk_orchestrator_enabled` | boolean | `false` |
 | `compose_service_opentalk_outlook_add_in_enabled` | boolean | `false` |
 | `compose_service_opentalk_recorder_enabled` | boolean | `true` |
+| `compose_service_opentalk_roomserver_enabled` | boolean | `true` |
 | `compose_service_opentalk_smtp_mailer_enabled` | boolean | `false` |
 | `compose_service_opentalk_web_frontend_enabled` | boolean | `true` |
 | `compose_service_rabbitmq_enabled` | boolean | `true` |
@@ -290,6 +292,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `livekit_audio_min_percentile` | string | `40` |
 | `livekit_audio_smooth_intervals` | string | `4` |
 | `livekit_audio_update_interval` | string | `500` |
+| `livekit_bind_addresses` | list | `[0.0.0.0, ::]` |
 | `livekit_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `livekit_docker_compose_ulimits_nofile_hard` | integer | `98304` |
 | `livekit_docker_compose_ulimits_nofile_soft` | integer | `98304` |
@@ -409,58 +412,21 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailcrab_docker_label_http_routers_minio_console_middlewares` | string | `default-auth@file` |
 | `mailcrab_webui_prefix` | string | `/adm/mailcrab` |
 
-## opentalk_compose.garage
+## opentalk_compose.minio
 
 | Variable | Type | Default Value |
 |----------|------|---------------|
-| `garage_admin_api_bind_addr` | string | `[::]:3903` |
-| `garage_admin_api_port` | integer | `3903` |
-| `garage_bucket_name` | string | `opentalk` |
-| `garage_db_engine` | string | `lmdb` |
-| `garage_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
-| `garage_docker_compose_project_src` | string | `{{ deploy_dir }}` |
-| `garage_docker_compose_services_dir` | string | `{{ services_dir }}` |
-| `garage_docker_compose_services_state` | string | `{{ compose_service_garage_state \| default('present') }}` |
-| `garage_docker_image_src` | string | `registry.heinlein.group/opentalk/garage` |
-| `garage_key_name` | string | `opentalk-key` |
-| `garage_layout_capacity` | string | `1G` |
-| `garage_layout_zone` | string | `dc1` |
-| `garage_replication_factor` | integer | `1` |
-| `garage_rpc_bind_addr` | string | `[::]:3901` |
-| `garage_rpc_port` | integer | `3901` |
-| `garage_rpc_public_addr` | string | `garage:3901` |
-| `garage_s3_api_bind_addr` | string | `[::]:3900` |
-| `garage_s3_api_port` | integer | `3900` |
-| `garage_s3_region` | string | `garage` |
-
-## opentalk_compose.minio
-
-> **Note:** MinIO is an alternative S3 storage provider. To use MinIO instead of the default Garage, set `s3_storage_provider: minio` in `settings.yml`.
-
-| Variable | Type | Default Value | Description |
-|----------|------|---------------|-------------|
-| `minio_bucket_name` | string | `opentalk` | |
-| `minio_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` | |
-| `minio_docker_compose_project_src` | string | `{{ deploy_dir }}` | |
-| `minio_docker_compose_services_dir` | string | `{{ services_dir }}` | |
-| `minio_docker_compose_services_state` | string | `{{ compose_service_minio_state \| default('present') }}` | |
-| `minio_docker_compose_ulimits_nofile_hard` | integer | `65536` | |
-| `minio_docker_compose_ulimits_nofile_soft` | integer | `65536` | |
-| `minio_docker_compose_ulimits_nproc` | integer | `8192` | |
-| `minio_docker_image_src` | string | `registry.heinlein.group/opentalk/minio` | |
-| `minio_docker_label_http_routers_minio_console_middlewares` | string | `minio-stripprefix` | |
-| `minio_s3_api_port` | integer | `9000` | Host port bound to `127.0.0.1` for the MinIO S3 API. Used by `rclone` during S3 migration. |
-
-## opentalk_compose.s3_migrate
-
-| Variable | Type | Default Value | Description |
-|----------|------|---------------|-------------|
-| `s3_migration_source` | string | — | **Required.** Source provider: `minio` or `garage`. Pass via `-e s3_migration_source=minio`. |
-| `s3_migrate_run_deploy` | boolean | `true` | Run `otctl deploy` automatically after migration to stop the source service. Set to `false` to skip. |
-| `s3_migrate_minio_endpoint` | string | `http://127.0.0.1:9000` | MinIO S3 endpoint reachable from the host. |
-| `s3_migrate_garage_endpoint` | string | `http://127.0.0.1:3900` | Garage S3 endpoint reachable from the host. |
-| `s3_migrate_bucket_name` | string | `opentalk` | Bucket to migrate. |
-| `s3_migrate_settings_file` | string | `/etc/opentalk-compose/settings.yml` | Path to `settings.yml` that is updated after migration. |
+| `minio_bucket_name` | string | `opentalk` |
+| `minio_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
+| `minio_docker_compose_project_src` | string | `{{ deploy_dir }}` |
+| `minio_docker_compose_services_dir` | string | `{{ services_dir }}` |
+| `minio_docker_compose_services_state` | string | `{{ compose_service_minio_state \| default('present') }}` |
+| `minio_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `minio_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `minio_docker_compose_ulimits_nproc` | integer | `8192` |
+| `minio_docker_image_src` | string | `registry.heinlein.group/opentalk/minio` |
+| `minio_docker_label_http_routers_minio_console_middlewares` | string | `minio-stripprefix` |
+| `minio_s3_api_port` | integer | `9000` |
 
 ## opentalk_compose.ndt
 
@@ -553,6 +519,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_redis_url` | string | `redis://localhost:6379/` |
 | `controller_reports_template_inline` | string | `\|` |
 | `controller_reports_url` | string | `http://localhost:6560` |
+| `controller_roomserver_kind` | string | `external` |
 | `controller_shared_folder_directory` | string | `opentalk/meetings` |
 | `controller_shared_folder_expiry` | string | `48` |
 | `controller_shared_folder_password` | string | `v3rys3cr3t` |
@@ -626,6 +593,25 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_sip_transport` | string | `` |
 | `obelisk_sip_username` | string | `` |
 
+## opentalk_compose.opentalk_orchestrator
+
+| Variable | Type | Default Value |
+|----------|------|---------------|
+| `orchestrator_api_key_id` | string | `orchestrator` |
+| `orchestrator_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
+| `orchestrator_docker_compose_project_src` | string | `{{ deploy_dir }}` |
+| `orchestrator_docker_compose_services_dir` | string | `{{ services_dir }}` |
+| `orchestrator_docker_compose_services_state` | string | `{{ compose_service_opentalk_orchestrator_state \| default('present') }}` |
+| `orchestrator_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `orchestrator_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `orchestrator_docker_compose_ulimits_nproc` | integer | `8192` |
+| `orchestrator_docker_image_src` | string | `git.opentalk.dev:5050/opentalk/backend/services/orchestrator` |
+| `orchestrator_http_address` | string | `0.0.0.0` |
+| `orchestrator_http_port` | integer | `11222` |
+| `orchestrator_logging_default_directives` | string | `orchestrator=info` |
+| `orchestrator_public_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
+| `orchestrator_services_key_id` | string | `roomserver` |
+
 ## opentalk_compose.opentalk_outlook_add_in
 
 | Variable | Type | Default Value |
@@ -676,6 +662,34 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `recorder_recorder_clock_format` | string | `%d.%m.%y %X %Z` |
 | `recorder_recorder_display` | string | `true` |
 
+## opentalk_compose.opentalk_roomserver
+
+| Variable | Type | Default Value |
+|----------|------|---------------|
+| `roomserver_api_key_id` | string | `roomserver` |
+| `roomserver_controller_api_key_id` | string | `controller` |
+| `roomserver_controller_url` | string | `http://controller:11311` |
+| `roomserver_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
+| `roomserver_docker_compose_project_src` | string | `{{ deploy_dir }}` |
+| `roomserver_docker_compose_services_dir` | string | `{{ services_dir }}` |
+| `roomserver_docker_compose_services_state` | string | `{{ compose_service_opentalk_roomserver_state \| default('present') }}` |
+| `roomserver_docker_compose_ulimits_nofile_hard` | integer | `65536` |
+| `roomserver_docker_compose_ulimits_nofile_soft` | integer | `65536` |
+| `roomserver_docker_compose_ulimits_nproc` | integer | `8192` |
+| `roomserver_docker_image_src` | string | `registry.heinlein.group/opentalk/roomserver` |
+| `roomserver_http_address` | string | `0.0.0.0` |
+| `roomserver_http_port` | integer | `11333` |
+| `roomserver_logging_default_directives` | string | `opentalk=debug` |
+| `roomserver_metrics_allowlist` | list | `[127.0.0.0/24, ::ffff:0:0/96, 172.16.0.0/12]` |
+| `roomserver_metrics_port` | string | `11412` |
+| `roomserver_monitoring_addr` | string | `0.0.0.0` |
+| `roomserver_monitoring_port` | string | `11411` |
+| `roomserver_orchestrator_api_key_id` | string | `orchestrator` |
+| `roomserver_orchestrator_url` | string | `http://orchestrator:11222` |
+| `roomserver_public_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
+| `roomserver_screen_share_requires_permission` | boolean | `false` |
+| `roomserver_service_url` | string | `http://roomserver:{{ roomserver_http_port }}` |
+
 ## opentalk_compose.opentalk_smtp_mailer
 
 | Variable | Type | Default Value |
@@ -721,6 +735,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 | Variable | Type | Default Value |
 |----------|------|---------------|
+| `opentalk_web_frontend_backgrounds_dir` | string | `/var/opt/opentalk-compose/backgrounds` |
 | `opentalk_web_frontend_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `opentalk_web_frontend_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `opentalk_web_frontend_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -750,8 +765,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `opentalk_web_frontend_environment_oidc_client_id` | string | `{{ controller_oidc_frontend_client_id \| default('Frontend') }}` |
 | `opentalk_web_frontend_environment_oidc_issuer` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}` |
 | `opentalk_web_frontend_environment_suppress_browser_compatibility_info` | boolean | `false` |
-| `opentalk_web_frontend_environment_video_backgrounds` | string | undefined (commented out). When defined, backgrounds directory is mounted as volume. Example: `[{ altText: 'My BG', url: '/assets/videoBackgrounds/my-bg.png', thumb: '/assets/videoBackgrounds/thumbs/my-bg-thumb.png' }]` |
-| `opentalk_web_frontend_backgrounds_dir` | string | `/var/opt/opentalk-compose/backgrounds` |
+| `opentalk_web_frontend_environment_video_backgrounds` | string | `[{`<br>`  altText: 'My Background',`<br>`  url: '/assets/videoBackgrounds/my-bg.png',`<br>`  thumb: '/assets/videoBackgrounds/thumbs/my-bg-thumb.png',`<br>`}]` |
 | `opentalk_web_frontend_environment_waiting_room_default_value` | string | `{{ WAITING_ROOM_DEFAULT_VALUE \| default(false) }}` |
 | `opentalk_web_frontend_labels_traefik_enable` | boolean | `true` |
 | `opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
@@ -861,6 +875,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `traefik_basicAuth_dashboard_admin` | string | `admin` |
 | `traefik_basicAuth_dashboard_admin_password` | string | `{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD }}` |
 | `traefik_basicAuth_dashboard_admin_password_salt` | string | `{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD_SALT }}` |
+| `traefik_csp_allowed_extra_connect_src` | list | `[]` — Additional sources for `connect-src` in the CSP header, e.g. `[https://keycloak.example.com]` |
+| `traefik_csp_allowed_extra_img_src` | list | `[]` — Additional sources for `img-src` in the CSP header, e.g. `[https://avatars.example.com]` |
 | `traefik_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `traefik_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `traefik_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -889,5 +905,3 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `traefik_providers_docker_exposedByDefault` | boolean | `false` |
 | `traefik_providers_file_directory` | string | `/etc/traefik/dynamic` |
 | `traefik_providers_file_watch` | boolean | `true` |
-| `csp_allowed_extra_img_src` | list | `[]` — Additional sources for `img-src` in the CSP header, e.g. `[https://avatars.example.com]` |
-| `csp_allowed_extra_connect_src` | list | `[]` — Additional sources for `connect-src` in the CSP header, e.g. `[https://keycloak.example.com]` |
