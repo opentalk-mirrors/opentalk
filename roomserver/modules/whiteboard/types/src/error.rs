@@ -6,14 +6,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "error", rename_all = "snake_case")]
-pub enum ExcalidrawError {
+pub enum WhiteboardError {
     InsufficientPermissions,
     AlreadyStarted,
     NotStarted,
     UnknownParticipant,
 }
 
-impl ModuleError for ExcalidrawError {}
+impl ModuleError for WhiteboardError {}
 
 #[cfg(test)]
 mod tests {
@@ -21,11 +21,11 @@ mod tests {
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
-    use super::ExcalidrawError;
+    use super::WhiteboardError;
 
     #[test]
     fn serialize_insufficient_permissions() {
-        let error = ExcalidrawError::InsufficientPermissions;
+        let error = WhiteboardError::InsufficientPermissions;
         let raw = serde_json::to_string_pretty(&error).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -41,13 +41,13 @@ mod tests {
             "error": "insufficient_permissions",
         });
 
-        let error: ExcalidrawError = serde_json::from_str(&raw.to_string()).unwrap();
-        assert_eq!(error, ExcalidrawError::InsufficientPermissions);
+        let error: WhiteboardError = serde_json::from_str(&raw.to_string()).unwrap();
+        assert_eq!(error, WhiteboardError::InsufficientPermissions);
     }
 
     #[test]
     fn serialize_already_started() {
-        let error = ExcalidrawError::AlreadyStarted;
+        let error = WhiteboardError::AlreadyStarted;
         let raw = serde_json::to_string_pretty(&error).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -63,13 +63,13 @@ mod tests {
             "error": "already_started",
         });
 
-        let error: ExcalidrawError = serde_json::from_str(&raw.to_string()).unwrap();
-        assert_eq!(error, ExcalidrawError::AlreadyStarted);
+        let error: WhiteboardError = serde_json::from_str(&raw.to_string()).unwrap();
+        assert_eq!(error, WhiteboardError::AlreadyStarted);
     }
 
     #[test]
     fn serialize_not_started() {
-        let error = ExcalidrawError::NotStarted;
+        let error = WhiteboardError::NotStarted;
         let raw = serde_json::to_string_pretty(&error).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -85,13 +85,13 @@ mod tests {
             "error": "not_started",
         });
 
-        let error: ExcalidrawError = serde_json::from_str(&raw.to_string()).unwrap();
-        assert_eq!(error, ExcalidrawError::NotStarted);
+        let error: WhiteboardError = serde_json::from_str(&raw.to_string()).unwrap();
+        assert_eq!(error, WhiteboardError::NotStarted);
     }
 
     #[test]
     fn serialize_unknown_participant() {
-        let error = ExcalidrawError::UnknownParticipant;
+        let error = WhiteboardError::UnknownParticipant;
         let raw = serde_json::to_string_pretty(&error).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -107,7 +107,7 @@ mod tests {
             "error": "unknown_participant",
         });
 
-        let error: ExcalidrawError = serde_json::from_str(&raw.to_string()).unwrap();
-        assert_eq!(error, ExcalidrawError::UnknownParticipant);
+        let error: WhiteboardError = serde_json::from_str(&raw.to_string()).unwrap();
+        assert_eq!(error, WhiteboardError::UnknownParticipant);
     }
 }

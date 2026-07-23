@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-//! This module implements an excalidraw collaboration backend.
+//! This module implements an excalidraw based whiteboard backend.
 //! It is based on [excalidraw-room](https://github.com/excalidraw/excalidraw-room).
 
 use std::collections::{BTreeMap, HashMap, HashSet, hash_map::Entry};
@@ -20,46 +20,45 @@ use opentalk_roomserver_types::{
     room_kind::RoomKind,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
-use opentalk_roomserver_types_excalidraw::{
-    EXCALIDRAW_MODULE_ID, ExcalidrawCommand, ExcalidrawError, ExcalidrawEvent,
+use opentalk_roomserver_types_whiteboard::{
+    WHITEBOARD_MODULE_ID, WhiteboardCommand, WhiteboardError, WhiteboardEvent,
     edit_restrictions::EditRestrictions,
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
 
-use crate::state::ExcalidrawState;
+use crate::state::WhiteboardState;
 
 pub mod state;
 
-pub struct ExcalidrawModule {
-    state: HashMap<RoomKind, ExcalidrawState>,
+pub struct WhiteboardModule {
+    state: HashMap<RoomKind, WhiteboardState>,
 }
 
-impl SignalingModuleDescription for ExcalidrawModule {
-    const MODULE_ID: ModuleId = EXCALIDRAW_MODULE_ID;
-    const DESCRIPTION: &'static str =
-        "Handles excalidraw whiteboard integration. Excalidraw is a collaborative drawing board.";
+impl SignalingModuleDescription for WhiteboardModule {
+    const MODULE_ID: ModuleId = WHITEBOARD_MODULE_ID;
+    const DESCRIPTION: &'static str = "Handles excalidraw based whiteboard integration. Excalidraw is a collaborative drawing board.";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 
     type Settings = NoSettings;
 }
 
-impl SignalingModule for ExcalidrawModule {
-    const NAMESPACE: ModuleId = EXCALIDRAW_MODULE_ID;
+impl SignalingModule for WhiteboardModule {
+    const NAMESPACE: ModuleId = WHITEBOARD_MODULE_ID;
 
-    type Incoming = ExcalidrawCommand;
+    type Incoming = WhiteboardCommand;
 
-    type Outgoing = ExcalidrawEvent;
+    type Outgoing = WhiteboardEvent;
 
     type Internal = NoOp;
 
     type Loopback = ();
 
-    type JoinInfo = ExcalidrawState;
+    type JoinInfo = WhiteboardState;
 
     type PeerJoinInfo = ();
 
-    type Error = ExcalidrawError;
+    type Error = WhiteboardError;
 
     fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
         Some(Self {
@@ -99,26 +98,26 @@ impl SignalingModule for ExcalidrawModule {
         payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match payload {
-            ExcalidrawCommand::Start {
+            WhiteboardCommand::Start {
                 initial_scene,
                 edit_restrictions,
             } => self.start(ctx, sender, initial_scene, edit_restrictions),
-            ExcalidrawCommand::Stop => self.stop(ctx, sender),
-            ExcalidrawCommand::BroadcastVolatile { data } => {
+            WhiteboardCommand::Stop => self.stop(ctx, sender),
+            WhiteboardCommand::BroadcastVolatile { data } => {
                 self.broadcast_volatile(ctx, sender, data)
             }
-            ExcalidrawCommand::Broadcast { data } => self.broadcast(ctx, sender, data),
-            ExcalidrawCommand::Follow { participant_id } => {
+            WhiteboardCommand::Broadcast { data } => self.broadcast(ctx, sender, data),
+            WhiteboardCommand::Follow { participant_id } => {
                 self.follow(ctx, sender, participant_id)
             }
-            ExcalidrawCommand::Unfollow { participant_id } => {
+            WhiteboardCommand::Unfollow { participant_id } => {
                 self.unfollow(ctx, sender, participant_id)
             }
-            ExcalidrawCommand::StoreScene { scene } => self.store_scene(ctx, sender, scene),
-            ExcalidrawCommand::EnableEditRestrictions {
+            WhiteboardCommand::StoreScene { scene } => self.store_scene(ctx, sender, scene),
+            WhiteboardCommand::EnableEditRestrictions {
                 unrestricted_participants,
             } => self.enable_edit_restrictions(ctx, sender, unrestricted_participants),
-            ExcalidrawCommand::DisableEditRestrictions => {
+            WhiteboardCommand::DisableEditRestrictions => {
                 self.disable_edit_restrictions(ctx, sender)
             }
         }
@@ -130,13 +129,13 @@ impl SignalingModule for ExcalidrawModule {
         rooms: &[BreakoutRoom],
         _duration: Option<std::time::Duration>,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        // Autostart excalidraw with a fresh board in the breakout rooms when it is already
+        // Autostart the whiteboard with a fresh board in the breakout rooms when it is already
         // running in the main room.
         if self.state.contains_key(&RoomKind::Main) {
             self.state.extend(rooms.iter().map(|room| {
                 (
                     RoomKind::Breakout(room.id),
-                    ExcalidrawState {
+                    WhiteboardState {
                         // Initializing whiteboard with empty scene; required by the frontend to be
                         // set correctly.
                         scene: serde_json::json!({"elements": []}),
@@ -159,7 +158,7 @@ impl SignalingModule for ExcalidrawModule {
             return Ok(ModuleSwitchData::default());
         };
 
-        let switch_success: BTreeMap<ConnectionId, Option<ExcalidrawState>> = ctx
+        let switch_success: BTreeMap<ConnectionId, Option<WhiteboardState>> = ctx
             .participant_state(participant_id)
             .ok_or(FatalError(anyhow!(
                 "Participant {participant_id:?} switched without participant state"
@@ -185,7 +184,7 @@ impl SignalingModule for ExcalidrawModule {
     }
 }
 
-impl ExcalidrawModule {
+impl WhiteboardModule {
     #[tracing::instrument(skip(self, ctx, initial_scene), level = "debug")]
     fn start(
         &mut self,
@@ -193,23 +192,23 @@ impl ExcalidrawModule {
         sender: ParticipantId,
         initial_scene: serde_json::Value,
         edit_restrictions: EditRestrictions,
-    ) -> Result<(), SignalingModuleError<ExcalidrawError>> {
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
         if !ctx.is_moderator(sender) {
-            return Err(ExcalidrawError::InsufficientPermissions.into());
+            return Err(WhiteboardError::InsufficientPermissions.into());
         }
 
         let Entry::Vacant(vacant_entry) = self.state.entry(ctx.room) else {
-            return Err(ExcalidrawError::AlreadyStarted.into());
+            return Err(WhiteboardError::AlreadyStarted.into());
         };
 
-        vacant_entry.insert(ExcalidrawState {
+        vacant_entry.insert(WhiteboardState {
             scene: initial_scene.clone(),
             edit_restrictions: edit_restrictions.clone(),
         });
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
-            ExcalidrawEvent::Started {
+            WhiteboardEvent::Started {
                 initial_scene,
                 edit_restrictions,
             },
@@ -223,16 +222,16 @@ impl ExcalidrawModule {
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
-    ) -> Result<(), SignalingModuleError<ExcalidrawError>> {
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
         if !ctx.is_moderator(sender) {
-            return Err(ExcalidrawError::InsufficientPermissions.into());
+            return Err(WhiteboardError::InsufficientPermissions.into());
         }
 
         self.state.remove(&ctx.room);
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
-            ExcalidrawEvent::Stopped,
+            WhiteboardEvent::Stopped,
         )?;
 
         Ok(())
@@ -246,23 +245,23 @@ impl ExcalidrawModule {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         data: serde_json::Value,
-    ) -> Result<(), SignalingModuleError<ExcalidrawError>> {
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
         if !self.state.contains_key(&ctx.room) {
-            return Err(ExcalidrawError::NotStarted.into());
+            return Err(WhiteboardError::NotStarted.into());
         }
 
-        // The volatile broadcast cannot modify the excalidraw state, so all participants are
+        // The volatile broadcast cannot modify the whiteboard state, so all participants are
         // allowed to use it.
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
-            ExcalidrawEvent::VolatileBroadcast { sender, data },
+            WhiteboardEvent::VolatileBroadcast { sender, data },
         )?;
 
         Ok(())
     }
 
     /// Broadcasts a non-volatile update to all participants in the room. This update can modify the
-    /// excalidraw state and is restricted to participants that are allowed to edit excalidraw.
+    /// whiteboard state and is restricted to participants that are allowed to edit whiteboard.
     ///
     /// Implements the `server-broadcast` commands from excalidraw-room.
     #[tracing::instrument(skip(self, ctx, data), level = "debug")]
@@ -271,24 +270,24 @@ impl ExcalidrawModule {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         data: serde_json::Value,
-    ) -> Result<(), SignalingModuleError<ExcalidrawError>> {
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
         let Some(restrictions) = self
             .state
             .get(&ctx.room)
             .map(|state| &state.edit_restrictions)
         else {
-            return Err(ExcalidrawError::NotStarted.into());
+            return Err(WhiteboardError::NotStarted.into());
         };
 
-        // The broadcast can modify the excalidraw state, so only participants that are allowed to
+        // The broadcast can modify the whiteboard state, so only participants that are allowed to
         // edit are allowed to use it.
         if !Self::is_allowed_to_edit(ctx, sender, restrictions) {
-            return Err(ExcalidrawError::InsufficientPermissions.into());
+            return Err(WhiteboardError::InsufficientPermissions.into());
         }
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
-            ExcalidrawEvent::Broadcast { sender, data },
+            WhiteboardEvent::Broadcast { sender, data },
         )?;
 
         Ok(())
@@ -300,26 +299,26 @@ impl ExcalidrawModule {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         scene: serde_json::Value,
-    ) -> Result<(), SignalingModuleError<ExcalidrawError>> {
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
         let Some(state) = self.state.get_mut(&ctx.room) else {
-            return Err(ExcalidrawError::NotStarted.into());
+            return Err(WhiteboardError::NotStarted.into());
         };
 
         if !Self::is_allowed_to_edit(ctx, sender, &state.edit_restrictions) {
-            return Err(ExcalidrawError::InsufficientPermissions.into());
+            return Err(WhiteboardError::InsufficientPermissions.into());
         }
 
         state.scene = scene.clone();
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
-            ExcalidrawEvent::SceneStored { scene },
+            WhiteboardEvent::SceneStored { scene },
         )?;
 
         Ok(())
     }
 
-    /// One participant starts following another participant, i.e. their excalidraw view will be
+    /// One participant starts following another participant, i.e. their whiteboard view will be
     /// synced to the followed participant's view.
     ///
     /// Implements the `user-follow` command with the `FOLLOW` action from excalidraw-room.
@@ -329,9 +328,9 @@ impl ExcalidrawModule {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         target: ParticipantId,
-    ) -> Result<(), SignalingModuleError<ExcalidrawError>> {
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
         if !self.state.contains_key(&ctx.room) {
-            return Err(ExcalidrawError::NotStarted.into());
+            return Err(WhiteboardError::NotStarted.into());
         }
 
         if !ctx
@@ -340,13 +339,13 @@ impl ExcalidrawModule {
             .connected()
             .contains(&target)
         {
-            return Err(ExcalidrawError::UnknownParticipant.into());
+            return Err(WhiteboardError::UnknownParticipant.into());
         }
 
         // Notify the target participant that they are being followed
         ctx.send_ws_message(
             [target],
-            ExcalidrawEvent::FollowerGained {
+            WhiteboardEvent::FollowerGained {
                 participant_id: sender,
             },
         )?;
@@ -354,7 +353,7 @@ impl ExcalidrawModule {
         // Notify the sender that following the target participant was successful
         ctx.send_ws_message(
             [sender],
-            ExcalidrawEvent::Followed {
+            WhiteboardEvent::Followed {
                 participant_id: target,
             },
         )?;
@@ -371,9 +370,9 @@ impl ExcalidrawModule {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
         target: ParticipantId,
-    ) -> Result<(), SignalingModuleError<ExcalidrawError>> {
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
         if !self.state.contains_key(&ctx.room) {
-            return Err(ExcalidrawError::NotStarted.into());
+            return Err(WhiteboardError::NotStarted.into());
         }
 
         if !ctx
@@ -382,7 +381,7 @@ impl ExcalidrawModule {
             .connected()
             .contains(&target)
         {
-            return Err(ExcalidrawError::UnknownParticipant.into());
+            return Err(WhiteboardError::UnknownParticipant.into());
         }
 
         // We do not handle the case that the sender wasn't following the target participant in the
@@ -392,7 +391,7 @@ impl ExcalidrawModule {
         // Notify the target participant that they are being unfollowed
         ctx.send_ws_message(
             [target],
-            ExcalidrawEvent::FollowerLost {
+            WhiteboardEvent::FollowerLost {
                 participant_id: sender,
             },
         )?;
@@ -400,7 +399,7 @@ impl ExcalidrawModule {
         // Notify the sender that unfollowing the target participant was successful
         ctx.send_ws_message(
             [sender],
-            ExcalidrawEvent::Unfollowed {
+            WhiteboardEvent::Unfollowed {
                 participant_id: target,
             },
         )?;
@@ -414,13 +413,13 @@ impl ExcalidrawModule {
         ctx: &ModuleContext<'_, Self>,
         sender: ParticipantId,
         unrestricted_participants: HashSet<ParticipantId>,
-    ) -> Result<(), SignalingModuleError<ExcalidrawError>> {
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
         if !ctx.is_moderator(sender) {
-            return Err(ExcalidrawError::InsufficientPermissions.into());
+            return Err(WhiteboardError::InsufficientPermissions.into());
         }
 
         let Some(state) = self.state.get_mut(&ctx.room) else {
-            return Err(ExcalidrawError::NotStarted.into());
+            return Err(WhiteboardError::NotStarted.into());
         };
 
         state.edit_restrictions = EditRestrictions::Enabled {
@@ -429,7 +428,7 @@ impl ExcalidrawModule {
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
-            ExcalidrawEvent::EditRestrictionsEnabled {
+            WhiteboardEvent::EditRestrictionsEnabled {
                 unrestricted_participants,
             },
         )?;
@@ -442,20 +441,20 @@ impl ExcalidrawModule {
         &mut self,
         ctx: &ModuleContext<'_, Self>,
         sender: ParticipantId,
-    ) -> Result<(), SignalingModuleError<ExcalidrawError>> {
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
         if !ctx.is_moderator(sender) {
-            return Err(ExcalidrawError::InsufficientPermissions.into());
+            return Err(WhiteboardError::InsufficientPermissions.into());
         }
 
         let Some(state) = self.state.get_mut(&ctx.room) else {
-            return Err(ExcalidrawError::NotStarted.into());
+            return Err(WhiteboardError::NotStarted.into());
         };
 
         state.edit_restrictions = EditRestrictions::Disabled;
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
-            ExcalidrawEvent::EditRestrictionsDisabled,
+            WhiteboardEvent::EditRestrictionsDisabled,
         )?;
 
         Ok(())
@@ -482,12 +481,12 @@ mod tests {
     use insta::assert_snapshot;
     use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
 
-    use crate::ExcalidrawModule;
+    use crate::WhiteboardModule;
 
     #[test]
     fn serialize_example_config() {
-        let produced = toml::to_string_pretty(&ExcalidrawModule::example_config()).unwrap();
+        let produced = toml::to_string_pretty(&WhiteboardModule::example_config()).unwrap();
 
-        assert_snapshot!(produced, @"[excalidraw]");
+        assert_snapshot!(produced, @"[whiteboard]");
     }
 }

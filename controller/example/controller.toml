@@ -393,7 +393,7 @@ service_url = "http://localhost:7880"
 #api_key = "secret"
 
 # Handles excalidraw whiteboard integration. Excalidraw is a collaborative drawing board.
-#[roomserver.modules.excalidraw]
+#[roomserver.modules.whiteboard]
 
 #[call_in]
 # Set a phone number which will be displayed to the user

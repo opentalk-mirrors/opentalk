@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 
-use opentalk_roomserver_module_excalidraw::{ExcalidrawModule, state::ExcalidrawState};
+use opentalk_roomserver_module_whiteboard::{WhiteboardModule, state::WhiteboardState};
 use opentalk_roomserver_room::mocking::{
     participant::MockParticipantJoined,
     room::{TestRoom, flush_connected_events},
@@ -15,14 +15,14 @@ use opentalk_roomserver_types::{
     },
     room_kind::RoomKind,
 };
-use opentalk_roomserver_types_excalidraw::{
-    EditRestrictions, ExcalidrawCommand, ExcalidrawError, ExcalidrawEvent,
+use opentalk_roomserver_types_whiteboard::{
+    EditRestrictions, WhiteboardCommand, WhiteboardError, WhiteboardEvent,
 };
 use opentalk_types_signaling::ParticipantId;
 use pretty_assertions::assert_eq;
 use serde_json::json;
 
-async fn start_excalidraw(
+async fn start_whiteboard(
     sender: &mut MockParticipantJoined,
     others: &mut [&mut MockParticipantJoined],
 ) {
@@ -32,8 +32,8 @@ async fn start_excalidraw(
     let edit_restrictions = EditRestrictions::Disabled;
 
     sender
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Start {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Start {
                 initial_scene: initial_scene.clone(),
                 edit_restrictions: edit_restrictions.clone(),
             },
@@ -43,13 +43,13 @@ async fn start_excalidraw(
         .unwrap();
 
     let event = sender
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Started {
+        WhiteboardEvent::Started {
             initial_scene: initial_scene.clone(),
             edit_restrictions: edit_restrictions.clone(),
         }
@@ -57,13 +57,13 @@ async fn start_excalidraw(
 
     for participant in others {
         let event = participant
-            .receive_event::<ExcalidrawModule>()
+            .receive_event::<WhiteboardModule>()
             .await
             .unwrap()
             .payload;
         assert_eq!(
             event,
-            ExcalidrawEvent::Started {
+            WhiteboardEvent::Started {
                 initial_scene: initial_scene.clone(),
                 edit_restrictions: edit_restrictions.clone(),
             }
@@ -74,17 +74,17 @@ async fn start_excalidraw(
 #[test_log::test(tokio::test)]
 async fn already_started() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    // Alice starts excalidraw
-    start_excalidraw(&mut alice, &mut []).await;
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut []).await;
 
-    // Alice tries to start excalidraw again
+    // Alice tries to start the whiteboard again
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Start {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Start {
                 initial_scene: json!({
                     "some": "scene",
                 }),
@@ -97,26 +97,26 @@ async fn already_started() {
 
     // Alice receives the AlreadyStarted error
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Error(ExcalidrawError::AlreadyStarted)
+        WhiteboardEvent::Error(WhiteboardError::AlreadyStarted)
     );
 }
 
 #[test_log::test(tokio::test)]
 async fn start_insufficient_permissions() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut bob = room.join_bob(0).await;
 
-    // Bob tries to start excalidraw
-    bob.send_command::<ExcalidrawModule>(
-        ExcalidrawCommand::Start {
+    // Bob tries to start the whiteboard
+    bob.send_command::<WhiteboardModule>(
+        WhiteboardCommand::Start {
             initial_scene: json!({
                 "some": "scene",
             }),
@@ -129,86 +129,86 @@ async fn start_insufficient_permissions() {
 
     // Bob receives the InsufficientPermissions error
     let event = bob
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Error(ExcalidrawError::InsufficientPermissions)
+        WhiteboardEvent::Error(WhiteboardError::InsufficientPermissions)
     );
 }
 
 #[test_log::test(tokio::test)]
-async fn stop_excalidraw() {
+async fn stop_whiteboard() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    // Alice starts excalidraw
-    start_excalidraw(&mut alice, &mut []).await;
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut []).await;
 
-    // Alice stops excalidraw
+    // Alice stops the whiteboard
     alice
-        .send_command::<ExcalidrawModule>(ExcalidrawCommand::Stop, None)
+        .send_command::<WhiteboardModule>(WhiteboardCommand::Stop, None)
         .await
         .unwrap();
 
     // Alice receives the Stopped event
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ExcalidrawEvent::Stopped);
+    assert_eq!(event, WhiteboardEvent::Stopped);
 }
 
 #[test_log::test(tokio::test)]
 async fn stop_insufficient_permissions() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut bob = room.join_bob(0).await;
 
-    // Bob tries to start excalidraw
-    bob.send_command::<ExcalidrawModule>(ExcalidrawCommand::Stop, None)
+    // Bob tries to start the whiteboard
+    bob.send_command::<WhiteboardModule>(WhiteboardCommand::Stop, None)
         .await
         .unwrap();
 
     // Bob receives the InsufficientPermissions error
     let event = bob
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Error(ExcalidrawError::InsufficientPermissions)
+        WhiteboardEvent::Error(WhiteboardError::InsufficientPermissions)
     );
 }
 
 #[test_log::test(tokio::test)]
 async fn join_success() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    // Alice starts excalidraw
-    start_excalidraw(&mut alice, &mut []).await;
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut []).await;
 
-    // Bob joins the room. His JoinSuccess message contains the current excalidraw state
+    // Bob joins the room. His JoinSuccess message contains the current whiteboard state
     let state = room
         .join_bob(0)
         .await
         .join_success()
-        .get_module::<ExcalidrawState>()
-        .expect("Excalidraw state must be deserializable")
-        .expect("Excalidraw state must be present");
+        .get_module::<WhiteboardState>()
+        .expect("Whiteboard state must be deserializable")
+        .expect("Whiteboard state must be present");
     assert_eq!(
         state,
-        ExcalidrawState {
+        WhiteboardState {
             scene: json!({"some":"scene"}),
             edit_restrictions: EditRestrictions::Disabled,
         }
@@ -218,19 +218,19 @@ async fn join_success() {
 #[test_log::test(tokio::test)]
 async fn broadcast() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
-    // Alice starts excalidraw
-    start_excalidraw(&mut alice, &mut [&mut bob]).await;
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut [&mut bob]).await;
 
     // Alice sends a broadcast command
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Broadcast {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Broadcast {
                 data: json!({
                     "some": "data",
                 }),
@@ -242,13 +242,13 @@ async fn broadcast() {
 
     // Alice receives the broadcast event
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Broadcast {
+        WhiteboardEvent::Broadcast {
             sender: alice.id(),
             data: json!({"some": "data"})
         }
@@ -256,13 +256,13 @@ async fn broadcast() {
 
     // Bob receives the broadcast event
     let event = bob
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Broadcast {
+        WhiteboardEvent::Broadcast {
             sender: alice.id(),
             data: json!({"some": "data"})
         }
@@ -272,14 +272,14 @@ async fn broadcast() {
 #[test_log::test(tokio::test)]
 async fn broadcast_not_started() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    // Alice sends a broadcast command without starting excalidraw first
+    // Alice sends a broadcast command without starting the whiteboard first
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Broadcast {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Broadcast {
                 data: json!({
                     "some": "data",
                 }),
@@ -291,29 +291,29 @@ async fn broadcast_not_started() {
 
     // Alice receives the NotStarted error
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ExcalidrawEvent::Error(ExcalidrawError::NotStarted));
+    assert_eq!(event, WhiteboardEvent::Error(WhiteboardError::NotStarted));
 }
 
 #[test_log::test(tokio::test)]
 async fn broadcast_volatile() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
-    // Alice starts excalidraw
-    start_excalidraw(&mut alice, &mut [&mut bob]).await;
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut [&mut bob]).await;
 
     // Alice sends a volatile broadcast command
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::BroadcastVolatile {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::BroadcastVolatile {
                 data: json!({
                     "some": "data",
                 }),
@@ -325,13 +325,13 @@ async fn broadcast_volatile() {
 
     // Alice receives the volatile broadcast event
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::VolatileBroadcast {
+        WhiteboardEvent::VolatileBroadcast {
             sender: alice.id(),
             data: json!({"some": "data"})
         }
@@ -339,13 +339,13 @@ async fn broadcast_volatile() {
 
     // Bob receives the volatile broadcast event
     let event = bob
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::VolatileBroadcast {
+        WhiteboardEvent::VolatileBroadcast {
             sender: alice.id(),
             data: json!({"some": "data"})
         }
@@ -355,14 +355,14 @@ async fn broadcast_volatile() {
 #[test_log::test(tokio::test)]
 async fn broadcast_volatile_not_started() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    // Alice sends a volatile broadcast command without starting excalidraw first
+    // Alice sends a volatile broadcast command without starting the whiteboard first
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::BroadcastVolatile {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::BroadcastVolatile {
                 data: json!({
                     "some": "data",
                 }),
@@ -374,24 +374,24 @@ async fn broadcast_volatile_not_started() {
 
     // Alice receives the NotStarted error
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ExcalidrawEvent::Error(ExcalidrawError::NotStarted));
+    assert_eq!(event, WhiteboardEvent::Error(WhiteboardError::NotStarted));
 }
 
 #[test_log::test(tokio::test)]
 async fn follow_not_started() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    // Alice tries to follow Bob without starting excalidraw first
+    // Alice tries to follow Bob without starting the whiteboard first
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Follow {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Follow {
                 participant_id: ParticipantId::from_u128(0x12345678),
             },
             None,
@@ -401,27 +401,27 @@ async fn follow_not_started() {
 
     // Alice receives the NotStarted error
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ExcalidrawEvent::Error(ExcalidrawError::NotStarted));
+    assert_eq!(event, WhiteboardEvent::Error(WhiteboardError::NotStarted));
 }
 
 #[test_log::test(tokio::test)]
 async fn follow_unknown() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    // Alice starts excalidraw
-    start_excalidraw(&mut alice, &mut []).await;
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut []).await;
 
     // Alice tries to follow an unknown participant
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Follow {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Follow {
                 participant_id: ParticipantId::from_u128(0xdeadbeef),
             },
             None,
@@ -431,20 +431,20 @@ async fn follow_unknown() {
 
     // Alice receives the UnknownParticipant error
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Error(ExcalidrawError::UnknownParticipant)
+        WhiteboardEvent::Error(WhiteboardError::UnknownParticipant)
     );
 }
 
 #[test_log::test(tokio::test)]
 async fn follow_unfollow_across_room_boundaries() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
@@ -469,13 +469,13 @@ async fn follow_unfollow_across_room_boundaries() {
         .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(0.into()))
         .await;
 
-    // Alice starts excalidraw in the breakout room
-    start_excalidraw(&mut alice, &mut []).await;
+    // Alice starts the whiteboard in the breakout room
+    start_whiteboard(&mut alice, &mut []).await;
 
     // Bob stays in the main room, so Alice must not be allowed to follow him
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Follow {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Follow {
                 participant_id: bob.id(),
             },
             None,
@@ -484,19 +484,19 @@ async fn follow_unfollow_across_room_boundaries() {
         .unwrap();
 
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Error(ExcalidrawError::UnknownParticipant)
+        WhiteboardEvent::Error(WhiteboardError::UnknownParticipant)
     );
 
     // Alice also must not be allowed to unfollow a participant in a different room
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Unfollow {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Unfollow {
                 participant_id: bob.id(),
             },
             None,
@@ -505,13 +505,13 @@ async fn follow_unfollow_across_room_boundaries() {
         .unwrap();
 
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Error(ExcalidrawError::UnknownParticipant)
+        WhiteboardEvent::Error(WhiteboardError::UnknownParticipant)
     );
 
     // Bob should not receive any follow related events from another room
@@ -521,12 +521,12 @@ async fn follow_unfollow_across_room_boundaries() {
 #[test_log::test(tokio::test)]
 async fn autostart_in_breakout_room() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    // Alice starts excalidraw in the main room
-    start_excalidraw(&mut alice, &mut []).await;
+    // Alice starts the whiteboard in the main room
+    start_whiteboard(&mut alice, &mut []).await;
 
     // Alice starts a breakout room
     alice
@@ -542,7 +542,7 @@ async fn autostart_in_breakout_room() {
         )
         .await;
 
-    // Alice switches to the breakout room without starting excalidraw there herself
+    // Alice switches to the breakout room without starting the whiteboard there herself
     let event = alice
         .switch_breakout_room(&mut [], RoomKind::Breakout(0.into()))
         .await;
@@ -551,14 +551,14 @@ async fn autostart_in_breakout_room() {
         panic!("Expected BreakoutEvent::SwitchedRoom, got: {event:?}");
     };
 
-    // Excalidraw was autostarted in the breakout room with a fresh, empty board
+    // The whiteboard was autostarted in the breakout room with a fresh, empty board
     let state = own_data
-        .get::<ExcalidrawState>()
+        .get::<WhiteboardState>()
         .expect("Module data must be present")
-        .expect("Excalidraw must have been autostarted in the breakout room");
+        .expect("Whiteboard must have been autostarted in the breakout room");
     assert_eq!(
         state,
-        ExcalidrawState {
+        WhiteboardState {
             scene: serde_json::json!({"elements": []}),
             edit_restrictions: EditRestrictions::Disabled,
         }
@@ -568,14 +568,14 @@ async fn autostart_in_breakout_room() {
 #[test_log::test(tokio::test)]
 async fn unfollow_not_started() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    // Alice tries to unfollow a participant without starting excalidraw first
+    // Alice tries to unfollow a participant without starting the whiteboard first
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Unfollow {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Unfollow {
                 participant_id: ParticipantId::from_u128(0x12345678),
             },
             None,
@@ -585,27 +585,27 @@ async fn unfollow_not_started() {
 
     // Alice receives the NotStarted error
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ExcalidrawEvent::Error(ExcalidrawError::NotStarted));
+    assert_eq!(event, WhiteboardEvent::Error(WhiteboardError::NotStarted));
 }
 
 #[test_log::test(tokio::test)]
 async fn unfollow_unknown() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    // Alice starts excalidraw
-    start_excalidraw(&mut alice, &mut []).await;
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut []).await;
 
     // Alice tries to unfollow an unknown participant
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Unfollow {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Unfollow {
                 participant_id: ParticipantId::from_u128(0xdeadbeef),
             },
             None,
@@ -615,32 +615,32 @@ async fn unfollow_unknown() {
 
     // Alice receives the UnknownParticipant error
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Error(ExcalidrawError::UnknownParticipant)
+        WhiteboardEvent::Error(WhiteboardError::UnknownParticipant)
     );
 }
 
 #[test_log::test(tokio::test)]
 async fn follow() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
-    // Alice starts excalidraw
-    start_excalidraw(&mut alice, &mut [&mut bob]).await;
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut [&mut bob]).await;
 
     // Alice follows Bob
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Follow {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Follow {
                 participant_id: bob.id(),
             },
             None,
@@ -650,34 +650,34 @@ async fn follow() {
 
     // Alice receives the Followed event
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Followed {
+        WhiteboardEvent::Followed {
             participant_id: bob.id()
         }
     );
 
     // Bob receives the FollowerGained event
     let event = bob
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::FollowerGained {
+        WhiteboardEvent::FollowerGained {
             participant_id: alice.id()
         }
     );
 
     // Alice unfollows Bob
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Unfollow {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Unfollow {
                 participant_id: bob.id(),
             },
             None,
@@ -687,26 +687,26 @@ async fn follow() {
 
     // Alice receives the Unfollowed event
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Unfollowed {
+        WhiteboardEvent::Unfollowed {
             participant_id: bob.id()
         }
     );
 
     // Bob receives the FollowerLost event
     let event = bob
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::FollowerLost {
+        WhiteboardEvent::FollowerLost {
             participant_id: alice.id()
         }
     );
@@ -715,19 +715,19 @@ async fn follow() {
 #[test_log::test(tokio::test)]
 async fn edit_restrictions() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
-    // Alice starts excalidraw
-    start_excalidraw(&mut alice, &mut [&mut bob]).await;
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut [&mut bob]).await;
 
     // Alice enables edit restrictions
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::EnableEditRestrictions {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::EnableEditRestrictions {
                 unrestricted_participants: HashSet::new(),
             },
             None,
@@ -737,33 +737,33 @@ async fn edit_restrictions() {
 
     // Alice receives the EditRestrictionsEnabled event
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::EditRestrictionsEnabled {
+        WhiteboardEvent::EditRestrictionsEnabled {
             unrestricted_participants: HashSet::new()
         }
     );
 
     // Bob receives the EditRestrictionsEnabled event
     let event = bob
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::EditRestrictionsEnabled {
+        WhiteboardEvent::EditRestrictionsEnabled {
             unrestricted_participants: HashSet::new()
         }
     );
 
     // Bob tries to send a broadcast command, but is not allowed to edit
-    bob.send_command::<ExcalidrawModule>(
-        ExcalidrawCommand::Broadcast {
+    bob.send_command::<WhiteboardModule>(
+        WhiteboardCommand::Broadcast {
             data: json!({
                 "some": "data",
             }),
@@ -775,13 +775,13 @@ async fn edit_restrictions() {
 
     // Bob receives the InsufficientPermissions error
     let event = bob
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Error(ExcalidrawError::InsufficientPermissions)
+        WhiteboardEvent::Error(WhiteboardError::InsufficientPermissions)
     );
 
     // Alice receives nothing
@@ -789,8 +789,8 @@ async fn edit_restrictions() {
 
     // Alice is still allowed to send a broadcast command because she is a moderator
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Broadcast {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Broadcast {
                 data: json!({
                     "some": "data",
                 }),
@@ -802,13 +802,13 @@ async fn edit_restrictions() {
 
     // Alice receives the broadcast event
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Broadcast {
+        WhiteboardEvent::Broadcast {
             sender: alice.id(),
             data: json!({"some": "data"})
         }
@@ -816,13 +816,13 @@ async fn edit_restrictions() {
 
     // Bob receives the broadcast event
     let event = bob
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Broadcast {
+        WhiteboardEvent::Broadcast {
             sender: alice.id(),
             data: json!({"some": "data"})
         }
@@ -830,29 +830,29 @@ async fn edit_restrictions() {
 
     // Alice disables edit restrictions
     alice
-        .send_command::<ExcalidrawModule>(ExcalidrawCommand::DisableEditRestrictions, None)
+        .send_command::<WhiteboardModule>(WhiteboardCommand::DisableEditRestrictions, None)
         .await
         .unwrap();
 
     // Alice receives the EditRestrictionsDisabled event
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ExcalidrawEvent::EditRestrictionsDisabled);
+    assert_eq!(event, WhiteboardEvent::EditRestrictionsDisabled);
 
     // Bob receives the EditRestrictionsDisabled event
     let event = bob
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, ExcalidrawEvent::EditRestrictionsDisabled);
+    assert_eq!(event, WhiteboardEvent::EditRestrictionsDisabled);
 
     // Bob is allowed to send a broadcast command again
-    bob.send_command::<ExcalidrawModule>(
-        ExcalidrawCommand::Broadcast {
+    bob.send_command::<WhiteboardModule>(
+        WhiteboardCommand::Broadcast {
             data: json!({
                 "some": "data",
             }),
@@ -864,13 +864,13 @@ async fn edit_restrictions() {
 
     // Bob receives the broadcast event
     let event = bob
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Broadcast {
+        WhiteboardEvent::Broadcast {
             sender: bob.id(),
             data: json!({"some": "data"})
         }
@@ -878,13 +878,13 @@ async fn edit_restrictions() {
 
     // Alice receives the broadcast event
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Broadcast {
+        WhiteboardEvent::Broadcast {
             sender: bob.id(),
             data: json!({"some": "data"})
         }
@@ -894,7 +894,7 @@ async fn edit_restrictions() {
 #[test_log::test(tokio::test)]
 async fn alice_in_breakout_bob_in_main() {
     let mut room = TestRoom::builder()
-        .register_module::<ExcalidrawModule>()
+        .register_module::<WhiteboardModule>()
         .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
@@ -919,16 +919,16 @@ async fn alice_in_breakout_bob_in_main() {
         .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(0.into()))
         .await;
 
-    // Alice starts excalidraw in the breakout room
-    start_excalidraw(&mut alice, &mut []).await;
+    // Alice starts the whiteboard in the breakout room
+    start_whiteboard(&mut alice, &mut []).await;
 
     // Bob receives nothing
     assert!(bob.received_nothing());
 
     // Alice sends a broadcast command
     alice
-        .send_command::<ExcalidrawModule>(
-            ExcalidrawCommand::Broadcast {
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Broadcast {
                 data: json!({
                     "some": "data",
                 }),
@@ -940,13 +940,13 @@ async fn alice_in_breakout_bob_in_main() {
 
     // Alice receives the broadcast event
     let event = alice
-        .receive_event::<ExcalidrawModule>()
+        .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
     assert_eq!(
         event,
-        ExcalidrawEvent::Broadcast {
+        WhiteboardEvent::Broadcast {
             sender: alice.id(),
             data: json!({"some": "data"})
         }

@@ -29,7 +29,6 @@ use serde::{Deserialize, Serialize};
 // reexport events for easier usage
 pub use {
     opentalk_roomserver_types_e2ee::{E2EE_MODULE_ID, E2eeEvent},
-    opentalk_roomserver_types_excalidraw::{EXCALIDRAW_MODULE_ID, ExcalidrawEvent},
     opentalk_roomserver_types_livekit::{
         Credentials, LIVEKIT_MODULE_ID, LiveKitError, LiveKitEvent, LiveKitState,
     },
@@ -38,6 +37,7 @@ pub use {
         event::SharedFolder,
         {SHARED_FOLDER_MODULE_ID, event::SharedFolderEvent},
     },
+    opentalk_roomserver_types_whiteboard::{WHITEBOARD_MODULE_ID, WhiteboardEvent},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,7 +78,7 @@ pub enum SignalingModuleEvent {
     RaiseHands(RaiseHandsEvent),
     SubroomAudio(SubroomAudioEvent),
     MeetingNotes(MeetingNotesEvent),
-    Excalidraw(ExcalidrawEvent),
+    Whiteboard(WhiteboardEvent),
     LegalVote(LegalVoteEvent),
     TrainingParticipationReport(TrainingParticipationReportEvent),
     Recording(RecordingEvent),
@@ -105,7 +105,7 @@ impl SignalingModuleEvent {
             Self::RaiseHands(..) => RAISE_HANDS_MODULE_ID,
             Self::SubroomAudio(..) => SUBROOM_AUDIO_MODULE_ID,
             Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
-            Self::Excalidraw(..) => EXCALIDRAW_MODULE_ID,
+            Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
             Self::Recording(..) => RECORDING_MODULE_ID,
@@ -127,7 +127,6 @@ mod tests {
     use opentalk_roomserver_types_automod::event::{AutomodEvent, StoppedReason};
     use opentalk_roomserver_types_chat::event::ChatEvent;
     use opentalk_roomserver_types_echo::event::EchoEvent;
-    use opentalk_roomserver_types_excalidraw::ExcalidrawEvent;
     use opentalk_roomserver_types_legal_vote::{
         LegalVoteEvent,
         token::Token,
@@ -154,6 +153,7 @@ mod tests {
     use opentalk_roomserver_types_transcription::{
         event::TranscriptionEvent, state::TranscriptionStatus,
     };
+    use opentalk_roomserver_types_whiteboard::WhiteboardEvent;
     use opentalk_types_common::{assets::AssetId, modules::ModuleId, time::Timestamp};
     use opentalk_types_signaling::ParticipantId;
     use serde::Deserialize;
@@ -571,11 +571,11 @@ mod tests {
     }
 
     #[test]
-    fn serialize_event_excalidraw() {
+    fn serialize_event_whiteboard() {
         let event = SignalingEvent {
             transaction_id: None,
             timestamp: Timestamp::unix_epoch(),
-            payload: SignalingModuleEvent::Excalidraw(ExcalidrawEvent::Followed {
+            payload: SignalingModuleEvent::Whiteboard(WhiteboardEvent::Followed {
                 participant_id: ParticipantId::nil(),
             }),
         };
@@ -584,7 +584,7 @@ mod tests {
         assert_snapshot!(raw, @r#"
         {
           "timestamp": "1970-01-01T00:00:00Z",
-          "namespace": "excalidraw",
+          "namespace": "whiteboard",
           "payload": {
             "message": "followed",
             "participant_id": "00000000-0000-0000-0000-000000000000"

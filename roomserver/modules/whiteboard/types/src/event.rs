@@ -1,38 +1,38 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Signaling events for the `excalidraw` namespace.
+//! Signaling events for the `whiteboard` namespace.
 
 use std::collections::HashSet;
 
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::{EditRestrictions, ExcalidrawError};
+use crate::{EditRestrictions, WhiteboardError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "message", rename_all = "snake_case")]
-pub enum ExcalidrawEvent {
-    /// An excalidraw session has been started
+pub enum WhiteboardEvent {
+    /// A whiteboard session has been started
     Started {
-        /// The initial scene of excalidraw
+        /// The initial scene of the whiteboard
         initial_scene: serde_json::Value,
         edit_restrictions: EditRestrictions,
     },
-    /// The excalidraw session ended
+    /// The whiteboard session ended
     Stopped,
     /// A volatile update has been broadcasted
     VolatileBroadcast {
         /// The id of the participant that sent the update
         sender: ParticipantId,
-        /// Arbitrary excalidraw data
+        /// Arbitrary whiteboard data
         data: serde_json::Value,
     },
-    /// An excalidraw update has been broadcasted
+    /// A whiteboard update has been broadcasted
     Broadcast {
         /// The id of the participant that sent the update
         sender: ParticipantId,
-        /// Arbitrary excalidraw data
+        /// Arbitrary whiteboard data
         data: serde_json::Value,
     },
     /// The scene has been updated and persisted server-side.
@@ -58,19 +58,20 @@ pub enum ExcalidrawEvent {
         participant_id: ParticipantId,
     },
     /// The edit restrictions have been enabled, only a subset of participants are allowed to edit
-    /// excalidraw. Moderators are are always allowed to edit excalidraw.
+    /// the whiteboard. Moderators are are always allowed to edit the whiteboard.
     EditRestrictionsEnabled {
         /// The list of participants that are still allowed to edit
         unrestricted_participants: HashSet<ParticipantId>,
     },
-    /// The edit restrictions have been disabled, all participants are allowed to edit excalidraw.
+    /// The edit restrictions have been disabled, all participants are allowed to edit the
+    /// whiteboard.
     EditRestrictionsDisabled,
-    /// An error happened when executing an `excalidraw` command
-    Error(ExcalidrawError),
+    /// An error happened when executing a `whiteboard` command
+    Error(WhiteboardError),
 }
 
-impl From<ExcalidrawError> for ExcalidrawEvent {
-    fn from(value: ExcalidrawError) -> Self {
+impl From<WhiteboardError> for WhiteboardEvent {
+    fn from(value: WhiteboardError) -> Self {
         Self::Error(value)
     }
 }
@@ -84,12 +85,12 @@ mod tests {
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
-    use super::ExcalidrawEvent;
-    use crate::{EditRestrictions, ExcalidrawError};
+    use super::WhiteboardEvent;
+    use crate::{EditRestrictions, WhiteboardError};
 
     #[test]
     fn serialize_started() {
-        let event = ExcalidrawEvent::Started {
+        let event = WhiteboardEvent::Started {
             initial_scene: json!({"some": "scene"}),
             edit_restrictions: EditRestrictions::Disabled,
         };
@@ -120,10 +121,10 @@ mod tests {
             },
         });
 
-        let event: ExcalidrawEvent = serde_json::from_str(&json.to_string()).unwrap();
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
             event,
-            ExcalidrawEvent::Started {
+            WhiteboardEvent::Started {
                 initial_scene: json!({"some": "scene"}),
                 edit_restrictions: EditRestrictions::Disabled,
             }
@@ -132,7 +133,7 @@ mod tests {
 
     #[test]
     fn serialize_volatile_broadcast() {
-        let event = ExcalidrawEvent::VolatileBroadcast {
+        let event = WhiteboardEvent::VolatileBroadcast {
             sender: ParticipantId::nil(),
             data: json!({"some": "data"}),
         };
@@ -157,10 +158,10 @@ mod tests {
             "data": {"some": "data"},
         });
 
-        let event: ExcalidrawEvent = serde_json::from_str(&json.to_string()).unwrap();
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
             event,
-            ExcalidrawEvent::VolatileBroadcast {
+            WhiteboardEvent::VolatileBroadcast {
                 sender: ParticipantId::nil(),
                 data: json!({"some": "data"}),
             }
@@ -169,7 +170,7 @@ mod tests {
 
     #[test]
     fn serialize_broadcast() {
-        let event = ExcalidrawEvent::Broadcast {
+        let event = WhiteboardEvent::Broadcast {
             sender: ParticipantId::nil(),
             data: json!({"some": "data"}),
         };
@@ -194,10 +195,10 @@ mod tests {
             "data": {"some": "data"},
         });
 
-        let event: ExcalidrawEvent = serde_json::from_str(&json.to_string()).unwrap();
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
             event,
-            ExcalidrawEvent::Broadcast {
+            WhiteboardEvent::Broadcast {
                 sender: ParticipantId::nil(),
                 data: json!({"some": "data"}),
             }
@@ -206,7 +207,7 @@ mod tests {
 
     #[test]
     fn serialize_scene_stored() {
-        let event = ExcalidrawEvent::SceneStored {
+        let event = WhiteboardEvent::SceneStored {
             scene: json!({"some": "scene"}),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
@@ -228,10 +229,10 @@ mod tests {
             "scene": {"some": "scene"},
         });
 
-        let event: ExcalidrawEvent = serde_json::from_str(&json.to_string()).unwrap();
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
             event,
-            ExcalidrawEvent::SceneStored {
+            WhiteboardEvent::SceneStored {
                 scene: json!({"some": "scene"}),
             }
         );
@@ -239,7 +240,7 @@ mod tests {
 
     #[test]
     fn serialize_follower_gained() {
-        let event = ExcalidrawEvent::FollowerGained {
+        let event = WhiteboardEvent::FollowerGained {
             participant_id: ParticipantId::nil(),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
@@ -259,10 +260,10 @@ mod tests {
             "participant_id": "00000000-0000-0000-0000-000000000000",
         });
 
-        let event: ExcalidrawEvent = serde_json::from_str(&json.to_string()).unwrap();
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
             event,
-            ExcalidrawEvent::FollowerGained {
+            WhiteboardEvent::FollowerGained {
                 participant_id: ParticipantId::nil(),
             }
         );
@@ -270,7 +271,7 @@ mod tests {
 
     #[test]
     fn serialize_followed() {
-        let event = ExcalidrawEvent::Followed {
+        let event = WhiteboardEvent::Followed {
             participant_id: ParticipantId::nil(),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
@@ -290,10 +291,10 @@ mod tests {
             "participant_id": "00000000-0000-0000-0000-000000000000",
         });
 
-        let event: ExcalidrawEvent = serde_json::from_str(&json.to_string()).unwrap();
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
             event,
-            ExcalidrawEvent::Followed {
+            WhiteboardEvent::Followed {
                 participant_id: ParticipantId::nil(),
             }
         );
@@ -301,7 +302,7 @@ mod tests {
 
     #[test]
     fn serialize_follower_lost() {
-        let event = ExcalidrawEvent::FollowerLost {
+        let event = WhiteboardEvent::FollowerLost {
             participant_id: ParticipantId::nil(),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
@@ -321,10 +322,10 @@ mod tests {
             "participant_id": "00000000-0000-0000-0000-000000000000",
         });
 
-        let event: ExcalidrawEvent = serde_json::from_str(&json.to_string()).unwrap();
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
             event,
-            ExcalidrawEvent::FollowerLost {
+            WhiteboardEvent::FollowerLost {
                 participant_id: ParticipantId::nil(),
             }
         );
@@ -332,7 +333,7 @@ mod tests {
 
     #[test]
     fn serialize_unfollowed() {
-        let event = ExcalidrawEvent::Unfollowed {
+        let event = WhiteboardEvent::Unfollowed {
             participant_id: ParticipantId::nil(),
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
@@ -352,10 +353,10 @@ mod tests {
             "participant_id": "00000000-0000-0000-0000-000000000000",
         });
 
-        let event: ExcalidrawEvent = serde_json::from_str(&json.to_string()).unwrap();
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
             event,
-            ExcalidrawEvent::Unfollowed {
+            WhiteboardEvent::Unfollowed {
                 participant_id: ParticipantId::nil(),
             }
         );
@@ -366,7 +367,7 @@ mod tests {
         let mut unrestricted_participants = HashSet::new();
         unrestricted_participants.insert(ParticipantId::from_u128(1));
 
-        let event = ExcalidrawEvent::EditRestrictionsEnabled {
+        let event = WhiteboardEvent::EditRestrictionsEnabled {
             unrestricted_participants,
         };
         let raw = serde_json::to_string_pretty(&event).unwrap();
@@ -390,12 +391,12 @@ mod tests {
             ],
         });
 
-        let event: ExcalidrawEvent = serde_json::from_str(&json.to_string()).unwrap();
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         let mut unrestricted_participants = HashSet::new();
         unrestricted_participants.insert(ParticipantId::from_u128(1));
         assert_eq!(
             event,
-            ExcalidrawEvent::EditRestrictionsEnabled {
+            WhiteboardEvent::EditRestrictionsEnabled {
                 unrestricted_participants,
             }
         );
@@ -403,7 +404,7 @@ mod tests {
 
     #[test]
     fn serialize_edit_restrictions_disabled() {
-        let event = ExcalidrawEvent::EditRestrictionsDisabled;
+        let event = WhiteboardEvent::EditRestrictionsDisabled;
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -419,13 +420,13 @@ mod tests {
             "message": "edit_restrictions_disabled",
         });
 
-        let event: ExcalidrawEvent = serde_json::from_str(&json.to_string()).unwrap();
-        assert_eq!(event, ExcalidrawEvent::EditRestrictionsDisabled);
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
+        assert_eq!(event, WhiteboardEvent::EditRestrictionsDisabled);
     }
 
     #[test]
     fn serialize_error() {
-        let event = ExcalidrawEvent::Error(ExcalidrawError::InsufficientPermissions);
+        let event = WhiteboardEvent::Error(WhiteboardError::InsufficientPermissions);
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -443,10 +444,10 @@ mod tests {
             "error": "insufficient_permissions",
         });
 
-        let event: ExcalidrawEvent = serde_json::from_str(&json.to_string()).unwrap();
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
             event,
-            ExcalidrawEvent::Error(ExcalidrawError::InsufficientPermissions)
+            WhiteboardEvent::Error(WhiteboardError::InsufficientPermissions)
         );
     }
 }

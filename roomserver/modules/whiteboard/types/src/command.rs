@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Signaling commands for the `excalidraw` namespace.
+//! Signaling commands for the `whiteboard` namespace.
 
 use std::collections::HashSet;
 
@@ -9,30 +9,30 @@ use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
-use crate::{EditRestrictions, ExcalidrawEvent};
+use crate::{EditRestrictions, WhiteboardEvent};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "action")]
-pub enum ExcalidrawCommand {
-    /// Start a excalidraw session
+pub enum WhiteboardCommand {
+    /// Start a whiteboard session
     Start {
-        /// The initial scene of excalidraw
+        /// The initial scene of the whiteboard
         initial_scene: serde_json::Value,
         edit_restrictions: EditRestrictions,
     },
-    /// Stop the excalidraw session and discard the current state
+    /// Stop the whiteboard session and discard the current state
     Stop,
-    /// Broadcast arbitrary excalidraw data to all participants in the room. This data is volatile,
-    /// i.e. it must not change the excalidraw state. E.g., update the mouse position of the sender.
+    /// Broadcast arbitrary whiteboard data to all participants in the room. This data is volatile,
+    /// i.e. it must not change the whiteboard state. E.g., update the mouse position of the sender.
     BroadcastVolatile {
-        /// Arbitrary excalidraw data
+        /// Arbitrary whiteboard data
         data: serde_json::Value,
     },
-    /// Broadcast arbitrary excalidraw data to all participants in the room. This data can modify
-    /// the excalidraw state for all participants, however it is not persisted server-side. To
-    /// persist the excalidraw state server side, use [`ExcalidrawCommand::StoreScene`].
+    /// Broadcast arbitrary whiteboard data to all participants in the room. This data can modify
+    /// the whiteboard state for all participants, however it is not persisted server-side. To
+    /// persist the whiteboard state server side, use [`WhiteboardCommand::StoreScene`].
     Broadcast {
-        /// Arbitrary excalidraw data
+        /// Arbitrary whiteboard data
         data: serde_json::Value,
     },
     /// Persists the scene server-side.
@@ -49,17 +49,17 @@ pub enum ExcalidrawCommand {
         participant_id: ParticipantId,
     },
     /// Enables the edit restriction state, where only a subset of participants are allowed to edit
-    /// excalidraw. Moderators are always allowed to edit excalidraw.
+    /// the whiteboard. Moderators are always allowed to edit the whiteboard.
     EnableEditRestrictions {
         /// The list of participants that are still allowed to edit
         unrestricted_participants: HashSet<ParticipantId>,
     },
-    /// Disables the edit restriction state, all participants are allowed to edit excalidraw.
+    /// Disables the edit restriction state, all participants are allowed to edit the whiteboard.
     DisableEditRestrictions,
 }
 
-impl CreateReplica<ExcalidrawEvent> for ExcalidrawCommand {
-    fn replicate(&self) -> Option<ExcalidrawEvent> {
+impl CreateReplica<WhiteboardEvent> for WhiteboardCommand {
+    fn replicate(&self) -> Option<WhiteboardEvent> {
         None
     }
 }
@@ -73,12 +73,12 @@ mod tests {
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
-    use super::ExcalidrawCommand;
+    use super::WhiteboardCommand;
     use crate::EditRestrictions;
 
     #[test]
     fn serialize_start() {
-        let command = ExcalidrawCommand::Start {
+        let command = WhiteboardCommand::Start {
             initial_scene: json!({"some": "scene"}),
             edit_restrictions: EditRestrictions::Disabled,
         };
@@ -99,7 +99,7 @@ mod tests {
 
     #[test]
     fn deserialize_start() {
-        let command: ExcalidrawCommand = serde_json::from_value(json!({
+        let command: WhiteboardCommand = serde_json::from_value(json!({
             "action": "start",
             "initial_scene": {
                 "some": "scene",
@@ -112,7 +112,7 @@ mod tests {
 
         assert_eq!(
             command,
-            ExcalidrawCommand::Start {
+            WhiteboardCommand::Start {
                 initial_scene: json!({"some": "scene"}),
                 edit_restrictions: EditRestrictions::Disabled,
             }
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn serialize_stop() {
-        let command = ExcalidrawCommand::Stop;
+        let command = WhiteboardCommand::Stop;
         let raw = serde_json::to_string_pretty(&command).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -133,17 +133,17 @@ mod tests {
 
     #[test]
     fn deserialize_stop() {
-        let command: ExcalidrawCommand = serde_json::from_value(json!({
+        let command: WhiteboardCommand = serde_json::from_value(json!({
             "action": "stop",
         }))
         .expect("Failed to deserialize");
 
-        assert_eq!(command, ExcalidrawCommand::Stop);
+        assert_eq!(command, WhiteboardCommand::Stop);
     }
 
     #[test]
     fn serialize_broadcast_volatile() {
-        let command = ExcalidrawCommand::BroadcastVolatile {
+        let command = WhiteboardCommand::BroadcastVolatile {
             data: json!({"some": "data"}),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn deserialize_broadcast_volatile() {
-        let command: ExcalidrawCommand = serde_json::from_value(json!({
+        let command: WhiteboardCommand = serde_json::from_value(json!({
             "action": "broadcast_volatile",
             "data": {"some": "data"},
         }))
@@ -168,7 +168,7 @@ mod tests {
 
         assert_eq!(
             command,
-            ExcalidrawCommand::BroadcastVolatile {
+            WhiteboardCommand::BroadcastVolatile {
                 data: json!({"some": "data"}),
             }
         );
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn serialize_broadcast() {
-        let command = ExcalidrawCommand::Broadcast {
+        let command = WhiteboardCommand::Broadcast {
             data: json!({"some": "data"}),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn deserialize_broadcast() {
-        let command: ExcalidrawCommand = serde_json::from_value(json!({
+        let command: WhiteboardCommand = serde_json::from_value(json!({
             "action": "broadcast",
             "data": {"some": "data"},
         }))
@@ -201,7 +201,7 @@ mod tests {
 
         assert_eq!(
             command,
-            ExcalidrawCommand::Broadcast {
+            WhiteboardCommand::Broadcast {
                 data: json!({"some": "data"}),
             }
         );
@@ -209,7 +209,7 @@ mod tests {
 
     #[test]
     fn serialize_store_scene() {
-        let command = ExcalidrawCommand::StoreScene {
+        let command = WhiteboardCommand::StoreScene {
             scene: json!({"some": "scene"}),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
@@ -226,7 +226,7 @@ mod tests {
 
     #[test]
     fn deserialize_store_scene() {
-        let command: ExcalidrawCommand = serde_json::from_value(json!({
+        let command: WhiteboardCommand = serde_json::from_value(json!({
             "action": "store_scene",
             "scene": {"some": "scene"},
         }))
@@ -234,7 +234,7 @@ mod tests {
 
         assert_eq!(
             command,
-            ExcalidrawCommand::StoreScene {
+            WhiteboardCommand::StoreScene {
                 scene: json!({"some": "scene"}),
             }
         );
@@ -242,7 +242,7 @@ mod tests {
 
     #[test]
     fn serialize_follow() {
-        let command = ExcalidrawCommand::Follow {
+        let command = WhiteboardCommand::Follow {
             participant_id: ParticipantId::nil(),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn deserialize_follow() {
-        let command: ExcalidrawCommand = serde_json::from_value(json!({
+        let command: WhiteboardCommand = serde_json::from_value(json!({
             "action": "follow",
             "participant_id": "00000000-0000-0000-0000-000000000000",
         }))
@@ -265,7 +265,7 @@ mod tests {
 
         assert_eq!(
             command,
-            ExcalidrawCommand::Follow {
+            WhiteboardCommand::Follow {
                 participant_id: ParticipantId::nil(),
             }
         );
@@ -273,7 +273,7 @@ mod tests {
 
     #[test]
     fn serialize_unfollow() {
-        let command = ExcalidrawCommand::Unfollow {
+        let command = WhiteboardCommand::Unfollow {
             participant_id: ParticipantId::nil(),
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
@@ -288,7 +288,7 @@ mod tests {
 
     #[test]
     fn deserialize_unfollow() {
-        let command: ExcalidrawCommand = serde_json::from_value(json!({
+        let command: WhiteboardCommand = serde_json::from_value(json!({
             "action": "unfollow",
             "participant_id": "00000000-0000-0000-0000-000000000000",
         }))
@@ -296,7 +296,7 @@ mod tests {
 
         assert_eq!(
             command,
-            ExcalidrawCommand::Unfollow {
+            WhiteboardCommand::Unfollow {
                 participant_id: ParticipantId::nil(),
             }
         );
@@ -307,7 +307,7 @@ mod tests {
         let mut unrestricted_participants = HashSet::new();
         unrestricted_participants.insert(ParticipantId::from_u128(1));
 
-        let command = ExcalidrawCommand::EnableEditRestrictions {
+        let command = WhiteboardCommand::EnableEditRestrictions {
             unrestricted_participants,
         };
         let raw = serde_json::to_string_pretty(&command).unwrap();
@@ -324,7 +324,7 @@ mod tests {
 
     #[test]
     fn deserialize_enable_edit_restrictions() {
-        let command: ExcalidrawCommand = serde_json::from_value(json!({
+        let command: WhiteboardCommand = serde_json::from_value(json!({
             "action": "enable_edit_restrictions",
             "unrestricted_participants": [
                 "00000000-0000-0000-0000-000000000001",
@@ -336,7 +336,7 @@ mod tests {
 
         assert_eq!(
             command,
-            ExcalidrawCommand::EnableEditRestrictions {
+            WhiteboardCommand::EnableEditRestrictions {
                 unrestricted_participants,
             }
         );
@@ -344,7 +344,7 @@ mod tests {
 
     #[test]
     fn serialize_disable_edit_restrictions() {
-        let command = ExcalidrawCommand::DisableEditRestrictions;
+        let command = WhiteboardCommand::DisableEditRestrictions;
         let raw = serde_json::to_string_pretty(&command).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -356,11 +356,11 @@ mod tests {
 
     #[test]
     fn deserialize_disable_edit_restrictions() {
-        let command: ExcalidrawCommand = serde_json::from_value(json!({
+        let command: WhiteboardCommand = serde_json::from_value(json!({
             "action": "disable_edit_restrictions",
         }))
         .unwrap();
 
-        assert_eq!(command, ExcalidrawCommand::DisableEditRestrictions);
+        assert_eq!(command, WhiteboardCommand::DisableEditRestrictions);
     }
 }

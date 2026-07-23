@@ -3,12 +3,11 @@
 
 [package]
 authors.workspace = true
-description = "OpenTalk RoomServer Module Excalidraw"
+description = "OpenTalk RoomServer Types Whiteboard"
 edition = "2024"
 homepage.workspace = true
 license.workspace = true
-name = "opentalk-roomserver-module-excalidraw"
-publish = true
+name = "opentalk-roomserver-types-whiteboard"
 repository.workspace = true
 version.workspace = true
 
@@ -16,20 +15,14 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-anyhow.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
-opentalk-roomserver-types-excalidraw.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-tracing.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
-opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pretty_assertions.workspace = true
-test-log.workspace = true
-tokio.workspace = true
-toml.workspace = true
+serde_json.workspace = true
