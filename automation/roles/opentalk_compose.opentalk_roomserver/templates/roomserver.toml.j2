@@ -33,7 +33,9 @@ port = {{ roomserver_http_port }}
 
 # Disable the OpenAPI endpoint under `/docs/openapi.json` and the corresponding
 # swagger endpoint under `/swagger`.
-#enable_openapi = false
+{% if roomserver_http_enable_openapi is defined %}
+enable_openapi = {{ roomserver_http_enable_openapi | lower }}
+{% endif %}
 
 [controller]
 # Controller settings
@@ -76,19 +78,20 @@ port = {{ roomserver_metrics_port }}
 # IP addresses allowed to access the metrics endpoint
 allowlist = {{ roomserver_metrics_allowlist | to_json }}
 
-#[tracing]
+{% if roomserver_tracing_otlp_endpoint is defined %}
+[tracing]
 # Tracing settings
-
-# Tracing is optional and disabled by default
-#otlp_tracing_endpoint = "http://localhost:4317"
+otlp_tracing_endpoint = "{{ roomserver_tracing_otlp_endpoint }}"
+{% endif %}
 
 # Conference settings are optional
-#[conference]
+{% if roomserver_conference_signaling_salt is defined %}
+[conference]
 # Conference settings
-
 # Used to derive participant ids from device secrets.
 # A random salt is generated at startup when not set. This value must be kept secret.
-# signaling_salt = "random string at least 24 characters long"
+signaling_salt = "{{ roomserver_conference_signaling_salt }}"
+{% endif %}
 
 # The duration in seconds after which a room without participants is closed.
 # room_idle_timeout = "60"
@@ -98,9 +101,11 @@ allowlist = {{ roomserver_metrics_allowlist | to_json }}
 # Moderators can always share their screen.
 screen_share_requires_permission = {{ roomserver_screen_share_requires_permission | lower }}
 
-#[reports.typst]
+{% if roomserver_reports_typst_packages_path is defined %}
+[reports.typst]
 # The location where typst looks for packages.
-#packages_path = "/usr/share/typst/packages"
+packages_path = "{{ roomserver_reports_typst_packages_path }}"
+{% endif %}
 
 {% if compose_service_opentalk_orchestrator_enabled is defined and compose_service_opentalk_orchestrator_enabled %}
 # Optional orchestrator configuration
@@ -109,4 +114,13 @@ screen_share_requires_permission = {{ roomserver_screen_share_requires_permissio
 api_key = { id = "{{ roomserver_orchestrator_api_key_id }}", secret = "{{ ORCHESTRATOR_API_SECRET }}" }
 # The orchestrator URL
 url = "http://orchestrator:11222"
+{% endif %}
+
+{% if roomserver_internal_parallel_storage_quota_requests is defined %}
+# Internal settings are optional and use default values if not set.
+[internal]
+# The number of rooms to modify in parallel when receiving a storage quota POST request.
+# Higher numbers will reduce the time it takes to update the storage quota for all rooms,
+# but will increase server load while the requests are running.
+parallel_storage_quota_requests = {{ roomserver_internal_parallel_storage_quota_requests }}
 {% endif %}

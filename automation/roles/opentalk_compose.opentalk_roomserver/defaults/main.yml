@@ -45,3 +45,13 @@ roomserver_metrics_allowlist:
   - "127.0.0.0/24"
   - "::ffff:0:0/96"
   - "172.16.0.0/12"
+
+# roomserver_http_enable_openapi: true
+
+# roomserver_tracing_otlp_endpoint: "http://jaeger:4317"
+
+# roomserver_conference_signaling_salt: ""
+
+# roomserver_reports_typst_packages_path: "/usr/share/typst/packages"
+
+# roomserver_internal_parallel_storage_quota_requests: 5
