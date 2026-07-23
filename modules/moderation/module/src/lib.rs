@@ -479,13 +479,21 @@ impl ModerationModule {
             Self::split_by_kick_scope(&ctx.participants.all_unfiltered, scope);
 
         ctx.send_ws_message(
-            not_kicked,
+            not_kicked.iter().copied(),
             ModerationEvent::DebriefingStarted { issued_by: sender },
         )?;
 
         let required_waiting_room = scope.into();
         if required_waiting_room > ctx.room_task_info.room.waiting_room {
-            Self::update_waiting_room(ctx, required_waiting_room)?;
+            // Raise the waiting room, but only notify the participants that remain in the
+            // conference
+            ctx.room_task_info.room.waiting_room = required_waiting_room;
+            ctx.send_ws_message(
+                not_kicked,
+                ModerationEvent::WaitingRoomUpdated {
+                    new_state: required_waiting_room,
+                },
+            )?;
         }
 
         ctx.send_ws_message(

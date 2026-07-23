@@ -60,31 +60,6 @@ async fn debrief_all() {
         .await
         .unwrap();
 
-    // Everyone receives the waiting room enabled event
-    let event = alice.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(
-        event.payload,
-        ModerationEvent::WaitingRoomUpdated {
-            new_state: WaitingRoom::ForEveryone
-        }
-    );
-
-    let event = bob.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(
-        event.payload,
-        ModerationEvent::WaitingRoomUpdated {
-            new_state: WaitingRoom::ForEveryone
-        }
-    );
-
-    let event = gustav.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(
-        event.payload,
-        ModerationEvent::WaitingRoomUpdated {
-            new_state: WaitingRoom::ForEveryone
-        }
-    );
-
     // Everyone gets kicked
     let expected = BTreeSet::from_iter([
         (bob.id(), bob.connection_id()),
@@ -132,7 +107,7 @@ async fn debrief_users_and_guests() {
         }
     );
 
-    // Everyone receives the waiting room enabled event
+    // Alice receives the waiting room enabled event
     let event = alice.receive_event::<ModerationModule>().await.unwrap();
     assert_eq!(
         event.payload,
@@ -141,21 +116,7 @@ async fn debrief_users_and_guests() {
         }
     );
 
-    let event = bob.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(
-        event.payload,
-        ModerationEvent::WaitingRoomUpdated {
-            new_state: WaitingRoom::ForEveryone
-        }
-    );
-
-    let event = gustav.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(
-        event.payload,
-        ModerationEvent::WaitingRoomUpdated {
-            new_state: WaitingRoom::ForEveryone
-        }
-    );
+    // Bob and Gustav are being kicked, so they do not receive the waiting room notification
 
     // Alice does not get kicked, because she is a moderator
     let expected = BTreeSet::from_iter([
@@ -224,13 +185,7 @@ async fn debrief_guests() {
         }
     );
 
-    let event = gustav.receive_event::<ModerationModule>().await.unwrap();
-    assert_eq!(
-        event.payload,
-        ModerationEvent::WaitingRoomUpdated {
-            new_state: WaitingRoom::ForGuests
-        }
-    );
+    // Gustav is being kicked, so he does not receive the waiting room notification
 
     // Alice does not get kicked, because she isn't a guest
     let expected = BTreeSet::from_iter([(gustav.id(), gustav.connection_id())]);
