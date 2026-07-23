@@ -24,7 +24,6 @@ use opentalk_roomserver_types_training_participation_report::{
     TRAINING_PARTICIPATION_REPORT_MODULE_ID, TrainingParticipationReportEvent,
 };
 use opentalk_roomserver_types_transcription::{TRANSCRIPTION_MODULE_ID, event::TranscriptionEvent};
-use opentalk_roomserver_types_whiteboard::{WHITEBOARD_MODULE_ID, WhiteboardEvent};
 use opentalk_types_common::{modules::ModuleId, time::Timestamp};
 use serde::{Deserialize, Serialize};
 // reexport events for easier usage
@@ -79,7 +78,6 @@ pub enum SignalingModuleEvent {
     RaiseHands(RaiseHandsEvent),
     SubroomAudio(SubroomAudioEvent),
     MeetingNotes(MeetingNotesEvent),
-    Whiteboard(WhiteboardEvent),
     Excalidraw(ExcalidrawEvent),
     LegalVote(LegalVoteEvent),
     TrainingParticipationReport(TrainingParticipationReportEvent),
@@ -107,7 +105,6 @@ impl SignalingModuleEvent {
             Self::RaiseHands(..) => RAISE_HANDS_MODULE_ID,
             Self::SubroomAudio(..) => SUBROOM_AUDIO_MODULE_ID,
             Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
-            Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
             Self::Excalidraw(..) => EXCALIDRAW_MODULE_ID,
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
@@ -157,11 +154,9 @@ mod tests {
     use opentalk_roomserver_types_transcription::{
         event::TranscriptionEvent, state::TranscriptionStatus,
     };
-    use opentalk_roomserver_types_whiteboard::WhiteboardEvent;
     use opentalk_types_common::{assets::AssetId, modules::ModuleId, time::Timestamp};
     use opentalk_types_signaling::ParticipantId;
     use serde::Deserialize;
-    use url::Url;
 
     use super::SignalingModuleEvent;
     use crate::api::event::SignalingEvent;
@@ -570,29 +565,6 @@ mod tests {
             "message": "access_changed",
             "readers": [],
             "writers": []
-          }
-        }
-        "#);
-    }
-
-    #[test]
-    fn serialize_event_whiteboard() {
-        let event = SignalingEvent {
-            transaction_id: None,
-            timestamp: Timestamp::unix_epoch(),
-            payload: SignalingModuleEvent::Whiteboard(WhiteboardEvent::Initialized {
-                url: Url::parse("https://example.com").unwrap(),
-            }),
-        };
-        let raw = serde_json::to_string_pretty(&event).unwrap();
-
-        assert_snapshot!(raw, @r#"
-        {
-          "timestamp": "1970-01-01T00:00:00Z",
-          "namespace": "whiteboard",
-          "payload": {
-            "message": "initialized",
-            "url": "https://example.com/"
           }
         }
         "#);

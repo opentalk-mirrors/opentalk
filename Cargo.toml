@@ -159,7 +159,6 @@ opentalk-roomserver-module-subroom-audio = { path = "roomserver/modules/subroom-
 opentalk-roomserver-module-timer = { path = "roomserver/modules/timer/module", version = "3.0.0" }
 opentalk-roomserver-module-training-participation-report = { path = "roomserver/modules/training-participation-report/module", version = "3.0.0" }
 opentalk-roomserver-module-transcription = { path = "roomserver/modules/transcription/module", version = "3.0.0" }
-opentalk-roomserver-module-whiteboard = { path = "roomserver/modules/whiteboard/module", version = "3.0.0" }
 opentalk-roomserver-modules = { path = "roomserver/opentalk-roomserver-modules", version = "3.0.0" }
 opentalk-roomserver-room = { path = "roomserver/opentalk-roomserver-room", version = "3.0.0" }
 opentalk-roomserver-signaling = { path = "roomserver/opentalk-roomserver-signaling", version = "3.0.0" }
@@ -184,7 +183,6 @@ opentalk-roomserver-types-subroom-audio = { path = "roomserver/modules/subroom-a
 opentalk-roomserver-types-timer = { path = "roomserver/modules/timer/types", version = "3.0.0" }
 opentalk-roomserver-types-training-participation-report = { path = "roomserver/modules/training-participation-report/types", version = "3.0.0" }
 opentalk-roomserver-types-transcription = { path = "roomserver/modules/transcription/types", version = "3.0.0" }
-opentalk-roomserver-types-whiteboard = { path = "roomserver/modules/whiteboard/types", version = "3.0.0" }
 opentalk-roomserver-web-api = { path = "roomserver/opentalk-roomserver-web-api", version = "3.0.0" }
 
 # Transcription

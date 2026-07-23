@@ -39,7 +39,6 @@ opentalk-roomserver-types-subroom-audio.workspace = true
 opentalk-roomserver-types-timer.workspace = true
 opentalk-roomserver-types-training-participation-report.workspace = true
 opentalk-roomserver-types-transcription.workspace = true
-opentalk-roomserver-types-whiteboard.workspace = true
 opentalk-service-auth.workspace = true
 opentalk-types-api-internal.workspace = true
 opentalk-types-common.workspace = true

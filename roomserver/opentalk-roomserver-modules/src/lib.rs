@@ -21,7 +21,6 @@ use opentalk_roomserver_module_subroom_audio::SubroomAudioModule;
 use opentalk_roomserver_module_timer::TimerModule;
 use opentalk_roomserver_module_training_participation_report::TrainingParticipationReportModule;
 use opentalk_roomserver_module_transcription::TranscriptionModule;
-use opentalk_roomserver_module_whiteboard::WhiteboardModule;
 use opentalk_roomserver_room::{
     ModuleRegistry,
     signaling::{DescriptionPrinter, ModuleInitializer},
@@ -47,7 +46,6 @@ pub use opentalk_roomserver_types_subroom_audio::SUBROOM_AUDIO_MODULE_ID;
 pub use opentalk_roomserver_types_timer::TIMER_MODULE_ID;
 pub use opentalk_roomserver_types_training_participation_report::TRAINING_PARTICIPATION_REPORT_MODULE_ID;
 pub use opentalk_roomserver_types_transcription::TRANSCRIPTION_MODULE_ID;
-pub use opentalk_roomserver_types_whiteboard::WHITEBOARD_MODULE_ID;
 use opentalk_types_common::modules::ModuleId;
 
 /// Initialize the registry with all modules that are available for meetings
@@ -71,7 +69,6 @@ pub fn setup_registry() -> ModuleRegistry {
     module_registry.add_module::<TrainingParticipationReportModule>();
     module_registry.add_module::<TranscriptionModule>();
     module_registry.add_module::<RaiseHandsModule>();
-    module_registry.add_module::<WhiteboardModule>();
     module_registry.add_module::<ExcalidrawModule>();
     module_registry
 }

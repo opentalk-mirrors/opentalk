@@ -40,7 +40,6 @@ pub use {
     opentalk_roomserver_types_training_participation_report::{
         TRAINING_PARTICIPATION_REPORT_MODULE_ID, command::TrainingParticipationReportCommand,
     },
-    opentalk_roomserver_types_whiteboard::{WHITEBOARD_MODULE_ID, WhiteboardCommand},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -88,7 +87,6 @@ pub enum SignalingModuleCommand {
     RaiseHands(RaiseHandsCommand),
     SubroomAudio(SubroomAudioCommand),
     MeetingNotes(MeetingNotesCommand),
-    Whiteboard(WhiteboardCommand),
     Excalidraw(ExcalidrawCommand),
     LegalVote(LegalVoteCommand),
     TrainingParticipationReport(TrainingParticipationReportCommand),
@@ -115,7 +113,6 @@ impl SignalingModuleCommand {
             Self::RaiseHands(..) => RAISE_HANDS_MODULE_ID,
             Self::SubroomAudio(..) => SUBROOM_AUDIO_MODULE_ID,
             Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
-            Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
             Self::Excalidraw(..) => EXCALIDRAW_MODULE_ID,
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
@@ -153,7 +150,6 @@ mod tests {
     use opentalk_roomserver_types_timer::{TimerCommand, command::Kind};
     use opentalk_roomserver_types_training_participation_report::TrainingParticipationReportCommand;
     use opentalk_roomserver_types_transcription::command::TranscriptionCommand;
-    use opentalk_roomserver_types_whiteboard::WhiteboardCommand;
     use opentalk_types_common::modules::ModuleId;
     use opentalk_types_signaling::ParticipantId;
     use serde::Deserialize;
@@ -427,24 +423,6 @@ mod tests {
           "payload": {
             "action": "grant_write_access",
             "participant_ids": []
-          }
-        }
-        "#);
-    }
-
-    #[test]
-    fn serialize_command_whiteboard() {
-        let command = SignalingCommand {
-            transaction_id: None,
-            payload: SignalingModuleCommand::Whiteboard(WhiteboardCommand::Initialize),
-        };
-        let raw = serde_json::to_string_pretty(&command).unwrap();
-
-        assert_snapshot!(raw, @r#"
-        {
-          "namespace": "whiteboard",
-          "payload": {
-            "action": "initialize"
           }
         }
         "#);

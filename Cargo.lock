@@ -9942,7 +9942,6 @@ dependencies = [
  "opentalk-roomserver-types-timer",
  "opentalk-roomserver-types-training-participation-report",
  "opentalk-roomserver-types-transcription",
- "opentalk-roomserver-types-whiteboard",
  "opentalk-service-auth",
  "opentalk-types-api-internal",
  "opentalk-types-common",
@@ -10465,30 +10464,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opentalk-roomserver-module-whiteboard"
-version = "3.0.0"
-dependencies = [
- "anyhow",
- "bytes 1.12.1",
- "futures",
- "insta",
- "opentalk-roomserver-room",
- "opentalk-roomserver-signaling",
- "opentalk-roomserver-types",
- "opentalk-roomserver-types-whiteboard",
- "opentalk-types-common",
- "opentalk-types-signaling",
- "pretty_assertions",
- "reqwest 0.13.5",
- "serde",
- "test-log",
- "testcontainers",
- "tokio",
- "toml 1.1.6+spec-1.1.0",
- "tracing",
-]
-
-[[package]]
 name = "opentalk-roomserver-modules"
 version = "3.0.0"
 dependencies = [
@@ -10512,7 +10487,6 @@ dependencies = [
  "opentalk-roomserver-module-timer",
  "opentalk-roomserver-module-training-participation-report",
  "opentalk-roomserver-module-transcription",
- "opentalk-roomserver-module-whiteboard",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
@@ -10533,7 +10507,6 @@ dependencies = [
  "opentalk-roomserver-types-timer",
  "opentalk-roomserver-types-training-participation-report",
  "opentalk-roomserver-types-transcription",
- "opentalk-roomserver-types-whiteboard",
  "opentalk-types-common",
 ]
 
@@ -10916,21 +10889,6 @@ dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
  "serde",
- "url",
-]
-
-[[package]]
-name = "opentalk-roomserver-types-whiteboard"
-version = "3.0.0"
-dependencies = [
- "insta",
- "opentalk-roomserver-signaling",
- "opentalk-roomserver-types",
- "opentalk-types-common",
- "opentalk-types-signaling",
- "pretty_assertions",
- "serde",
- "serde_json",
  "url",
 ]
 
