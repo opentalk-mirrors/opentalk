@@ -560,6 +560,9 @@ impl Signaling {
                 self.handle_participant_left(participant_id, connection_id);
             }
             OpenTalkEvent::MovedToWaitingRoom => {
+                self.join_state = JoinState::WaitingRoom {
+                    welcome_played: true,
+                };
                 self.waiting_room_please_hold_interval.reset();
                 self.track_controller
                     .play_track(self.settings.language, Track::ModeratorSendWaitingRoom);
