@@ -21,7 +21,7 @@ impl TranscriptionStage {
         Ok(Self { state, language })
     }
 
-    pub(crate) fn transcribe(&mut self, mut segment: SpeechSegment) -> Result<String> {
+    pub(crate) fn transcribe(&mut self, segment: &mut SpeechSegment) -> Result<String> {
         let sample_duration = segment.samples.len() as f32 / SAMPLE_RATE as f32 / CHANNELS as f32;
 
         if sample_duration < 1.0 {
@@ -30,7 +30,7 @@ impl TranscriptionStage {
                 .resize((SAMPLE_RATE * CHANNELS * 2) as usize, 0.0);
         }
 
-        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+        let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 8 });
         params.set_language(self.language.as_deref());
         params.set_print_special(false);
         params.set_print_progress(false);
@@ -52,7 +52,7 @@ impl TranscriptionStage {
                 .with_context(|| format!("Failed to get text for segment #{i}"))?;
 
             if !text.is_empty() {
-                parts.push(text);
+                parts.push(text.clone());
             }
         }
 

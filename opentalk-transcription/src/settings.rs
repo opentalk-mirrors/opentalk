@@ -22,6 +22,7 @@ pub(crate) struct Settings {
     /// Optional monitoring endpoint. Monitoring is disabled when absent.
     pub(crate) monitoring: Option<MonitoringSettings>,
     /// Transcription engine configuration.
+    #[serde(default)]
     pub(crate) transcription: TranscriptionSettings,
     /// Optional orchestrator client configuration. The orchestrator is disabled when absent.
     pub(crate) orchestrator: Option<OrchestratorConfig>,
@@ -181,6 +182,9 @@ pub(crate) struct TranscriptionSettings {
     /// Path to the whisper.cpp `ggml` model file to load.
     #[serde(default = "default_model")]
     pub(crate) model: String,
+
+    #[serde(default)]
+    pub(crate) dump_dir: Option<PathBuf>,
 }
 
 fn default_model() -> String {
@@ -191,6 +195,7 @@ impl Default for TranscriptionSettings {
     fn default() -> Self {
         Self {
             model: default_model(),
+            dump_dir: None,
         }
     }
 }

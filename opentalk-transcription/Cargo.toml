@@ -52,9 +52,11 @@ whisper-rs = { workspace = true, features = ["log_backend"] }
 opentalk-orchestrator-client = { version = "0.10.0", features = [
   "transcription-service",
 ] }
+hound = "3"
 
 [dev-dependencies]
 temp-env.workspace = true
+textplots = "0.8"
 
 [build-dependencies]
 anyhow.workspace = true
