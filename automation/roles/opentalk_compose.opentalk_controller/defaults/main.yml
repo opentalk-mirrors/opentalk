@@ -57,6 +57,7 @@ controller_monitoring_port: 11411
 # controller_monitoring_addr: "0.0.0.0"
 controller_http_port: 11311
 # controller_http_addr: "::0"
+# controller_http_upload_size_limit: 100000000
 # controller_http_cors_allowed_origin: ["*"]
 # controller_http_service_api_keys:
 #   - id: "controller"
@@ -81,15 +82,24 @@ controller_rabbit_mq_mail_task_queue: "opentalk_mailer"
 controller_rabbit_mq_recording_task_queue: "opentalk_recorder"
 controller_rabbit_mq_min_connections: 10
 controller_rabbit_mq_max_channels_per_connection: 100
+# controller_rabbit_mq_message_ttl_seconds: 3600
 # controller_redis_url: "redis://localhost:6379/"
 # controller_authz_synchronize_controllers: "true"
+# controller_roomserver_conference_signaling_salt: "random string at least 24 characters long"
+# controller_roomserver_reports_typst_packages_path: "/usr/share/typst/packages"
+# controller_roomserver_room_idle_timeout: 60
+# controller_stun_uris:
+#   - "stun:127.0.0.1:3478"
 # controller_call_in_tel: "03012345678"
 # controller_call_in_enable_phone_mapping: "false"
+# controller_call_in_mask_unmapped_numbers: "true"
 # controller_call_in_default_country_code: "DE"
 controller_minio_uri: "{{ 'http://garage:3900' if (s3_storage_provider | default('garage')) == 'garage' else 'http://minio:9000' }}"
 controller_minio_bucket: "opentalk"
 controller_minio_access_key: "{{ GARAGE_S3_ACCESS_KEY if (s3_storage_provider | default('garage')) == 'garage' else 'minioadmin' }}"
 controller_minio_secret_key: "{{ GARAGE_S3_SECRET_KEY if (s3_storage_provider | default('garage')) == 'garage' else MINIO_ROOT_PASSWORD }}"
+# controller_minio_force_path_style: "false"
+# controller_minio_region: "unknown"
 # controller_etcd_urls:
 #   - "etcd:2379"
 controller_etherpad_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/etherpad/"
@@ -98,6 +108,7 @@ controller_spacedeck_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) 
 controller_spacedeck_api_key: "{{ SPACEDECK_API_KEY }}"
 # controller_reports_template_inline: |
 # controller_reports_url: "http://localhost:6560"
+# controller_reports_typst_packages_path: "/usr/share/typst/packages"
 # controller_shared_folder_provider: "nextcloud"
 # controller_shared_folder_url: "https://nextcloud.example.org/"
 # controller_shared_folder_username: "exampleuser"
@@ -105,6 +116,7 @@ controller_spacedeck_api_key: "{{ SPACEDECK_API_KEY }}"
 # controller_shared_folder_directory: "opentalk/meetings"
 # controller_shared_folder_expiry: 48
 # controller_defaults_user_language: "en-US"
+# controller_defaults_timezone: "Etc/UTC"
 # controller_defaults_screen_share_requires_permission: "true"
 # controller_defaults_disabled_features:
 #   - "core::call_in"

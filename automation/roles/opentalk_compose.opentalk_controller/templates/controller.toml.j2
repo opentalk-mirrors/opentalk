@@ -35,6 +35,15 @@ service_url = "http://roomserver:11333"
 api_key = {id = "roomserver", secret = "{{ ROOMSERVER_API_SECRET}}" }
 {% endif %}
 {% endif %}
+{% if controller_roomserver_room_idle_timeout is defined and controller_roomserver_room_idle_timeout %}
+
+room_idle_timeout = {{ controller_roomserver_room_idle_timeout }}
+{% endif %}
+{% if controller_roomserver_conference_signaling_salt is defined and controller_roomserver_conference_signaling_salt %}
+
+[roomserver.conference]
+signaling_salt = "{{ controller_roomserver_conference_signaling_salt }}"
+{% endif %}
 
 [roomserver.websocket_rate_limit]
 disabled = false
@@ -56,6 +65,11 @@ service_url = "{{ controller_livekit_service_url }}"
 [roomserver.modules.echo]
 [roomserver.modules.polls]
 [roomserver.modules.timer]
+{% if controller_roomserver_reports_typst_packages_path is defined and controller_roomserver_reports_typst_packages_path %}
+
+[roomserver.reports.typst]
+packages_path = "{{ controller_roomserver_reports_typst_packages_path }}"
+{% endif %}
 {% endif %}
 
 [logging]
@@ -107,6 +121,9 @@ addr = "{{ controller_http_addr }}"
 {% endif %}
 {% if controller_http_service_api_keys is defined and controller_http_service_api_keys %}
 service_api_keys = [{% for key in controller_http_service_api_keys %}{ "id" = "{{ key.id }}", "secret" = "{{ key.secret }}" }{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+{% if controller_http_upload_size_limit is defined and controller_http_upload_size_limit %}
+upload_size_limit = {{ controller_http_upload_size_limit }}
 {% endif %}
 {% if controller_http_cors_allowed_origin is defined and controller_http_cors_allowed_origin %}
 [http.cors]
@@ -168,6 +185,9 @@ min_connections = {{ controller_rabbit_mq_min_connections }}
 {% if controller_rabbit_mq_max_channels_per_connection is defined and controller_rabbit_mq_max_channels_per_connection %}
 max_channels_per_connection = {{ controller_rabbit_mq_max_channels_per_connection }}
 {% endif %}
+{% if controller_rabbit_mq_message_ttl_seconds is defined and controller_rabbit_mq_message_ttl_seconds is not none %}
+message_ttl_seconds = {{ controller_rabbit_mq_message_ttl_seconds }}
+{% endif %}
 
 {% if controller_redis_url is defined and controller_redis_url %}
 [redis]
@@ -179,13 +199,16 @@ url = "{{ controller_redis_url }}"
 synchronize_controllers = {{ controller_authz_synchronize_controllers }}
 {% endif %}
 
-{% if controller_call_in_tel is defined or controller_call_in_enable_phone_mapping is defined or controller_call_in_default_country_code is defined %}
+{% if controller_call_in_tel is defined or controller_call_in_enable_phone_mapping is defined or controller_call_in_mask_unmapped_numbers is defined or controller_call_in_default_country_code is defined %}
 [call_in]
 {% if controller_call_in_tel is defined and controller_call_in_tel %}
 tel = "{{ controller_call_in_tel }}"
 {% endif %}
 {% if controller_call_in_enable_phone_mapping is defined %}
 enable_phone_mapping = {{ controller_call_in_enable_phone_mapping | to_json }}
+{% endif %}
+{% if controller_call_in_mask_unmapped_numbers is defined %}
+mask_unmapped_numbers = {{ controller_call_in_mask_unmapped_numbers | to_json }}
 {% endif %}
 {% if controller_call_in_default_country_code is defined and controller_call_in_default_country_code %}
 default_country_code = "{{ controller_call_in_default_country_code }}"
@@ -197,6 +220,22 @@ uri = "{{ controller_minio_uri }}"
 bucket = "{{ controller_minio_bucket }}"
 access_key = "{{ controller_minio_access_key }}"
 secret_key = "{{ controller_minio_secret_key }}"
+{% if controller_minio_force_path_style is defined %}
+force_path_style = {{ controller_minio_force_path_style | to_json }}
+{% endif %}
+{% if controller_minio_region is defined and controller_minio_region %}
+region = "{{ controller_minio_region }}"
+{% endif %}
+
+{% if controller_stun_uris is defined and controller_stun_uris %}
+[stun]
+uris = [
+{% for uri in controller_stun_uris %}
+	"{{ uri }}"{% if not loop.last %},
+{% endif %}
+{% endfor %}
+]
+{% endif %}
 
 {% if controller_etcd_urls is defined and controller_etcd_urls %}
 [etcd]
@@ -229,6 +268,11 @@ template.inline = """{{ controller_reports_template_inline }}"""
 url = "{{ controller_reports_url }}"
 {% endif %}
 {% endif %}
+{% if controller_reports_typst_packages_path is defined and controller_reports_typst_packages_path %}
+
+[reports.typst]
+packages_path = "{{ controller_reports_typst_packages_path }}"
+{% endif %}
 
 {% if controller_shared_folder_provider is defined %}
 [shared_folder]
@@ -248,6 +292,9 @@ expiry = {{ controller_shared_folder_expiry }}
 [defaults]
 {% if controller_defaults_user_language is defined and controller_defaults_user_language %}
 user_language = "{{ controller_defaults_user_language }}"
+{% endif %}
+{% if controller_defaults_timezone is defined and controller_defaults_timezone %}
+timezone = "{{ controller_defaults_timezone }}"
 {% endif %}
 {% if controller_defaults_screen_share_requires_permission is defined %}
 screen_share_requires_permission = {{ controller_defaults_screen_share_requires_permission | to_json}}

@@ -23,3 +23,5 @@
     service_accounts_enabled: true
     client_authenticator_type: client-secret
     secret: "{{ OIDC_RECORDER_CLIENT_SECRET }}"
+    attributes:
+      allow.token.introspection.without.audience.check: "true"

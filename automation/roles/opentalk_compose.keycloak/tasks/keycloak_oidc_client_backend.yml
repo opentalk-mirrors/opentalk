@@ -24,6 +24,7 @@
     secret: "{{ OIDC_CONTROLLER_CLIENT_SECRET }}"
     attributes:
       post.logout.redirect.uris: "+"
+      allow.token.introspection.without.audience.check: "true"
 
 - name: "Map a client roles to service account user for client {{ controller_oidc_controller_client_id | default('Controller') }}"
   community.general.keycloak_user_rolemapping:
