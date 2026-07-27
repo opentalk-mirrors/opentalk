@@ -463,6 +463,17 @@ impl RecordingModule {
                     return Err(RecordingError::RecordingAlreadyActive.into());
                 }
 
+                // If the recording is already requested, we don't need to request it again, just
+                // let the requesting participant know that it has been requested
+                if occupied_entry.get().is_requested() {
+                    ctx.send_ws_message(
+                        [participant_id],
+                        RecordingEvent::RecordingUpdated(RecordingStatus::Requested),
+                    )?;
+
+                    return Ok(());
+                }
+
                 occupied_entry.insert(RecordingStatus::Requested);
             }
             Entry::Vacant(vacant_entry) => {

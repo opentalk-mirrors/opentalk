@@ -38,6 +38,13 @@ impl RecordingStatus {
         }
     }
 
+    /// Returns `true` if the status is [`Requested`]
+    ///
+    /// [`Requested`]: RecordingStatus::Requested
+    pub fn is_requested(&self) -> bool {
+        *self == RecordingStatus::Requested
+    }
+
     /// Returns if the recording can be started
     pub fn can_be_started(&self) -> bool {
         match self {
