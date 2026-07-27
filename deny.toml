@@ -254,6 +254,7 @@ skip = [
   { name = "phf_shared", version = "0.12" },
   { name = "quick-xml", version = "0.38" },
   { name = "roxmltree", version = "0.20" },
+  { name = "syn", version = "2" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
