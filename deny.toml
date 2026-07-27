@@ -423,7 +423,6 @@ skip = [
   { name = "prost-derive", version = "0.12.6" },
   { name = "prost-types", version = "0.12" },
   { name = "quick-xml", version = "0.38" },
-  { name = "quick-xml", version = "0.39" },
   { name = "rand", version = "0.8" },
   { name = "rand", version = "0.9" },
   { name = "rand_chacha", version = "0.3" },
