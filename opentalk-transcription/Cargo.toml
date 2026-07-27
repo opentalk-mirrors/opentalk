@@ -22,7 +22,7 @@ vulkan = ["whisper-rs/vulkan"]
 anstream.workspace = true
 anyhow = { workspace = true, features = ["backtrace"] }
 async-trait.workspace = true
-audio-nodes.workspace = true
+ezk-audio-nodes.workspace = true
 axum = { workspace = true, features = ["macros", "http2", "ws"] }
 clap = { workspace = true, features = ["derive"] }
 config = { workspace = true, features = ["toml"] }
@@ -48,9 +48,7 @@ service-probe.workspace = true
 service-probe-client.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
 whisper-rs = { workspace = true, features = ["log_backend"] }
-opentalk-orchestrator-client = { version = "0.10.0", features = [
-  "transcription-service",
-] }
+opentalk-orchestrator-client = { version = "0.10.0", features = ["transcription-service"] }
 hound = "3"
 earshot = "1.2.1"
 
