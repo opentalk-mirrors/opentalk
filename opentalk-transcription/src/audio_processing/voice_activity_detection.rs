@@ -8,7 +8,6 @@ use std::{
 };
 
 use anyhow::Result;
-use voice_activity_detector::VoiceActivityDetector;
 
 /// Sample rate which is passed into the VAD
 const VAD_SAMPLE_RATE: u32 = 16000;
@@ -17,7 +16,7 @@ const VAD_SAMPLE_RATE: u32 = 16000;
 const VAD_CHANNELS: usize = 1;
 
 /// Chunk size which is passed into the VAD
-const VAD_CHUNK_SIZE: usize = 512;
+const VAD_CHUNK_SIZE: usize = 256;
 
 /// How many chunks to add before and after speech segments
 ///
@@ -84,7 +83,7 @@ impl VadStage {
 ///
 /// Extends detected speech segments with padding (audio before/after each segment), preventing abrupt cut-offs
 struct VoiceDetector {
-    detector: VoiceActivityDetector,
+    detector: Box<earshot::Detector>,
     threshold: f32,
     max_padding_before_speech: usize,
     max_padding_after_speech: usize,
@@ -112,11 +111,7 @@ struct ChunkInfo {
 impl VoiceDetector {
     fn new() -> VoiceDetector {
         VoiceDetector {
-            detector: VoiceActivityDetector::builder()
-                .sample_rate(VAD_SAMPLE_RATE)
-                .chunk_size(VAD_CHUNK_SIZE)
-                .build()
-                .expect("Failed to create VoiceActivityDetector"),
+            detector: earshot::Detector::default_boxed(),
             threshold: VAD_DETECTION_THRESHOLD,
             max_padding_before_speech: VAD_PADDING_CHUNKS,
             max_padding_after_speech: VAD_PADDING_CHUNKS,
@@ -142,7 +137,7 @@ impl VoiceDetector {
         self.queue.push(samples, timestamp);
 
         while let Some((samples, timestamp)) = self.queue.pop() {
-            let confidence = self.detector.predict(samples.iter().copied());
+            let confidence = self.detector.predict_f32(&samples);
 
             if confidence >= self.threshold {
                 // Speech detected
