@@ -3,27 +3,29 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use anyhow::Result;
-use audio_nodes::AudioConvert;
 use ezk::{Source, SourceEvent};
 use ezk_audio::{Format, RawAudioConfigRange, SampleRate};
+use ezk_audio_nodes::{AudioConvert, NoiseFilter};
 use livekit::{track::RemoteAudioTrack, webrtc::audio_stream::native::NativeAudioStream};
 
 use crate::audio::{CHANNELS, NativeAudioStreamSource, SAMPLE_RATE};
 
 pub(crate) struct AudioSource {
-    pub(crate) audio_convert: AudioConvert<NativeAudioStreamSource>,
+    pub(crate) audio_convert: AudioConvert<NoiseFilter<AudioConvert<NativeAudioStreamSource>>>,
 }
 
 impl AudioSource {
     pub(crate) async fn new(audio_track: RemoteAudioTrack) -> Result<Self> {
-        let mut audio_convert = AudioConvert::new(NativeAudioStreamSource {
-            stream: NativeAudioStream::new(
-                audio_track.rtc_track(),
-                SAMPLE_RATE as i32,
-                CHANNELS as i32,
-            ),
-            timestamp: 0,
-        });
+        let mut audio_convert = AudioConvert::new(NoiseFilter::new(AudioConvert::new(
+            NativeAudioStreamSource {
+                stream: NativeAudioStream::new(
+                    audio_track.rtc_track(),
+                    SAMPLE_RATE as i32,
+                    CHANNELS as i32,
+                ),
+                timestamp: 0,
+            },
+        )));
 
         audio_convert
             .negotiate_config(vec![RawAudioConfigRange {
