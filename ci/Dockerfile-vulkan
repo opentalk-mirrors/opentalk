@@ -9,7 +9,7 @@ WORKDIR /transcription
 ADD . /transcription
 
 RUN apt-get --update -y full-upgrade && \
-    apt-get install --no-install-recommends -y build-essential pkg-config clang libclang-dev cmake libvulkan-dev glslc libssl-dev
+    apt-get install --no-install-recommends -y build-essential pkg-config clang libclang-dev cmake libvulkan-dev glslc libssl-dev libglib2.0-dev
 
 RUN cargo build --locked --release
 
