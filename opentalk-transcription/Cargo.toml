@@ -47,12 +47,12 @@ serde = { workspace = true, features = ["derive"] }
 service-probe.workspace = true
 service-probe-client.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
-voice_activity_detector.workspace = true
 whisper-rs = { workspace = true, features = ["log_backend"] }
 opentalk-orchestrator-client = { version = "0.10.0", features = [
   "transcription-service",
 ] }
 hound = "3"
+earshot = "1.2.1"
 
 [dev-dependencies]
 temp-env.workspace = true
