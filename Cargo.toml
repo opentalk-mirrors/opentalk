@@ -27,7 +27,7 @@ ezk-audio = "0.1"
 ezk-audio-nodes = { version = "0.1", features = ["nnnoiseless"] }
 futures = "0.3"
 itertools = "0.14"
-livekit = "0.7"
+livekit = "0.8"
 log = "0.4"
 opentalk-client-signaling = "0.11"
 opentalk-orchestrator-client = "0.10.0"

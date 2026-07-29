@@ -752,7 +752,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2576,9 +2576,9 @@ checksum = "92daf443525c4cce67b150400bc2316076100ce0b3686209eb8cf3c31612e6f0"
 
 [[package]]
 name = "livekit"
-version = "0.7.53"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa8ed793e154d63b588397ea7a84cfb3606b6d049f4d24137d9d9e0384617059"
+checksum = "4deb846377d935e313e8a9ae630d8d0ce25cece6b53addd3a2821202088257ec"
 dependencies = [
  "base64 0.22.1",
  "bmrng",
@@ -2607,20 +2607,19 @@ dependencies = [
 
 [[package]]
 name = "livekit-api"
-version = "0.5.6"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e827d3444235ddccf360fc1d4737034e86ee2ea2c0a696f148ecc08e7249bfd3"
+checksum = "537991d07fe4e7b70051bb70ef1057bf2097c71e2f9f746ff11dbf953510d491"
 dependencies = [
- "async-tungstenite",
  "base64 0.21.7",
  "bytes",
  "device-info",
  "flate2",
- "futures-util",
  "hmac",
  "http",
  "jsonwebtoken",
  "livekit-common",
+ "livekit-net",
  "livekit-protocol",
  "livekit-runtime",
  "log",
@@ -2637,7 +2636,6 @@ dependencies = [
  "signature",
  "thiserror 2.0.19",
  "tokio",
- "tokio-tungstenite",
  "url",
 ]
 
@@ -2690,6 +2688,26 @@ dependencies = [
  "thiserror 2.0.19",
  "tokio",
  "tokio-stream",
+]
+
+[[package]]
+name = "livekit-net"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb54564a8fef20690f397c8f1626032840dc840a5289ded2204296c8427a048e"
+dependencies = [
+ "async-trait",
+ "async-tungstenite",
+ "base64 0.21.7",
+ "bytes",
+ "futures-util",
+ "http",
+ "livekit-runtime",
+ "log",
+ "reqwest 0.12.28",
+ "tokio",
+ "tokio-tungstenite",
+ "url",
 ]
 
 [[package]]
@@ -6257,7 +6275,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
