@@ -17,6 +17,7 @@ opentalk_orchestrator_version: v0.8.1
 opentalk_outlook_add_in_version: v0.3.6-2
 spacedeck_version: v3.0.3
 etherpad_version: v2.0.4
+livekit_version: v1.13.1
 keycloak_version: 26.6.3
 postgres_version: 17.10-alpine
 traefik_version: v3.7.7
@@ -25,7 +26,6 @@ minio_client_version: RELEASE.2025-08-13T08-35-41Z
 garage_version: v2.3.0
 rabbitmq_version: 4.2.7-management-alpine
 mailcrab_version: v1.7.0
-livekit_version: v1.9.12
 ndt_version: v0.25.3
 
 # Tools
