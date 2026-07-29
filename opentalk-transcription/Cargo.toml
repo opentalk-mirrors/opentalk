@@ -35,7 +35,7 @@ itertools.workspace = true
 livekit = { workspace = true, features = ["native-tls"] }
 log.workspace = true
 opentalk-client-signaling.workspace = true
-opentalk-service-auth = { workspace = true, features = ["axum"] }
+opentalk-service-auth = { version = "0.2", features = ["axum"] }
 opentalk-transcription-web-api = "0.3.0"
 opentalk-types-api-common = "0.9.0"
 opentalk-version.workspace = true
