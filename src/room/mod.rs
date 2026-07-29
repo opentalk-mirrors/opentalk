@@ -352,9 +352,6 @@ impl Room {
             ModerationEvent::Banned => {
                 Ok(Some(OpenTalkEvent::Disconnected(DisconnectReason::Banned)))
             }
-            ModerationEvent::ParticipantBanned(..) => Ok(None),
-            ModerationEvent::ParticipantUnbanned { .. } => Ok(None),
-            ModerationEvent::RoleUpdated { .. } => Ok(None),
             ModerationEvent::DebriefingStarted { .. } => Ok(Some(OpenTalkEvent::Disconnected(
                 DisconnectReason::DebriefingStarted,
             ))),
@@ -392,9 +389,13 @@ impl Room {
 
                 Ok(None)
             }
-            ModerationEvent::Error(..) => Ok(None),
-            ModerationEvent::DisplayNameChangeRestrictionsEnabled { .. } => Ok(None),
-            ModerationEvent::DisplayNameChangeRestrictionsDisabled => Ok(None),
+            // Not implemented yet
+            ModerationEvent::RoleUpdated { .. }
+            | ModerationEvent::ParticipantBanned(..)
+            | ModerationEvent::ParticipantUnbanned { .. }
+            | ModerationEvent::Error(..)
+            | ModerationEvent::DisplayNameChangeRestrictionsEnabled { .. }
+            | ModerationEvent::DisplayNameChangeRestrictionsDisabled => Ok(None),
         }
     }
 
