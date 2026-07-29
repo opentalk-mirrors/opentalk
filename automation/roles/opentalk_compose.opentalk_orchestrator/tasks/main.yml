@@ -8,7 +8,7 @@
 - name: Include manage_orchestrator_config.yml
   ansible.builtin.include_tasks:
     file: manage_orchestrator_config.yml
-  when: compose_service_opentalk_orchestrator_enabled | bool
+  when: compose_service_opentalk_orchestrator_enabled | default(false) | bool
 
 - name: Include manage_docker_compose.yml
   ansible.builtin.include_tasks:

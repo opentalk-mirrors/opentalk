@@ -9,32 +9,37 @@
 # updates. Custom values should therefore not be set here, but in
 # /etc/opentalk-compose/settings.yml instead.
 
+# Compose
 controller_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
 controller_docker_compose_services_state: "{{ compose_service_opentalk_controller_state | default('present') }}"
 controller_docker_compose_services_dir: "{{ services_dir }}"
 controller_docker_compose_project_src: "{{ deploy_dir }}"
 
+# Runtime limits
 controller_docker_compose_ulimits_nofile_soft: 65536
 controller_docker_compose_ulimits_nofile_hard: 65536
 controller_docker_compose_ulimits_nproc: 8192
 
+# Database container
 controller_db_docker_compose_ulimits_nofile_soft: 65536
 controller_db_docker_compose_ulimits_nofile_hard: 65536
 controller_db_docker_compose_ulimits_nproc: 8192
 controller_db_host_port: 5432
 controller_db_bind_interface: "127.0.0.1"
 
+# Images and networking
 controller_docker_image_src: registry.heinlein.group/opentalk/controller
 postgres_docker_image_src: registry.heinlein.group/opentalk/postgres
 controller_docker_extra_hosts:
   - host.docker.internal:host-gateway
 
-controller_roomserver_kind: "external"
-
+# Frontend and operator info
 controller_frontend_base_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}"
 # controller_operator_information_data_protection_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/data-protection"
 # controller_operator_information_support_phone_number: "+49 123 4567890"
 # controller_operator_information_support_email_address: "support@{{ ot_domain }}"
+
+# Logging
 controller_logging_default_directives:
   - "ERROR"
   - "opentalk=INFO"
@@ -47,12 +52,16 @@ controller_logging_default_directives:
 # controller_logging_service_name: "controller"
 # controller_logging_service_namespace: "opentalk"
 # controller_logging_service_instance_id: "627cc493-f310-47de-96bd-71410b7dec09"
+
+# Database
 controller_database_name: controller
 controller_database_user: ot
 controller_database_password: "{{ CONTROLLER_DB_PASSWORD }}"
 controller_database_host: controller-db
 controller_database_port: 5432
 # controller_database_max_connections: 100
+
+# Monitoring and HTTP
 controller_monitoring_port: 11411
 # controller_monitoring_addr: "0.0.0.0"
 controller_http_port: 11311
@@ -62,21 +71,23 @@ controller_http_port: 11311
 # controller_http_service_api_keys:
 #   - id: "controller"
 #     secret: "secret"
+
+# OIDC
 controller_oidc_authority: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
 controller_oidc_frontend_client_id: "Frontend"
 # controller_oidc_frontend_authority: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
 controller_oidc_controller_client_id: "Controller"
 controller_oidc_controller_client_secret: "{{ OIDC_CONTROLLER_CLIENT_SECRET }}"
 # controller_oidc_controller_authority: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
+
+# User search
 controller_user_search_backend: "keycloak_webapi"
 controller_user_search_api_base_url: "{{ keycloak_api_base_url }}"
 controller_user_search_users_find_behavior: "from_user_search_backend"
 # controller_user_search_client_id: "Controller"
 # controller_user_search_client_secret: "{{ OIDC_CONTROLLER_CLIENT_SECRET }}"
-controller_livekit_public_url: "wss://{{ (ot_domain, ot_ingress_port) | build_host }}/livekit"
-controller_livekit_service_url: "http://host.docker.internal:7880"
-controller_livekit_api_key: "controller"
-controller_livekit_api_secret: "{{ LIVEKIT_API_SECRET }}"
+
+# Messaging
 controller_rabbit_mq_url: "amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F"
 controller_rabbit_mq_mail_task_queue: "opentalk_mailer"
 controller_rabbit_mq_recording_task_queue: "opentalk_recorder"
@@ -85,15 +96,51 @@ controller_rabbit_mq_max_channels_per_connection: 100
 # controller_rabbit_mq_message_ttl_seconds: 3600
 # controller_redis_url: "redis://localhost:6379/"
 # controller_authz_synchronize_controllers: "true"
+
+# Roomserver
+controller_roomserver_kind: internal
+# controller_roomserver_service_url: "http://roomserver:{{ roomserver_http_port }}"
+# controller_roomserver_public_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/roomserver"
+# controller_roomserver_api_key_id: "roomserver"
+# controller_roomserver_api_key_secret: "{{ ROOMSERVER_API_SECRET }}"
+controller_roomserver_websocket_rate_limit_disabled: false
+controller_roomserver_websocket_rate_limit_tokens_per_second: 10
+controller_roomserver_websocket_rate_limit_token_bucket_size: 30
+controller_roomserver_modules_chat_rate_limit_tokens_per_second: 3
+controller_roomserver_modules_chat_rate_limit_token_bucket_size: 10
+controller_roomserver_modules_chat_rate_limit_slow_down_threshold: 0.8
+controller_roomserver_modules_enabled:
+  - chat
+  - e2ee
+  - echo
+  - livekit
+  - polls
+  - timer
+# controller_roomserver_modules_livekit_public_url: "wss://{{ (ot_domain, ot_ingress_port) | build_host }}/livekit"
+# controller_roomserver_modules_livekit_service_url: "http://host.docker.internal:{{ livekit_port | default(7880) }}"
+# controller_roomserver_modules_livekit_api_key: "controller"
+# controller_roomserver_modules_livekit_api_secret: "{{ LIVEKIT_API_SECRET }}"
+# controller_roomserver_modules_whiteboard_api_key: "{{ SPACEDECK_API_KEY }}"
+# controller_roomserver_modules_whiteboard_base_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/whiteboard"
+# controller_roomserver_modules_meeting_notes_api_key: "{{ ETHERPAD_API_KEY }}"
+# controller_roomserver_modules_meeting_notes_base_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/etherpad"
+# controller_roomserver_modules_recording_api_key_id: "recorder"
+# controller_roomserver_modules_recording_api_key_secret: "change-me"
+# controller_roomserver_modules_recording_url: "http://host.docker.internal:5555"
 # controller_roomserver_conference_signaling_salt: "random string at least 24 characters long"
+# controller_roomserver_defaults_screen_share_requires_permission: "true"
 # controller_roomserver_reports_typst_packages_path: "/usr/share/typst/packages"
 # controller_roomserver_room_idle_timeout: 60
+
+# STUN and call-in
 # controller_stun_uris:
 #   - "stun:127.0.0.1:3478"
 # controller_call_in_tel: "03012345678"
 # controller_call_in_enable_phone_mapping: "false"
 # controller_call_in_mask_unmapped_numbers: "true"
 # controller_call_in_default_country_code: "DE"
+
+# Object storage
 controller_minio_uri: "{{ 'http://garage:3900' if (s3_storage_provider | default('garage')) == 'garage' else 'http://minio:9000' }}"
 controller_minio_bucket: "opentalk"
 controller_minio_access_key: "{{ GARAGE_S3_ACCESS_KEY if (s3_storage_provider | default('garage')) == 'garage' else 'minioadmin' }}"
@@ -102,10 +149,8 @@ controller_minio_secret_key: "{{ GARAGE_S3_SECRET_KEY if (s3_storage_provider | 
 # controller_minio_region: "unknown"
 # controller_etcd_urls:
 #   - "etcd:2379"
-controller_etherpad_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/etherpad/"
-controller_etherpad_api_key: "{{ ETHERPAD_API_KEY }}"
-controller_spacedeck_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/whiteboard/"
-controller_spacedeck_api_key: "{{ SPACEDECK_API_KEY }}"
+
+# Reports and shared folder
 # controller_reports_template_inline: |
 # controller_reports_url: "http://localhost:6560"
 # controller_reports_typst_packages_path: "/usr/share/typst/packages"
@@ -121,11 +166,15 @@ controller_spacedeck_api_key: "{{ SPACEDECK_API_KEY }}"
 # controller_defaults_disabled_features:
 #   - "core::call_in"
 #   - "integration::outlook"
+
+# Endpoints
 controller_endpoints_event_invite_external_email_address: "true"
 # controller_endpoints_disable_users_find: "false"
 # controller_endpoints_users_find_use_kc: "false"
 # controller_endpoints_disallow_custom_display_name: "false"
 # controller_endpoints_disable_openapi: "false"
+
+# Metrics, tenants, tariffs
 # controller_metrics_allowlist:
 #   - "127.0.0.0/24"
 #   - "::ffff:0:0/96"

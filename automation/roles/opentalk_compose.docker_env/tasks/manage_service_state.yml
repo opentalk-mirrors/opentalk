@@ -58,7 +58,7 @@
   ansible.builtin.set_fact:
     compose_service_opentalk_controller_state: "{{ 'present' if compose_service_opentalk_controller_enabled else 'absent' }}"
     compose_service_opentalk_roomserver_state: "{{ 'present' if compose_service_opentalk_roomserver_enabled else 'absent' }}"
-    compose_service_opentalk_orchestrator_state: "{{ 'present' if compose_service_opentalk_orchestrator_enabled else 'absent' }}"
+    compose_service_opentalk_orchestrator_state: "{{ 'present' if (compose_service_opentalk_orchestrator_enabled | default(false) | bool) else 'absent' }}"
     compose_service_opentalk_obelisk_state: "{{ 'present' if compose_service_opentalk_obelisk_enabled else 'absent' }}"
     compose_service_opentalk_outlook_add_in_state: "{{ 'present' if compose_service_opentalk_outlook_add_in_enabled else 'absent' }}"
     compose_service_opentalk_recorder_state: "{{ 'present' if compose_service_opentalk_recorder_enabled else 'absent' }}"

@@ -23,17 +23,20 @@ support_email_address = "{{ controller_operator_information_support_email_addres
 {% endif %}
 {% endif %}
 
-{% if (controller_roomserver_kind | default('external')) == 'internal' or (compose_service_opentalk_roomserver_enabled is defined and compose_service_opentalk_roomserver_enabled) %}
 [roomserver]
 kind = "{{ controller_roomserver_kind | default('external') }}"
-{% if (controller_roomserver_kind | default('external')) == 'external' %}
-{% if compose_service_opentalk_orchestrator_enabled is defined and compose_service_opentalk_orchestrator_enabled %}
-service_url = "http://orchestrator:11222/roomserver/"
-api_key = { id = "orchestrator", secret = "{{ ORCHESTRATOR_API_SECRET }}" }
-{% else %}
-service_url = "http://roomserver:11333"
-api_key = {id = "roomserver", secret = "{{ ROOMSERVER_API_SECRET}}" }
+{% if controller_roomserver_service_url is defined and controller_roomserver_service_url %}
+service_url = "{{ controller_roomserver_service_url }}"
 {% endif %}
+{% if controller_roomserver_public_url is defined and controller_roomserver_public_url %}
+public_url = "{{ controller_roomserver_public_url }}"
+{% endif %}
+{% if (controller_roomserver_kind | default('external')) == 'external' and (controller_roomserver_api_key_id is defined and controller_roomserver_api_key_secret is defined) %}
+api_key = { id = "{{ controller_roomserver_api_key_id }}", secret = "{{ controller_roomserver_api_key_secret }}" }
+{% elif (controller_roomserver_kind | default('external')) == 'external' and compose_service_opentalk_orchestrator_enabled is defined and compose_service_opentalk_orchestrator_enabled %}
+api_key = { id = "orchestrator", secret = "{{ ORCHESTRATOR_API_SECRET }}" }
+{% elif (controller_roomserver_kind | default('external')) == 'external' %}
+api_key = { id = "roomserver", secret = "{{ ROOMSERVER_API_SECRET }}" }
 {% endif %}
 {% if controller_roomserver_room_idle_timeout is defined and controller_roomserver_room_idle_timeout %}
 
@@ -44,32 +47,94 @@ room_idle_timeout = {{ controller_roomserver_room_idle_timeout }}
 [roomserver.conference]
 signaling_salt = "{{ controller_roomserver_conference_signaling_salt }}"
 {% endif %}
+{% if controller_roomserver_defaults_screen_share_requires_permission is defined %}
+
+[roomserver.defaults]
+screen_share_requires_permission = {{ controller_roomserver_defaults_screen_share_requires_permission | to_json }}
+{% endif %}
 
 [roomserver.websocket_rate_limit]
-disabled = false
-tokens_per_second = 10
-token_bucket_size = 30
+disabled = {{ controller_roomserver_websocket_rate_limit_disabled | to_json }}
+tokens_per_second = {{ controller_roomserver_websocket_rate_limit_tokens_per_second }}
+token_bucket_size = {{ controller_roomserver_websocket_rate_limit_token_bucket_size }}
 
 #The Modules that are enabled in the roomserver
+{% if 'chat' in controller_roomserver_modules_enabled %}
 [roomserver.modules.chat]
 [roomserver.modules.chat.rate_limit]
-tokens_per_second = 3
-token_bucket_size = 10
-slow_down_threshold = 0.8
+tokens_per_second = {{ controller_roomserver_modules_chat_rate_limit_tokens_per_second }}
+token_bucket_size = {{ controller_roomserver_modules_chat_rate_limit_token_bucket_size }}
+slow_down_threshold = {{ controller_roomserver_modules_chat_rate_limit_slow_down_threshold }}
+{% endif %}
+{% if 'e2ee' in controller_roomserver_modules_enabled %}
 [roomserver.modules.e2ee]
+{% endif %}
+{% if 'livekit' in controller_roomserver_modules_enabled and controller_roomserver_modules_livekit_api_key is defined %}
 [roomserver.modules.livekit]
-api_key = "{{ controller_livekit_api_key }}"
-api_secret = "{{ controller_livekit_api_secret }}"
-public_url = "{{ controller_livekit_public_url }}"
-service_url = "{{ controller_livekit_service_url }}"
+api_key = "{{ controller_roomserver_modules_livekit_api_key }}"
+api_secret = "{{ controller_roomserver_modules_livekit_api_secret }}"
+public_url = "{{ controller_roomserver_modules_livekit_public_url }}"
+service_url = "{{ controller_roomserver_modules_livekit_service_url }}"
+{% endif %}
+{% if 'echo' in controller_roomserver_modules_enabled %}
 [roomserver.modules.echo]
+{% endif %}
+{% if 'polls' in controller_roomserver_modules_enabled %}
 [roomserver.modules.polls]
+{% endif %}
+{% if 'timer' in controller_roomserver_modules_enabled %}
 [roomserver.modules.timer]
+{% endif %}
+{% if 'recording' in controller_roomserver_modules_enabled %}
+[roomserver.modules.recording]
+{% if controller_roomserver_modules_recording_api_key_id is defined and controller_roomserver_modules_recording_api_key_secret is defined %}
+api_key = { id = "{{ controller_roomserver_modules_recording_api_key_id }}", secret = "{{ controller_roomserver_modules_recording_api_key_secret }}" }
+{% endif %}
+{% if controller_roomserver_modules_recording_url is defined and controller_roomserver_modules_recording_url %}
+url = "{{ controller_roomserver_modules_recording_url }}"
+{% endif %}
+{% endif %}
+{% if controller_roomserver_modules_whiteboard_api_key is defined %}
+[roomserver.modules.whiteboard]
+api_key = "{{ controller_roomserver_modules_whiteboard_api_key }}"
+base_url = "{{ controller_roomserver_modules_whiteboard_base_url }}"
+{% endif %}
+{% if controller_roomserver_modules_meeting_notes_api_key is defined %}
+[roomserver.modules.meeting_notes]
+api_key = "{{ controller_roomserver_modules_meeting_notes_api_key }}"
+base_url = "{{ controller_roomserver_modules_meeting_notes_base_url }}"
+{% endif %}
+{% if 'training_participation_report' in controller_roomserver_modules_enabled %}
+[roomserver.modules.training_participation_report]
+{% endif %}
+{% if 'reaction' in controller_roomserver_modules_enabled %}
+[roomserver.modules.reaction]
+{% endif %}
+{% if 'automod' in controller_roomserver_modules_enabled %}
+[roomserver.modules.automod]
+{% endif %}
+{% if 'legal_vote' in controller_roomserver_modules_enabled %}
+[roomserver.modules.legal_vote]
+{% endif %}
+{% if 'meeting_report' in controller_roomserver_modules_enabled %}
+[roomserver.modules.meeting_report]
+{% endif %}
+{% if 'moderation' in controller_roomserver_modules_enabled %}
+[roomserver.modules.moderation]
+{% endif %}
+{% if 'raise_hands' in controller_roomserver_modules_enabled %}
+[roomserver.modules.raise_hands]
+{% endif %}
+{% if 'shared_folder' in controller_roomserver_modules_enabled %}
+[roomserver.modules.shared_folder]
+{% endif %}
+{% if 'subroom_audio' in controller_roomserver_modules_enabled %}
+[roomserver.modules.subroom_audio]
+{% endif %}
 {% if controller_roomserver_reports_typst_packages_path is defined and controller_roomserver_reports_typst_packages_path %}
 
 [roomserver.reports.typst]
 packages_path = "{{ controller_roomserver_reports_typst_packages_path }}"
-{% endif %}
 {% endif %}
 
 [logging]
@@ -121,6 +186,8 @@ addr = "{{ controller_http_addr }}"
 {% endif %}
 {% if controller_http_service_api_keys is defined and controller_http_service_api_keys %}
 service_api_keys = [{% for key in controller_http_service_api_keys %}{ "id" = "{{ key.id }}", "secret" = "{{ key.secret }}" }{% if not loop.last %}, {% endif %}{% endfor %}]
+{% else %}
+service_api_keys = [{ "id" = "controller", "secret" = "{{ CONTROLLER_API_SECRET }}" }]
 {% endif %}
 {% if controller_http_upload_size_limit is defined and controller_http_upload_size_limit %}
 upload_size_limit = {{ controller_http_upload_size_limit }}
@@ -128,9 +195,6 @@ upload_size_limit = {{ controller_http_upload_size_limit }}
 {% if controller_http_cors_allowed_origin is defined and controller_http_cors_allowed_origin %}
 [http.cors]
 allowed_origin = {{ controller_http_cors_allowed_origin }}
-{% endif %}
-{% if compose_service_opentalk_roomserver_enabled is defined and compose_service_opentalk_roomserver_enabled %}
-service_api_keys = [{ "id" = "controller", "secret" = "{{ CONTROLLER_API_SECRET }}" }]
 {% endif %}
 
 [oidc]
@@ -163,12 +227,6 @@ external_id_user_attribute_name = "{{ controller_user_search_external_id_user_at
 {% endif %}
 users_find_behavior = "{{ controller_user_search_users_find_behavior }}"
 
-[livekit]
-public_url = "{{ controller_livekit_public_url }}"
-service_url = "{{ controller_livekit_service_url }}"
-api_key = "{{ controller_livekit_api_key }}"
-api_secret = "{{ controller_livekit_api_secret }}"
-
 [rabbit_mq]
 {% if controller_rabbit_mq_url is defined and controller_rabbit_mq_url %}
 url = "{{ controller_rabbit_mq_url }}"
@@ -195,8 +253,8 @@ url = "{{ controller_redis_url }}"
 {% endif %}
 
 {% if controller_authz_synchronize_controllers is defined and controller_authz_synchronize_controllers %}
-[authz]
-synchronize_controllers = {{ controller_authz_synchronize_controllers }}
+[authorization]
+synchronize_controllers = {{ controller_authz_synchronize_controllers | to_json }}
 {% endif %}
 
 {% if controller_call_in_tel is defined or controller_call_in_enable_phone_mapping is defined or controller_call_in_mask_unmapped_numbers is defined or controller_call_in_default_country_code is defined %}
@@ -247,17 +305,7 @@ urls = [
 ]
 {% endif %}
 
-{% if controller_etherpad_url is defined and controller_etherpad_api_key is defined %}
-[etherpad]
-url = "{{ controller_etherpad_url }}"
-api_key = "{{ controller_etherpad_api_key }}"
-{% endif %}
 
-{% if controller_spacedeck_url is defined and controller_spacedeck_api_key is defined %}
-[spacedeck]
-url = "{{ controller_spacedeck_url }}"
-api_key = "{{ controller_spacedeck_api_key }}"
-{% endif %}
 
 {% if controller_reports_template_inline is defined or controller_reports_url is defined %}
 [reports]

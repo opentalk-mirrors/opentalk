@@ -37,6 +37,14 @@ services:
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.middlewares={{ traefik_docker_label_http_routers_dashboard_middlewares }}"
       - "traefik.http.middlewares.dashboard-strip.stripprefix.prefixes=/adm/traefik"
+      - "traefik.http.routers.livekit-host.rule=Host(`{{ ot_domain }}`) && (PathPrefix(`/livekit`) || PathPrefix(`/twirp`))"
+      - "traefik.http.routers.livekit-host.priority=120"
+      - "traefik.http.routers.livekit-host.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+      - "traefik.http.routers.livekit-host.tls={{ (traefik_letsencrypt_enable or custom_certificates_enabled) | to_json }}"
+      - "traefik.http.routers.livekit-host.middlewares=livekit-host-strip"
+      - "traefik.http.middlewares.livekit-host-strip.stripprefix.prefixes=/livekit"
+      - "traefik.http.routers.livekit-host.service=livekit-host-service"
+      - "traefik.http.services.livekit-host-service.loadbalancer.servers[0].url=http://host.docker.internal:{{ livekit_port | default(7880) }}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./config:/etc/traefik
