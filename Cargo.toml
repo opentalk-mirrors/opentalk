@@ -86,10 +86,10 @@ opentalk-roomserver-types-training-participation-report = { path = "modules/trai
 opentalk-roomserver-types-transcription = { path = "modules/transcription/types", version = "0.3" }
 opentalk-roomserver-types-whiteboard = { path = "modules/whiteboard/types", version = "0.3" }
 opentalk-roomserver-web-api = { path = "opentalk-roomserver-web-api", version = "0.5" }
-opentalk-service-auth = { version = "0.2", default-features = false }
-opentalk-types-api-internal = { version = "0.3", features = ["axum"] }
-opentalk-types-common = { version = "0.46", features = ["serde", "utoipa"] }
-opentalk-types-signaling = { version = "0.47", features = ["serde", "utoipa"] }
+opentalk-service-auth = { version = "0.3", default-features = false }
+opentalk-types-api-internal = { version = "0.4", features = ["axum"] }
+opentalk-types-common = { version = "0.47", features = ["serde", "utoipa"] }
+opentalk-types-signaling = { version = "0.48", features = ["serde", "utoipa"] }
 
 actix-ws = "0.4"
 anstream = "1"
@@ -119,19 +119,19 @@ icu_locid = "1"
 insta = "1.43.1"
 itertools = "0.15.0"
 json-patch = "4.0"
-jsonwebtoken = { version = "10", default-features = false }
+jsonwebtoken = { version = "11", default-features = false }
 livekit = { version = "0.8", features = ["rustls-tls-native-roots"] }
 livekit-api = { version = "0.6", features = ["rustls-tls-native-roots"] }
 livekit-protocol = "0.7"
 log = "0.4.22"
 mockito = "1.7.0"
 opentalk-etherpad-client = { version = "0.6", default-features = false }
-opentalk-orchestrator-client = { version = "0.10.0", features = [
+opentalk-orchestrator-client = { version = "0.12.0", features = [
   "roomserver-service",
 ] }
-opentalk-orchestrator-shared = "0.10.0"
+opentalk-orchestrator-shared = "0.12.0"
 opentalk-report-generation = "0.3"
-opentalk-transcription-web-api = "0.3"
+opentalk-transcription-web-api = "0.4"
 opentalk-version = "0.4.0"
 opentelemetry = "0.32.0"
 opentelemetry-otlp = { version = "0.32.0", features = ["grpc-tonic"] }
