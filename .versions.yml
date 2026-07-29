@@ -21,9 +21,9 @@ livekit_version: v1.13.1
 keycloak_version: 26.6.3
 postgres_version: 17.10-alpine
 rabbitmq_version: v4.3.1-management-alpine
-traefik_version: v3.7.7
 minio_version: RELEASE.2025-10-15T17-29-55Z
 minio_client_version: RELEASE.2025-08-13T08-35-41Z
+traefik_version: v3.7.9
 garage_version: v2.3.0
 mailcrab_version: v1.7.0
 ndt_version: v0.25.3
