@@ -395,7 +395,9 @@ impl Room {
             | ModerationEvent::ParticipantUnbanned { .. }
             | ModerationEvent::Error(..)
             | ModerationEvent::DisplayNameChangeRestrictionsEnabled { .. }
-            | ModerationEvent::DisplayNameChangeRestrictionsDisabled => Ok(None),
+            | ModerationEvent::DisplayNameChangeRestrictionsDisabled
+            | ModerationEvent::GuestAccessEnabled
+            | ModerationEvent::GuestAccessDisabled => Ok(None),
         }
     }
 
