@@ -114,6 +114,7 @@ controller_roomserver_modules_enabled:
   - e2ee
   - echo
   - livekit
+  - moderation
   - polls
   - timer
 # controller_roomserver_modules_livekit_public_url: "wss://{{ (ot_domain, ot_ingress_port) | build_host }}/livekit"

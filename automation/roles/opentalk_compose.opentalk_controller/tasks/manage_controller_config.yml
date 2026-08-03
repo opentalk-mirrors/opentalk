@@ -95,11 +95,11 @@
 
 - name: Set meeting_notes module vars from etherpad service config
   ansible.builtin.set_fact:
-    controller_roomserver_modules_meeting_notes_api_key: "{{ ETHERPAD_API_KEY }}"
-    controller_roomserver_modules_meeting_notes_base_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/etherpad"
+    controller_roomserver_modules_meeting_notes_api_key: "{{ controller_roomserver_modules_meeting_notes_api_key | default(ETHERPAD_API_KEY) }}"
+    controller_roomserver_modules_meeting_notes_base_url: "{{ controller_roomserver_modules_meeting_notes_base_url | default((ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url ~ '/etherpad') }}"
   when:
     - compose_service_etherpad_enabled | default(false) | bool
-    - controller_roomserver_modules_meeting_notes_api_key is not defined
+    - controller_roomserver_modules_meeting_notes_api_key is not defined or controller_roomserver_modules_meeting_notes_base_url is not defined
 
 - name: Set livekit module vars from livekit service config
   ansible.builtin.set_fact:
@@ -110,6 +110,35 @@
   when:
     - compose_service_livekit_server_enabled | default(false) | bool
     - controller_roomserver_modules_livekit_api_key is not defined
+
+- name: Set recording module vars from recorder service config
+  ansible.builtin.set_fact:
+    controller_roomserver_modules_recording_api_key_id: >-
+      {{ controller_roomserver_modules_recording_api_key_id
+         | default(
+             (recorder_http_api_keys[0].id
+               if (recorder_http_api_keys is defined
+                   and recorder_http_api_keys | length > 0
+                   and recorder_http_api_keys[0].id is defined)
+               else recorder_controller_api_key_id)
+           ) }}
+    controller_roomserver_modules_recording_api_key_secret: >-
+      {{ controller_roomserver_modules_recording_api_key_secret
+         | default(
+             (recorder_http_api_keys[0].secret
+               if (recorder_http_api_keys is defined
+                   and recorder_http_api_keys | length > 0
+                   and recorder_http_api_keys[0].secret is defined)
+               else recorder_controller_api_key_secret)
+           ) }}
+    controller_roomserver_modules_recording_url: >-
+      {{ controller_roomserver_modules_recording_url
+         | default('http://host.docker.internal:' ~ (recorder_http_port | default('5555') | string)) }}
+  when:
+    - compose_service_opentalk_recorder_enabled | default(false) | bool
+    - controller_roomserver_modules_recording_api_key_id is not defined
+      or controller_roomserver_modules_recording_api_key_secret is not defined
+      or controller_roomserver_modules_recording_url is not defined
 
 - name: "Render OpenTalk Controller static config | {{ controller_docker_compose_services_dir }}/opentalk-controller/config/controller.toml"
   ansible.builtin.template:

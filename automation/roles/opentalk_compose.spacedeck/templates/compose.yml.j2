@@ -62,17 +62,21 @@ services:
       - "traefik.enable={{ spacedeck_docker_labels_traefik_enable | to_json }}"
       - "traefik.http.routers.spacedeck.rule=Host(`{{ ot_domain }}`) \
         && (PathPrefix(`/whiteboard`) \
+        || Path(`/s`) \
+        || PathPrefix(`/s/`) \
         || PathPrefix(`/spaces`) \
         || PathPrefix(`/javascripts`) \
         || PathPrefix(`/images`) \
         || PathPrefix(`/stylesheets`) \
         || PathPrefix(`/storage`) \
-        || PathPrefix(`/socket`) \
+        || Path(`/socket`) \
+        || PathPrefix(`/socket/`) \
         || PathPrefix(`/api/users/current`) \
         || PathPrefix(`/api/sessions/current`) \
         || PathPrefix(`/api/spaces`) \
         || PathPrefix(`/fonts/`))"
       - "traefik.http.services.spacedeck.loadbalancer.server.port=9666"
+      - "traefik.http.routers.spacedeck.priority=110"
       - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/whiteboard"
       - "traefik.http.routers.spacedeck.middlewares=strip-prefix"
       - "traefik.http.routers.spacedeck.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"

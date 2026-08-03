@@ -44,7 +44,7 @@ services:
       - "traefik.http.routers.livekit-host.middlewares=livekit-host-strip"
       - "traefik.http.middlewares.livekit-host-strip.stripprefix.prefixes=/livekit"
       - "traefik.http.routers.livekit-host.service=livekit-host-service"
-      - "traefik.http.services.livekit-host-service.loadbalancer.servers[0].url=http://host.docker.internal:{{ livekit_port | default(7880) }}"
+      - "traefik.http.services.livekit-host-service.loadbalancer.server.url=http://host.docker.internal:{{ livekit_port | default(7880) }}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./config:/etc/traefik
