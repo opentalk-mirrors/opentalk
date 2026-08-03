@@ -34,7 +34,7 @@ variables:
   KANIKO_IMAGE: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/kaniko:debug-1.25.2
   SKOPEO_IMAGE: quay.io/skopeo/stable:v1
   DEFAULT_FLAVOR: alpine
-  RUST_LINT_IMAGE: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.96.0-trixie
+  RUST_LINT_IMAGE: registry.heinlein.group/opentalk-tools/rust:1.97-trixie
 
 .template_vars:
   FLAVORS: [alpine, trixie, resolute, scratch]
