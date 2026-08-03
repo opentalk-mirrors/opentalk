@@ -29,7 +29,7 @@ ezk-audio-nodes = "0.1"
 ezk-g711 = "0.2"
 ezk-g722 = "0.1"
 ezk-image = "0.4"
-ezk-rtp = "0.2"
+ezk-rtp = "=0.2.0"
 ezk-sdp-types = "0.6"
 ezk-sip-auth = "0.5"
 ezk-sip-core = { version = "0.9", features = ["tls-native-tls"] }
@@ -66,6 +66,12 @@ tokio = { version = "1", features = ["rt-multi-thread", "signal"] }
 tokio-native-tls = "0.3"
 url = { version = "2.2", features = ["serde"] }
 webrtc-sys = "0.3"
+
+# Pinning protocol version due to breaking changes in 0.7.12 which have not yet been fixed in the livekit crate
+livekit-protocol = "=0.7.11"
+
+[package.metadata.cargo-machete]
+ignored = ["livekit-protocol"]
 
 [patch.crates-io]
 # Removes duplicate paste and therefore some compile time
