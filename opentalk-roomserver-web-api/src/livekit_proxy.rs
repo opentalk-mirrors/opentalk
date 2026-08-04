@@ -239,7 +239,13 @@ pub fn parse_livekit_room_id(livekit_id: &str) -> Result<(RoomId, LiveKitProxyTa
 pub fn parse_livekit_participant(
     livekit_sub: &str,
 ) -> Result<(ParticipantId, ConnectionId), ApiError> {
-    let Some((participant, connection)) = livekit_sub.split_once(':') else {
+    // Discard any popout stream suffix
+    let qualified_id = livekit_sub
+        .rsplit_once("-popout")
+        .unwrap_or((livekit_sub, ""))
+        .0;
+
+    let Some((participant, connection)) = qualified_id.split_once(':') else {
         tracing::debug!(
             "Failed to parse livekit participant, missing ':' delimiter in {livekit_sub:?}"
         );
@@ -279,5 +285,62 @@ fn extract_access_token(query: LiveKitQuery, headers: &HeaderMap) -> Result<Stri
         };
 
         Ok(access_token)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use opentalk_roomserver_types::connection_id::ConnectionId;
+    use opentalk_types_signaling::ParticipantId;
+
+    use super::parse_livekit_participant;
+
+    #[test]
+    fn parse_livekit_participant_valid() {
+        let participant = ParticipantId::from_u128(0x1234);
+        let connection = ConnectionId::from_u128(0x5678);
+        let livekit_sub = format!("{participant}:{connection}");
+
+        let parsed = parse_livekit_participant(&livekit_sub);
+
+        assert_eq!(parsed.unwrap(), (participant, connection));
+    }
+
+    #[test]
+    fn parse_livekit_participant_valid_popout() {
+        let participant = ParticipantId::from_u128(0x1234);
+        let connection = ConnectionId::from_u128(0x5678);
+        let livekit_sub = format!("{participant}:{connection}-popout1");
+
+        let parsed = parse_livekit_participant(&livekit_sub);
+
+        assert_eq!(parsed.unwrap(), (participant, connection));
+    }
+
+    #[test]
+    fn parse_livekit_participant_missing_delimiter() {
+        let err = parse_livekit_participant("not-a-valid-sub");
+
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn parse_livekit_participant_invalid_participant_id() {
+        let connection = ConnectionId::from_u128(0x5678);
+        let livekit_sub = format!("invalid:{connection}");
+
+        let err = parse_livekit_participant(&livekit_sub);
+
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn parse_livekit_participant_invalid_connection_id() {
+        let participant = ParticipantId::from_u128(0x1234);
+        let livekit_sub = format!("{participant}:invalid");
+
+        let err = parse_livekit_participant(&livekit_sub);
+
+        assert!(err.is_err());
     }
 }
