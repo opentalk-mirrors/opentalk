@@ -22,6 +22,7 @@ pub enum TranscriptionEvent {
     Segment(TranscriptionSegment),
 
     StateUpdated {
+        #[serde(flatten)]
         status: TranscriptionStatus,
     },
 
@@ -71,13 +72,16 @@ mod tests {
     #[test]
     fn serialize_requested() {
         let event = TranscriptionEvent::StateUpdated {
-            status: TranscriptionStatus::Requested,
+            status: TranscriptionStatus::Requested {
+                language: Some("de".into()),
+            },
         };
 
         assert_json_snapshot!(event, @ r#"
         {
           "message": "state_updated",
-          "status": "requested"
+          "status": "requested",
+          "language": "de"
         }
         "#);
     }
@@ -85,13 +89,16 @@ mod tests {
     #[test]
     fn serialize_running() {
         let event = TranscriptionEvent::StateUpdated {
-            status: TranscriptionStatus::Running,
+            status: TranscriptionStatus::Running {
+                language: Some("de".into()),
+            },
         };
 
         assert_json_snapshot!(event, @ r#"
         {
           "message": "state_updated",
-          "status": "running"
+          "status": "running",
+          "language": "de"
         }
         "#);
     }

@@ -4,12 +4,12 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "status")]
 pub enum TranscriptionStatus {
     Inactive,
-    Requested,
-    Running,
+    Requested { language: Option<String> },
+    Running { language: Option<String> },
 }
 
 /// The state of the `transcription` module.
@@ -18,6 +18,7 @@ pub enum TranscriptionStatus {
 /// when they successfully join the meeting.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TranscriptionState {
+    #[serde(flatten)]
     pub status: TranscriptionStatus,
 }
 
@@ -48,12 +49,15 @@ mod tests {
     #[test]
     fn serialize_requested_state() {
         let state = TranscriptionState {
-            status: TranscriptionStatus::Requested,
+            status: TranscriptionStatus::Requested {
+                language: Some("de".into()),
+            },
         };
 
         assert_json_snapshot!(state, @ r#"
         {
-          "status": "requested"
+          "status": "requested",
+          "language": "de"
         }
         "#);
     }
@@ -61,12 +65,15 @@ mod tests {
     #[test]
     fn serialize_running_state() {
         let state = TranscriptionState {
-            status: TranscriptionStatus::Running,
+            status: TranscriptionStatus::Running {
+                language: Some("en".into()),
+            },
         };
 
         assert_json_snapshot!(state, @ r#"
         {
-          "status": "running"
+          "status": "running",
+          "language": "en"
         }
         "#);
     }

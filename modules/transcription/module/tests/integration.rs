@@ -123,7 +123,9 @@ async fn start_transcription(
     expect_transcription_event!(
         issuer,
         TranscriptionEvent::StateUpdated {
-            status: TranscriptionStatus::Requested
+            status: TranscriptionStatus::Requested {
+                language: Some("de".into())
+            }
         }
     );
 
@@ -131,7 +133,9 @@ async fn start_transcription(
         expect_transcription_event!(
             other,
             TranscriptionEvent::StateUpdated {
-                status: TranscriptionStatus::Requested
+                status: TranscriptionStatus::Requested {
+                    language: Some("de".into())
+                }
             }
         );
     }
@@ -174,7 +178,9 @@ async fn start_and_stop_transcription() {
     transcription
         .send_command::<TranscriptionModule>(
             TranscriptionCommand::TranscriptionServiceEvent {
-                event: TranscriptionServiceEvent::Started,
+                event: TranscriptionServiceEvent::Started {
+                    language: Some("de".into()),
+                },
             },
             None,
         )
@@ -185,13 +191,17 @@ async fn start_and_stop_transcription() {
     expect_transcription_event!(
         alice,
         TranscriptionEvent::StateUpdated {
-            status: TranscriptionStatus::Running
+            status: TranscriptionStatus::Running {
+                language: Some("de".into()),
+            }
         }
     );
     expect_transcription_event!(
         transcription,
         TranscriptionEvent::StateUpdated {
-            status: TranscriptionStatus::Running
+            status: TranscriptionStatus::Running {
+                language: Some("de".into()),
+            }
         }
     );
 
@@ -254,7 +264,9 @@ async fn transcription_segment() {
     transcription
         .send_command::<TranscriptionModule>(
             TranscriptionCommand::TranscriptionServiceEvent {
-                event: TranscriptionServiceEvent::Started,
+                event: TranscriptionServiceEvent::Started {
+                    language: Some("de".into()),
+                },
             },
             None,
         )
@@ -264,7 +276,9 @@ async fn transcription_segment() {
     expect_transcription_event!(
         alice,
         TranscriptionEvent::StateUpdated {
-            status: TranscriptionStatus::Running
+            status: TranscriptionStatus::Running {
+                language: Some("de".into()),
+            }
         }
     );
 
@@ -341,7 +355,9 @@ async fn breakout_room_transcription() {
     transcription
         .send_command::<TranscriptionModule>(
             TranscriptionCommand::TranscriptionServiceEvent {
-                event: TranscriptionServiceEvent::Started,
+                event: TranscriptionServiceEvent::Started {
+                    language: Some("de".into()),
+                },
             },
             None,
         )
@@ -351,13 +367,17 @@ async fn breakout_room_transcription() {
     expect_transcription_event!(
         alice,
         TranscriptionEvent::StateUpdated {
-            status: TranscriptionStatus::Running
+            status: TranscriptionStatus::Running {
+                language: Some("de".into()),
+            }
         }
     );
     expect_transcription_event!(
         transcription,
         TranscriptionEvent::StateUpdated {
-            status: TranscriptionStatus::Running
+            status: TranscriptionStatus::Running {
+                language: Some("de".into()),
+            }
         }
     );
 
@@ -446,7 +466,9 @@ async fn transcription_segment_insufficient_permission() {
     transcription
         .send_command::<TranscriptionModule>(
             TranscriptionCommand::TranscriptionServiceEvent {
-                event: TranscriptionServiceEvent::Started,
+                event: TranscriptionServiceEvent::Started {
+                    language: Some("de".into()),
+                },
             },
             None,
         )
@@ -456,7 +478,9 @@ async fn transcription_segment_insufficient_permission() {
     expect_transcription_event!(
         alice,
         TranscriptionEvent::StateUpdated {
-            status: TranscriptionStatus::Running
+            status: TranscriptionStatus::Running {
+                language: Some("de".into()),
+            }
         }
     );
 
@@ -501,7 +525,7 @@ async fn failed_transcription_request() {
     expect_transcription_event!(
         alice,
         TranscriptionEvent::StateUpdated {
-            status: TranscriptionStatus::Requested
+            status: TranscriptionStatus::Requested { language: None }
         }
     );
 
@@ -546,7 +570,9 @@ async fn unexpected_service_disconnect() {
     transcription
         .send_command::<TranscriptionModule>(
             TranscriptionCommand::TranscriptionServiceEvent {
-                event: TranscriptionServiceEvent::Started,
+                event: TranscriptionServiceEvent::Started {
+                    language: Some("de".into()),
+                },
             },
             None,
         )
@@ -557,7 +583,9 @@ async fn unexpected_service_disconnect() {
     expect_transcription_event!(
         alice,
         TranscriptionEvent::StateUpdated {
-            status: TranscriptionStatus::Running
+            status: TranscriptionStatus::Running {
+                language: Some("de".into()),
+            }
         }
     );
 

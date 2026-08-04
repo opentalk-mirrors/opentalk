@@ -21,6 +21,10 @@ pub enum TranscriptionCommand {
 
     Stop,
 
+    ChangeLanguage {
+        language: Option<String>,
+    },
+
     TranscriptionServiceEvent {
         event: TranscriptionServiceEvent,
     },
@@ -79,14 +83,17 @@ mod tests {
     #[test]
     fn serialize_service_event_started() {
         let command = TranscriptionCommand::TranscriptionServiceEvent {
-            event: TranscriptionServiceEvent::Started,
+            event: TranscriptionServiceEvent::Started {
+                language: Some("de".into()),
+            },
         };
 
         assert_json_snapshot!(command, @ r#"
         {
           "action": "transcription_service_event",
           "event": {
-            "kind": "started"
+            "kind": "started",
+            "language": "de"
           }
         }
         "#);
