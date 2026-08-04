@@ -110,13 +110,27 @@ controller_roomserver_modules_chat_rate_limit_tokens_per_second: 3
 controller_roomserver_modules_chat_rate_limit_token_bucket_size: 10
 controller_roomserver_modules_chat_rate_limit_slow_down_threshold: 0.8
 controller_roomserver_modules_enabled:
+  - automod
+  - breakout
   - chat
   - e2ee
   - echo
+  - excalidraw
+  # - legal_vote
   - livekit
+  - meeting_notes
+  - meeting_report
   - moderation
   - polls
+  - raise_hands
+  - reaction
   - timer
+  - recording
+  - shared_folder
+  - subroom_audio
+  - training_participation_report
+  - transcription
+  - whiteboard
 # controller_roomserver_modules_livekit_public_url: "wss://{{ (ot_domain, ot_ingress_port) | build_host }}/livekit"
 # controller_roomserver_modules_livekit_service_url: "http://host.docker.internal:{{ livekit_port | default(7880) }}"
 # controller_roomserver_modules_livekit_api_key: "controller"
@@ -127,7 +141,7 @@ controller_roomserver_modules_enabled:
 # controller_roomserver_modules_meeting_notes_base_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/etherpad"
 # controller_roomserver_modules_recording_api_key_id: "recorder"
 # controller_roomserver_modules_recording_api_key_secret: "change-me"
-# controller_roomserver_modules_recording_url: "http://host.docker.internal:5555"
+# controller_roomserver_modules_recording_url: "http://recorder:5555"
 # controller_roomserver_conference_signaling_salt: "random string at least 24 characters long"
 # controller_roomserver_defaults_screen_share_requires_permission: "true"
 # controller_roomserver_reports_typst_packages_path: "/usr/share/typst/packages"

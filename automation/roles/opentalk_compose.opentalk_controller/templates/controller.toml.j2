@@ -69,6 +69,9 @@ slow_down_threshold = {{ controller_roomserver_modules_chat_rate_limit_slow_down
 {% if 'e2ee' in controller_roomserver_modules_enabled %}
 [roomserver.modules.e2ee]
 {% endif %}
+{% if 'breakout' in controller_roomserver_modules_enabled %}
+[roomserver.modules.breakout]
+{% endif %}
 {% if 'livekit' in controller_roomserver_modules_enabled and controller_roomserver_modules_livekit_api_key is defined %}
 [roomserver.modules.livekit]
 api_key = "{{ controller_roomserver_modules_livekit_api_key }}"
@@ -85,6 +88,9 @@ service_url = "{{ controller_roomserver_modules_livekit_service_url }}"
 {% if 'timer' in controller_roomserver_modules_enabled %}
 [roomserver.modules.timer]
 {% endif %}
+{% if 'excalidraw' in controller_roomserver_modules_enabled %}
+[roomserver.modules.excalidraw]
+{% endif %}
 {% if 'recording' in controller_roomserver_modules_enabled %}
 [roomserver.modules.recording]
 {% if controller_roomserver_modules_recording_api_key_id is defined and controller_roomserver_modules_recording_api_key_secret is defined %}
@@ -94,12 +100,12 @@ api_key = { id = "{{ controller_roomserver_modules_recording_api_key_id }}", sec
 url = "{{ controller_roomserver_modules_recording_url }}"
 {% endif %}
 {% endif %}
-{% if controller_roomserver_modules_whiteboard_api_key is defined %}
+{% if 'whiteboard' in controller_roomserver_modules_enabled and controller_roomserver_modules_whiteboard_api_key is defined %}
 [roomserver.modules.whiteboard]
 api_key = "{{ controller_roomserver_modules_whiteboard_api_key }}"
 base_url = "{{ controller_roomserver_modules_whiteboard_base_url }}"
 {% endif %}
-{% if controller_roomserver_modules_meeting_notes_api_key is defined %}
+{% if 'meeting_notes' in controller_roomserver_modules_enabled and controller_roomserver_modules_meeting_notes_api_key is defined %}
 [roomserver.modules.meeting_notes]
 api_key = "{{ controller_roomserver_modules_meeting_notes_api_key }}"
 base_url = "{{ controller_roomserver_modules_meeting_notes_base_url }}"
@@ -130,6 +136,9 @@ base_url = "{{ controller_roomserver_modules_meeting_notes_base_url }}"
 {% endif %}
 {% if 'subroom_audio' in controller_roomserver_modules_enabled %}
 [roomserver.modules.subroom_audio]
+{% endif %}
+{% if 'transcription' in controller_roomserver_modules_enabled %}
+[roomserver.modules.transcription]
 {% endif %}
 {% if controller_roomserver_reports_typst_packages_path is defined and controller_roomserver_reports_typst_packages_path %}
 

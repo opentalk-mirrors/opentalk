@@ -133,7 +133,7 @@
            ) }}
     controller_roomserver_modules_recording_url: >-
       {{ controller_roomserver_modules_recording_url
-         | default('http://host.docker.internal:' ~ (recorder_http_port | default('5555') | string)) }}
+         | default('http://recorder:' ~ (recorder_http_port | default('5555') | string)) }}
   when:
     - compose_service_opentalk_recorder_enabled | default(false) | bool
     - controller_roomserver_modules_recording_api_key_id is not defined
