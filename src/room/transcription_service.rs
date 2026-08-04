@@ -16,13 +16,28 @@ pub struct TranscriptionServiceApi<'a> {
 }
 
 impl TranscriptionServiceApi<'_> {
-    pub async fn send_transcription_started(&mut self) -> Result<()> {
+    pub async fn send_transcription_started(&mut self, language: Option<String>) -> Result<()> {
         self.room
             .signaling
             .send(
                 &SignalingModuleCommand::Transcription(
                     TranscriptionCommand::TranscriptionServiceEvent {
-                        event: TranscriptionServiceEvent::Started,
+                        event: TranscriptionServiceEvent::Started { language },
+                    },
+                )
+                .into(),
+            )
+            .await
+            .context("Failed to send TranscriptionServiceEvent::Started")
+    }
+
+    pub async fn send_transcription_updated(&mut self, language: Option<String>) -> Result<()> {
+        self.room
+            .signaling
+            .send(
+                &SignalingModuleCommand::Transcription(
+                    TranscriptionCommand::TranscriptionServiceEvent {
+                        event: TranscriptionServiceEvent::Updated { language },
                     },
                 )
                 .into(),
