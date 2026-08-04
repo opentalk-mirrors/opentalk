@@ -30,7 +30,11 @@ use opentalk_client_signaling::{
     },
 };
 use opentalk_transcription_web_api::v1::TranscriptionTarget;
-use tokio::sync::mpsc::{self, UnboundedReceiver};
+use tokio::sync::{
+    mpsc::{self, UnboundedReceiver},
+    watch,
+};
+use whisper_rs::WhisperContext;
 
 use crate::{
     AppState,
@@ -38,6 +42,7 @@ use crate::{
         self, audio_source::AudioSource, transcription::TranscriptionStage,
         voice_activity_detection::VadStage,
     },
+    settings::Settings,
 };
 
 const DISPLAY_NAME: &str = "transcription";
@@ -103,7 +108,7 @@ pub(crate) struct TranscriptionSession {
     room_id: RoomId,
     livekit_room: LivekitRoom,
 
-    language: Option<String>,
+    language: watch::Sender<Option<String>>,
 
     segments_rx: mpsc::Receiver<TranscriptionSegment>,
     segments_tx: mpsc::Sender<TranscriptionSegment>,
@@ -154,7 +159,7 @@ impl TranscriptionSession {
             room,
             livekit_room,
             room_id: room_info.room_id,
-            language: room_info.language,
+            language: watch::channel(room_info.language).0,
             segments_rx,
             segments_tx,
         })
@@ -163,10 +168,12 @@ impl TranscriptionSession {
     /// Runs the session event loop until the room ends, a stop is requested or the service shuts
     /// down, then disconnects from both the LiveKit and the OpenTalk room.
     pub(crate) async fn run(mut self) -> Result<()> {
+        let language = self.language.borrow().clone();
+
         self.room
             .transcription_service_api()
             .context("transcription service api not available")?
-            .send_transcription_started()
+            .send_transcription_started(language)
             .await?;
 
         let mut shutdown_rx = self.app_state.shutdown.resubscribe();
@@ -261,6 +268,26 @@ impl TranscriptionSession {
 
                         self.run = false;
                     }
+                    TranscriptionServiceCommand::ChangeLanguage { language } => {
+                        let changed = self.language.send_if_modified(|current_language| {
+                            if *current_language == language {
+                                return false;
+                            }
+
+                            *current_language = language.clone();
+
+                            true
+                        });
+
+                        if changed {
+                            self.room
+                                .transcription_service_api()
+                                .context("transcription service api not available")?
+                                .send_transcription_updated(language)
+                                .await
+                                .context("Failed to send transcription updated event")?;
+                        }
+                    }
                 }
             }
             OpenTalkEvent::Disconnected(disconnect_reason) => {
@@ -338,34 +365,75 @@ impl TranscriptionSession {
 
         let settings = self.app_state.settings.clone();
         let whisper_context = self.app_state.whisper_context.clone();
-        let language = self.language.clone();
+        let language = self.language.subscribe();
         let send_tx = self.segments_tx.clone();
 
-        tokio::spawn(async move {
-            let mut audio_source = match AudioSource::new(audio_track).await {
-                Ok(source) => source,
-                Err(err) => {
-                    log::error!("Failed to create AudioSource: {err:?}");
-                    return;
-                }
-            };
-            let mut vad = match VadStage::new() {
-                Ok(vad) => vad,
-                Err(err) => {
-                    log::error!("Failed to create VoiceActivityDetector: {err:?}");
-                    return;
-                }
-            };
-            let mut transcription = match TranscriptionStage::new(whisper_context, language) {
-                Ok(transcription) => transcription,
-                Err(err) => {
-                    log::error!("Failed to create Transcription stage: {err:?}");
-                    return;
-                }
-            };
+        tokio::spawn(transcribe_audio_track_task(
+            audio_track,
+            participant_id,
+            track_id,
+            settings,
+            whisper_context,
+            language,
+            send_tx,
+        ));
+    }
+}
 
-            loop {
-                let Some(samples) = audio_source.next_samples().await else {
+async fn transcribe_audio_track_task(
+    audio_track: RemoteAudioTrack,
+    participant_id: ParticipantId,
+    track_id: String,
+    settings: Arc<Settings>,
+    whisper_context: Arc<WhisperContext>,
+    mut language: watch::Receiver<Option<String>>,
+    segments_tx: mpsc::Sender<TranscriptionSegment>,
+) {
+    let mut audio_source = match AudioSource::new(audio_track).await {
+        Ok(source) => source,
+        Err(err) => {
+            log::error!("Failed to create AudioSource: {err:?}");
+            return;
+        }
+    };
+    let mut vad = match VadStage::new() {
+        Ok(vad) => vad,
+        Err(err) => {
+            log::error!("Failed to create VoiceActivityDetector: {err:?}");
+            return;
+        }
+    };
+    let mut transcription =
+        match TranscriptionStage::new(whisper_context.clone(), language.borrow().clone()) {
+            Ok(transcription) => transcription,
+            Err(err) => {
+                log::error!("Failed to create Transcription stage: {err:?}");
+                return;
+            }
+        };
+
+    loop {
+        enum Event {
+            LanguageChanged(Option<String>),
+            SamplesReceived(Option<Vec<f32>>),
+        }
+
+        let event = tokio::select! {
+            _ = language.changed() => Event::LanguageChanged(language.borrow_and_update().clone()),
+            samples = audio_source.next_samples() => Event::SamplesReceived(samples),
+        };
+
+        match event {
+            Event::LanguageChanged(language) => {
+                match TranscriptionStage::new(whisper_context.clone(), language.clone()) {
+                    Ok(t) => transcription = t,
+                    Err(err) => log::warn!(
+                        "Failed to re-create transcription stage with new language {language:?}, {err:?}"
+                    ),
+                }
+            }
+            Event::SamplesReceived(samples) => {
+                let Some(samples) = samples else {
                     break;
                 };
 
@@ -396,7 +464,7 @@ impl TranscriptionSession {
                             text,
                         };
 
-                        if send_tx.send(segment).await.is_err() {
+                        if segments_tx.send(segment).await.is_err() {
                             log::debug!("Segment channel closed, stopping audio pipeline");
                             break;
                         }
@@ -404,7 +472,7 @@ impl TranscriptionSession {
                     Err(e) => log::error!("Transcription failed: {e:?}"),
                 }
             }
-        });
+        }
     }
 }
 

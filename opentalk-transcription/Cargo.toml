@@ -35,9 +35,9 @@ itertools.workspace = true
 livekit = { workspace = true, features = ["native-tls"] }
 log.workspace = true
 opentalk-client-signaling.workspace = true
-opentalk-service-auth = { version = "0.3", features = ["axum"] }
-opentalk-transcription-web-api = "0.4.0"
-opentalk-types-api-common = "0.10.0"
+opentalk-service-auth = { version = "0.4", features = ["axum"] }
+opentalk-transcription-web-api = "0.5.0"
+opentalk-types-api-common = "0.11.0"
 opentalk-version.workspace = true
 owo-colors.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-native-roots"] }
@@ -48,7 +48,7 @@ service-probe.workspace = true
 service-probe-client.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
 whisper-rs = { workspace = true, features = ["log_backend"] }
-opentalk-orchestrator-client = { version = "0.12.0", features = ["transcription-service"] }
+opentalk-orchestrator-client = { version = "0.13.0", features = ["transcription-service"] }
 hound = "3"
 earshot = "1.2.1"
 
