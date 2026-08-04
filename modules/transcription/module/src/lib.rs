@@ -40,8 +40,8 @@ pub struct TranscriptionModule {
 /// Internal per-room transcription state
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum TranscriptionRoomState {
-    Requested,
-    Running,
+    Requested { language: Option<String> },
+    Running { language: Option<String> },
 }
 
 pub enum LoopBackEvent {
@@ -148,6 +148,13 @@ impl SignalingModule for TranscriptionModule {
 
                 self.stop_transcription(ctx)
             }
+            TranscriptionCommand::ChangeLanguage { language } => {
+                if !ctx.is_moderator(participant_id) {
+                    return Err(TranscriptionError::InsufficientPermissions.into());
+                }
+
+                self.change_language(ctx, language)
+            }
             TranscriptionCommand::TranscriptionServiceEvent { event } => {
                 self.handle_transcription_service_event(ctx, event, participant_id)
             }
@@ -211,12 +218,12 @@ impl TranscriptionModule {
             return Err(TranscriptionError::AlreadyActive.into());
         };
 
-        self.request_transcription(ctx, language)?;
+        self.request_transcription(ctx, language.clone())?;
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
             TranscriptionEvent::StateUpdated {
-                status: TranscriptionStatus::Requested,
+                status: TranscriptionStatus::Requested { language },
             },
         )?;
 
@@ -244,7 +251,7 @@ impl TranscriptionModule {
                 RoomKind::Main => None,
                 RoomKind::Breakout(breakout_id) => Some(breakout_id.into()),
             },
-            language,
+            language: language.clone(),
         };
 
         ctx.spawn_optional(async move {
@@ -304,7 +311,7 @@ impl TranscriptionModule {
         });
 
         self.transcription_states
-            .insert(ctx.room, TranscriptionRoomState::Requested);
+            .insert(ctx.room, TranscriptionRoomState::Requested { language });
         Ok(())
     }
 
@@ -359,17 +366,55 @@ impl TranscriptionModule {
         }
 
         match service_event {
-            TranscriptionServiceEvent::Started => {
-                self.transcription_states
-                    .insert(ctx.room, TranscriptionRoomState::Running);
+            TranscriptionServiceEvent::Started { language } => {
+                self.transcription_states.insert(
+                    ctx.room,
+                    TranscriptionRoomState::Running {
+                        language: language.clone(),
+                    },
+                );
 
                 ctx.send_ws_message(
                     ctx.participants.in_room(ctx.room).connected().ids(),
                     TranscriptionEvent::StateUpdated {
-                        status: TranscriptionStatus::Running,
+                        status: TranscriptionStatus::Running { language },
                     },
                 )?;
             }
+            TranscriptionServiceEvent::Updated {
+                language: new_language,
+            } => match self.transcription_states.get_mut(&ctx.room) {
+                Some(TranscriptionRoomState::Requested { language }) => {
+                    *language = new_language.clone();
+
+                    ctx.send_ws_message(
+                        ctx.participants.in_room(ctx.room).connected().ids(),
+                        TranscriptionEvent::StateUpdated {
+                            status: TranscriptionStatus::Requested {
+                                language: new_language,
+                            },
+                        },
+                    )?;
+                }
+                Some(TranscriptionRoomState::Running { language }) => {
+                    *language = new_language.clone();
+
+                    ctx.send_ws_message(
+                        ctx.participants.in_room(ctx.room).connected().ids(),
+                        TranscriptionEvent::StateUpdated {
+                            status: TranscriptionStatus::Running {
+                                language: new_language,
+                            },
+                        },
+                    )?;
+                }
+                None => {
+                    tracing::warn!(
+                        "Got TranscriptionServiceEvent::Updated for room {:?} without transcription state",
+                        ctx.room
+                    );
+                }
+            },
             TranscriptionServiceEvent::Stopped => {
                 self.transcription_states.remove(&ctx.room);
 
@@ -391,10 +436,33 @@ impl TranscriptionModule {
         Ok(())
     }
 
+    fn change_language(
+        &self,
+        ctx: &mut ModuleContext<'_, Self>,
+        language: Option<String>,
+    ) -> Result<(), SignalingModuleError<TranscriptionError>> {
+        let Some((transcription, _)) = find_transcription_service(ctx) else {
+            return Err(TranscriptionError::NotActive.into());
+        };
+
+        ctx.send_ws_message(
+            [*transcription],
+            TranscriptionEvent::ServiceCommand {
+                command: TranscriptionServiceCommand::ChangeLanguage { language },
+            },
+        )?;
+
+        Ok(())
+    }
+
     fn build_module_state(&mut self, room: RoomKind) -> TranscriptionState {
-        let status = match self.transcription_states.get(&room) {
-            Some(TranscriptionRoomState::Requested) => TranscriptionStatus::Requested,
-            Some(TranscriptionRoomState::Running) => TranscriptionStatus::Running,
+        let status = match self.transcription_states.get(&room).cloned() {
+            Some(TranscriptionRoomState::Requested { language }) => {
+                TranscriptionStatus::Requested { language }
+            }
+            Some(TranscriptionRoomState::Running { language }) => {
+                TranscriptionStatus::Running { language }
+            }
             None => TranscriptionStatus::Inactive,
         };
 

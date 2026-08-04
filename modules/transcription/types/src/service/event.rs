@@ -11,7 +11,10 @@ use crate::segment::TranscriptionSegment;
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum TranscriptionServiceEvent {
     /// Transcription service has been started
-    Started,
+    Started { language: Option<String> },
+
+    /// Transcription service state has been updated
+    Updated { language: Option<String> },
 
     /// Transcription service has stopped
     Stopped,
@@ -30,11 +33,14 @@ mod tests {
 
     #[test]
     fn serialize_started_event() {
-        let event = TranscriptionServiceEvent::Started;
+        let event = TranscriptionServiceEvent::Started {
+            language: Some("de".into()),
+        };
 
         assert_json_snapshot!(event, @ r#"
         {
-          "kind": "started"
+          "kind": "started",
+          "language": "de"
         }
         "#);
     }

@@ -8,6 +8,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum TranscriptionServiceCommand {
+    ChangeLanguage {
+        language: Option<String>,
+    },
+
     /// Stop the transcription service
     Stop,
 }

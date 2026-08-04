@@ -678,7 +678,9 @@ mod tests {
             transaction_id: None,
             timestamp: Timestamp::unix_epoch(),
             payload: SignalingModuleEvent::Transcription(TranscriptionEvent::StateUpdated {
-                status: TranscriptionStatus::Running,
+                status: TranscriptionStatus::Running {
+                    language: Some("en".into()),
+                },
             }),
         };
 
@@ -690,7 +692,8 @@ mod tests {
           "namespace": "transcription",
           "payload": {
             "message": "state_updated",
-            "status": "running"
+            "status": "running",
+            "language": "en"
           }
         }
         "#);
