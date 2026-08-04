@@ -35,22 +35,39 @@ services:
       CHANGE_PASSWORD_URL: {{ opentalk_web_frontend_environment_change_password_url }}
       ERROR_REPORT_ADDRESS: {{ opentalk_web_frontend_environment_error_report_address }}
       LIBRAVATAR_DEFAULT_IMAGE: {{ opentalk_web_frontend_environment_libravatar_default_image }}
+      SPACEDECK_ENABLED: {{ opentalk_web_frontend_environment_spacedeck_enabled | to_json }}
 {% if opentalk_web_frontend_environment_video_backgrounds | default('') | length > 0 %}
       VIDEO_BACKGROUNDS: >-
         {{ opentalk_web_frontend_environment_video_backgrounds | string | indent(8) }}
 {% endif %}
       IS_BETA_RELEASE: {{ opentalk_web_frontend_environment_is_beta_release | to_json }}
+      HELPDESK_URL: {{ opentalk_web_frontend_environment_helpdesk_url }}
+      CONTACT_SUPPORT_URL: {{ opentalk_web_frontend_environment_contact_support_url }}
+      BETA_BADGE_URL: {{ opentalk_web_frontend_environment_beta_badge_url }}
+      IMPRINT_URL: {{ opentalk_web_frontend_environment_imprint_url }}
+      DATA_PROTECTION_URL: {{ opentalk_web_frontend_environment_data_protection_url }}
+      ACCOUNT_MANAGEMENT_URL: {{ opentalk_web_frontend_environment_account_management_url }}
+      USER_SURVEY_URL: {{ opentalk_web_frontend_environment_user_survey_url }}
+      USER_SURVEY_API_KEY: {{ opentalk_web_frontend_environment_user_survey_api_key }}
       FEATURE_USER_SEARCH: {{ opentalk_web_frontend_environment_feature_user_search | to_json }}
-      FEATURE_TIMER: {{ opentalk_web_frontend_environment_feature_timer | to_json }}
       FEATURE_WHITEBOARD: {{ opentalk_web_frontend_environment_feature_whiteboard | to_json }}
-      FEATURE_PROTOCOL: {{ opentalk_web_frontend_environment_feature_protocol | to_json }}
-      FEATURE_RECORDING: {{ opentalk_web_frontend_environment_feature_recording | to_json }}
-      WAITING_ROOM_DEFAULT_VALUE: {{ opentalk_web_frontend_environment_waiting_room_default_value }}
-      SUPPRESS_BROWSER_COMPATIBILITY_INFO: {{ opentalk_web_frontend_environment_suppress_browser_compatibility_info | to_json }}
-{% if opentalk_web_frontend_environment_feature_e2e_encryption is defined and opentalk_web_frontend_environment_feature_e2e_encryption | bool %}
+      FEATURE_MUTE_USER: {{ opentalk_web_frontend_environment_feature_mute_user | to_json }}
+      FEATURE_RESET_HANDRAISES: {{ opentalk_web_frontend_environment_feature_reset_handraises | to_json }}
+      FEATURE_ADD_USER: {{ opentalk_web_frontend_environment_feature_add_user | to_json }}
+      FEATURE_JOIN_WITHOUT_MEDIA: {{ opentalk_web_frontend_environment_feature_join_without_media | to_json }}
       FEATURE_E2E_ENCRYPTION: {{ opentalk_web_frontend_environment_feature_e2e_encryption | to_json }}
       LIVEKIT_E2EE_SALT: {{ opentalk_web_frontend_environment_livekit_e2ee_salt }}
-{% endif %}
+      WAITING_ROOM_DEFAULT_VALUE: {{ opentalk_web_frontend_environment_waiting_room_default_value }}
+      SUPPRESS_BROWSER_COMPATIBILITY_INFO: {{ opentalk_web_frontend_environment_suppress_browser_compatibility_info | to_json }}
+      CHANGE_PASSWORD_ACTIVE: {{ opentalk_web_frontend_environment_change_password_active | to_json }}
+      SIGN_OUT_REDIRECT_URI: {{ opentalk_web_frontend_environment_sign_out_redirect_uri }}
+      DISALLOW_CUSTOM_DISPLAY_NAME: {{ opentalk_web_frontend_environment_disallow_custom_display_name | to_json }}
+      SENTRY_DSN: {{ opentalk_web_frontend_environment_sentry_dsn }}
+      MEETING_INACTIVITY_MEDIA_DISABLE_SECONDS: {{ opentalk_web_frontend_environment_meeting_inactivity_media_disable_seconds }}
+      MEETING_INACTIVITY_WARNING_SECONDS: {{ opentalk_web_frontend_environment_meeting_inactivity_warning_seconds }}
+      MEETING_INACTIVITY_TERMINATION_SECONDS: {{ opentalk_web_frontend_environment_meeting_inactivity_termination_seconds }}
+      MAX_GRID_TILES: {{ opentalk_web_frontend_environment_max_grid_tiles }}
+      DEFAULT_GRID_SIZE: {{ opentalk_web_frontend_environment_default_grid_size }}
       LIVEKIT_PREFERRED_VIDEO_CODEC: {{ opentalk_web_frontend_environment_livekit_preferred_video_codec }}
       PRODUCT_VERSION: {{ opentalk_product_version }}
     labels:
