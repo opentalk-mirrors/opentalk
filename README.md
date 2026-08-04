@@ -115,8 +115,10 @@ source /opt/intel/oneapi/setvars.sh
 ### Whisper model
 
 The service loads a whisper.cpp `ggml` model. The default model
-`models/ggml-large-v3-turbo.bin` is bundled in this repository. A different
-model can be configured through the `transcription.model` setting, see the
+`models/ggml-large-v3-turbo.bin` is bundled in this repository.
+After checking out the repository the model file must be pulled separately,
+via `git lfs pull` command.
+A different model can be configured through the `transcription.model` setting, see the
 [example configuration](extra/example.toml).
 
 ## Building

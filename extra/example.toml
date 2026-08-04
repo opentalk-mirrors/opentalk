@@ -28,7 +28,7 @@
 #addr = "2001:0DB8::1337:DEAD:CAFE"
 
 # The port to bind the HTTP Server to.
-#port = 11411
+#port = 11413
 # The api keys for internal service endpoints
 #
 # The transcription service can have multiple api keys configured. An api key can be configured as string ("<key_id>:<key_secret>")
