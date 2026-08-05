@@ -24,4 +24,78 @@
     client_authenticator_type: client-secret
     secret: "{{ OIDC_OBELISK_CLIENT_SECRET }}"
     attributes:
-      allow.token.introspection.without.audience.check: "true"
+      allow.token.introspection.without.audience.check: "false"
+
+- name: "Get Keycloak client ID for {{ obelisk_auth_client_id | default('Obelisk') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients?clientId={{ obelisk_auth_client_id | default('Obelisk') }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    status_code: 200
+  register: obelisk_client_lookup
+
+- name: "Set obelisk client UUID"
+  ansible.builtin.set_fact:
+    obelisk_client_uuid: "{{ (obelisk_client_lookup.json | first).id }}"
+  when: obelisk_client_lookup.json | length > 0
+
+- name: "Get protocol mappers for {{ obelisk_auth_client_id | default('Obelisk') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients/{{ obelisk_client_uuid }}/protocol-mappers/models"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    status_code: 200
+  register: obelisk_protocol_mappers
+  when: obelisk_client_uuid is defined
+
+- name: "Set obelisk audience mapper UUID"
+  ansible.builtin.set_fact:
+    obelisk_audience_mapper_uuid: "{{ (obelisk_protocol_mappers.json | selectattr('name', 'equalto', 'audience-controller') | list | first).id }}"
+  when:
+    - obelisk_client_uuid is defined
+    - obelisk_protocol_mappers.json | selectattr('name', 'equalto', 'audience-controller') | list | length > 0
+
+- name: "Update Obelisk audience mapper for {{ controller_oidc_controller_client_id | default('Controller') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients/{{ obelisk_client_uuid }}/protocol-mappers/models/{{ obelisk_audience_mapper_uuid }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      id: "{{ obelisk_audience_mapper_uuid }}"
+      name: "audience-controller"
+      protocol: "openid-connect"
+      protocolMapper: "oidc-audience-mapper"
+      consentRequired: false
+      config:
+        included.client.audience: "{{ controller_oidc_controller_client_id | default('Controller') }}"
+        id.token.claim: "false"
+        access.token.claim: "true"
+    status_code: 204
+  when: obelisk_audience_mapper_uuid is defined
+
+- name: "Create Obelisk audience mapper for {{ controller_oidc_controller_client_id | default('Controller') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients/{{ obelisk_client_uuid }}/protocol-mappers/models"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "audience-controller"
+      protocol: "openid-connect"
+      protocolMapper: "oidc-audience-mapper"
+      consentRequired: false
+      config:
+        included.client.audience: "{{ controller_oidc_controller_client_id | default('Controller') }}"
+        id.token.claim: "false"
+        access.token.claim: "true"
+    status_code: 201
+  when:
+    - obelisk_client_uuid is defined
+    - obelisk_audience_mapper_uuid is not defined
