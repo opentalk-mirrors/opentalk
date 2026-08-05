@@ -6,16 +6,17 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-06-01
+Last updated: 2026-08-05
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
+Commented role variables are included to document available settings.
 Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## Global Variables in settings.yml
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `compose_project_name` | string | `opentalk` |
 | `compose_service_etherpad_enabled` | boolean | `true` |
 | `compose_service_keycloak_enabled` | boolean | `true` |
@@ -26,7 +27,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `compose_service_opentalk_orchestrator_enabled` | boolean | `false` |
 | `compose_service_opentalk_outlook_add_in_enabled` | boolean | `false` |
 | `compose_service_opentalk_recorder_enabled` | boolean | `true` |
-| `compose_service_opentalk_roomserver_enabled` | boolean | `true` |
+| `compose_service_opentalk_roomserver_enabled` | boolean | `false` |
 | `compose_service_opentalk_smtp_mailer_enabled` | boolean | `false` |
 | `compose_service_opentalk_web_frontend_enabled` | boolean | `true` |
 | `compose_service_rabbitmq_enabled` | boolean | `true` |
@@ -42,13 +43,13 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.backup
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `backup_dir` | string | `/var/opt/opentalk-compose/backups` |
 | `backup_dir_config` | string | `{{ backup_dir }}/config` |
 | `backup_dir_sql_dumps` | string | `{{ backup_dir }}/dumps` |
 | `backup_dir_volumes` | string | `{{ backup_dir }}/volumes` |
-| `backup_docker_volume_list` | string | `{{`<br>`  ( [compose_project_name ~ '_garage_meta', compose_project_name ~ '_garage_data']`<br>`    if (s3_storage_provider &#124; default('garage')) == 'garage'`<br>`    else [compose_project_name ~ '_minio'] )`<br>`  + [compose_project_name ~ '_rabbitmq', compose_project_name ~ '_traefik']`<br>`}}` |
+| `backup_docker_volume_list` | string | `{{`<br>`  ( [compose_project_name ~ '_garage_meta', compose_project_name ~ '_garage_data']`<br>`    if (s3_storage_provider \| default('garage')) == 'garage'`<br>`    else [compose_project_name ~ '_minio'] )`<br>`  + [compose_project_name ~ '_rabbitmq', compose_project_name ~ '_traefik']`<br>`}}` |
 | `backup_docker_volume_restore_files` | list | `[]` |
 | `backup_retention_max_age_days` | integer | `7` |
 | `backup_retention_max_items` | integer | `5` |
@@ -72,8 +73,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.docker_env
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `docker_network_driver` | string | `bridge` |
 | `docker_network_name` | string | `opentalk_internal` |
 | `docker_network_state` | string | `present` |
@@ -81,8 +82,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.etherpad
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `etherpad_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `etherpad_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `etherpad_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -101,8 +102,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.garage
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `garage_admin_api_bind_addr` | string | `[::]:3903` |
 | `garage_admin_api_port` | integer | `3903` |
 | `garage_admin_metrics_require_token` | string | `false` |
@@ -170,8 +171,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.import_users
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `import_users_default_password` | null | `null` |
 | `import_users_enabled` | boolean | `true` |
 | `import_users_file` | string | `/path/to/users.csv` |
@@ -188,8 +189,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.keycloak
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `accessCodeLifespan` | string | `Max time a client has to finish auth code flow (default: 1 minute)` |
 | `accessCodeLifespanLogin` | string | `Max time user has to complete login (default: 30 minutes)` |
 | `accessCodeLifespanUserAction` | string | `Max time for user action during login (default: 5 minutes)` |
@@ -269,7 +270,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_realm_revoke_refresh_token` | boolean | `false` |
 | `keycloak_realm_sso_session_idle_timeout` | integer | `86400` |
 | `keycloak_realm_sso_session_max_lifespan` | integer | `2592000` |
-| `keycloak_redirectUris_uris` | list | `[{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/popup_callback, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/auth/callback, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/dashboard/*, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/room/*, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/join, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/]` |
+| `keycloak_redirectUris_uris` | list | `[{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/auth/popup_callback, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/auth/callback, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/dashboard, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/dashboard/*, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/room/*, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/join, {{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/]` |
 | `keycloak_spi_sticky_session_encoder_infinispan_should_attach_route` | string | `false` |
 | `keycloak_theme_path` | string | `{{ services_dir }}/keycloak/keycloak-ot-theme.jar` |
 | `keycloak_wait_to_be_reachable_delay` | integer | `10` |
@@ -284,15 +285,15 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.livekit_server
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `livekit_api_key_controller` | string | `{{ LIVEKIT_API_SECRET }}` |
 | `livekit_audio_active_level` | string | `30` |
 | `livekit_audio_active_red_encoding` | string | `true` |
 | `livekit_audio_min_percentile` | string | `40` |
 | `livekit_audio_smooth_intervals` | string | `4` |
 | `livekit_audio_update_interval` | string | `500` |
-| `livekit_bind_addresses` | list | `[0.0.0.0, ::]` |
+| `livekit_bind_addresses` | string | `{{ ['::'] if ((ansible_facts.get('default_ipv6', {}).get('address', '') \| length) > 0) else ['0.0.0.0'] }}` |
 | `livekit_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `livekit_docker_compose_ulimits_nofile_hard` | integer | `98304` |
 | `livekit_docker_compose_ulimits_nofile_soft` | integer | `98304` |
@@ -399,8 +400,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.mailcrab
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `mailcrab_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `mailcrab_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `mailcrab_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -414,8 +415,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.minio
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `minio_bucket_name` | string | `opentalk` |
 | `minio_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `minio_docker_compose_project_src` | string | `{{ deploy_dir }}` |
@@ -430,8 +431,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.ndt
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `compose_service_ndt_enabled` | string | `{{ ndt_enable \| default(false) }}` |
 | `ndt_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `ndt_docker_compose_project_src` | string | `{{ deploy_dir }}` |
@@ -444,11 +445,12 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.opentalk_controller
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `controller_authz_synchronize_controllers` | string | `true` |
 | `controller_call_in_default_country_code` | string | `DE` |
 | `controller_call_in_enable_phone_mapping` | string | `false` |
+| `controller_call_in_mask_unmapped_numbers` | string | `true` |
 | `controller_call_in_tel` | string | `03012345678` |
 | `controller_database_host` | string | `controller-db` |
 | `controller_database_max_connections` | string | `100` |
@@ -463,6 +465,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_db_host_port` | integer | `5432` |
 | `controller_defaults_disabled_features` | list | `[core::call_in, integration::outlook]` |
 | `controller_defaults_screen_share_requires_permission` | string | `true` |
+| `controller_defaults_timezone` | string | `Etc/UTC` |
 | `controller_defaults_user_language` | string | `en-US` |
 | `controller_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `controller_docker_compose_project_src` | string | `{{ deploy_dir }}` |
@@ -479,17 +482,12 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_endpoints_event_invite_external_email_address` | string | `true` |
 | `controller_endpoints_users_find_use_kc` | string | `false` |
 | `controller_etcd_urls` | list | `[etcd:2379]` |
-| `controller_etherpad_api_key` | string | `{{ ETHERPAD_API_KEY }}` |
-| `controller_etherpad_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/etherpad/` |
 | `controller_frontend_base_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
 | `controller_http_addr` | string | `::0` |
 | `controller_http_cors_allowed_origin` | string | `["*"]` |
 | `controller_http_port` | integer | `11311` |
 | `controller_http_service_api_keys` | list | `[{id: controller, secret: secret}]` |
-| `controller_livekit_api_key` | string | `controller` |
-| `controller_livekit_api_secret` | string | `{{ LIVEKIT_API_SECRET }}` |
-| `controller_livekit_public_url` | string | `wss://{{ (ot_domain, ot_ingress_port) \| build_host }}/livekit` |
-| `controller_livekit_service_url` | string | `http://host.docker.internal:7880` |
+| `controller_http_upload_size_limit` | string | `100000000` |
 | `controller_logging_default_directives` | list | `[ERROR, opentalk=INFO, pinky_swear=OFF, rustls=WARN, mio=ERROR, lapin=WARN, execution_id=trace]` |
 | `controller_logging_otlp_tracing_endpoint` | string | `http://localhost:4317` |
 | `controller_logging_service_instance_id` | string | `627cc493-f310-47de-96bd-71410b7dec09` |
@@ -498,6 +496,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_metrics_allowlist` | list | `[127.0.0.0/24, ::ffff:0:0/96]` |
 | `controller_minio_access_key` | string | `{{ GARAGE_S3_ACCESS_KEY if (s3_storage_provider \| default('garage')) == 'garage' else 'minioadmin' }}` |
 | `controller_minio_bucket` | string | `opentalk` |
+| `controller_minio_force_path_style` | string | `false` |
+| `controller_minio_region` | string | `unknown` |
 | `controller_minio_secret_key` | string | `{{ GARAGE_S3_SECRET_KEY if (s3_storage_provider \| default('garage')) == 'garage' else MINIO_ROOT_PASSWORD }}` |
 | `controller_minio_uri` | string | `{{ 'http://garage:3900' if (s3_storage_provider \| default('garage')) == 'garage' else 'http://minio:9000' }}` |
 | `controller_monitoring_addr` | string | `0.0.0.0` |
@@ -513,21 +513,48 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_operator_information_support_phone_number` | string | `+49 123 4567890` |
 | `controller_rabbit_mq_mail_task_queue` | string | `opentalk_mailer` |
 | `controller_rabbit_mq_max_channels_per_connection` | integer | `100` |
+| `controller_rabbit_mq_message_ttl_seconds` | string | `3600` |
 | `controller_rabbit_mq_min_connections` | integer | `10` |
 | `controller_rabbit_mq_recording_task_queue` | string | `opentalk_recorder` |
 | `controller_rabbit_mq_url` | string | `amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F` |
 | `controller_redis_url` | string | `redis://localhost:6379/` |
 | `controller_reports_template_inline` | string | `\|` |
+| `controller_reports_typst_packages_path` | string | `/usr/share/typst/packages` |
 | `controller_reports_url` | string | `http://localhost:6560` |
-| `controller_roomserver_kind` | string | `external` |
+| `controller_roomserver_api_key_id` | string | `roomserver` |
+| `controller_roomserver_api_key_secret` | string | `{{ ROOMSERVER_API_SECRET }}` |
+| `controller_roomserver_conference_signaling_salt` | string | `random string at least 24 characters long` |
+| `controller_roomserver_defaults_screen_share_requires_permission` | string | `true` |
+| `controller_roomserver_kind` | string | `internal` |
+| `controller_roomserver_modules_chat_rate_limit_slow_down_threshold` | float | `0.8` |
+| `controller_roomserver_modules_chat_rate_limit_token_bucket_size` | integer | `10` |
+| `controller_roomserver_modules_chat_rate_limit_tokens_per_second` | integer | `3` |
+| `controller_roomserver_modules_enabled` | list | `[automod, breakout, chat, e2ee, echo, excalidraw, livekit, meeting_notes, meeting_report, moderation, polls, raise_hands, reaction, timer, recording, shared_folder, subroom_audio, training_participation_report, transcription, whiteboard]` |
+| `controller_roomserver_modules_livekit_api_key` | string | `controller` |
+| `controller_roomserver_modules_livekit_api_secret` | string | `{{ LIVEKIT_API_SECRET }}` |
+| `controller_roomserver_modules_livekit_public_url` | string | `wss://{{ (ot_domain, ot_ingress_port) \| build_host }}/livekit` |
+| `controller_roomserver_modules_livekit_service_url` | string | `http://host.docker.internal:{{ livekit_port \| default(7880) }}` |
+| `controller_roomserver_modules_meeting_notes_api_key` | string | `{{ ETHERPAD_API_KEY }}` |
+| `controller_roomserver_modules_meeting_notes_base_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/etherpad` |
+| `controller_roomserver_modules_recording_api_key_id` | string | `recorder` |
+| `controller_roomserver_modules_recording_api_key_secret` | string | `change-me` |
+| `controller_roomserver_modules_recording_url` | string | `http://recorder:5555` |
+| `controller_roomserver_modules_whiteboard_api_key` | string | `{{ SPACEDECK_API_KEY }}` |
+| `controller_roomserver_modules_whiteboard_base_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/whiteboard` |
+| `controller_roomserver_public_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/roomserver` |
+| `controller_roomserver_reports_typst_packages_path` | string | `/usr/share/typst/packages` |
+| `controller_roomserver_room_idle_timeout` | string | `60` |
+| `controller_roomserver_service_url` | string | `http://roomserver:{{ roomserver_http_port }}` |
+| `controller_roomserver_websocket_rate_limit_disabled` | boolean | `false` |
+| `controller_roomserver_websocket_rate_limit_token_bucket_size` | integer | `30` |
+| `controller_roomserver_websocket_rate_limit_tokens_per_second` | integer | `10` |
 | `controller_shared_folder_directory` | string | `opentalk/meetings` |
 | `controller_shared_folder_expiry` | string | `48` |
 | `controller_shared_folder_password` | string | `v3rys3cr3t` |
 | `controller_shared_folder_provider` | string | `nextcloud` |
 | `controller_shared_folder_url` | string | `https://nextcloud.example.org/` |
 | `controller_shared_folder_username` | string | `exampleuser` |
-| `controller_spacedeck_api_key` | string | `{{ SPACEDECK_API_KEY }}` |
-| `controller_spacedeck_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/whiteboard/` |
+| `controller_stun_uris` | list | `[stun:127.0.0.1:3478]` |
 | `controller_tariffs_assignment` | string | `static` |
 | `controller_tariffs_static_tariff_name` | string | `OpenTalkDefaultTariff` |
 | `controller_tariffs_status_mapping_default` | list | `[default]` |
@@ -546,8 +573,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.opentalk_obelisk
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `obelisk_auth_client_id` | string | `Obelisk` |
 | `obelisk_auth_client_secret` | string | `{{ OIDC_OBELISK_CLIENT_SECRET }}` |
 | `obelisk_auth_issuer` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}` |
@@ -595,8 +622,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.opentalk_orchestrator
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `orchestrator_api_key_id` | string | `orchestrator` |
 | `orchestrator_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `orchestrator_docker_compose_project_src` | string | `{{ deploy_dir }}` |
@@ -614,8 +641,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.opentalk_outlook_add_in
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `outlook_add_in_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `outlook_add_in_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `outlook_add_in_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -632,13 +659,15 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.opentalk_recorder
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `recorder_auth_client_id` | string | `Recorder` |
 | `recorder_auth_client_secret` | string | `{{ OIDC_RECORDER_CLIENT_SECRET }}` |
 | `recorder_auth_issuer` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}` |
+| `recorder_controller_api_key_id` | string | `controller` |
+| `recorder_controller_api_key_secret` | string | `{{ CONTROLLER_API_SECRET }}` |
 | `recorder_controller_domain` | string | `controller:11311` |
-| `recorder_controller_insecure` | string | `true` |
+| `recorder_controller_url` | string | `http://controller:11311` |
 | `recorder_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `recorder_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `recorder_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -664,9 +693,10 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.opentalk_roomserver
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `roomserver_api_key_id` | string | `roomserver` |
+| `roomserver_conference_signaling_salt` | null | `null` |
 | `roomserver_controller_api_key_id` | string | `controller` |
 | `roomserver_controller_url` | string | `http://controller:11311` |
 | `roomserver_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
@@ -678,7 +708,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `roomserver_docker_compose_ulimits_nproc` | integer | `8192` |
 | `roomserver_docker_image_src` | string | `registry.heinlein.group/opentalk/roomserver` |
 | `roomserver_http_address` | string | `0.0.0.0` |
+| `roomserver_http_enable_openapi` | string | `true` |
 | `roomserver_http_port` | integer | `11333` |
+| `roomserver_internal_parallel_storage_quota_requests` | string | `5` |
 | `roomserver_logging_default_directives` | string | `opentalk=debug` |
 | `roomserver_metrics_allowlist` | list | `[127.0.0.0/24, ::ffff:0:0/96, 172.16.0.0/12]` |
 | `roomserver_metrics_port` | string | `11412` |
@@ -687,13 +719,15 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `roomserver_orchestrator_api_key_id` | string | `orchestrator` |
 | `roomserver_orchestrator_url` | string | `http://orchestrator:11222` |
 | `roomserver_public_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
+| `roomserver_reports_typst_packages_path` | string | `/usr/share/typst/packages` |
 | `roomserver_screen_share_requires_permission` | boolean | `false` |
 | `roomserver_service_url` | string | `http://roomserver:{{ roomserver_http_port }}` |
+| `roomserver_tracing_otlp_endpoint` | string | `http://jaeger:4317` |
 
 ## opentalk_compose.opentalk_smtp_mailer
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `mailer_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `mailer_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `mailer_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -733,9 +767,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.opentalk_web_frontend
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
-| `opentalk_web_frontend_backgrounds_dir` | string | `/var/opt/opentalk-compose/backgrounds` |
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `opentalk_web_frontend_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `opentalk_web_frontend_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `opentalk_web_frontend_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -745,35 +778,54 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `opentalk_web_frontend_docker_compose_ulimits_nproc` | integer | `2048` |
 | `opentalk_web_frontend_docker_extra_hosts` | list | `[]` |
 | `opentalk_web_frontend_docker_image_src` | string | `registry.heinlein.group/opentalk/web-frontend` |
+| `opentalk_web_frontend_environment_account_management_url` | string | `{{ ACCOUNT_MANAGEMENT_URL \| default('') }}` |
 | `opentalk_web_frontend_environment_base_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
+| `opentalk_web_frontend_environment_beta_badge_url` | string | `{{ BETA_BADGE_URL \| default('') }}` |
+| `opentalk_web_frontend_environment_change_password_active` | string | `{{ CHANGE_PASSWORD_ACTIVE \| default(false) }}` |
 | `opentalk_web_frontend_environment_change_password_url` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}/account/` |
+| `opentalk_web_frontend_environment_contact_support_url` | string | `{{ CONTACT_SUPPORT_URL \| default('') }}` |
 | `opentalk_web_frontend_environment_controller_host` | string | `{{ (ot_domain, ot_ingress_port) \| build_host }}/controller` |
+| `opentalk_web_frontend_environment_data_protection_url` | string | `{{ DATA_PROTECTION_URL \| default('') }}` |
+| `opentalk_web_frontend_environment_default_grid_size` | string | `{{ DEFAULT_GRID_SIZE \| default('') }}` |
+| `opentalk_web_frontend_environment_disallow_custom_display_name` | string | `{{ DISALLOW_CUSTOM_DISPLAY_NAME \| default(false) }}` |
 | `opentalk_web_frontend_environment_error_report_address` | string | `{{ ERROR_REPORT_ADDRESS \| default('reports@example.com') }}` |
+| `opentalk_web_frontend_environment_feature_add_user` | string | `{{ FEATURE_ADD_USER \| default(false) }}` |
 | `opentalk_web_frontend_environment_feature_e2e_encryption` | boolean | `false` |
-| `opentalk_web_frontend_environment_feature_protocol` | string | `{{ FEATURE_PROTOCOL \| default(true) }}` |
-| `opentalk_web_frontend_environment_feature_recording` | string | `{{ FEATURE_RECORDING \| default(false) }}` |
-| `opentalk_web_frontend_environment_feature_timer` | string | `{{ FEATURE_TIMER \| default(true) }}` |
+| `opentalk_web_frontend_environment_feature_join_without_media` | string | `{{ FEATURE_JOIN_WITHOUT_MEDIA \| default(false) }}` |
+| `opentalk_web_frontend_environment_feature_mute_user` | string | `{{ FEATURE_MUTE_USER \| default(true) }}` |
+| `opentalk_web_frontend_environment_feature_reset_handraises` | string | `{{ FEATURE_RESET_HANDRAISES \| default(true) }}` |
 | `opentalk_web_frontend_environment_feature_user_search` | string | `{{ FEATURE_USER_SEARCH \| default(true) }}` |
 | `opentalk_web_frontend_environment_feature_whiteboard` | string | `{{ FEATURE_WHITEBOARD \| default(true) }}` |
+| `opentalk_web_frontend_environment_helpdesk_url` | string | `{{ HELPDESK_URL \| default('') }}` |
+| `opentalk_web_frontend_environment_imprint_url` | string | `{{ IMPRINT_URL \| default('') }}` |
 | `opentalk_web_frontend_environment_insecure` | boolean | `false` |
 | `opentalk_web_frontend_environment_is_beta_release` | string | `{{ IS_BETA_RELEASE \| default(false) }}` |
 | `opentalk_web_frontend_environment_libravatar_default_image` | string | `{{ LIBRAVATAR_DEFAULT_IMAGE \| default('identicon') }}` |
 | `opentalk_web_frontend_environment_livekit_e2ee_salt` | string | `{{ LIVEKIT_E2EE_SALT }}` |
 | `opentalk_web_frontend_environment_livekit_preferred_video_codec` | string | `{{ LIVEKIT_PREFERRED_VIDEO_CODEC \| default('vp9') }}` |
 | `opentalk_web_frontend_environment_livekit_server_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/livekit` |
+| `opentalk_web_frontend_environment_max_grid_tiles` | string | `{{ MAX_GRID_TILES \| default(24) }}` |
+| `opentalk_web_frontend_environment_meeting_inactivity_media_disable_seconds` | string | `{{ MEETING_INACTIVITY_MEDIA_DISABLE_SECONDS \| default(120) }}` |
+| `opentalk_web_frontend_environment_meeting_inactivity_termination_seconds` | string | `{{ MEETING_INACTIVITY_TERMINATION_SECONDS \| default(3600) }}` |
+| `opentalk_web_frontend_environment_meeting_inactivity_warning_seconds` | string | `{{ MEETING_INACTIVITY_WARNING_SECONDS \| default(900) }}` |
 | `opentalk_web_frontend_environment_ndt_server` | string | `{{ (ot_domain, ot_ingress_port) \| build_host }}` |
 | `opentalk_web_frontend_environment_oidc_client_id` | string | `{{ controller_oidc_frontend_client_id \| default('Frontend') }}` |
 | `opentalk_web_frontend_environment_oidc_issuer` | string | `{{ keycloak_base_url }}/realms/{{ keycloak_realm }}` |
+| `opentalk_web_frontend_environment_sentry_dsn` | string | `{{ SENTRY_DSN \| default('') }}` |
+| `opentalk_web_frontend_environment_sign_out_redirect_uri` | string | `{{ SIGN_OUT_REDIRECT_URI \| default('/dashboard') }}` |
+| `opentalk_web_frontend_environment_spacedeck_enabled` | string | `{{ SPACEDECK_ENABLED \| default(true) }}` |
 | `opentalk_web_frontend_environment_suppress_browser_compatibility_info` | boolean | `false` |
-| `opentalk_web_frontend_environment_video_backgrounds` | string | `[{`<br>`  altText: 'My Background',`<br>`  url: '/assets/videoBackgrounds/my-bg.png',`<br>`  thumb: '/assets/videoBackgrounds/thumbs/my-bg-thumb.png',`<br>`}]` |
+| `opentalk_web_frontend_environment_user_survey_api_key` | string | `{{ USER_SURVEY_API_KEY \| default('') }}` |
+| `opentalk_web_frontend_environment_user_survey_url` | string | `{{ USER_SURVEY_URL \| default('') }}` |
+| `opentalk_web_frontend_environment_video_backgrounds` | string | `` |
 | `opentalk_web_frontend_environment_waiting_room_default_value` | string | `{{ WAITING_ROOM_DEFAULT_VALUE \| default(false) }}` |
 | `opentalk_web_frontend_labels_traefik_enable` | boolean | `true` |
 | `opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
 
 ## opentalk_compose.rabbitmq
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `rabbitmq_default_pass` | string | `{{ RABBITMQ_PASSWORD }}` |
 | `rabbitmq_default_user` | string | `ot` |
 | `rabbitmq_default_vhost` | string | `/` |
@@ -790,8 +842,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.s3_migrate
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `s3_migrate_bucket_name` | string | `opentalk` |
 | `s3_migrate_garage_endpoint` | string | `http://127.0.0.1:3900` |
 | `s3_migrate_minio_endpoint` | string | `http://127.0.0.1:9000` |
@@ -800,15 +852,15 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.secrets
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `force_generate_secrets` | boolean | `false` |
 | `no_secret_log` | boolean | `true` |
 
 ## opentalk_compose.self_signed_cert
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `custom_certificates_ca_root_cert_file` | string | `ca.crt` |
 | `custom_certificates_certs_dir` | string | `/etc/opentalk-compose/ssl` |
 | `custom_certificates_enabled` | string | `false` |
@@ -845,8 +897,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.spacedeck
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
 | `spacedeck_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `spacedeck_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `spacedeck_docker_compose_services_dir` | string | `{{ services_dir }}` |
@@ -867,16 +919,17 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 ## opentalk_compose.traefik
 
-| Variable | Type | Default Value |
-|----------|------|---------------|
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
+| `Example` | string | `["https://avatars.example.com"]` |
 | `traefik_accessLog_bufferingSize` | integer | `100` |
 | `traefik_api_dashboard` | boolean | `true` |
 | `traefik_api_insecure` | boolean | `false` |
 | `traefik_basicAuth_dashboard_admin` | string | `admin` |
 | `traefik_basicAuth_dashboard_admin_password` | string | `{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD }}` |
 | `traefik_basicAuth_dashboard_admin_password_salt` | string | `{{ TRAEFIK_DASHBOARD_ADMIN_PASSWORD_SALT }}` |
-| `traefik_csp_allowed_extra_connect_src` | list | `[]` — Additional sources for `connect-src` in the CSP header, e.g. `[https://keycloak.example.com]` |
-| `traefik_csp_allowed_extra_img_src` | list | `[]` — Additional sources for `img-src` in the CSP header, e.g. `[https://avatars.example.com]` |
+| `traefik_csp_allowed_extra_connect_src` | list | `[]` |
+| `traefik_csp_allowed_extra_img_src` | list | `[]` |
 | `traefik_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `traefik_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `traefik_docker_compose_services_dir` | string | `{{ services_dir }}` |

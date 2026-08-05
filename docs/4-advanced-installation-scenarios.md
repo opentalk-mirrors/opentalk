@@ -788,3 +788,122 @@ To enable custom backgrounds:
 
 If the variable is left at its default empty value, no host volume is mounted
 and the frontend continues to use its built-in default backgrounds.
+
+## 8 Optional RoomServer service
+
+RoomServer is an optional service and disabled by default.
+
+Before enabling it, ensure:
+
+- OpenTalk base deployment is healthy (`otctl status`)
+- Required API secrets are set in `/etc/opentalk-compose/secrets/secrets.yml`
+- Internal DNS/network connectivity for service-to-service traffic is available
+
+Configuration reference:
+
+- [RoomServer configuration options](5-configuration-options-reference.md#opentalk_composeopentalk_roomserver)
+
+### 8.1 Enable RoomServer
+
+Edit `/etc/opentalk-compose/settings.yml`:
+
+```yaml
+compose_service_opentalk_roomserver_enabled: true
+```
+
+> **Note:** RoomServer can be configured as a standalone optional service.
+
+Apply the change:
+
+```bash
+otctl deploy
+```
+
+### 8.2 Verify RoomServer
+
+Check runtime status:
+
+```bash
+otctl status
+```
+
+Expected output should include a healthy `roomserver` entry.
+
+Inspect logs if startup fails:
+
+```bash
+otctl logs roomserver
+otctl logs controller
+```
+
+### 8.3 Roll back RoomServer
+
+To return to the default setup, disable RoomServer again:
+
+```yaml
+compose_service_opentalk_roomserver_enabled: false
+```
+
+Then redeploy:
+
+```bash
+otctl deploy
+```
+
+## 9 Preview Orchestrator service
+
+Orchestrator is optional, disabled by default, and currently in preview.
+
+> **Warning:** The Orchestrator service is still under active development and
+> should currently not be used in production environments.
+> Keep `compose_service_opentalk_orchestrator_enabled: false` unless you are
+> explicitly testing preview functionality.
+
+Configuration reference:
+
+- [Orchestrator configuration options](5-configuration-options-reference.md#opentalk_composeopentalk_orchestrator)
+
+### 9.1 Enable Orchestrator (preview/testing)
+
+Edit `/etc/opentalk-compose/settings.yml`:
+
+```yaml
+compose_service_opentalk_orchestrator_enabled: true
+```
+
+Apply the change:
+
+```bash
+otctl deploy
+```
+
+### 9.2 Verify Orchestrator
+
+Check runtime status:
+
+```bash
+otctl status
+```
+
+Expected output should include a healthy `orchestrator` entry.
+
+Inspect logs if startup fails:
+
+```bash
+otctl logs orchestrator
+otctl logs controller
+```
+
+### 9.3 Roll back Orchestrator
+
+To return to the default setup, disable Orchestrator again:
+
+```yaml
+compose_service_opentalk_orchestrator_enabled: false
+```
+
+Then redeploy:
+
+```bash
+otctl deploy
+```
