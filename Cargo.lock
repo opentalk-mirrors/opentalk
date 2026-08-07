@@ -3788,7 +3788,7 @@ dependencies = [
  "opentalk-client-signaling",
  "opentalk-orchestrator-client",
  "opentalk-service-auth",
- "opentalk-transcription-web-api 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "opentalk-transcription-web-api 0.4.0",
  "opentalk-types-api-common 0.10.0",
  "opentalk-version",
  "owo-colors",
@@ -3807,17 +3807,6 @@ dependencies = [
 [[package]]
 name = "opentalk-transcription-web-api"
 version = "0.4.0"
-dependencies = [
- "async-trait",
- "axum",
- "opentalk-types-api-common 0.11.0",
- "opentalk-types-common 0.48.0",
- "serde",
-]
-
-[[package]]
-name = "opentalk-transcription-web-api"
-version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea96028dd54e709033970c4abe805795cb342b3308f25ba74b4ffdc96238b942"
 dependencies = [
@@ -3825,6 +3814,17 @@ dependencies = [
  "axum",
  "opentalk-types-api-common 0.10.0",
  "opentalk-types-common 0.47.0",
+ "serde",
+]
+
+[[package]]
+name = "opentalk-transcription-web-api"
+version = "0.5.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "opentalk-types-api-common 0.11.0",
+ "opentalk-types-common 0.48.0",
  "serde",
 ]
 
