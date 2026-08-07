@@ -432,6 +432,7 @@ impl ModerationModule {
                 ModerationEvent::RoleUpdated {
                     participant_id: target,
                     new_role,
+                    issued_by: sender,
                     moderator_data: Some(Self::moderator_data(ctx)),
                 },
             )?;
@@ -445,6 +446,7 @@ impl ModerationModule {
                 ModerationEvent::RoleUpdated {
                     participant_id: target,
                     new_role,
+                    issued_by: sender,
                     moderator_data: None,
                 },
             )?;
@@ -454,6 +456,7 @@ impl ModerationModule {
                 ModerationEvent::RoleUpdated {
                     participant_id: target,
                     new_role,
+                    issued_by: sender,
                     moderator_data: None,
                 },
             )?;
