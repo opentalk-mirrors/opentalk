@@ -264,7 +264,9 @@ mod tests {
             "call_in": {
                 "tel": "+555-123-456-789",
                 "id": "1234567890",
-                "password": "0987654321"
+                "password": "0987654321",
+                "default_country_code": "DE",
+                "mask_unmapped_phone_numbers": true,
             },
             "guest_access": false,
             "waiting_room": "disabled",

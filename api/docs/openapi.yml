@@ -268,20 +268,33 @@ components:
         - tel
         - id
         - password
+        - mask_unmapped_phone_numbers
+        - default_country_code
       properties:
+        default_country_code:
+          type: string
+          description: |-
+            The default country code (CLDR region codes), which is used if a phone number does not
+            contain a country code.
+          example: DE
         id:
           $ref: "#/components/schemas/CallInId"
           description: SIP ID which must transmitted via DTMF (number field on the phone) to identify this room
+        mask_unmapped_phone_numbers:
+          type: boolean
+          description: Mask phone numbers of call-in users.
         password:
           $ref: "#/components/schemas/CallInPassword"
           description: |-
-            SIP password which must be transmitted via DTMF (number field on the phone) after entering the `sip_id`
-            to enter the room
+            SIP password which must be transmitted via DTMF (number field on the phone) after entering
+            the `sip_id` to enter the room
         tel:
           type: string
           description: SIP Call-In phone number which must be used to reach the room
       example:
+        default_country_code: DE
         id: "1234567890"
+        mask_unmapped_phone_numbers: true
         password: "0987654321"
         tel: +555-123-456-789
     CallInPassword:
@@ -700,7 +713,9 @@ components:
         allowed_origins:
           - "https://example.com"
         call_in:
+          default_country_code: DE
           id: "1234567890"
+          mask_unmapped_phone_numbers: true
           password: "0987654321"
           tel: +555-123-456-789
         created_by:
@@ -1029,7 +1044,9 @@ components:
           allowed_origins:
             - "https://example.com"
           call_in:
+            default_country_code: DE
             id: "1234567890"
+            mask_unmapped_phone_numbers: true
             password: "0987654321"
             tel: +555-123-456-789
           created_by:
