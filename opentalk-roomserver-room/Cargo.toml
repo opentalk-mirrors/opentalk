@@ -35,6 +35,7 @@ opentalk-service-auth.workspace = true
 opentalk-types-api-internal = { workspace = true, features = ["http"] }
 opentalk-types-common.workspace = true
 opentalk-types-signaling = { workspace = true, features = ["rand"] }
+phonenumber.workspace = true
 reqwest = { workspace = true, features = ["query", "stream"] }
 serde.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }

@@ -10,12 +10,12 @@ use std::{
 
 use opentalk_roomserver_room::mocking::{
     mock_module::{MockCommand, MockModule},
-    participant::{MockParticipantBuilder, bob_public_user_profile},
+    participant::{MockParticipantBuilder, MockParticipantJoined, bob_public_user_profile},
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
-    core::{CoreCommand, CoreError, CoreEvent, RoomCloseReason},
+    core::{CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, RoomCloseReason, state::CoreState},
     error::SignalingError,
     rate_limit::RateLimitSettings,
     room_parameters::WaitingRoom,
@@ -23,9 +23,11 @@ use opentalk_roomserver_types::{
     tariff_details::TariffDetails,
 };
 use opentalk_types_common::{
+    call_in::{CallInId, CallInInfo, CallInPassword},
     roomserver::DeviceSecret,
     tariffs::{QuotaType, TariffId},
     users::DisplayName,
+    utils::ExampleData,
 };
 use serde_json::json;
 
@@ -349,4 +351,143 @@ async fn guest_must_provide_display_name_to_enter_waiting_room() {
     let event = gustav.receive::<CoreEvent>().await.unwrap().payload;
 
     assert_matches!(event, CoreEvent::Error(CoreError::DisplayNameRequired));
+}
+
+/// Reads the next [`CoreEvent::ParticipantConnected`] event received by `moderator` and returns
+/// the [`CoreState`] carried in its `peer_data` for the core module.
+async fn receive_participant_connected_core_state(
+    moderator: &mut MockParticipantJoined,
+) -> CoreState {
+    let event = moderator.receive::<CoreEvent>().await.unwrap().payload;
+    let CoreEvent::ParticipantConnected { peer_data, .. } = event else {
+        panic!("expected ParticipantConnected, got {event:?}");
+    };
+    let core = peer_data
+        .get(&CORE_MODULE_ID)
+        .expect("peer_data must contain the core module state");
+    serde_json::from_value(core.clone_inner()).expect("peer_data.core must be a valid CoreState")
+}
+
+#[test_log::test(tokio::test)]
+async fn call_in_phone_number_is_masked_by_default() {
+    let mut room = TestRoom::builder().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let event = enter_room_with_display_name(
+        &mut room,
+        ClientKind::CallIn,
+        Role::User,
+        Some(DisplayName::from_str_lossy("+491234567890")),
+    )
+    .await;
+
+    assert_matches!(
+        event,
+        CoreEvent::JoinSuccess(success)
+            if success.display_name == DisplayName::from_str_lossy("+491***890")
+    );
+
+    let core_state = receive_participant_connected_core_state(&mut alice).await;
+    assert_eq!(
+        core_state.display_name,
+        DisplayName::from_str_lossy("+491***890")
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn registered_call_in_phone_number_is_masked_by_default() {
+    let mut room = TestRoom::builder().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let event = enter_room_with_display_name(
+        &mut room,
+        ClientKind::RegisteredCallIn {
+            profile: bob_public_user_profile(),
+        },
+        Role::User,
+        Some(DisplayName::from_str_lossy("+491234567890")),
+    )
+    .await;
+
+    assert_matches!(
+        event,
+        CoreEvent::JoinSuccess(success)
+            if success.display_name == DisplayName::from_str_lossy("+491***890")
+    );
+
+    let core_state = receive_participant_connected_core_state(&mut alice).await;
+    assert_eq!(
+        core_state.display_name,
+        DisplayName::from_str_lossy("+491***890")
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn call_in_phone_number_is_not_masked_when_disabled() {
+    let mut room = TestRoom::builder()
+        .call_in(CallInInfo {
+            tel: String::new(),
+            id: CallInId::example_data(),
+            password: CallInPassword::example_data(),
+            mask_unmapped_phone_numbers: false,
+            default_country_code: "DE".to_string(),
+        })
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let event = enter_room_with_display_name(
+        &mut room,
+        ClientKind::CallIn,
+        Role::User,
+        Some(DisplayName::from_str_lossy("+491234567890")),
+    )
+    .await;
+
+    assert_matches!(
+        event,
+        CoreEvent::JoinSuccess(success)
+            if success.display_name == DisplayName::from_str_lossy("+491234567890")
+    );
+
+    let core_state = receive_participant_connected_core_state(&mut alice).await;
+    assert_eq!(
+        core_state.display_name,
+        DisplayName::from_str_lossy("+491234567890")
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn registered_call_in_phone_number_is_not_masked_when_disabled() {
+    let mut room = TestRoom::builder()
+        .call_in(CallInInfo {
+            tel: String::new(),
+            id: CallInId::example_data(),
+            password: CallInPassword::example_data(),
+            mask_unmapped_phone_numbers: false,
+            default_country_code: "DE".to_string(),
+        })
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let event = enter_room_with_display_name(
+        &mut room,
+        ClientKind::RegisteredCallIn {
+            profile: bob_public_user_profile(),
+        },
+        Role::User,
+        Some(DisplayName::from_str_lossy("+491234567890")),
+    )
+    .await;
+
+    assert_matches!(
+        event,
+        CoreEvent::JoinSuccess(success)
+            if success.display_name == DisplayName::from_str_lossy("+491234567890")
+    );
+
+    let core_state = receive_participant_connected_core_state(&mut alice).await;
+    assert_eq!(
+        core_state.display_name,
+        DisplayName::from_str_lossy("+491234567890")
+    );
 }

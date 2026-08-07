@@ -429,6 +429,7 @@ skip = [
   { name = "rand_chacha", version = "0.3" },
   { name = "rand_core", version = "0.6" },
   { name = "rand_core", version = "0.9" },
+  { name = "regex-syntax", version = "0.6" },
   { name = "reqwest", version = "0.12" },
   { name = "roxmltree", version = "0.20" },
   { name = "rustc-hash", version = "1" },

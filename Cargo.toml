@@ -142,6 +142,7 @@ opentelemetry_sdk = { version = "0.32.0", features = [
 ] }
 owo-colors = "4.3"
 pdf-extract = "0.12"
+phonenumber = "0.3"
 pretty_assertions = "1.4.1"
 rand = "0.10"
 reqwest = { version = "0.13", default-features = false, features = [

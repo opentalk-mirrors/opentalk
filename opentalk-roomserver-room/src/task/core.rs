@@ -4,6 +4,7 @@
 use std::{
     cell::RefCell,
     collections::{BTreeMap, BTreeSet, hash_map::Entry},
+    str::FromStr,
     sync::Arc,
 };
 
@@ -51,6 +52,9 @@ use crate::{
     signaling::{CORE_MODULES, DynBroadcastEvent, dyn_module_context::DynModuleContext},
     task::participant_id_from_uuid,
 };
+
+const DEFAULT_RECORDER_NAME: &str = "recorder";
+const DEFAULT_TRANSCRIPTION_NAME: &str = "transcription";
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     pub(crate) fn handle_conference_core_command(
@@ -188,11 +192,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return Err(CoreError::AlreadyAccepted.into());
         }
 
+        let conference = self.participants.connected().get(&participant_origin.id);
+        let mask_phone_numbers = self.info.mask_unmapped_phone_numbers();
+        let default_country_code = self.info.default_country_code();
+
         let display_name = Self::require_display_name(
-            self.participants.connected().get(&participant_origin.id),
+            conference,
             participant,
             display_name,
+            mask_phone_numbers,
+            default_country_code,
         )?;
+
         let connection_id = participant_origin.connection_id;
         let Some(connection) = participant.connection_mut(connection_id) else {
             tracing::debug!("Failed to enter waiting room: connection not known");
@@ -261,11 +272,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return Err(CoreError::NotAccepted.into());
         }
 
+        let conference = self.participants.connected().get(&participant_origin.id);
+        let mask_phone_numbers = self.info.mask_unmapped_phone_numbers();
+        let default_country_code = self.info.default_country_code();
+
         let display_name = Self::require_display_name(
-            self.participants.connected().get(&participant_origin.id),
+            conference,
             participant.get(),
             display_name,
+            mask_phone_numbers,
+            default_country_code,
         )?;
+
         let role = participant.get().role;
         let client_kind = participant.get().kind.clone();
 
@@ -326,6 +344,33 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         Ok(())
     }
 
+    /// Mask the display name of call-in participants when the corresponding default is enabled.
+    ///
+    /// Call-in participants typically use the raw phone number they dialled in as their display
+    /// name. This wrapper replaces it with a masked variant (see
+    /// [`super::call_in::mask_display_name`]) so peers never see the raw number.
+    fn mask_call_in_display_name(
+        display_name: DisplayName,
+        mask_phone_numbers: Option<bool>,
+        default_country_code: Option<&str>,
+    ) -> DisplayName {
+        let mask_phone_numbers = mask_phone_numbers.unwrap_or(true);
+        if !mask_phone_numbers {
+            return display_name;
+        }
+
+        let parsed_country_code = default_country_code
+            .map(phonenumber::country::Id::from_str)
+            .and_then(Result::ok);
+        if default_country_code.is_some() && parsed_country_code.is_none() {
+            tracing::warn!(
+                "could not parse configured default country code, which is likely due to a misconfigured `[call-in]` section in the controller"
+            );
+        }
+
+        super::call_in::mask_display_name(display_name, parsed_country_code)
+    }
+
     /// Derives the display name for a participant based on their current state in the conference
     /// and lobby.
     pub fn derive_display_name(
@@ -353,6 +398,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         conference: Option<&ParticipantState>,
         lobby: &LobbyParticipant,
         provided: Option<DisplayName>,
+        mask_phone_numbers: Option<bool>,
+        default_country_code: Option<&str>,
     ) -> Result<DisplayName, CoreError> {
         // Derive the display name in the following order of precedence:
         // 1. Conference state (when the participant already has a connection in the conference)
@@ -361,30 +408,47 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         // 4. Public user profile (registered users) or a fixed default (services)
         let derived = Self::derive_display_name(conference, Some(lobby));
 
-        // Participants must provide a display name only when they haven't done so already.
-        // Providing a display name twice is considered an error.
-        match (provided, derived) {
-            (Some(provided_name), Some(derived_name)) if provided_name == derived_name => {
-                // Providing the same display name twice is ok
-                Ok(derived_name)
-            }
-            (Some(_), Some(_)) => Err(CoreError::DisplayNameAlreadyProvided),
-            (Some(name), None) => Ok(name),
-            (None, Some(name)) => Ok(name),
-            (None, None) => match &lobby.kind {
-                // When the user isn't already part of the conference and provided no display name,
-                // fall back to the display name from their profile (if registered) or a fixed
-                // default for services.
+        if let (Some(provided_name), Some(derived_name)) = (&provided, &derived)
+            && provided_name != derived_name
+        {
+            return Err(CoreError::DisplayNameAlreadyProvided);
+        }
+
+        let display_name = provided.or(derived);
+        let client_kind = &lobby.kind;
+
+        let Some(display_name) = display_name else {
+            // No display name was provided or derived:
+            // - If the participant is a registered user return the user info display name
+            // - If the participant is a service return the default service name
+            // - If the participant is a guest return display name required error
+            return match client_kind {
                 ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
                     Ok(profile.user_info.display_name.clone())
                 }
-                ClientKind::Recorder { .. } => Ok(DisplayName::from_str_lossy("recorder")),
-                ClientKind::Transcription { .. } => {
-                    Ok(DisplayName::from_str_lossy("transcription"))
+                ClientKind::Recorder { .. } => {
+                    let display_name = DisplayName::from_str_lossy(DEFAULT_RECORDER_NAME);
+                    Ok(display_name)
                 }
-                ClientKind::CallIn | ClientKind::Guest => Err(CoreError::DisplayNameRequired),
-            },
+                ClientKind::Transcription { .. } => {
+                    let display_name = DisplayName::from_str_lossy(DEFAULT_TRANSCRIPTION_NAME);
+                    Ok(display_name)
+                }
+                ClientKind::CallIn | ClientKind::Guest => {
+                    return Err(CoreError::DisplayNameRequired);
+                }
+            };
+        };
+
+        if client_kind.is_call_in() {
+            return Ok(Self::mask_call_in_display_name(
+                display_name,
+                mask_phone_numbers,
+                default_country_code,
+            ));
         }
+
+        Ok(display_name)
     }
 
     /// A participant connected to the conference
@@ -1184,8 +1248,14 @@ mod tests {
         let conference = participant_state(ClientKind::Guest, "Conference Name");
         let lobby = lobby_participant(ClientKind::Guest, None);
 
-        let name =
-            RoomTask::<MockSocket>::require_display_name(Some(&conference), &lobby, None).unwrap();
+        let name = RoomTask::<MockSocket>::require_display_name(
+            Some(&conference),
+            &lobby,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
 
         assert_eq!(name, DisplayName::from_str_lossy("Conference Name"));
     }
@@ -1199,6 +1269,8 @@ mod tests {
             Some(&conference),
             &lobby,
             Some(DisplayName::from_str_lossy("Other Name")),
+            None,
+            None,
         )
         .unwrap_err();
 
@@ -1210,8 +1282,14 @@ mod tests {
         let conference = participant_state(ClientKind::Guest, "Conference Name");
         let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
 
-        let name =
-            RoomTask::<MockSocket>::require_display_name(Some(&conference), &lobby, None).unwrap();
+        let name = RoomTask::<MockSocket>::require_display_name(
+            Some(&conference),
+            &lobby,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
 
         assert_eq!(name, DisplayName::from_str_lossy("Conference Name"));
     }
@@ -1220,7 +1298,8 @@ mod tests {
     fn require_display_name_uses_waiting_room_name_when_none_is_provided() {
         let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
 
-        let name = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap();
+        let name =
+            RoomTask::<MockSocket>::require_display_name(None, &lobby, None, None, None).unwrap();
 
         assert_eq!(name, DisplayName::from_str_lossy("Waiting Room Name"));
     }
@@ -1233,6 +1312,8 @@ mod tests {
             None,
             &lobby,
             Some(DisplayName::from_str_lossy("Other Name")),
+            None,
+            None,
         )
         .unwrap_err();
 
@@ -1243,7 +1324,8 @@ mod tests {
     fn require_display_name_requires_a_name_from_guests() {
         let lobby = lobby_participant(ClientKind::Guest, None);
 
-        let err = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap_err();
+        let err = RoomTask::<MockSocket>::require_display_name(None, &lobby, None, None, None)
+            .unwrap_err();
 
         assert_matches!(err, CoreError::DisplayNameRequired);
     }
@@ -1256,6 +1338,8 @@ mod tests {
             None,
             &lobby,
             Some(DisplayName::from_str_lossy("Gustav")),
+            None,
+            None,
         )
         .unwrap();
 
@@ -1266,7 +1350,8 @@ mod tests {
     fn require_display_name_requires_a_name_from_call_in_participants() {
         let lobby = lobby_participant(ClientKind::CallIn, None);
 
-        let err = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap_err();
+        let err = RoomTask::<MockSocket>::require_display_name(None, &lobby, None, None, None)
+            .unwrap_err();
 
         assert_matches!(err, CoreError::DisplayNameRequired);
     }
@@ -1279,6 +1364,8 @@ mod tests {
             None,
             &lobby,
             Some(DisplayName::from_str_lossy("1234")),
+            Some(false), // disable phone number masking
+            None,
         )
         .unwrap();
 
@@ -1291,7 +1378,8 @@ mod tests {
         let expected = profile.user_info.display_name.clone();
         let lobby = lobby_participant(ClientKind::Registered { profile }, None);
 
-        let name = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap();
+        let name =
+            RoomTask::<MockSocket>::require_display_name(None, &lobby, None, None, None).unwrap();
 
         assert_eq!(name, expected);
     }
@@ -1309,6 +1397,8 @@ mod tests {
             None,
             &lobby,
             Some(DisplayName::from_str_lossy("Custom Name")),
+            None,
+            None,
         )
         .unwrap();
 
@@ -1321,7 +1411,8 @@ mod tests {
         let expected = profile.user_info.display_name.clone();
         let lobby = lobby_participant(ClientKind::RegisteredCallIn { profile }, None);
 
-        let name = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap();
+        let name =
+            RoomTask::<MockSocket>::require_display_name(None, &lobby, None, None, None).unwrap();
 
         assert_eq!(name, expected);
     }
@@ -1335,7 +1426,8 @@ mod tests {
             None,
         );
 
-        let name = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap();
+        let name =
+            RoomTask::<MockSocket>::require_display_name(None, &lobby, None, None, None).unwrap();
 
         assert_eq!(name, DisplayName::from_str_lossy("recorder"));
     }
@@ -1349,7 +1441,8 @@ mod tests {
             None,
         );
 
-        let name = RoomTask::<MockSocket>::require_display_name(None, &lobby, None).unwrap();
+        let name =
+            RoomTask::<MockSocket>::require_display_name(None, &lobby, None, None, None).unwrap();
 
         assert_eq!(name, DisplayName::from_str_lossy("transcription"));
     }

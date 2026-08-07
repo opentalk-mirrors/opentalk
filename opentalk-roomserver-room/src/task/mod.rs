@@ -117,6 +117,8 @@ mod livekit;
 pub mod lobby;
 pub mod timeout;
 
+mod call_in;
+
 #[derive(Debug, thiserror::Error)]
 pub enum RoomTaskApiError {
     /// Placeholder error for features that are currently missing.

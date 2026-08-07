@@ -33,6 +33,7 @@ use opentalk_roomserver_types::{
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     assets::AssetId,
+    call_in::CallInInfo,
     rooms::{RoomId, RoomPassword},
     streaming::RoomStreamingTarget,
     tariffs::{QuotaType, TariffId},
@@ -160,6 +161,11 @@ impl TestRoomBuilder {
     ) -> Result<Self, serde_json::Error> {
         self.room_parameters.module_settings.insert(data)?;
         Ok(self)
+    }
+
+    pub fn call_in(mut self, call_in_info: CallInInfo) -> Self {
+        self.room_parameters.call_in = Some(call_in_info);
+        self
     }
 
     pub fn waiting_room(mut self, waiting_room: WaitingRoom) -> Self {
