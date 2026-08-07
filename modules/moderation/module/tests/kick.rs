@@ -61,7 +61,7 @@ async fn insufficient_permissions() {
 }
 
 #[test_log::test(tokio::test)]
-async fn can_not_kick_room_owner() {
+async fn non_room_owner_can_not_kick_moderator() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
         .spawn();
