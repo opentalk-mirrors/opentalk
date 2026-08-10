@@ -60,7 +60,7 @@ impl LivekitRoom {
         let url = url.trim_end_matches('/');
 
         let (room, event_stream) =
-            livekit::Room::connect(&url, &creds.token, livekit::RoomOptions::default())
+            livekit::Room::connect(url, &creds.token, livekit::RoomOptions::default())
                 .await
                 .context("failed to connect to livekit room")?;
 
@@ -117,9 +117,7 @@ impl TranscriptionSession {
         app_state: Arc<AppState>,
         room_info: TranscriptionTarget,
     ) -> Result<TranscriptionSession> {
-        let breakout_id: Option<BreakoutId> = room_info
-            .breakout_room
-            .map(|breakout_id| BreakoutId::from(breakout_id));
+        let breakout_id: Option<BreakoutId> = room_info.breakout_room.map(BreakoutId::from);
 
         let JoinedLobby {
             mut room,
@@ -209,10 +207,10 @@ impl TranscriptionSession {
             }
         }
 
-        if let Some(livekit_room) = self.livekit_room.room.take() {
-            if let Err(e) = livekit_room.close().await {
-                log::error!("Failed to disconnect from livekit room: {e:?}");
-            }
+        if let Some(livekit_room) = self.livekit_room.room.take()
+            && let Err(e) = livekit_room.close().await
+        {
+            log::error!("Failed to disconnect from livekit room: {e:?}");
         }
 
         self.room.close().await?;
@@ -277,13 +275,13 @@ impl TranscriptionSession {
     async fn handle_livekit_event(&mut self, event: RoomEvent) -> Result<()> {
         log::trace!("livekit event: {event:?}");
 
-        match event {
-            RoomEvent::TrackSubscribed {
-                track: RemoteTrack::Audio(audio_track),
-                publication: _,
-                participant,
-            } => self.handle_new_audio_track(audio_track, participant),
-            _ => {}
+        if let RoomEvent::TrackSubscribed {
+            track: RemoteTrack::Audio(audio_track),
+            publication: _,
+            participant,
+        } = event
+        {
+            self.handle_new_audio_track(audio_track, participant)
         }
 
         Ok(())
