@@ -129,7 +129,7 @@ while convenient this can changed by:
     baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
     enabled=1
     gpgcheck=1
-    gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
+    gpgkey=https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
     EOF
 
     # Update repository metadata
@@ -155,7 +155,7 @@ while convenient this can changed by:
     baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
     enabled=1
     gpgcheck=1
-    gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
+    gpgkey=https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
     EOF
 
     # Refresh repositories and install OpenTalk Compose
