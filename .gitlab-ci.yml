@@ -200,7 +200,7 @@ test:load:
   stage: test
   <<: *default_job_condition
   image:
-    name: grafana/k6:2.1.0
+    name: grafana/k6:2.2.0
     entrypoint: ['']
   needs:
     - build
