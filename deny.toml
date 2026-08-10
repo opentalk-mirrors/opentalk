@@ -387,6 +387,7 @@ deny = []
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
   { name = "base64", version = "0.21" },
+  { name = "base64", version = "0.22" },
   { name = "bit-set", version = "0.8" },
   { name = "bit-vec", version = "0.8" },
   { name = "block-buffer", version = "0.10" },
@@ -440,7 +441,6 @@ skip = [
   { name = "smithay-client-toolkit", version = "0.19" },
   { name = "snafu", version = "0.8" },
   { name = "snafu-derive", version = "0.8" },
-  { name = "socket2", version = "0.5" },
   { name = "strsim", version = "0.10" },
   { name = "strum", version = "0.27" },
   { name = "strum_macros", version = "0.27" },
