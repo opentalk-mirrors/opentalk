@@ -29,7 +29,7 @@ impl RoomTranscriptionState {
         match &event {
             TranscriptionEvent::Segment(..) => {}
             TranscriptionEvent::StateUpdated { status } => {
-                self.transcription_status = *status;
+                self.transcription_status = status.clone();
             }
             TranscriptionEvent::ServiceCommand { .. } => { /* unreachable */ }
             TranscriptionEvent::Error(transcription_error) => {
@@ -54,5 +54,6 @@ impl TranscriptionApi<'_> {
             .as_ref()
             .expect("transcription state must be set")
             .transcription_status
+            .clone()
     }
 }
