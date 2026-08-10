@@ -213,6 +213,7 @@ async fn change_role_to_moderator() {
         ModerationEvent::RoleUpdated {
             participant_id: bob.id(),
             new_role: Role::Moderator,
+            issued_by: alice.id(),
             moderator_data: Some(ModeratorJoinInfo {
                 waiting_room: WaitingRoom::Disabled,
                 guest_access: true,
@@ -227,6 +228,7 @@ async fn change_role_to_moderator() {
         ModerationEvent::RoleUpdated {
             participant_id: bob.id(),
             new_role: Role::Moderator,
+            issued_by: alice.id(),
             moderator_data: None
         }
     );
@@ -278,6 +280,7 @@ async fn change_role_to_user() {
     let expected_event = ModerationEvent::RoleUpdated {
         participant_id: frank.id(),
         new_role: Role::User,
+        issued_by: alice.id(),
         moderator_data: None,
     };
     assert_eq!(bob_event.payload, expected_event);
@@ -347,6 +350,7 @@ async fn shared_folder_after_promotion() {
         ModerationEvent::RoleUpdated {
             participant_id: bob.id(),
             new_role: Role::Moderator,
+            issued_by: alice.id(),
             moderator_data: Some(ModeratorJoinInfo {
                 waiting_room: WaitingRoom::Disabled,
                 guest_access: true,
@@ -361,6 +365,7 @@ async fn shared_folder_after_promotion() {
         ModerationEvent::RoleUpdated {
             participant_id: bob.id(),
             new_role: Role::Moderator,
+            issued_by: alice.id(),
             moderator_data: None
         }
     );
@@ -426,6 +431,7 @@ async fn shared_folder_after_demotion() {
         ModerationEvent::RoleUpdated {
             participant_id: frank.id(),
             new_role: Role::User,
+            issued_by: alice.id(),
             moderator_data: None,
         }
     );
@@ -474,6 +480,7 @@ async fn role_updated_on_rejoin() {
         ModerationEvent::RoleUpdated {
             participant_id: bob.id(),
             new_role: Role::Moderator,
+            issued_by: alice.id(),
             moderator_data: None,
         }
     );
@@ -488,6 +495,7 @@ async fn role_updated_on_rejoin() {
         ModerationEvent::RoleUpdated {
             participant_id: bob.id(),
             new_role: Role::Moderator,
+            issued_by: alice.id(),
             moderator_data: Some(ModeratorJoinInfo {
                 waiting_room: WaitingRoom::Disabled,
                 guest_access: true,

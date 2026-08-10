@@ -61,7 +61,7 @@ async fn insufficient_permissions() {
 }
 
 #[test_log::test(tokio::test)]
-async fn can_not_kick_room_owner() {
+async fn non_room_owner_can_not_kick_moderator() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
         .spawn();
@@ -94,6 +94,7 @@ async fn can_not_kick_room_owner() {
         ModerationEvent::RoleUpdated {
             participant_id: bob.id(),
             new_role: Role::Moderator,
+            issued_by: alice.id(),
             moderator_data: Some(ModeratorJoinInfo {
                 waiting_room: WaitingRoom::Disabled,
                 guest_access: true,
@@ -126,6 +127,7 @@ async fn can_not_kick_room_owner() {
         ModerationEvent::RoleUpdated {
             participant_id: charlie.id(),
             new_role: Role::Moderator,
+            issued_by: alice.id(),
             moderator_data: None,
         }
     );

@@ -41,6 +41,8 @@ pub enum ModerationEvent {
         participant_id: ParticipantId,
         /// The participants new role
         new_role: Role,
+        /// The moderator who updated the participants role
+        issued_by: ParticipantId,
         /// The moderator data of the room. Sent only to the participant whose role was updated to
         /// moderator.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -182,6 +184,7 @@ mod tests {
         let cmd = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::Moderator,
+            issued_by: ParticipantId::nil(),
             moderator_data: None,
         };
 
@@ -189,7 +192,8 @@ mod tests {
         {
           "message": "role_updated",
           "participant_id": "00000000-0000-0000-0000-000000000000",
-          "new_role": "moderator"
+          "new_role": "moderator",
+          "issued_by": "00000000-0000-0000-0000-000000000000"
         }
         "#);
     }
@@ -200,12 +204,14 @@ mod tests {
         ({
           "message": "role_updated",
           "participant_id": "00000000-0000-0000-0000-000000000000",
-          "new_role": "moderator"
+          "new_role": "moderator",
+          "issued_by": "00000000-0000-0000-0000-000000000000"
         });
 
         let expected = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::Moderator,
+            issued_by: ParticipantId::nil(),
             moderator_data: None,
         };
         let produced = serde_json::from_value(json).unwrap();
@@ -218,6 +224,7 @@ mod tests {
         let cmd = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::User,
+            issued_by: ParticipantId::nil(),
             moderator_data: None,
         };
 
@@ -225,7 +232,8 @@ mod tests {
         {
           "message": "role_updated",
           "participant_id": "00000000-0000-0000-0000-000000000000",
-          "new_role": "user"
+          "new_role": "user",
+          "issued_by": "00000000-0000-0000-0000-000000000000"
         }
         "#);
     }
@@ -236,12 +244,14 @@ mod tests {
         ({
           "message": "role_updated",
           "participant_id": "00000000-0000-0000-0000-000000000000",
-          "new_role": "user"
+          "new_role": "user",
+          "issued_by": "00000000-0000-0000-0000-000000000000"
         });
 
         let expected = ModerationEvent::RoleUpdated {
             participant_id: ParticipantId::nil(),
             new_role: Role::User,
+            issued_by: ParticipantId::nil(),
             moderator_data: None,
         };
         let produced = serde_json::from_value(json).unwrap();
