@@ -907,3 +907,290 @@ Then redeploy:
 ```bash
 otctl deploy
 ```
+
+## 10 Running OpenTalk behind a NAT Gateway
+
+> **Warning:** Operating OpenTalk behind a NAT gateway is a complex setup that requires careful configuration of firewall rules, port forwarding, and TURN relay settings. Whenever possible, deploying OpenTalk directly with a public IP address is strongly preferred. The NAT scenario should only be used when required by network architecture or security policies.
+
+### 10.1 Overview
+
+OpenTalk can be deployed behind a NAT gateway, where the OpenTalk server resides on a private network and the gateway performs Network Address Translation (NAT) to expose services to the internet. This scenario requires:
+
+- **A NAT gateway** with at least two network interfaces: one facing the public internet (external) and one facing the private network (internal).
+- **Port forwarding** on the gateway to forward incoming traffic to the OpenTalk server's private IP address.
+- **UDP port ranges** for WebRTC media traffic and TURN relay to be forwarded without stateful filtering that breaks UDP.
+- **Proper DNS configuration** so that public hostnames resolve to the gateway's public IP, and the OpenTalk server can resolve its own domain to the private IP.
+
+#### Architecture
+
+```txt
+                    ┌────────────────────────────────────┐
+Internet ──────────►│       NAT Gateway                  │
+                    │  Public IP: <GATEWAY-PUBLIC-IP>    │
+                    │                                    │
+                    │  Forward ports to:                 │
+                    │    TCP  80, 443, 7881              │
+                    │    UDP  5060, 3478                 │
+                    │    UDP  40000–49999                │
+                    │    UDP  50000–65535                │
+                    │                                    │
+                    │  Note: TCP 443 serves both:        │
+                    │    - HTTPS (example.com)           │
+                    │    - TURN-TLS (turn.example.com)   │
+                    │      → Traefik routes by hostname  │
+                    │                                    │
+                    └──────────┼─────────────────────────┘
+                               │  Private network
+                               ▼
+                    ┌──────────────────────────────┐
+                    │  OpenTalk Server             │
+                    │  Private IP: <OT-PRIVATE-IP> │
+                    │                              │
+                    │  Traefik (TCP 80, 443, 7881) │
+                    │    └─ TURN-TLS → port 5349   │
+                    │       (internal only)        │
+                    └──────────────────────────────┘
+```
+
+### 10.2 Network and Firewall Requirements
+
+The NAT gateway must forward the following externally reachable ports to the OpenTalk server's private IP address. The exact configuration depends on the firewall tooling (iptables, nftables, firewalld, ufw, cloud provider firewall, etc.). The requirements below describe what must be achieved; adapt the implementation to your environment.
+
+#### Required port forwards
+
+| Protocol | Port(s) | Service | Description |
+| -------- | ------- | ------- | ----------- |
+| TCP | 80 | HTTP | Web frontend, Traefik ACME challenge |
+| TCP | 443 | HTTPS / TURN-TLS | Web frontend, API, Keycloak (**example.com**); also TURN-TLS fallback (**turn.example.com**) — Traefik routes by hostname |
+| TCP | 7881 | LiveKit Signal | WebSocket signaling for WebRTC |
+| UDP | 5060 | SIP | SIP signaling for PSTN integration (**optional**, required only when using OpenTalk Obelisk) |
+| UDP | 3478 | STUN/TURN | STUN discovery and TURN over UDP |
+| UDP | 40000–49999 | Obelisk Media | WebRTC media for OpenTalk Obelisk (**optional**, required only when using OpenTalk Obelisk) |
+| UDP | 50000–65535 | TURN Relay | TURN relay port range for media traffic |
+
+> **Note:** TCP `5349` is an internal TURN-TLS service port between Traefik and the TURN container. Do not forward TCP `5349` from the internet to the OpenTalk host.
+
+#### TURN-TLS over TCP 443 as client fallback
+
+OpenTalk's embedded TURN server exposes TURN-TLS on an internal port (5349 by default). Traefik routes incoming TCP/443 traffic to different backend services based on the request hostname (SNI):
+
+- **`example.com:443`** → HTTPS (web frontend, API, Keycloak, etc.)
+- **`turn.example.com:443`** → TURN-TLS (relayed to the internal TURN service on port 5349)
+
+From the **client's perspective**, TURN is available on TCP port 443 using the TURN hostname (`turn.example.com:443`). This is an important fallback because port 443 is almost never blocked by corporate or carrier firewalls, whereas UDP and higher-numbered TCP ports (3478, 5349) frequently are. Clients that cannot establish direct UDP connections (or UDP is blocked by the NAT gateway or an intermediate firewall) will fall back to TURN-TLS over TCP/443, ensuring media connectivity even under restrictive network conditions.
+
+**Implication for NAT gateway configuration:** You only need to forward TCP 443 once — Traefik on the OpenTalk server will route traffic to the correct service based on the hostname. There is no need to forward TCP 5349 from the internet to the OpenTalk server; it is only required internally between Traefik and the TURN container.
+
+#### Key considerations for the firewall
+
+1. **TCP traffic** can be filtered statefully — allow new connections for the listed TCP ports and permit established/related return traffic.
+
+2. **UDP traffic for media and TURN** must be passed through without stateful filtering that rejects new UDP connections. Unlike TCP, UDP has no handshake, and stateful firewalls may drop media packets if they cannot establish a connection state. Configure the firewall to allow UDP traffic for the listed ports and ranges unconditionally (or at least without requiring a `NEW` state match).
+
+3. **NAT/DNAT** — Incoming traffic on the gateway's public IP must be destination-NATed (DNAT) to the OpenTalk server's private IP address for all listed ports.
+
+4. **SNAT for TURN relay** — Outgoing TURN relay traffic from the OpenTalk server (source ports in the relay range) must be source-NATed (SNAT) to the gateway's public IP, so return traffic from peers routes back to the gateway.
+
+5. **Hairpin NAT** (optional) — If internal clients need to reach OpenTalk via the public hostname, hairpin NAT (NAT reflection) must be configured so that traffic from the internal network to the public IP is properly redirected to the private IP.
+
+#### Example: iptables reference rules
+
+The following iptables rules illustrate the required configuration. Use them as a reference for understanding the requirements; adapt them to your firewall tooling (nftables, firewalld, etc.).
+
+```bash
+# Adjust these values for your environment
+EXT_IF="eth0"
+INT_IF="eth1"
+OT_PRIVATE_IP="10.1.0.11"
+GATEWAY_PUBLIC_IP=""
+GATEWAY_PRIVATE_IP="10.1.0.1"
+
+# --- Default policies ---
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT
+
+# --- INPUT chain (traffic TO the gateway itself) ---
+iptables -A INPUT -i lo -j ACCEPT
+# Allow SSH access (adjust port as needed) — remove or modify if SSH is not required
+# iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+iptables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# --- Routing and NAT (outbound to internet) ---
+sysctl -w net.ipv4.ip_forward=1
+iptables -t nat -A POSTROUTING -o "$EXT_IF" -j MASQUERADE
+
+# --- FORWARD chain (traffic THROUGH the gateway) ---
+
+# Outbound: internal network may always reach the internet
+iptables -A FORWARD -i "$INT_IF" -o "$EXT_IF" -j ACCEPT
+
+# Return traffic for established connections (TCP)
+iptables -A FORWARD -i "$EXT_IF" -o "$INT_IF" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# Incoming TCP ports (HTTP, HTTPS, LiveKit)
+# Note: TURN-TLS reaches clients via TCP 443 (turn.example.com:443),
+# routed by Traefik to the TURN service internally.
+iptables -A FORWARD -i "$EXT_IF" -o "$INT_IF" -p tcp -d "$OT_PRIVATE_IP" \
+  -m multiport --dports 80,443,7881 -j ACCEPT
+
+# Incoming UDP ports (STUN/TURN) — without ctstate NEW
+iptables -A FORWARD -i "$EXT_IF" -o "$INT_IF" -p udp -d "$OT_PRIVATE_IP" \
+  -m multiport --dports 3478 -j ACCEPT
+# Optional: SIP signaling for OpenTalk Obelisk (required only when using Obelisk)
+iptables -A FORWARD -i "$EXT_IF" -o "$INT_IF" -p udp -d "$OT_PRIVATE_IP" \
+  -m multiport --dports 5060 -j ACCEPT
+
+# Incoming UDP port ranges (TURN relay) — without ctstate NEW
+iptables -A FORWARD -i "$EXT_IF" -o "$INT_IF" -p udp -d "$OT_PRIVATE_IP" \
+  --dport 50000:65535 -j ACCEPT
+# Optional: Obelisk media range (required only when using OpenTalk Obelisk)
+iptables -A FORWARD -i "$EXT_IF" -o "$INT_IF" -p udp -d "$OT_PRIVATE_IP" \
+  --dport 40000:49999 -j ACCEPT
+
+# --- NAT chain (DNAT — port forwarding) ---
+
+# TCP port forwards
+# Clients reach TURN-TLS via TCP 443 (turn.example.com:443),
+# which Traefik routes to the internal TURN service by hostname.
+iptables -t nat -A PREROUTING -i "$EXT_IF" -p tcp -m multiport \
+  --dports 80,443,7881 -j DNAT --to-destination "$OT_PRIVATE_IP"
+
+# UDP port forwards
+iptables -t nat -A PREROUTING -i "$EXT_IF" -p udp -m multiport \
+  --dports 3478 -j DNAT --to-destination "$OT_PRIVATE_IP"
+# Optional: SIP signaling for OpenTalk Obelisk (required only when using Obelisk)
+iptables -t nat -A PREROUTING -i "$EXT_IF" -p udp -m multiport \
+  --dports 5060 -j DNAT --to-destination "$OT_PRIVATE_IP"
+# Optional: Obelisk media range (required only when using OpenTalk Obelisk)
+iptables -t nat -A PREROUTING -i "$EXT_IF" -p udp \
+  --dport 40000:49999 -j DNAT --to-destination "$OT_PRIVATE_IP"
+iptables -t nat -A PREROUTING -i "$EXT_IF" -p udp \
+  --dport 50000:65535 -j DNAT --to-destination "$OT_PRIVATE_IP"
+
+# --- Hairpin NAT (internal clients accessing public IP) ---
+# Allow internal clients to reach OpenTalk via the gateway's public IP.
+# DNAT: redirect incoming traffic on internal interface to OpenTalk server
+iptables -t nat -A PREROUTING -i "$INT_IF" -d "$GATEWAY_PUBLIC_IP" \
+  -p tcp -m multiport --dports 80,443,7881 -j DNAT --to-destination "$OT_PRIVATE_IP"
+# SNAT: rewrite source so return traffic takes the correct path
+iptables -t nat -A POSTROUTING -o "$INT_IF" -d "$OT_PRIVATE_IP" \
+  -p tcp -m multiport --dports 80,443,7881 -j SNAT --to-source "$GATEWAY_PRIVATE_IP"
+
+# --- SNAT for TURN relay return traffic ---
+iptables -t nat -I POSTROUTING -o "$EXT_IF" -s "$OT_PRIVATE_IP" -p udp \
+  --sport 40000:49999 -j SNAT --to-source "$GATEWAY_PUBLIC_IP"
+iptables -t nat -I POSTROUTING -o "$EXT_IF" -s "$OT_PRIVATE_IP" -p udp \
+  --sport 50000:65535 -j SNAT --to-source "$GATEWAY_PUBLIC_IP"
+iptables -t nat -I POSTROUTING -o "$EXT_IF" -s "$OT_PRIVATE_IP" -p udp \
+  -m multiport --sports 5060,3478 -j SNAT --to-source "$GATEWAY_PUBLIC_IP"
+```
+
+Adjust the variables:
+
+| Variable | Description |
+| -------- | ----------- |
+| `EXT_IF` | External (public) network interface on the gateway (e.g., `eth0`) |
+| `INT_IF` | Internal (private) network interface on the gateway (e.g., `eth1`) |
+| `OT_PRIVATE_IP` | Private IP address of the OpenTalk server (e.g., `10.1.0.11`) |
+| `GATEWAY_PUBLIC_IP` | Public IP address of the NAT gateway |
+| `GATEWAY_PRIVATE_IP` | Private IP address of the NAT gateway on the internal network (e.g., `10.1.0.1`) |
+
+### 10.3 DNS Configuration
+
+Two DNS records are required:
+
+1. **Main domain** — `A` record for the OpenTalk domain pointing to the gateway's public IP:
+
+   ```
+   example.com.    A    <GATEWAY-PUBLIC-IP>
+   ```
+
+2. **TURN domain** — A separate hostname for TURN-TLS over TCP/443. This enables clients to reach TURN on port 443 (the same port as HTTPS), which is critical as a fallback when UDP is blocked by firewalls or carrier-grade NAT. Traefik uses the hostname to route `turn.example.com:443` to the TURN service (internally on port 5349) while `example.com:443` goes to the web frontend. This record also points to the gateway's public IP:
+
+   ```
+   turn.example.com.    A    <GATEWAY-PUBLIC-IP>
+   ```
+
+On the OpenTalk server itself, the main domain should resolve to the server's private IP (via `/etc/hosts` or an internal DNS server) to avoid hairpin routing for local requests:
+
+```
+<OT-PRIVATE-IP>    example.com
+```
+
+### 10.4 OpenTalk Server Configuration
+
+#### 10.4.1 Settings for NAT deployment
+
+Edit `/etc/opentalk-compose/settings.yml` and add or adjust the following settings:
+
+```yaml
+# Map hostnames to the private IP inside Docker containers.
+# The first entry ensures containers can reach the host gateway.
+# The second entry resolves the OpenTalk domain to the private IP,
+# avoiding hairpin NAT for internal traffic.
+controller_docker_extra_hosts:
+  - "host.docker.internal:host-gateway"
+  - "example.com:<OT-PRIVATE-IP>"
+
+# Bind LiveKit to IPv4 only (gateway only forwards IPv4).
+livekit_bind_addresses:
+  - "0.0.0.0"
+
+# Disable loopback candidates to simplify NAT traversal.
+livekit_rtc_enable_loopback_candidate: false
+
+# Enable embedded TURN relay.
+livekit_turn_embedded_enabled: true
+
+# TURN must use a separate hostname so Traefik can route TCP/443
+# traffic correctly: requests to "turn.example.com:443" are sent to
+# the TURN service, while "example.com:443" goes to the web frontend.
+# Clients connect to TURN over TCP/443 (turn.example.com:443) as a
+# fallback when UDP is blocked — the firewall only needs to forward
+# TCP 443 once; Traefik dispatches by hostname.
+livekit_turn_embedded_domain: "turn.example.com"
+
+# Relay port range — must match the UDP range forwarded by the gateway.
+livekit_turn_embedded_relay_range_start: 50000
+livekit_turn_embedded_relay_range_end: 65535
+
+# Enable TLS for TURN. The internal port (5349) is where Traefik
+# connects to the TURN container. Clients reach TURN via TCP/443
+# using the TURN hostname (turn.example.com) — no need to expose
+# port 5349 externally.
+livekit_turn_embedded_tls_enabled: true
+livekit_turn_embedded_tls_port: 5349
+livekit_turn_embedded_external_tls: true
+```
+
+#### 10.4.2 Deploy
+
+```bash
+otctl deploy
+```
+
+### 10.5 Cloud Environment Considerations
+
+When deploying behind a NAT gateway in a cloud environment, additional factors may apply. The following notes are based on experience with cloud providers and are applicable in similar environments:
+
+#### Private network routing
+
+Some cloud providers assign private interfaces with a `/32` subnet mask (host-only address, no network). This creates isolated private networks on the VM without automatic routing between private IPs. To resolve this:
+
+- **Add a default route in the cloud provider's private network routing table** pointing to the NAT gateway's private IP. For example, in a cloud control panel, create a route with destination `0.0.0.0/0` and gateway set to the NAT gateway's private IP address on the private network.
+
+- **Adjust the default route** on the public interface (if the cloud provider assigns one), so traffic does not bypass the NAT gateway
+
+### 10.6 Troubleshooting
+
+| Symptom | Possible Cause | Resolution |
+| ------- | -------------- | ---------- |
+| Web frontend loads but video calls fail | UDP ports not forwarded correctly | Verify UDP forwarding for 50000–65535; ensure no stateful UDP filtering |
+| TURN connection fails (UDP) | TURN port 3478/UDP not forwarded or TURN not enabled | Verify UDP port 3478 DNAT/FORWARD rules; check `livekit_turn_embedded_enabled: true` in `settings.yml` |
+| TURN connection fails (TCP fallback) | TURN-TLS hostname misconfiguration | Check that `turn.example.com` resolves to the gateway IP; verify `livekit_turn_embedded_tls_enabled: true` and `livekit_turn_embedded_domain` in `settings.yml`. Note: Port 5349 is internal only — clients reach TURN-TLS via TCP 443 (`turn.example.com:443`), routed by Traefik |
+| SIP/Obelisk media not working (if using Obelisk) | Obelisk ports not forwarded | Verify DNAT/FORWARD rules for UDP 5060 and 40000–49999 are uncommented in the iptables reference |
+| WebRTC works internally but not externally | SNAT not configured for TURN relay | Add SNAT rules for TURN relay ports to use the gateway's public IP |
+| Internal clients cannot reach OpenTalk via public IP | Hairpin NAT not configured | Add PREROUTING DNAT and POSTROUTING SNAT rules for the internal interface (see Hairpin NAT section) |
+| Server cannot reach internet | Default route points to wrong gateway on the OpenTalk host | Ensure the default route uses the private interface toward the NAT gateway |
+| Cloud private network has no connectivity between hosts | `/32` subnet mask with no private network routes | Add a route in the cloud provider's private network routing table |
