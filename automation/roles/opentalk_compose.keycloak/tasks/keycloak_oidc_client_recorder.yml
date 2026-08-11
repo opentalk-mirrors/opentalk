@@ -23,3 +23,79 @@
     service_accounts_enabled: true
     client_authenticator_type: client-secret
     secret: "{{ OIDC_RECORDER_CLIENT_SECRET }}"
+    attributes:
+      allow.token.introspection.without.audience.check: "false"
+
+- name: "Get Keycloak client ID for {{ recorder_auth_client_id | default('Recorder') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients?clientId={{ recorder_auth_client_id | default('Recorder') }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    status_code: 200
+  register: recorder_client_lookup
+
+- name: "Set recorder client UUID"
+  ansible.builtin.set_fact:
+    recorder_client_uuid: "{{ (recorder_client_lookup.json | first).id }}"
+  when: recorder_client_lookup.json | length > 0
+
+- name: "Get protocol mappers for {{ recorder_auth_client_id | default('Recorder') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients/{{ recorder_client_uuid }}/protocol-mappers/models"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    status_code: 200
+  register: recorder_protocol_mappers
+  when: recorder_client_uuid is defined
+
+- name: "Set recorder audience mapper UUID"
+  ansible.builtin.set_fact:
+    recorder_audience_mapper_uuid: "{{ (recorder_protocol_mappers.json | selectattr('name', 'equalto', 'audience-controller') | list | first).id }}"
+  when:
+    - recorder_client_uuid is defined
+    - recorder_protocol_mappers.json | selectattr('name', 'equalto', 'audience-controller') | list | length > 0
+
+- name: "Update Recorder audience mapper for {{ controller_oidc_controller_client_id | default('Controller') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients/{{ recorder_client_uuid }}/protocol-mappers/models/{{ recorder_audience_mapper_uuid }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      id: "{{ recorder_audience_mapper_uuid }}"
+      name: "audience-controller"
+      protocol: "openid-connect"
+      protocolMapper: "oidc-audience-mapper"
+      consentRequired: false
+      config:
+        included.client.audience: "{{ controller_oidc_controller_client_id | default('Controller') }}"
+        id.token.claim: "false"
+        access.token.claim: "true"
+    status_code: 204
+  when: recorder_audience_mapper_uuid is defined
+
+- name: "Create Recorder audience mapper for {{ controller_oidc_controller_client_id | default('Controller') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients/{{ recorder_client_uuid }}/protocol-mappers/models"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "audience-controller"
+      protocol: "openid-connect"
+      protocolMapper: "oidc-audience-mapper"
+      consentRequired: false
+      config:
+        included.client.audience: "{{ controller_oidc_controller_client_id | default('Controller') }}"
+        id.token.claim: "false"
+        access.token.claim: "true"
+    status_code: 201
+  when:
+    - recorder_client_uuid is defined
+    - recorder_audience_mapper_uuid is not defined

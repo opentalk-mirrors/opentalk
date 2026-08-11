@@ -100,9 +100,9 @@ while convenient this can changed by:
       https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc | \
       sudo tee /etc/apt/trusted.gpg.d/opentalk-archive-keyring.asc > /dev/null
 
-    # Add the OpenTalk Compose (Beta) repository
+    # Add the OpenTalk Compose (stable) repository
     echo "deb [arch=amd64] \
-      https://repo.heinlein.group/repo/opentalk-compose/deb/beta/ all main" | \
+      https://repo.heinlein.group/repo/opentalk-compose/deb/stable/ all main" | \
       sudo tee /etc/apt/sources.list.d/opentalk-compose.list
 
     # Update package index
@@ -122,14 +122,14 @@ while convenient this can changed by:
     sudo rpm --import \
       https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
 
-    # Add the OpenTalk Compose (Beta) repository
-    sudo tee /etc/yum.repos.d/opentalk-beta.repo <<EOF
+    # Add the OpenTalk Compose (stable) repository
+    sudo tee /etc/yum.repos.d/opentalk-stable.repo <<EOF
     [opentalk-compose]
-    name=OpenTalk Compose Repository - Beta Releases
-    baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/beta/
+    name=OpenTalk Compose Repository - Stable Releases
+    baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
     enabled=1
     gpgcheck=1
-    gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
+    gpgkey=https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
     EOF
 
     # Update repository metadata
@@ -148,14 +148,14 @@ while convenient this can changed by:
     sudo rpm --import \
       https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
 
-    # Add the OpenTalk Compose (Beta) repository
-    sudo tee /etc/zypp/repos.d/opentalk-beta.repo <<EOF
-    [opentalk-compose-beta]
-    name=OpenTalk Compose Repository - Beta Releases
-    baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/beta/
+    # Add the OpenTalk Compose (stable) repository
+    sudo tee /etc/zypp/repos.d/opentalk-stable.repo <<EOF
+    [opentalk-compose-stable]
+    name=OpenTalk Compose Repository - Stable Releases
+    baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
     enabled=1
     gpgcheck=1
-    gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
+    gpgkey=https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
     EOF
 
     # Refresh repositories and install OpenTalk Compose

@@ -5,6 +5,96 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.1.1] - 2026-08-11
+
+[26.1.1]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.1-beta.2...v26.1.1
+
+### 🐛 Bug fixes
+
+- (docs) Fix bad escaping of | in configuration options reference ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+- (keycloak) Enforce audience check for controller introspection ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+- (docs) Add garage and s3_migrate sections, fix duplicate minio_s3_api_port entry ()
+- (web-frontend) Make video_backgrounds default-friendly ([!167](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/167))
+
+### 📚 Documentation
+
+- (quickstart) Switch package repository examples to stable ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+- (changelog) Prepare v26.1.1 release notes ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+- (changelog) Remove duplicate dependency entries ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+
+### 🔨 Refactor
+
+- (traefik) Rename csp_allowed_extra_*_src vars to traefik_ prefix ([!166](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/166))
+
+### 📦 Dependencies
+
+- (deps) Update keycloak version 26.6.3 ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+- (deps) Update postgresql version 17.10 ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+- (deps) Update traefik version v3.7.7 ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+- (deps) Update garage version v2.3.0 ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+- (deps) Update mailcrab version v1.7.0 ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+- (deps) Update NDT server version v0.25.3 ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+- (deps) Update opentalk product version to v26.1.1 ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
+- (deps) Update OpenTalk Controller version 0.33.4 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
+- (deps) Update OpenTalk Outlook Add-In version v0.3.6-1 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
+- (deps) Update RabbitMQ to version v4.2.7 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
+- (deps) Update dependency community.docker to v5.2.1 ([!177](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/177))
+- (deps) Update dependency ansible-core to v2.21.0 ([!176](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/176))
+- (deps) Update dependency community.general to v13 ([!175](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/175))
+- (deps) Update dependency ansible.posix to v2.2.0 ([!174](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/174))
+- (deps) Update dependency community.crypto to v3.2.1 ([!172](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/172))
+- (deps) Update dependency ansible.posix to v2.2.1 ([!188](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/188))
+- (deps) Update dependency ansible.posix to v2.2.2 ([!191](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/191))
+- (deps) Update dependency ansible-core to v2.21.2 ([!187](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/187))
+- (deps) Update dependency community.general to v13.2.0 ([!185](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/185))
+- (deps) Update dependency community.crypto to v3.3.0 ([!184](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/184))
+- (deps) Update dependency community.docker to v5.2.2 ([!195](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/195))
+- (deps) Update dependency ansible-core to v2.21.3 ()
+- (deps) Update dependency community.general to v13.3.0 ()
+
+### ⚙ Miscellaneous
+
+- (docs) Update CHANGELOG.md ([!181](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/181))
+- (livekit) Support config option bind_addresses ()
+- (docs) Update config referernce ()
+- (controller) Update roomserver config template ()
+
+## [26.1.1-beta.2] - 2026-08-07
+
+[26.1.1-beta.2]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.1-beta.1...v26.1.1-beta.2
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk web frontend version v2.8.6 ([!194](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/194))
+- (deps) Update OpenTalk controller version v0.33.7 ([!194](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/194))
+- (deps) Update OpenTalk obelisk version v0.21.4 ([!194](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/194))
+- (deps) Update OpenTalk product version v26.1.1-beta.2 ([!194](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/194))
+
+## [26.1.1-beta.1] - 2026-07-09
+
+[26.1.1-beta.1]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.0-beta.7...v26.1.1-beta.1
+
+### 🐛 Bug fixes
+
+- (docs) Fix bad escaping of | in configuration options reference (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk product version v26.1.1-beta.1 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update OpenTalk web frontend version v2.8.5 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update OpenTalk obelisk version v0.21.3 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update OpenTalk outlook add-in version v0.3.6-2 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update keycloak version 26.6.3 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update postgresql version 17.10 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update traefik version v3.7.7 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update garage version v2.3.0 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update mailcrab version v1.7.0 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+- (deps) Update NDT server version v0.25.3 (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+
+### ⚙ Miscellaneous
+
+- (docs) Update CHANGELOG (https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190)
+
 ## [26.1.0-beta.6] - 2026-05-27
 
 [26.1.0-beta.6]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.6
@@ -23,7 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [26.1.0-beta.5] - 2026-05-12
 
-[26.1.0-beta.5]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.5
+[26.1.0-beta.5]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.0-beta.4...v26.1.0-beta.5
 
 ### 🚀 New features
 
@@ -48,7 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [26.1.0-beta.4] - 2026-04-15
 
-[26.1.0-beta.4]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.4
+[26.1.0-beta.4]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.0-beta.3...v26.1.0-beta.4
 
 ### 🐛 Bug fixes
 
@@ -67,7 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [26.1.0-beta.3] - 2026-04-10
 
-[26.1.0-beta.3]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.1.0-beta.3
+[26.1.0-beta.3]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.0-beta.2...v26.1.0-beta.3
 
 ### 🚀 New features
 
@@ -286,123 +376,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add changelog creation ([!91](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/91))
 - (fix) Missing ulimit settings for database services ([!97](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/97))
 - (fix) Missing ulimit settings for rabbitmq ([!99](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/99))
-
-## [25.4.0-4] - 2026-01-05
-
-[25.4.0-4]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.0-3...v25.4.0-4
-
-### 📦 Dependencies
-
-- (deps) Update dependency community.crypto to v2.26.6 ([!76](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/76))
-- (deps) Update dependency community.docker to v4.8.5 ([!77](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/77))
-- (deps) Update dependency community.docker to v5 ([!80](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/80))
-- (deps) Update dependency community.crypto to v3 ([!79](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/79))
-- (deps) Update dependency ansible-core to v2.20.1 ([!82](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/82))
-- (deps) Update dependency bcrypt to v5 ([!84](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/84))
-- (deps) Update dependency astral-sh/python-build-standalone to v20251217 ([!85](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/85))
-- (deps) Update dependency community.docker to v5.0.5 ([!90](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/90))
-
-## [25.4.0-3] - 2025-12-19
-
-[25.4.0-3]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.0-2...v25.4.0-3
-
-### ⚙ Miscellaneous
-
-- Update product version check ()
-
-## [25.4.0-2] - 2025-12-17
-
-[25.4.0-2]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.0...v25.4.0-2
-
-### 🚀 New features
-
-- (ci) Add renovate.json ([!72](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/72))
-
-### 📦 Dependencies
-
-- (deps) Update dependency community.general to v12 ([!81](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/81))
-
-### ⚙ Miscellaneous
-
-- Exclude renovate.json from packaging ()
-- Update Quickstart guide ([!74](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/74))
-- Adjust requirements.yml ()
-- Extend renovate configuration ([!75](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/75))
-
-## [25.4.0-4] - 2026-01-05
-
-[25.4.0-4]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.0-3...v25.4.0-4
-
-### 📦 Dependencies
-
-- (deps) Update dependency community.crypto to v2.26.6 ([!76](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/76))
-- (deps) Update dependency community.docker to v4.8.5 ([!77](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/77))
-- (deps) Update dependency community.docker to v5 ([!80](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/80))
-- (deps) Update dependency community.crypto to v3 ([!79](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/79))
-- (deps) Update dependency ansible-core to v2.20.1 ([!82](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/82))
-- (deps) Update dependency bcrypt to v5 ([!84](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/84))
-- (deps) Update dependency astral-sh/python-build-standalone to v20251217 ([!85](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/85))
-- (deps) Update dependency community.docker to v5.0.5 ([!90](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/90))
-
-## [25.4.0-3] - 2025-12-19
-
-[25.4.0-3]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.0-2...v25.4.0-3
-
-### ⚙ Miscellaneous
-
-- Update product version check ()
-
-## [25.4.0-2] - 2025-12-17
-
-[25.4.0-2]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.0...v25.4.0-2
-
-### 🚀 New features
-
-- (ci) Add renovate.json ([!72](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/72))
-
-### 📦 Dependencies
-
-- (deps) Update dependency community.general to v12 ([!81](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/81))
-
-### ⚙ Miscellaneous
-
-- Exclude renovate.json from packaging ()
-- Update Quickstart guide ([!74](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/74))
-- Adjust requirements.yml ()
-- Extend renovate configuration ([!75](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/75))
-
-## [25.4.1] - 2026-01-22
-
-[25.4.1]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.0-4...v25.4.1
-
-### 🚀 New features
-
-- (docker compose) Ulimit settings via docker compose ([!92](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/92))
-
-### 📚 Documentation
-
-- Add CHANGELOG.md file ([!91](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/91))
-- Add ulimits defaults to config reference ([!92](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/92))
-
-### 📦 Dependencies
-
-- (deps) Update dependency community.crypto to v3.1.0 ([!88](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/88))
-- (deps) Update dependency community.general to v12.2.0 ([!89](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/89))
-- (deps) Update opentalk product version v25.4.1 ([!96](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/96))
-
-### ⚙ Miscellaneous
-
-- Add changelog creation ([!91](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/91))
-
-## [Unreleased]
-
-### 📦 Dependencies
-
-- (deps) Update dependency community.crypto to v3.1.0 ([!88](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/88))
-
-### ⚙ Miscellaneous
-
-- Add changelog creation ([!91](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/91))
 
 ## [25.4.0-4] - 2026-01-05
 

@@ -4,27 +4,27 @@
 
 ---
 # OpenTalk Product Version
-opentalk_product_version: v26.1.0
+opentalk_product_version: v26.1.1
 
 # OpenTalk related Container Image Versions
-opentalk_controller_version: v0.33.5
-opentalk_web_frontend_version: v2.8.3
+opentalk_controller_version: v0.33.7
+opentalk_web_frontend_version: v2.8.6
 opentalk_recorder_version: v0.16.2
-opentalk_obelisk_version: v0.21.2
+opentalk_obelisk_version: v0.21.4
 opentalk_smtp_mailer_version: v0.17.0
-opentalk_outlook_add_in_version: v0.3.6-1
+opentalk_outlook_add_in_version: v0.3.6-2
 spacedeck_version: v3.0.3
 etherpad_version: v2.0.4
-keycloak_version: 26.5.7
-postgres_version: 17.9-alpine
-traefik_version: v3.6.10
+keycloak_version: 26.6.3
+postgres_version: 17.10-alpine
+traefik_version: v3.7.7
 minio_version: RELEASE.2025-10-15T17-29-55Z
 minio_client_version: RELEASE.2025-08-13T08-35-41Z
-garage_version: v2.2.0
+garage_version: v2.3.0
 rabbitmq_version: 4.2.7-management-alpine
-mailcrab_version: v1.6.4
+mailcrab_version: v1.7.0
 livekit_version: v1.9.12
-ndt_version: v0.25.0
+ndt_version: v0.25.3
 
 # Tools
 keycloak-theme-generator_version: v0.1.2

@@ -46,7 +46,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `backup_dir_config` | string | `{{ backup_dir }}/config` |
 | `backup_dir_sql_dumps` | string | `{{ backup_dir }}/dumps` |
 | `backup_dir_volumes` | string | `{{ backup_dir }}/volumes` |
-| `backup_docker_volume_list` | string | `{{`<br>`  ( [compose_project_name ~ '_garage_meta', compose_project_name ~ '_garage_data']`<br>`    if (s3_storage_provider \| default('garage')) == 'garage'`<br>`    else [compose_project_name ~ '_minio'] )`<br>`  + [compose_project_name ~ '_rabbitmq', compose_project_name ~ '_traefik']`<br>`}}` |
+| `backup_docker_volume_list` | string | `{{`<br>`  ( [compose_project_name ~ '_garage_meta', compose_project_name ~ '_garage_data']`<br>`    if (s3_storage_provider &#124; default('garage')) == 'garage'`<br>`    else [compose_project_name ~ '_minio'] )`<br>`  + [compose_project_name ~ '_rabbitmq', compose_project_name ~ '_traefik']`<br>`}}` |
 | `backup_docker_volume_restore_files` | list | `[]` |
 | `backup_retention_max_age_days` | integer | `7` |
 | `backup_retention_max_items` | integer | `5` |
@@ -520,7 +520,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_http_addr` | string | `::0` |
 | `controller_http_cors_allowed_origin` | string | `["*"]` |
 | `controller_http_port` | integer | `11311` |
-| `controller_http_service_api_keys` | list | `[{id: controller, secret: secret}]` |
+| `controller_http_service_api_keys` | list | `[{id: controller, secret: {{ OIDC_CONTROLLER_CLIENT_SECRET }}}]` |
 | `controller_livekit_api_key` | string | `controller` |
 | `controller_livekit_api_secret` | string | `{{ LIVEKIT_API_SECRET }}` |
 | `controller_livekit_public_url` | string | `wss://{{ (ot_domain, ot_ingress_port) \| build_host }}/livekit` |

@@ -18,9 +18,8 @@ livekit_docker_image_src: registry.heinlein.group/opentalk/livekit-server
 livekit_api_key_controller: "{{ LIVEKIT_API_SECRET }}"
 
 livekit_port: 7880
-livekit_bind_addresses:
-  - "0.0.0.0"
-  - "::"
+livekit_bind_addresses: >-
+  {{ ['::'] if ((ansible_facts.get('default_ipv6', {}).get('address', '') | length) > 0) else ['0.0.0.0'] }}
 
 livekit_rtc_tcp_port: 7881
 livekit_rtc_port_range_start: 50000
