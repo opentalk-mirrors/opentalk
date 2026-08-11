@@ -520,7 +520,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_http_addr` | string | `::0` |
 | `controller_http_cors_allowed_origin` | string | `["*"]` |
 | `controller_http_port` | integer | `11311` |
-| `controller_http_service_api_keys` | list | `[{id: controller, secret: secret}]` |
+| `controller_http_service_api_keys` | list | `[{id: controller, secret: {{ OIDC_CONTROLLER_CLIENT_SECRET }}}]` |
 | `controller_livekit_api_key` | string | `controller` |
 | `controller_livekit_api_secret` | string | `{{ LIVEKIT_API_SECRET }}` |
 | `controller_livekit_public_url` | string | `wss://{{ (ot_domain, ot_ingress_port) \| build_host }}/livekit` |

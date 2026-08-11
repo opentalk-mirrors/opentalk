@@ -56,9 +56,9 @@ controller_monitoring_port: 11411
 controller_http_port: 11311
 # controller_http_addr: "::0"
 # controller_http_cors_allowed_origin: ["*"]
-# controller_http_service_api_keys:
-#   - id: "controller"
-#     secret: "secret"
+controller_http_service_api_keys:
+  - id: "controller"
+    secret: "{{ OIDC_CONTROLLER_CLIENT_SECRET }}"
 controller_oidc_authority: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
 controller_oidc_frontend_client_id: "Frontend"
 # controller_oidc_frontend_authority: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
