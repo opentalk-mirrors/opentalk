@@ -35,7 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (deps) Update mailcrab version v1.7.0 ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
 - (deps) Update NDT server version v0.25.3 ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
 - (deps) Update opentalk product version to v26.1.1 ([!199](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/199))
-- (deps) Update OpenTalk Product version v26.1.0-beta.6 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
 - (deps) Update OpenTalk Controller version 0.33.4 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
 - (deps) Update OpenTalk Outlook Add-In version v0.3.6-1 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
 - (deps) Update RabbitMQ to version v4.2.7 ([!180](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/180))
