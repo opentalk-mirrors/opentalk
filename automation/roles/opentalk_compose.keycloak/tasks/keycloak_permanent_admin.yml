@@ -30,20 +30,25 @@
         url: "{{ keycloak_base_url }}/realms/{{ keycloak_auth_realm }}/protocol/openid-connect/token"
         method: POST
         body_format: form-urlencoded
+        return_content: true
         body:
           grant_type: password
           client_id: admin-cli
           username: "{{ keycloak_permanent_admin_username }}"
           password: "{{ keycloak_permanent_admin_password }}"
-        status_code: [200, 401, 405]  # 405 (Method Not Allowed) may occur transiently before realm accepts password grant
+        status_code: [200, 400, 401, 405]  # 405 may occur transiently before realm accepts password grant; 400 is often invalid_grant for missing/invalid user credentials
       register: permanent_admin_login_attempt
-      failed_when: false  # Prevent task failure on 401/405
-      until: permanent_admin_login_attempt.status in [200, 401]
+      failed_when: false  # Prevent task failure on probe status codes
+      until: permanent_admin_login_attempt.status in [200, 400, 401]
       retries: 15
       delay: 10
 
     - debug:
-        msg: "Permanent admin login attempt status: {{ permanent_admin_login_attempt.status }}"
+        msg: >-
+          Permanent admin login attempt status: {{ permanent_admin_login_attempt.status }}
+          {% if permanent_admin_login_attempt.json is defined and permanent_admin_login_attempt.json.error is defined %}
+          ({{ permanent_admin_login_attempt.json.error }}{% if permanent_admin_login_attempt.json.error_description is defined %}: {{ permanent_admin_login_attempt.json.error_description }}{% endif %})
+          {% endif %}
 
     - name: "Continue with permanent admin credentials"
       block:
