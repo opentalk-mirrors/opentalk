@@ -10,7 +10,7 @@ license.workspace = true
 name = "opentalk-roomserver-module-subroom-audio"
 publish = true
 repository.workspace = true
-version = "0.5.0"
+version = "0.6.0"
 
 [lints]
 workspace = true

@@ -9,7 +9,7 @@ homepage.workspace = true
 license.workspace = true
 name = "opentalk-roomserver-types"
 repository.workspace = true
-version = "0.7.0"
+version = "0.8.0"
 
 [lints]
 workspace = true
