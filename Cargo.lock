@@ -835,7 +835,7 @@ dependencies = [
  "sha1 0.10.7",
  "sync_wrapper",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.29.0",
  "tower",
  "tower-layer",
  "tower-service",
@@ -4872,7 +4872,7 @@ dependencies = [
  "rustls-native-certs",
  "tokio",
  "tokio-rustls",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.29.0",
  "url",
 ]
 
@@ -5865,9 +5865,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-orchestrator-client"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d88c3c587975f20d4f997ad70da84af495bfd158c55145ec3b377afed3cd9b4a"
+checksum = "a1049eeb31c332d657bd36229e67937807883fa645d3abf63d21b1b12412fcbf"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5879,15 +5879,15 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.20",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.30.0",
  "url",
 ]
 
 [[package]]
 name = "opentalk-orchestrator-shared"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65c62de6dd80c5c82a284c3db1fa657825e982dff0872600037fff4eee0fa527"
+checksum = "3eea5b8f46bd536e82fb36845d4797073adf355c307c89dba6ac15c55e9baf0e"
 dependencies = [
  "opentalk-service-auth",
  "opentalk-types-common",
@@ -6001,9 +6001,9 @@ dependencies = [
  "testcontainers",
  "thiserror 2.0.20",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.29.0",
  "tracing",
- "tungstenite",
+ "tungstenite 0.29.0",
  "url",
 ]
 
@@ -6083,7 +6083,7 @@ dependencies = [
  "futures",
  "opentalk-roomserver-types",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.29.0",
  "tracing",
  "url",
 ]
@@ -6650,7 +6650,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.20",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.29.0",
  "tokio-util",
  "url",
  "utoipa",
@@ -6965,9 +6965,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-service-auth"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b841046d1752008dd19a28013b1c4f757c2fa223de0218931504a54ae2d0fc9"
+checksum = "03555ec242431a1b04cdadb02fed73277b551796963e0627dd9e97191478494d"
 dependencies = [
  "axum",
  "futures",
@@ -6981,9 +6981,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-transcription-web-api"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3c5a1254a4b8c56e7b6f4cdb543e5233f26821cf09b8de01d339e4ee773868b"
+checksum = "0a1099b229f830851660bcac623ca606d69c689ff7716e299c03bae9de4e48a4"
 dependencies = [
  "async-trait",
  "axum",
@@ -6994,9 +6994,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-common"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0938f9186f4104c492d17722849a767241175a3466877ef982cbb6f0a288bf85"
+checksum = "aabc0e49a634c3bbb9ff835afd9bcf6bb106d5ac984446be7ec923747a5acd47"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -7013,9 +7013,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-api-internal"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "beb3f25c027b9d8e7a37b119ce53d58c7b24c975063a56fb8241d188f12e7620"
+checksum = "f9102084cece8f1c1a7d3c2b06daec69eb4bcff8cc6bb89e3706fb53852dcf23"
 dependencies = [
  "chrono",
  "opentalk-types-api-common",
@@ -7027,9 +7027,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-common"
-version = "0.48.0"
+version = "0.49.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8500295b6afda572cde214ce153e92adca9757fded6fe6904042c45777d2ace7"
+checksum = "2dbd049228a6a8839600600d859e3521c3375c49e064f13cc1c070da84f507d2"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -7085,9 +7085,9 @@ dependencies = [
 
 [[package]]
 name = "opentalk-types-signaling"
-version = "0.49.0"
+version = "0.50.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51a16e8fcd47b8db25420828471da5e2e170917d3b7ee57c64edaabeedab8105"
+checksum = "84a2e41db4df12124c6f653f983673626f9edd018934b7736edeb7726bcb05ce"
 dependencies = [
  "derive_more",
  "opentalk-types-common",
@@ -9987,7 +9987,20 @@ dependencies = [
  "rustls-pki-types",
  "tokio",
  "tokio-rustls",
- "tungstenite",
+ "tungstenite 0.29.0",
+]
+
+[[package]]
+name = "tokio-tungstenite"
+version = "0.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17a073bfed563fa236697a068031408a93cd9522e08abf9933ead3e73411bd71"
+dependencies = [
+ "futures-util",
+ "log",
+ "rustls",
+ "tokio",
+ "tungstenite 0.30.0",
 ]
 
 [[package]]
@@ -10325,6 +10338,22 @@ dependencies = [
  "sha1 0.10.7",
  "thiserror 2.0.20",
  "url",
+]
+
+[[package]]
+name = "tungstenite"
+version = "0.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e48ac77174b19c110a50ab2128b24215ac9cb40e0e12e093fb602d175c569d22"
+dependencies = [
+ "bytes",
+ "data-encoding",
+ "http 1.5.0",
+ "httparse",
+ "log",
+ "rand 0.10.2",
+ "sha1 0.11.0",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
