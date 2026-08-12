@@ -157,6 +157,13 @@ deny = [
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
   { name = "base64", version = "=0.21.7" },
+  { name = "block-buffer", version = "0.10" },
+  { name = "const-oid", version = "0.9" },
+  { name = "crypto-common", version = "0.1" },
+  { name = "digest", version = "0.10" },
+  { name = "sha1", version = "0.10" },
+  { name = "tokio-tungstenite", version = "0.29" },
+  { name = "tungstenite", version = "0.29" },
   { name = "cpufeatures", version = "=0.2.17" },
   { name = "getrandom", version = "=0.3.4" },
   { name = "getrandom", version = "0.2" },

@@ -18,7 +18,7 @@ use opentalk_types::{
     common::{
         call_in::{CallInId, CallInPassword},
         pagination::{Page, PageSize},
-        rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
+        rooms::{GuestAccess, RoomId, RoomName, RoomPassword, invite_codes::InviteCode},
         roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret},
     },
 };
@@ -382,9 +382,11 @@ impl HttpClient {
     }
 
     // Create a room and return it's id
+    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn create_room(
         &self,
         controller_url: &BaseUrl,
+        name: Option<RoomName>,
         password: Option<RoomPassword>,
         enable_sip: bool,
         waiting_room: bool,
@@ -403,6 +405,7 @@ impl HttpClient {
             .post(url)
             .bearer_auth(token.secret())
             .json(&PostRoomsRequestBody {
+                name,
                 password,
                 enable_sip,
                 waiting_room,
