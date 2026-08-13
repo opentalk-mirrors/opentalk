@@ -9,7 +9,7 @@ use opentalk_types::{
     api::v1::rooms::{RoomResource, by_room_id::RoomserverStartResponseBody},
     common::{
         call_in::{CallInId, CallInPassword},
-        rooms::{GuestAccess, RoomId, RoomPassword, invite_codes::InviteCode},
+        rooms::{GuestAccess, RoomId, RoomName, RoomPassword, invite_codes::InviteCode},
     },
 };
 
@@ -142,6 +142,7 @@ impl OpenTalkClient {
 
     pub async fn create_room(
         &self,
+        name: Option<RoomName>,
         password: Option<RoomPassword>,
         enable_sip: bool,
         waiting_room: bool,
@@ -151,6 +152,7 @@ impl OpenTalkClient {
         self.http
             .create_room(
                 &self.controller_url,
+                name,
                 password,
                 enable_sip,
                 waiting_room,

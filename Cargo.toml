@@ -5,7 +5,7 @@
 [package]
 name = "opentalk-client-signaling"
 description = "OpenTalk Client for conference Signaling API"
-version = "0.13.0"
+version = "0.14.0"
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
 edition = "2024"
 homepage = "https://opentalk.eu/"
@@ -22,20 +22,20 @@ futures-util = { version = "0.3", default-features = false }
 jsonwebtoken = { version = "11", default-features = false, features = ["aws_lc_rs"] }
 log = "0.4"
 openidconnect = { version = "4", default-features = false, features = ["reqwest"] }
-opentalk-roomserver-client = "0.5"
-opentalk-roomserver-types = "0.7.0"
-opentalk-roomserver-types-livekit = "0.5"
-opentalk-roomserver-types-moderation = "0.5"
-opentalk-roomserver-types-raise-hands = "0.5"
-opentalk-roomserver-types-recording = "0.5"
-opentalk-roomserver-types-transcription = "0.5"
-opentalk-service-auth = "0.4"
-opentalk-types = { version = "0.73", default-features = false, features = [
+opentalk-roomserver-client = "0.6"
+opentalk-roomserver-types = "0.8"
+opentalk-roomserver-types-livekit = "0.6"
+opentalk-roomserver-types-moderation = "0.6"
+opentalk-roomserver-types-raise-hands = "0.6"
+opentalk-roomserver-types-recording = "0.6"
+opentalk-roomserver-types-transcription = "0.6"
+opentalk-service-auth = "0.5"
+opentalk-types = { version = "0.74", default-features = false, features = [
   "api",
   "serde",
   "signaling",
 ] }
-opentalk-types-api-internal = "0.5"
+opentalk-types-api-internal = "0.6"
 rand = "0.10.1"
 reqwest = { version = "0.12", default-features = false, features = [
   "json",
