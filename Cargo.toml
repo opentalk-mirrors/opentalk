@@ -158,7 +158,7 @@ sysinfo = "0.39"
 test-log = { version = "0.2.17", default-features = false, features = [
   "trace",
 ] }
-testcontainers = "0.27.0"
+testcontainers = "0.28.0"
 thiserror = "2.0"
 tokio = { version = "1", features = [
   "macros",
