@@ -39,8 +39,10 @@ use whisper_rs::WhisperContext;
 use crate::{
     AppState,
     audio_processing::{
-        self, audio_source::AudioSource, transcription::TranscriptionStage,
-        voice_activity_detection::VadStage,
+        self,
+        audio_source::AudioSource,
+        transcription::TranscriptionStage,
+        voice_activity_detection::{VadConfig, VadStage},
     },
     settings::Settings,
 };
@@ -396,7 +398,7 @@ async fn transcribe_audio_track_task(
             return;
         }
     };
-    let mut vad = match VadStage::new() {
+    let mut vad = match VadStage::new(VadConfig::default()) {
         Ok(vad) => vad,
         Err(err) => {
             log::error!("Failed to create VoiceActivityDetector: {err:?}");
@@ -447,12 +449,16 @@ async fn transcribe_audio_track_task(
                 let starts_at = (system_now - (instant_now - speech_segment.started_at)).into();
 
                 match transcription.transcribe(&mut speech_segment) {
-                    Ok(text) => {
+                    Ok(transcript) => {
                         if let Some(dump_dir) = &settings.transcription.dump_dir {
-                            audio_processing::dump::dump(&speech_segment, &text, dump_dir);
+                            audio_processing::dump::dump(
+                                &speech_segment,
+                                &transcript.text,
+                                dump_dir,
+                            );
                         }
 
-                        if text.is_empty() {
+                        if transcript.text.is_empty() {
                             continue;
                         }
 
@@ -461,7 +467,7 @@ async fn transcribe_audio_track_task(
                             track_id: track_id.clone(),
                             starts_at,
                             ends_at: Timestamp::now(),
-                            text,
+                            text: transcript.text,
                         };
 
                         if segments_tx.send(segment).await.is_err() {
