@@ -146,6 +146,7 @@ update-changelog CRATE VERSION: _check_opentalk_git_cliff _check_yq
     GITLAB_REPO=opentalk/backend/services/roomserver \
     opentalk-git-cliff \
         --unreleased \
+        --use-branch-tags \
         --tag "v{{ VERSION }}" \
         --prepend CHANGELOG.md
 
