@@ -4,8 +4,10 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 set -euo pipefail
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 # Install downloaded collection tarballs into build/vendor (offline layout).
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$PACKAGING_ROOT"
 REQ="${1:-$ROOT/automation/collections/requirements.yml}"
 DIST="$ROOT/build/collections_dist"
 VENDOR="$ROOT/build/vendor"

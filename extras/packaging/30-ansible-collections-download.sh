@@ -5,8 +5,10 @@
 
 # shellcheck disable=SC2012  # Using ls for simple glob existence/count; acceptable for controlled filenames.
 set -euo pipefail
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 # Download Ansible collection tarballs (offline cache).
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$PACKAGING_ROOT"
 REQ="${1:-$ROOT/automation/collections/requirements.yml}"
 OUT="$ROOT/build/collections_dist"
 STATE="$ROOT/build/.cache/collections.requirements.sha256"

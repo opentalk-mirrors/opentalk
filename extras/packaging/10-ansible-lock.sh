@@ -5,9 +5,11 @@
 
 # shellcheck disable=SC1091  # Sourcing ephemeral venv activate script intentionally; path created at runtime.
 set -euo pipefail
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 # Lock requirements only if source changed or forced.
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$PACKAGING_ROOT"
 IN="$ROOT/extras/packaging/requirements-ansible.in"
 OUT="$ROOT/extras/packaging/requirements-ansible.txt"
 STATE="$ROOT/build/.cache/requirements-ansible.in.sha256"

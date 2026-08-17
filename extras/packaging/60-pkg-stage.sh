@@ -4,9 +4,11 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 set -euo pipefail
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 VERSION="${1:-}"
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$PACKAGING_ROOT"
 PKGROOT="$ROOT/build/pkgroot"
 PREFIX="$PKGROOT/opt/opentalk-compose"
 RUNTIME_DIR="$PREFIX/runtime"
@@ -73,8 +75,7 @@ if [[ -d "$PREFIX/config" ]]; then
 fi
 # NOTE: Legacy symlink $PREFIX/config -> /etc/opentalk-compose removed (no longer required).
 
-echo "[stage] Skipping embedded venv copy (build on target)"
-rm -rf "$RUNTIME_DIR/venv"
+echo "[stage] Preparing embedded runtime directories"
 mkdir -p "$RUNTIME_DIR/venv"
 
 # Ensure secrets directory exists in /etc (even though content is generated later)
@@ -187,7 +188,7 @@ if [[ -x "$ROOT/build/python/bin/python3" ]]; then
     echo "python_version=$PY_VER"
     [[ -n "$SRC_URL" ]] && echo "source=$SRC_URL"
     [[ -n "$VERSION" ]] && echo "package_version=$VERSION"
-    date -u +"build_utc=%Y-%m-%dT%H:%M:%SZ"
+    date -u -d "@$SOURCE_DATE_EPOCH" +"build_utc=%Y-%m-%dT%H:%M:%SZ"
   } > "$RUNTIME_DIR/python/.BUILD_INFO"
 fi
 
@@ -219,5 +220,6 @@ install -m 0644 "$ROOT/extras/packaging/completions/_otctl" \
 # Permissions
 find "$PREFIX" -type d -exec chmod 0755 {} + 2>/dev/null || true
 find "$PREFIX/bin" -type f -maxdepth 1 -exec chmod 0755 {} + 2>/dev/null || true
+find "$PKGROOT" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
 
 echo "[stage] Completed staging at $PKGROOT (conffile settings.yml + example)"

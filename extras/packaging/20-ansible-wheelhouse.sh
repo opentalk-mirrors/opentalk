@@ -4,13 +4,15 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 set -euo pipefail
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 # Download wheels only if missing or forced.
 
 # Suppress pip version availability notices for deterministic non-noisy build logs
 export PIP_DISABLE_PIP_VERSION_CHECK=1
 export PIP_NO_PYTHON_VERSION_WARNING=1
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$PACKAGING_ROOT"
 REQ="$ROOT/extras/packaging/requirements-ansible.txt"
 WHL="$ROOT/build/wheelhouse"
 FORCE=${FORCE_REFRESH:-0}
@@ -21,12 +23,19 @@ mkdir -p "$WHL"
 missing=0
 # Check each requirement line with hashes; if corresponding wheel not present, mark missing
 while IFS= read -r line; do
-  [[ "$line" =~ ^#|^$ ]] && continue
-  pkg=$(echo "$line" | awk '{print $1}')
+  [[ "$line" =~ ^[[:space:]]*#|^[[:space:]]*$ ]] && continue
+  [[ "$line" =~ ^[[:space:]]*--hash ]] && continue
+  pkg=$(echo "$line" | awk '{print $1}' | tr '_' '-')
   name="${pkg%%==*}"
   ver="${pkg##*==}"
-  # simplistic match: look for any wheel with name-version
-  if ! \ls "$WHL"/"$name"-"$ver"*  >/dev/null 2>&1; then
+  found=0
+  for stem in "${name}-${ver}" "${name//-/_}-${ver}"; do
+    if compgen -G "$WHL/$stem*" >/dev/null; then
+      found=1
+      break
+    fi
+  done
+  if [[ $found -eq 0 ]]; then
     missing=1
     break
   fi
@@ -43,7 +52,6 @@ rm -f "$WHL/.partial"
 PY_DL="$ROOT/build/python/bin/python3"
 if [[ -x "$PY_DL" ]]; then
   echo "[wheelhouse] Using portable python: $PY_DL"
-  "$PY_DL" -m pip download --upgrade pip >/dev/null 2>&1 || true
   PIP_DISABLE_PIP_VERSION_CHECK=1 "$PY_DL" -m pip download --require-hashes -r "$REQ" --dest "$WHL"
 else
   echo "[wheelhouse] Portable python missing, falling back to system pip"
@@ -61,7 +69,7 @@ while IFS= read -r f; do
 done < <(find "$WHL" -maxdepth 1 -type f -printf '%f\n')
 
 while IFS= read -r line; do
-  [[ $line =~ ^#|^$ ]] && continue
+  [[ $line =~ ^[[:space:]]*#|^[[:space:]]*$ ]] && continue
   first_token=$(echo "$line" | awk '{print $1}')
   [[ $first_token == --hash* ]] && continue
   pkg=${first_token%\\}

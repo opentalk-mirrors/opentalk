@@ -10,28 +10,20 @@ RUNTIME="$PREFIX/runtime"
 AUTOMATION="$PREFIX/automation"
 VENV_BIN="$RUNTIME/venv/bin"
 BIN="$VENV_BIN/ansible"
-POSTINST="$PREFIX/bin/pkg-postinst.sh"
 VENDOR="$RUNTIME/vendor/collections"
 PORTABLE_PY="$RUNTIME/python/bin/python3"
 VENV_PY="$VENV_BIN/python3"
 
-if [ ! -x "$BIN" ] || ! head -1 "$BIN" 2>/dev/null | grep -q '^#!'; then
-  if [ -x "$POSTINST" ]; then
-    bash "$POSTINST"
-  fi
-fi
 [ -x "$BIN" ] || { echo "[wrapper] ansible unavailable" >&2; exit 1; }
 
 export PYTHONDONTWRITEBYTECODE=1
 export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$AUTOMATION/ansible.cfg}"
 if [ -x "$VENV_PY" ]; then
   export ANSIBLE_PYTHON_INTERPRETER="$VENV_PY"
-  if ! "$VENV_PY" -c 'import requests' 2>/dev/null; then
-    echo "[wrapper] requests missing in venv - rebuilding via postinst" >&2
-    if [ -x "$POSTINST" ]; then
-      bash "$POSTINST"
-    fi
-  fi
+  "$VENV_PY" -c 'import requests' 2>/dev/null || {
+    echo "[wrapper] requests missing from embedded venv" >&2
+    exit 1
+  }
 else
   if [ -x "$PORTABLE_PY" ]; then
     export ANSIBLE_PYTHON_INTERPRETER="$PORTABLE_PY"

@@ -4,6 +4,9 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 set -euo pipefail
+AUTO_REVISION="${AUTO_REVISION:-0}"
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 
 VERSION_RAW="${1:-}"
 [[ -z "$VERSION_RAW" ]] && { echo "Usage: $0 <version>" >&2; exit 2; }
@@ -43,12 +46,44 @@ if [[ "$RPM_VERSION" =~ ^([^+]+)-([0-9]+)(\+.+)?$ ]]; then
   fi
 fi
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$PACKAGING_ROOT"
 PKGDIR="$ROOT/extras/packaging"
 ARTifacts_DIR="$ROOT/artifacts"
 SPEC_FILE="$PKGDIR/opentalk-compose.spec"
 
 mkdir -p "$ARTifacts_DIR"
+
+validate_rpm() {
+  local package_file="$1"
+  local inspect_dir
+  inspect_dir="$(mktemp -d "$ROOT/build/rpm-inspect.XXXXXX")"
+  trap 'rm -rf "$inspect_dir"' RETURN
+
+  rpm -qip "$package_file" >/dev/null || { echo "[rpm] ERROR: invalid RPM metadata" >&2; return 1; }
+  rpm -qlp "$package_file" > "$inspect_dir/file-list"
+  grep -q '^/opt/opentalk-compose/runtime/python/' "$inspect_dir/file-list" || {
+    echo "[rpm] ERROR: embedded Python runtime missing" >&2
+    return 1
+  }
+  grep -q '^/opt/opentalk-compose/runtime/venv/bin/ansible$' "$inspect_dir/file-list" || {
+    echo "[rpm] ERROR: embedded Ansible missing" >&2
+    return 1
+  }
+  grep -q '^/opt/opentalk-compose/bin/pkg-postinst.sh$' "$inspect_dir/file-list" || {
+    echo "[rpm] ERROR: postinst script missing" >&2
+    return 1
+  }
+  if grep -q 'extras/packaging' "$inspect_dir/file-list"; then
+    echo "[rpm] ERROR: packaging sources leaked into RPM" >&2
+    return 1
+  fi
+
+  (cd "$inspect_dir" && rpm2cpio "$package_file" | cpio -idm --quiet)
+  "$inspect_dir/opt/opentalk-compose/runtime/python/bin/python3" \
+    -c 'import ssl, hashlib, sqlite3, ctypes'
+  "$inspect_dir/opt/opentalk-compose/runtime/venv/bin/ansible" --version >/dev/null
+  echo "[rpm] Package validation passed."
+}
 
 # Prefer fpm if available for simpler conversion of staged tree
 if command -v fpm >/dev/null 2>&1; then
@@ -58,6 +93,16 @@ if command -v fpm >/dev/null 2>&1; then
 
   NAME="opentalk-compose"
   ARCH="x86_64"
+  REQUIRED_FILES=(
+    "$ROOT/build/pkgroot/opt/opentalk-compose/runtime/python/bin/python3"
+    "$ROOT/build/pkgroot/opt/opentalk-compose/runtime/venv/bin/python3"
+    "$ROOT/build/pkgroot/opt/opentalk-compose/runtime/venv/bin/ansible"
+    "$ROOT/build/pkgroot/opt/opentalk-compose/bin/pkg-postinst.sh"
+  )
+  for required_file in "${REQUIRED_FILES[@]}"; do
+    [[ -e "$required_file" ]] || { echo "[rpm] ERROR: missing embedded runtime file: $required_file" >&2; exit 4; }
+  done
+  find "$PKGROOT" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
   PACKAGE_NAME="${PACKAGE_NAME:-$NAME}"
   PACKAGE_DESCRIPTION="${PACKAGE_DESCRIPTION:-Compose and orchestrate OpenTalk services.}"
   PACKAGE_LICENSE="${PACKAGE_LICENSE:-EUPL-1.2}"
@@ -84,6 +129,10 @@ if command -v fpm >/dev/null 2>&1; then
     if [[ $explicit_release_flag -eq 1 ]]; then
       echo "[rpm] ERROR: Tag provided explicit release '$RELEASE' and artifact already exists. Not auto-incrementing." >&2
       echo "[rpm]        Use FORCE_RPM_OVERWRITE=1 or choose a new version/release." >&2
+      exit 3
+    fi
+    if [[ "$AUTO_REVISION" != 1 ]]; then
+      echo "[rpm] ERROR: Artifact already exists. Use a new release, --auto-revision, or FORCE_RPM_OVERWRITE=1." >&2
       exit 3
     fi
     # Otherwise bump release to avoid conflict.
@@ -125,6 +174,8 @@ if command -v fpm >/dev/null 2>&1; then
     AFTER_REMOVE_ARGS=(--after-remove "$PKGROOT/opt/opentalk-compose/bin/pkg-postrm.sh")
   fi
   fpm -s dir -t rpm -n "$PACKAGE_NAME" -v "$RPM_VERSION" -a "$ARCH" \
+    --source-date-epoch-default "$SOURCE_DATE_EPOCH" \
+    --rpm-rpmbuild-define "_buildtime $SOURCE_DATE_EPOCH" \
     --iteration "$RELEASE" \
     --config-files /etc/opentalk-compose/settings.yml \
     --rpm-compression "$COMP_ALGO" \
@@ -143,6 +194,7 @@ if command -v fpm >/dev/null 2>&1; then
     "${AFTER_REMOVE_ARGS[@]}" \
     -p "$RPM_FILE"
   [ -f "$RPM_FILE" ] || { echo "[rpm] ERROR: fpm did not produce rpm" >&2; exit 5; }
+  validate_rpm "$RPM_FILE" || exit 6
   echo "[rpm] Built (fpm): $RPM_FILE"
   exit 0
 fi
@@ -184,6 +236,10 @@ else
 fi
 # Bump release if artifact exists in artifacts dir (only when no explicit release from tag)
 if [[ -f "$ARTifacts_DIR/${NAME}-${RPM_VERSION}-${RELEASE}.${ARCH}.rpm" ]] && [[ "${FORCE_RPM_OVERWRITE:-0}" != "1" ]]; then
+  if [[ "$AUTO_REVISION" != 1 ]]; then
+    echo "[rpm] ERROR: Artifact already exists. Use a new release, --auto-revision, or FORCE_RPM_OVERWRITE=1." >&2
+    exit 3
+  fi
   if [[ $explicit_release_flag -eq 1 ]]; then
     echo "[rpm] ERROR: Explicit release '$RELEASE' already exists (rpmbuild path). Aborting." >&2
     exit 3

@@ -4,7 +4,9 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 set -euo pipefail
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
+ROOT="$PACKAGING_ROOT"
 BUILD_DIR="$ROOT/build"
 EMB_DIR="$BUILD_DIR/embedded"
 SRC_VENDOR_DIR="$BUILD_DIR/vendor"

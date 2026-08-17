@@ -9,7 +9,6 @@ PREFIX="${OT_PREFIX:-/opt/opentalk-compose}"
 RUNTIME="$PREFIX/runtime"
 AUTOMATION="$PREFIX/automation"
 VENV_BIN="$RUNTIME/venv/bin"
-POSTINST="$PREFIX/bin/pkg-postinst.sh"
 VENDOR="$RUNTIME/vendor/collections"
 WRAPPER_DIR="$PREFIX/bin"
 SERVICES_DIR="${OT_SERVICES_DIR:-$PREFIX/services}"
@@ -117,10 +116,6 @@ Hint: run 'otctl help' for details.
 EOF
 }
 
-# Ensure post-install (self-heal) if venv missing
-if [ ! -x "$VENV_BIN/ansible" ] && [ -x "$POSTINST" ]; then
-  bash "$POSTINST"
-fi
 [ -x "$VENV_BIN/ansible" ] || { echo "[otctl] ansible runtime missing under $VENV_BIN" >&2; exit 1; }
 
 # Collections path wiring (replicate logic from existing wrappers)

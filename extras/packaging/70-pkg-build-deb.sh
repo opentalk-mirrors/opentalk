@@ -4,11 +4,14 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 set -euo pipefail
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 #
 # Build Debian package for opentalk-compose
 #
 
 VERSION_RAW="${1:-}"
+AUTO_REVISION="${AUTO_REVISION:-0}"
 [ -n "$VERSION_RAW" ] || { echo "Usage: $0 <version>"; exit 1; }
 
 # Normalize provided version/tag to Debian/RPM-compatible upstream-version
@@ -58,7 +61,7 @@ else
   echo "[build-deb] Using deb revision: $DEB_REVISION"
 fi
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$PACKAGING_ROOT"
 PKGROOT="$ROOT/build/pkgroot"
 OUTDIR="$ROOT/artifacts"
 
@@ -89,6 +92,9 @@ REQUIRED_FILES=(
   "$PKGROOT/opt/opentalk-compose/bin/ot-ansible-playbook"
   "$PKGROOT/opt/opentalk-compose/bin/ot-ansible-galaxy"
   "$PKGROOT/opt/opentalk-compose/bin/pkg-postinst.sh"
+  "$PKGROOT/opt/opentalk-compose/runtime/python/bin/python3"
+  "$PKGROOT/opt/opentalk-compose/runtime/venv/bin/python3"
+  "$PKGROOT/opt/opentalk-compose/runtime/venv/bin/ansible"
   "$PKGROOT/opt/opentalk-compose/automation/ansible.cfg"
   "$PKGROOT/opt/opentalk-compose/runtime/build_assets/requirements-ansible.txt"
 )
@@ -132,9 +138,10 @@ if [ ! -f "$RUNTIME_META" ]; then
     echo "name=$NAME"
     echo "version=$VERSION"
     [ -n "$GIT_COMMIT" ] && echo "git_commit=$GIT_COMMIT"
-    date -u +"build_utc=%Y-%m-%dT%H:%M:%SZ"
+    date -u -d "@$SOURCE_DATE_EPOCH" +"build_utc=%Y-%m-%dT%H:%M:%SZ"
   } >"$RUNTIME_META"
 fi
+find "$PKGROOT" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
 
 BASE_FILENAME="${NAME}_${VERSION}-${DEB_REVISION}_${ARCH}.deb"
 PKG_FILE="$OUTDIR/$BASE_FILENAME"
@@ -144,6 +151,10 @@ if [[ -f "$PKG_FILE" ]] && [[ "${FORCE_DEB_OVERWRITE:-0}" != "1" ]]; then
   if [[ $explicit_deb_revision_flag -eq 1 ]]; then
     echo "[build-deb] ERROR: Explicit revision '$DEB_REVISION' from tag already exists. Not auto-incrementing." >&2
     echo "[build-deb]        Use FORCE_DEB_OVERWRITE=1 or choose a new version/revision." >&2
+    exit 3
+  fi
+  if [[ "$AUTO_REVISION" != 1 ]]; then
+    echo "[build-deb] ERROR: Artifact already exists. Use a new revision, --auto-revision, or FORCE_DEB_OVERWRITE=1." >&2
     exit 3
   fi
   # Otherwise increment Debian revision until free.
@@ -164,9 +175,13 @@ POSTRM_SRC="$PKGROOT/opt/opentalk-compose/bin/pkg-postrm.sh"
 if command -v fpm >/dev/null 2>&1; then
   # Build via fpm. Use --iteration for revision if provided (maps to Debian revision after a dash)
   FPM_CMD=(fpm -s dir -t deb -n "$PACKAGE_NAME" -v "$VERSION" -a "$ARCH" \
+    --source-date-epoch-default "$SOURCE_DATE_EPOCH" \
     --config-files /etc/opentalk-compose/settings.yml \
     --deb-compression xz \
     --after-install "$POSTINST_SRC")
+  if fpm --help 2>&1 | grep -q -- 'deb-no-default-config-files'; then
+    FPM_CMD+=(--deb-no-default-config-files)
+  fi
   if [ -f "$POSTRM_SRC" ]; then
     FPM_CMD+=(--after-remove "$POSTRM_SRC")
   fi
@@ -211,7 +226,11 @@ EOF
     install -m 0755 "$POSTRM_SRC" "$PKGROOT/DEBIAN/postrm"
   fi
 
-  dpkg-deb --build "$PKGROOT" "$PKG_FILE"
+  DPKG_DEB_BUILD_ARGS=()
+  if dpkg-deb --help 2>&1 | grep -q -- '--root-owner-group'; then
+    DPKG_DEB_BUILD_ARGS+=(--root-owner-group)
+  fi
+  dpkg-deb --build "${DPKG_DEB_BUILD_ARGS[@]}" "$PKGROOT" "$PKG_FILE"
 fi
 
 # Sanity checks (inspect package contents in an isolated temp dir)

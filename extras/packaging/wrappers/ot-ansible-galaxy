@@ -10,14 +10,8 @@ RUNTIME="$PREFIX/runtime"
 AUTOMATION="$PREFIX/automation"
 VENV_BIN="$RUNTIME/venv/bin"
 BIN="$VENV_BIN/ansible-galaxy"
-POSTINST="$PREFIX/bin/pkg-postinst.sh"
 VENDOR="$RUNTIME/vendor/collections"
 
-if [ ! -x "$BIN" ] || ! head -1 "$BIN" 2>/dev/null | grep -q '^#!'; then
-  if [ -x "$POSTINST" ]; then
-    bash "$POSTINST"
-  fi
-fi
 [ -x "$BIN" ] || { echo "[wrapper] ansible-galaxy unavailable" >&2; exit 1; }
 
 export PYTHONDONTWRITEBYTECODE=1
