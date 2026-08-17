@@ -23,22 +23,22 @@ The target server should meet at least:
 
 ### 1.2 Supported Operating Systems
 
-Releases are provided as DEB and RPM packages. The packages are built for the x86-64 architecture and not tied to a specific Linux distribution.
+Releases are provided as DEB and RPM packages for x86-64 Linux systems. Supported distributions must provide `glibc 2.34` or newer.
 
 Recommended distributions:
 
-| Distributions using `.deb`                 | Distributions using `.rpm`  |
-|--------------------------------------------|-----------------------------|
-| Debian 12 "Bookworm"                       | RHEL 9                      |
-| Debian 13 "Trixie"                         | RHEL 10                     |
-| Ubuntu 22.04 LTS "Jammy Jellyfish"         | AlmaLinux 9                 |
-| Ubuntu 24.04 LTS "Noble Numbat"            | AlmaLinux 10                |
-| Ubuntu 26.04 LTS "Resolute Raccoon"        | Rocky Linux 9               |
-|                                            | Rocky Linux 10              |
-|                                            | openSUSE Leap 15            |
-|                                            | openSUSE Leap 16            |
-|                                            | SLES 15                     |
-|                                            | SLES 16                     |
+| Distributions using `.deb`                 | Distributions using `.rpm` |
+|--------------------------------------------|----------------------------|
+| Debian 12 "Bookworm"                       | RHEL 9                     |
+| Debian 13 "Trixie"                         | RHEL 10                    |
+| Ubuntu 22.04 LTS "Jammy Jellyfish"         | AlmaLinux 9                |
+| Ubuntu 24.04 LTS "Noble Numbat"            | AlmaLinux 10               |
+| Ubuntu 26.04 LTS "Resolute Raccoon"        | Rocky Linux 9              |
+|                                            | Rocky Linux 10             |
+|                                            | openSUSE Leap 16           |
+|                                            | openSUSE Leap 15.6+        |
+|                                            | SLES 16                    |
+|                                            | SLES 15 SP6+               |
 
 ### 1.3 Firewall Configuration
 
@@ -90,80 +90,80 @@ while convenient this can changed by:
 
 ### 2.1 Add the Package Repository and install `opentalk-compose`
 
-=== "Debian / Ubuntu"
+#### Debian / Ubuntu
 
-  For Debian 12, 13 and Ubuntu 24.04/26.04 based systems.
+For Debian 12, 13 and Ubuntu 24.04/26.04 based systems.
 
-    ```bash
-    # Download and install the GPG public key
-    curl -fsSL \
-      https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc | \
-      sudo tee /etc/apt/trusted.gpg.d/opentalk-archive-keyring.asc > /dev/null
+```bash
+# Download and install the GPG public key
+curl -fsSL \
+  https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc | \
+  sudo tee /etc/apt/trusted.gpg.d/opentalk-archive-keyring.asc > /dev/null
 
-    # Add the OpenTalk Compose repository
-    echo "deb [arch=amd64] \
-      https://repo.heinlein.group/repo/opentalk-compose/deb/stable/ all main" | \
-      sudo tee /etc/apt/sources.list.d/opentalk-compose.list
+# Add the OpenTalk Compose repository
+echo "deb [arch=amd64] \
+  https://repo.heinlein.group/repo/opentalk-compose/deb/stable/ all main" | \
+  sudo tee /etc/apt/sources.list.d/opentalk-compose.list
 
-    # Update package index
-    sudo apt update
+# Update package index
+sudo apt update
 
-    # Install package opentalk-compose
-    sudo apt install opentalk-compose
-    ```
+# Install package opentalk-compose
+sudo apt install opentalk-compose
+```
 
 
-=== "RHEL / Rocky / AlmaLinux"
+#### RHEL / Rocky / AlmaLinux
 
-    For RHEL 9, 10 and compatible distributions (Rocky Linux, AlmaLinux, etc.).
+For RHEL 9, 10 and compatible distributions (Rocky Linux, AlmaLinux, etc.).
 
-    ```bash
-    # Download and install the GPG public key
-    sudo rpm --import \
-      https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
+```bash
+# Download and install the GPG public key
+sudo rpm --import \
+  https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
 
-    # Add the OpenTalk Compose repository
-    sudo tee /etc/yum.repos.d/opentalk-stable.repo <<EOF
-    [opentalk-compose]
-    name=OpenTalk Compose Repository - Stable Releases
-    baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
-    enabled=1
-    gpgcheck=1
-    gpgkey=https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
-    EOF
+# Add the OpenTalk Compose repository
+sudo tee /etc/yum.repos.d/opentalk-stable.repo <<EOF
+[opentalk-compose]
+name=OpenTalk Compose Repository - Stable Releases
+baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
+EOF
 
-    # Update repository metadata
-    sudo dnf makecache
+# Update repository metadata
+sudo dnf makecache
 
-    # Install package opentalk-compose
-    sudo dnf install opentalk-compose
-    ```
+# Install package opentalk-compose
+sudo dnf install opentalk-compose
+```
 
-=== "SLES / openSUSE"
+#### SLES / openSUSE
 
-    For SUSE Linux Enterprise 15, 16 and openSUSE Leap based distributions.
+For openSUSE Leap 15.6, SUSE Linux Enterprise 16 and other SUSE-based distributions with glibc 2.34 or newer. Older SUSE releases and SLES 15 service packs require an explicit glibc check.
 
-    ```bash
-    # Download and install the GPG public key
-    sudo rpm --import \
-      https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
+```bash
+# Download and install the GPG public key
+sudo rpm --import \
+  https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
 
-    # Add the OpenTalk Compose (stable) repository
-    sudo tee /etc/zypp/repos.d/opentalk-stable.repo <<EOF
-    [opentalk-compose-stable]
-    name=OpenTalk Compose Repository - Stable Releases
-    baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
-    enabled=1
-    gpgcheck=1
-    gpgkey=https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
-    EOF
+# Add the OpenTalk Compose (stable) repository
+sudo tee /etc/zypp/repos.d/opentalk-stable.repo <<EOF
+[opentalk-compose-stable]
+name=OpenTalk Compose Repository - Stable Releases
+baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
+EOF
 
-    # Refresh repositories and install OpenTalk Compose
-    sudo zypper refresh
+# Refresh repositories and install OpenTalk Compose
+sudo zypper refresh
 
-    # Install package opentalk-compose
-    sudo zypper install opentalk-compose
-    ```
+# Install package opentalk-compose
+sudo zypper install opentalk-compose
+```
 
 ### 2.2 Initialize the Deployment Environment
 

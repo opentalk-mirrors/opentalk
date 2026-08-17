@@ -6,15 +6,16 @@
   "pip_requirements": {
     "fileMatch": ["^extras/packaging/requirements-ansible\\.in$"]
   },
-  "regexManagers": [
+  "customManagers": [
     {
-      "fileMatch": ["^extras/packaging/astral_python\\.version$"],
+      "customType": "regex",
+      "fileMatch": ["^extras/packaging/uv\\.version$"],
       "matchStrings": [
-        "ASTRAL_PBS_RELEASE=(?<currentValue>\\d+)"
+        "UV_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
       ],
-      "depNameTemplate": "astral-sh/python-build-standalone",
+      "depNameTemplate": "astral-sh/uv",
       "datasourceTemplate": "github-releases",
-      "versioningTemplate": "loose"
+      "versioningTemplate": "semver"
     }
   ]
 }
