@@ -3,6 +3,27 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
+- name: Get existing custom client scopes
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/client-scopes"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    status_code: 200
+  vars:
+    keycloak_token: "{{ keycloak_token_response_json_access_token }}"
+  register: existing_client_scopes_response
+
+- name: Set existing custom client scope IDs
+  ansible.builtin.set_fact:
+    tariff_scope_id: "{{ (existing_client_scopes_response.json | selectattr('name', 'equalto', 'tariff') | list | first).id }}"
+  when: existing_client_scopes_response.json | selectattr('name', 'equalto', 'tariff') | list | length > 0
+
+- name: Set existing tenancy client scope ID
+  ansible.builtin.set_fact:
+    tenancy_scope_id: "{{ (existing_client_scopes_response.json | selectattr('name', 'equalto', 'tenancy') | list | first).id }}"
+  when: existing_client_scopes_response.json | selectattr('name', 'equalto', 'tenancy') | list | length > 0
+
 - name: "Create or update Keycloak client scope 'tariff'"
   community.general.keycloak_clientscope:
     auth_keycloak_url: "{{ keycloak_base_url }}"
@@ -10,6 +31,7 @@
     auth_username: "{{ keycloak_auth_username }}"
     auth_password: "{{ keycloak_auth_password }}"
     realm: "{{ keycloak_realm }}"
+    id: "{{ tariff_scope_id | default(omit) }}"
     name: "tariff"
     protocol: "openid-connect"
     description: ""
@@ -19,6 +41,7 @@
       gui.order: ""
       include.in.token.scope: "true"
     state: present
+  when: tariff_scope_id is not defined
 
 - name: "Create or update Keycloak client scope 'tenancy'"
   community.general.keycloak_clientscope:
@@ -27,6 +50,7 @@
     auth_username: "{{ keycloak_auth_username }}"
     auth_password: "{{ keycloak_auth_password }}"
     realm: "{{ keycloak_realm }}"
+    id: "{{ tenancy_scope_id | default(omit) }}"
     name: "tenancy"
     protocol: "openid-connect"
     description: ""
@@ -36,6 +60,7 @@
       gui.order: ""
       include.in.token.scope: "true"
     state: present
+  when: tenancy_scope_id is not defined
 
 - name: "Get client scopes for default scope assignment"
   ansible.builtin.uri:
