@@ -25,7 +25,13 @@ services:
 {% endif %}
 {% endfor %}
     networks:
-      - {{ docker_network_name }}
+      {{ docker_network_name }}:
+{% if traefik_docker_network_aliases is defined and traefik_docker_network_aliases %}
+        aliases:
+{% for alias in traefik_docker_network_aliases %}
+          - {{ alias }}
+{% endfor %}
+{% endif %}
     healthcheck:
       test: ['CMD', 'traefik', 'healthcheck', '--ping']
     labels:

@@ -68,11 +68,11 @@ generate_secret() {
   if $USE_PLACEHOLDER; then
     echo "$PLACEHOLDER"
   elif command -v openssl >/dev/null 2>&1; then
-    openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 32
+    openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32
   elif command -v uuidgen >/dev/null 2>&1; then
     uuidgen | tr -d '-' | tr '[:lower:]' '[:upper:]'
   else
-    head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32
+    head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32
   fi
 }
 

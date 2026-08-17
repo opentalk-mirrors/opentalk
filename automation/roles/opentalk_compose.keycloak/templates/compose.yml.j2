@@ -12,7 +12,7 @@ services:
         hard: {{ keycloak_docker_compose_ulimits_nofile_hard }}
       nproc: {{ keycloak_docker_compose_ulimits_nproc }}
     ports:
-      - "8000:8080"
+      - "{{ keycloak_local_port }}:8080"
       - "9080:9000"
     restart: always
     entrypoint: []

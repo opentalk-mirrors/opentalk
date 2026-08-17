@@ -18,6 +18,9 @@ services:
 {% endfor %}
 {% endif %}
     restart: always
+{% if recorder_docker_network_mode is defined and recorder_docker_network_mode %}
+    network_mode: {{ recorder_docker_network_mode }}
+{% endif %}
     environment:
       TZ: ${TZ:-Europe/Berlin}
       RUST_LOG: info,opentalk_recorder=debug,rustls=info,opentalk_recorder::signaling=debug
@@ -32,8 +35,10 @@ services:
        /bin/bash -c "update-ca-certificates; exec /recorder/opentalk-recorder"
     user: root
 {% endif %}
+{% if not (recorder_docker_network_mode is defined and recorder_docker_network_mode) %}
     networks:
       - {{ docker_network_name }}
+{% endif %}
 {% if recorder_hardware_acceleration_manufacturer is defined
    and recorder_hardware_acceleration_manufacturer == 'intel'
    and recorder_hardware_acceleration_device is defined %}

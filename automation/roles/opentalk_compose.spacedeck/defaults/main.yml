@@ -28,3 +28,6 @@ spacedeck_docker_environment_prefix: /whiteboard
 spacedeck_docker_ports: []
 
 spacedeck_docker_labels_traefik_enable: true
+spacedeck_docker_labels_traefik_host: "{{ ot_domain }}"
+spacedeck_docker_labels_traefik_hosts:
+  - "{{ spacedeck_docker_labels_traefik_host }}"

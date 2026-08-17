@@ -46,7 +46,9 @@ services:
 {% endif %}
       - "traefik.http.routers.controller.middlewares=controller-strip"
       - "traefik.http.middlewares.controller-strip.stripprefix.prefixes=/controller"
+{% if traefik_letsencrypt_enable or custom_certificates_enabled %}
       - "traefik.http.routers.controller-signaling.middlewares=secure-headers@file"
+{% endif %}
       - "traefik.http.services.controller.loadbalancer.server.port=11311"
     healthcheck:
       test:

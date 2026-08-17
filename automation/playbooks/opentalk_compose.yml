@@ -8,7 +8,7 @@
   gather_facts: true
   vars_files:
     - ../../.versions.yml
-    - /etc/opentalk-compose/settings.yml
+    - "{{ lookup('env', 'OT_SETTINGS_FILE') | default('/etc/opentalk-compose/settings.yml', true) }}"
 
   pre_tasks:
     - name: Abort if ot_domain not set
