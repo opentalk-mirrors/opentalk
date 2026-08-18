@@ -732,6 +732,33 @@ int:stable:
               ;;
       esac
 
+# Manual, destructive end-to-end Compose test. Requires a dinD runner with
+# Docker, `just`, `uv`, Ansible, and network access to the container registry.
+int:e2e:
+  stage: integration
+  tags:
+    - dind
+  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/debian12:dev
+  needs: []
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: manual
+    - when: never
+  variables:
+    OPENTALK_E2E: "1"
+  before_script:
+    - !reference [.int_before_script, before_script]
+    - |
+      set -euo pipefail
+      command -v just >/dev/null || \
+        curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+      command -v uv >/dev/null || { export UV_INSTALL_DIR=/root/.local/bin; curl -LsSf https://astral.sh/uv/install.sh | sh; }
+  script:
+    - export PATH="$HOME/.local/bin:$PATH"
+    - bash extras/scripts/tests/integration/test_compose_e2e.sh
+
 deploy:experimental:testing:
   stage: deploy
   allow_failure: true
