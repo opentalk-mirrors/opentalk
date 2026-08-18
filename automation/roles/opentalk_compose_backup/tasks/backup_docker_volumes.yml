@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Ensure config backup directory
+  ansible.builtin.command:
+    cmd: mkdir -p "{{ backup_dir_volumes }}"
+    creates: "{{ backup_dir_volumes }}"
+
+- name: Backup docker volumes
+  ansible.builtin.command: >
+    docker run --rm
+    -v {{ item }}:/source:ro
+    -v {{ backup_dir_volumes }}:/backup
+    alpine sh -c "tar czf /backup/{{ item }}-{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}.tar.gz -C /source ."
+  loop: "{{ backup_docker_volume_list }}"
+  changed_when: true

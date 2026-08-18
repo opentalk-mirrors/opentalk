@@ -1,0 +1,104 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose_opentalk_web_frontend
+
+opentalk_web_frontend_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+opentalk_web_frontend_docker_compose_services_state: "{{ compose_service_opentalk_web_frontend_state | default('present') }}"
+opentalk_web_frontend_docker_compose_services_dir: "{{ services_dir }}"
+opentalk_web_frontend_docker_compose_project_src: "{{ deploy_dir }}"
+
+opentalk_web_frontend_docker_compose_ulimits_nofile_soft: 4096
+opentalk_web_frontend_docker_compose_ulimits_nofile_hard: 8192
+opentalk_web_frontend_docker_compose_ulimits_nproc: 2048
+
+opentalk_web_frontend_docker_image_src: registry.heinlein.group/opentalk/web-frontend
+
+opentalk_web_frontend_docker_extra_hosts: []
+
+opentalk_web_frontend_environment_insecure: false
+opentalk_web_frontend_environment_controller_host: "{{ (ot_domain, ot_ingress_port) | build_host }}/controller"
+opentalk_web_frontend_environment_base_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}"
+
+# OIDC (OpenID Connect)
+opentalk_web_frontend_environment_oidc_issuer: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
+opentalk_web_frontend_environment_oidc_client_id: "{{ controller_oidc_frontend_client_id | default('Frontend') }}"
+
+# LiveKit
+opentalk_web_frontend_environment_livekit_server_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/livekit"
+
+# NDT Server
+opentalk_web_frontend_environment_ndt_server: "{{ (ot_domain, ot_ingress_port) | build_host }}"
+
+# Helpdesk and support URLs
+opentalk_web_frontend_environment_helpdesk_url: "{{ HELPDESK_URL | default('') }}"
+opentalk_web_frontend_environment_contact_support_url: "{{ CONTACT_SUPPORT_URL | default('') }}"
+opentalk_web_frontend_environment_beta_badge_url: "{{ BETA_BADGE_URL | default('') }}"
+opentalk_web_frontend_environment_imprint_url: "{{ IMPRINT_URL | default('') }}"
+opentalk_web_frontend_environment_data_protection_url: "{{ DATA_PROTECTION_URL | default('') }}"
+opentalk_web_frontend_environment_account_management_url: "{{ ACCOUNT_MANAGEMENT_URL | default('') }}"
+
+# Error reporting and avatars
+opentalk_web_frontend_environment_error_report_address: "{{ ERROR_REPORT_ADDRESS | default('reports@example.com') }}"
+opentalk_web_frontend_environment_libravatar_default_image: "{{ LIBRAVATAR_DEFAULT_IMAGE | default('identicon') }}"
+
+# Custom video backgrounds for the web frontend.
+# Set this to a JSON array of objects with altText, url and thumb properties to
+# enable. When non-empty, the backgrounds directory is mounted into the
+# container as a read-only volume.
+# See docs/5-configuration-options-reference.md for a configuration example.
+opentalk_web_frontend_environment_video_backgrounds: ""
+opentalk_web_frontend_backgrounds_dir: "/var/opt/opentalk-compose/backgrounds"
+
+# Beta release
+opentalk_web_frontend_environment_is_beta_release: "{{ IS_BETA_RELEASE | default(false) }}"
+
+# User survey
+opentalk_web_frontend_environment_user_survey_url: "{{ USER_SURVEY_URL | default('') }}"
+opentalk_web_frontend_environment_user_survey_api_key: "{{ USER_SURVEY_API_KEY | default('') }}"
+
+# Feature flags
+opentalk_web_frontend_environment_feature_user_search: "{{ FEATURE_USER_SEARCH | default(true) }}"
+opentalk_web_frontend_environment_feature_whiteboard: "{{ FEATURE_WHITEBOARD | default(true) }}"
+opentalk_web_frontend_environment_feature_mute_user: "{{ FEATURE_MUTE_USER | default(true) }}"
+opentalk_web_frontend_environment_feature_reset_handraises: "{{ FEATURE_RESET_HANDRAISES | default(true) }}"
+opentalk_web_frontend_environment_feature_add_user: "{{ FEATURE_ADD_USER | default(false) }}"
+opentalk_web_frontend_environment_feature_join_without_media: "{{ FEATURE_JOIN_WITHOUT_MEDIA | default(false) }}"
+
+# Waiting room and browser compatibility
+opentalk_web_frontend_environment_waiting_room_default_value: "{{ WAITING_ROOM_DEFAULT_VALUE | default(false) }}"
+opentalk_web_frontend_environment_suppress_browser_compatibility_info: false
+
+# Password and sign-out
+opentalk_web_frontend_environment_change_password_url: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}/account/"
+opentalk_web_frontend_environment_change_password_active: "{{ CHANGE_PASSWORD_ACTIVE | default(false) }}"
+opentalk_web_frontend_environment_sign_out_redirect_uri: "{{ SIGN_OUT_REDIRECT_URI | default('/dashboard') }}"
+
+# Display name
+opentalk_web_frontend_environment_disallow_custom_display_name: "{{ DISALLOW_CUSTOM_DISPLAY_NAME | default(false) }}"
+
+# Sentry error tracking
+opentalk_web_frontend_environment_sentry_dsn: "{{ SENTRY_DSN | default('') }}"
+
+# Meeting inactivity settings
+opentalk_web_frontend_environment_meeting_inactivity_media_disable_seconds: "{{ MEETING_INACTIVITY_MEDIA_DISABLE_SECONDS | default(120) }}"
+opentalk_web_frontend_environment_meeting_inactivity_warning_seconds: "{{ MEETING_INACTIVITY_WARNING_SECONDS | default(900) }}"
+opentalk_web_frontend_environment_meeting_inactivity_termination_seconds: "{{ MEETING_INACTIVITY_TERMINATION_SECONDS | default(3600) }}"
+
+# Grid settings
+opentalk_web_frontend_environment_max_grid_tiles: "{{ MAX_GRID_TILES | default(24) }}"
+opentalk_web_frontend_environment_default_grid_size: "{{ DEFAULT_GRID_SIZE | default('') }}"
+
+# End-to-end encryption
+opentalk_web_frontend_environment_feature_e2e_encryption: false
+opentalk_web_frontend_environment_livekit_e2ee_salt: "{{ LIVEKIT_E2EE_SALT }}"
+opentalk_web_frontend_environment_livekit_preferred_video_codec: "{{ LIVEKIT_PREFERRED_VIDEO_CODEC | default('vp9') }}"
+
+# Whiteboard backend
+opentalk_web_frontend_environment_spacedeck_enabled: "{{ SPACEDECK_ENABLED | default(true) }}"
+
+# Traefik labels
+opentalk_web_frontend_labels_traefik_enable: true
+opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}" # noqa var-naming

@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# handlers file for opentalk_compose_self_signed_cert
+
+- name: Update CA certificates (Debian)
+  ansible.builtin.command:
+    cmd: update-ca-certificates
+  changed_when: true
+  when: ansible_os_family == 'Debian'
+  listen: refresh system ca trust
+
+- name: Update CA trust (RedHat)
+  ansible.builtin.command:
+    cmd: update-ca-trust extract
+  changed_when: true
+  when: ansible_os_family == 'RedHat'
+  listen: refresh system ca trust
+
+- name: Update CA certificates (Suse)
+  ansible.builtin.command:
+    cmd: update-ca-certificates
+  changed_when: true
+  when: ansible_os_family == 'Suse'
+  listen: refresh system ca trust

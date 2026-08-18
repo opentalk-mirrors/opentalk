@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# tasks file for opentalk_compose_opentalk_outlook_add_in
+
+- name: Manage OpenTalk Outlook Add-in Service
+  tags:
+    - outlook_add_in
+  block:
+    - name: Include manage_outlook_config.yml
+      ansible.builtin.include_tasks:
+        file: manage_outlook_config.yml
+      when: compose_service_opentalk_outlook_add_in_enabled | bool
+
+    - name: Include manage_docker_compose.yml
+      ansible.builtin.include_tasks:
+        file: manage_docker_compose.yml

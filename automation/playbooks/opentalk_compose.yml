@@ -17,7 +17,9 @@
       when: (ot_domain | default('') | trim | length) == 0
       tags: ["always"]
 
-    - block:
+    - name: Load deployment secrets
+      tags: ["always"]
+      block:
         - name: Check for secrets vars file
           ansible.builtin.stat:
             path: "{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml"
@@ -29,118 +31,116 @@
           ansible.builtin.debug:
             msg: "WARNING: secrets file '{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml' not found."
           when: not secrets_file.stat.exists
-      tags: ["always"]
-
   roles:
-    - role: opentalk_compose.docker_env
+    - role: opentalk_compose_docker_env
       tags: [docker]
 
-    - role: opentalk_compose.secrets
+    - role: opentalk_compose_secrets
       tags: ["secrets"]
 
-    - role: opentalk_compose.backup
+    - role: opentalk_compose_backup
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
 
-    - role: opentalk_compose.self_signed_cert
+    - role: opentalk_compose_self_signed_cert
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: [self-signed-certificates]
 
-    - role: opentalk_compose.traefik
+    - role: opentalk_compose_traefik
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: [traefik]
 
-    - role: opentalk_compose.keycloak
+    - role: opentalk_compose_keycloak
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: [keycloak]
 
     # only with tag demo-user
-    - role: opentalk_compose.keycloak
+    - role: opentalk_compose_keycloak
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: [never, demo-user]
 
-    - role: opentalk_compose.garage
+    - role: opentalk_compose_garage
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: [garage, s3]
 
-    - role: opentalk_compose.minio
+    - role: opentalk_compose_minio
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: [minio, s3]
 
-    - role: opentalk_compose.rabbitmq
+    - role: opentalk_compose_rabbitmq
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: [rabbitmq]
 
-    - role: opentalk_compose.mailcrab
+    - role: opentalk_compose_mailcrab
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: [mailcrab]
 
-    - role: opentalk_compose.livekit_server
+    - role: opentalk_compose_livekit_server
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: ["livekit-server", "livekit"]
 
-    - role: opentalk_compose.spacedeck
+    - role: opentalk_compose_spacedeck
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: ["spacedeck"]
 
-    - role: opentalk_compose.etherpad
+    - role: opentalk_compose_etherpad
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: ["etherpad"]
 
-    - role: opentalk_compose.opentalk_controller
+    - role: opentalk_compose_opentalk_controller
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: ["opentalk-controller", "controller"]
 
-    - role: opentalk_compose.opentalk_roomserver
+    - role: opentalk_compose_opentalk_roomserver
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: ["opentalk-roomserver", "roomserver"]
 
-    - role: opentalk_compose.opentalk_orchestrator
+    - role: opentalk_compose_opentalk_orchestrator
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: ["opentalk-orchestrator", "orchestrator"]
 
-    - role: opentalk_compose.opentalk_web_frontend
+    - role: opentalk_compose_opentalk_web_frontend
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: ["opentalk-web-frontend", "web-frontend", "webapp"]
 
-    - role: opentalk_compose.opentalk_recorder
+    - role: opentalk_compose_opentalk_recorder
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: ["opentalk-recorder", "recorder"]
 
-    - role: opentalk_compose.opentalk_obelisk
+    - role: opentalk_compose_opentalk_obelisk
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: ["opentalk-obelisk", "obelisk"]
 
-    - role: opentalk_compose.opentalk_outlook_add_in
+    - role: opentalk_compose_opentalk_outlook_add_in
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: ["opentalk-outlook-add-in", "outlook"]
 
-    - role: opentalk_compose.opentalk_smtp_mailer
+    - role: opentalk_compose_opentalk_smtp_mailer
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: ["opentalk-smtp-mailer", "mailer"]
 
-    - role: opentalk_compose.ndt
+    - role: opentalk_compose_ndt
       dependencies:
-        - role: opentalk_compose.secrets
+        - role: opentalk_compose_secrets
       tags: [ndt]
 
   post_tasks:

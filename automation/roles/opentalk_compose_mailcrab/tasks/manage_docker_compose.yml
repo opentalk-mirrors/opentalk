@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: MailCrab Compose path include
+  ansible.builtin.blockinfile:
+    path: "{{ deploy_dir }}/compose.yml"
+    insertafter: '^include:\\s*$'
+    marker: "# Ansible managed - mailcrab include {mark}"
+    block: |
+      - path:
+          - services/mailcrab/compose.yml
+    state: "{{ 'present' if (compose_service_mailcrab_enabled | default(false)) | bool else 'absent' }}"
+  register: _blockinfile_result
+
+- name: Invalidate compose includes check on blockinfile change # noqa no-handler
+  ansible.builtin.set_fact:
+    compose_includes_ready: false
+  when: _blockinfile_result.changed
+
+- name: Render MailCrab compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ mailcrab_docker_compose_services_dir }}/mailcrab/compose.yml"
+    mode: "0644"
+  when: (compose_service_mailcrab_enabled | default(false)) | bool
+
+- name: Check if all compose includes exist
+  ansible.builtin.include_tasks:
+    file: "{{ playbook_dir }}/../roles/opentalk_compose_docker_env/tasks/check_compose_includes.yml"
+  when:
+    - (compose_service_mailcrab_enabled | default(false)) | bool
+    - not (compose_includes_ready | default(false))
+
+- name: Manage MailCrab Docker Compose state
+  community.docker.docker_compose_v2:
+    project_src: "{{ mailcrab_docker_compose_project_src }}"
+    project_name: "{{ mailcrab_docker_compose_project_name }}"
+    services:
+      - mailcrab
+    files:
+      - compose.yml
+    state: "{{ mailcrab_docker_compose_services_state }}"
+  when:
+    - (compose_service_mailcrab_enabled | default(false)) | bool
+    - compose_includes_ready | default(false)

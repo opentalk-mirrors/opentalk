@@ -1,0 +1,119 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Restore Docker volumes from backup archives (latest archive per volume).
+# Containers of known backing services are stopped for the duration of the restore.
+
+- name: Assert restore confirmation
+  ansible.builtin.assert:
+    that:
+      - restore_confirmation | default('') | string | lower == 'yes'
+    fail_msg: >-
+      Destructive restore requested without confirmation.
+      Pass 'restore_confirmation=yes' or use 'otctl restore', which asks for confirmation.
+
+- name: Define volume name suffix to service mapping
+  ansible.builtin.set_fact:
+    _volume_restore_service_map:
+      garage_meta: garage
+      garage_data: garage
+      minio: minio
+      rabbitmq: rabbitmq
+      traefik: traefik
+
+- name: Find backup archives per volume
+  ansible.builtin.find:
+    paths: "{{ backup_dir_volumes }}"
+    patterns: "{{ item }}-*.tar.gz"
+    file_type: file
+  loop: "{{ backup_docker_volume_list }}"
+  register: _volume_restore_backups
+  failed_when: false
+  changed_when: false
+
+- name: Build list of volumes with available archives
+  ansible.builtin.set_fact:
+    restore_items: >-
+      {{ restore_items | default([]) + [
+        {'volume': item.item, 'archive': (item.files | sort(attribute='mtime') | last).path | basename}
+      ] }}
+  loop: "{{ _volume_restore_backups.results }}"
+  when: item.matched | default(0) | int > 0
+  changed_when: false
+
+- name: Warn about volumes without backup archives
+  ansible.builtin.debug:
+    msg: "No backup archive found for volume '{{ item.item }}' - it will not be restored."
+  loop: "{{ _volume_restore_backups.results }}"
+  when: item.matched | default(0) | int == 0
+
+- name: Restore volume archives
+  when: restore_items | default([]) | length > 0
+  block:
+    - name: Warn about volumes without known backing service
+      ansible.builtin.debug:
+        msg: >-
+          No known service maps to volume '{{ item.volume }}';
+          stop any containers that write to it manually before this restore completes.
+      loop: "{{ restore_items }}"
+      vars:
+        _vr_project: "{{ compose_project_name | default('opentalk') }}"
+        _vr_service: "{{ _volume_restore_service_map[(item.volume.split('_') | last)] | default('') }}"
+      when: _vr_service | length == 0
+
+    - name: Stop containers backing restored volumes
+      ansible.builtin.command:
+        cmd: "docker stop {{ _vr_project }}-{{ _vr_service }}-1"
+      loop: "{{ restore_items }}"
+      vars:
+        _vr_project: "{{ compose_project_name | default('opentalk') }}"
+        _vr_service: "{{ _volume_restore_service_map[(item.volume.split('_') | last)] | default('') }}"
+      when: _vr_service | length > 0
+      register: _volume_restore_stops
+      failed_when: false
+      changed_when: _volume_restore_stops.rc == 0 and _volume_restore_stops.stdout | length > 0
+
+    - name: Restore volume contents from backups
+      ansible.builtin.command:
+        cmd: >-
+          docker run --rm
+          -v {{ item.volume }}:/restore
+          -v {{ backup_dir_volumes }}:/backup:ro
+          {{ (postgres_docker_image_src ~ ':' ~ postgres_version) | quote }}
+          sh -c "rm -rf /restore/* && tar xzf /backup/{{ item.archive }}"
+      loop: "{{ restore_items }}"
+      when: backup_docker_volume_restore_files | default([]) | length == 0
+      changed_when: true
+
+    - name: Restore selected files into volumes
+      ansible.builtin.command:
+        cmd: >-
+          docker run --rm
+          -v {{ item.volume }}:/restore
+          -v {{ backup_dir_volumes }}:/backup:ro
+          {{ (postgres_docker_image_src ~ ':' ~ postgres_version) | quote }}
+          sh -c "rm -rf /restore/* && tar xzf /backup/{{ item.archive }} -C /restore {{ backup_docker_volume_restore_files | join(' ') }}"
+      loop: "{{ restore_items }}"
+      when: backup_docker_volume_restore_files | default([]) | length > 0
+      changed_when: true
+
+    - name: Start containers backing restored volumes
+      ansible.builtin.command:
+        cmd: "docker start {{ _vr_project }}-{{ _vr_service }}-1"
+      loop: "{{ restore_items }}"
+      vars:
+        _vr_project: "{{ compose_project_name | default('opentalk') }}"
+        _vr_service: "{{ _volume_restore_service_map[(item.volume.split('_') | last)] | default('') }}"
+      when: _vr_service | length > 0
+      register: _volume_restore_starts
+      failed_when: false
+      changed_when: _volume_restore_starts.rc == 0 and _volume_restore_starts.stdout | length > 0
+
+    - name: Show volume restore result
+      ansible.builtin.debug:
+        msg: >-
+          Restored volumes:
+          {{ restore_items | map(attribute='volume') | list | join(', ') }}
+          (backing containers stopped/started around restore)

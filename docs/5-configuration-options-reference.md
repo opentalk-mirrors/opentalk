@@ -41,7 +41,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `s3_storage_provider` | string | `garage` |
 | `services_dir` | string | `/opt/opentalk-compose/services` |
 
-## opentalk_compose.backup
+## opentalk_compose_backup
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -73,7 +73,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_db_user` | string | `{{ keycloak_database_user \| default('ot') }}` |
 | `restore_confirmation` | string | `` |
 
-## opentalk_compose.docker_env
+## opentalk_compose_docker_env
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -82,7 +82,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `docker_network_state` | string | `present` |
 | `docker_overwrite_main_compose_file` | boolean | `false` |
 
-## opentalk_compose.etherpad
+## opentalk_compose_etherpad
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -102,7 +102,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `etherpad_docker_labels_traefik_http_routers_etherpad_rule` | string | `Host(`{{ ot_domain }}`) && PathPrefix(`/etherpad`)` |
 | `etherpad_docker_ports` | list | `[]` |
 
-## opentalk_compose.garage
+## opentalk_compose_garage
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -171,7 +171,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `garage_s3_web_root_domain` | string | `.web.garage` |
 | `garage_use_local_tz` | string | `false` |
 
-## opentalk_compose.import_users
+## opentalk_compose_import_users
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -189,7 +189,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `keycloak_local_hostname` | string | `` |
 | `keycloak_local_port` | string | `{{ ot_ingress_port }}` |
 
-## opentalk_compose.keycloak
+## opentalk_compose_keycloak
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -285,7 +285,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `ssoSessionIdleTimeout` | string | `Time before idle session expires (default: 24 hours)` |
 | `ssoSessionMaxLifespan` | string | `Maximum session lifetime (default: 30 days)` |
 
-## opentalk_compose.livekit_server
+## opentalk_compose_livekit_server
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -400,7 +400,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `livekit_webhook_urls` | list | `[https://your-host.com/handler]` |
 | `secret` | null | `null` |
 
-## opentalk_compose.mailcrab
+## opentalk_compose_mailcrab
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -415,7 +415,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailcrab_docker_label_http_routers_minio_console_middlewares` | string | `default-auth@file` |
 | `mailcrab_webui_prefix` | string | `/adm/mailcrab` |
 
-## opentalk_compose.minio
+## opentalk_compose_minio
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -431,7 +431,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `minio_docker_label_http_routers_minio_console_middlewares` | string | `minio-stripprefix` |
 | `minio_s3_api_port` | integer | `9000` |
 
-## opentalk_compose.ndt
+## opentalk_compose_ndt
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -445,7 +445,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `ndt_docker_compose_ulimits_nproc` | integer | `4096` |
 | `ndt_docker_image_src` | string | `registry.heinlein.group/opentalk/ndt-server` |
 
-## opentalk_compose.opentalk_controller
+## opentalk_compose_opentalk_controller
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -577,7 +577,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_user_search_users_find_behavior` | string | `from_user_search_backend` |
 | `postgres_docker_image_src` | string | `registry.heinlein.group/opentalk/postgres` |
 
-## opentalk_compose.opentalk_obelisk
+## opentalk_compose_opentalk_obelisk
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -625,7 +625,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `obelisk_sip_transport` | string | `` |
 | `obelisk_sip_username` | string | `` |
 
-## opentalk_compose.opentalk_orchestrator
+## opentalk_compose_opentalk_orchestrator
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -644,7 +644,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `orchestrator_public_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
 | `orchestrator_services_key_id` | string | `roomserver` |
 
-## opentalk_compose.opentalk_outlook_add_in
+## opentalk_compose_opentalk_outlook_add_in
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -662,7 +662,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `outlook_add_in_outlook_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/outlook` |
 | `outlook_add_in_outlook_webapp_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
 
-## opentalk_compose.opentalk_recorder
+## opentalk_compose_opentalk_recorder
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -696,7 +696,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `recorder_recorder_clock_format` | string | `%d.%m.%y %X %Z` |
 | `recorder_recorder_display` | string | `true` |
 
-## opentalk_compose.opentalk_roomserver
+## opentalk_compose_opentalk_roomserver
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -729,7 +729,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `roomserver_service_url` | string | `http://roomserver:{{ roomserver_http_port }}` |
 | `roomserver_tracing_otlp_endpoint` | string | `http://jaeger:4317` |
 
-## opentalk_compose.opentalk_smtp_mailer
+## opentalk_compose_opentalk_smtp_mailer
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -770,7 +770,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailer_templates_unregistered_invite` | string | `{html = "resources/templates/unregistered_invite.html", txt = "resources/templates/unregistered_invite.txt"}` |
 | `mailer_templates_unregistered_uninvite` | string | `{html = "resources/templates/unregistered_uninvite.html", txt = "resources/templates/unregistered_uninvite.txt"}` |
 
-## opentalk_compose.opentalk_web_frontend
+## opentalk_compose_opentalk_web_frontend
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -828,7 +828,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `opentalk_web_frontend_labels_traefik_enable` | boolean | `true` |
 | `opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
 
-## opentalk_compose.rabbitmq
+## opentalk_compose_rabbitmq
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -846,7 +846,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `rabbitmq_docker_ports` | list | `[]` |
 | `rabbitmq_management_path_prefix` | string | `/adm/rabbitmq` |
 
-## opentalk_compose.s3_migrate
+## opentalk_compose_s3_migrate
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -856,14 +856,14 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `s3_migrate_run_deploy` | boolean | `true` |
 | `s3_migrate_settings_file` | string | `{{ config_dir \| default('/etc/opentalk-compose') }}/settings.yml` |
 
-## opentalk_compose.secrets
+## opentalk_compose_secrets
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
 | `force_generate_secrets` | boolean | `false` |
 | `no_secret_log` | boolean | `true` |
 
-## opentalk_compose.self_signed_cert
+## opentalk_compose_self_signed_cert
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -901,7 +901,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `self_signed_certificates_system_trust_dest_override` | string | `` |
 | `self_signed_certificates_system_trust_name` | string | `opentalk-selfsigned-ca.crt` |
 
-## opentalk_compose.spacedeck
+## opentalk_compose_spacedeck
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
@@ -925,7 +925,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `spacedeck_docker_labels_traefik_hosts` | list | `[{{ spacedeck_docker_labels_traefik_host }}]` |
 | `spacedeck_docker_ports` | list | `[]` |
 
-## opentalk_compose.traefik
+## opentalk_compose_traefik
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|

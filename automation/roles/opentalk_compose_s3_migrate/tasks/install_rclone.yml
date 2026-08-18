@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Install rclone on the host if not already present.
+
+- name: Check if rclone is installed
+  ansible.builtin.command:
+    cmd: which rclone
+  register: _rclone_which
+  changed_when: false
+  failed_when: false
+
+- name: Install rclone (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: rclone
+    state: present
+    update_cache: true
+  when:
+    - _rclone_which.rc != 0
+    - ansible_facts['os_family'] == 'Debian'
+  become: true
+
+- name: Install rclone (RHEL/Fedora)
+  ansible.builtin.dnf:
+    name: rclone
+    state: present
+  when:
+    - _rclone_which.rc != 0
+    - ansible_facts['os_family'] == 'RedHat'
+  become: true
+
+- name: Install rclone (openSUSE/SLES)
+  community.general.zypper:
+    name: rclone
+    state: present
+  when:
+    - _rclone_which.rc != 0
+    - ansible_facts['os_family'] == 'Suse'
+  become: true
+
+- name: Verify rclone is available after install
+  ansible.builtin.command:
+    cmd: which rclone
+  changed_when: false
+  register: _rclone_verify
+  failed_when: _rclone_verify.rc != 0

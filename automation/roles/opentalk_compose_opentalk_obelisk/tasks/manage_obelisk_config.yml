@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Ensure OpenTalk Recorder service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: "0755"
+    state: directory
+  with_items:
+    - "{{ obelisk_docker_compose_services_dir }}"
+    - "{{ obelisk_docker_compose_services_dir }}/opentalk-obelisk"
+    - "{{ obelisk_docker_compose_services_dir }}/opentalk-obelisk/config"
+
+- name: Render OpenTalk Obelisk static config
+  ansible.builtin.template:
+    src: obelisk.toml.j2
+    dest: "{{ obelisk_docker_compose_services_dir }}/opentalk-obelisk/config/obelisk.toml"
+    mode: '0644'
+  notify: Restart Docker Service OpenTalk Obelisk

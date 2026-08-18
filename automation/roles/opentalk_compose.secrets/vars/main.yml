@@ -1,9 +1,0 @@
-# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
-#
-# SPDX-License-Identifier: EUPL-1.2
-
----
-# vars file for opentalk_compose.secrets
-
-force_generate_secrets: false
-no_secret_log: true

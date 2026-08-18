@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# tasks file for opentalk_compose_import_users
+
+- name: Include validate.yml
+  ansible.builtin.include_tasks:
+    file: validate.yml
+
+- name: Include import_users.yml
+  ansible.builtin.include_tasks:
+    file: import_users.yml

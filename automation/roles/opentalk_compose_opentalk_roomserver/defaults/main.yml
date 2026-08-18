@@ -1,0 +1,57 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose_roomserver
+#
+# NOTE! The values defined here are defaults and will be overwritten on package
+# updates. Custom values should therefore not be set here, but in
+# /etc/opentalk-compose/settings.yml instead.
+
+roomserver_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+roomserver_docker_compose_services_state: "{{ compose_service_opentalk_roomserver_state | default('present') }}"
+roomserver_docker_compose_services_dir: "{{ services_dir }}"
+roomserver_docker_compose_project_src: "{{ deploy_dir }}"
+
+roomserver_docker_compose_ulimits_nofile_soft: 65536
+roomserver_docker_compose_ulimits_nofile_hard: 65536
+roomserver_docker_compose_ulimits_nproc: 8192
+
+roomserver_docker_image_src: registry.heinlein.group/opentalk/roomserver
+
+roomserver_public_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}"
+
+roomserver_http_port: 11333
+roomserver_http_address: "0.0.0.0"
+roomserver_service_url: "http://roomserver:{{ roomserver_http_port }}"
+roomserver_api_key_id: "roomserver"
+
+roomserver_controller_url: "http://controller:11311"
+roomserver_controller_api_key_id: "controller"
+
+roomserver_orchestrator_url: "http://orchestrator:11222"
+roomserver_orchestrator_api_key_id: "orchestrator"
+
+roomserver_logging_default_directives: "opentalk=debug"
+
+roomserver_screen_share_requires_permission: false
+
+# roomserver_monitoring_addr: "0.0.0.0"
+# roomserver_monitoring_port: 11411
+
+# roomserver_metrics_port: 11412
+roomserver_metrics_allowlist:
+  - "127.0.0.0/24"
+  - "::ffff:0:0/96"
+  - "172.16.0.0/12"
+
+# roomserver_http_enable_openapi: true
+
+# roomserver_tracing_otlp_endpoint: "http://jaeger:4317"
+
+# roomserver_conference_signaling_salt: ""
+
+# roomserver_reports_typst_packages_path: "/usr/share/typst/packages"
+
+# roomserver_internal_parallel_storage_quota_requests: 5

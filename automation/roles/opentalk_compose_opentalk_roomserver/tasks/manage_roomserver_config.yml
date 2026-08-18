@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Ensure OpenTalk Roomserver Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: "0755"
+    state: directory
+  with_items:
+    - "{{ roomserver_docker_compose_services_dir }}"
+    - "{{ roomserver_docker_compose_services_dir }}/opentalk-roomserver"
+    - "{{ roomserver_docker_compose_services_dir }}/opentalk-roomserver/config"
+
+- name: Render OpenTalk Roomserver static config
+  ansible.builtin.template:
+    src: roomserver.toml.j2
+    dest: "{{ roomserver_docker_compose_services_dir }}/opentalk-roomserver/config/roomserver.toml"
+    mode: '0644'
+  notify: Restart Docker Service OpenTalk Roomserver

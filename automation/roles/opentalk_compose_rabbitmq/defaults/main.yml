@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose_rabbitmq
+
+rabbitmq_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+rabbitmq_docker_compose_services_state: "{{ compose_service_rabbitmq_state | default('present') }}"
+rabbitmq_docker_compose_services_dir: "{{ services_dir }}"
+rabbitmq_docker_compose_project_src: "{{ deploy_dir }}"
+
+rabbitmq_docker_compose_ulimits_nofile_soft: 65536
+rabbitmq_docker_compose_ulimits_nofile_hard: 65536
+rabbitmq_docker_compose_ulimits_nproc: 8192
+
+rabbitmq_docker_ports: []
+rabbitmq_docker_image_src: registry.heinlein.group/opentalk/rabbitmq
+
+rabbitmq_default_vhost: "/"
+rabbitmq_default_user: ot
+rabbitmq_default_pass: "{{ RABBITMQ_PASSWORD }}"
+rabbitmq_management_path_prefix: "/adm/rabbitmq"
