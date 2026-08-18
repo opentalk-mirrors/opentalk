@@ -54,6 +54,13 @@ lint:shellcheck:
     - git ls-files -z '*.sh' | xargs -0r shellcheck
     - shellcheck extras/packaging/wrappers/*
 
+lint:shell-tests:
+  stage: lint
+  <<: *default_conditions
+  script:
+    - echo "🔍 Running shell regression tests..."
+    - find extras/scripts/tests -maxdepth 1 -type f -name 'test_*.sh' -print0 | xargs -0r -n1 bash
+
 lint:yamllint:
   stage: lint
   <<: *default_conditions
@@ -476,7 +483,7 @@ int:experimental:
       compose_service_opentalk_obelisk_enabled: false
       compose_service_opentalk_outlook_add_in_enabled: false
       compose_service_opentalk_recorder_enabled: true
-      compose_service_opentalk_smtp_mailer_enabled: false
+      compose_service_opentalk_smtp_mailer_enabled: true
       compose_service_opentalk_web_frontend_enabled: true
       compose_service_etherpad_enabled: true
       compose_service_spacedeck_enabled: true
@@ -506,6 +513,8 @@ int:experimental:
               dpkg -i "$DEB_FILE" || apt-get install -f -y
               echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
               otctl deploy
+              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
+              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_smtp_mailer_rabbitmq.sh
               ;;
           rocky)
               echo "RHEL-based Distribution: $OS_ID"
@@ -515,6 +524,8 @@ int:experimental:
               dnf install -y "$RPM_FILE" --nogpgcheck
               echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
               otctl deploy
+              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
+              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_smtp_mailer_rabbitmq.sh
               ;;
           opensuse-leap)
               echo "SUSE-based Distribution: $OS_ID"
@@ -524,6 +535,8 @@ int:experimental:
               zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
               echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
               otctl deploy
+              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
+              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_smtp_mailer_rabbitmq.sh
               ;;
           *)
               echo "Unknown or unsupported Distribution: $OS_ID"
@@ -597,6 +610,7 @@ int:pre-release:
               dpkg -i "$DEB_FILE" || apt-get install -f -y
               echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
               otctl deploy
+              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
               ;;
           rocky)
               echo "RHEL-based Distribution: $OS_ID"
@@ -606,6 +620,7 @@ int:pre-release:
               dnf install -y "$RPM_FILE" --nogpgcheck
               echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
               otctl deploy
+                COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
               ;;
           opensuse-leap)
               echo "SUSE-based Distribution: $OS_ID"
@@ -615,6 +630,7 @@ int:pre-release:
               zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
               echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
               otctl deploy
+                COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
               ;;
           *)
               echo "Unknown or unsupported Distribution: $OS_ID"
@@ -688,6 +704,7 @@ int:stable:
               dpkg -i "$DEB_FILE" || apt-get install -f -y
               echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
               otctl deploy
+              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
               ;;
           rocky)
               echo "RHEL-based Distribution: $OS_ID"
@@ -697,6 +714,7 @@ int:stable:
               dnf install -y "$RPM_FILE" --nogpgcheck
               echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
               otctl deploy
+                COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
               ;;
           opensuse-leap)
               echo "SUSE-based Distribution: $OS_ID"
@@ -706,6 +724,7 @@ int:stable:
               zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
               echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
               otctl deploy
+                COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
               ;;
           *)
               echo "Unknown or unsupported Distribution: $OS_ID"

@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-08-18
+Last updated: 2026-08-19
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -53,9 +53,9 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `backup_docker_volume_restore_files` | list | `[]` |
 | `backup_retention_max_age_days` | integer | `7` |
 | `backup_retention_max_items` | integer | `5` |
-| `config_backup_file_name` | string | `opentalk-compose_config_backup-{{ lookup('pipe','date +%Y%m%d-%H%M%S') }}.tar.gz` |
+| `config_backup_file_name` | string | `opentalk-compose_config_backup-{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}.tar.gz` |
 | `config_backup_restore_file` | string | `` |
-| `controller_db_dump_file` | string | `{{ backup_dir_sql_dumps }}/controller-{{ lookup('pipe','date +%Y%m%d-%H%M%S') }}.sql` |
+| `controller_db_dump_file` | string | `{{ backup_dir_sql_dumps }}/controller-{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}.sql` |
 | `controller_db_dump_restore_file` | string | `` |
 | `controller_db_host` | string | `{{ controller_database_host \| default('controller-db') }}` |
 | `controller_db_name` | string | `{{ controller_database_name \| default('controller') }}` |
@@ -64,7 +64,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_db_scheduled_backup_enabled` | boolean | `true` |
 | `controller_db_scheduled_backup_time` | string | `02:00` |
 | `controller_db_user` | string | `{{ controller_database_user \| default('ot') }}` |
-| `keycloak_db_dump_file` | string | `{{ backup_dir_sql_dumps }}/keycloak-{{ lookup('pipe','date +%Y%m%d-%H%M%S') }}.sql` |
+| `keycloak_db_dump_file` | string | `{{ backup_dir_sql_dumps }}/keycloak-{{ lookup('pipe', 'date +%Y%m%d-%H%M%S') }}.sql` |
 | `keycloak_db_dump_restore_file` | string | `` |
 | `keycloak_db_host` | string | `{{ keycloak_database_host \| default('keycloak-db') }}` |
 | `keycloak_db_name` | string | `{{ keycloak_database_name \| default('keycloak') }}` |
