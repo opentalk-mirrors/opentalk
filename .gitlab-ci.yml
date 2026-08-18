@@ -81,6 +81,17 @@ lint:ansible-lint:
     - echo "🔍 Linting Ansible code ..."
     - ansible-lint .
 
+lint:ansible-syntax:
+  stage: lint
+  <<: *default_conditions
+  script:
+    - echo "🔍 Syntax-checking Ansible playbooks ..."
+    - |
+      for playbook in automation/playbooks/*.yml; do
+        echo "=== ${playbook} ==="
+        ansible-playbook --syntax-check "${playbook}"
+      done
+
 lint:licensing:
   stage: lint
   <<: *default_conditions
