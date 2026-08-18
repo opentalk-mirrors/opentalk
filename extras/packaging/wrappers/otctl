@@ -64,6 +64,17 @@ Subcommands (most used first):
                 ls            -> list existing backups
                 clean         -> retention prune (tag: backup_retention)
                 (no arg)      -> this help
+  restore     Restore data from backups (DESTRUCTIVE - requires confirmation)
+              Sub-modes:
+                all                -> config + controller DB + keycloak DB + volumes (tags: restore)
+                controller-db [FILE] -> controller DB SQL dump (tag: controller_db_restore)
+                keycloak-db [FILE]   -> keycloak DB SQL dump (tag: keycloak_db_restore)
+                config [FILE]        -> config archive (tag: config_restore)
+                volume [NAME]        -> all volumes or a single volume NAME (tag: docker_volumes_restore)
+                ls                   -> list existing backup artifacts
+              Options:
+                --yes           -> skip interactive confirmation
+              Note: [FILE] defaults to the newest matching artifact
   up          Shortcut for compose up -d
   down        Shortcut for compose down
   ps          Shortcut for compose ps
@@ -111,7 +122,7 @@ usage_short() {
     c_hdr=$'\e[1;94m'; c_reset=$'\e[0m'
   fi
   cat <<EOF
-${c_hdr}otctl${c_reset} status|logs|restart|recreate|undeploy|tags|deploy|backup|up|down|ps|volumes|import|version|compose|playbook
+${c_hdr}otctl${c_reset} status|logs|restart|recreate|undeploy|tags|deploy|backup|restore|up|down|ps|volumes|import|version|compose|playbook
 Hint: run 'otctl help' for details.
 EOF
 }
@@ -534,6 +545,154 @@ BHELP
     else
       PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --tags "$tags_arg" "$@"
     fi
+    ;;
+  restore)
+    restore_usage() {
+      cat <<'RHELP'
+otctl restore USAGE:
+  otctl restore                       # show this help
+  otctl restore all                   # restore config, controller DB, keycloak DB and volumes (newest artifacts)
+  otctl restore controller-db [FILE]  # restore controller DB from SQL dump (FILE optional, defaults to newest)
+  otctl restore keycloak-db [FILE]    # restore keycloak DB from SQL dump (FILE optional, defaults to newest)
+  otctl restore config [FILE]         # restore config from archive (FILE optional, defaults to newest)
+  otctl restore volume [NAME]         # restore all configured volumes, or a single volume NAME
+  otctl restore ls                    # list existing backup artifacts
+  Options:
+    --yes                             # skip interactive confirmation (required in non-interactive sessions)
+RHELP
+    }
+    _rst_yes=0
+    _rst_args=()
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --yes) _rst_yes=1; shift ;;
+        *) _rst_args+=("$1"); shift ;;
+      esac
+    done
+    set -- "${_rst_args[@]}"
+    mode="${1:-}"; if [ $# -gt 0 ]; then shift; fi
+    if [ -z "$mode" ] || [[ "$mode" == help ]] || [[ "$mode" == --help ]] || [[ "$mode" == -h ]]; then
+      restore_usage; exit 0
+    fi
+    if [ "$mode" = "ls" ]; then
+      backup_list; exit $?
+    fi
+
+    # Locate backup root (same logic as backup_list)
+    _rst_root="${OT_BACKUP_DIR:-/var/opt/opentalk-compose/backups}"
+    [ -d "$_rst_root" ] || _rst_root="$PREFIX/backups"
+
+    latest_backup_file() {
+      # latest_backup_file <dir> <glob> -> basename of newest match (empty if none)
+      local dir="$1" glob="$2"
+      find "$dir" -maxdepth 1 -type f -name "$glob" -printf '%T@\t%f\n' 2>/dev/null | sort -nr | head -n1 | cut -f2
+    }
+
+    resolve_restore_file() {
+      # resolve_restore_file <category> <glob> [explicit-file] -> full path
+      local dir="$1" glob="$2" explicit="${3:-}"
+      if [ -n "$explicit" ]; then
+        [ -f "$explicit" ] || { echo "[otctl] File not found: $explicit" >&2; exit 1; }
+        if [[ "$explicit" == /* ]]; then
+          printf '%s\n' "$explicit"
+        else
+          local d
+          d="$(dirname "$explicit")"
+          printf '%s/%s\n' "$(cd "$d" && pwd)" "$(basename "$explicit")"
+        fi
+      else
+        local f
+        f="$(latest_backup_file "$_rst_root/$dir" "$glob")"
+        [ -n "$f" ] || { echo "[otctl] No matching backup found in $_rst_root/$dir (pattern: $glob) - run a backup first." >&2; exit 1; }
+        printf '%s\n' "$_rst_root/$dir/$f"
+      fi
+    }
+
+    _rst_vars=()
+    json_escape() {
+      local s="$1"
+      s="${s//\\/\\\\}"
+      s="${s//\"/\\\"}"
+      printf '%s' "$s"
+    }
+    add_json_var() {  # add_json_var <name> <string value>
+      _rst_vars+=("\"$(json_escape "$1")\": \"$(json_escape "$2")\"")
+    }
+    add_json_list_var() {  # add_json_list_var <name> <value>
+      _rst_vars+=("\"$(json_escape "$1")\": [\"$(json_escape "$2")\"]")
+    }
+
+    tags_arg="restore"
+    case "$mode" in
+      all)
+        tags_arg="restore"
+        _rst_file="$(resolve_restore_file dumps 'controller-*.sql')"
+        add_json_var controller_db_dump_restore_file "$_rst_file"
+        _rst_file="$(resolve_restore_file dumps 'keycloak-*.sql')"
+        add_json_var keycloak_db_dump_restore_file "$_rst_file"
+        _rst_file="$(resolve_restore_file config '*.tar.gz')"
+        add_json_var config_backup_restore_file "$(basename "$_rst_file")"
+        ;;
+      controller-db|controller|ctrl)
+        tags_arg="controller_db_restore"
+        _rst_file="$(resolve_restore_file dumps 'controller-*.sql' "${1:-}")"
+        if [ $# -gt 0 ]; then shift; fi
+        add_json_var controller_db_dump_restore_file "$_rst_file"
+        ;;
+      keycloak-db|keycloak|kc)
+        tags_arg="keycloak_db_restore"
+        _rst_file="$(resolve_restore_file dumps 'keycloak-*.sql' "${1:-}")"
+        if [ $# -gt 0 ]; then shift; fi
+        add_json_var keycloak_db_dump_restore_file "$_rst_file"
+        ;;
+      config|cfg)
+        tags_arg="config_restore"
+        _rst_file="$(resolve_restore_file config '*.tar.gz' "${1:-}")"
+        if [ $# -gt 0 ]; then shift; fi
+        add_json_var config_backup_restore_file "$(basename "$_rst_file")"
+        ;;
+      volume)
+        tags_arg="docker_volumes_restore"
+        if [ -n "${1:-}" ] && [[ "${1:-}" != -* ]]; then
+          add_json_list_var backup_docker_volume_list "$1"
+          if [ $# -gt 0 ]; then shift; fi
+        fi
+        ;;
+      *)
+        echo "[otctl] Unknown restore mode: $mode" >&2
+        restore_usage
+        exit 1
+        ;;
+    esac
+
+    add_json_var restore_confirmation "yes"
+    _rst_json="{"
+    for _v in "${_rst_vars[@]}"; do
+      [ -n "$_rst_json" ] && [ "$_rst_json" != "{" ] && _rst_json+=", "
+      _rst_json+="${_v}"
+    done
+    _rst_json+="}"
+
+    echo "[otctl] RESTORE PLAN (destructive - ansible tags: $tags_arg):" >&2
+    echo "[otctl] Extra vars: $_rst_json" >&2
+    echo "[otctl] Tip: run 'otctl backup all' before restoring to keep a rollback point." >&2
+
+    if [ "$_rst_yes" -eq 1 ]; then
+      echo "[otctl] Confirmation skipped (--yes)." >&2
+    else
+      if [ ! -t 0 ] || [ ! -t 1 ]; then
+        echo "[otctl] Non-interactive session: re-run with --yes to confirm this destructive restore." >&2
+        exit 1
+      fi
+      printf 'Type "restore" to overwrite live data: '
+      IFS= read -r _rst_answer || _rst_answer=""
+      if [ "$_rst_answer" != "restore" ]; then
+        echo "[otctl] Aborted - confirmation did not match." >&2
+        exit 1
+      fi
+    fi
+
+    PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --tags "$tags_arg" -e "$_rst_json" "$@"
     ;;
   tags) list_tags ;;
   volumes) volumes_cmd "$@" ;;

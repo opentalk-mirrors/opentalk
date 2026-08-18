@@ -46,3 +46,24 @@
     - restore
     - config_restore
     - never
+
+- name: Include controller DB restore tasks
+  ansible.builtin.import_tasks: restore_dump_controller_db.yml
+  tags:
+    - restore
+    - controller_db_restore
+    - never
+
+- name: Include keycloak DB restore tasks
+  ansible.builtin.import_tasks: restore_dump_keycloak_db.yml
+  tags:
+    - restore
+    - keycloak_db_restore
+    - never
+
+- name: Include docker volumes restore tasks
+  ansible.builtin.import_tasks: restore_docker_volumes.yml
+  tags:
+    - restore
+    - docker_volumes_restore
+    - never

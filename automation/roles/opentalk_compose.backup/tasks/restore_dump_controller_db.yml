@@ -3,51 +3,71 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-- name: Check if explicit restore dump file is defined
-  ansible.builtin.stat:
-    path: "{{ controller_db_dump_restore_file }}"
-  register: _explicit_restore_dump_stat
-  when: controller_db_dump_restore_file is defined
-
-- name: Use explicitly provided dump file
-  ansible.builtin.set_fact:
-    _chosen_controller_db_dump: "{{ controller_db_dump_restore_file }}"
-  when:
-    - controller_db_dump_restore_file is defined
-    - _explicit_restore_dump_stat.stat.exists
-
-- name: Find available controller DB dump files (fallback to latest)
-  ansible.builtin.find:
-    paths: "{{ backup_dir_sql_dumps }}"
-    patterns: "*.sql"
-    file_type: file
-  register: _found_controller_db_dumps
-  when: _chosen_controller_db_dump is not defined
-
-- name: Select latest controller DB dump file
-  ansible.builtin.set_fact:
-    _chosen_controller_db_dump: "{{ (_found_controller_db_dumps.files | sort(attribute='mtime') | last).path }}"
-  when:
-    - _chosen_controller_db_dump is not defined
-    - _found_controller_db_dumps.matched | int > 0
-
-- name: Fail if no controller DB dump file could be determined
-  ansible.builtin.fail:
-    msg: "No SQL dump found (neither {{ controller_db_dump_restore_file | default('undefined') }} nor any dump in {{ backup_dir_sql_dumps }})."
-  when: _chosen_controller_db_dump is not defined
-
-- name: Show which dump will be restored
-  ansible.builtin.debug:
-    msg: "Restoring controller DB from dump: {{ _chosen_controller_db_dump }}"
+# Restore the controller database from an explicit SQL dump file.
+# Set controller_db_dump_restore_file (e.g. via 'otctl restore controller-db').
+# The controller app container is stopped for the duration of the restore.
 
 - name: Restore Controller DB from dump
-  ansible.builtin.shell: |
-    set -euo pipefail
-    cat "{{ _chosen_controller_db_dump }}" | docker run --rm -i \
-      --network {{ docker_network_name }} \
-      -e PGPASSWORD="$PGPASSWORD" \
-      {{ postgres_docker_image_src }}:{{ postgres_version }} \
-      psql -h {{ controller_db_host }} -p {{ controller_db_port }} -U {{ controller_db_user }} -d {{ controller_db_name }}
-  environment:
-    PGPASSWORD: "{{ controller_db_password }}"
-  tags: [controller_db_restore]
+  tags:
+    - restore
+    - controller_db_restore
+    - never
+  block:
+    - name: Assert restore confirmation
+      ansible.builtin.assert:
+        that:
+          - restore_confirmation | default('') | string | lower == 'yes'
+        fail_msg: >-
+          Destructive restore requested without confirmation.
+          Pass 'restore_confirmation=yes' or use 'otctl restore', which asks for confirmation.
+
+    - name: Check controller DB restore dump file is provided
+      ansible.builtin.assert:
+        that:
+          - controller_db_dump_restore_file | length > 0
+        fail_msg: "controller_db_dump_restore_file must be set to a .sql dump (e.g. 'otctl restore controller-db <file>') or use 'otctl restore controller-db' for the latest dump."
+
+    - name: Check controller DB restore dump file exists
+      ansible.builtin.stat:
+        path: "{{ controller_db_dump_restore_file }}"
+      register: _controller_db_restore_stat
+
+    - name: Assert controller DB restore dump file exists
+      ansible.builtin.assert:
+        that:
+          - _controller_db_restore_stat.stat.exists
+        fail_msg: "Controller DB dump not found: {{ controller_db_dump_restore_file }}"
+
+    - name: Stop controller app container
+      ansible.builtin.command:
+        cmd: docker stop "{{ controller_docker_compose_project_name }}-controller-1"
+      register: _controller_db_restore_stop
+      failed_when: false
+      changed_when: _controller_db_restore_stop.rc == 0 and _controller_db_restore_stop.stdout | length > 0
+
+    - name: Restore Controller DB from dump
+      ansible.builtin.shell: |
+        set -euo pipefail
+        cat "{{ controller_db_dump_restore_file }}" | docker run --rm -i \
+          --network {{ docker_network_name | quote }} \
+          -e PGPASSWORD="$PGPASSWORD" \
+          {{ (postgres_docker_image_src ~ ':' ~ postgres_version) | quote }} \
+          psql -v ON_ERROR_STOP=1 --single-transaction \
+          -h {{ controller_db_host | quote }} \
+          -p {{ controller_db_port | quote }} \
+          -U {{ controller_db_user | quote }} \
+          -d {{ controller_db_name | quote }}
+      environment:
+        PGPASSWORD: "{{ controller_db_password }}"
+      changed_when: true
+
+    - name: Start controller app container
+      ansible.builtin.command:
+        cmd: docker start "{{ controller_docker_compose_project_name }}-controller-1"
+      register: _controller_db_restore_start
+      failed_when: false
+      changed_when: _controller_db_restore_start.rc == 0 and _controller_db_restore_start.stdout | length > 0
+
+    - name: Show controller DB restore result
+      ansible.builtin.debug:
+        msg: "Controller DB restored from {{ controller_db_dump_restore_file }} (app container stopped/started around restore)."
