@@ -51,8 +51,8 @@
       ansible.builtin.copy:
         src: "{{ _cfg_restore_content_src }}/"
         dest: "{{ config_dir | default('/etc/opentalk-compose') }}/"
-        owner: root
-        group: root
+        owner: "{{ config_restore_owner | default('root') }}"
+        group: "{{ config_restore_group | default('root') }}"
         mode: preserve
       notify: []
 

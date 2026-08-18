@@ -12,7 +12,6 @@ mailer_docker_compose_project_src: "{{ deploy_dir }}"
 
 mailer_docker_compose_ulimits_nofile_soft: 16384
 mailer_docker_compose_ulimits_nofile_hard: 32768
-mailer_docker_compose_ulimits_nproc: 4096
 
 mailer_docker_image_src: registry.heinlein.group/opentalk/smtp-mailer
 

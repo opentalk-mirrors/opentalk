@@ -136,6 +136,14 @@ docs-serve:
 lint:
     pre-commit run --all-files
 
+# Run fast, Docker-free regression and contract tests.
+test-fast: lint
+    find extras/scripts/tests -maxdepth 1 -type f -name 'test_*.sh' -print0 | xargs -0r -n1 bash
+
+# Run the destructive Docker Compose end-to-end test in an isolated local environment.
+test-e2e:
+    OPENTALK_E2E=1 bash extras/scripts/tests/integration/test_compose_e2e.sh
+
 # Remove generated build files while keeping package artifacts.
 clean:
     extras/packaging/90-cleanup.sh --build-only -y

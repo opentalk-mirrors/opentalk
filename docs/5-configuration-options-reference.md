@@ -739,7 +739,6 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `mailer_docker_compose_services_state` | string | `{{ compose_service_opentalk_smtp_mailer_state \| default('present') }}` |
 | `mailer_docker_compose_ulimits_nofile_hard` | integer | `32768` |
 | `mailer_docker_compose_ulimits_nofile_soft` | integer | `16384` |
-| `mailer_docker_compose_ulimits_nproc` | integer | `4096` |
 | `mailer_docker_image_src` | string | `registry.heinlein.group/opentalk/smtp-mailer` |
 | `mailer_frontend_base_url` | string | `https://{{ ot_domain }}` |
 | `mailer_frontend_data_protection_url` | string | `https://opentalk.example.org/dataprotection` |
