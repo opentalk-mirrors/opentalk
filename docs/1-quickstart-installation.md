@@ -292,7 +292,78 @@ Notes:
 - Volume names must match exactly (no automatic prefixing).
 - Extra vars can be passed via `OTCTL_BACKUP_EXTRA_VARS` for advanced use.
 
-### 2.7 Reference: `otctl` Overview
+### 2.7 Restoring Backups
+
+Restores are **destructive**: they overwrite live databases, configuration or volume contents. `otctl restore`
+therefore shows a plan of exactly what will be restored and requires you to type `restore` before
+continuing (or to pass `--yes` in non-interactive sessions).
+
+> **Important:** Run `otctl backup all` before any restore to keep a rollback point.
+
+Core commands:
+
+```bash
+otctl restore ls                    # List existing backup artifacts
+otctl restore all                   # Restore config + controller DB + keycloak DB + volumes (newest artifacts)
+otctl restore controller-db [FILE]  # Restore controller DB from a SQL dump (FILE optional, defaults to newest)
+otctl restore keycloak-db [FILE]    # Restore keycloak DB from a SQL dump (FILE optional, defaults to newest)
+otctl restore config [FILE]         # Restore config from an archive (FILE optional, defaults to newest)
+otctl restore volume [NAME]         # Restore all configured volumes, or a single volume NAME
+```
+
+Behavior notes:
+
+- For database restores, the corresponding application container (`controller`, `keycloak`) is stopped
+  before the dump is applied and started afterwards; the database container itself keeps running.
+- For volume restores, the containers of the backing services (e.g. `garage`, `minio`, `rabbitmq`,
+  `traefik`) are stopped for the duration of the restore.
+- Restore requires an explicit confirmation; raw `ansible-playbook` runs additionally need
+  `-e restore_confirmation=yes`.
+
+#### Backup/Restore test procedure
+
+After a new installation or a major update, verify that backups restore correctly:
+
+1. Create a full baseline backup:
+
+   ```bash
+   otctl backup all
+   otctl backup ls   # verify all artifacts are present
+   ```
+
+2. Set a marker in the controller database (data created *after* the backup):
+
+   ```bash
+   PGPASSWORD="$(yq -r '.CONTROLLER_DB_PASSWORD' /etc/opentalk-compose/secrets/secrets.yml)" \
+     otctl compose exec -T controller-db psql -U ot -d controller \
+     -c "CREATE TABLE IF NOT EXISTS restore_test(id int); INSERT INTO restore_test VALUES (42);"
+   ```
+
+3. Restore the controller database from the newest dump:
+
+   ```bash
+   otctl restore controller-db
+   ```
+
+4. Verify the marker is gone (restore brought back the pre-marker state):
+
+   ```bash
+   PGPASSWORD="$(yq -r '.CONTROLLER_DB_PASSWORD' /etc/opentalk-compose/secrets/secrets.yml)" \
+     otctl compose exec -T controller-db psql -U ot -d controller \
+     -c "SELECT count(*) FROM restore_test;"
+   ```
+
+   Expected result: `ERROR: relation "restore_test" does not exist` – the table was created *after*
+   the backup and must be gone again. If the query returns `1`, the restore did not apply (check the
+   output of step 3 and retry).
+
+5. Optionally repeat the same procedure for a volume: back it up (`otctl backup volume <name>`),
+   write a marker file into the volume from a container that mounts it, run
+   `otctl restore volume <name>`, and verify the marker file is gone.
+
+6. Check overall health after the restore: `otctl status` and the web interfaces (see section 2.5).
+
+### 2.8 Reference: `otctl` Overview
 
 | Command | Purpose |
 |---------|---------|
@@ -302,6 +373,7 @@ Notes:
 | otctl restart \[svc...\] | Restart services |
 | otctl recreate \[svc...\] | Recreate containers |
 | otctl backup … | Backup workflows |
+| otctl restore … | Restore workflows (destructive, asks for confirmation) |
 | otctl version | Show versions |
 | otctl compose … | Pass through to docker compose |
 | otctl playbook … | Advanced Ansible usage |
@@ -648,7 +720,7 @@ otctl backup all
 otctl backup ls   # (optional) verify backup presence
 ```
 
-Backups are stored under `/var/opt/opentalk-compose/backups`. Keep sufficient disk space free. For more granular commands see section 2.8.
+Backups are stored under `/var/opt/opentalk-compose/backups`. Keep sufficient disk space free. For more granular commands see section 2.6.
 
 If the release includes a PostgreSQL major upgrade (for example controller-db/keycloak-db image major bump), create dedicated database dumps before deploying:
 
@@ -657,7 +729,7 @@ otctl backup dump controller
 otctl backup dump keycloak
 ```
 
-Use the backup workflow from section 2.6 for restore planning.
+Use the restore workflow from section 2.7 for rollback planning.
 
 ### 7.3 Step 2: Update Repository & Package
 

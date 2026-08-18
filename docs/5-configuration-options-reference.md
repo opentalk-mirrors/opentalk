@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-08-26
+Last updated: 2026-08-18
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -65,11 +65,13 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `controller_db_scheduled_backup_time` | string | `02:00` |
 | `controller_db_user` | string | `{{ controller_database_user \| default('ot') }}` |
 | `keycloak_db_dump_file` | string | `{{ backup_dir_sql_dumps }}/keycloak-{{ lookup('pipe','date +%Y%m%d-%H%M%S') }}.sql` |
+| `keycloak_db_dump_restore_file` | string | `` |
 | `keycloak_db_host` | string | `{{ keycloak_database_host \| default('keycloak-db') }}` |
 | `keycloak_db_name` | string | `{{ keycloak_database_name \| default('keycloak') }}` |
 | `keycloak_db_password` | string | `{{ KEYCLOAK_DB_PASSWORD }}` |
 | `keycloak_db_port` | string | `{{ keycloak_database_port \| default(5432) }}` |
 | `keycloak_db_user` | string | `{{ keycloak_database_user \| default('ot') }}` |
+| `restore_confirmation` | string | `` |
 
 ## opentalk_compose.docker_env
 
@@ -656,7 +658,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `outlook_add_in_docker_image_src` | string | `registry.heinlein.group/opentalk/outlook-add-in` |
 | `outlook_add_in_labels_traefik_http_middlewares_outlook_add_in_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, '*') \| build_url }}` |
 | `outlook_add_in_oidc_client_id` | string | `OutlookAddin` |
-| `outlook_add_in_oidc_scopes` | string | `profile email openid` |
+| `outlook_add_in_oidc_scopes` | string | `profile email` |
 | `outlook_add_in_outlook_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}/outlook` |
 | `outlook_add_in_outlook_webapp_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
 
@@ -919,6 +921,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `spacedeck_docker_extra_hosts` | list | `[]` |
 | `spacedeck_docker_image_src` | string | `registry.heinlein.group/opentalk/spacedeck` |
 | `spacedeck_docker_labels_traefik_enable` | boolean | `true` |
+| `spacedeck_docker_labels_traefik_host` | string | `{{ ot_domain }}` |
+| `spacedeck_docker_labels_traefik_hosts` | list | `[{{ spacedeck_docker_labels_traefik_host }}]` |
 | `spacedeck_docker_ports` | list | `[]` |
 
 ## opentalk_compose.traefik
@@ -944,6 +948,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `traefik_docker_extra_hosts` | list | `[host.docker.internal:host-gateway]` |
 | `traefik_docker_image_src` | string | `registry.heinlein.group/opentalk/traefik` |
 | `traefik_docker_label_http_routers_dashboard_middlewares` | string | `dashboard-strip, default-auth@file` |
+| `traefik_docker_network_aliases` | list | `[]` |
 | `traefik_docker_ports` | list | `[{target: 80, published: 80, mode: host}, {target: 443, published: 443, mode: host}, {target: 8080, published: 7777}]` |
 | `traefik_docker_restart` | string | `always` |
 | `traefik_entryPoints_ping_address` | string | `:8082` |
