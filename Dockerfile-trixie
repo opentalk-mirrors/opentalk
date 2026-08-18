@@ -13,7 +13,7 @@ WORKDIR /opentalk-roomserver
 ADD . /opentalk-roomserver
 
 RUN apt-get update && apt-get full-upgrade -y && \
-    apt-get install --no-install-recommends -y ca-certificates pkg-config libssl-dev curl
+    apt-get install --no-install-recommends -y ca-certificates pkg-config libssl-dev
 
 RUN cargo build --release --locked -p opentalk-roomserver
 

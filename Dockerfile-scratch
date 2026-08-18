@@ -12,7 +12,7 @@ WORKDIR /opentalk-roomserver
 
 ADD . /opentalk-roomserver
 
-RUN apk --no-cache add curl
+RUN apk --no-cache add
 
 RUN cargo build --release --locked -p opentalk-roomserver
 
