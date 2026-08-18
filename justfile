@@ -265,7 +265,7 @@ test-load TEST: _check_k6
 create-release: _check_yq _check_glab
     #!/usr/bin/env bash
     set -euo pipefail
-    current_version=$(yq .workspace.package.version Cargo.toml)
+    current_version=$(yq .package.version {{ binary_crate }}/Cargo.toml)
     tag="v$current_version"
 
     # Extract the changelog section for this version
