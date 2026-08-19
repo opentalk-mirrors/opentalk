@@ -28,6 +28,23 @@ from pathlib import Path
 
 TRACE_RE = re.compile(r"^\++@([^:]+):(\d+)[ :]")
 EXEC_LINE_RE = re.compile(r"^\s*#")
+HEREDOC_START_RE = re.compile(r"<<[ \t]*-?[ \t]*(?:[\\'\"]([A-Za-z_][A-Za-z0-9_]*)[\\'\"])|<<[ \t]*-?[ \t]*([A-Za-z_][A-Za-z0-9_]*)")
+HEREDOC_TERMINATOR_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def heredoc_delimiter(raw: str) -> str | None:
+    """Return the here-doc delimiter word of `raw` declared on one line, or None.
+
+    Handles ``<<TAG``, ``<<-TAG`` and the quoted ``<<'TAG'``/``<<\\"TAG"``/
+    ``<<\\TAG`` forms. Here-strings (``<<<``) and process substitution
+    (``< <(...)``) are not matched. A single heredoc per line is assumed
+    (multi-here-doc lines are uncommon); the start line itself remains
+    executable.
+    """
+    match = HEREDOC_START_RE.search(raw)
+    if not match:
+        return None
+    return match.group(1) or match.group(2)
 
 
 def executable_lines(path: Path) -> set[int]:
@@ -36,17 +53,24 @@ def executable_lines(path: Path) -> set[int]:
         content = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return lines
+    heredoc_delim: str | None = None
     for lineno, raw in enumerate(content.splitlines(), start=1):
+        if heredoc_delim is not None:
+            # Here-doc body and terminator lines are read as data, never traced.
+            if raw.strip() == heredoc_delim:
+                heredoc_delim = None
+            continue
         stripped = raw.strip()
         if not stripped:
             continue
         if stripped.startswith("#"):
             continue
-        # Brace-only and here-doc terminator lines are not independently executable.
+        # Brace-only lines are not independently executable.
         if stripped in {"{", "}"}:
             continue
         if stripped.startswith("fi "):
             continue
+        heredoc_delim = heredoc_delimiter(raw)
         lines.add(lineno)
     return lines
 
