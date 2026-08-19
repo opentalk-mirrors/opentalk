@@ -1299,3 +1299,66 @@ async fn enabling_waiting_room_notifies_lobby_participant() {
 
     assert!(bob.received_nothing());
 }
+
+/// Regression test for leaked waiting-room participants.
+///
+/// A waiting-room participant whose connection is lost through the congestion
+/// path (a failed lobby send that moves the connection into `lobby.disconnects`,
+/// rather than a clean close-frame handshake) must still be removed from the
+/// waiting room, and the moderators must be notified with `LeftWaitingRoom`.
+///
+/// Here Bob's connection dies without a close frame at the same moment the
+/// moderator accepts him. Delivering `Accepted` to Bob's now-dead lobby
+/// connection fails, which routes his disconnect through the congestion path.
+/// If that path is mishandled, moderators never learn that Bob left and his
+/// entry is leaked in the waiting room.
+#[test_log::test(tokio::test)]
+async fn lost_waiting_room_connection_notifies_moderators() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .waiting_room(WaitingRoom::ForEveryone)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let bob = room.waiting_room_bob(0).await;
+    let bob_id = bob.id();
+
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert_matches!(event.payload, CoreEvent::JoinedWaitingRoom { .. });
+
+    // Trigger the lobby disconnect on connection loss. We need a failed attempt
+    // to send an event to Bob. Bob's connection dies without a close frame while
+    // the moderator accepts him, so the room's `Accepted` message is sent to a
+    // dead lobby connection.
+    drop(bob);
+    alice
+        .send_command::<ModerationModule>(ModerationCommand::Accept { target: bob_id }, None)
+        .await
+        .unwrap();
+
+    // Alice receives the accept response for Bob ...
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::ParticipantAccepted {
+            participant_id: bob_id
+        }
+    );
+
+    // ... and must then be told that Bob left the waiting room, even though his
+    // connection was lost through the congestion path. Otherwise he is leaked in
+    // the waiting room.
+    let event = alice
+        .receive::<CoreEvent>()
+        .await
+        .expect("moderators must be notified that the waiting-room participant left")
+        .payload;
+    assert_matches!(
+        event,
+        CoreEvent::LeftWaitingRoom(LeftWaitingRoom { id, .. }) if id == bob_id
+    );
+}

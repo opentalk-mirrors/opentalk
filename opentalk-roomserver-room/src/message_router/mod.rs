@@ -145,12 +145,14 @@ impl MessageRouter {
         msg
     }
 
-    pub fn disconnected(&mut self) -> HashSet<(ConnectionId, ParticipantId)> {
-        self.conference
-            .disconnects
-            .drain()
-            .chain(self.lobby.disconnects.drain())
-            .collect()
+    pub fn conference_disconnected(
+        &mut self,
+    ) -> impl Iterator<Item = (ConnectionId, ParticipantId)> {
+        self.conference.disconnects.drain()
+    }
+
+    pub fn lobby_disconnected(&mut self) -> impl Iterator<Item = (ConnectionId, ParticipantId)> {
+        self.lobby.disconnects.drain()
     }
 }
 
