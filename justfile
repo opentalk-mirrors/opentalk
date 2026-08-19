@@ -148,6 +148,10 @@ test-coverage:
 test-coverage-one target:
     python3 extras/scripts/coverage/measure_shell_coverage.py --verbose {{target}}
 
+# Run a single Python coverage measurement (TARGET is a script path, args are forwarded).
+test-python-coverage target args="":
+    python3 extras/scripts/coverage/measure_python_coverage.py --verbose {{target}} {{args}}
+
 # Run the destructive Docker Compose end-to-end test in an isolated local environment.
 test-e2e:
     OPENTALK_E2E=1 bash extras/scripts/tests/integration/test_compose_e2e.sh
