@@ -239,7 +239,9 @@ PY
     log_cmd "${cmd_tab[@]}"
     local out_tab
     out_tab="$("${cmd_tab[@]}" 2>/dev/null || true)"
-    echo "$out_tab" | awk 'NR>1 && NF>0 {print $1}' | while read -r cname; do
+    local cnames
+    cnames="$(echo "$out_tab" | awk 'NR>1 && NF>0 {print $1}')"
+    while read -r cname; do
       [ -z "$cname" ] && continue
       local svc="$cname"
       if [[ "$svc" == *_* ]]; then
@@ -257,7 +259,7 @@ PY
       rows+=("$svc" "$state" "$health")
       (( ${#svc} > max_svc )) && max_svc=${#svc}
       (( ${#state} > max_state )) && max_state=${#state}
-    done
+    done <<<"$cnames"
   fi
 
   if [ ${#rows[@]} -eq 0 ]; then

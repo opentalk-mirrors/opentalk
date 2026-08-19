@@ -35,7 +35,7 @@ check() {
   fi
 }
 
-check test_opentalk_otctl_smoke.sh 55
+check test_opentalk_otctl_smoke.sh 60
 check test_opentalk_packaging_common_lib.sh 60
 check test_opentalk_verify_packages.sh 55
 

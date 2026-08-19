@@ -46,6 +46,9 @@ cat > "$PREFIX/bin/ot-ansible-playbook" <<'STUB'
 #!/usr/bin/env bash
 log="${0%/bin/ot-ansible-playbook}/ot-ansible-playbook.calls"
 printf '%s\n' "$*" >> "$log"
+if [ "${OTSMOKE_TAGS_FAIL:-0}" = "1" ]; then
+  exit 1
+fi
 for arg in "$@"; do
   if [[ "$arg" == --list-tags ]]; then
     printf 'TASK TAGS: [secrets, docker]\n'
@@ -73,10 +76,31 @@ grep -q 'OpenTalk Product Version: 26.2.0' <<<"$version_out"
 grep -q 'opentalk-controller' <<<"$version_out"
 grep -q 'rabbitmq' <<<"$version_out"
 
+# version also reports the installed Debian package when dpkg-query is present.
+cat > "$PREFIX/bin/dpkg-query" <<'STUB'
+#!/usr/bin/env bash
+case "$*" in
+  *'${Version}'*) printf '26.2.0\n' ;;
+  *'${Architecture}'*) printf 'amd64\n' ;;
+esac
+STUB
+chmod +x "$PREFIX/bin/dpkg-query"
+dpkg_version_out=$(PATH="$PREFIX/bin:$PATH" bash "$OTCTL" version < /dev/null)
+grep -q 'Package: opentalk-compose_26.2.0_amd64' <<<"$dpkg_version_out"
+rm -f "$PREFIX/bin/dpkg-query"
+
 # tags lists TASK TAGS from the playbook wrapper.
 tags_out=$(bash "$OTCTL" tags < /dev/null)
 grep -qx 'docker' <<<"$tags_out"
 grep -qx 'secrets' <<<"$tags_out"
+
+# tags failure from the wrapper is propagated (exit 1).
+set +e
+tags_fail=$(OTSMOKE_TAGS_FAIL=1 bash "$OTCTL" tags 2>&1 < /dev/null)
+tags_fail_rc=$?
+set -e
+[[ $tags_fail_rc -eq 1 ]] || { echo "otctl tags must exit 1 when the wrapper fails (got $tags_fail_rc)." >&2; exit 1; }
+grep -q 'failed to obtain tags' <<<"$tags_fail"
 
 # deploy passes --diff and forwarded tags to the playbook wrapper.
 bash "$OTCTL" deploy --tags secrets < /dev/null >/dev/null
@@ -285,6 +309,95 @@ grep -q 'stub docker: compose .* up -d --force-recreate controller' "$DOCKER_CAL
 status_out=$(bash "$OTCTL" status 2>&1 < /dev/null)
 grep -q '^SERVICE.*STATE.*HEALTH' <<<"$status_out"
 grep -q 'controller  running  healthy' <<<"$status_out"
+
+# ---------------------------------------------------------------------------
+# status fallbacks: no JSON support (old compose) -> go-template, then inspect.
+# ---------------------------------------------------------------------------
+cat > "$PREFIX/bin/ot-docker-legacy-stub" <<'STUB'
+#!/usr/bin/env bash
+cmd="$1"; shift
+case "$cmd" in
+  compose)
+    sub=""; for a in "$@"; do [[ "$a" == ps ]] && sub=ps; done
+    if [[ "$sub" == ps ]]; then
+      if [[ "$*" == *"--format json"* ]]; then
+        exit 0
+      elif [[ "$*" == *"--format"* ]]; then
+        printf 'controller\trunning\thealthy\n'
+      else
+        printf 'NAME\tIMAGE\tCOMMAND\tSERVICE\tSTATUS\n'
+        printf 'ot-controller\timg\t""\tcontroller\trunning\n'
+      fi
+      exit 0
+    fi
+    printf 'stub compose: %s\n' "$*"
+    ;;
+  inspect)
+    fmt=""; for a in "$@"; do [[ "$a" == -f ]] && fmt=1; done
+    if [[ "$fmt" == 1 ]]; then
+      if [[ "$*" == *".State.Health"* ]]; then
+        printf 'healthy\n'
+      else
+        printf 'running\n'
+      fi
+    else
+      printf 'running\n'
+    fi
+    ;;
+  *) printf 'stub docker: %s\n' "$cmd $*" ;;
+esac
+STUB
+chmod +x "$PREFIX/bin/ot-docker-legacy-stub"
+
+# Old compose that only supports go-template: JSON ps returns nothing, so the
+# go-template fallback parses the {{.Service}} rows.
+legacy_status=$(DOCKER_CMD="$PREFIX/bin/ot-docker-legacy-stub" bash "$OTCTL" status 2>&1 < /dev/null)
+grep -q '^SERVICE.*STATE.*HEALTH' <<<"$legacy_status"
+grep -q 'controller  running  healthy' <<<"$legacy_status"
+
+# No --format support at all: last-resort table path uses docker inspect.
+cat > "$PREFIX/bin/ot-docker-inspect-stub" <<'STUB'
+#!/usr/bin/env bash
+cmd="$1"; shift
+case "$cmd" in
+  compose)
+    sub=""; for a in "$@"; do [[ "$a" == ps ]] && sub=ps; done
+    if [[ "$sub" == ps ]]; then
+      if [[ "$*" == *"--format"* ]]; then
+        exit 0
+      fi
+      printf 'NAME\tIMAGE\tCOMMAND\tSERVICE\tSTATUS\n'
+      printf 'ot-controller\timg\t""\tcontroller\trunning\n'
+      exit 0
+    fi
+    printf 'stub compose: %s\n' "$*"
+    ;;
+  inspect)
+    fmt=""; for a in "$@"; do [[ "$a" == -f ]] && fmt=1; done
+    if [[ "$fmt" == 1 ]]; then
+      if [[ "$*" == *".State.Health"* ]]; then
+        printf 'healthy\n'
+      else
+        printf 'running\n'
+      fi
+    else
+      printf 'running\n'
+    fi
+    ;;
+  *) printf 'stub docker: %s\n' "$cmd $*" ;;
+esac
+STUB
+chmod +x "$PREFIX/bin/ot-docker-inspect-stub"
+
+# otctl calls `docker inspect` directly (not via DOCKER_CMD), so expose the
+# stub as `docker` on PATH for the inspect-based status path.
+cp "$PREFIX/bin/ot-docker-inspect-stub" "$PREFIX/bin/docker"
+chmod +x "$PREFIX/bin/docker"
+
+inspect_status=$(PATH="$PREFIX/bin:$PATH" DOCKER_CMD="$PREFIX/bin/ot-docker-inspect-stub" bash "$OTCTL" status 2>&1 < /dev/null)
+grep -q '^SERVICE.*STATE.*HEALTH' <<<"$inspect_status"
+grep -q 'controller  running  healthy' <<<"$inspect_status"
+rm -f "$PREFIX/bin/docker"
 
 # volumes list/rm/prune flow.
 : > "$DOCKER_CALLS_LOG"
