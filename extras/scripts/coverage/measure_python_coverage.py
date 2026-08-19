@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import argparse
 import ast
-import os
 import re
 import subprocess
 import sys
@@ -91,7 +90,6 @@ def main() -> int:
         parser.error("a target script is required")
     target = Path(args.target[0]).resolve()
     script_args = args.target[1:]
-    project_root = Path(__file__).resolve().parents[3]
 
     cover_dir = Path(tempfile.mkdtemp(prefix="otcov-python-"))
     try:

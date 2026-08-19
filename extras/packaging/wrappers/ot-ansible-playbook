@@ -5,7 +5,7 @@
 
 # filepath: devops/opentalk-compose/extras/packaging/wrappers/ot-ansible-playbook
 set -euo pipefail
-PREFIX="/opt/opentalk-compose"
+PREFIX="${OT_PREFIX:-/opt/opentalk-compose}"
 RUNTIME="$PREFIX/runtime"
 AUTOMATION="$PREFIX/automation"
 VENV_BIN="$RUNTIME/venv/bin"

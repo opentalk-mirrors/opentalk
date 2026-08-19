@@ -35,9 +35,15 @@ check() {
   fi
 }
 
-check test_opentalk_otctl_smoke.sh 60
-check test_opentalk_packaging_common_lib.sh 60
-check test_opentalk_verify_packages.sh 55
+check test_opentalk_otctl_smoke.sh 85
+check test_opentalk_packaging_common_lib.sh 75
+check test_opentalk_verify_packages.sh 90
+check test_opentalk_wrappers_ansible.sh 85
+check test_opentalk_build_all.sh 85
+check test_opentalk_check_packaging.sh 90
+check test_opentalk_cleanup.sh 95
+check test_opentalk_build_deps.sh 90
+check test_opentalk_packaging_maintainer_scripts.sh 95
 
 # Python coverage: trace the config-reference generator run on the real repo
 # structure; the generated file goes to a temp dir.
@@ -51,11 +57,11 @@ if ! python3 -c 'import yaml' >/dev/null 2>&1; then
 fi
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
-py_out=$("$PY_MEASURE" --threshold 55 --verbose "$PY_GENERATOR" --output "$TMP_DIR/reference.md" 2>&1)
+py_out=$("$PY_MEASURE" --threshold 75 --verbose "$PY_GENERATOR" --output "$TMP_DIR/reference.md" 2>&1)
 py_rc=$?
 if [[ $py_rc -ne 0 ]]; then
   printf '%s\n' "$py_out"
-  echo "FAIL: Python coverage below threshold 55%." >&2
+  echo "FAIL: Python coverage below threshold 75%." >&2
   FAILURES=$((FAILURES + 1))
 else
   overall=$(printf '%s\n' "$py_out" | grep '^overall:' || true)

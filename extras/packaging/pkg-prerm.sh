@@ -5,7 +5,7 @@
 
 set -euo pipefail
 # Called with: action (remove|upgrade|deconfigure...)
-PREFIX="/opt/opentalk-compose"
+PREFIX="${OT_PREFIX:-/opt/opentalk-compose}"
 
 case "${1:-}" in
   remove|upgrade|deconfigure)

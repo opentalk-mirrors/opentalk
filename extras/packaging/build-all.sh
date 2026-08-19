@@ -130,11 +130,7 @@ fi
 # 2. Portable Python
 if ! $OFFLINE; then
   if ! $NO_PYTHON_FETCH; then
-    if [[ -n "$PYTHON_VERSION" ]]; then
-      run bash "$PKGDIR/12-python-runtime-fetch.sh" --version "$PYTHON_VERSION"
-    else
-      echo "[python] No portable runtime requested."
-    fi
+    run bash "$PKGDIR/12-python-runtime-fetch.sh" --version "$PYTHON_VERSION"
   else
     echo "[python] Skipped (--no-python)."
   fi

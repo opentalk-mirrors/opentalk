@@ -42,12 +42,26 @@ printf 'Python 3.12.0 smoke\n'
 STUB
 chmod +x "$PREFIX/runtime/venv/bin/python"
 
+# Neither docker nor podman on PATH: COMPOSE_CMD stays at its default "docker".
+# Only `bash` and `cat` (used by the help text) are reachable, so the
+# docker/podman fallback branch is what actually runs.
+EMPTY_PATH_DIR="$TMP_DIR/empty-path"
+mkdir -p "$EMPTY_PATH_DIR"
+ln -s "$(command -v bash)" "$EMPTY_PATH_DIR/bash"
+ln -s "$(command -v cat)" "$EMPTY_PATH_DIR/cat"
+empty_path_out=$(PATH="$EMPTY_PATH_DIR" bash "$OTCTL" help < /dev/null)
+grep -q 'OpenTalk Control (otctl)' <<<"$empty_path_out"
+
 cat > "$PREFIX/bin/ot-ansible-playbook" <<'STUB'
 #!/usr/bin/env bash
 log="${0%/bin/ot-ansible-playbook}/ot-ansible-playbook.calls"
 printf '%s\n' "$*" >> "$log"
 if [ "${OTSMOKE_TAGS_FAIL:-0}" = "1" ]; then
   exit 1
+fi
+if [ "${OTSMOKE_TAGS_LEGACY:-0}" = "1" ]; then
+  printf '  play # tags=secrets,docker\n'
+  exit 0
 fi
 for arg in "$@"; do
   if [[ "$arg" == --list-tags ]]; then
@@ -89,6 +103,22 @@ dpkg_version_out=$(PATH="$PREFIX/bin:$PATH" bash "$OTCTL" version < /dev/null)
 grep -q 'Package: opentalk-compose_26.2.0_amd64' <<<"$dpkg_version_out"
 rm -f "$PREFIX/bin/dpkg-query"
 
+# version reports only the version component when Architecture is unknown.
+cat > "$PREFIX/bin/dpkg-query" <<'STUB'
+#!/usr/bin/env bash
+case "$*" in
+  *'${Version}'*) printf '26.2.0\n' ;;
+  *'${Architecture}'*) exit 1 ;;
+esac
+STUB
+chmod +x "$PREFIX/bin/dpkg-query"
+dpkg_archless_out=$(PATH="$PREFIX/bin:$PATH" bash "$OTCTL" version < /dev/null)
+grep -q 'Package: opentalk-compose_26.2.0$' <<<"$dpkg_archless_out"
+if grep -q 'opentalk-compose_26.2.0_amd64' <<<"$dpkg_archless_out"; then
+  echo "otctl version must not append an unknown architecture." >&2; exit 1
+fi
+rm -f "$PREFIX/bin/dpkg-query"
+
 # tags lists TASK TAGS from the playbook wrapper.
 tags_out=$(bash "$OTCTL" tags < /dev/null)
 grep -qx 'docker' <<<"$tags_out"
@@ -102,9 +132,61 @@ set -e
 [[ $tags_fail_rc -eq 1 ]] || { echo "otctl tags must exit 1 when the wrapper fails (got $tags_fail_rc)." >&2; exit 1; }
 grep -q 'failed to obtain tags' <<<"$tags_fail"
 
+# tags also parses the legacy `play # tags=...` format from the wrapper.
+legacy_tags=$(OTSMOKE_TAGS_LEGACY=1 bash "$OTCTL" tags < /dev/null)
+grep -qx 'docker' <<<"$legacy_tags"
+grep -qx 'secrets' <<<"$legacy_tags"
+
+# ---------------------------------------------------------------------------
+# Ansible collections path wiring from ansible.cfg (cfg_paths / VENDOR merge).
+# ---------------------------------------------------------------------------
+VENDOR_COLL="$PREFIX/runtime/vendor/collections/ansible_collections"
+mkdir -p "$VENDOR_COLL"
+cat > "$PREFIX/runtime/venv/bin/ansible" <<'STUB'
+#!/usr/bin/env bash
+printf 'ANSIBLE_COLLECTIONS_PATHS=%s\n' "${ANSIBLE_COLLECTIONS_PATHS:-}"
+STUB
+chmod +x "$PREFIX/runtime/venv/bin/ansible"
+
+# cfg_paths is set and unrelated to VENDOR: VENDOR is prepended (Z.142).
+cat > "$PREFIX/automation/ansible.cfg" <<'CFG'
+[defaults]
+collections_path = /usr/share/ansible/collections
+CFG
+coll_custom=$(env -u ANSIBLE_COLLECTIONS_PATHS bash "$OTCTL" version < /dev/null)
+grep -q 'ANSIBLE_COLLECTIONS_PATHS=.*:/usr/share/ansible/collections' <<<"$coll_custom"
+
+# cfg_paths is empty: the default search chain is used (Z.141).
+cat > "$PREFIX/automation/ansible.cfg" <<'CFG'
+[defaults]
+CFG
+coll_empty=$(env -u ANSIBLE_COLLECTIONS_PATHS bash "$OTCTL" version < /dev/null)
+grep -q "ANSIBLE_COLLECTIONS_PATHS=$PREFIX/runtime/vendor/collections:$HOME/.ansible/collections:" <<<"$coll_empty"
+
+# cfg_paths already contains VENDOR: it is used as-is (Z.140).
+cat > "$PREFIX/automation/ansible.cfg" <<CFG
+[defaults]
+collections_path = $PREFIX/runtime/vendor/collections
+CFG
+coll_vendor=$(env -u ANSIBLE_COLLECTIONS_PATHS bash "$OTCTL" version < /dev/null)
+grep -q "ANSIBLE_COLLECTIONS_PATHS=$PREFIX/runtime/vendor/collections\$" <<<"$coll_vendor"
+
+rm -f "$PREFIX/automation/ansible.cfg"
+rm -rf "$PREFIX/runtime/vendor"
+cat > "$PREFIX/runtime/venv/bin/ansible" <<'STUB'
+#!/usr/bin/env bash
+printf 'ansible [core 2.99.0]\n'
+STUB
+chmod +x "$PREFIX/runtime/venv/bin/ansible"
+
 # deploy passes --diff and forwarded tags to the playbook wrapper.
 bash "$OTCTL" deploy --tags secrets < /dev/null >/dev/null
 grep -q -- '--diff --tags secrets' "$CALLS_LOG"
+
+# playbook passes all arguments through unmodified (raw passthrough).
+: > "$CALLS_LOG"
+bash "$OTCTL" playbook --check -i inventory.yml site.yml < /dev/null >/dev/null
+grep -q -- '--check -i inventory.yml site.yml' "$CALLS_LOG"
 
 # backup mode tag mapping.
 bash "$OTCTL" backup all < /dev/null >/dev/null
@@ -121,6 +203,12 @@ grep -q 'Backup root:' <<<"$backup_ls"
 grep -q 'opentalk-compose_config_backup-20260819.tar.gz' <<<"$backup_ls"
 grep -q 'controller-20260819.sql' <<<"$backup_ls"
 grep -q 'keycloak-20260819.sql' <<<"$backup_ls"
+
+# backup ls reports a missing category directory as "(dir missing)".
+PARTIAL="$TMP_DIR/partial-backups"
+mkdir -p "$PARTIAL/dumps" "$PARTIAL/config"
+partial_ls=$(OT_BACKUP_DIR="$PARTIAL" bash "$OTCTL" backup ls 2>&1 < /dev/null)
+grep -q '(dir missing)' <<<"$partial_ls"
 
 # restore ls reuses the backup listing.
 restore_ls=$(bash "$OTCTL" restore ls 2>&1 < /dev/null)
@@ -178,6 +266,11 @@ bash "$OTCTL" backup keycloak < /dev/null >/dev/null
 grep -q -- '--tags keycloak_db_dump' "$CALLS_LOG"
 bash "$OTCTL" backup dump-controller < /dev/null >/dev/null
 grep -q -- '--tags controller_db_dump' "$CALLS_LOG"
+
+# backup dump with an unknown qualifier falls back to both dump tags.
+: > "$CALLS_LOG"
+bash "$OTCTL" backup dump bogus < /dev/null >/dev/null
+grep -q -- '--tags controller_db_dump,keycloak_db_dump' "$CALLS_LOG"
 
 # backup volume without a name runs all volumes and must not set a volume list.
 : > "$CALLS_LOG"
@@ -305,6 +398,11 @@ grep -q 'stub docker: compose .* logs controller' "$DOCKER_CALLS_LOG"
 grep -q 'stub docker: compose .* restart controller' "$DOCKER_CALLS_LOG"
 grep -q 'stub docker: compose .* up -d --force-recreate controller' "$DOCKER_CALLS_LOG"
 
+# recreate without arguments force-recreates the whole stack (no containers arg).
+: > "$DOCKER_CALLS_LOG"
+bash "$OTCTL" recreate < /dev/null >/dev/null
+grep -q 'stub docker: compose .* up -d --force-recreate$' "$DOCKER_CALLS_LOG"
+
 # status renders a JSON service table.
 status_out=$(bash "$OTCTL" status 2>&1 < /dev/null)
 grep -q '^SERVICE.*STATE.*HEALTH' <<<"$status_out"
@@ -366,8 +464,8 @@ case "$cmd" in
       if [[ "$*" == *"--format"* ]]; then
         exit 0
       fi
-      printf 'NAME\tIMAGE\tCOMMAND\tSERVICE\tSTATUS\n'
-      printf 'ot-controller\timg\t""\tcontroller\trunning\n'
+printf 'NAME\tIMAGE\tCOMMAND\tSERVICE\tSTATUS\n'
+        printf 'ot_controller\timg\t""\tcontroller\trunning\n'
       exit 0
     fi
     printf 'stub compose: %s\n' "$*"
@@ -399,6 +497,16 @@ grep -q '^SERVICE.*STATE.*HEALTH' <<<"$inspect_status"
 grep -q 'controller  running  healthy' <<<"$inspect_status"
 rm -f "$PREFIX/bin/docker"
 
+# status with no services at all (all fallbacks empty, no inspect on PATH).
+cat > "$PREFIX/bin/ot-docker-empty-stub" <<'STUB'
+#!/usr/bin/env bash
+exit 0
+STUB
+chmod +x "$PREFIX/bin/ot-docker-empty-stub"
+empty_status=$(PATH="$PREFIX/bin:$PATH" DOCKER_CMD="$PREFIX/bin/ot-docker-empty-stub" bash "$OTCTL" status 2>&1 < /dev/null)
+grep -q '(no services)' <<<"$empty_status"
+rm -f "$PREFIX/bin/docker"
+
 # volumes list/rm/prune flow.
 : > "$DOCKER_CALLS_LOG"
 vol_list=$(bash "$OTCTL" volumes < /dev/null 2>&1)
@@ -419,6 +527,14 @@ bogus_vol=$(bash "$OTCTL" volumes bogus 2>&1 < /dev/null)
 set -e
 grep -q 'unknown volumes action' <<<"$bogus_vol" || {
   echo "otctl volumes with unknown action must report an error." >&2; exit 1; }
+
+# volumes rm without a volume name reports usage and exits 2.
+set +e
+vol_rm_none=$(bash "$OTCTL" volumes rm 2>&1 < /dev/null)
+vol_rm_none_rc=$?
+set -e
+[[ $vol_rm_none_rc -eq 2 ]] || { echo "otctl volumes rm without a name must exit 2 (got $vol_rm_none_rc)." >&2; exit 1; }
+grep -q 'specify one or more volume names' <<<"$vol_rm_none"
 
 # volumes prune with no project volumes is a no-op.
 : > "$DOCKER_CALLS_LOG"
@@ -504,6 +620,12 @@ grep -q 'Missing --users-file' <<<"$import_no_file" || {
   echo "otctl import users without --users-file must report an error." >&2; exit 1; }
 grep -q 'Unknown import target' <<<"$import_bogus" || {
   echo "otctl import with unknown target must report an error." >&2; exit 1; }
+
+# import help (no sub-target) prints the usage and exits 0.
+import_help=$(bash "$OTCTL" import help 2>&1 < /dev/null)
+grep -q 'otctl import users USAGE' <<<"$import_help"
+import_noarg=$(bash "$OTCTL" import 2>&1 < /dev/null)
+grep -q 'otctl import users USAGE' <<<"$import_noarg"
 
 # import users supports separated option forms and rejects empty values.
 : > "$CALLS_LOG"

@@ -27,9 +27,43 @@ import sys
 from pathlib import Path
 
 TRACE_RE = re.compile(r"^\++@([^:]+):(\d+)[ :]")
-EXEC_LINE_RE = re.compile(r"^\s*#")
 HEREDOC_START_RE = re.compile(r"<<[ \t]*-?[ \t]*(?:[\\'\"]([A-Za-z_][A-Za-z0-9_]*)[\\'\"])|<<[ \t]*-?[ \t]*([A-Za-z_][A-Za-z0-9_]*)")
-HEREDOC_TERMINATOR_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+# Pure control-flow lines: bash never emits a trace entry for them because they
+# carry no command of their own (closing `if`/`for`/`case`, branches, case
+# patterns and separators, and their here-string/file redirections).
+CONTROL_WORDS = {"else", "fi", "then", "do", "done", "esac", ";;", "elif"}
+
+
+def control_only_line(stripped: str) -> bool:
+    """True if `stripped` is a pure control-flow line with no own command.
+
+    Covers closing keywords (`fi`, `done`, `esac`, `;;`, `else`, bare `then`/
+    `do`), case patterns without a command (`foo)`, `foo|bar)`, `*)`), trailing
+    comments, here-strings and file redirections. Lines that spawn a process
+    substitution (``done < <(cmd)``) or run a real command stay executable.
+    """
+    if "(<" in stripped:
+        return False
+    # Bare case pattern: `  foo)` / `  foo|bar)` / `  *)` (optionally with
+    # comment), or an empty branch `  foo) ;;`. Case patterns never contain a
+    # left paren, which keeps real array/subshell assignments like
+    # `x+=("$y")` executable. A `;;` after a non-empty body (`*) safe=0; break
+    # ;;`) stays executable because bash traces its commands.
+    if "(" not in stripped and re.fullmatch(r"[ \t]*\S+[ \t]*\)(?:[ \t]*;;)?[ \t]*(?:#.*)?", stripped):
+        return True
+    first = stripped.split()[0]
+    if first not in CONTROL_WORDS:
+        return False
+    rest = stripped[len(first):].lstrip()
+    if not rest or rest.startswith("#"):
+        return True
+    if re.match(r"^(?:<<<.*|<<-?[ \t]*[A-Za-z_][A-Za-z0-9_]*)$", rest):
+        return True
+    if re.match(r"^<[ \t]*[^ \t(<]", rest):
+        return True
+    if re.match(r"^(?:2?>|>|2>&|>&)[ \t]*\S.*$", rest):
+        return True
+    return False
 
 
 def heredoc_delimiter(raw: str) -> str | None:
@@ -54,24 +88,57 @@ def executable_lines(path: Path) -> set[int]:
     except (OSError, UnicodeDecodeError):
         return lines
     heredoc_delim: str | None = None
+    prev_continuation = False
+    in_array = False
     for lineno, raw in enumerate(content.splitlines(), start=1):
         if heredoc_delim is not None:
             # Here-doc body and terminator lines are read as data, never traced.
             if raw.strip() == heredoc_delim:
                 heredoc_delim = None
             continue
+        ends_continuation = raw.rstrip().endswith("\\")
         stripped = raw.strip()
         if not stripped:
+            prev_continuation = False
             continue
         if stripped.startswith("#"):
+            prev_continuation = False
             continue
-        # Brace-only lines are not independently executable.
-        if stripped in {"{", "}"}:
+        # A multi-line array assignment (`NAME=(` on its own line) is a single
+        # statement: bash traces it once, at the line carrying the closing `)`.
+        # Element lines never produce an entry of their own, so they stay out
+        # of the denominator.
+        if in_array:
+            if stripped == ")":
+                in_array = False
+                lines.add(lineno)
+            prev_continuation = ends_continuation
             continue
-        if stripped.startswith("fi "):
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=\([ \t]*", stripped):
+            in_array = True
+            prev_continuation = False
+            continue
+        # Continuation lines of a multi-line command are traced only once, at
+        # the command's starting line, so they never produce an entry of their
+        # own.
+        if prev_continuation:
+            prev_continuation = ends_continuation
+            continue
+        # Brace-only and pure control-flow lines are not independently executable.
+        if stripped in {"{", "}", ")"}:
+            prev_continuation = False
+            continue
+        # Function definitions (`name() {`) open a block but never trace by
+        # themselves; their bodies are traced via child lines.
+        if re.fullmatch(r"[\w @]+\(\)[ \t]*\{[ \t]*(?:#.*)?", stripped):
+            prev_continuation = False
+            continue
+        if control_only_line(stripped):
+            prev_continuation = ends_continuation
             continue
         heredoc_delim = heredoc_delimiter(raw)
         lines.add(lineno)
+        prev_continuation = ends_continuation
     return lines
 
 

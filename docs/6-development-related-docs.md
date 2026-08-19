@@ -87,6 +87,20 @@ just compose-down
 
 To apply configuration changes, run `just compose-deploy` again. The generated `build/opentalk-compose-dev/` contents are runtime state and should not be edited manually or committed. `just compose-clean` stops the stack and removes its local runtime directory; `just clean-all` also removes `build/`.
 
+## End-to-End Compose Tests
+
+The repository contains a destructive, end-to-end Compose test that deploys the complete local stack, checks the running services, exercises the SMTP mailer and RabbitMQ, and runs a backup/restore lifecycle. It is intended for manual local runs and as the `int:e2e` CI job (GitLab, manual trigger on merge requests and schedules).
+
+```bash
+just test-e2e
+```
+
+The E2E stack is isolated from a running local development environment: it uses its own deployment directory (`OPENTALK_E2E_DEV_DIR`, default `build/opentalk-compose-e2e-dev`), its own Compose project name (`OPENTALK_E2E_PROJECT_NAME`, default `opentalk-e2e`), and its own published ports (`OPENTALK_E2E_INGRESS_PORT`/`OPENTALK_E2E_KEYCLOAK_PORT`, default `8082`/`8002`). This keeps containers, volumes, networks, and host ports separate from the local stack (`build/opentalk-compose-dev`, project `opentalk`, ports `8081`/`8001`). Cleanup only removes resources that belong to the E2E project name.
+
+The test runs `just compose-deploy`, waits for all containers to become healthy, verifies the web, whiteboard, and Keycloak endpoints via HTTP, runs `test_deployment_runtime.sh` and `test_smtp_mailer_rabbitmq.sh` against the E2E project, and finally runs `test_backup_restore_config.sh`. It requires Docker, `just`, `uv`, and network access to the container registry; it is destructive and should not be run while the local development stack is in use.
+
+The `int:e2e` CI job uses the `pkgtest-dind` Debian 12 image, installs `just` and `uv` on demand, and triggers the test manually from the GitLab UI.
+
 ## Pre-Commit Hooks
 
 This repository uses [`pre-commit`](https://github.com/pre-commit/pre-commit) to automatically run linters and consistency checks before code is committed.  

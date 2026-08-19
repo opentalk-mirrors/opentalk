@@ -6,7 +6,7 @@
 set -euo pipefail
 # Validate the embedded runtime. Runtime creation belongs to the build, not installation.
 
-PREFIX="/opt/opentalk-compose"
+PREFIX="${OT_PREFIX:-/opt/opentalk-compose}"
 RUNTIME_DIR="$PREFIX/runtime"
 VENV_DIR="$RUNTIME_DIR/venv"
 ASSETS_DIR="$RUNTIME_DIR/build_assets"
@@ -16,8 +16,8 @@ PYTHON_BIN="$RUNTIME_DIR/python/bin/python3"
 
 log() { echo "[postinst] $*"; }
 
-CFG_DIR="/etc/opentalk-compose"
-EXAMPLES_DIR="/usr/share/opentalk-compose/examples"
+CFG_DIR="${OT_CFG_DIR:-/etc/opentalk-compose}"
+EXAMPLES_DIR="${OT_EXAMPLES_DIR:-/usr/share/opentalk-compose/examples}"
 
 # Ensure main config dir exists (normally packaged)
 if [ ! -d "$CFG_DIR" ]; then
