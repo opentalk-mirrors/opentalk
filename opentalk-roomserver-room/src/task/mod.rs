@@ -326,13 +326,22 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     return Ok(RoomCloseReason::TimeLimitReached);
                 }
             };
-            for (connection_id, participant_id) in self.message_router.disconnected() {
+            for (connection_id, participant_id) in self
+                .message_router
+                .conference_disconnected()
+                .collect::<Vec<_>>()
+            {
                 self.disconnect_participant(
                     EventOrigin::Internal,
                     participant_id,
                     connection_id,
                     CloseReason::ConnectionLost,
                 )?;
+            }
+            for (connection_id, participant_id) in
+                self.message_router.lobby_disconnected().collect::<Vec<_>>()
+            {
+                self.disconnect_lobby_participant(participant_id, connection_id);
             }
         }
     }
