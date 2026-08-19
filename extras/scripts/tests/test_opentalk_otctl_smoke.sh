@@ -127,4 +127,308 @@ set -e
 [[ $missing_restore_rc -eq 1 ]] || { echo "otctl restore with missing file must exit 1 (got $missing_restore_rc)." >&2; exit 1; }
 grep -q 'File not found' <<<"$missing_restore"
 
+# backup help (no sub-mode) prints usage and exits 0.
+backup_help=$(bash "$OTCTL" backup 2>&1 < /dev/null)
+grep -q 'otctl backup USAGE' <<<"$backup_help"
+
+# backup sub-mode tag mapping: cron, clean/prune, dump variants, config, keycloak.
+: > "$CALLS_LOG"
+bash "$OTCTL" backup cron < /dev/null >/dev/null
+grep -q -- '--tags controller_db_dump_cron' "$CALLS_LOG"
+: > "$CALLS_LOG"
+bash "$OTCTL" backup clean < /dev/null >/dev/null
+grep -q -- '--tags backup_retention' "$CALLS_LOG"
+bash "$OTCTL" backup prune < /dev/null >/dev/null
+grep -q -- '--tags backup_retention' "$CALLS_LOG"
+: > "$CALLS_LOG"
+bash "$OTCTL" backup dump keycloak < /dev/null >/dev/null
+grep -q -- '--tags keycloak_db_dump' "$CALLS_LOG"
+bash "$OTCTL" backup dump < /dev/null >/dev/null
+grep -q -- '--tags controller_db_dump,keycloak_db_dump' "$CALLS_LOG"
+: > "$CALLS_LOG"
+bash "$OTCTL" backup config < /dev/null >/dev/null
+grep -q -- '--tags config_backup' "$CALLS_LOG"
+bash "$OTCTL" backup cfg < /dev/null >/dev/null
+grep -q -- '--tags config_backup' "$CALLS_LOG"
+bash "$OTCTL" backup keycloak < /dev/null >/dev/null
+grep -q -- '--tags keycloak_db_dump' "$CALLS_LOG"
+bash "$OTCTL" backup dump-controller < /dev/null >/dev/null
+grep -q -- '--tags controller_db_dump' "$CALLS_LOG"
+
+# backup volume without a name runs all volumes and must not set a volume list.
+: > "$CALLS_LOG"
+unset OTCTL_BACKUP_EXTRA_VARS
+bash "$OTCTL" backup volume < /dev/null >/dev/null
+grep -q -- '--tags docker_volumes_backup' "$CALLS_LOG"
+if grep -q 'backup_docker_volume_list' "$CALLS_LOG"; then
+  echo "otctl backup volume without a name must not set a volume list." >&2; exit 1
+fi
+
+# backup passthrough keeps the mode in argv (custom tags).
+: > "$CALLS_LOG"
+bash "$OTCTL" backup --tags secrets < /dev/null >/dev/null
+grep -q -- '--tags backup --tags secrets' "$CALLS_LOG"
+
+# restore help (no sub-mode) prints usage and exits 0.
+restore_help=$(bash "$OTCTL" restore 2>&1 < /dev/null)
+grep -q 'otctl restore USAGE' <<<"$restore_help"
+
+# restore sub-modes resolve the newest matching artifact.
+: > "$CALLS_LOG"
+bash "$OTCTL" restore controller-db --yes < /dev/null >/dev/null
+grep -q -- '--tags controller_db_restore' "$CALLS_LOG"
+grep -qF '"controller_db_dump_restore_file": "'"$BACKUP_DIR/dumps/controller-20260819.sql"'"' "$CALLS_LOG"
+: > "$CALLS_LOG"
+bash "$OTCTL" restore keycloak-db --yes < /dev/null >/dev/null
+grep -q -- '--tags keycloak_db_restore' "$CALLS_LOG"
+grep -qF '"keycloak_db_dump_restore_file": "'"$BACKUP_DIR/dumps/keycloak-20260819.sql"'"' "$CALLS_LOG"
+: > "$CALLS_LOG"
+bash "$OTCTL" restore config --yes < /dev/null >/dev/null
+grep -q -- '--tags config_restore' "$CALLS_LOG"
+grep -qF '"config_backup_restore_file": "opentalk-compose_config_backup-20260819.tar.gz"' "$CALLS_LOG"
+
+# restore volume with and without an explicit volume name.
+: > "$CALLS_LOG"
+bash "$OTCTL" restore volume opentalk_postgres --yes < /dev/null >/dev/null
+grep -q -- '--tags docker_volumes_restore' "$CALLS_LOG"
+grep -qF '"backup_docker_volume_list": ["opentalk_postgres"]' "$CALLS_LOG"
+: > "$CALLS_LOG"
+bash "$OTCTL" restore volume --yes < /dev/null >/dev/null
+grep -q -- '--tags docker_volumes_restore' "$CALLS_LOG"
+if grep -q 'backup_docker_volume_list' "$CALLS_LOG"; then
+  echo "otctl restore volume without a name must not set a volume list." >&2; exit 1
+fi
+
+# restore with an explicit absolute path is passed through unchanged.
+: > "$CALLS_LOG"
+bash "$OTCTL" restore controller-db "$BACKUP_DIR/dumps/controller-20260819.sql" --yes < /dev/null >/dev/null
+grep -qF '"controller_db_dump_restore_file": "'"$BACKUP_DIR/dumps/controller-20260819.sql"'"' "$CALLS_LOG"
+
+# restore with an explicit relative path is resolved against the CWD.
+(
+  cd "$TMP_DIR"
+  : > "$CALLS_LOG"
+  bash "$OTCTL" restore controller-db "backups/dumps/controller-20260819.sql" --yes < /dev/null >/dev/null
+)
+grep -qF '"controller_db_dump_restore_file": "'"$BACKUP_DIR/dumps/controller-20260819.sql"'"' "$CALLS_LOG"
+
+# restore with an unknown mode reports an error and exits 1.
+set +e
+bogus_restore=$(bash "$OTCTL" restore bogus --yes 2>&1 < /dev/null)
+bogus_restore_rc=$?
+set -e
+[[ $bogus_restore_rc -eq 1 ]] || { echo "otctl restore with unknown mode must exit 1 (got $bogus_restore_rc)." >&2; exit 1; }
+grep -q 'Unknown restore mode: bogus' <<<"$bogus_restore"
+
+# ---------------------------------------------------------------------------
+# Compose passthrough paths with a fake `docker` executable.
+# ---------------------------------------------------------------------------
+DOCKER_STUB="$PREFIX/bin/ot-docker-stub"
+DOCKER_CALLS_LOG="$PREFIX/ot-docker.calls"
+cat > "$DOCKER_STUB" <<'STUB'
+#!/usr/bin/env bash
+log="${0%/bin/ot-docker-stub}/ot-docker.calls"
+printf 'stub docker: %s\n' "$*" >> "$log"
+cmd="$1"; shift
+case "$cmd" in
+  compose)
+    sub=""; for a in "$@"; do [[ "$a" == ps ]] && sub=ps; done
+    if [[ "$sub" == ps ]]; then
+      if [[ "$*" == *"--format json"* ]]; then
+        printf '[{"Service":"controller","State":"running","Health":"healthy"}]\n'
+      elif [[ "$*" == *"--format"* ]]; then
+        printf 'controller\trunning\thealthy\n'
+      else
+        printf 'NAME\tIMAGE\tCOMMAND\tSERVICE\tSTATUS\n'
+        printf 'ot-controller\timg\t""\tcontroller\trunning\n'
+      fi
+      exit 0
+    fi
+    printf 'stub compose: %s\n' "$*"
+    ;;
+  volume)
+    sub="$1"; shift
+    case "$sub" in
+      ls) printf 'opentalk_controller\t/mnt/controller\nopentalk_postgres\t/mnt/postgres\nforeign_other\t/mnt/other\n' ;;
+      rm) printf 'removed %s\n' "$*" ;;
+      *) echo "unknown volume action: $sub" >&2; exit 1 ;;
+    esac
+    ;;
+  inspect) printf 'running\n' ;;
+  *) printf 'stub docker: %s\n' "$cmd $*" ;;
+esac
+STUB
+chmod +x "$DOCKER_STUB"
+export DOCKER_CMD="$DOCKER_STUB"
+cat > "$PREFIX/compose.yml" <<'YAML'
+services:
+  controller:
+    image: example
+YAML
+
+: > "$DOCKER_CALLS_LOG"
+# up/down/ps/logs/restart/recreate/compose forward to compose_exec.
+bash "$OTCTL" up < /dev/null >/dev/null
+bash "$OTCTL" down < /dev/null >/dev/null
+bash "$OTCTL" ps < /dev/null >/dev/null
+bash "$OTCTL" logs controller < /dev/null >/dev/null
+bash "$OTCTL" restart controller < /dev/null >/dev/null
+bash "$OTCTL" recreate controller < /dev/null >/dev/null
+bash "$OTCTL" compose config --services < /dev/null >/dev/null
+grep -q 'stub docker: compose .* up -d' "$DOCKER_CALLS_LOG"
+grep -q 'stub docker: compose .* down' "$DOCKER_CALLS_LOG"
+grep -q 'stub docker: compose .* logs controller' "$DOCKER_CALLS_LOG"
+grep -q 'stub docker: compose .* restart controller' "$DOCKER_CALLS_LOG"
+grep -q 'stub docker: compose .* up -d --force-recreate controller' "$DOCKER_CALLS_LOG"
+
+# status renders a JSON service table.
+status_out=$(bash "$OTCTL" status 2>&1 < /dev/null)
+grep -q '^SERVICE.*STATE.*HEALTH' <<<"$status_out"
+grep -q 'controller  running  healthy' <<<"$status_out"
+
+# volumes list/rm/prune flow.
+: > "$DOCKER_CALLS_LOG"
+vol_list=$(bash "$OTCTL" volumes < /dev/null 2>&1)
+grep -q 'opentalk_controller' <<<"$vol_list"
+grep -q 'opentalk_postgres' <<<"$vol_list"
+grep -q 'foreign_other' <<<"$vol_list" || true
+bash "$OTCTL" volumes rm opentalk_controller < /dev/null >/dev/null
+grep -q 'volume rm opentalk_controller' "$DOCKER_CALLS_LOG"
+set +e
+prune_out=$(bash "$OTCTL" volumes prune 2>&1 < /dev/null)
+prune_rc=$?
+set -e
+[[ $prune_rc -eq 3 ]] || { echo "otctl volumes prune without --force must exit 3 (got $prune_rc)." >&2; exit 1; }
+grep -q 'Re-run: otctl volumes prune --force' <<<"$prune_out"
+bash "$OTCTL" volumes prune --force < /dev/null >/dev/null
+set +e
+bogus_vol=$(bash "$OTCTL" volumes bogus 2>&1 < /dev/null)
+set -e
+grep -q 'unknown volumes action' <<<"$bogus_vol" || {
+  echo "otctl volumes with unknown action must report an error." >&2; exit 1; }
+
+# volumes prune with no project volumes is a no-op.
+: > "$DOCKER_CALLS_LOG"
+cat > "$PREFIX/bin/ot-docker-stub" <<'STUB'
+#!/usr/bin/env bash
+printf 'foreign_other\nforeign_extra\n'
+STUB
+prune_none=$(bash "$OTCTL" volumes prune 2>&1 < /dev/null)
+grep -q 'no project volumes to prune' <<<"$prune_none"
+if grep -q 'volume rm' "$DOCKER_CALLS_LOG"; then
+  echo "otctl volumes prune must not remove non-project volumes." >&2; exit 1
+fi
+
+# backup ls without a backup root reports it and exits 3.
+set +e
+backup_ls_missing=$(env -u OT_BACKUP_DIR bash "$OTCTL" backup ls 2>&1 < /dev/null)
+backup_ls_missing_rc=$?
+set -e
+[[ $backup_ls_missing_rc -eq 3 ]] || { echo "otctl backup ls without a root must exit 3 (got $backup_ls_missing_rc)." >&2; exit 1; }
+grep -q 'Backup root not found' <<<"$backup_ls_missing"
+
+# undeploy removes compose.yml and services contents but keeps the directory.
+bash "$OTCTL" undeploy < /dev/null >/dev/null 2>&1
+[[ ! -f "$PREFIX/compose.yml" ]] || { echo "otctl undeploy must remove compose.yml." >&2; exit 1; }
+mkdir -p "$PREFIX/services"
+touch "$PREFIX/services/svc.yml"
+cat > "$PREFIX/compose.yml" <<'YAML'
+services:
+  controller:
+    image: example
+YAML
+bash "$OTCTL" undeploy < /dev/null >/dev/null 2>&1
+[[ ! -f "$PREFIX/compose.yml" ]] || { echo "otctl undeploy must remove compose.yml." >&2; exit 1; }
+[[ ! -f "$PREFIX/services/svc.yml" ]] || { echo "otctl undeploy must remove services contents." >&2; exit 1; }
+[[ -d "$PREFIX/services" ]] || { echo "otctl undeploy must keep the services directory." >&2; exit 1; }
+
+# A second undeploy with no compose.yml and an empty services directory is a no-op.
+idempotent_undeploy=$(bash "$OTCTL" undeploy 2>&1 < /dev/null)
+grep -q 'compose.yml not present' <<<"$idempotent_undeploy"
+grep -q 'services directory empty' <<<"$idempotent_undeploy"
+[[ ! -f "$PREFIX/compose.yml" ]] || { echo "otctl undeploy must stay idempotent." >&2; exit 1; }
+
+# up without compose.yml reports the missing compose file (exit 1).
+set +e
+no_compose_up=$(bash "$OTCTL" up 2>&1 < /dev/null)
+no_compose_up_rc=$?
+set -e
+[[ $no_compose_up_rc -eq 1 ]] || { echo "otctl up without compose.yml must exit 1 (got $no_compose_up_rc)." >&2; exit 1; }
+grep -q 'compose file not found' <<<"$no_compose_up"
+
+# migrate forwards to the S3 migration playbook.
+: > "$CALLS_LOG"
+bash "$OTCTL" migrate minio-to-garage < /dev/null >/dev/null
+grep -q 's3_migrate.yml' "$CALLS_LOG"
+grep -q 's3_migration_source=minio' "$CALLS_LOG"
+bash "$OTCTL" migrate garage-to-minio --no-deploy < /dev/null >/dev/null
+grep -q 's3_migration_source=garage' "$CALLS_LOG"
+grep -q 's3_migrate_run_deploy=false' "$CALLS_LOG"
+migrate_help=$(bash "$OTCTL" migrate help 2>&1 < /dev/null)
+grep -q 'migrate minio-to-garage' <<<"$migrate_help"
+set +e
+migrate_bogus=$(bash "$OTCTL" migrate bogus-depth 2>&1 < /dev/null)
+set -e
+grep -q 'Unknown migration direction' <<<"$migrate_bogus" || {
+  echo "otctl migrate with unknown direction must report an error." >&2; exit 1; }
+
+# import users builds extra vars and forwards to the import playbook.
+printf 'first,last\nAlice,User\n' > "$TMP_DIR/users.csv"
+: > "$CALLS_LOG"
+bash "$OTCTL" import users --users-file="$TMP_DIR/users.csv" --no-temporary \
+  --password-reset-email --default-password='ChangeMe!' --password-length=32 foo < /dev/null >/dev/null
+grep -q 'import_users.yml' "$CALLS_LOG"
+grep -qF "import_users_file=$TMP_DIR/users.csv" "$CALLS_LOG"
+grep -q 'import_users_password_temporary=false' "$CALLS_LOG"
+grep -q 'import_users_force_password_reset_email=true' "$CALLS_LOG"
+grep -qF 'import_users_default_password=ChangeMe!' "$CALLS_LOG"
+grep -q 'import_users_password_length=32' "$CALLS_LOG"
+set +e
+import_no_file=$(bash "$OTCTL" import users 2>&1 < /dev/null)
+import_bogus=$(bash "$OTCTL" import bogus 2>&1 < /dev/null)
+set -e
+grep -q 'Missing --users-file' <<<"$import_no_file" || {
+  echo "otctl import users without --users-file must report an error." >&2; exit 1; }
+grep -q 'Unknown import target' <<<"$import_bogus" || {
+  echo "otctl import with unknown target must report an error." >&2; exit 1; }
+
+# import users supports separated option forms and rejects empty values.
+: > "$CALLS_LOG"
+bash "$OTCTL" import users --users-file "$TMP_DIR/users.csv" \
+  --default-password 'SeparatedPass!' --password-length 40 < /dev/null >/dev/null
+grep -qF "import_users_file=$TMP_DIR/users.csv" "$CALLS_LOG"
+grep -qF 'import_users_default_password=SeparatedPass!' "$CALLS_LOG"
+grep -q 'import_users_password_length=40' "$CALLS_LOG"
+set +e
+import_uflag_empty=$(bash "$OTCTL" import users --users-file 2>&1 < /dev/null)
+import_pflag_empty=$(bash "$OTCTL" import users --users-file="$TMP_DIR/users.csv" --default-password 2>&1 < /dev/null)
+import_len_empty=$(bash "$OTCTL" import users --users-file="$TMP_DIR/users.csv" --password-length 2>&1 < /dev/null)
+set -e
+grep -q -- '--users-file requires a value' <<<"$import_uflag_empty" || {
+  echo "otctl import users with empty --users-file must report an error." >&2; exit 1; }
+grep -q -- '--default-password requires a value' <<<"$import_pflag_empty" || {
+  echo "otctl import users with empty --default-password must report an error." >&2; exit 1; }
+grep -q -- '--password-length requires a value' <<<"$import_len_empty" || {
+  echo "otctl import users with empty --password-length must report an error." >&2; exit 1; }
+
+# restore --yes is still required even when all sub-mode args are present.
+set +e
+restore_interactive=$(bash "$OTCTL" restore config 2>&1 < /dev/null)
+restore_interactive_rc=$?
+set -e
+[[ $restore_interactive_rc -eq 1 ]] || { echo "otctl restore without --yes must exit 1 (got $restore_interactive_rc)." >&2; exit 1; }
+grep -q 're-run with --yes' <<<"$restore_interactive"
+
+# help/usage paths and unknown subcommands.
+help_out=$(bash "$OTCTL" help 2>&1 < /dev/null)
+grep -q 'OpenTalk Control (otctl)' <<<"$help_out"
+noargs_out=$(bash "$OTCTL" 2>&1 < /dev/null)
+grep -q 'otctl status|logs|restart' <<<"$noargs_out"
+set +e
+unknown_out=$(bash "$OTCTL" bogus-subcommand 2>&1 < /dev/null)
+unknown_rc=$?
+set -e
+[[ $unknown_rc -eq 1 ]] || { echo "otctl unknown subcommand must exit 1 (got $unknown_rc)." >&2; exit 1; }
+grep -q 'Unknown subcommand: bogus-subcommand' <<<"$unknown_out"
+
 echo "otctl smoke tests passed."

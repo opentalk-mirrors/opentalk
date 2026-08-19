@@ -15,6 +15,15 @@ RUNTIME_TEST="$REPO_ROOT/extras/scripts/tests/integration/test_deployment_runtim
 SMTP_RABBITMQ_TEST="$REPO_ROOT/extras/scripts/tests/integration/test_smtp_mailer_rabbitmq.sh"
 BACKUP_RESTORE_TEST="$REPO_ROOT/extras/scripts/tests/integration/test_backup_restore_config.sh"
 
+INGRESS_PORT=${OPENTALK_E2E_INGRESS_PORT:-8081}
+KEYCLOAK_PORT=${OPENTALK_E2E_KEYCLOAK_PORT:-8001}
+for port in "$INGRESS_PORT" "$KEYCLOAK_PORT"; do
+  if [[ ! $port =~ ^[0-9]+$ ]]; then
+    echo "Port override must be numeric, got: $port" >&2
+    exit 1
+  fi
+done
+
 cleanup() {
   just --justfile "$REPO_ROOT/justfile" compose-clean || true
   mapfile -t volumes < <(docker volume ls -q --filter 'label=com.docker.compose.project=opentalk')
@@ -27,13 +36,22 @@ trap cleanup EXIT
 
 cd "$REPO_ROOT"
 cleanup
+
+dev_root="$REPO_ROOT/build/opentalk-compose-dev"
+settings_file="$dev_root/config/settings.yml"
+mkdir -p "$(dirname "$settings_file")"
+sed -e "s/^ot_ingress_port:.*/ot_ingress_port: $INGRESS_PORT/" \
+    -e "s/^keycloak_local_port:.*/keycloak_local_port: $KEYCLOAK_PORT/" \
+    -e "s#http://keycloak.localhost:8001#http://keycloak.localhost:$KEYCLOAK_PORT#g" \
+    "$REPO_ROOT/extras/packaging/config-dist/settings.dev.yml-sample" > "$settings_file"
+
 just compose-deploy
 COMPOSE_PROJECT_NAME=opentalk bash "$RUNTIME_TEST"
 
 for endpoint in \
-  http://opentalk.dev.localhost:8081/ \
-  http://whiteboard.dev.localhost:8081/whiteboard/ \
-  http://localhost:8001/auth/; do
+  "http://opentalk.dev.localhost:$INGRESS_PORT/" \
+  "http://whiteboard.dev.localhost:$INGRESS_PORT/whiteboard/" \
+  "http://localhost:$KEYCLOAK_PORT/auth/"; do
   status=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' "$endpoint")
   if [[ $endpoint == *'/auth/' ]]; then
     [[ $status == 302 ]] || { echo "$endpoint returned HTTP $status." >&2; exit 1; }

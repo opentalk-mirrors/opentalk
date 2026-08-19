@@ -8,11 +8,13 @@
 # a temp file that is always deleted after the sync, even on failure.
 
 - name: Load secrets
+  tags: [s3_migrate_integration]
   ansible.builtin.include_vars:
     file: "{{ config_dir | default('/etc/opentalk-compose') }}/secrets/secrets.yml"
     name: _s3_secrets
 
 - name: Derive source and destination credentials
+  tags: [s3_migrate_integration]
   ansible.builtin.set_fact:
     _s3_src_access_key: >-
       {{ _s3_secrets.GARAGE_S3_ACCESS_KEY if s3_migration_source == 'garage'
@@ -29,13 +31,16 @@
   no_log: true
 
 - name: Create temporary rclone config file
+  tags: [s3_migrate_integration]
   ansible.builtin.tempfile:
     suffix: "-rclone-migrate.conf"
   register: _rclone_conf_tmp
 
 - name: Run rclone sync and clean up config
+  tags: [s3_migrate_integration]
   block:
     - name: Write rclone config
+      tags: [s3_migrate_integration]
       ansible.builtin.copy:
         dest: "{{ _rclone_conf_tmp.path }}"
         mode: '0600'
@@ -60,6 +65,7 @@
       no_log: true
 
     - name: Sync objects from source to destination
+      tags: [s3_migrate_integration]
       ansible.builtin.command:
         cmd: >-
           rclone sync
@@ -72,10 +78,12 @@
       changed_when: "'Transferred:' in _rclone_sync.stdout"
 
     - name: Show rclone sync output
+      tags: [s3_migrate_integration]
       ansible.builtin.debug:
         var: _rclone_sync.stdout_lines
 
     - name: Verify object count matches
+      tags: [s3_migrate_integration]
       ansible.builtin.command:
         cmd: "rclone ls --config {{ _rclone_conf_tmp.path }} {{ item }}:{{ s3_migrate_bucket_name }}"
       register: _rclone_ls
@@ -87,6 +95,7 @@
         label: "{{ item }}"
 
     - name: Assert source and destination object counts match
+      tags: [s3_migrate_integration]
       ansible.builtin.assert:
         that:
           - _rclone_ls.results[0].stdout_lines | length == _rclone_ls.results[1].stdout_lines | length
@@ -98,6 +107,7 @@
 
   always:
     - name: Delete rclone config
+      tags: [s3_migrate_integration]
       ansible.builtin.file:
         path: "{{ _rclone_conf_tmp.path }}"
         state: absent

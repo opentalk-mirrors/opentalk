@@ -11,11 +11,13 @@
     path: "{{ import_users_file }}"
   register: _import_users_csv
   when: _import_users_format == '.csv'
+  tags: [import_users_logic]
 
 - name: Set user list from CSV
   ansible.builtin.set_fact:
     _import_users_list: "{{ _import_users_csv.list }}"
   when: _import_users_format == '.csv'
+  tags: [import_users_logic]
 
 # Load users from JSON
 - name: Read users from JSON file
@@ -23,11 +25,13 @@
     src: "{{ import_users_file }}"
   register: _import_users_json_raw
   when: _import_users_format == '.json'
+  tags: [import_users_logic]
 
 - name: Set user list from JSON
   ansible.builtin.set_fact:
     _import_users_list: "{{ _import_users_json_raw.content | b64decode | from_json }}"
   when: _import_users_format == '.json'
+  tags: [import_users_logic]
 
 # Wait for Keycloak
 - name: Wait for Keycloak token endpoint to be ready
@@ -50,6 +54,7 @@
   until: _import_users_kc_probe.status in [200, 401]
   retries: 20
   delay: 5
+  tags: [import_users_keycloak]
 
 # Fetch admin token
 - name: Get Keycloak admin token
@@ -66,6 +71,7 @@
     validate_certs: false
   register: _import_users_kc_token
   no_log: true
+  tags: [import_users_keycloak]
 
 # Fetch user profile to get live tariff_id allowed values
 - name: Fetch Keycloak user profile for realm '{{ import_users_realm }}'
@@ -77,6 +83,7 @@
     return_content: true
     validate_certs: false
   register: _kc_user_profile
+  tags: [import_users_keycloak]
 
 - name: Extract allowed tariff_id values from Keycloak user profile
   ansible.builtin.set_fact:
@@ -90,11 +97,13 @@
           | default({'validations': {'options': {'options': []}}})
         ).validations.options.options | default([])
       }}
+  tags: [import_users_keycloak]
 
 # Summary
 - name: Show import summary
   ansible.builtin.debug:
     msg: "Importing {{ _import_users_list | length }} user(s) into realm '{{ import_users_realm }}'."
+  tags: [import_users_logic]
 
 # Pre-flight: validate tariff_id values against live Keycloak user profile
 - name: Validate tariff_id values against Keycloak user profile
@@ -107,7 +116,8 @@
   loop: "{{ _import_users_list }}"
   loop_control:
     label: "{{ item.username }}"
-  when: _import_tariff_id_allowed | length > 0
+  when: _import_tariff_id_allowed | default([]) | length > 0
+  tags: [import_users_logic]
 
 # Enrich user list: resolve password_reset_email flag and auto-generate missing passwords.
 # Users with password_reset_email=true receive a Keycloak email to set their own password;
@@ -133,6 +143,7 @@
   loop: "{{ _import_users_list }}"
   loop_control:
     label: "{{ item.username }}"
+  tags: [import_users_logic]
 
 - name: Show auto-generated passwords for users without a password in the import file
   ansible.builtin.debug:
@@ -141,6 +152,7 @@
   loop_control:
     label: "{{ item.username }}"
   when: item.password | default('') | length == 0 and not item._send_email
+  tags: [import_users_logic]
 
 # Create users
 # - credentials and emailVerified are omitted for password_reset_email users
@@ -177,6 +189,7 @@
   loop: "{{ _import_users_enriched }}"
   loop_control:
     label: "{{ item.username }}"
+  tags: [import_users_keycloak]
 
 # Send execute-actions-email for users that requested it.
 # Keycloak sends a link allowing the user to set their own password.
@@ -197,3 +210,4 @@
   when:
     - item.item._send_email
     - item.end_state is defined
+  tags: [import_users_keycloak]

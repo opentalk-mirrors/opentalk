@@ -140,6 +140,14 @@ lint:
 test-fast: lint
     find extras/scripts/tests -maxdepth 1 -type f -name 'test_*.sh' -print0 | xargs -0r -n1 bash
 
+# Measure shell line coverage via bash -x tracing and enforce baseline thresholds.
+test-coverage:
+    bash extras/scripts/tests/test_opentalk_coverage_regression.sh
+
+# Run only a single shell coverage measurement (TARGET is a test script path).
+test-coverage-one target:
+    python3 extras/scripts/coverage/measure_shell_coverage.py --verbose {{target}}
+
 # Run the destructive Docker Compose end-to-end test in an isolated local environment.
 test-e2e:
     OPENTALK_E2E=1 bash extras/scripts/tests/integration/test_compose_e2e.sh

@@ -6,6 +6,7 @@
 # Install rclone on the host if not already present.
 
 - name: Check if rclone is installed
+  tags: [s3_migrate_integration]
   ansible.builtin.command:
     cmd: which rclone
   register: _rclone_which
@@ -13,6 +14,7 @@
   failed_when: false
 
 - name: Install rclone (Debian/Ubuntu)
+  tags: [s3_migrate_integration]
   ansible.builtin.apt:
     name: rclone
     state: present
@@ -23,6 +25,7 @@
   become: true
 
 - name: Install rclone (RHEL/Fedora)
+  tags: [s3_migrate_integration]
   ansible.builtin.dnf:
     name: rclone
     state: present
@@ -32,6 +35,7 @@
   become: true
 
 - name: Install rclone (openSUSE/SLES)
+  tags: [s3_migrate_integration]
   community.general.zypper:
     name: rclone
     state: present
@@ -41,6 +45,7 @@
   become: true
 
 - name: Verify rclone is available after install
+  tags: [s3_migrate_integration]
   ansible.builtin.command:
     cmd: which rclone
   changed_when: false

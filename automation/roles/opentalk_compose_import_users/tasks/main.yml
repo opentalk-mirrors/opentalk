@@ -8,7 +8,9 @@
 - name: Include validate.yml
   ansible.builtin.include_tasks:
     file: validate.yml
+  tags: [import_users_logic]
 
 - name: Include import_users.yml
   ansible.builtin.include_tasks:
     file: import_users.yml
+  tags: [import_users_logic]

@@ -8,6 +8,7 @@
 #   - Set compose_service_<source>_enabled: false
 
 - name: Set s3_storage_provider to migration destination
+  tags: [s3_migrate_logic]
   ansible.builtin.lineinfile:
     path: "{{ s3_migrate_settings_file }}"
     regexp: '^(\s*)s3_storage_provider\s*:'
@@ -15,6 +16,7 @@
     state: present
 
 - name: Disable source service in settings.yml — update existing line
+  tags: [s3_migrate_logic]
   ansible.builtin.lineinfile:
     path: "{{ s3_migrate_settings_file }}"
     regexp: '^(\s*)compose_service_{{ s3_migration_source }}_enabled\s*:'
@@ -24,6 +26,7 @@
 
 # If the setting was not present at all, append it.
 - name: Disable source service in settings.yml — append if absent
+  tags: [s3_migrate_logic]
   ansible.builtin.lineinfile:
     path: "{{ s3_migrate_settings_file }}"
     line: "compose_service_{{ s3_migration_source }}_enabled: false"
@@ -31,6 +34,7 @@
   when: not _disable_src_line.changed
 
 - name: Confirm settings update
+  tags: [s3_migrate_logic]
   ansible.builtin.debug:
     msg: >-
       settings.yml updated:
