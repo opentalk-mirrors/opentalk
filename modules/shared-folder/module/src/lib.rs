@@ -40,7 +40,11 @@ pub struct SharedFolderModule {
 
 impl SignalingModuleDescription for SharedFolderModule {
     const MODULE_ID: ModuleId = SHARED_FOLDER_MODULE_ID;
-    const DESCRIPTION: &'static str = "Handles shared folder integration. This allows automatic creation of shares on a NextCloud instance using the [OCS API](https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-api-overview.html).";
+    const DESCRIPTION: &'static str = "Handles shared folder integration. This allows automatic \
+        creation of shares on a NextCloud instance using the \
+        [OCS API](https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-api-overview.html) \
+        or on an OpenCloud instance using its [Graph API](https://owncloud.dev/libre-graph-api/) \
+        and [WebDAV](https://docs.opencloud.eu/docs/dev/apis/webdav) endpoints.";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 
     type Settings = NoSettings;
