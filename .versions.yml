@@ -19,7 +19,7 @@ spacedeck_version: v3.0.3
 etherpad_version: v2.0.4
 livekit_version: v1.13.5
 keycloak_version: v26.7.1
-postgres_version: 17.10-alpine
+postgres_version: 17.11-alpine
 rabbitmq_version: v4.3.1-management-alpine
 minio_version: RELEASE.2025-10-15T17-29-55Z
 minio_client_version: RELEASE.2025-08-13T08-35-41Z
