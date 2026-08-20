@@ -37,7 +37,7 @@
 //! # [`ConnectionId`] and [`ParticipantId`]
 //!
 //! Every connection to a Room is identified by the [`ConnectionId`]. The connection ID is generated
-//! by [`MessageRouter::add_conference_connection`]/[`MessageRouter::add_lobby_connection`].
+//! by [`MessageRouter::add_lobby_connection`].
 //!
 //! For registered users, the [`ParticipantId`] is derived from the [`UserId`] that is part of the
 //! [`PublicUserProfile`]. Guests and services don't have a such a profile. These clients provide a
@@ -196,8 +196,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) {
         let (tx, rx) = mpsc::channel(20);
 
-        let message_router =
-            MessageRouter::new(ctx.app_state.clone(), room_parameters.ws_rate_limit);
+        let message_router = MessageRouter::new(
+            room_id,
+            ctx.app_state.clone(),
+            room_parameters.ws_rate_limit,
+        );
         let room_handle = RoomTaskHandle {
             assets: Arc::clone(&ctx.asset_storage),
             module_resources: Arc::clone(&ctx.module_resources),
@@ -772,7 +775,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    #[tracing::instrument(level = "info", skip_all, parent = &span, fields(participant_id = %participant_id))]
+    #[tracing::instrument(level = "info", skip_all, parent = &span)]
     fn handle_conference_message(
         &mut self,
         MessageEnvelope {
@@ -784,9 +787,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) -> Result<(), FatalError> {
         match message {
             SignalingMessage::Closed(close_reason) => {
-                tracing::trace!(
-                    "Websocket closed for participant {participant_id}: {close_reason:?}"
-                );
+                tracing::trace!("Websocket closed: {close_reason:?}");
                 let origin = EventOrigin::Participant(ParticipantOrigin {
                     id: participant_id,
                     connection_id,
@@ -813,9 +814,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) -> Result<(), FatalError> {
         match message {
             SignalingMessage::Closed(close_reason) => {
-                tracing::trace!(
-                    "Websocket closed for participant {participant_id}: {close_reason:?}"
-                );
+                tracing::trace!("Websocket closed: {close_reason:?}");
                 self.disconnect_lobby_participant(participant_id, connection_id);
                 Ok(())
             }
@@ -857,9 +856,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     command: signaling_command.payload,
                 };
                 let Some(state) = self.participants.connected().get(&participant_id) else {
-                    tracing::error!(
-                        "failed to get participant state for participant '{participant_id}'"
-                    );
+                    tracing::error!("failed to get participant state");
                     return Ok(());
                 };
                 self.execute_signaling_module_command(

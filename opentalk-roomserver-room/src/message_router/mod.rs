@@ -23,7 +23,7 @@ use opentalk_roomserver_types::{
         websocket::{CloseFrame, SignalingSocket, SignalingSocketMessage},
     },
 };
-use opentalk_types_common::{modules::ModuleId, time::Timestamp};
+use opentalk_types_common::{modules::ModuleId, rooms::RoomId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
 use serde::Serialize;
 use serde_json::value::RawValue;
@@ -63,6 +63,7 @@ pub struct MessageRouter {
 impl MessageRouter {
     /// Create a new [`MessageRouter`]
     pub fn new(
+        room_id: RoomId,
         app_state: watch::Receiver<ApplicationState>,
         rate_limit: Option<RateLimitSettings>,
     ) -> Self {
@@ -70,19 +71,10 @@ impl MessageRouter {
         commands.push(Box::new(stream::pending()));
 
         Self {
-            lobby: ScopedRouter::new(app_state.clone(), rate_limit),
-            conference: ScopedRouter::new(app_state, rate_limit),
+            lobby: ScopedRouter::new(room_id, app_state.clone(), rate_limit),
+            conference: ScopedRouter::new(room_id, app_state, rate_limit),
             commands,
         }
-    }
-
-    pub fn add_conference_connection<S: SignalingSocket + 'static>(
-        &mut self,
-        participant_id: ParticipantId,
-        websocket: S,
-    ) -> Result<ConnectionId, AlreadyConnectedError> {
-        self.conference
-            .add_connection(participant_id, websocket, &mut self.commands)
     }
 
     pub fn add_lobby_connection<S: SignalingSocket + 'static>(
@@ -157,6 +149,9 @@ impl MessageRouter {
 }
 
 pub struct ScopedRouter {
+    /// The room this router belongs to
+    room_id: RoomId,
+
     /// A collection of active websocket connections
     connections: HashMap<ConnectionId, ConnectionHandle>,
 
@@ -171,10 +166,12 @@ pub struct ScopedRouter {
 impl ScopedRouter {
     /// Create a new [`ScopedRouter`]
     pub fn new(
+        room_id: RoomId,
         app_state: watch::Receiver<ApplicationState>,
         rate_limit: Option<RateLimitSettings>,
     ) -> Self {
         Self {
+            room_id,
             connections: HashMap::new(),
             disconnects: HashMap::new(),
             rate_limit,
@@ -208,6 +205,7 @@ impl ScopedRouter {
         commands.push(Box::new(ReceiverStream::new(room_task_command_receiver)));
 
         let task_handle = participant_connection::create(
+            self.room_id,
             participant_id,
             connection_id,
             websocket,
@@ -403,7 +401,7 @@ mod tests {
     use opentalk_roomserver_types::signaling::websocket::{
         CloseFrame, SignalingSocketItem, SignalingSocketMessage,
     };
-    use opentalk_types_common::{modules::module_id, time::Timestamp};
+    use opentalk_types_common::{modules::module_id, rooms::RoomId, time::Timestamp};
     use opentalk_types_signaling::ParticipantId;
     use serde_json::{json, value::to_raw_value};
     use tokio::sync::watch;
@@ -418,11 +416,14 @@ mod tests {
     #[tokio::test]
     async fn participant_lifecycle() {
         let (_app_state_send, app_state_recv) = watch::channel(ApplicationState::Running);
-        let mut router = MessageRouter::new(app_state_recv, None);
+        let mut router = MessageRouter::new(RoomId::from_u128(1), app_state_recv, None);
         let (p1_socket, p1) = create_participant_connection();
         let p1_id = ParticipantId::from_u128(1);
 
-        let connection = router.add_conference_connection(p1_id, p1_socket).unwrap();
+        let connection = router
+            .conference
+            .add_connection(p1_id, p1_socket, &mut router.commands)
+            .unwrap();
 
         p1.sender
             .send(Ok(SignalingSocketItem {

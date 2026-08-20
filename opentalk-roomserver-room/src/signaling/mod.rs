@@ -313,7 +313,7 @@ where
 
     /// Resolves a generic JSON message that was received by [`ModuleHandle::on_event`] to the
     /// concrete [`SignalingModule::Incoming`] type.
-    #[tracing::instrument(skip_all, fields(opentalk.command.sender = %sender, opentalk.module = %M::NAMESPACE))]
+    #[tracing::instrument(skip_all, fields(opentalk.module = %M::NAMESPACE))]
     fn handle_ws_event(
         &mut self,
         ctx: &mut ModuleContext<'_, M>,
