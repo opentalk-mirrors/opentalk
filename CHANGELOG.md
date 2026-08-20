@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.2.0-beta.2] - 2026-08-20
+
+[26.2.0-beta.2]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.1...v26.2.0-beta.2
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk product version v26.2.0-beta.2 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update OpenTalk web frontend version v2.9.1 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update OpenTalk controller version v0.34.2 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update OpenTalk obelisk version v0.22.2 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update OpenTalk roomserver version v0.1.1 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update OpenTalk smtp-mailer version v0.18.0 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update livekit-server version v1.13.5 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update keycloak version v26.7.1 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update postgres version v17.11.0 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update rabbitmq version v4.3.4 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update mailcrab version v1.9.0 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+
+### ⚙ Miscellaneous
+
+- (ci) Roomsercer container disabled by default ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+
 ## [26.2.0-beta.1] - 2026-08-07
 
 [26.2.0-beta.1]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v25.4.6...v26.2.0-beta.1
