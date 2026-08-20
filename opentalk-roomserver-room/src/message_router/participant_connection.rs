@@ -23,14 +23,11 @@ use opentalk_roomserver_types::{
         },
     },
 };
-use opentalk_types_common::time::Timestamp;
+use opentalk_types_common::{rooms::RoomId, time::Timestamp};
 use opentalk_types_signaling::ParticipantId;
-use tokio::{
-    sync::{
-        mpsc::{self, OwnedPermit},
-        watch,
-    },
-    task::JoinHandle,
+use tokio::sync::{
+    mpsc::{self, OwnedPermit},
+    watch,
 };
 
 use super::{
@@ -133,6 +130,7 @@ impl From<ExitReason> for CloseReason {
 
 /// Create a new [`ParticipantConnectionTask`]
 pub(super) fn create<Socket: SignalingSocket + 'static>(
+    room_id: RoomId,
     participant_id: ParticipantId,
     connection_id: ConnectionId,
     socket: Socket,
@@ -143,15 +141,21 @@ pub(super) fn create<Socket: SignalingSocket + 'static>(
     tracing::debug!("Creating new participant connection task for participant {participant_id}");
     let (event_sender, event_receiver) = mpsc::channel(EVENT_BUFFER_SIZE);
 
-    spawn(
+    let (sink, stream) = socket.split();
+    let stream = stream.peekable();
+    let rate_limit = rate_limit_settings.map(Into::into);
+    let this = ParticipantConnectionTask {
+        room_id,
         participant_id,
         connection_id,
         room_task_command_sender,
-        socket,
-        event_receiver,
-        rate_limit_settings,
+        stream,
+        sink,
+        room_task_event_receiver: event_receiver,
         app_state,
-    );
+        rate_limit,
+    };
+    tokio::task::spawn(this.run());
 
     ConnectionHandle {
         participant_id,
@@ -159,38 +163,13 @@ pub(super) fn create<Socket: SignalingSocket + 'static>(
     }
 }
 
-fn spawn<Socket: SignalingSocket + 'static>(
-    participant_id: ParticipantId,
-    connection_id: ConnectionId,
-    room_task_command_sender: mpsc::Sender<MessageEnvelope<SignalingMessage>>,
-    socket: Socket,
-    room_task_event_receiver: mpsc::Receiver<SharedRawJson>,
-    rate_limit_settings: Option<RateLimitSettings>,
-    app_state: watch::Receiver<ApplicationState>,
-) -> JoinHandle<()> {
-    let (sink, stream) = socket.split();
-    let stream = stream.peekable();
-    let rate_limit = rate_limit_settings.map(Into::into);
-
-    let this = ParticipantConnectionTask {
-        participant_id,
-        connection_id,
-        room_task_command_sender,
-        stream,
-        sink,
-        room_task_event_receiver,
-        app_state,
-        rate_limit,
-    };
-
-    tokio::task::spawn(this.run())
-}
-
 /// Handles the messaging between client and [`RoomTask`](super::super::task::RoomTask)
 ///
 /// Messages that were sent by the client get tagged with the associated participant id and will be
 /// forwarded to the room task. Messages from the room task will be forwarded to the client.
 pub(super) struct ParticipantConnectionTask<Stream: SignalingStream, Sink: SignalingSink> {
+    /// The ID of the room this connection is in. Only used for logging purposes.
+    room_id: RoomId,
     /// The participant id that is used to tag messages that are send to the room task
     participant_id: ParticipantId,
     /// The connection id of this specific websocket connection
@@ -212,7 +191,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
     async fn run(mut self) {
         let exit_reason = self.message_loop().await;
 
-        tracing::trace!("exited message loop");
+        tracing::debug!("exited message loop");
 
         self.perform_close_handshake(exit_reason).await;
     }
@@ -334,7 +313,15 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
         })
     }
 
-    #[tracing::instrument(skip_all, fields(opentalk.participant_id = %self.participant_id))]
+    #[tracing::instrument(
+        parent = None,
+        skip_all,
+        fields(
+            opentalk.room_id = %self.room_id,
+            opentalk.participant_id = %self.participant_id,
+            opentalk.connection_id = %self.connection_id,
+        )
+    )]
     async fn handle_websocket_frame(
         &mut self,
         frame: SignalingSocketItem,

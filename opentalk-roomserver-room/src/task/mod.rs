@@ -196,8 +196,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) {
         let (tx, rx) = mpsc::channel(20);
 
-        let message_router =
-            MessageRouter::new(ctx.app_state.clone(), room_parameters.ws_rate_limit);
+        let message_router = MessageRouter::new(
+            room_id,
+            ctx.app_state.clone(),
+            room_parameters.ws_rate_limit,
+        );
         let room_handle = RoomTaskHandle {
             assets: Arc::clone(&ctx.asset_storage),
             module_resources: Arc::clone(&ctx.module_resources),
