@@ -4,7 +4,7 @@
 
 ---
 # OpenTalk Product Version
-opentalk_product_version: v26.2.0-beta.1
+opentalk_product_version: v26.2.0-beta.2
 
 # OpenTalk related Container Image Versions
 opentalk_web_frontend_version: v2.9.0
