@@ -37,7 +37,7 @@
 //! # [`ConnectionId`] and [`ParticipantId`]
 //!
 //! Every connection to a Room is identified by the [`ConnectionId`]. The connection ID is generated
-//! by [`MessageRouter::add_conference_connection`]/[`MessageRouter::add_lobby_connection`].
+//! by [`MessageRouter::add_lobby_connection`].
 //!
 //! For registered users, the [`ParticipantId`] is derived from the [`UserId`] that is part of the
 //! [`PublicUserProfile`]. Guests and services don't have a such a profile. These clients provide a

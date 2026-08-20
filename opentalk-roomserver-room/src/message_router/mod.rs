@@ -76,15 +76,6 @@ impl MessageRouter {
         }
     }
 
-    pub fn add_conference_connection<S: SignalingSocket + 'static>(
-        &mut self,
-        participant_id: ParticipantId,
-        websocket: S,
-    ) -> Result<ConnectionId, AlreadyConnectedError> {
-        self.conference
-            .add_connection(participant_id, websocket, &mut self.commands)
-    }
-
     pub fn add_lobby_connection<S: SignalingSocket + 'static>(
         &mut self,
         participant_id: ParticipantId,
@@ -422,7 +413,10 @@ mod tests {
         let (p1_socket, p1) = create_participant_connection();
         let p1_id = ParticipantId::from_u128(1);
 
-        let connection = router.add_conference_connection(p1_id, p1_socket).unwrap();
+        let connection = router
+            .conference
+            .add_connection(p1_id, p1_socket, &mut router.commands)
+            .unwrap();
 
         p1.sender
             .send(Ok(SignalingSocketItem {
