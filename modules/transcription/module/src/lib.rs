@@ -55,6 +55,8 @@ impl SignalingModuleDescription for TranscriptionModule {
         feature_id: TRANSCRIPTION_FEATURE_ID,
         description: "Allows to create transcriptions for meetings",
     }];
+
+    type Settings = TranscriptionSettings;
 }
 
 impl SignalingModule for TranscriptionModule {
@@ -489,4 +491,26 @@ fn find_transcription_service<'a>(
     ctx.participants.in_room(ctx.room).iter().find(|(_, p)| {
         p.is_connected() && matches!(p.kind, ClientKind::Transcription { room } if room == ctx.room)
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::TranscriptionModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&TranscriptionModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        [transcription]
+        url = "http://localhost:11413/"
+
+        [transcription.api_key]
+        id = "transcription"
+        secret = "secret"
+        "#);
+    }
 }

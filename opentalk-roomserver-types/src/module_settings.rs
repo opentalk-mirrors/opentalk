@@ -10,7 +10,7 @@ use opentalk_types_common::{
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::json;
 
-pub trait SignalingModuleSettings: Serialize + DeserializeOwned + Debug {
+pub trait SignalingModuleSettings: ExampleData + Serialize + DeserializeOwned + Debug {
     const NAMESPACE: ModuleId;
 }
 

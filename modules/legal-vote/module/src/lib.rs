@@ -59,7 +59,7 @@ use opentalk_roomserver_signaling::{
     localization,
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
+        ModuleJoinData, ModuleSwitchData, NoOp, NoSettings, PeerDataMap, SignalingModule,
         SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
@@ -109,6 +109,8 @@ impl SignalingModuleDescription for LegalVoteModule {
     const MODULE_ID: ModuleId = LEGAL_VOTE_MODULE_ID;
     const DESCRIPTION: &'static str = "Handles the legal-vote functionality";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for LegalVoteModule {
@@ -838,5 +840,20 @@ fn try_into_voting_record(protocol: &[proto::ProtocolEntry]) -> anyhow::Result<V
             })
             .collect::<anyhow::Result<_>>()?;
         Ok(VotingRecord::UserVotes(voters))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::LegalVoteModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&LegalVoteModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"[legal_vote]");
     }
 }

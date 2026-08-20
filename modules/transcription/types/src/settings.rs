@@ -4,7 +4,7 @@
 
 use opentalk_roomserver_types::module_settings::SignalingModuleSettings;
 use opentalk_service_auth::ApiKey;
-use opentalk_types_common::modules::ModuleId;
+use opentalk_types_common::{modules::ModuleId, utils::ExampleData};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -20,4 +20,13 @@ pub struct TranscriptionSettings {
 
 impl SignalingModuleSettings for TranscriptionSettings {
     const NAMESPACE: ModuleId = TRANSCRIPTION_MODULE_ID;
+}
+
+impl ExampleData for TranscriptionSettings {
+    fn example_data() -> Self {
+        Self {
+            url: Url::parse("http://localhost:11413").expect("Example URL must be valid"),
+            api_key: ApiKey::new("transcription", "secret"),
+        }
+    }
 }

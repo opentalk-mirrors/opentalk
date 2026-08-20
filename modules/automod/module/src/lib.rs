@@ -68,8 +68,8 @@ use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
-        ModuleJoinData, ModuleSwitchData, NoOp, SignalingModule, SignalingModuleDescription,
-        SignalingModuleFeatureDescription, SignalingModuleInitData,
+        ModuleJoinData, ModuleSwitchData, NoOp, NoSettings, SignalingModule,
+        SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
 use opentalk_roomserver_types::{
@@ -126,6 +126,8 @@ impl SignalingModuleDescription for AutomodModule {
     const DESCRIPTION: &'static str =
         "Handles auto-moderation functionality such as the talking stick";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for AutomodModule {
@@ -747,5 +749,20 @@ impl AutomodModule {
         }
 
         Some(list)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::AutomodModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&AutomodModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"[automod]");
     }
 }

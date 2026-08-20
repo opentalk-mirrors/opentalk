@@ -7,7 +7,7 @@ use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
+        ModuleJoinData, ModuleSwitchData, NoOp, NoSettings, PeerDataMap, SignalingModule,
         SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
@@ -33,6 +33,8 @@ impl SignalingModuleDescription for ReactionModule {
     const DESCRIPTION: &'static str = "Handles emoji reactions";
 
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for ReactionModule {
@@ -212,5 +214,20 @@ impl ReactionModule {
         )?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::ReactionModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&ReactionModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"[reaction]");
     }
 }

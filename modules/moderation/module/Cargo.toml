@@ -32,6 +32,7 @@ tracing.workspace = true
 
 [dev-dependencies]
 http.workspace = true
+insta.workspace = true
 livekit.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 opentalk-roomserver-test-util-livekit.workspace = true
@@ -40,4 +41,5 @@ pretty_assertions.workspace = true
 serde_json.workspace = true
 test-log.workspace = true
 tokio.workspace = true
+toml.workspace = true
 uuid.workspace = true

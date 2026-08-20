@@ -25,7 +25,9 @@ tokio.workspace = true
 
 [dev-dependencies]
 bytes = { workspace = true, features = ["serde"] }
+insta.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pretty_assertions.workspace = true
 test-log.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
+toml.workspace = true

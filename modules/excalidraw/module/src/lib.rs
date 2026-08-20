@@ -10,7 +10,7 @@ use anyhow::anyhow;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
+        ModuleJoinData, ModuleSwitchData, NoOp, NoSettings, PeerDataMap, SignalingModule,
         SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
@@ -39,6 +39,8 @@ impl SignalingModuleDescription for ExcalidrawModule {
     const DESCRIPTION: &'static str =
         "Handles excalidraw whiteboard integration. Excalidraw is a collaborative drawing board.";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for ExcalidrawModule {
@@ -447,5 +449,20 @@ impl ExcalidrawModule {
                     unrestricted_participants
                 } if unrestricted_participants.contains(&participant_id)
             )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::ExcalidrawModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&ExcalidrawModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"[excalidraw]");
     }
 }

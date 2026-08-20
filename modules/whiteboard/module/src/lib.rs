@@ -59,6 +59,8 @@ impl SignalingModuleDescription for WhiteboardModule {
     const MODULE_ID: ModuleId = WHITEBOARD_MODULE_ID;
     const DESCRIPTION: &'static str = "Handles whiteboard integration. The whiteboard is a collaborative drawing board that can be used during the meeting.";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = WhiteboardSettings;
 }
 
 impl SignalingModule for WhiteboardModule {
@@ -332,5 +334,24 @@ impl WhiteboardModule {
             .collect::<Vec<()>>()
             .in_current_span();
         tokio::spawn(future);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::WhiteboardModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&WhiteboardModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        [whiteboard]
+        api_key = "secret"
+        base_url = "http://localhost:9666/"
+        "#);
     }
 }

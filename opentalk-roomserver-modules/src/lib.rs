@@ -124,7 +124,11 @@ impl DescriptionPrinter for MarkdownPrinter {
                 &module_initializer.module_id(),
                 module_initializer.feature_descriptions()
             )
-        )
+        );
+
+        if let Some(config) = module_initializer.example_config() {
+            println!("### Example\n\n```toml\n{config}```\n");
+        }
     }
 }
 

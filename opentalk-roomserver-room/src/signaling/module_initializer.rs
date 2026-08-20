@@ -133,6 +133,8 @@ pub trait ModuleInitializer: Sync + Send {
     fn module_id(&self) -> ModuleId;
 
     fn features(&self) -> BTreeSet<FeatureId>;
+
+    fn example_config(&self) -> Option<String>;
 }
 
 struct ModuleInitializerImpl<M: SignalingModule + Sync> {
@@ -175,6 +177,20 @@ impl<M: SignalingModule + Sync + 'static> ModuleInitializer for ModuleInitialize
 
     fn features(&self) -> BTreeSet<FeatureId> {
         M::FEATURES.iter().map(|f| f.feature_id.clone()).collect()
+    }
+
+    fn example_config(&self) -> Option<String> {
+        let config = M::example_config();
+        let toml = toml::to_string_pretty(&config)
+            .inspect_err(|err| {
+                tracing::error!(
+                    "Failed to serialize module {} config to TOML: {err}",
+                    M::MODULE_ID
+                )
+            })
+            .ok()?;
+
+        Some(toml)
     }
 }
 
@@ -224,6 +240,10 @@ impl ModuleInitializer for CoreModuleDummy {
                 .cloned(),
         )
     }
+
+    fn example_config(&self) -> Option<String> {
+        None
+    }
 }
 
 struct BreakoutRoomModuleDummy;
@@ -256,5 +276,9 @@ impl ModuleInitializer for BreakoutRoomModuleDummy {
                 .map(|description| &description.feature_id)
                 .cloned(),
         )
+    }
+
+    fn example_config(&self) -> Option<String> {
+        None
     }
 }

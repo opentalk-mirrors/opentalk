@@ -74,6 +74,8 @@ impl SignalingModuleDescription for MeetingNotesModule {
     const MODULE_ID: ModuleId = MEETING_NOTES_MODULE_ID;
     const DESCRIPTION: &'static str = "Handles meeting note editing and viewing functionality";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = MeetingNotesSettings;
 }
 
 impl SignalingModule for MeetingNotesModule {
@@ -671,5 +673,24 @@ fn build_pad_mapped_id(room_id: RoomId, room_kind: RoomKind) -> String {
     match room_kind {
         RoomKind::Breakout(breakout_id) => format!("{room_id}:{breakout_id}"),
         RoomKind::Main => format!("{room_id}:main"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::MeetingNotesModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&MeetingNotesModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        [meeting_notes]
+        api_key = "secret"
+        base_url = "http://localhost:9001/"
+        "#);
     }
 }

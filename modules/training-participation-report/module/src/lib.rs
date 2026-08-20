@@ -87,6 +87,8 @@ impl SignalingModuleDescription for TrainingParticipationReportModule {
     const MODULE_ID: ModuleId = TRAINING_PARTICIPATION_REPORT_MODULE_ID;
     const DESCRIPTION: &'static str = "Handles training participation report functionality. Participants are asked to confirm their presence repeatedly at pre-configured time intervals. These confirmations are documented in the training participation report which is created automatically at the end of the meeting.";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = TrainingParticipationReportSettings;
 }
 
 impl SignalingModule for TrainingParticipationReportModule {
@@ -673,5 +675,29 @@ impl TrainingParticipationReportModule {
             state: ParticipationLoggingState::Disabled,
             parameters: None,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::TrainingParticipationReportModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced =
+            toml::to_string_pretty(&TrainingParticipationReportModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"
+        [training_participation_report.autostart.checkpoint_interval]
+        after = 300
+        within = 400
+
+        [training_participation_report.autostart.initial_checkpoint_delay]
+        after = 100
+        within = 200
+        ");
     }
 }
