@@ -436,24 +436,28 @@ impl LiveKitProxyBackend for Context {
         room_id: RoomId,
         headers: axum::http::HeaderMap,
         raw_query: Option<String>,
+        v1: bool,
     ) -> Result<reqwest::Response, ApiError> {
         let Some(task_handle) = self.room_tasks.get_task_handle(&room_id).await else {
             return Err(ApiError::not_found());
         };
 
         let mut livekit_service_url = task_handle.livekit_service_url().await?;
-        livekit_service_url
-            .path_segments_mut()
-            .map_err(|()| {
+        {
+            let mut segments = livekit_service_url.path_segments_mut().map_err(|()| {
                 tracing::error!("Invalid livekit URL, cannot be base");
                 ApiError::internal()
-            })?
-            .push("rtc")
-            .push("validate");
+            })?;
+            segments.push("rtc");
+            if v1 {
+                segments.push("v1");
+            }
+            segments.push("validate");
+        }
         livekit_service_url.set_query(raw_query.as_deref());
 
         self.livekit_proxy_client
-            .post(livekit_service_url)
+            .get(livekit_service_url)
             .headers(headers)
             .send()
             .await

@@ -5,10 +5,10 @@ use std::str::FromStr;
 
 use async_trait::async_trait;
 use axum::{
-    extract::{Query, RawQuery, State, WebSocketUpgrade},
+    extract::{OriginalUri, Query, RawQuery, State, WebSocketUpgrade},
     http::{HeaderMap, header::AUTHORIZATION},
     response::Response,
-    routing::{get, post},
+    routing::get,
 };
 use livekit_api::access_token::Claims;
 pub use opentalk_roomserver_types::livekit_proxy::{
@@ -35,8 +35,8 @@ pub fn routes<B: LiveKitProxyBackend + SignalingBackend + 'static>() -> Router<B
         Router::new()
             .route("/", get(proxy_socket::<B>))
             .route("/v1", get(proxy_socket::<B>))
-            .route("/validate", post(proxy_validate::<B>))
-            .route("/v1/validate", post(proxy_validate::<B>)),
+            .route("/validate", get(proxy_validate::<B>))
+            .route("/v1/validate", get(proxy_validate::<B>)),
     )
 }
 
@@ -63,6 +63,7 @@ pub trait LiveKitProxyBackend: Send + Sync {
         room_id: RoomId,
         headers: HeaderMap,
         raw_query: Option<String>,
+        v1: bool,
     ) -> Result<reqwest::Response, ApiError>;
 }
 
@@ -145,7 +146,7 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
 /// - `/livekit/rtc/validate`
 /// - `/livekit/rtc/v1/validate`
 #[utoipa::path(
-    post,
+    get,
     path = "/livekit/rtc/validate",
     responses(
         (status = StatusCode::OK, description = "Validation response from LiveKit"),
@@ -160,6 +161,7 @@ pub(crate) async fn proxy_socket<B: LiveKitProxyBackend + 'static>(
 #[tracing::instrument(level = "info", name = "/livekit/rtc/validate", skip_all)]
 pub(crate) async fn proxy_validate<B: LiveKitProxyBackend>(
     State(ctx): State<B>,
+    OriginalUri(uri): OriginalUri,
     RawQuery(raw_query): RawQuery,
     Query(query): Query<LiveKitQuery>,
     headers: HeaderMap,
@@ -173,8 +175,9 @@ pub(crate) async fn proxy_validate<B: LiveKitProxyBackend>(
 
     let (room_id, _) = parse_livekit_room_id(&content.claims.video.room)?;
 
+    let v1 = uri.path().ends_with("v1/validate");
     let response = ctx
-        .proxy_livekit_validate(room_id, headers, raw_query)
+        .proxy_livekit_validate(room_id, headers, raw_query, v1)
         .await?;
 
     tracing::trace!("Received validate response: {response:?}");
