@@ -775,7 +775,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
-    #[tracing::instrument(level = "info", skip_all, parent = &span, fields(participant_id = %participant_id))]
+    #[tracing::instrument(level = "info", skip_all, parent = &span)]
     fn handle_conference_message(
         &mut self,
         MessageEnvelope {
@@ -787,9 +787,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) -> Result<(), FatalError> {
         match message {
             SignalingMessage::Closed(close_reason) => {
-                tracing::trace!(
-                    "Websocket closed for participant {participant_id}: {close_reason:?}"
-                );
+                tracing::trace!("Websocket closed: {close_reason:?}");
                 let origin = EventOrigin::Participant(ParticipantOrigin {
                     id: participant_id,
                     connection_id,
@@ -816,9 +814,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     ) -> Result<(), FatalError> {
         match message {
             SignalingMessage::Closed(close_reason) => {
-                tracing::trace!(
-                    "Websocket closed for participant {participant_id}: {close_reason:?}"
-                );
+                tracing::trace!("Websocket closed: {close_reason:?}");
                 self.disconnect_lobby_participant(participant_id, connection_id);
                 Ok(())
             }
@@ -860,9 +856,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     command: signaling_command.payload,
                 };
                 let Some(state) = self.participants.connected().get(&participant_id) else {
-                    tracing::error!(
-                        "failed to get participant state for participant '{participant_id}'"
-                    );
+                    tracing::error!("failed to get participant state");
                     return Ok(());
                 };
                 self.execute_signaling_module_command(

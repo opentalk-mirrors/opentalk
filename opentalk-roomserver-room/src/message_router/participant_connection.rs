@@ -138,7 +138,11 @@ pub(super) fn create<Socket: SignalingSocket + 'static>(
     rate_limit_settings: Option<RateLimitSettings>,
     app_state: watch::Receiver<ApplicationState>,
 ) -> ConnectionHandle {
-    tracing::debug!("Creating new participant connection task for participant {participant_id}");
+    tracing::debug!(
+        ?participant_id,
+        ?connection_id,
+        "Creating new participant connection task"
+    );
     let (event_sender, event_receiver) = mpsc::channel(EVENT_BUFFER_SIZE);
 
     let (sink, stream) = socket.split();
@@ -332,10 +336,7 @@ impl<Stream: SignalingStream, Sink: SignalingSink> ParticipantConnectionTask<Str
                 self.handle_text_frame(message.to_string(), permit).await
             }
             SignalingSocketMessage::Close(close_frame) => {
-                tracing::debug!(
-                    "Connection closed by participant `{:?}`: {close_frame:?}",
-                    self.participant_id
-                );
+                tracing::debug!("Connection closed by: {close_frame:?}");
 
                 Err(ExitReason::ClosedByClient)
             }
