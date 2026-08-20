@@ -9,6 +9,7 @@ yaml-files:
   - '.yamllint'
 
 ignore:
+  - .ansible/
   - artifacts/
   - build/
 
