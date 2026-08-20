@@ -181,7 +181,7 @@ tracing-subscriber = { version = "0.3", features = [
 tungstenite = "0.30.0"
 url = "2.5.2"
 utoipa = { version = "5.3.1", features = ["yaml"] }
-utoipa-swagger-ui = { version = "9.0.0", features = ["axum"] }
+utoipa-swagger-ui = { version = "9.0.0", features = ["axum", "vendored"] }
 uuid = "1"
 yaml-rust2 = "0.11"
 
