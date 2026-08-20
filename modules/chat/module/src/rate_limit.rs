@@ -44,7 +44,10 @@ impl RateLimit {
         bucket.add_tokens(&self.settings);
 
         let tokens = bucket.tokens;
-        tracing::debug!("Connection id '{connection_id}' has {tokens} of tokens left");
+        tracing::debug!(
+            "Connection id '{connection_id}' has {tokens} of {} left",
+            self.settings.token_bucket_size
+        );
 
         if tokens == 0 {
             return RateLimitState::TooManyRequests {
