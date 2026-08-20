@@ -39,4 +39,6 @@
     files:
       - compose.yml
     state: "{{ roomserver_docker_compose_services_state }}"
-  when: compose_includes_ready | default(false)
+  when:
+    - compose_service_opentalk_roomserver_enabled | bool
+    - compose_includes_ready | default(false)
