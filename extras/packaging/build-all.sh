@@ -32,6 +32,8 @@ set -euo pipefail
 
 # shellcheck disable=SC1091
 . "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/versions.sh"
 ROOT="$PACKAGING_ROOT"
 PKGDIR="$ROOT/extras/packaging"
 
@@ -84,7 +86,7 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-PYTHON_VERSION="${PYTHON_VERSION:-3.14.6}"
+PYTHON_VERSION="${PYTHON_VERSION:-$(versions_get python_version)}"
 
 UV_BIN="${UV_BIN:-$(command -v uv || true)}"
 export UV_BIN

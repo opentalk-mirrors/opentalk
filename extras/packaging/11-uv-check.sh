@@ -6,10 +6,10 @@
 set -euo pipefail
 # shellcheck disable=SC1091
 . "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/versions.sh"
 
-ROOT="$PACKAGING_ROOT"
-# shellcheck source=/dev/null
-. "$ROOT/extras/packaging/uv.version"
+UV_VERSION="$(versions_get uv_version)"
 
 UV_BIN="${UV_BIN:-$(command -v uv || true)}"
 [[ -x "$UV_BIN" ]] || {

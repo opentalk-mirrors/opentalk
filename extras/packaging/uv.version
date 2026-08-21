@@ -1,6 +1,0 @@
-# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
-#
-# SPDX-License-Identifier: EUPL-1.2
-
-# Build-only uv version. uv is never included in the target package.
-UV_VERSION=0.11.32

@@ -26,6 +26,10 @@ ln -s "$(command -v awk)" "$ONLY_BASH_DIR/awk"
 
 export SOURCE_DATE_EPOCH=1
 
+# build-all.sh reads the default Python version from .versions.yml via
+# versions_get, so the fake root needs one.
+printf 'python_version: 3.14.6\n' > "$FAKE_ROOT/.versions.yml"
+
 make_stage() {
   local name=$1
   local base=${name%.sh}

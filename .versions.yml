@@ -3,30 +3,72 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
+# Single source of truth for component versions. Nothing here may be duplicated
+# elsewhere in the repository; read it with versions_get from
+# extras/packaging/lib/common.sh, or with yq in CI.
+#
+# A Renovate annotation above an entry tells Renovate where to look for updates.
+# Its depName must name the same image as the matching *_docker_image_src in the
+# role defaults under automation/roles/. An entry without an annotation is
+# deliberately not automated, and the comment above it says why.
+
 # OpenTalk Product Version
+# Not automated: this is the version of this repository itself, and
+# lint:release_tag gates it against the git tag.
 opentalk_product_version: v26.2.0
 
 # OpenTalk related Container Image Versions
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/web-frontend
 opentalk_web_frontend_version: v2.9.2
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/controller
 opentalk_controller_version: v0.34.4
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/obelisk
 opentalk_obelisk_version: v0.22.2
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/recorder
 opentalk_recorder_version: v0.17.1
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/roomserver
 opentalk_roomserver_version: v0.1.3
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/smtp-mailer
 opentalk_smtp_mailer_version: v0.18.0
+# renovate: datasource=docker depName=git.opentalk.dev:5050/opentalk/backend/services/orchestrator
 opentalk_orchestrator_version: v0.8.1
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/outlook-add-in
 opentalk_outlook_add_in_version: v0.3.6-2
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/spacedeck
 spacedeck_version: v3.0.3
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/etherpad
 etherpad_version: v2.0.4
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/livekit-server
 livekit_version: v1.13.5
-keycloak_version: v26.7.2
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/keycloak
+keycloak_version: 26.7.2
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/postgres
 postgres_version: 17.11-alpine
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/rabbitmq
 rabbitmq_version: v4.3.4-management-alpine
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/minio versioning=loose
 minio_version: RELEASE.2025-10-15T17-29-55Z
+# Not automated: no consumer in this repository references this pin.
 minio_client_version: RELEASE.2025-08-13T08-35-41Z
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/traefik
 traefik_version: v3.7.10
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/garage
 garage_version: v2.3.0
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/mailcrab
 mailcrab_version: v1.9.0
+# renovate: datasource=docker depName=registry.heinlein.group/opentalk/ndt-server
 ndt_version: v0.25.3
 
 # Tools
+# Not automated: 13-tools-fetch.sh pulls this from the GitLab job artifacts of
+# project 1213, which no Renovate datasource can resolve from an id alone.
 keycloak-theme-generator_version: v0.1.2
+
+# Build toolchain
+# uv builds the package and is never shipped inside it.
+# renovate: datasource=github-releases depName=astral-sh/uv
+uv_version: 0.11.32
+# Python runtime embedded into the package. uv installs it, but the official
+# container image tags track the same releases and are a resolvable datasource.
+# renovate: datasource=docker depName=python versioning=docker
+python_version: 3.14.6

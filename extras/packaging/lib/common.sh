@@ -40,3 +40,6 @@ require_commands() {
     command -v "$command_name" >/dev/null 2>&1 || die deps "required command not found: $command_name"
   done
 }
+
+# Readers for .versions.yml live in lib/versions.sh. Source that file in the
+# stage scripts that actually need a version pin.

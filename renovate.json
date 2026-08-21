@@ -9,13 +9,28 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^extras/packaging/uv\\.version$"],
+      "description": "Component versions in .versions.yml, driven by a '# renovate:' annotation above each entry",
+      "fileMatch": ["^\\.versions\\.yml$"],
       "matchStrings": [
-        "UV_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?\\s*\\n[A-Za-z0-9_.-]+: *\"?(?<currentValue>[^\"\\s]+)\"?"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "OpenTalk's own services are released together, so update them in one MR",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": [
+        "registry.heinlein.group/opentalk/web-frontend",
+        "registry.heinlein.group/opentalk/controller",
+        "registry.heinlein.group/opentalk/obelisk",
+        "registry.heinlein.group/opentalk/recorder",
+        "registry.heinlein.group/opentalk/roomserver",
+        "registry.heinlein.group/opentalk/smtp-mailer",
+        "registry.heinlein.group/opentalk/outlook-add-in",
+        "git.opentalk.dev:5050/opentalk/backend/services/orchestrator"
       ],
-      "depNameTemplate": "astral-sh/uv",
-      "datasourceTemplate": "github-releases",
-      "versioningTemplate": "semver"
+      "groupName": "OpenTalk services"
     }
   ]
 }

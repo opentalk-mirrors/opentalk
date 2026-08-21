@@ -6,7 +6,11 @@
 
 set shell := ["bash", "-ceu"]
 
-version := "26.2.0"
+# The product version comes from .versions.yml, the single source of truth for
+# component versions. CI passes the tag verbatim, including the leading "v", so
+# local builds derive it the same way and produce the same package version.
+version := `sed -n -E 's/^opentalk_product_version:[[:space:]]*([^[:space:]#]+).*$/\1/p' .versions.yml | head -n1`
+# Packaging iteration, not a component version: same sources, rebuilt package.
 release := "1"
 dev_dir := env_var_or_default("OPENTALK_DEV_DIR", "build/opentalk-compose-dev")
 dev_settings_sample := "extras/packaging/config-dist/settings.dev.yml-sample"

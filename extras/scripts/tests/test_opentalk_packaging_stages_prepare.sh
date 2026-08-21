@@ -152,7 +152,21 @@ log_has '(Re)generating lock file'
 # 11-uv-check.sh
 # ===========================================================================
 
-printf 'UV_VERSION=0.5.0\n' > "$ROOT/extras/packaging/uv.version"
+# The uv pin comes from .versions.yml via versions_get, so a missing file or a
+# missing key must abort loudly instead of checking against an empty version.
+rm -f "$ROOT/.versions.yml"
+build_fake_path
+UV_VERSION_STUB=0.5.0 make_uv_stub
+run_stage 11-uv-check.sh 1
+log_has 'versions file not found'
+
+build_fake_path
+UV_VERSION_STUB=0.5.0 make_uv_stub
+printf 'python_version: 3.14.6\n' > "$ROOT/.versions.yml"
+run_stage 11-uv-check.sh 1
+log_has 'key not found'
+
+printf 'uv_version: 0.5.0\n' > "$ROOT/.versions.yml"
 
 # Missing uv aborts.
 build_fake_path
