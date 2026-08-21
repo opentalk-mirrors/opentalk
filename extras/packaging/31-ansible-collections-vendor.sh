@@ -53,7 +53,7 @@ done
 set +x
 
 find "$VENDOR/collections" -maxdepth 4 -type d -name ansible_collections -print | sed 's/^/[vendor] + /' || true
-if ! find "$VENDOR/collections" -maxdepth 3 -type d -name ansible_collections -quit; then
+if ! find "$VENDOR/collections" -maxdepth 3 -type d -name ansible_collections -print -quit | grep -q .; then
   echo "[vendor] ERROR: ansible_collections directory not created."
   exit 1
 fi

@@ -44,6 +44,9 @@ check test_opentalk_check_packaging.sh 90
 check test_opentalk_cleanup.sh 95
 check test_opentalk_build_deps.sh 90
 check test_opentalk_packaging_maintainer_scripts.sh 95
+check test_opentalk_packaging_stages_prepare.sh 95
+check test_opentalk_packaging_stages_build.sh 90
+check test_opentalk_packaging_stages_package.sh 90
 
 # Python coverage: trace the config-reference generator run on the real repo
 # structure; the generated file goes to a temp dir.

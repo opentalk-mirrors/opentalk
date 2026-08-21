@@ -204,6 +204,9 @@ which rpmbuild >/dev/null 2>&1 || { echo "rpmbuild not found. Install rpm-build.
 
 echo "[rpm] Building RPM for version $RPM_VERSION via rpmbuild"
 
+NAME="opentalk-compose"
+ARCH="x86_64"
+
 RPMROOT="$ROOT/build/rpm"
 mkdir -p "$RPMROOT/BUILD" "$RPMROOT/RPMS" "$RPMROOT/SOURCES" "$RPMROOT/SPECS" "$RPMROOT/SRPMS"
 
@@ -257,7 +260,7 @@ echo "[rpm] rpmbuild -ba (version=$RPM_VERSION release=$RELEASE git_commit=$GIT_
   # rpmbuild path: configure XZ_OPT for multi-thread compression if xz supports -T.
   XZ_THREADS="${RPM_XZ_THREADS:-0}"  # 0 means all cores
   XZ_LEVEL="${RPM_COMPRESSION_LEVEL:-3}"
-  if xz --help 2>&1 | grep -q "-T"; then
+  if xz --help 2>&1 | grep -q -- "-T"; then
     export XZ_OPT="-T${XZ_THREADS} -${XZ_LEVEL}"
     echo "[rpm] rpmbuild XZ_OPT=$XZ_OPT"
   else

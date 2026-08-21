@@ -20,7 +20,7 @@ CURL_AUTH_OPTS=()
 # Simple YAML value parser (key: value format only)
 get_version() {
   local key="$1"
-  grep -E "^${key}:" "$VERSIONS_FILE" | sed 's/^[^:]*:[[:space:]]*//' | tr -d '"' | tr -d "'"
+  grep -E "^${key}:" "$VERSIONS_FILE" | sed 's/^[^:]*:[[:space:]]*//' | tr -d '"' | tr -d "'" || true
 }
 
 mkdir -p "$OUTDIR"

@@ -12,6 +12,7 @@ SPDX-FileCopyrightText = "OpenTalk GmbH <mail@opentalk.eu>"
 SPDX-License-Identifier = "EUPL-1.2"
 path = [
   ".commitlintrc.json",
+  ".vscode/settings.json",
   "CHANGELOG.md",
   "automation/roles/opentalk_compose_keycloak/files/**",
   "extras/packaging/config-dist/**",
