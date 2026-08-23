@@ -75,7 +75,7 @@ while [[ $# -gt 0 ]]; do
       if ! $PACKAGE_FLAG_SEEN; then DO_RPM=false; PACKAGE_FLAG_SEEN=true; fi
       DO_DEB=true
       ;;
-    --auto-revision) AUTO_REVISION=true ;;
+    --auto-revision) AUTO_REVISION=1 ;;
     --clean) DO_CLEAN=true ;;
     --no-python) NO_PYTHON_FETCH=true ;;
     --force) FORCE_REFRESH=1 ;;

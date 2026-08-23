@@ -21,6 +21,11 @@ FAKE_TOOLS="$TMP_DIR/tools"
 export PACKAGING_ROOT="$ROOT"
 export SOURCE_DATE_EPOCH=1700000000
 
+# shellcheck disable=SC1091 # sourced bash libraries, path built at runtime
+. "$REPO_ROOT/extras/packaging/lib/common.sh"
+# shellcheck disable=SC1091 # sourced bash library, path built at runtime
+. "$REPO_ROOT/extras/packaging/lib/versions.sh"
+
 mkdir -p "$ROOT/build" "$ROOT/extras/packaging"
 mkdir -p "$FAKE_TOOLS"
 
@@ -162,7 +167,7 @@ log_has 'versions file not found'
 
 build_fake_path
 UV_VERSION_STUB=0.5.0 make_uv_stub
-printf 'python_version: 3.14.6\n' > "$ROOT/.versions.yml"
+printf 'python_version: %s\n' "$(VERSIONS_FILE="$REPO_ROOT/.versions.yml" versions_get python_version)" > "$ROOT/.versions.yml"
 run_stage 11-uv-check.sh 1
 log_has 'key not found'
 

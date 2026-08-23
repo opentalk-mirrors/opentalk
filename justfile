@@ -61,7 +61,7 @@ build-rpm:
 
 # Build both Debian and RPM packages.
 build:
-    extras/packaging/build-all.sh --deb --rpm --version {{version}} --release {{release}}
+    extras/packaging/build-all.sh --deb --rpm --auto-revision --version {{version}} --release {{release}}
 
 # Build both packages with an automatically derived local revision.
 build-local:

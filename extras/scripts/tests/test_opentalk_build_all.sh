@@ -27,8 +27,14 @@ ln -s "$(command -v awk)" "$ONLY_BASH_DIR/awk"
 export SOURCE_DATE_EPOCH=1
 
 # build-all.sh reads the default Python version from .versions.yml via
-# versions_get, so the fake root needs one.
-printf 'python_version: 3.14.6\n' > "$FAKE_ROOT/.versions.yml"
+# versions_get, so the fake root needs one. Source the real pin so the test
+# tracks .versions.yml instead of duplicating it.
+# shellcheck disable=SC1091 # sourced bash libraries, path built at runtime
+. "$REPO_ROOT/extras/packaging/lib/common.sh"
+# shellcheck disable=SC1091 # sourced bash library, path built at runtime
+. "$REPO_ROOT/extras/packaging/lib/versions.sh"
+PYTHON_VERSION="$(VERSIONS_FILE="$REPO_ROOT/.versions.yml" versions_get python_version)"
+printf 'python_version: %s\n' "$PYTHON_VERSION" > "$FAKE_ROOT/.versions.yml"
 
 make_stage() {
   local name=$1
@@ -57,7 +63,8 @@ make_stage 40-ansible-venv-build.sh
 make_stage 50-embed-assemble.sh
 # shellcheck disable=SC2016 # Stub body defers $FAKE_ROOT expansion.
 make_stage 60-pkg-stage.sh 'if [[ "${NO_PKGROOT_VENDOR:-}" != "1" ]]; then mkdir -p "$FAKE_ROOT/build/pkgroot/opt/opentalk-compose/runtime/vendor/collections/ansible_collections/x"; fi'
-make_stage 70-pkg-build-deb.sh
+# shellcheck disable=SC2016 # Stub body defers ${AUTO_REVISION} expansion.
+make_stage 70-pkg-build-deb.sh 'echo "[stub] AUTO_REVISION=${AUTO_REVISION}"'
 # shellcheck disable=SC2016 # Stub body uses the $FAIL_RPM env at runtime.
 make_stage 80-pkg-build-rpm.sh 'if [[ "${FAIL_RPM:-}" == "1" ]]; then exit 1; fi'
 make_stage 90-cleanup.sh
@@ -262,6 +269,15 @@ grep -q '\[rpm\] Explicit rpm release: 5' "$RUN_LOG"
 # --auto-revision / --force / --verbose are accepted and often combined.
 run_build 0 --deb --auto-revision --force --verbose
 takes '70-pkg-build-deb|'
+
+# Regression: --auto-revision must export AUTO_REVISION=1 (not "true") so the
+# packaging stages, which compare against the literal "1", can bump the revision.
+run_build 0 --deb --auto-revision
+grep -Fq 'AUTO_REVISION=1' "$RUN_LOG" || {
+  echo "--auto-revision must export AUTO_REVISION=1." >&2
+  cat "$RUN_LOG" >&2
+  exit 1
+}
 
 # --deb alone prints the single-target package summary.
 run_build 0 --deb
