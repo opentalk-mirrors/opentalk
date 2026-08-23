@@ -391,7 +391,7 @@ Health column semantics (`otctl status`):
 
 The SMTP Mailer service sends transactional emails for OpenTalk (meeting invitations, notifications). It connects to a configured SMTP server and derives sender addresses and links from your `ot_domain` setting. The mailer requires valid credentials for your SMTP server; therefore it is disabled by default until configured.
 
-For a full list of available SMTP Mailer configuration variables see the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_smtp_mailer).
+For a full list of available SMTP Mailer configuration variables see the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_compose_opentalk_smtp_mailer).
 
 ### 3.2 Enable & Configure SMTP Mailer
 
@@ -464,7 +464,7 @@ Obelisk is a SIP (Session Initiation Protocol) telephony bridge service that ena
 - Connect from SIP-enabled desk phones
 - Provide dial-in access for participants without internet or video capabilities
 
-For all Obelisk-related configuration variables refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_obelisk).
+For all Obelisk-related configuration variables refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_compose_opentalk_obelisk).
 
 Obelisk requires credentials for your SIP provider or PBX system, so it is disabled by default.
 
@@ -595,7 +595,7 @@ Look for successful SIP registration messages. If there are connection issues, v
 3. Network connectivity to SIP server
 4. DNS resolution of SIP server hostname
 
-For detailed configuration options, refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_obelisk).
+For detailed configuration options, refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_compose_opentalk_obelisk).
 
 ## 5. Optional: TURN over TLS with Embedded TURN Server (LiveKit)
 

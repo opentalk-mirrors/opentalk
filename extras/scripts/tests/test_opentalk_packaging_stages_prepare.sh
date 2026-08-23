@@ -323,7 +323,7 @@ log_has 'already cached. Skip.'
 # No token -> abort.
 build_fake_path
 rm -f "$ROOT/build/tools/keycloak-theme-generator"
-run_stage 13-tools-fetch.sh 1
+GITLAB_TOKEN='' CI_JOB_TOKEN='' run_stage 13-tools-fetch.sh 1
 log_has 'No GitLab token found'
 
 # Download path with GITLAB_TOKEN: curl + unzip stubs produce the binary.

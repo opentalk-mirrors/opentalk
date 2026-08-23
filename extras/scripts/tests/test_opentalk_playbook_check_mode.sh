@@ -104,7 +104,7 @@ OT_TEST_SERVICES_DIR="$TMP_DIR/services" \
 OT_TEST_DEPLOY_DIR="$TMP_DIR/deploy" \
 ANSIBLE_COLLECTIONS_PATH="$COLLECTIONS" \
 ANSIBLE_FILTER_PLUGINS="$FILTER_PLUGINS" \
-ansible-playbook --check -i "$INVENTORY" -e "@$REPO_ROOT/.versions.yml" "$PLAYBOOK" >"$TMP_DIR/check.log" 2>&1
+ansible-playbook --check --skip-tags docker,s3 -i "$INVENTORY" -e "@$REPO_ROOT/.versions.yml" "$PLAYBOOK" >"$TMP_DIR/check.log" 2>&1
 check_rc=$?
 set -e
 

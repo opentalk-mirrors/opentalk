@@ -171,6 +171,7 @@ def main() -> int:
     with os.fdopen(bash_env_fd, "w") as fh:
         fh.write(f"exec 3>>{trace_path}\n")
         fh.write("BASH_XTRACEFD=3\n")
+        fh.write("PS4='+@${BASH_SOURCE}:${LINENO} '\n")
         fh.write("set -x\n")
     with os.fdopen(trace_fd, "w"):
         pass

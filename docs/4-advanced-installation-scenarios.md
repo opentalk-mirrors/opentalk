@@ -331,7 +331,7 @@ otctl deploy
 
 ## 3 External OpenTalk Recorder-only nodes
 
-Recording meetings can be resource intensive. Offloading the Recorder service to a dedicated host is appropriate if recordings are frequent or occur in parallel. Ideally that host provides compatible GPUs to enable hardware acceleration (see <https://docs.opentalk.eu/admin/recorder/hardware_acceleration/>). Some security precautions are required: the external Recorder host must reach RabbitMQ on port `5672/tcp`, which is currently only possible unencrypted. Ensure the RabbitMQ port is not publicly exposed (bind to a private interface or restrict via firewall). The Recorder should communicate with RabbitMQ over a private, trusted network. Confirm the necessary network infrastructure and firewall rules are in place before proceeding. See also the configuration reference for relevant variables: [Recorder service options](./5-configuration-options-reference.md#opentalk_composeopentalk_recorder) and [RabbitMQ options](./5-configuration-options-reference.md#opentalk_composerabbitmq).
+Recording meetings can be resource intensive. Offloading the Recorder service to a dedicated host is appropriate if recordings are frequent or occur in parallel. Ideally that host provides compatible GPUs to enable hardware acceleration (see <https://docs.opentalk.eu/admin/recorder/hardware_acceleration/>). Some security precautions are required: the external Recorder host must reach RabbitMQ on port `5672/tcp`, which is currently only possible unencrypted. Ensure the RabbitMQ port is not publicly exposed (bind to a private interface or restrict via firewall). The Recorder should communicate with RabbitMQ over a private, trusted network. Confirm the necessary network infrastructure and firewall rules are in place before proceeding. See also the configuration reference for relevant variables: [Recorder service options](./5-configuration-options-reference.md#opentalk_compose_opentalk_recorder) and [RabbitMQ options](./5-configuration-options-reference.md#opentalk_compose_rabbitmq).
 
 ### 3.1 Prepare the OpenTalk server configuration
 
@@ -800,7 +800,7 @@ Before enabling it, ensure:
 
 Configuration reference:
 
-- [RoomServer configuration options](5-configuration-options-reference.md#opentalk_composeopentalk_roomserver)
+- [RoomServer configuration options](5-configuration-options-reference.md#opentalk_compose_opentalk_roomserver)
 
 ### 8.1 Enable RoomServer
 
@@ -860,7 +860,7 @@ Orchestrator is optional, disabled by default, and currently in preview.
 
 Configuration reference:
 
-- [Orchestrator configuration options](5-configuration-options-reference.md#opentalk_composeopentalk_orchestrator)
+- [Orchestrator configuration options](5-configuration-options-reference.md#opentalk_compose_opentalk_orchestrator)
 
 ### 9.1 Enable Orchestrator (preview/testing)
 

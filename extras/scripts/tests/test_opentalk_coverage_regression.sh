@@ -23,8 +23,10 @@ check() {
   local test_script="$REPO_ROOT/extras/scripts/tests/$test_name"
   local out
   local rc
+  set +e
   out=$("$MEASURE" --threshold "$threshold" --verbose "$test_script" 2>&1)
   rc=$?
+  set -e
   if [[ $rc -ne 0 ]]; then
     printf '%s\n' "$out"
     echo "FAIL: $test_name coverage below threshold ${threshold}%." >&2
@@ -60,8 +62,10 @@ if ! python3 -c 'import yaml' >/dev/null 2>&1; then
 fi
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
+set +e
 py_out=$("$PY_MEASURE" --threshold 75 --verbose "$PY_GENERATOR" --output "$TMP_DIR/reference.md" 2>&1)
 py_rc=$?
+set -e
 if [[ $py_rc -ne 0 ]]; then
   printf '%s\n' "$py_out"
   echo "FAIL: Python coverage below threshold 75%." >&2
