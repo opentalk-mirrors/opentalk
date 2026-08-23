@@ -67,7 +67,7 @@ keycloak-theme-generator_version: v0.1.2
 # Build toolchain
 # uv builds the package and is never shipped inside it.
 # renovate: datasource=github-releases depName=astral-sh/uv
-uv_version: 0.11.32
+uv_version: 0.12.3
 # Python runtime embedded into the package. uv installs it, but the official
 # container image tags track the same releases and are a resolvable datasource.
 # renovate: datasource=docker depName=python versioning=docker

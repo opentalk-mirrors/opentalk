@@ -56,7 +56,7 @@ cat > "$TMP_DIR/.versions.yml" <<'VERSIONS'
 ---
 # a comment line that must never match
 opentalk_product_version: v26.2.0-beta.1
-uv_version: 0.11.32
+uv_version: 0.12.3
 python_version: 3.14.6
 quoted_version: "1.2.3"
 trailing_comment_version: 9.9.9  # inline comment
@@ -73,7 +73,7 @@ versions_expect() {
 }
 
 versions_expect opentalk_product_version v26.2.0-beta.1
-versions_expect uv_version 0.11.32
+versions_expect uv_version 0.12.3
 versions_expect python_version 3.14.6
 versions_expect quoted_version 1.2.3
 versions_expect trailing_comment_version 9.9.9
