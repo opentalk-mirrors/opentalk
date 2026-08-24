@@ -46,7 +46,7 @@ paths:
       security:
         - Livekit-Token: []
   /livekit/rtc/validate:
-    post:
+    get:
       tags:
         - livekit_proxy
       summary: Proxies the LiveKit validate request to the upstream livekit service via the room task
