@@ -51,6 +51,7 @@ services_dir: test/services
 deploy_dir: test/deploy
 compose_project_name: opentalk
 docker_network_name: opentalk-net
+compose_service_traefik_enabled: true
 traefik_letsencrypt_enable: false
 custom_certificates_enabled: false
 YAML
@@ -137,5 +138,13 @@ with open(sys.argv[1], encoding="utf-8") as f:
     yaml.safe_load(f)
 PY
 done
+
+KEYCLOAK_RENDERED="$TMP_DIR/opentalk_compose_keycloak.yml"
+if grep -q '"443:8080"' "$KEYCLOAK_RENDERED"; then
+  echo "Keycloak must not publish the ingress port when Traefik is enabled." >&2
+  exit 1
+fi
+grep -q '"9080:9000"' "$KEYCLOAK_RENDERED" \
+  || { echo "Keycloak management port must remain published." >&2; exit 1; }
 
 echo "Compose template rendering tests passed (${#template_files[@]} templates)."
