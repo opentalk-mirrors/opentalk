@@ -192,7 +192,8 @@ if command -v fpm >/dev/null 2>&1; then
     -C "$PKGROOT" \
     --after-install "$PKGROOT/opt/opentalk-compose/bin/pkg-postinst.sh" \
     "${AFTER_REMOVE_ARGS[@]}" \
-    -p "$RPM_FILE"
+    -p "$RPM_FILE" \
+    .
   [ -f "$RPM_FILE" ] || { echo "[rpm] ERROR: fpm did not produce rpm" >&2; exit 5; }
   validate_rpm "$RPM_FILE" || exit 6
   echo "[rpm] Built (fpm): $RPM_FILE"

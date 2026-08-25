@@ -196,7 +196,7 @@ if command -v fpm >/dev/null 2>&1; then
     --provides "$PACKAGE_NAME" \
     --depends "docker-ce | docker-ee" \
     --depends "docker-compose-plugin")
-  FPM_CMD+=(-C "$PKGROOT" -p "$PKG_FILE")
+  FPM_CMD+=(-C "$PKGROOT" -p "$PKG_FILE" .)
   "${FPM_CMD[@]}"
   [ -f "$PKG_FILE" ] || fail "fpm did not produce expected package at $PKG_FILE"
 else
