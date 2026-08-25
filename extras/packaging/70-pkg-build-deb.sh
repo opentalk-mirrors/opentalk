@@ -196,7 +196,7 @@ if command -v fpm >/dev/null 2>&1; then
     --provides "$PACKAGE_NAME" \
     --depends "docker-ce | docker-ee" \
     --depends "docker-compose-plugin")
-  FPM_CMD+=(-C "$PKGROOT" -p "$PKG_FILE" .)
+  FPM_CMD+=(-p "$PKG_FILE" "$PKGROOT/=/")
   "${FPM_CMD[@]}"
   [ -f "$PKG_FILE" ] || fail "fpm did not produce expected package at $PKG_FILE"
 else
@@ -246,6 +246,13 @@ fi
 if ! grep -q "^/etc/opentalk-compose/settings.yml" "$INSPECT_DIR/DEBIAN/conffiles"; then
   fail "settings.yml not marked as conffile"
 fi
+
+for p in \
+  opt/opentalk-compose/runtime/python/bin/python3 \
+  opt/opentalk-compose/runtime/venv/bin/python3 \
+  opt/opentalk-compose/runtime/venv/bin/ansible; do
+  [ -x "$INSPECT_DIR/$p" ] || fail "Package payload missing executable: /$p"
+done
 
 echo "[build-deb] Built: $PKG_FILE"
 \ls -lh "$PKG_FILE"

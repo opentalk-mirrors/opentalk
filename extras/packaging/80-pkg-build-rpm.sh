@@ -189,11 +189,10 @@ if command -v fpm >/dev/null 2>&1; then
     --provides "$PACKAGE_NAME" \
     --depends "(docker-ce or docker-ee or docker)" \
     --depends "(docker-compose-plugin or docker-compose)" \
-    -C "$PKGROOT" \
     --after-install "$PKGROOT/opt/opentalk-compose/bin/pkg-postinst.sh" \
     "${AFTER_REMOVE_ARGS[@]}" \
     -p "$RPM_FILE" \
-    .
+    "$PKGROOT/=/"
   [ -f "$RPM_FILE" ] || { echo "[rpm] ERROR: fpm did not produce rpm" >&2; exit 5; }
   validate_rpm "$RPM_FILE" || exit 6
   echo "[rpm] Built (fpm): $RPM_FILE"

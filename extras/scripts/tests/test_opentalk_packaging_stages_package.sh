@@ -107,6 +107,13 @@ if [[ "${1:-}" == "-R" || "${1:-}" == "--contents" ]]; then
   args=("$@"); d="${args[-1]}"
   mkdir -p "$d/DEBIAN"
   printf '/etc/opentalk-compose/settings.yml\n' > "$d/DEBIAN/conffiles"
+  mkdir -p "$d/opt/opentalk-compose/runtime/python/bin" "$d/opt/opentalk-compose/runtime/venv/bin"
+  for p in opt/opentalk-compose/runtime/python/bin/python3 \
+           opt/opentalk-compose/runtime/venv/bin/python3 \
+           opt/opentalk-compose/runtime/venv/bin/ansible; do
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$d/$p"
+    chmod +x "$d/$p"
+  done
   exit 0
 fi
   exit 0
@@ -131,6 +138,13 @@ if [[ "${1:-}" == "-R" || "${1:-}" == "--contents" ]]; then
   args=("$@"); d="${args[-1]}"
   mkdir -p "$d/DEBIAN"
   printf '/etc/opentalk-compose/settings.yml\n' > "$d/DEBIAN/conffiles"
+  mkdir -p "$d/opt/opentalk-compose/runtime/python/bin" "$d/opt/opentalk-compose/runtime/venv/bin"
+  for p in opt/opentalk-compose/runtime/python/bin/python3 \
+           opt/opentalk-compose/runtime/venv/bin/python3 \
+           opt/opentalk-compose/runtime/venv/bin/ansible; do
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$d/$p"
+    chmod +x "$d/$p"
+  done
   exit 0
 fi
 exit 0
