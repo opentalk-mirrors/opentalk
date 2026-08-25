@@ -472,7 +472,7 @@ int:experimental:
     - when: never
   variables:
     OT_SETTINGS: |
-      ot_domain: 'localhost'
+      ot_domain: 'host.docker.internal'
       ot_ingress_port: 443
       ot_ingress_protocol: https
       config_dir: "/etc/opentalk-compose"
@@ -578,7 +578,7 @@ int:pre-release:
     - when: never
   variables:
     OT_SETTINGS: |
-      ot_domain: 'localhost'
+      ot_domain: 'host.docker.internal'
       ot_ingress_port: 443
       ot_ingress_protocol: https
       config_dir: "/etc/opentalk-compose"
@@ -672,7 +672,7 @@ int:stable:
     - when: never
   variables:
     OT_SETTINGS: |
-      ot_domain: 'localhost'
+      ot_domain: 'host.docker.internal'
       ot_ingress_port: 443
       ot_ingress_protocol: https
       config_dir: "/etc/opentalk-compose"
