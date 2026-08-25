@@ -465,6 +465,8 @@ int:experimental:
       - DIST: rocky10
       - DIST: debian12
         EXTRA_OPTIONAL_SERVICES: "with-optional-services"
+      - DIST: rocky10
+        EXTRA_OPTIONAL_SERVICES: "with-optional-services"
   image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
   needs:
     - job: package:experimental
@@ -544,6 +546,14 @@ int:experimental:
               echo "Installing ${RPM_FILE}..."
               dnf install -y "$RPM_FILE" --nogpgcheck
               echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
+              if [ "${EXTRA_OPTIONAL_SERVICES:-}" = "with-optional-services" ]; then
+                  sed -i \
+                      -e 's/^compose_service_opentalk_orchestrator_enabled: false$/compose_service_opentalk_orchestrator_enabled: true/' \
+                      -e 's/^compose_service_opentalk_obelisk_enabled: false$/compose_service_opentalk_obelisk_enabled: true/' \
+                      -e 's/^compose_service_opentalk_outlook_add_in_enabled: false$/compose_service_opentalk_outlook_add_in_enabled: true/' \
+                      /etc/opentalk-compose/settings.yml
+                  echo "Extra optional services (orchestrator, obelisk, outlook) enabled for this distro slot."
+              fi
               otctl deploy
               COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
               COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_smtp_mailer_rabbitmq.sh
