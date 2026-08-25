@@ -252,6 +252,11 @@ for p in \
   opt/opentalk-compose/runtime/venv/bin/python3 \
   opt/opentalk-compose/runtime/venv/bin/ansible; do
   [ -x "$INSPECT_DIR/$p" ] || fail "Package payload missing executable: /$p"
+  resolved="$(realpath -m "$INSPECT_DIR/$p")"
+  case "$resolved" in
+    "$INSPECT_DIR"/*) ;;
+    *) fail "Package payload symlink escapes package root: /$p -> $resolved" ;;
+  esac
 done
 
 echo "[build-deb] Built: $PKG_FILE"

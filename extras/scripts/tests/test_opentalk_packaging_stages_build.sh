@@ -402,6 +402,10 @@ chmod +x "$FAKE_TOOLS/uv"
 run_stage 40-ansible-venv-build.sh 0
 log_has '(Re)building...'
 log_has 'Ready.'
+[[ "$(readlink "$ROOT/build/pkgroot/opt/opentalk-compose/runtime/venv/bin/python")" == '../../python/bin/python3' ]] \
+  || { echo "venv python symlink must be package-relative." >&2; exit 1; }
+[[ "$(readlink "$ROOT/build/pkgroot/opt/opentalk-compose/runtime/venv/bin/python3")" == 'python' ]] \
+  || { echo "venv python3 symlink must target python." >&2; exit 1; }
 
 # ===========================================================================
 # 50-embed-assemble.sh

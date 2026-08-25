@@ -42,7 +42,7 @@ build_fake_path() {
   rm -rf "$ROOT/build" "$ROOT/automation" "$ROOT/extras" "$ROOT/opt" "$ROOT/artifacts"
   mkdir -p "$ROOT/build" "$ROOT/extras/packaging"
   for tool in bash env dirname pwd echo cat rm mkdir cp mv chmod ln find \
-      sort tail printf awk grep sed tr sha256sum install mktemp date head wc ls rsync which touch git gzip xz; do
+      sort tail printf awk grep sed tr sha256sum install mktemp date head wc ls rsync which touch git gzip xz realpath; do
     if command -v "$tool" >/dev/null 2>&1; then
       ln -s "$(command -v "$tool")" "$FAKE_TOOLS/$tool"
     fi

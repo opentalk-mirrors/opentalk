@@ -37,6 +37,12 @@ fi
 echo "[venv] (Re)building..."
 rm -rf "$VENV_DEST"
 "$UV_BIN" venv --no-project --no-python-downloads --python "$PYBIN" "$VENV_DEST"
+ln -sfn ../../python/bin/python3 "$VENV_DEST/bin/python"
+ln -sfn python "$VENV_DEST/bin/python3"
+PYTHON_ABI="$($PYBIN -c 'import sys; print(f"python{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
+if [[ -n "$PYTHON_ABI" ]]; then
+  ln -sfn python "$VENV_DEST/bin/$PYTHON_ABI"
+fi
 "$UV_BIN" pip install --python "$VENV_DEST/bin/python" --offline --no-index --find-links "$WHL" --require-hashes -r "$REQ"
 echo "$CUR_HASH" > "$MARKER_HASH"
 echo "[venv] Ready."
