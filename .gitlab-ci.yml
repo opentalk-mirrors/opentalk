@@ -167,7 +167,15 @@ docs:mkdocs:
     entrypoint: ['']
   <<: *default_conditions
   script:
-    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+    # The privacy plugin fetches external assets (e.g. Google Fonts); retry on
+    # transient network timeouts.
+    - |
+      for i in 1 2 3; do
+        mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict && exit 0
+        echo "mkdocs build attempt $i failed; retrying..."
+        sleep 10
+      done
+      exit 1
   artifacts:
     paths:
       - site/

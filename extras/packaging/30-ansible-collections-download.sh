@@ -32,9 +32,19 @@ fi
 echo "[collections] Downloading (changed or forced)..."
 rm -f "$OUT"/*.tar.gz 2>/dev/null || true
 ANSIBLE_GALAXY="${ANSIBLE_GALAXY_BIN:-ansible-galaxy}"
-set -x
-$ANSIBLE_GALAXY collection download -r "$REQ" -p "$OUT"
-set +x
+# Retry: the Galaxy API occasionally returns a malformed response, causing
+# ansible-galaxy to fail with "KeyError: 'results'".
+attempt=1
+max_attempts=3
+until $ANSIBLE_GALAXY collection download -r "$REQ" -p "$OUT"; do
+  if [[ $attempt -ge $max_attempts ]]; then
+    echo "[collections] ERROR: download failed after $attempt attempts." >&2
+    exit 1
+  fi
+  echo "[collections] Download attempt $attempt failed; retrying..." >&2
+  attempt=$((attempt + 1))
+  sleep 5
+done
 echo "$CUR_HASH" > "$STATE"
 
 count=$(\ls -1 "$OUT"/*.tar.gz 2>/dev/null | wc -l || true)
