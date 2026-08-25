@@ -464,7 +464,7 @@ int:experimental:
       - DIST: rocky9
       - DIST: rocky10
       - DIST: debian12
-        EXTRA_OPTIONAL_SERVICES: "true"
+        EXTRA_OPTIONAL_SERVICES: "with-optional-services"
   image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
   needs:
     - job: package:experimental
@@ -525,7 +525,7 @@ int:experimental:
               echo "Installing ${DEB_FILE}..."
               dpkg -i "$DEB_FILE" || apt-get install -f -y
               echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              if [ "${EXTRA_OPTIONAL_SERVICES:-}" = "true" ]; then
+              if [ "${EXTRA_OPTIONAL_SERVICES:-}" = "with-optional-services" ]; then
                   sed -i \
                       -e 's/^compose_service_opentalk_orchestrator_enabled: false$/compose_service_opentalk_orchestrator_enabled: true/' \
                       -e 's/^compose_service_opentalk_obelisk_enabled: false$/compose_service_opentalk_obelisk_enabled: true/' \
