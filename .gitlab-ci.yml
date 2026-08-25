@@ -443,6 +443,8 @@ upload:experimental:
 .int_before_script:
   before_script:
     - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" git.opentalk.dev:5050
+    # containers resolve this via extra_hosts; the host process needs it too
+    - echo "127.0.0.1 opentalk-ci.test" >> /etc/hosts
 
 # ------------------------------
 # INTEGRATION TESTS
@@ -472,7 +474,7 @@ int:experimental:
     - when: never
   variables:
     OT_SETTINGS: |
-      ot_domain: 'host.docker.internal'
+      ot_domain: 'opentalk-ci.test'
       ot_ingress_port: 443
       ot_ingress_protocol: https
       config_dir: "/etc/opentalk-compose"
@@ -501,6 +503,15 @@ int:experimental:
       custom_certificates_fullchain_cert_file: fullchain.crt
       custom_certificates_private_key_file: privkey.key
       custom_certificates_ca_root_cert_file: ca.crt
+      controller_docker_extra_hosts:
+        - "host.docker.internal:host-gateway"
+        - "opentalk-ci.test:host-gateway"
+      recorder_docker_extra_hosts:
+        - "host.docker.internal:host-gateway"
+        - "opentalk-ci.test:host-gateway"
+      obelisk_docker_extra_hosts:
+        - "host.docker.internal:host-gateway"
+        - "opentalk-ci.test:host-gateway"
   before_script:
     - !reference [.int_before_script, before_script]
   script:
@@ -578,7 +589,7 @@ int:pre-release:
     - when: never
   variables:
     OT_SETTINGS: |
-      ot_domain: 'host.docker.internal'
+      ot_domain: 'opentalk-ci.test'
       ot_ingress_port: 443
       ot_ingress_protocol: https
       config_dir: "/etc/opentalk-compose"
@@ -606,6 +617,15 @@ int:pre-release:
       custom_certificates_fullchain_cert_file: fullchain.crt
       custom_certificates_private_key_file: privkey.key
       custom_certificates_ca_root_cert_file: ca.crt
+      controller_docker_extra_hosts:
+        - "host.docker.internal:host-gateway"
+        - "opentalk-ci.test:host-gateway"
+      recorder_docker_extra_hosts:
+        - "host.docker.internal:host-gateway"
+        - "opentalk-ci.test:host-gateway"
+      obelisk_docker_extra_hosts:
+        - "host.docker.internal:host-gateway"
+        - "opentalk-ci.test:host-gateway"
   before_script:
     - !reference [.int_before_script, before_script]
   script:
@@ -672,7 +692,7 @@ int:stable:
     - when: never
   variables:
     OT_SETTINGS: |
-      ot_domain: 'host.docker.internal'
+      ot_domain: 'opentalk-ci.test'
       ot_ingress_port: 443
       ot_ingress_protocol: https
       config_dir: "/etc/opentalk-compose"
@@ -700,6 +720,15 @@ int:stable:
       custom_certificates_fullchain_cert_file: fullchain.crt
       custom_certificates_private_key_file: privkey.key
       custom_certificates_ca_root_cert_file: ca.crt
+      controller_docker_extra_hosts:
+        - "host.docker.internal:host-gateway"
+        - "opentalk-ci.test:host-gateway"
+      recorder_docker_extra_hosts:
+        - "host.docker.internal:host-gateway"
+        - "opentalk-ci.test:host-gateway"
+      obelisk_docker_extra_hosts:
+        - "host.docker.internal:host-gateway"
+        - "opentalk-ci.test:host-gateway"
   before_script:
     - !reference [.int_before_script, before_script]
   script:
