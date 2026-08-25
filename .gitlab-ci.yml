@@ -463,7 +463,7 @@ int:experimental:
       - DIST: opensuse16
       - DIST: rocky9
       - DIST: rocky10
-      - DIST: debian12
+      - DIST: debian13
         EXTRA_OPTIONAL_SERVICES: "with-optional-services"
       - DIST: rocky10
         EXTRA_OPTIONAL_SERVICES: "with-optional-services"
