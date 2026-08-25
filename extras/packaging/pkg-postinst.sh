@@ -59,4 +59,18 @@ EXPECTED="$(cat "$REQ_HASH")"
 ACTUAL="$(sha256sum "$REQ_TXT" | awk '{print $1}')"
 [[ "$EXPECTED" == "$ACTUAL" ]] || { log "Requirements hash mismatch."; exit 1; }
 
+# Console scripts in the embedded venv can keep absolute shebangs from the
+# build path. Rebase them to this installation before wrappers execute them.
+for script in "$VENV_DIR"/bin/*; do
+  [ -f "$script" ] || continue
+  IFS= read -r first_line < "$script" || continue
+  case "$first_line" in
+    '#!'*) sed -i "1s|^#!.*|#!$VENV_DIR/bin/python3|" "$script" ;;
+  esac
+done
+
+if [ -f "$VENV_DIR/pyvenv.cfg" ]; then
+  sed -i "s|^home =.*|home = $RUNTIME_DIR/python/bin|" "$VENV_DIR/pyvenv.cfg" || true
+fi
+
 log "Embedded Python runtime verified; no target-side package installation required."

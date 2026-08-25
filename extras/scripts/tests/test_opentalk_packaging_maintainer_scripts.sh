@@ -53,10 +53,11 @@ make_valid_runtime() {
   mkdir -p "$root/runtime/python/bin" "$root/runtime/venv/bin" "$root/runtime/build_assets"
   printf '#!/bin/sh\ntrue\n' > "$root/runtime/python/bin/python3"
   chmod +x "$root/runtime/python/bin/python3"
-  for bin in venv/bin/python3 venv/bin/ansible; do
+  for bin in venv/bin/python3 venv/bin/ansible venv/bin/ansible-playbook; do
     printf '#!/bin/sh\ntrue\n' > "$root/runtime/$bin"
     chmod +x "$root/runtime/$bin"
   done
+  printf 'home = /builds/opentalk/opentalk-devops/opentalk-compose/build/python/bin\n' > "$root/runtime/venv/pyvenv.cfg"
   printf 'ansible==9.0.0\n' > "$root/runtime/build_assets/requirements-ansible.txt"
   sha256sum "$root/runtime/build_assets/requirements-ansible.txt" \
     | awk '{print $1}' > "$root/runtime/build_assets/requirements-ansible.sha256"
@@ -213,6 +214,16 @@ cmp -s "$CFG_DIR/settings.yml" <(printf 'settings: true\n') \
   || { echo "happy path must not overwrite settings.yml." >&2; exit 1; }
 [[ $(stat -c '%a' "$CFG_DIR/secrets") == "700" ]] || { echo "secrets dir must be 0700." >&2; exit 1; }
 [[ $(stat -c '%a' "$CFG_DIR/ssl") == "700" ]] || { echo "ssl dir must be 0700." >&2; exit 1; }
+
+# Build-time shebangs in embedded venv console scripts are rebased at install time.
+printf '#!/builds/opentalk/opentalk-devops/opentalk-compose/build/pkgroot/opt/opentalk-compose/runtime/venv/bin/python\nprint("stub")\n' \
+  > "$PREFIX/runtime/venv/bin/ansible-playbook"
+run_postinst 0
+head -n 1 "$PREFIX/runtime/venv/bin/ansible-playbook" \
+  | grep -q "^#!$PREFIX/runtime/venv/bin/python3$" \
+  || { echo "postinst must rebase venv script shebangs." >&2; exit 1; }
+grep -q "^home = $PREFIX/runtime/python/bin$" "$PREFIX/runtime/venv/pyvenv.cfg" \
+  || { echo "postinst must rebase pyvenv.cfg home." >&2; exit 1; }
 
 # Missing config dirs are created with the right permissions.
 rm -rf "$CFG_DIR"
