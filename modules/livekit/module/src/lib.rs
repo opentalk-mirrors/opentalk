@@ -72,7 +72,10 @@ pub struct LiveKitModule {
     livekit_client: Arc<RoomClient>,
 
     rooms: HashMap<RoomKind, LiveKitSubroom>,
-    proxy_shutdown: HashMap<(ParticipantId, ConnectionId), ShutdownSender>,
+
+    /// One connection can own several proxied sockets at once (the main media stream and any
+    /// popout streams), so every shutdown sender is kept instead of replacing the previous one.
+    proxy_shutdown: HashMap<(ParticipantId, ConnectionId), Vec<ShutdownSender>>,
 }
 
 impl SignalingModuleDescription for LiveKitModule {
@@ -396,12 +399,15 @@ impl LiveKitModule {
         // meeting
         let (shutdown_tx, shutdown_rx) = ShutdownSender::new();
         let shutdown_key = (participant_id, connection_id);
-        self.proxy_shutdown.insert(shutdown_key, shutdown_tx);
 
         if return_channel.send(()).is_err() {
-            self.proxy_shutdown.remove(&shutdown_key);
             return;
         }
+
+        self.proxy_shutdown
+            .entry(shutdown_key)
+            .or_default()
+            .push(shutdown_tx);
 
         ctx.spawn(async move {
             if let Err(err) = proxy_websocket(upstream_socket, downstream_socket, shutdown_rx).await
