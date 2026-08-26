@@ -27,6 +27,8 @@ obelisk_clock_format: "%d.%m.%y %X %Z"
 
 obelisk_controller_domain: "{{ ot_domain }}/controller"
 obelisk_controller_insecure: false
+obelisk_controller_api_key_id: "controller"
+obelisk_controller_api_key_secret: "{{ CONTROLLER_API_SECRET }}"
 
 obelisk_sip_addr: 0.0.0.0
 obelisk_sip_port: 5060

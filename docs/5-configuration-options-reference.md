@@ -576,6 +576,8 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
 | `obelisk_clock_format` | string | `%d.%m.%y %X %Z` |
+| `obelisk_controller_api_key_id` | string | `controller` |
+| `obelisk_controller_api_key_secret` | string | `{{ CONTROLLER_API_SECRET }}` |
 | `obelisk_controller_domain` | string | `{{ ot_domain }}/controller` |
 | `obelisk_controller_insecure` | boolean | `false` |
 | `obelisk_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
@@ -766,6 +768,7 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
+| `opentalk_web_frontend_backgrounds_dir` | string | `/var/opt/opentalk-compose/backgrounds` |
 | `opentalk_web_frontend_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `opentalk_web_frontend_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `opentalk_web_frontend_docker_compose_services_dir` | string | `{{ services_dir }}` |
