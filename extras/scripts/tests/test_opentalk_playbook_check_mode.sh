@@ -25,7 +25,6 @@ KC_PERMANENT_ADMIN_PASSWORD: stub-kc-permanent-password32
 OIDC_FRONTEND_CLIENT_SECRET: stub-oidc-frontend-secret-32
 OIDC_CONTROLLER_CLIENT_SECRET: stub-oidc-controller-sec-32
 OIDC_RECORDER_CLIENT_SECRET: stub-oidc-recorder-secret-32
-OIDC_OBELISK_CLIENT_SECRET: stub-oidc-obelisk-secret-32
 ROOMSERVER_API_SECRET: stub-roomserver-api-secret-32
 CONTROLLER_API_SECRET: stub-controller-api-secret32
 ORCHESTRATOR_API_SECRET: stub-orchestrator-api-sec-32
