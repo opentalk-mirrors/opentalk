@@ -14,18 +14,6 @@
     description: "${role_opentalk-call-in}"
     state: present
 
-- name: "Map a client role opentalk-call-in to service account user for client {{ obelisk_auth_client_id | default('Obelisk') }}"
-  community.general.keycloak_user_rolemapping:
-    auth_keycloak_url: "{{ keycloak_base_url }}"
-    auth_realm: "{{ keycloak_auth_realm }}"
-    auth_username: "{{ keycloak_auth_username }}"
-    auth_password: "{{ keycloak_auth_password }}"
-    realm: "{{ keycloak_realm }}"
-    service_account_user_client_id: "{{ obelisk_auth_client_id | default('Obelisk') }}"
-    roles:
-      - name: opentalk-call-in
-    state: present
-
 - name: Ensure keycloak role opentalk-recorder
   community.general.keycloak_role:
     auth_keycloak_url: "{{ keycloak_base_url }}"

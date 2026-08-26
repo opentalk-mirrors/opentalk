@@ -307,7 +307,6 @@ Add the secrets printed during sanitization (only those needed by services) into
 ```yaml
 OIDC_CONTROLLER_CLIENT_SECRET: "<controller-secret-from-export>"
 OIDC_RECORDER_CLIENT_SECRET: "<recorder-secret-from-export>"
-OIDC_OBELISK_CLIENT_SECRET: "<obelisk-secret-from-export>"
 ...
 ```
 
