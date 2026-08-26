@@ -126,15 +126,20 @@ lint:commitlint:
     - |
       if [ -n "${CI_MERGE_REQUEST_DIFF_BASE_SHA:-}" ]; then
         BASE="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
+        echo "Checking commits from $BASE to HEAD"
+        git log --oneline "$BASE..HEAD"
+        if ! npx commitlint --from "$BASE" --to HEAD --verbose; then
+          echo "❌ Commitlint found problems - blocking pipeline!"
+          exit 1
+        fi
       else
-        BASE="$(git rev-parse HEAD~1)"
-      fi
-    - echo "Checking commits from $BASE to HEAD"
-    - git log --oneline "$BASE..HEAD"
-    - |
-      if ! npx commitlint --from "$BASE" --to HEAD --verbose; then
-        echo "❌ Commitlint found problems - blocking pipeline!"
-        exit 1
+        echo "Push pipeline detected - linting only the HEAD commit message"
+        echo "(individual commits were already checked in their source MR pipelines)"
+        git log -1 --pretty=%B HEAD
+        if ! git log -1 --pretty=%B HEAD | npx commitlint --verbose; then
+          echo "❌ Commitlint found problems - blocking pipeline!"
+          exit 1
+        fi
       fi
 
 docs:mkdocs:
