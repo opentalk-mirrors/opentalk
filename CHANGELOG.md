@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.1.2] - 2026-08-26
+
+[26.1.2]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.1...v26.1.2
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk product version v26.1.2 ([!203](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/203))
+- (deps) Update keycloak version v26.7.2 ([!203](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/203))
+- (deps) Update postgres version v17.11.0 ([!203](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/203))
+- (deps) Update traefik version v3.7.11 ([!203](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/203))
+- (deps) Update rabbitmq version v4.2.9 ([!203](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/203))
+
 ## [26.1.1] - 2026-08-11
 
 [26.1.1]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.1-beta.2...v26.1.1
