@@ -20,7 +20,7 @@ services:
     restart: always
 {% if opentalk_web_frontend_environment_video_backgrounds | default('') | length > 0 %}
     volumes:
-      - {{ opentalk_web_frontend_backgrounds_dir }}:/usr/share/nginx/html/assets/videoBackgrounds:ro
+      - {{ opentalk_web_frontend_backgrounds_dir | default('/var/opt/opentalk-compose/backgrounds') }}:/usr/share/nginx/html/assets/videoBackgrounds:ro
 {% endif %}
     networks:
       - {{ docker_network_name }}
