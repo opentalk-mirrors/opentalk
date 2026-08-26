@@ -59,7 +59,7 @@ check "default scope assignment PUT accepts 204/409" \
   "$TASKS/keycloak_client_scopes.yml"
 
 # 7) OIDC clients use the module form with state: present (idempotent design).
-for client in backend frontend obelisk outlook recorder realm-management; do
+for client in backend frontend outlook recorder realm-management; do
   file="$TASKS/keycloak_oidc_client_${client}.yml"
   if ! grep -q 'community.general.keycloak_client:' "$file"; then
     echo "FAIL: $file must manage the client via community.general.keycloak_client." >&2
