@@ -207,6 +207,7 @@ mod tests {
             event_info: None,
             room_info: RoomInfo {
                 id: RoomId::nil(),
+                alias: None,
                 password: None,
                 created_by: UserInfo::example_data(),
             },

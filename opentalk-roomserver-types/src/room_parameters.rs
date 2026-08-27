@@ -8,7 +8,7 @@ use icu_locid::{LanguageIdentifier, langid};
 use opentalk_types_common::{
     call_in::CallInInfo,
     events::{EventDescription, EventId, EventTitle},
-    rooms::{RoomPassword, invite_codes::InviteCode},
+    rooms::{RoomAlias, RoomPassword, invite_codes::InviteCode},
     shared_folders::SharedFolder,
     streaming::RoomStreamingTarget,
     tariffs::QuotaType,
@@ -27,6 +27,14 @@ use crate::{
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(RoomParameters::example_data())))]
 pub struct RoomParameters {
     pub created_by: PublicUserProfile,
+
+    /// An alias that can be used in the URL to access the room instead of the
+    /// [`RoomId`](opentalk_types_common::rooms::RoomId).
+    // Field is non-required already, utoipa adds a `nullable: true` entry
+    // by default which creates a false positive in the spectral linter when
+    // combined with example data.
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub alias: Option<RoomAlias>,
 
     // Field is non-required already, utoipa adds a `nullable: true` entry
     // by default which creates a false positive in the spectral linter when
@@ -137,6 +145,7 @@ impl ExampleData for RoomParameters {
     fn example_data() -> Self {
         Self {
             created_by: PublicUserProfile::example_data(),
+            alias: Some(RoomAlias::example_data()),
             password: Some(RoomPassword::from_str("1234").unwrap()),
             guest_access: false,
             waiting_room: WaitingRoom::Disabled,
@@ -260,6 +269,7 @@ mod tests {
                 "title": "",
                 "timezone": "Europe/Berlin"
             },
+            "alias": "personal-room-name_0000000000000000",
             "password": "1234",
             "call_in": {
                 "tel": "+555-123-456-789",

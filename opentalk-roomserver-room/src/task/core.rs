@@ -822,6 +822,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             event_info,
             room_info: RoomInfo {
                 id: self.info.room_id,
+                alias: self.info.room.alias.clone(),
                 password: self.info.room.password.clone(),
                 created_by: self.info.room.created_by.user_info.clone(),
             },
@@ -1076,6 +1077,7 @@ mod tests {
             event_info: None,
             room_info: RoomInfo {
                 id: RoomId::nil(),
+                alias: None,
                 password: None,
                 created_by: UserInfo::example_data(),
             },
