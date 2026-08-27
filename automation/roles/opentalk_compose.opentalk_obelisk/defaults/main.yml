@@ -25,12 +25,10 @@ obelisk_environment_gst_debug_level: 2
 obelisk_clock_format: "%d.%m.%y %X %Z"
 # obelisk_language: "de"
 
-obelisk_auth_issuer: "{{ keycloak_base_url }}/realms/{{ keycloak_realm }}"
-obelisk_auth_client_id: "Obelisk"
-obelisk_auth_client_secret: "{{ OIDC_OBELISK_CLIENT_SECRET }}"
-
 obelisk_controller_domain: "{{ ot_domain }}/controller"
 obelisk_controller_insecure: false
+obelisk_controller_api_key_id: "controller"
+obelisk_controller_api_key_secret: "{{ CONTROLLER_API_SECRET }}"
 
 obelisk_sip_addr: 0.0.0.0
 obelisk_sip_port: 5060
