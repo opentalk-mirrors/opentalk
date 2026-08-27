@@ -606,6 +606,7 @@ mod test {
     fn room_parameters() -> RoomParameters {
         RoomParameters {
             created_by: PublicUserProfile::example_data(),
+            alias: None,
             password: None,
             guest_access: true,
             waiting_room: WaitingRoom::Disabled,

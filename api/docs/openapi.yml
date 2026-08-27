@@ -606,6 +606,11 @@ components:
       enum:
         - user
         - moderator
+    RoomAlias:
+      type: string
+      description: A human readable alias for a room.
+      examples:
+        - personal-room-name_0000000000000000
     RoomId:
       type: string
       format: uuid
@@ -647,6 +652,11 @@ components:
         - fallback_language
         - allowed_origins
       properties:
+        alias:
+          $ref: "#/components/schemas/RoomAlias"
+          description: |-
+            An alias that can be used in the URL to access the room instead of the
+            [`RoomId`](opentalk_types_common::rooms::RoomId).
         allowed_origins:
           type: array
           items:
@@ -710,6 +720,7 @@ components:
                 WebSocket rate limit settings of the room. No rate limiting is applied if the field is set
                 to [`None`].
       example:
+        alias: personal-room-name_0000000000000000
         allowed_origins:
           - "https://example.com"
         call_in:
@@ -1041,6 +1052,7 @@ components:
             title: ""
           role: moderator
         room_parameters:
+          alias: personal-room-name_0000000000000000
           allowed_origins:
             - "https://example.com"
           call_in:
