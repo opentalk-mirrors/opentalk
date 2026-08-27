@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.2.0-beta.4] - 2026-08-27
+
+[26.2.0-beta.4]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.2...v26.2.0-beta.4
+
+### 🐛 Bug fixes
+
+- (ci) Skip disabled roomserver compose management ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (web-frontend) Add fallbacks for opentalk_web_frontend_backgrounds_dir ([!202](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/202))
+- (obelisk) Migrate controller config to v0.22.2 url/api_key format ([!202](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/202))
+
+### 📚 Documentation
+
+- (Changelog) Update Changelog ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk product version v26.2.0-beta.4 ([!205](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/205))
+- (deps) Update OpenTalk web frontend version v2.9.2 ([!205](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/205))
+- (deps) Update OpenTalk controller version v0.34.4 ([!205](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/205))
+- (deps) Update OpenTalk roomserver version v0.1.3 ([!205](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/205))
+- (deps) Update keycloak version v26.7.2 ([!205](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/205))
+
+### ⚙ Miscellaneous
+
+- (obelisk) Remove deprecated Keycloak OIDC client and secret ([!202](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/202))
+
 ## [26.2.0-beta.2] - 2026-08-20
 
 [26.2.0-beta.2]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.1...v26.2.0-beta.2
