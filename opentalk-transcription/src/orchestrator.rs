@@ -85,7 +85,7 @@ impl StateProvider for OrchestratorStateProvider {
 
             if colliding_resources.contains(&resource) {
                 log::info!("Stopping transcription task for {target:?}");
-                handle.abort();
+                handle.exit_task();
                 false
             } else {
                 true
