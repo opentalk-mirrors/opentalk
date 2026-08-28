@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-08-28
+
+[0.9.0]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/opentalk-roomserver-web-api-v0.7.0...v0.9.0
+
+### 🚀 New features
+
+- (moderation) Add an `issued_by` field to `ModerationEvent::RoleUpdated` ([!1254](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1254), [#311](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/311))
+- (logging) Add `RoomId` to spans in `ParticipantConnectionTask` ([!1275](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1275))
+- (logging) Remove redundant participant ids ([!1275](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1275))
+- (room) Include `RoomAlias` in `JoinSuccess` ([!1287](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1287), [#325](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/325))
+- Remove the invite code ([!1292](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1292), [#300](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/300))
+
+### 🐛 Bug fixes
+
+- (justfile) Only consider branch local tags when generating changelog ([!1265](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1265))
+- (justfile) Use correct version for create-release ([!1267](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1267))
+- Leaked waiting room participant when congested ([!1271](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1271), [#314](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/314))
+- (chat) Correctly log token bucket size ([!1276](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1276))
+- (livekit-proxy) Use GET for rtc/validate endpoint ([!1277](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1277), [#317](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/317))
+- Allow concurrent livekit connections ([!1285](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1285), [#320](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/320))
+- (orchestrator) Handle resource collision response from orchestrator ([!1292](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1292))
+
+### 🔨 Refactor
+
+- Remove unused `add_conference_connection` method ([!1275](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1275))
+
+### 📦 Dependencies
+
+- (deps) Update pnpm to v11.21.0 ([!1257](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1257))
+- (deps) Lock file maintenance ([!1258](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1258))
+- (deps) Update grafana/k6 docker tag to v2.2.0 ([!1260](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1260))
+- (deps) Update opentalk ([!1264](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1264))
+- (deps) Update tungstenite and tokio-tungstenite to v0.30.0 ([!1264](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1264))
+- (deps) Update rust crate testcontainers to 0.28.0 ([!1249](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1249))
+- (deps) Update pnpm to v11.22.0 ([!1268](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1268))
+- (deps) Update h2 to 0.4.16 ([!1270](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1270))
+- (deps) Use vendored swagger ui ([!1270](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1270))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.98.0 ([!1288](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1288))
+- (deps) Update node.js to v24.20.0 ([!1289](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1289))
+- (deps) Update opentalk ([!1292](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1292))
+- (deps) Update chacha20 ([!1292](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1292))
+
+### Ci
+
+- (justfile) Use unified versioning ([!1292](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1292))
+
+### Test
+
+- (moderation) Rename misleading test ([!1254](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1254))
+
 ## [0.1.0] - 2026-07-07
 
 [0.1.0]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.40...v0.1.0

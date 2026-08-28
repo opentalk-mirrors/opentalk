@@ -10,7 +10,7 @@ license.workspace = true
 name = "opentalk-roomserver-module-excalidraw"
 publish = true
 repository.workspace = true
-version = "0.6.0"
+version.workspace = true
 
 [lints]
 workspace = true
