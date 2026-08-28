@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_orchestrator_client::{
-    Metrics, RegisterTranscription, RegisterType, TranscriptionResource, client::StateProvider,
+    Metrics, RegisterTranscription, RegisterType, ServiceResource, TranscriptionResource,
+    client::StateProvider,
 };
 use sysinfo::{CpuRefreshKind, RefreshKind, System};
 
@@ -56,5 +57,41 @@ impl StateProvider for OrchestratorStateProvider {
             load: self.calculate_load(),
             accepting_jobs: true,
         }
+    }
+
+    async fn on_resource_collision(&mut self, resources: &[ServiceResource]) -> anyhow::Result<()> {
+        let colliding_resources = resources
+            .iter()
+            .filter_map(|resource| match resource {
+                ServiceResource::Transcription(transcription_resource) => {
+                    Some(*transcription_resource)
+                }
+                other => {
+                    log::error!("Received invalid conflicting resource from orchestrator: {other}");
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        log::warn!("Orchestrator reported resource collision for rooms: {colliding_resources:?}");
+
+        let mut tasks = self.tasks.lock().await;
+
+        tasks.retain(|target, handle| {
+            let resource = TranscriptionResource {
+                room_id: target.room_id,
+                breakout_id: target.breakout_room,
+            };
+
+            if colliding_resources.contains(&resource) {
+                log::info!("Stopping transcription task for {target:?}");
+                handle.exit_task();
+                false
+            } else {
+                true
+            }
+        });
+
+        Ok(())
     }
 }

@@ -95,12 +95,43 @@ impl Drop for LivekitRoom {
     }
 }
 
+#[derive(Debug)]
+pub enum SessionState {
+    Run,
+    Exit,
+}
+
+/// The handle for a [`TranscriptionSession`]
+#[derive(Debug, Clone)]
+pub(crate) struct TranscriptionSessionHandle {
+    state_sender: watch::Sender<SessionState>,
+}
+
+impl TranscriptionSessionHandle {
+    /// Signal the transcription session to exit
+    pub(crate) fn exit_task(&self) {
+        // can only fail if the receiver is dropped -> 'successful' exit
+        let _ = self.state_sender.send(SessionState::Exit);
+    }
+
+    /// Check if the associated session is finished
+    pub(crate) fn is_finished(&self) -> bool {
+        self.state_sender.is_closed()
+    }
+
+    /// Completes when the transcription session has exited
+    pub(crate) async fn closed(&self) {
+        self.state_sender.closed().await
+    }
+}
+
 /// A running transcription session for a single OpenTalk room.
 ///
 /// It bridges OpenTalk and LiveKit room events, spawns a transcription pipeline per audio track
 /// and forwards the resulting [`TranscriptionSegment`]s back to the controller.
 pub(crate) struct TranscriptionSession {
     app_state: Arc<AppState>,
+    state_receiver: watch::Receiver<SessionState>,
 
     run: bool,
 
@@ -121,7 +152,7 @@ impl TranscriptionSession {
     pub(crate) async fn create(
         app_state: Arc<AppState>,
         room_info: TranscriptionTarget,
-    ) -> Result<TranscriptionSession> {
+    ) -> Result<(TranscriptionSession, TranscriptionSessionHandle)> {
         let breakout_id: Option<BreakoutId> = room_info.breakout_room.map(BreakoutId::from);
 
         let JoinedLobby {
@@ -152,17 +183,22 @@ impl TranscriptionSession {
         let livekit_room = LivekitRoom::connect(credentials).await?;
 
         let (segments_tx, segments_rx) = mpsc::channel(1000);
+        let (state_sender, state_receiver) = watch::channel(SessionState::Run);
 
-        Ok(TranscriptionSession {
-            app_state,
-            run: true,
-            room,
-            livekit_room,
-            room_id: room_info.room_id,
-            language: watch::channel(room_info.language).0,
-            segments_rx,
-            segments_tx,
-        })
+        Ok((
+            TranscriptionSession {
+                app_state,
+                state_receiver,
+                run: true,
+                room,
+                livekit_room,
+                room_id: room_info.room_id,
+                language: watch::channel(room_info.language).0,
+                segments_rx,
+                segments_tx,
+            },
+            TranscriptionSessionHandle { state_sender },
+        ))
     }
 
     /// Runs the session event loop until the room ends, a stop is requested or the service shuts
@@ -177,6 +213,7 @@ impl TranscriptionSession {
             .await?;
 
         let mut shutdown_rx = self.app_state.shutdown.resubscribe();
+        let mut state_receiver = self.state_receiver.clone();
 
         while self.run {
             tokio::select! {
@@ -207,6 +244,11 @@ impl TranscriptionSession {
                         .context("transcription service api not available")?
                         .send_transcription_segment(segment)
                         .await?;
+                }
+                res = state_receiver.changed() => {
+                    if matches!(*state_receiver.borrow_and_update(), SessionState::Exit) || res.is_err() {
+                        break;
+                    }
                 }
                 _ = shutdown_rx.wait_for_shutdown() => {
                     break;

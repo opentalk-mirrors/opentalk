@@ -16,16 +16,19 @@ use opentalk_orchestrator_client::{
 };
 use opentalk_transcription_web_api::v1::{TranscriptionBackend, TranscriptionTarget};
 use opentalk_types_api_common::error::ApiError;
-use tokio::{sync::Mutex, task::JoinHandle};
+use tokio::sync::Mutex;
 use whisper_rs::{WhisperContext, WhisperContextParameters};
 
 use crate::{
-    metrics, settings::Settings, tasks::ShutdownReceiver, transcription::TranscriptionSession,
+    metrics,
+    settings::Settings,
+    tasks::ShutdownReceiver,
+    transcription::{TranscriptionSession, TranscriptionSessionHandle},
 };
 
 /// The set of currently running transcription sessions, keyed by their target room.
 pub(crate) type TranscriptionTasks =
-    Arc<Mutex<HashMap<TranscriptionTarget, JoinHandle<Result<()>>>>>;
+    Arc<Mutex<HashMap<TranscriptionTarget, TranscriptionSessionHandle>>>;
 
 #[derive(Clone)]
 pub(crate) struct AppState {
@@ -103,7 +106,7 @@ impl TranscriptionBackend for AppState {
     async fn init(&self, target: TranscriptionTarget) -> Result<(), ApiError> {
         let context = Arc::new(self.clone());
         log::debug!("Start Transcription session {:?}", target.room_id);
-        let session = TranscriptionSession::create(context, target.clone())
+        let (session, handle) = TranscriptionSession::create(context, target.clone())
             .await
             .map_err(|err| {
                 log::error!("Failed to create transcription session: {err:?}");
@@ -115,7 +118,7 @@ impl TranscriptionBackend for AppState {
         let orchestrator_handle = self.orchestrator_handle.clone();
         let transcription_target = target.clone();
 
-        let task = tokio::spawn(async move {
+        tokio::spawn(async move {
             match session.run().await {
                 Ok(()) => {
                     log::debug!(
@@ -152,25 +155,23 @@ impl TranscriptionBackend for AppState {
                     "Failed to notify orchestrator about removed transcription session: {e:?}"
                 );
             }
-
-            Ok(())
         });
 
         let mut tasks = self.tasks.lock().await;
-
         match tasks.entry(target) {
             Entry::Occupied(occupied_entry) => {
                 log::error!(
                     "Received request to start transcription for room {:?} but a session is already running",
                     occupied_entry.key().room_id
                 );
-                task.abort();
+
+                handle.exit_task();
 
                 return Err(ApiError::conflict()
                     .with_message("A transcription session is already running for this room"));
             }
             Entry::Vacant(vacant_entry) => {
-                vacant_entry.insert(task);
+                vacant_entry.insert(handle);
             }
         }
 

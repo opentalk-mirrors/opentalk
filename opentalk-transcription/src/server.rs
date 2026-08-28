@@ -90,7 +90,11 @@ pub(crate) async fn run_web_server(
 
         match timeout(
             Duration::from_secs(10),
-            join_all(transcription_tasks.iter_mut().map(|(_, task)| task)),
+            join_all(
+                transcription_tasks
+                    .iter_mut()
+                    .map(|(_, task)| task.closed()),
+            ),
         )
         .await
         {
