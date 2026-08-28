@@ -70,8 +70,12 @@ webrtc-sys = "0.3"
 # Pinning protocol version due to breaking changes in 0.7.12 which have not yet been fixed in the livekit crate
 livekit-protocol = "=0.7.11"
 
+# Enable tls-features for tokio tungstenite
+tokio-tungstenite029 = { package = "tokio-tungstenite", version = "0.29", features = ["rustls-tls-native-roots"] }
+tokio-tungstenite030 = { package = "tokio-tungstenite", version = "0.30", features = ["rustls-tls-native-roots"] }
+
 [package.metadata.cargo-machete]
-ignored = ["livekit-protocol"]
+ignored = ["livekit-protocol", "tokio-tungstenite029", "tokio-tungstenite039"]
 
 [patch.crates-io]
 # Removes duplicate paste and therefore some compile time
