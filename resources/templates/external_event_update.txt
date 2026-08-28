@@ -14,8 +14,8 @@
 {{ fluent(key="meeting-information-when", lang = language) }}: {{ event.start_time.time | date(timezone = event.start_time.timezone, format="%d.%m.%Y %H:%M")}}
 {% endif -%}
 {% endif %}
-{% if invite_link -%}
-{{ fluent(key="meeting-information-link", lang = language) }}: {{ invite_link }}
+{% if join_link -%}
+{{ fluent(key="meeting-information-link", lang = language) }}: {{ join_link }}
 {% endif -%}
 {% if event.room.password -%}
 {{ fluent(key="meeting-information-password", lang = language) }}: {{ event.room.password}}

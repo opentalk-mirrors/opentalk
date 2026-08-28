@@ -1,6 +1,5 @@
 ---
 source: tests/preview.rs
-assertion_line: 42
 expression: example_mail
 ---
 <!DOCTYPE html><html xml:lang="de-DE" lang="de-DE" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" style="margin: 0;padding: 0;font-family: 'OpenTalk', Arial;font-weight: 400;color-scheme: light dark;supported-color-schemes: light dark"><head>
@@ -37,7 +36,7 @@ expression: example_mail
         <b>Uhrzeit:</b> 10.10.2024 15:30-16:10
             <br>
         
-        <b>Link zum Meeting:</b> <a class="" href="https://opentalk.example.org/invite/a3e92829-b599-4985-9d0d-8e070a8b0000" target="_blank" alt="Klicken um zu öffnen" style="color: #1573E6;">
+        <b>Link zum Meeting:</b> <a class="" href="https://opentalk.example.org/room/7dfb7d8d-fb57-49ba-aacc-a76b8d390001" target="_blank" alt="Klicken um zu öffnen" style="color: #1573E6;">
         Öffne den Raum in einem neuen Tab/Fenster
         </a>
 
@@ -91,7 +90,7 @@ expression: example_mail
             <div class="footer" id="footer" style="text-align: center;background: #F1F3F4;padding: 2.5rem;line-height: 1.5;">
                 <p>
                     Sollten die Buttons oder Links nicht funktionieren, können Sie die folgenden URLs in ihrem Browser eingeben:<br>
-                    Meeting beitreten: https://opentalk.example.org/invite/a3e92829-b599-4985-9d0d-8e070a8b0000
+                    Meeting beitreten: https://opentalk.example.org/room/7dfb7d8d-fb57-49ba-aacc-a76b8d390001
                 </p>
             </div>
             <div class="quick_guide" style="margin-top: 1rem;padding-left: 2.5rem;padding-right: 2.5rem;line-height: 1.5;">

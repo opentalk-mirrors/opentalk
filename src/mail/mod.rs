@@ -207,13 +207,6 @@ impl MailBuilder {
             .replace("{event_id}", &event.id.to_string())
     }
 
-    fn create_room_invite_link(&self, invite_id: &str) -> String {
-        let template = &self.builder.guest_link_builder;
-        template
-            .replace("{base_url}", &self.frontend.base_url)
-            .replace("{invite_id}", invite_id)
-    }
-
     pub(crate) fn generate_email(&self, message: &proto::v1::Message) -> Result<Message> {
         const OPENTALK_LOGO_CONTENT_ID: &str = "opentalk-logo";
         const OPENTALK_LOGO: &[u8] = include_bytes!("../../resources/images/opentalk_logo.png");

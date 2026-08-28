@@ -37,7 +37,6 @@ queue_name = "opentalk_mailer"
 [template_builder]
 # Link builder templates. `base_url` and `x_id` will be replaced. Need when the frontend uses different paths.
 #join_link_builder = "{base_url}/room/{room_id}"
-#guest_link_builder = "{base_url}/invite/{invite_id}"
 #dashboard_event_link_builder = "{base_url}/dashboard/meetings/{event_id}"
 
 [frontend]

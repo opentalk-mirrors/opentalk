@@ -20,8 +20,8 @@
             {% endif -%}
             <br />
         {% endif %}
-        {% if invite_link -%}
-        <b>{{ fluent(key="meeting-information-link", lang = language) }}:</b> {{<link fluent_key="join-directly-link" lang={language} href={invite_link}/>}}
+        {% if join_link -%}
+        <b>{{ fluent(key="meeting-information-link", lang = language) }}:</b> {{<link fluent_key="join-directly-link" lang={language} href={join_link}/>}}
         {% endif -%}
 
         {% if event.room.password -%}

@@ -613,9 +613,6 @@ pub struct TemplateBuilder {
     /// {invite_id} will be replaced
     #[serde(default = "email_default_join_link_builder")]
     pub join_link_builder: String,
-    /// {invite_id} will be replaced
-    #[serde(default = "email_default_guest_link_builder")]
-    pub guest_link_builder: String,
 }
 
 impl Default for TemplateBuilder {
@@ -623,7 +620,6 @@ impl Default for TemplateBuilder {
         Self {
             dashboard_event_link_builder: email_default_dashboard_event_link_builder(),
             join_link_builder: email_default_join_link_builder(),
-            guest_link_builder: email_default_guest_link_builder(),
         }
     }
 }
@@ -634,10 +630,6 @@ fn email_default_dashboard_event_link_builder() -> String {
 
 fn email_default_join_link_builder() -> String {
     "{base_url}/room/{room_id}".into()
-}
-
-fn email_default_guest_link_builder() -> String {
-    "{base_url}/invite/{invite_id}".into()
 }
 
 /// Language config
