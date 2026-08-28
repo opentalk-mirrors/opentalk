@@ -24,7 +24,6 @@ export function createRoomParameter(rateLimit, userId) {
     waiting_room: 'disabled',
     call_in: null,
     event: null,
-    invite_code: null,
     tariff: {
       id: '2da2b825-6db9-4dc4-b9e6-b4fd64e66a16',
       name: 'Starter tariff',

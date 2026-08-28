@@ -15,7 +15,7 @@ pub mod message_router;
 pub mod metrics;
 #[cfg(any(test, feature = "mock"))]
 pub mod mocking;
-pub mod orchestrator_metrics;
+pub mod orchestrator;
 pub mod registry;
 pub(crate) mod room_map;
 pub mod signaling;

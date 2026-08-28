@@ -19,7 +19,7 @@ use opentalk_roomserver_common::{
     settings::{Monitoring, Settings, SettingsFile},
 };
 use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
-use opentalk_roomserver_room::{RoomTaskRegistry, orchestrator_metrics::OrchestratorStateProvider};
+use opentalk_roomserver_room::{RoomTaskRegistry, orchestrator::OrchestratorStateProvider};
 use service_probe::{ServiceState, start_probe, stop_probe};
 use tokio::{
     signal,
