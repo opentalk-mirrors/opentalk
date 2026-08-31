@@ -37,9 +37,28 @@
         {{ s3_storage_provider == 'minio' }}
       {%- endif -%}
 
+# If compose_service_opentalk_roomserver_enabled is not explicitly set, derive it from
+# controller_roomserver_kind: 'external' requires the roomserver service, 'internal' does not.
+- name: Derive roomserver service enabled flag from controller_roomserver_kind
+  ansible.builtin.set_fact:
+    compose_service_opentalk_roomserver_enabled: >-
+      {%- if compose_service_opentalk_roomserver_enabled is defined -%}
+        {{ compose_service_opentalk_roomserver_enabled | bool }}
+      {%- else -%}
+        {{ (controller_roomserver_kind | default('external')) == 'external' }}
+      {%- endif -%}
+
+- name: Validate controller_roomserver_kind
+  ansible.builtin.assert:
+    that:
+      - (controller_roomserver_kind | default('external')) in ['external', 'internal']
+    fail_msg: "controller_roomserver_kind must be 'external' or 'internal', got '{{ controller_roomserver_kind | default('external') }}'"
+
 - name: Set Docker Compose project name and desired state facts
   ansible.builtin.set_fact:
     compose_service_opentalk_controller_state: "{{ 'present' if compose_service_opentalk_controller_enabled else 'absent' }}"
+    compose_service_opentalk_roomserver_state: "{{ 'present' if compose_service_opentalk_roomserver_enabled else 'absent' }}"
+    compose_service_opentalk_orchestrator_state: "{{ 'present' if (compose_service_opentalk_orchestrator_enabled | default(false) | bool) else 'absent' }}"
     compose_service_opentalk_obelisk_state: "{{ 'present' if compose_service_opentalk_obelisk_enabled else 'absent' }}"
     compose_service_opentalk_outlook_add_in_state: "{{ 'present' if compose_service_opentalk_outlook_add_in_enabled else 'absent' }}"
     compose_service_opentalk_recorder_state: "{{ 'present' if compose_service_opentalk_recorder_enabled else 'absent' }}"

@@ -56,8 +56,11 @@
     - name: "Manage Keycloak client {{ controller_oidc_frontend_client_id | default('Frontend') }}"
       ansible.builtin.include_tasks: keycloak_oidc_client_frontend.yml
 
-    - name: "Manage Keycloak client {{ obelisk_auth_client_id | default('Obelisk') }}"
-      ansible.builtin.include_tasks: keycloak_oidc_client_obelisk.yml
+    # TODO: previous OpenTalk versions provisioned a dedicated "Obelisk" Keycloak client
+    # (keycloak_oidc_client_obelisk.yml). Obelisk no longer authenticates via that client, so the
+    # provisioning was removed. Once that version is EOL: delete the leftover "Obelisk" client from
+    # Keycloak and drop OIDC_OBELISK_CLIENT_SECRET from existing secrets.yml (the secrets manager is
+    # additive-only, so it otherwise lingers).
 
     - name: "Manage Keycloak client {{ recorder_auth_client_id | default('Recorder') }}"
       ansible.builtin.include_tasks: keycloak_oidc_client_recorder.yml

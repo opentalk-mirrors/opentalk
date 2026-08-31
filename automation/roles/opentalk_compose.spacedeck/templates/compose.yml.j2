@@ -45,7 +45,7 @@ services:
     command: >
       sh -c '
       update-ca-certificates || true;
-      apt-get update && apt-get install -y libnss3-tools;
+      apk add --no-cache nss-tools;
       node -e "require('\''puppeteer'\'').launch({args:['\''--no-sandbox'\'']}).then(async b => { try { const p = await b.newPage(); await p.goto('\''https://localhost'\''); await b.close(); } catch(e) { process.exit(0); } }).catch(() => process.exit(0))";
       certutil -A -d sql:/root/.pki/nssdb -n custom_ca -t "C,," -i /usr/local/share/ca-certificates/{{ custom_certificates_ca_root_cert_file }};
       SD_API_TOKEN=$(cat /run/secrets/spacedeck_api_secret)
@@ -62,17 +62,21 @@ services:
       - "traefik.enable={{ spacedeck_docker_labels_traefik_enable | to_json }}"
       - "traefik.http.routers.spacedeck.rule=Host(`{{ ot_domain }}`) \
         && (PathPrefix(`/whiteboard`) \
+        || Path(`/s`) \
+        || PathPrefix(`/s/`) \
         || PathPrefix(`/spaces`) \
         || PathPrefix(`/javascripts`) \
         || PathPrefix(`/images`) \
         || PathPrefix(`/stylesheets`) \
         || PathPrefix(`/storage`) \
-        || PathPrefix(`/socket`) \
+        || Path(`/socket`) \
+        || PathPrefix(`/socket/`) \
         || PathPrefix(`/api/users/current`) \
         || PathPrefix(`/api/sessions/current`) \
         || PathPrefix(`/api/spaces`) \
         || PathPrefix(`/fonts/`))"
       - "traefik.http.services.spacedeck.loadbalancer.server.port=9666"
+      - "traefik.http.routers.spacedeck.priority=110"
       - "traefik.http.middlewares.strip-prefix.stripprefix.prefixes=/whiteboard"
       - "traefik.http.routers.spacedeck.middlewares=strip-prefix"
       - "traefik.http.routers.spacedeck.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
