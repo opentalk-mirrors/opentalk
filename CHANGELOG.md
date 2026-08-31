@@ -5,6 +5,103 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.2.0] - 2026-08-31
+
+[26.2.0]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.2...v26.2.0
+
+### 🚀 New features
+
+- (roomserver) Add roomserver service ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (orchestrator) Add opentalk orchestrator service ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (roomserver) Derive service state from controller_roomserver_kind ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (web-frontend) Align environment variables with frontend documentation ([!193](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/193))
+
+### 🐛 Bug fixes
+
+- (docs) Fix bad escaping of | in configuration options reference ([!190](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190))
+- (docs) Add garage and s3_migrate sections, fix duplicate minio_s3_api_port entry ()
+- (web-frontend) Make video_backgrounds default-friendly ([!167](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/167))
+- (roomserver) Update default port ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (controller) Keep meeting-notes base_url in sync with etherpad ([!193](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/193))
+- (controller) Enable recording defaults and service URL ([!193](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/193))
+- (livekit) Use ansible_facts for bind address detection ([!193](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/193))
+- (keycloak) Enforce audience check for controller introspection ([!193](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/193))
+- (ci) Skip disabled roomserver compose management ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (web-frontend) Add fallbacks for opentalk_web_frontend_backgrounds_dir ([!202](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/202))
+- (obelisk) Migrate controller config to v0.22.2 url/api_key format ([!202](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/202))
+
+### 📚 Documentation
+
+- Improve install and upgrade guidance ()
+- (Changelog) Update Changelog ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+
+### 🔨 Refactor
+
+- (traefik) Rename csp_allowed_extra_*_src vars to traefik_ prefix ([!166](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/166))
+- (ansible) Align opentalk_orchestrator role with current patterns ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk outlook add-in version v0.3.6-2 ([!190](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190))
+- (deps) Update NDT server version v0.25.3 ([!190](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190))
+- (deps) Update dependency community.docker to v5.2.1 ([!177](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/177))
+- (deps) Update dependency community.crypto to v3.2.1 ([!172](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/172))
+- (deps) Update dependency ansible.posix to v2.2.2 ([!191](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/191))
+- (deps) Update dependency ansible-core to v2.21.2 ([!187](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/187))
+- (deps) Update dependency community.general to v13.2.0 ([!185](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/185))
+- (deps) Update OpenTalk recorder version v0.17.1 ()
+- (deps) Add OpenTalk orchestrator version v0.8.1 ()
+- (deps) Update traefik version v3.7.9 ()
+- (deps) Update garage version v2.3.0 ([!190](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190))
+- (deps) Update livekit-server version v1.13.5 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update keycloak version v26.7.2 ([!205](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/205))
+- (deps) Update postgres version v17.11.0 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update rabbitmq version v4.3.4 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update mailcrab version v1.9.0 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update OpenTalk web frontend version v2.9.2 ([!205](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/205))
+- (deps) Update OpenTalk controller version v0.34.4 ([!205](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/205))
+- (deps) Update OpenTalk obelisk version v0.22.2 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update OpenTalk roomserver version v0.1.3 ([!205](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/205))
+- (deps) Update OpenTalk smtp-mailer version v0.18.0 ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (deps) Update OpenTalk product version v26.2.0 ([!206](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/206))
+
+### ⚙ Miscellaneous
+
+- (docs) Update CHANGELOG ([!190](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/190))
+- (docs) Update CHANGELOG.md ([!181](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/181))
+- (livekit) Support config option bind_addresses ()
+- (docs) Update config referernce ()
+- (controller) Update roomserver config template ()
+- (ansible) Rename roomserver role directory ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (ansible) Include roomserver role in opentalk playbook ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (ansible) Remove roomserver-db service from container state mgmnt ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (packaging) Add roomserver defaults to settings.yml ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (ansible) Add roomserver to versions file ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (ci) Enable roomserver in integration test ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (ci) Auth docker client to registry ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (roomserver) Add roomserver default config ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (ci) Override web frontend image source in integration test ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (frontend) Change image source ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (controller) Update livekit api keys for roomserver ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (orchestrator) Add opentalk orchestrator to default playbook ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (ansible) Change orchestrator task file name ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (ansible) Change orchestrator secret defaults ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (ci) Disable orchestrator in integration test ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (orchestrator) Add orchestrator default config ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (orchestrator) Adjust compose config ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (spacedeck) Adjust config to support alpine base image ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (orchestrator) Absent by default ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (orchestrator) Present by default ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (roomserver) Switch to sh shell ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (web-frontend) Use production image source as default ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (controller) Add new option controller_roomserver_kind ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (roomserver) Add conference section and update config options ([!123](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/123))
+- (controller) Add missing settings to controller template ([!193](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/193))
+- (controller) Align controller configuration with TOML example ([!193](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/193))
+- (ci) Roomsercer container disabled by default ([!200](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/200))
+- (obelisk) Remove deprecated Keycloak OIDC client and secret ([!202](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/202))
+- Update changelog for v26.2.0-beta.4 ([!205](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/205))
+
 ## [26.2.0-beta.4] - 2026-08-27
 
 [26.2.0-beta.4]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.1.2...v26.2.0-beta.4
