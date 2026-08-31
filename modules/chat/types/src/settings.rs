@@ -4,7 +4,7 @@
 use std::num::NonZero;
 
 use opentalk_roomserver_types::module_settings::SignalingModuleSettings;
-use opentalk_types_common::modules::ModuleId;
+use opentalk_types_common::{modules::ModuleId, utils::ExampleData};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -14,6 +14,18 @@ pub struct ChatSettings {
 
 impl SignalingModuleSettings for ChatSettings {
     const NAMESPACE: ModuleId = crate::CHAT_MODULE_ID;
+}
+
+impl ExampleData for ChatSettings {
+    fn example_data() -> Self {
+        Self {
+            rate_limit: Some(RateLimitSettings {
+                tokens_per_second: NonZero::new(10).expect("10 is a non-zero value"),
+                token_bucket_size: NonZero::new(30).expect("30 is a non-zero value"),
+                slow_down_threshold: 0.75,
+            }),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

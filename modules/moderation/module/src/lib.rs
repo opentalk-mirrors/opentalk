@@ -16,7 +16,7 @@ use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     participant_state::ParticipantState,
     signaling_module::{
-        ModuleJoinData, NoOp, SignalingModule, SignalingModuleDescription,
+        ModuleJoinData, NoOp, NoSettings, SignalingModule, SignalingModuleDescription,
         SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
@@ -69,6 +69,8 @@ impl SignalingModuleDescription for ModerationModule {
     const MODULE_ID: ModuleId = MODERATION_MODULE_ID;
     const DESCRIPTION: &'static str = "Handles moderation functionality";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for ModerationModule {
@@ -1023,9 +1025,11 @@ impl ModerationModule {
 mod tests {
     use std::collections::HashMap;
 
+    use insta::assert_snapshot;
     use opentalk_roomserver_signaling::{
         lobby_participant::{LobbyParticipant, WaitingRoomState},
         participant_state::ParticipantState,
+        signaling_module::SignalingModuleDescription as _,
     };
     use opentalk_roomserver_types::{
         client_parameters::{ClientKind, Role},
@@ -1063,6 +1067,13 @@ mod tests {
             display_name: DisplayName::from_str_lossy("Alice"),
             joined_at: Timestamp::unix_epoch().into(),
         }
+    }
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&ModerationModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"[moderation]");
     }
 
     #[test]

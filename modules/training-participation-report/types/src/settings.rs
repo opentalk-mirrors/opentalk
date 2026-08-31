@@ -4,6 +4,7 @@
 use opentalk_roomserver_types::module_settings::SignalingModuleSettings;
 use opentalk_types_common::{
     modules::ModuleId, training_participation_report::TrainingParticipationReportParameterSet,
+    utils::ExampleData,
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +19,14 @@ pub struct TrainingParticipationReportSettings {
 
 impl SignalingModuleSettings for TrainingParticipationReportSettings {
     const NAMESPACE: ModuleId = TRAINING_PARTICIPATION_REPORT_MODULE_ID;
+}
+
+impl ExampleData for TrainingParticipationReportSettings {
+    fn example_data() -> Self {
+        Self {
+            autostart: Some(TrainingParticipationReportParameterSet::example_data()),
+        }
+    }
 }
 
 #[cfg(test)]

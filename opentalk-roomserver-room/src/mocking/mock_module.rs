@@ -4,8 +4,9 @@
 use std::collections::BTreeMap;
 
 use opentalk_roomserver_signaling::signaling_module::{
-    CreateReplica, ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
-    SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
+    CreateReplica, ModuleJoinData, ModuleSwitchData, NoOp, NoSettings, PeerDataMap,
+    SignalingModule, SignalingModuleDescription, SignalingModuleFeatureDescription,
+    SignalingModuleInitData,
 };
 use opentalk_roomserver_types::signaling::module_error::{ModuleError, SignalingModuleError};
 use opentalk_types_common::modules::{ModuleId, module_id};
@@ -48,6 +49,8 @@ impl SignalingModuleDescription for MockModule {
     const MODULE_ID: ModuleId = MOCK_MODULE_ID;
     const DESCRIPTION: &'static str = "Handles whiteboard integration. The whiteboard is a collaborative drawing board that can be used during the meeting.";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for MockModule {

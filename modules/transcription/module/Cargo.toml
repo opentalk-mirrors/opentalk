@@ -26,9 +26,11 @@ tracing.workspace = true
 
 [dev-dependencies]
 axum.workspace = true
+insta.workspace = true
 opentalk-roomserver-crypto-provider.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 opentalk-roomserver-types-transcription.workspace = true
 opentalk-service-auth.workspace = true
 test-log.workspace = true
 tokio.workspace = true
+toml.workspace = true

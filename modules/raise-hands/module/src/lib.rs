@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
+        ModuleJoinData, ModuleSwitchData, NoOp, NoSettings, PeerDataMap, SignalingModule,
         SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
@@ -33,6 +33,8 @@ impl SignalingModuleDescription for RaiseHandsModule {
     const MODULE_ID: ModuleId = RAISE_HANDS_MODULE_ID;
     const DESCRIPTION: &'static str = "Handles the raising hand functionality";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for RaiseHandsModule {
@@ -339,5 +341,20 @@ impl RaiseHandsModule {
                 })
                 .collect()
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::RaiseHandsModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&RaiseHandsModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"[raise_hands]");
     }
 }

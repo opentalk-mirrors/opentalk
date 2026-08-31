@@ -11,7 +11,7 @@ use anyhow::Context;
 use opentalk_roomserver_signaling::{
     module_context::{ChannelDroppedError, ModuleContext},
     signaling_module::{
-        ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
+        ModuleJoinData, ModuleSwitchData, NoOp, NoSettings, PeerDataMap, SignalingModule,
         SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
@@ -55,6 +55,8 @@ impl SignalingModuleDescription for TimerModule {
     const DESCRIPTION: &'static str =
         "Handles timer functionality including the coffee-break timer.";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for TimerModule {
@@ -447,5 +449,20 @@ impl TimerModule {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::TimerModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&TimerModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"[timer]");
     }
 }

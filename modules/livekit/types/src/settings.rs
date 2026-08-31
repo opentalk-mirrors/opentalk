@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_types::module_settings::SignalingModuleSettings;
-use opentalk_types_common::modules::ModuleId;
+use opentalk_types_common::{modules::ModuleId, utils::ExampleData};
 use url::Url;
 
 use crate::LIVEKIT_MODULE_ID;
@@ -26,4 +26,15 @@ pub struct LiveKitSettings {
 
 impl SignalingModuleSettings for LiveKitSettings {
     const NAMESPACE: ModuleId = LIVEKIT_MODULE_ID;
+}
+
+impl ExampleData for LiveKitSettings {
+    fn example_data() -> Self {
+        Self {
+            api_key: "devkey".to_owned(),
+            api_secret: "secret".to_owned(),
+            public_url: "http://localhost:7880".to_owned(),
+            service_url: Url::parse("http://localhost:7880").expect("Example URL must be valid"),
+        }
+    }
 }

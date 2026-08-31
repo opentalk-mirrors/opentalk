@@ -82,6 +82,8 @@ impl SignalingModuleDescription for LiveKitModule {
     const MODULE_ID: ModuleId = LIVEKIT_MODULE_ID;
     const DESCRIPTION: &'static str = "Handles Livekit media streams coordination and integration";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = LiveKitSettings;
 }
 
 impl SignalingModule for LiveKitModule {
@@ -592,4 +594,25 @@ impl LiveKitModule {
 
 fn build_livekit_participant_id(participant: ParticipantId, connection: ConnectionId) -> String {
     format!("{participant}:{connection}")
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::LiveKitModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&LiveKitModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        [livekit]
+        api_key = "devkey"
+        api_secret = "secret"
+        public_url = "http://localhost:7880"
+        service_url = "http://localhost:7880/"
+        "#);
+    }
 }

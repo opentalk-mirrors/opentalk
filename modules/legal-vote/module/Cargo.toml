@@ -37,3 +37,4 @@ opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pdf-extract.workspace = true
 pretty_assertions.workspace = true
 test-log.workspace = true
+toml.workspace = true

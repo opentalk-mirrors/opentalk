@@ -53,6 +53,8 @@ impl SignalingModuleDescription for ChatModule {
     const MODULE_ID: ModuleId = CHAT_MODULE_ID;
     const DESCRIPTION: &'static str = "Handles room chat functionality";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = ChatSettings;
 }
 
 impl SignalingModule for ChatModule {
@@ -693,5 +695,25 @@ impl ChatModule {
             ChatEvent::SetLastSeenTimestamp { scope, timestamp },
         )?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::ChatModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&ChatModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"
+        [chat.rate_limit]
+        slow_down_threshold = 0.75
+        token_bucket_size = 30
+        tokens_per_second = 10
+        ");
     }
 }

@@ -80,6 +80,8 @@ impl SignalingModuleDescription for RecordingModule {
             description: "Allows streaming meetings to streaming services",
         },
     ];
+
+    type Settings = RecordingSettings;
 }
 
 impl SignalingModule for RecordingModule {
@@ -840,4 +842,26 @@ fn find_recorder<'a>(
     ctx.participants.in_room(ctx.room).iter().find(|(_, p)| {
         p.is_connected() && matches!(p.kind, ClientKind::Recorder { room } if room == ctx.room)
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::RecordingModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&RecordingModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @r#"
+        [recording]
+        url = "http://localhost:5555/"
+
+        [recording.api_key]
+        id = "recorder"
+        secret = "secret"
+        "#);
+    }
 }

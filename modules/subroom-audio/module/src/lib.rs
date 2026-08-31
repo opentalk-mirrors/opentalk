@@ -19,7 +19,7 @@ use opentalk_roomserver_livekit_proxy::{
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, SignalingModule, SignalingModuleDescription,
+        ModuleJoinData, NoSettings, SignalingModule, SignalingModuleDescription,
         SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
@@ -60,6 +60,8 @@ impl SignalingModuleDescription for SubroomAudioModule {
     const MODULE_ID: ModuleId = SUBROOM_AUDIO_MODULE_ID;
     const DESCRIPTION: &'static str = "Handles sub-room audio, allowing participants to talk to each other in a separate audio group.";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for SubroomAudioModule {
@@ -710,4 +712,19 @@ fn is_group_creator(sender: &ParticipantId, whisper_group: &WhisperGroup) -> boo
 
 fn build_livekit_participant_id(participant: ParticipantId, connection: ConnectionId) -> String {
     format!("{participant}:{connection}")
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::SubroomAudioModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&SubroomAudioModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"[subroom_audio]");
+    }
 }

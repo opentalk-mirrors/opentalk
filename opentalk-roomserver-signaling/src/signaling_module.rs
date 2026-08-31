@@ -13,7 +13,7 @@ use opentalk_roomserver_types::{
     shared_json::SharedJson,
     signaling::module_error::{FatalError, ModuleError, SignalingModuleError},
 };
-use opentalk_types_common::{features::FeatureId, modules::ModuleId};
+use opentalk_types_common::{features::FeatureId, modules::ModuleId, utils::ExampleData};
 use opentalk_types_signaling::{ParticipantId, SignalingModuleFrontendData};
 use serde::{Deserialize, Serialize};
 use serde_json::to_value;
@@ -376,4 +376,29 @@ pub trait SignalingModuleDescription {
     const MODULE_ID: ModuleId;
     const DESCRIPTION: &'static str;
     const FEATURES: &[SignalingModuleFeatureDescription];
+
+    type Settings: Serialize + ExampleData;
+
+    fn example_config() -> toml::Value {
+        let settings = Self::Settings::example_data();
+        let body = toml::Value::try_from(settings).unwrap_or_else(|err| {
+            panic!(
+                "Failed to serialize module settings of module {}: {err}",
+                Self::MODULE_ID
+            )
+        });
+        let mut modules = toml::Table::new();
+        modules.insert(Self::MODULE_ID.to_string(), body);
+
+        toml::Value::Table(modules)
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct NoSettings {} // Can not be a unit struct because it must be converted to toml
+
+impl ExampleData for NoSettings {
+    fn example_data() -> Self {
+        Self {}
+    }
 }

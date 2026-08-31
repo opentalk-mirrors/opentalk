@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_types::module_settings::SignalingModuleSettings;
-use opentalk_types_common::modules::ModuleId;
+use opentalk_types_common::{modules::ModuleId, utils::ExampleData};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -19,4 +19,13 @@ pub struct MeetingNotesSettings {
 
 impl SignalingModuleSettings for MeetingNotesSettings {
     const NAMESPACE: ModuleId = MEETING_NOTES_MODULE_ID;
+}
+
+impl ExampleData for MeetingNotesSettings {
+    fn example_data() -> Self {
+        Self {
+            base_url: Url::parse("http://localhost:9001").expect("Example URL must be valid"),
+            api_key: "secret".to_owned(),
+        }
+    }
 }

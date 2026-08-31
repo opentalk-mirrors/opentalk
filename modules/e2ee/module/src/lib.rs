@@ -5,7 +5,7 @@
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, NoOp, SignalingModule, SignalingModuleDescription,
+        ModuleJoinData, NoOp, NoSettings, SignalingModule, SignalingModuleDescription,
         SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
@@ -25,6 +25,8 @@ impl SignalingModuleDescription for E2eeModule {
     const MODULE_ID: ModuleId = E2EE_MODULE_ID;
     const DESCRIPTION: &'static str = "Handles end-to-end encryption functionality";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for E2eeModule {
@@ -154,5 +156,20 @@ impl E2eeModule {
             E2eeEvent::MlsMessages(message),
         )?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::E2eeModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&E2eeModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"[e2ee]");
     }
 }

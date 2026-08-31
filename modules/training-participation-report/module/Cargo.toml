@@ -35,3 +35,4 @@ opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pdf-extract.workspace = true
 test-log.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
+toml.workspace = true

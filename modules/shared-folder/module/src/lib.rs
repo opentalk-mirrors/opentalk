@@ -20,7 +20,7 @@ pub use internal::UpdateSharedFolder;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, PeerDataMap, SignalingModule, SignalingModuleDescription,
+        ModuleJoinData, NoSettings, PeerDataMap, SignalingModule, SignalingModuleDescription,
         SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
@@ -40,8 +40,14 @@ pub struct SharedFolderModule {
 
 impl SignalingModuleDescription for SharedFolderModule {
     const MODULE_ID: ModuleId = SHARED_FOLDER_MODULE_ID;
-    const DESCRIPTION: &'static str = "Handles shared folder integration. This allows automatic creation of shares on a NextCloud instance using the [OCS API](https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-api-overview.html).";
+    const DESCRIPTION: &'static str = "Handles shared folder integration. This allows automatic \
+        creation of shares on a NextCloud instance using the \
+        [OCS API](https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-api-overview.html) \
+        or on an OpenCloud instance using its [Graph API](https://owncloud.dev/libre-graph-api/) \
+        and [WebDAV](https://docs.opencloud.eu/docs/dev/apis/webdav) endpoints.";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for SharedFolderModule {
@@ -142,5 +148,20 @@ impl SignalingModule for SharedFolderModule {
         )?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::SharedFolderModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&SharedFolderModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"[shared_folder]");
     }
 }

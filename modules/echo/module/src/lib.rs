@@ -6,7 +6,7 @@ use std::convert::Infallible;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, NoOp, SignalingModule, SignalingModuleDescription,
+        ModuleJoinData, NoOp, NoSettings, SignalingModule, SignalingModuleDescription,
         SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
@@ -23,6 +23,8 @@ impl SignalingModuleDescription for EchoModule {
     const MODULE_ID: ModuleId = ECHO_MODULE_ID;
     const DESCRIPTION: &'static str = "Used for internal connection checking and development";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
+
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for EchoModule {
@@ -89,5 +91,20 @@ impl SignalingModule for EchoModule {
             EchoCommand::Ping => ctx.send_ws_message_to_lobby([sender], EchoEvent::Pong)?,
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use opentalk_roomserver_signaling::signaling_module::SignalingModuleDescription as _;
+
+    use crate::EchoModule;
+
+    #[test]
+    fn serialize_example_config() {
+        let produced = toml::to_string_pretty(&EchoModule::example_config()).unwrap();
+
+        assert_snapshot!(produced, @"[echo]");
     }
 }

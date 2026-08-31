@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_roomserver_types::module_settings::SignalingModuleSettings;
-use opentalk_types_common::modules::ModuleId;
+use opentalk_types_common::{modules::ModuleId, utils::ExampleData};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -19,4 +19,13 @@ pub struct WhiteboardSettings {
 
 impl SignalingModuleSettings for WhiteboardSettings {
     const NAMESPACE: ModuleId = WHITEBOARD_MODULE_ID;
+}
+
+impl ExampleData for WhiteboardSettings {
+    fn example_data() -> Self {
+        Self {
+            base_url: Url::parse("http://localhost:9666").expect("Example URL must be valid"),
+            api_key: "secret".to_owned(),
+        }
+    }
 }
