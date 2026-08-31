@@ -85,7 +85,7 @@ compose_service_mailcrab_enabled: true
 Deploy the updated configuration and start service with:
 
 ```bash
-otctl delpoy
+otctl deploy
 ```
 
 The MailCrab project is located [in this git repo](https://github.com/tweedegolf/mailcrab).

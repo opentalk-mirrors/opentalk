@@ -15,7 +15,7 @@ import datetime
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
 
 SETTINGS_SAMPLE_REL_PATH = "extras/packaging/config-dist/settings.yml-sample"
 
@@ -78,7 +78,7 @@ def get_role_variables(role_path: Path) -> Dict[str, Any]:
     """
     Collects variables from a role's defaults and vars directories.
     Variables in 'vars' will override those in 'defaults'.
-    Also includes commented-out variable definitions.
+    Also includes commented-out variable definitions to document available variables.
     """
     variables: Dict[str, Any] = {}
     
@@ -161,6 +161,11 @@ def _format_list_item(item: Any) -> str:
         return "{" + ", ".join(parts) + "}"
     return str(item)
 
+
+def _escape_markdown_table_value(value: str) -> str:
+    """Escapes markdown table delimiters in a value string."""
+    return value.replace("|", "\\|")
+
 def format_value(value: Any) -> str:
     """Formats a Python value for display in a Markdown table."""
     if isinstance(value, bool):
@@ -168,18 +173,21 @@ def format_value(value: Any) -> str:
     if isinstance(value, list):
         if not value:
             return "`[]`"
-        items = [_format_list_item(item) for item in value]
+        items = [_escape_markdown_table_value(_format_list_item(item)) for item in value]
         return "`[" + ", ".join(items) + "]`"
     if isinstance(value, dict):
         if not value:
             return "`{}`"
-        parts = [f"`{k}: {v}`" for k, v in value.items()]
+        parts = [
+            f"`{_escape_markdown_table_value(str(k))}: {_escape_markdown_table_value(str(v))}`"
+            for k, v in value.items()
+        ]
         return "<br>".join(parts)
     if isinstance(value, str):
         if not value:
             return "``"
         # Escape pipe characters and show newlines as <br>
-        escaped_value = value.replace("|", "\\|")
+        escaped_value = _escape_markdown_table_value(value)
         lines = escaped_value.splitlines()
         if len(lines) > 1:
             return "<br>".join(f"`{line}`" for line in lines)
@@ -189,7 +197,7 @@ def format_value(value: Any) -> str:
     return f"`{value}`"
 
 # REUSE-IgnoreStart
-def generate_markdown(roles_root: Path) -> str:
+def generate_markdown(roles_root: Path, settings_sample: Optional[Path] = None) -> str:
     """Generates the full markdown content for all roles."""
     content: List[str] = [
         "<!--",
@@ -204,6 +212,7 @@ def generate_markdown(roles_root: Path) -> str:
         "",
         "This document lists the configuration variables for each Ansible role.",
         "Variables are collected from `defaults/*.yml` and `vars/*.yml`.",
+        "Commented role variables are included to document available settings.",
         "Default values should be overridden in `/etc/opentalk-compose/settings.yml`.",
         ""
     ]
@@ -223,24 +232,25 @@ def generate_markdown(roles_root: Path) -> str:
             role_sections.append("")
             continue
 
-        role_sections.append("| Variable | Type | Default Value |")
-        role_sections.append("|----------|------|---------------|")
+        role_sections.append("| Variable | Type | Default / Example Value |")
+        role_sections.append("|----------|------|-------------------------|")
         for name, value in sorted(variables.items()):
             var_type = infer_type(value)
             role_sections.append(f"| `{name}` | {var_type} | {format_value(value)} |")
         role_sections.append("")
 
     # Check settings.yml-sample for variables not defined in any role
-    project_root = roles_root.parent.parent
-    settings_sample = project_root / SETTINGS_SAMPLE_REL_PATH
+    if settings_sample is None:
+        project_root = roles_root.parent.parent
+        settings_sample = project_root / SETTINGS_SAMPLE_REL_PATH
     if settings_sample.is_file():
         sample_vars = get_settings_sample_variables(settings_sample)
         extra_vars = {k: v for k, v in sample_vars.items() if k not in all_role_vars}
         content.append("## Global Variables in settings.yml")
         content.append("")
         if extra_vars:
-            content.append("| Variable | Type | Default Value |")
-            content.append("|----------|------|---------------|")
+            content.append("| Variable | Type | Default / Example Value |")
+            content.append("|----------|------|-------------------------|")
             for name, value in sorted(extra_vars.items()):
                 var_type = infer_type(value)
                 content.append(f"| `{name}` | {var_type} | {format_value(value)} |")
@@ -271,17 +281,23 @@ def main():
         default="docs/5-configuration-options-reference.md",
         help="Path to the output markdown file."
     )
+    parser.add_argument(
+        "--settings-sample",
+        default=SETTINGS_SAMPLE_REL_PATH,
+        help="Path to settings.yml-sample used for global variable extraction."
+    )
     args = parser.parse_args()
 
     roles_root = Path(args.roles_root)
     output_file = Path(args.output)
+    settings_sample = Path(args.settings_sample)
 
     if not roles_root.is_dir():
         print(f"Error: Roles directory not found at '{roles_root}'", file=sys.stderr)
         sys.exit(1)
 
     print("Generating configuration reference...")
-    markdown_content = generate_markdown(roles_root)
+    markdown_content = generate_markdown(roles_root, settings_sample)
     
     try:
         output_file.write_text(markdown_content, encoding="utf-8")

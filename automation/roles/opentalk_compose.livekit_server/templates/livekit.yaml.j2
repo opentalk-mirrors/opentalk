@@ -11,7 +11,7 @@ port: {{ livekit_port }}
 {% if livekit_bind_addresses is defined and livekit_bind_addresses %}
 bind_addresses:
 {% for addr in livekit_bind_addresses %}
-  - "{{ addr }}"
+  - {{ addr | to_json }}
 {% endfor %}
 {% endif %}
 

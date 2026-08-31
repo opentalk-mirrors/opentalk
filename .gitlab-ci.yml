@@ -422,6 +422,10 @@ upload:experimental:
         sleep 2
       done
 
+.int_before_script:
+  before_script:
+    - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" git.opentalk.dev:5050
+
 # ------------------------------
 # INTEGRATION TESTS
 # ------------------------------
@@ -456,6 +460,8 @@ int:experimental:
       deploy_dir: "/opt/opentalk-compose"
       compose_project_name: "opentalk"
       compose_service_opentalk_controller_enabled: true
+      compose_service_opentalk_roomserver_enabled: false
+      compose_service_opentalk_orchestrator_enabled: false
       compose_service_opentalk_obelisk_enabled: false
       compose_service_opentalk_outlook_add_in_enabled: false
       compose_service_opentalk_recorder_enabled: true
@@ -475,6 +481,8 @@ int:experimental:
       custom_certificates_fullchain_cert_file: fullchain.crt
       custom_certificates_private_key_file: privkey.key
       custom_certificates_ca_root_cert_file: ca.crt
+  before_script:
+    - !reference [.int_before_script, before_script]
   script:
     - |
       OS_ID="$(. /etc/os-release && echo "$ID")"
@@ -544,6 +552,7 @@ int:pre-release:
       deploy_dir: "/opt/opentalk-compose"
       compose_project_name: "opentalk"
       compose_service_opentalk_controller_enabled: true
+      compose_service_opentalk_roomserver_enabled: false
       compose_service_opentalk_obelisk_enabled: false
       compose_service_opentalk_outlook_add_in_enabled: false
       compose_service_opentalk_recorder_enabled: true
@@ -563,6 +572,8 @@ int:pre-release:
       custom_certificates_fullchain_cert_file: fullchain.crt
       custom_certificates_private_key_file: privkey.key
       custom_certificates_ca_root_cert_file: ca.crt
+  before_script:
+    - !reference [.int_before_script, before_script]
   script:
     - |
       OS_ID="$(. /etc/os-release && echo "$ID")"
@@ -632,6 +643,7 @@ int:stable:
       deploy_dir: "/opt/opentalk-compose"
       compose_project_name: "opentalk"
       compose_service_opentalk_controller_enabled: true
+      compose_service_opentalk_roomserver_enabled: false
       compose_service_opentalk_obelisk_enabled: false
       compose_service_opentalk_outlook_add_in_enabled: false
       compose_service_opentalk_recorder_enabled: true
@@ -651,6 +663,8 @@ int:stable:
       custom_certificates_fullchain_cert_file: fullchain.crt
       custom_certificates_private_key_file: privkey.key
       custom_certificates_ca_root_cert_file: ca.crt
+  before_script:
+    - !reference [.int_before_script, before_script]
   script:
     - |
       OS_ID="$(. /etc/os-release && echo "$ID")"

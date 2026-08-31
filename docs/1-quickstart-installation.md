@@ -33,7 +33,7 @@ Recommended distributions:
 | Debian 13 "Trixie"                         | RHEL 10                     |
 | Ubuntu 22.04 LTS "Jammy Jellyfish"         | AlmaLinux 9                 |
 | Ubuntu 24.04 LTS "Noble Numbat"            | AlmaLinux 10                |
-|                                            | Rocky Linux 9               |
+| Ubuntu 26.04 LTS "Resolute Raccoon"        | Rocky Linux 9               |
 |                                            | Rocky Linux 10              |
 |                                            | openSUSE Leap 15            |
 |                                            | openSUSE Leap 16            |
@@ -92,7 +92,7 @@ while convenient this can changed by:
 
 === "Debian / Ubuntu"
 
-    For Debian 12, 13 and Ubuntu 24.04 based systems.
+  For Debian 12, 13 and Ubuntu 24.04/26.04 based systems.
 
     ```bash
     # Download and install the GPG public key
@@ -100,7 +100,7 @@ while convenient this can changed by:
       https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc | \
       sudo tee /etc/apt/trusted.gpg.d/opentalk-archive-keyring.asc > /dev/null
 
-    # Add the OpenTalk Compose (stable) repository
+    # Add the OpenTalk Compose repository
     echo "deb [arch=amd64] \
       https://repo.heinlein.group/repo/opentalk-compose/deb/stable/ all main" | \
       sudo tee /etc/apt/sources.list.d/opentalk-compose.list
@@ -122,7 +122,7 @@ while convenient this can changed by:
     sudo rpm --import \
       https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
 
-    # Add the OpenTalk Compose (stable) repository
+    # Add the OpenTalk Compose repository
     sudo tee /etc/yum.repos.d/opentalk-stable.repo <<EOF
     [opentalk-compose]
     name=OpenTalk Compose Repository - Stable Releases
@@ -233,15 +233,23 @@ Only changed settings are applied; re-running is safe.
 otctl status
 ```
 
-Example:
+Example output varies depending on which optional services are enabled. On a standard single-host deployment, you should see the core services such as:
 
 ```text
 SERVICE       STATE     HEALTH
 controller    running   healthy
+controller-db running   healthy
+etherpad      running   healthy
+garage        running   healthy
 keycloak      running   healthy
-minio         running   healthy
-obelisk       running   healthy
-webapp        running   healthy
+keycloak-db   running   healthy
+livekit-server running  healthy
+ndt           running   healthy
+rabbitmq      running   healthy
+recorder      running   healthy
+spacedeck     running   healthy
+traefik       running   healthy
+web-frontend  running   healthy
 ...
 ```
 
@@ -628,7 +636,8 @@ High-level process:
 
 1. Create a full backup (databases, config, volumes)
 2. Refresh repository metadata and upgrade the `opentalk-compose` package
-3. Run `otctl deploy` to render any updated templates and restart services if needed
+3. Check for package-provided config update files and merge new options
+4. Run `otctl deploy` to render any updated templates and restart services if needed
 
 ### 7.2 Step 1: Create a Full Backup
 
@@ -640,6 +649,15 @@ otctl backup ls   # (optional) verify backup presence
 ```
 
 Backups are stored under `/var/opt/opentalk-compose/backups`. Keep sufficient disk space free. For more granular commands see section 2.8.
+
+If the release includes a PostgreSQL major upgrade (for example controller-db/keycloak-db image major bump), create dedicated database dumps before deploying:
+
+```bash
+otctl backup dump controller
+otctl backup dump keycloak
+```
+
+Use the backup workflow from section 2.6 for restore planning.
 
 ### 7.3 Step 2: Update Repository & Package
 
@@ -666,7 +684,22 @@ zypper refresh
 zypper update -y opentalk-compose
 ```
 
-### 7.4 Step 3: Redeploy Services
+### 7.4 Step 3: Merge new configuration options from package updates
+
+After package upgrade, check whether the package manager kept your existing settings file and wrote an updated template alongside it:
+
+```bash
+ls -l /etc/opentalk-compose/settings.yml.dpkg-dist /etc/opentalk-compose/settings.yml.rpmnew
+```
+
+If one of these files exists, compare it with your active configuration and merge relevant new options into `/etc/opentalk-compose/settings.yml`.
+
+- Debian/Ubuntu commonly uses `/etc/opentalk-compose/settings.yml.dpkg-dist`
+- RPM-based systems commonly use `/etc/opentalk-compose/settings.yml.rpmnew`
+
+Pay special attention to newly introduced storage options. If you are moving between S3 backends (MinIO/Garage), follow the dedicated migration workflow in section 6.3 before or during the upgrade window.
+
+### 7.5 Step 4: Redeploy Services
 
 After upgrading the package, redeploy to apply any new templates, configuration changes, or image updates:
 
@@ -676,7 +709,7 @@ otctl deploy
 
 The deploy is idempotent: unchanged services remain running; changed components are recreated or restarted automatically.
 
-### 7.5 Verification & Rollback Notes
+### 7.6 Verification & Rollback Notes
 
 Verify versions and health:
 

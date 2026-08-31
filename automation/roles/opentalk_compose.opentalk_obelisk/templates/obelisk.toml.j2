@@ -10,14 +10,9 @@ clock_format = "{{ obelisk_clock_format }}"
 language = "{{ obelisk_language }}"
 {% endif %}
 
-[auth]
-issuer = "{{ obelisk_auth_issuer }}"
-client_id = "{{ obelisk_auth_client_id }}"
-client_secret = "{{ obelisk_auth_client_secret }}"
-
 [controller]
-domain = "{{ obelisk_controller_domain }}"
-insecure = {{ obelisk_controller_insecure | to_json }}
+url = "{{ 'http' if obelisk_controller_insecure else 'https' }}://{{ obelisk_controller_domain }}/"
+api_key = { id = "{{ obelisk_controller_api_key_id }}", secret = "{{ obelisk_controller_api_key_secret }}" }
 
 [sip]
 addr = "{{ obelisk_sip_addr }}"
