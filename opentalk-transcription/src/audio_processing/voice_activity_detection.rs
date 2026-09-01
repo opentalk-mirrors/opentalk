@@ -30,52 +30,105 @@ const VAD_PADDING_CHUNKS: usize = 10;
 /// Confidence threshold of the voice detector
 const VAD_DETECTION_THRESHOLD: f32 = 0.5;
 
-/// The audio samples of a detected speech utterance together with the time it started.
+/// How many chunks must actually contain speech before a segment is worth transcribing
+const VAD_MIN_SPEECH_CHUNKS: usize = 18;
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct VadConfig {
+    pub(crate) sample_rate: u32,
+    pub(crate) channels: usize,
+    pub(crate) chunk_size: usize,
+    pub(crate) padding_chunks: usize,
+    pub(crate) detection_threshold: f32,
+    pub(crate) min_speech_chunks: usize,
+}
+
+impl Default for VadConfig {
+    fn default() -> Self {
+        Self {
+            sample_rate: VAD_SAMPLE_RATE,
+            channels: VAD_CHANNELS,
+            chunk_size: VAD_CHUNK_SIZE,
+            padding_chunks: VAD_PADDING_CHUNKS,
+            detection_threshold: VAD_DETECTION_THRESHOLD,
+            min_speech_chunks: VAD_MIN_SPEECH_CHUNKS,
+        }
+    }
+}
+
+pub(crate) struct VadStage {
+    current: Option<PendingSegment>,
+    ready: VecDeque<SpeechSegment>,
+    detector: VoiceDetector,
+    min_speech_chunks: usize,
+}
+
 pub(crate) struct SpeechSegment {
     pub(crate) samples: Vec<f32>,
     pub(crate) started_at: Instant,
 }
 
-pub(crate) struct VadStage {
-    current: Option<(Instant, Vec<f32>)>,
-    ready: VecDeque<(Instant, Vec<f32>)>,
-    detector: VoiceDetector,
+struct PendingSegment {
+    started_at: Instant,
+    samples: Vec<f32>,
+    speech_chunks: usize,
+}
+
+impl PendingSegment {
+    fn finish(self, min_speech_chunks: usize) -> Option<SpeechSegment> {
+        if self.speech_chunks < min_speech_chunks {
+            log::trace!(
+                "Discarding segment with only {} speech chunks",
+                self.speech_chunks
+            );
+            return None;
+        }
+
+        Some(SpeechSegment {
+            samples: self.samples,
+            started_at: self.started_at,
+        })
+    }
 }
 
 impl VadStage {
-    pub(crate) fn new() -> Result<Self> {
+    pub(crate) fn new(config: VadConfig) -> Result<Self> {
         Ok(Self {
             current: None,
             ready: VecDeque::new(),
-            detector: VoiceDetector::new(),
+            detector: VoiceDetector::new(config),
+            min_speech_chunks: config.min_speech_chunks,
         })
     }
 
     pub(crate) fn process(&mut self, samples: Vec<f32>) -> Option<SpeechSegment> {
+        let min_speech_chunks = self.min_speech_chunks;
+
         self.detector
             .handle_samples(Instant::now(), &samples, |chunk| {
-                if !chunk.is_speech {
-                    if let Some((timestamp, samples)) = self.current.take() {
-                        self.ready.push_back((timestamp, samples));
+                if matches!(chunk.kind, ChunkKind::NotSpeech) {
+                    if let Some(segment) = self.current.take()
+                        && let Some(segment) = segment.finish(min_speech_chunks)
+                    {
+                        self.ready.push_back(segment);
                     }
 
                     return;
                 }
 
-                let Some((_timestamp, current_samples)) = &mut self.current else {
-                    self.current = Some((chunk.timestamp, chunk.samples));
-                    return;
-                };
+                let segment = self.current.get_or_insert_with(|| PendingSegment {
+                    started_at: chunk.timestamp,
+                    samples: Vec::new(),
+                    speech_chunks: 0,
+                });
 
-                current_samples.extend(chunk.samples);
+                segment.samples.extend(chunk.samples);
+                if matches!(chunk.kind, ChunkKind::Speech) {
+                    segment.speech_chunks += 1;
+                }
             });
 
-        self.ready
-            .pop_front()
-            .map(|(started_at, samples)| SpeechSegment {
-                samples,
-                started_at,
-            })
+        self.ready.pop_front()
     }
 }
 
@@ -105,23 +158,29 @@ struct ChunkInfo {
     samples: Vec<f32>,
     timestamp: Instant,
 
-    is_speech: bool,
+    kind: ChunkKind,
+}
+
+enum ChunkKind {
+    NotSpeech,
+    SpeechPadding,
+    Speech,
 }
 
 impl VoiceDetector {
-    fn new() -> VoiceDetector {
+    fn new(config: VadConfig) -> VoiceDetector {
         VoiceDetector {
             detector: earshot::Detector::default_boxed(),
-            threshold: VAD_DETECTION_THRESHOLD,
-            max_padding_before_speech: VAD_PADDING_CHUNKS,
-            max_padding_after_speech: VAD_PADDING_CHUNKS,
+            threshold: config.detection_threshold,
+            max_padding_before_speech: config.padding_chunks,
+            max_padding_after_speech: config.padding_chunks,
             queue: ReFramer::new(
-                VAD_CHANNELS,
-                VAD_SAMPLE_RATE as usize,
-                Duration::from_secs_f64(VAD_CHUNK_SIZE as f64 / VAD_SAMPLE_RATE as f64),
+                config.channels,
+                config.sample_rate as usize,
+                Duration::from_secs_f64(config.chunk_size as f64 / config.sample_rate as f64),
             ),
             before_padding_chunks: VecDeque::new(),
-            remaining_after_speech_padding: VAD_PADDING_CHUNKS,
+            remaining_after_speech_padding: config.padding_chunks,
         }
     }
 
@@ -170,14 +229,14 @@ impl VoiceDetector {
             on_chunk(ChunkInfo {
                 samples: chunk,
                 timestamp,
-                is_speech: true,
+                kind: ChunkKind::SpeechPadding,
             });
         }
 
         on_chunk(ChunkInfo {
             samples,
             timestamp,
-            is_speech: true,
+            kind: ChunkKind::Speech,
         });
 
         self.remaining_after_speech_padding = self.max_padding_after_speech;
@@ -198,7 +257,7 @@ impl VoiceDetector {
         on_chunk(ChunkInfo {
             samples,
             timestamp,
-            is_speech: true,
+            kind: ChunkKind::SpeechPadding,
         });
 
         self.remaining_after_speech_padding -= 1;
@@ -219,7 +278,7 @@ impl VoiceDetector {
             on_chunk(ChunkInfo {
                 samples,
                 timestamp,
-                is_speech: false,
+                kind: ChunkKind::NotSpeech,
             });
         }
     }
