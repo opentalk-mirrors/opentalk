@@ -9,7 +9,19 @@ WORKDIR /transcription
 ADD . /transcription
 
 RUN apt-get --update -y full-upgrade && \
-    apt-get install --no-install-recommends -y build-essential pkg-config clang libclang-dev cmake libvulkan-dev glslc libssl-dev libglib2.0-dev
+    apt-get install --no-install-recommends -y \
+    build-essential \
+    pkg-config \
+    clang \
+    libclang-dev \
+    cmake \
+    libvulkan-dev \
+    glslc \
+    libssl-dev \
+    libglib2.0-dev \
+    curl
+
+RUN curl -O https://repo.heinlein.group/repository/whisper-ggml-models/ggml-large-v3-turbo.bin
 
 RUN cargo build --locked --release
 
@@ -27,7 +39,7 @@ RUN apt-get --update full-upgrade -y && \
 
 WORKDIR /transcription
 
-COPY models /transcription/models
+COPY --from=builder /transcription/ggml-large-v3-turbo.bin models/.
 COPY --from=builder /transcription/target/release/opentalk-transcription .
 COPY extra/example.toml /etc/opentalk/transcription.toml
 
