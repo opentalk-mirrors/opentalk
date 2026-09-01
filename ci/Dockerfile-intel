@@ -20,6 +20,7 @@ RUN apt-get install -y --no-install-recommends \
       git \
       libvulkan-dev glslc
 
+RUN curl -O https://repo.heinlein.group/repository/whisper-ggml-models/ggml-large-v3-turbo.bin
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --default-toolchain stable
 
@@ -47,7 +48,6 @@ COPY Cargo.toml Cargo.toml
 COPY Cargo.lock Cargo.lock
 COPY opentalk-transcription opentalk-transcription
 COPY opentalk-transcription-web-api opentalk-transcription-web-api
-COPY models models
 
 RUN cargo build --locked --release --features sycl
 
@@ -79,8 +79,8 @@ ENV RUST_LOG="opentalk=debug,whisper_rs=warn,info"
 ENV LD_LIBRARY_PATH=/opt/whisper.cpp/lib:${MKLROOT}/lib:${LD_LIBRARY_PATH}
 
 COPY --from=builder /app/target/release/opentalk-transcription .
+COPY --from=builder /ggml-large-v3-turbo.bin models/.
 COPY extra/example.toml transcription.toml
-COPY models/ models/
 
 USER $USERID:$GROUPID
 
