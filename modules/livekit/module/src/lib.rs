@@ -3,6 +3,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
+    mem,
     sync::Arc,
     time::Duration,
 };
@@ -256,7 +257,7 @@ impl SignalingModule for LiveKitModule {
     fn on_closing(&mut self, ctx: &mut ModuleContext<'_, Self>) -> Result<(), anyhow::Error> {
         self.proxy_shutdown.clear();
 
-        let rooms = self.rooms.drain().collect();
+        let rooms = mem::take(&mut self.rooms);
         Self::cleanup_rooms(ctx, rooms);
 
         Ok(())
