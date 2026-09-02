@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-image: $CI_REGISTRY_IMAGE/pkgbuild:$CI_COMMIT_SHA
+image: $CI_REGISTRY_IMAGE/pkgbuild:latest
 
 workflow:
   rules:
@@ -31,7 +31,8 @@ stages:
 
 .default_conditions: &default_conditions
   needs:
-    - build:pkgbuild
+    - job: build:pkgbuild
+      optional: true
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "push"'
@@ -63,10 +64,10 @@ build:pkgbuild:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-    - if: '$CI_COMMIT_TAG'
+    - changes:
+        - extras/ci/pkgbuild/**/*
+        - .gitlab-ci.yml
+    - when: never
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
     - docker buildx create --use
@@ -74,7 +75,7 @@ build:pkgbuild:
       docker buildx build
       --cache-from type=registry,ref=$CI_REGISTRY_IMAGE/pkgbuild:cache
       --cache-to type=registry,ref=$CI_REGISTRY_IMAGE/pkgbuild:cache,mode=max
-      --tag $CI_REGISTRY_IMAGE/pkgbuild:$CI_COMMIT_SHA
+      --tag $CI_REGISTRY_IMAGE/pkgbuild:latest
       --push
       extras/ci/pkgbuild
 
@@ -145,7 +146,8 @@ lint:licensing:
 lint:release_tag:
   stage: lint
   needs:
-    - build:pkgbuild
+    - job: build:pkgbuild
+      optional: true
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -160,7 +162,8 @@ lint:release_tag:
 lint:pre-release_tag:
   stage: lint
   needs:
-    - build:pkgbuild
+    - job: build:pkgbuild
+      optional: true
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -229,7 +232,8 @@ docs:mkdocs:
 package:stable:
   stage: package
   needs:
-    - build:pkgbuild
+    - job: build:pkgbuild
+      optional: true
     - lint:shellcheck
     - lint:yamllint
     - lint:markdown
@@ -276,7 +280,8 @@ package:stable:
 package:pre-release:
   stage: package
   needs:
-    - build:pkgbuild
+    - job: build:pkgbuild
+      optional: true
     - lint:shellcheck
     - lint:yamllint
     - lint:markdown
@@ -323,7 +328,8 @@ package:pre-release:
 package:experimental:
   stage: package
   needs:
-    - build:pkgbuild
+    - job: build:pkgbuild
+      optional: true
     - lint:shellcheck
     - lint:yamllint
     - lint:markdown
