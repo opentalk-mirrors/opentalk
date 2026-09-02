@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
-package:stable:
+.package:
   stage: package
   needs:
     - job: build:pkgbuild
@@ -16,6 +16,32 @@ package:stable:
   parallel:
     matrix:
       - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
+  after_script:
+    - |
+      if [ "$CI_JOB_STATUS" = "success" ] && [ "$FLAVOR" = "rpm" ]; then
+        export GNUPGHOME="$HOME/.gnupg"
+        mkdir -p "$GNUPGHOME"
+        chmod 700 "$GNUPGHOME"
+        export GPG_TTY=$(tty 2>/dev/null || echo /dev/tty)
+        echo "Importing GPG key..."
+        echo "$GPG_PRIVATE_KEY_BASE64" | base64 --decode | gpg --batch --import
+        GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/ {print $5; exit}')
+        echo "Using GPG_KEY_ID=$GPG_KEY_ID"
+        echo "$GPG_PASSPHRASE" > /tmp/.gpg-passphrase
+        chmod 600 /tmp/.gpg-passphrase
+        echo "%_signature gpg" > ~/.rpmmacros
+        echo "%_gpg_path $GNUPGHOME" >> ~/.rpmmacros
+        echo "%_gpg_name $GPG_KEY_ID" >> ~/.rpmmacros
+        echo "%__gpg_sign_cmd %{__gpg} gpg --batch --pinentry-mode loopback --passphrase-file /tmp/.gpg-passphrase --no-verbose --no-armor --no-secmem-warning -u \"%{_gpg_name}\" -sbo %{__signature_filename} %{__plaintext_filename}" >> ~/.rpmmacros
+        for pkg in artifacts/*.rpm; do
+          echo "Signing $pkg"
+          rpmsign --addsign "$pkg"
+        done
+        rm -f /tmp/.gpg-passphrase
+      fi
+
+package:stable:
+  extends: .package
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -23,47 +49,13 @@ package:stable:
     - when: never
   script:
     - just "build-${FLAVOR}-version" "$CI_COMMIT_TAG"
-    - |
-      if [ "$FLAVOR" = "rpm" ]; then
-        export GNUPGHOME="$HOME/.gnupg"
-        mkdir -p "$GNUPGHOME"
-        chmod 700 "$GNUPGHOME"
-        export GPG_TTY=$(tty 2>/dev/null || echo /dev/tty)
-        echo "Importing GPG key..."
-        echo "$GPG_PRIVATE_KEY_BASE64" | base64 --decode | gpg --batch --import
-        GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/ {print $5; exit}')
-        echo "Using GPG_KEY_ID=$GPG_KEY_ID"
-        echo "$GPG_PASSPHRASE" > /tmp/.gpg-passphrase
-        chmod 600 /tmp/.gpg-passphrase
-        echo "%_signature gpg" > ~/.rpmmacros
-        echo "%_gpg_path $GNUPGHOME" >> ~/.rpmmacros
-        echo "%_gpg_name $GPG_KEY_ID" >> ~/.rpmmacros
-        echo "%__gpg_sign_cmd %{__gpg} gpg --batch --pinentry-mode loopback --passphrase-file /tmp/.gpg-passphrase --no-verbose --no-armor --no-secmem-warning -u \"%{_gpg_name}\" -sbo %{__signature_filename} %{__plaintext_filename}" >> ~/.rpmmacros
-        for pkg in artifacts/*.rpm; do
-          echo "Signing $pkg"
-          rpmsign --addsign "$pkg"
-        done
-        rm -f /tmp/.gpg-passphrase
-      fi
   artifacts:
     paths:
       - artifacts/*
     expire_in: 1 day
 
 package:pre-release:
-  stage: package
-  needs:
-    - job: build:pkgbuild
-      optional: true
-    - lint:shellcheck
-    - lint:yamllint
-    - lint:markdown
-    - lint:ansible-lint
-    - lint:licensing
-    - lint:commitlint
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
+  extends: .package
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -71,47 +63,13 @@ package:pre-release:
     - when: never
   script:
     - just "build-${FLAVOR}-version" "$CI_COMMIT_TAG"
-    - |
-      if [ "$FLAVOR" = "rpm" ]; then
-        export GNUPGHOME="$HOME/.gnupg"
-        mkdir -p "$GNUPGHOME"
-        chmod 700 "$GNUPGHOME"
-        export GPG_TTY=$(tty 2>/dev/null || echo /dev/tty)
-        echo "Importing GPG key..."
-        echo "$GPG_PRIVATE_KEY_BASE64" | base64 --decode | gpg --batch --import
-        GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/ {print $5; exit}')
-        echo "Using GPG_KEY_ID=$GPG_KEY_ID"
-        echo "$GPG_PASSPHRASE" > /tmp/.gpg-passphrase
-        chmod 600 /tmp/.gpg-passphrase
-        echo "%_signature gpg" > ~/.rpmmacros
-        echo "%_gpg_path $GNUPGHOME" >> ~/.rpmmacros
-        echo "%_gpg_name $GPG_KEY_ID" >> ~/.rpmmacros
-        echo "%__gpg_sign_cmd %{__gpg} gpg --batch --pinentry-mode loopback --passphrase-file /tmp/.gpg-passphrase --no-verbose --no-armor --no-secmem-warning -u \"%{_gpg_name}\" -sbo %{__signature_filename} %{__plaintext_filename}" >> ~/.rpmmacros
-        for pkg in artifacts/*.rpm; do
-          echo "Signing $pkg"
-          rpmsign --addsign "$pkg"
-        done
-        rm -f /tmp/.gpg-passphrase
-      fi
   artifacts:
     paths:
       - artifacts/*
     expire_in: 1 day
 
 package:experimental:
-  stage: package
-  needs:
-    - job: build:pkgbuild
-      optional: true
-    - lint:shellcheck
-    - lint:yamllint
-    - lint:markdown
-    - lint:ansible-lint
-    - lint:licensing
-    - lint:commitlint
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
+  extends: .package
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - when: never
@@ -124,28 +82,6 @@ package:experimental:
       fi
       echo "VERSION=$VERSION"
     - just "build-${FLAVOR}-version" "$VERSION"
-    - |
-      if [ "$FLAVOR" = "rpm" ]; then
-        export GNUPGHOME="$HOME/.gnupg"
-        mkdir -p "$GNUPGHOME"
-        chmod 700 "$GNUPGHOME"
-        export GPG_TTY=$(tty 2>/dev/null || echo /dev/tty)
-        echo "Importing GPG key..."
-        echo "$GPG_PRIVATE_KEY_BASE64" | base64 --decode | gpg --batch --import
-        GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/ {print $5; exit}')
-        echo "Using GPG_KEY_ID=$GPG_KEY_ID"
-        echo "$GPG_PASSPHRASE" > /tmp/.gpg-passphrase
-        chmod 600 /tmp/.gpg-passphrase
-        echo "%_signature gpg" > ~/.rpmmacros
-        echo "%_gpg_path $GNUPGHOME" >> ~/.rpmmacros
-        echo "%_gpg_name $GPG_KEY_ID" >> ~/.rpmmacros
-        echo "%__gpg_sign_cmd %{__gpg} gpg --batch --pinentry-mode loopback --passphrase-file /tmp/.gpg-passphrase --no-verbose --no-armor --no-secmem-warning -u \"%{_gpg_name}\" -sbo %{__signature_filename} %{__plaintext_filename}" >> ~/.rpmmacros
-        for pkg in artifacts/*.rpm; do
-          echo "Signing $pkg"
-          rpmsign --addsign "$pkg"
-        done
-        rm -f /tmp/.gpg-passphrase
-      fi
   artifacts:
     paths:
       - artifacts/*

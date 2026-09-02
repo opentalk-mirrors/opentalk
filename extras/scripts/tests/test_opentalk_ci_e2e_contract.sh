@@ -7,10 +7,12 @@ set -euo pipefail
 
 REPO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
 CI_FILE="$REPO_ROOT/.gitlab-ci.yml"
+INTEGRATION_CI_FILE="$REPO_ROOT/extras/ci/gitlab/integration.yml"
 E2E_TEST="$REPO_ROOT/extras/scripts/tests/integration/test_compose_e2e.sh"
 RUNTIME_TEST="$REPO_ROOT/extras/scripts/tests/integration/test_deployment_runtime.sh"
 
 [[ -f "$CI_FILE" ]] || { echo ".gitlab-ci.yml not found." >&2; exit 1; }
+[[ -f "$INTEGRATION_CI_FILE" ]] || { echo "extras/ci/gitlab/integration.yml not found." >&2; exit 1; }
 [[ -f "$E2E_TEST" ]] || { echo "test_compose_e2e.sh not found." >&2; exit 1; }
 
 failed=0
@@ -21,12 +23,13 @@ fail() {
 
 # int:e2e CI job: the destructive E2E test must only run behind an explicit
 # manual trigger and must set the OPENTALK_E2E guard that gates the test.
-grep -q '^int:e2e:' "$CI_FILE" || fail "int:e2e job is missing from .gitlab-ci.yml"
-grep -q 'OPENTALK_E2E: "1"' "$CI_FILE" || fail "int:e2e job must set OPENTALK_E2E=1"
-grep -q 'when: manual' "$CI_FILE" || fail "int:e2e job must be gated by a manual trigger"
-grep -q 'bash extras/scripts/tests/integration/test_compose_e2e.sh' "$CI_FILE" \
+# Note: int:e2e is defined in extras/ci/gitlab/integration.yml and included by root CI file
+grep -q '^int:e2e:' "$INTEGRATION_CI_FILE" || fail "int:e2e job is missing from extras/ci/gitlab/integration.yml"
+grep -q 'OPENTALK_E2E: "1"' "$INTEGRATION_CI_FILE" || fail "int:e2e job must set OPENTALK_E2E=1"
+grep -q 'when: manual' "$INTEGRATION_CI_FILE" || fail "int:e2e job must be gated by a manual trigger"
+grep -q 'bash extras/scripts/tests/integration/test_compose_e2e.sh' "$INTEGRATION_CI_FILE" \
   || fail "int:e2e job must run test_compose_e2e.sh"
-grep -q '!reference \[.int_before_script, before_script\]' "$CI_FILE" \
+grep -q '!reference \[.int_before_script, before_script\]' "$INTEGRATION_CI_FILE" \
   || fail "int:e2e job must reuse the shared integration before_script"
 
 # The E2E test must guard itself so it cannot run without explicit opt-in.
