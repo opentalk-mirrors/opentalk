@@ -15,7 +15,7 @@ permanent_admin_exists_task=$(awk '
   in_task { print }
 ' "$TASK")
 
-if ! grep -q 'until: permanent_admin_login_attempt.status in \[200, 401, 400\]' <<<"$permanent_admin_exists_task"; then
+if ! grep -q 'until: permanent_admin_login_attempt.status in \[200, 400, 401\]' <<<"$permanent_admin_exists_task"; then
   echo "Check permanent admin task must accept 400 (invalid_grant) alongside 200/401." >&2
   exit 1
 fi
