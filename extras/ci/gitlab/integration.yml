@@ -2,11 +2,24 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
-.int_before_script:
-  before_script:
-    - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" git.opentalk.dev:5050
-    # containers resolve this via extra_hosts; the host process needs it too
-    - echo "127.0.0.1 opentalk-ci.test" >> /etc/hosts
+.rules_stable:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
+    - when: never
+
+.rules_pre_release:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
+    - when: never
+
+.rules_experimental:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - when: never
 
 .int_base:
   stage: integration
@@ -14,7 +27,7 @@
     - dind
   image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
   before_script:
-    - !reference [.int_before_script, before_script]
+    - bash extras/ci/gitlab/setup-integration-env.sh
 
 # ------------------------------
 # INTEGRATION TESTS
@@ -38,9 +51,7 @@ int:experimental:
   needs:
     - job: package:experimental
       artifacts: true
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - when: never
+  rules: !reference [.rules_experimental, rules]
   variables:
     OT_SETTINGS: |
       ot_domain: 'opentalk-ci.test'
@@ -156,11 +167,7 @@ int:pre-release:
   needs:
     - job: package:pre-release
       artifacts: true
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
-    - when: never
+  rules: !reference [.rules_pre_release, rules]
   variables:
     OT_SETTINGS: |
       ot_domain: 'opentalk-ci.test'
@@ -256,11 +263,7 @@ int:stable:
   needs:
     - job: package:stable
       artifacts: true
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
-    - when: never
+  rules: !reference [.rules_stable, rules]
   variables:
     OT_SETTINGS: |
       ot_domain: 'opentalk-ci.test'
@@ -357,7 +360,7 @@ int:e2e:
   variables:
     OPENTALK_E2E: "1"
   before_script:
-    - !reference [.int_before_script, before_script]
+    - bash extras/ci/gitlab/setup-integration-env.sh
     - |
       set -euo pipefail
       command -v just >/dev/null || \
