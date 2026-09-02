@@ -5,6 +5,7 @@
 
 set -euo pipefail
 
+BASE_SETTINGS_FILE=extras/ci/gitlab/integration-settings.yml
 SETTINGS_FILE=/etc/opentalk-compose/settings.yml
 COMPOSE_PROJECT_NAME=opentalk
 export COMPOSE_PROJECT_NAME
@@ -42,7 +43,14 @@ install_package() {
 }
 
 write_settings() {
-    echo "$OT_SETTINGS" > "$SETTINGS_FILE"
+    mkdir -p "$(dirname "$SETTINGS_FILE")"
+    cp "$BASE_SETTINGS_FILE" "$SETTINGS_FILE"
+
+    if [ "${SMTP_MAILER_ENABLED:-false}" = "true" ]; then
+        sed -i \
+            -e 's/^compose_service_opentalk_smtp_mailer_enabled: false$/compose_service_opentalk_smtp_mailer_enabled: true/' \
+            "$SETTINGS_FILE"
+    fi
 
     if [ "${EXTRA_OPTIONAL_SERVICES:-}" = "with-optional-services" ]; then
         sed -i \
