@@ -1,0 +1,121 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+lint:shellcheck:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Linting shell scripts..."
+    - git ls-files -z '*.sh' | xargs -0r shellcheck
+    - shellcheck extras/packaging/wrappers/*
+
+lint:shell-tests:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Running shell regression tests..."
+    - find extras/scripts/tests -maxdepth 1 -type f -name 'test_*.sh' -print0 | xargs -0r -n1 bash
+
+lint:yamllint:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Linting YAML files..."
+    - yamllint .
+
+lint:markdown:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Linting Markdown files..."
+    - |
+      git ls-files '*.md' | grep -v 'docs/5-configuration-options-reference.md' | \
+        xargs -P4 -n1 sh -c '
+          f="$1"
+          sed "/\[\[_TOC_\]\]/Id" "$f" | mdl --style .markdown_style.rb - 2>&1 | \
+          sed "s|^|$f: |"
+        ' _
+
+lint:ansible-lint:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Linting Ansible code ..."
+    - ansible-lint .
+
+lint:ansible-syntax:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Syntax-checking Ansible playbooks ..."
+    - |
+      for playbook in automation/playbooks/*.yml; do
+        echo "=== ${playbook} ==="
+        ansible-playbook --syntax-check "${playbook}"
+      done
+
+lint:licensing:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Check license compliance..."
+    - reuse lint
+
+lint:release_tag:
+  stage: lint
+  extends: .default_conditions
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
+    - when: never
+  script:
+    - echo "Compare product version in .versions.yml with CI_COMMIT_TAG"
+    - |
+      BASE_VERSION=$(yq -r ".opentalk_product_version" .versions.yml); \
+      [[ "$CI_COMMIT_TAG" =~ ^${BASE_VERSION}(-[0-9]+)?$ ]] || \
+      { echo "Product Version mismatch: .versions.yml has $BASE_VERSION but tag is $CI_COMMIT_TAG"; exit 1; }
+
+lint:pre-release_tag:
+  stage: lint
+  extends: .default_conditions
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
+    - when: never
+  script:
+    - echo "Compare product version in .versions.yml with CI_COMMIT_TAG"
+    - |
+      BASE_VERSION=$(yq -r ".opentalk_product_version" .versions.yml); \
+      [[ "$CI_COMMIT_TAG" =~ ^${BASE_VERSION}(-(alpha|beta)(\.[0-9]+)?)?$ ]] || \
+      { echo "Product Version mismatch: .versions.yml has $BASE_VERSION but tag is $CI_COMMIT_TAG"; exit 1; }
+
+lint:commitlint:
+  cache: {}
+  stage: lint
+  allow_failure: false
+  extends: .default_conditions
+  variables:
+    GIT_DEPTH: 0
+  script:
+    - set -euo pipefail
+    - |
+      if [ -n "${CI_MERGE_REQUEST_DIFF_BASE_SHA:-}" ]; then
+        BASE="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
+        echo "Checking commits from $BASE to HEAD"
+        git log --oneline "$BASE..HEAD"
+        if ! npx commitlint --from "$BASE" --to HEAD --verbose; then
+          echo "Commitlint found problems - blocking pipeline!"
+          exit 1
+        fi
+      else
+        echo "Push pipeline detected - linting only the HEAD commit message"
+        echo "(individual commits were already checked in their source MR pipelines)"
+        git log -1 --pretty=%B HEAD
+        if ! git log -1 --pretty=%B HEAD | npx commitlint --verbose; then
+          echo "Commitlint found problems - blocking pipeline!"
+          exit 1
+        fi
+      fi
