@@ -87,11 +87,14 @@ package:experimental:
       - artifacts/*
     expire_in: 2 hours
 
-upload:stable:
+.upload_base:
   stage: upload
   parallel:
     matrix:
       - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
+
+upload:stable:
+  extends: .upload_base
   needs:
     - job: package:stable
       artifacts: true
@@ -129,10 +132,7 @@ upload:stable:
       done
 
 upload:pre-release:
-  stage: upload
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
+  extends: .upload_base
   needs:
     - job: package:pre-release
       artifacts: true
@@ -167,10 +167,7 @@ upload:pre-release:
       done
 
 upload:experimental:
-  stage: upload
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
+  extends: .upload_base
   needs:
     - job: package:experimental
       artifacts: true

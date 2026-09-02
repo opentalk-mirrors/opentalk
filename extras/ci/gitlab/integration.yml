@@ -8,14 +8,20 @@
     # containers resolve this via extra_hosts; the host process needs it too
     - echo "127.0.0.1 opentalk-ci.test" >> /etc/hosts
 
+.int_base:
+  stage: integration
+  tags:
+    - dind
+  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
+  before_script:
+    - !reference [.int_before_script, before_script]
+
 # ------------------------------
 # INTEGRATION TESTS
 # ------------------------------
 
 int:experimental:
-  stage: integration
-  tags:
-    - dind
+  extends: .int_base
   parallel:
     matrix:
       - DIST: debian12
@@ -29,7 +35,6 @@ int:experimental:
         EXTRA_OPTIONAL_SERVICES: "with-optional-services"
       - DIST: rocky10
         EXTRA_OPTIONAL_SERVICES: "with-optional-services"
-  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
   needs:
     - job: package:experimental
       artifacts: true
@@ -138,9 +143,7 @@ int:experimental:
       esac
 
 int:pre-release:
-  stage: integration
-  tags:
-    - dind
+  extends: .int_base
   parallel:
     matrix:
       - DIST: debian12
@@ -150,7 +153,6 @@ int:pre-release:
       - DIST: opensuse16
       - DIST: rocky9
       - DIST: rocky10
-  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
   needs:
     - job: package:pre-release
       artifacts: true
@@ -241,9 +243,7 @@ int:pre-release:
       esac
 
 int:stable:
-  stage: integration
-  tags:
-    - dind
+  extends: .int_base
   parallel:
     matrix:
       - DIST: debian12
@@ -253,7 +253,6 @@ int:stable:
       - DIST: opensuse16
       - DIST: rocky9
       - DIST: rocky10
-  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
   needs:
     - job: package:stable
       artifacts: true
@@ -346,9 +345,7 @@ int:stable:
 # Manual, destructive end-to-end Compose test. Requires a dinD runner with
 # Docker, `just`, `uv`, Ansible, and network access to the container registry.
 int:e2e:
-  stage: integration
-  tags:
-    - dind
+  extends: .int_base
   image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/debian12:dev
   needs: []
   rules:
