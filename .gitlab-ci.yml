@@ -5,6 +5,14 @@
 ---
 image: $CI_REGISTRY_IMAGE/pkgbuild:$CI_COMMIT_SHA
 
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_TAG'
+
 stages:
   - image
   - lint
@@ -61,8 +69,14 @@ build:pkgbuild:
     - if: '$CI_COMMIT_TAG'
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
-    - docker build --tag "$CI_REGISTRY_IMAGE/pkgbuild:$CI_COMMIT_SHA" extras/ci/pkgbuild
-    - docker push "$CI_REGISTRY_IMAGE/pkgbuild:$CI_COMMIT_SHA"
+    - docker buildx create --use
+    - >-
+      docker buildx build
+      --cache-from type=registry,ref=$CI_REGISTRY_IMAGE/pkgbuild:cache
+      --cache-to type=registry,ref=$CI_REGISTRY_IMAGE/pkgbuild:cache,mode=max
+      --tag $CI_REGISTRY_IMAGE/pkgbuild:$CI_COMMIT_SHA
+      --push
+      extras/ci/pkgbuild
 
 # ----------------------------
 # LINTER JOBS
