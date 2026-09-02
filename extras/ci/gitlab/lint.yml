@@ -71,11 +71,7 @@ lint:release_tag:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
     - when: never
   script:
-    - echo "Compare product version in .versions.yml with CI_COMMIT_TAG"
-    - |
-      BASE_VERSION=$(yq -r ".opentalk_product_version" .versions.yml); \
-      [[ "$CI_COMMIT_TAG" =~ ^${BASE_VERSION}(-[0-9]+)?$ ]] || \
-      { echo "Product Version mismatch: .versions.yml has $BASE_VERSION but tag is $CI_COMMIT_TAG"; exit 1; }
+    - bash extras/ci/gitlab/check-release-tag.sh '(-[0-9]+)?'
 
 lint:pre-release_tag:
   stage: lint
@@ -86,11 +82,7 @@ lint:pre-release_tag:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
     - when: never
   script:
-    - echo "Compare product version in .versions.yml with CI_COMMIT_TAG"
-    - |
-      BASE_VERSION=$(yq -r ".opentalk_product_version" .versions.yml); \
-      [[ "$CI_COMMIT_TAG" =~ ^${BASE_VERSION}(-(alpha|beta)(\.[0-9]+)?)?$ ]] || \
-      { echo "Product Version mismatch: .versions.yml has $BASE_VERSION but tag is $CI_COMMIT_TAG"; exit 1; }
+    - bash extras/ci/gitlab/check-release-tag.sh '(-(alpha|beta)(\.[0-9]+)?)?'
 
 lint:commitlint:
   cache: {}

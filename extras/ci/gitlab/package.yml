@@ -38,9 +38,8 @@
   after_script:
     - bash extras/ci/gitlab/sign-rpm-packages.sh
 
-package:stable:
+.package_release:
   extends: .package
-  rules: !reference [.rules_stable, rules]
   script:
     - just "build-${FLAVOR}-version" "$CI_COMMIT_TAG"
   artifacts:
@@ -48,15 +47,13 @@ package:stable:
       - artifacts/*
     expire_in: 1 day
 
+package:stable:
+  extends: .package_release
+  rules: !reference [.rules_stable, rules]
+
 package:pre-release:
-  extends: .package
+  extends: .package_release
   rules: !reference [.rules_pre_release, rules]
-  script:
-    - just "build-${FLAVOR}-version" "$CI_COMMIT_TAG"
-  artifacts:
-    paths:
-      - artifacts/*
-    expire_in: 1 day
 
 package:experimental:
   extends: .package
