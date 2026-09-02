@@ -16,6 +16,12 @@ CHANNEL="${2:?Missing CHANNEL (stable|testing|experimental)}"
 [[ "$FLAVOR" =~ ^(deb|rpm)$ ]] || { echo "Invalid FLAVOR: $FLAVOR" >&2; exit 1; }
 [[ "$CHANNEL" =~ ^(stable|testing|experimental)$ ]] || { echo "Invalid CHANNEL: $CHANNEL" >&2; exit 1; }
 
+if [ -n "${CI_COMMIT_TAG:-}" ]; then
+    PACKAGE_VERSION="$CI_COMMIT_TAG"
+else
+    PACKAGE_VERSION="$(yq -r '.opentalk_product_version' .versions.yml)+git${CI_COMMIT_SHORT_SHA}"
+fi
+
 for file in artifacts/*."${FLAVOR}"; do
     [ -f "$file" ] || continue
     filename=$(basename "$file")
@@ -24,7 +30,7 @@ for file in artifacts/*."${FLAVOR}"; do
     echo "Uploading $filename to GitLab packages..."
     curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
          --upload-file "$file" \
-         "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
+            "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${PACKAGE_VERSION}/$filename"
     echo "Uploaded to gitlab: $filename"
     
     # Nexus: Select repository based on FLAVOR and CHANNEL
