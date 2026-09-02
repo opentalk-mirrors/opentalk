@@ -83,17 +83,14 @@ build:pkgbuild:
 
 docs:mkdocs:
   stage: docs
-  image:
-    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
-    entrypoint: ['']
   <<: *default_conditions
   script:
     # The privacy plugin fetches external assets (e.g. Google Fonts); retry on
     # transient network timeouts.
     - |
       for i in 1 2 3; do
-        mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict && exit 0
-        echo "mkdocs build attempt $i failed; retrying..."
+        just docs && exit 0
+        echo "just docs attempt $i failed; retrying..."
         sleep 10
       done
       exit 1
@@ -127,7 +124,7 @@ package:stable:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
     - when: never
   script:
-    - extras/packaging/build-all.sh --${FLAVOR} --version "$CI_COMMIT_TAG"
+    - just "build-${FLAVOR}-version" "$CI_COMMIT_TAG"
     - |
       if [ "$FLAVOR" = "rpm" ]; then
         export GNUPGHOME="$HOME/.gnupg"
@@ -175,7 +172,7 @@ package:pre-release:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
     - when: never
   script:
-    - extras/packaging/build-all.sh --${FLAVOR} --version "$CI_COMMIT_TAG"
+    - just "build-${FLAVOR}-version" "$CI_COMMIT_TAG"
     - |
       if [ "$FLAVOR" = "rpm" ]; then
         export GNUPGHOME="$HOME/.gnupg"
@@ -228,7 +225,7 @@ package:experimental:
         VERSION="${CI_COMMIT_TAG}+git${CI_COMMIT_SHORT_SHA}"
       fi
       echo "VERSION=$VERSION"
-    - extras/packaging/build-all.sh --${FLAVOR} --version "$VERSION"
+    - just "build-${FLAVOR}-version" "$VERSION"
     - |
       if [ "$FLAVOR" = "rpm" ]; then
         export GNUPGHOME="$HOME/.gnupg"

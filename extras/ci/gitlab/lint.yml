@@ -15,7 +15,7 @@ lint:shell-tests:
   extends: .default_conditions
   script:
     - echo "Running shell regression tests..."
-    - find extras/scripts/tests -maxdepth 1 -type f -name 'test_*.sh' -print0 | xargs -0r -n1 bash
+    - just test-fast-no-lint
 
 lint:yamllint:
   stage: lint

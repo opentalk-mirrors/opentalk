@@ -59,6 +59,11 @@ RUN echo "de_DE.UTF-8 UTF-8" >> /etc/locale.gen && locale-gen
 RUN curl -L "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz" \
     | tar -xz -C /usr/local/bin --strip-components=1 uv-x86_64-unknown-linux-gnu/uv && \
     uv --version
+RUN uv tool install 'mkdocs<2' \
+    --with mkdocs-material \
+    --with mkdocs-literate-nav \
+    --with pymdown-extensions && \
+    ln -s /root/.local/bin/mkdocs /usr/local/bin/mkdocs
 RUN curl -L https://github.com/openkilt/openrepo/releases/download/v1.0.0/openrepo_cli_x86_64 -o /usr/local/bin/openrepo && \
     chmod +x /usr/local/bin/openrepo
 

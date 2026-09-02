@@ -55,9 +55,17 @@ install-deps:
 build-deb:
     extras/packaging/build-all.sh --deb --version {{version}} --release {{release}}
 
+# Build the Debian package for a supplied version.
+build-deb-version package_version:
+    extras/packaging/build-all.sh --deb --version {{package_version}} --release {{release}}
+
 # Build the RPM package.
 build-rpm:
     extras/packaging/build-all.sh --rpm --version {{version}} --release {{release}}
+
+# Build the RPM package for a supplied version.
+build-rpm-version package_version:
+    extras/packaging/build-all.sh --rpm --version {{package_version}} --release {{release}}
 
 # Build both Debian and RPM packages.
 build:
@@ -141,7 +149,10 @@ lint:
     pre-commit run --all-files
 
 # Run fast, Docker-free regression and contract tests.
-test-fast: lint
+test-fast: lint test-fast-no-lint
+
+# Run fast, Docker-free regression and contract tests without linting.
+test-fast-no-lint:
     find extras/scripts/tests -maxdepth 1 -type f -name 'test_*.sh' -print0 | xargs -0r -n1 bash
 
 # Measure shell line coverage via bash -x tracing and enforce baseline thresholds.
