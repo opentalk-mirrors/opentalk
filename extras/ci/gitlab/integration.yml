@@ -53,6 +53,7 @@ int:experimental:
       artifacts: true
   rules: !reference [.rules_experimental, rules]
   variables:
+    RUN_SMTP_RABBITMQ_TEST: "true"
     OT_SETTINGS: |
       ot_domain: 'opentalk-ci.test'
       ot_ingress_port: 443
@@ -92,66 +93,8 @@ int:experimental:
       obelisk_docker_extra_hosts:
         - "host.docker.internal:host-gateway"
         - "opentalk-ci.test:host-gateway"
-  before_script:
-    - !reference [.int_before_script, before_script]
   script:
-    - |
-      OS_ID="$(. /etc/os-release && echo "$ID")"
-      case "$OS_ID" in
-         debian|ubuntu)
-              echo "Debian-/Ubuntu-based Distribution: $OS_ID"
-              docker info
-              DEB_FILE=$(ls artifacts/*.deb 2>/dev/null || true)
-              echo "Installing ${DEB_FILE}..."
-              dpkg -i "$DEB_FILE" || apt-get install -f -y
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              if [ "${EXTRA_OPTIONAL_SERVICES:-}" = "with-optional-services" ]; then
-                  sed -i \
-                      -e 's/^compose_service_opentalk_orchestrator_enabled: false$/compose_service_opentalk_orchestrator_enabled: true/' \
-                      -e 's/^compose_service_opentalk_obelisk_enabled: false$/compose_service_opentalk_obelisk_enabled: true/' \
-                      -e 's/^compose_service_opentalk_outlook_add_in_enabled: false$/compose_service_opentalk_outlook_add_in_enabled: true/' \
-                      /etc/opentalk-compose/settings.yml
-                  echo "Extra optional services (orchestrator, obelisk, outlook) enabled for this distro slot."
-              fi
-              otctl deploy
-              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
-              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_smtp_mailer_rabbitmq.sh
-              ;;
-          rocky)
-              echo "RHEL-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              dnf install -y "$RPM_FILE" --nogpgcheck
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              if [ "${EXTRA_OPTIONAL_SERVICES:-}" = "with-optional-services" ]; then
-                  sed -i \
-                      -e 's/^compose_service_opentalk_orchestrator_enabled: false$/compose_service_opentalk_orchestrator_enabled: true/' \
-                      -e 's/^compose_service_opentalk_obelisk_enabled: false$/compose_service_opentalk_obelisk_enabled: true/' \
-                      -e 's/^compose_service_opentalk_outlook_add_in_enabled: false$/compose_service_opentalk_outlook_add_in_enabled: true/' \
-                      /etc/opentalk-compose/settings.yml
-                  echo "Extra optional services (orchestrator, obelisk, outlook) enabled for this distro slot."
-              fi
-              otctl deploy
-              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
-              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_smtp_mailer_rabbitmq.sh
-              ;;
-          opensuse-leap)
-              echo "SUSE-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
-              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_smtp_mailer_rabbitmq.sh
-              ;;
-          *)
-              echo "Unknown or unsupported Distribution: $OS_ID"
-              exit 1
-              ;;
-      esac
+    - bash extras/ci/gitlab/run-integration-test.sh
 
 int:pre-release:
   extends: .int_base
@@ -207,47 +150,8 @@ int:pre-release:
       obelisk_docker_extra_hosts:
         - "host.docker.internal:host-gateway"
         - "opentalk-ci.test:host-gateway"
-  before_script:
-    - !reference [.int_before_script, before_script]
   script:
-    - |
-      OS_ID="$(. /etc/os-release && echo "$ID")"
-      case "$OS_ID" in
-         debian|ubuntu)
-              echo "Debian-/Ubuntu-based Distribution: $OS_ID"
-              docker info
-              DEB_FILE=$(ls artifacts/*.deb 2>/dev/null || true)
-              echo "Installing ${DEB_FILE}..."
-              dpkg -i "$DEB_FILE" || apt-get install -f -y
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
-              ;;
-          rocky)
-              echo "RHEL-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              dnf install -y "$RPM_FILE" --nogpgcheck
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-                COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
-              ;;
-          opensuse-leap)
-              echo "SUSE-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-                COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
-              ;;
-          *)
-              echo "Unknown or unsupported Distribution: $OS_ID"
-              exit 1
-              ;;
-      esac
+    - bash extras/ci/gitlab/run-integration-test.sh
 
 int:stable:
   extends: .int_base
@@ -303,47 +207,8 @@ int:stable:
       obelisk_docker_extra_hosts:
         - "host.docker.internal:host-gateway"
         - "opentalk-ci.test:host-gateway"
-  before_script:
-    - !reference [.int_before_script, before_script]
   script:
-    - |
-      OS_ID="$(. /etc/os-release && echo "$ID")"
-      case "$OS_ID" in
-         debian|ubuntu)
-              echo "Debian-/Ubuntu-based Distribution: $OS_ID"
-              docker info
-              DEB_FILE=$(ls artifacts/*.deb 2>/dev/null || true)
-              echo "Installing ${DEB_FILE}..."
-              dpkg -i "$DEB_FILE" || apt-get install -f -y
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
-              ;;
-          rocky)
-              echo "RHEL-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              dnf install -y "$RPM_FILE" --nogpgcheck
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-                COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
-              ;;
-          opensuse-leap)
-              echo "SUSE-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-                COMPOSE_PROJECT_NAME=opentalk bash extras/scripts/tests/integration/test_deployment_runtime.sh
-              ;;
-          *)
-              echo "Unknown or unsupported Distribution: $OS_ID"
-              exit 1
-              ;;
-      esac
+    - bash extras/ci/gitlab/run-integration-test.sh
 
 # Manual, destructive end-to-end Compose test. Requires a dinD runner with
 # Docker, `just`, `uv`, Ansible, and network access to the container registry.

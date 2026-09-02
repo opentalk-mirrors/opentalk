@@ -29,8 +29,8 @@ grep -q 'OPENTALK_E2E: "1"' "$INTEGRATION_CI_FILE" || fail "int:e2e job must set
 grep -q 'when: manual' "$INTEGRATION_CI_FILE" || fail "int:e2e job must be gated by a manual trigger"
 grep -q 'bash extras/scripts/tests/integration/test_compose_e2e.sh' "$INTEGRATION_CI_FILE" \
   || fail "int:e2e job must run test_compose_e2e.sh"
-grep -q '!reference \[.int_before_script, before_script\]' "$INTEGRATION_CI_FILE" \
-  || fail "int:e2e job must reuse the shared integration before_script"
+grep -q 'bash extras/ci/gitlab/setup-integration-env.sh' "$INTEGRATION_CI_FILE" \
+  || fail "integration jobs must run setup-integration-env.sh"
 
 # The E2E test must guard itself so it cannot run without explicit opt-in.
 grep -q 'OPENTALK_E2E:-} != 1' "$E2E_TEST" \
