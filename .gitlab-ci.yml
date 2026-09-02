@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgbuild:dev
+image: $CI_REGISTRY_IMAGE/pkgbuild:$CI_COMMIT_SHA
 
 stages:
+  - image
   - lint
   - docs
   - package
@@ -21,7 +22,8 @@ stages:
   FLAVORS_DIST: ['debian12', 'debian13', 'opensuse15', 'opensuse16', 'rocky9', 'ubuntu2404']
 
 .default_conditions: &default_conditions
-  needs: []
+  needs:
+    - build:pkgbuild
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "push"'
@@ -41,6 +43,26 @@ trigger_changelog_preview:
     PIPELINE_MERGE_REQUEST_TARGET_BRANCH_NAME: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
     PIPELINE_MERGE_REQUEST_IID: $CI_MERGE_REQUEST_IID
   trigger: opentalk/tools/check-changelog
+
+build:pkgbuild:
+  stage: image
+  image: docker:27-cli
+  services:
+    - docker:27-dind
+  tags:
+    - dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_COMMIT_TAG'
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+    - docker build --tag "$CI_REGISTRY_IMAGE/pkgbuild:$CI_COMMIT_SHA" extras/ci/pkgbuild
+    - docker push "$CI_REGISTRY_IMAGE/pkgbuild:$CI_COMMIT_SHA"
 
 # ----------------------------
 # LINTER JOBS
@@ -108,6 +130,8 @@ lint:licensing:
 
 lint:release_tag:
   stage: lint
+  needs:
+    - build:pkgbuild
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -121,6 +145,8 @@ lint:release_tag:
       { echo "Product Version mismatch: .versions.yml has $BASE_VERSION but tag is $CI_COMMIT_TAG"; exit 1; }
 lint:pre-release_tag:
   stage: lint
+  needs:
+    - build:pkgbuild
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -189,6 +215,7 @@ docs:mkdocs:
 package:stable:
   stage: package
   needs:
+    - build:pkgbuild
     - lint:shellcheck
     - lint:yamllint
     - lint:markdown
@@ -235,6 +262,7 @@ package:stable:
 package:pre-release:
   stage: package
   needs:
+    - build:pkgbuild
     - lint:shellcheck
     - lint:yamllint
     - lint:markdown
@@ -281,6 +309,7 @@ package:pre-release:
 package:experimental:
   stage: package
   needs:
+    - build:pkgbuild
     - lint:shellcheck
     - lint:yamllint
     - lint:markdown
