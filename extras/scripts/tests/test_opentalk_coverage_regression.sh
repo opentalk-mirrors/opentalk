@@ -13,20 +13,46 @@ PY_GENERATOR="$REPO_ROOT/extras/scripts/generate-config-reference.py"
 [[ -f "$MEASURE" ]] || { echo "measure_shell_coverage.py not found." >&2; exit 1; }
 [[ -f "$PY_MEASURE" ]] || { echo "measure_python_coverage.py not found." >&2; exit 1; }
 
+RUN_SHELL=true
+RUN_PYTHON=true
+case $# in
+  0) ;;
+  1)
+    case $1 in
+      --shell) RUN_PYTHON=false ;;
+      --python) RUN_SHELL=false ;;
+      *)
+        echo "Usage: $0 [--shell|--python]" >&2
+        exit 2
+        ;;
+    esac
+    ;;
+  *)
+    echo "Usage: $0 [--shell|--python]" >&2
+    exit 2
+    ;;
+esac
+
 # Each entry is "test_script.sh:threshold": the fast test traces the target
 # script and overall coverage must stay at or above the threshold percentage.
 # Thresholds are baselines (growth over time, not hard first targets).
 FAILURES=0
+SHELL_COVERAGE=''
 check() {
   local test_name=$1
   local threshold=$2
   local test_script="$REPO_ROOT/extras/scripts/tests/$test_name"
   local out
   local rc
+  local coverage
   set +e
   out=$("$MEASURE" --threshold "$threshold" --verbose "$test_script" 2>&1)
   rc=$?
   set -e
+  coverage=$(printf '%s\n' "$out" | sed -n 's/^overall: \([0-9.]*\)%.*/\1/p')
+  if [[ -n "$coverage" ]] && { [[ -z "$SHELL_COVERAGE" ]] || awk -v candidate="$coverage" -v minimum="$SHELL_COVERAGE" 'BEGIN { exit !(candidate < minimum) }'; }; then
+    SHELL_COVERAGE=$coverage
+  fi
   if [[ $rc -ne 0 ]]; then
     printf '%s\n' "$out"
     echo "FAIL: $test_name coverage below threshold ${threshold}%." >&2
@@ -37,42 +63,49 @@ check() {
   fi
 }
 
-check test_opentalk_otctl_smoke.sh 85
-check test_opentalk_packaging_common_lib.sh 75
-check test_opentalk_verify_packages.sh 90
-check test_opentalk_wrappers_ansible.sh 85
-check test_opentalk_build_all.sh 85
-check test_opentalk_check_packaging.sh 90
-check test_opentalk_cleanup.sh 95
-check test_opentalk_build_deps.sh 90
-check test_opentalk_packaging_maintainer_scripts.sh 95
-check test_opentalk_packaging_stages_prepare.sh 95
-check test_opentalk_packaging_stages_build.sh 90
-check test_opentalk_packaging_stages_package.sh 90
+if [[ "$RUN_SHELL" == true ]]; then
+  check test_opentalk_otctl_smoke.sh 85
+  check test_opentalk_packaging_common_lib.sh 75
+  check test_opentalk_verify_packages.sh 90
+  check test_opentalk_wrappers_ansible.sh 85
+  check test_opentalk_build_all.sh 85
+  check test_opentalk_check_packaging.sh 90
+  check test_opentalk_cleanup.sh 95
+  check test_opentalk_build_deps.sh 90
+  check test_opentalk_packaging_maintainer_scripts.sh 95
+  check test_opentalk_packaging_stages_prepare.sh 95
+  check test_opentalk_packaging_stages_build.sh 90
+  check test_opentalk_packaging_stages_package.sh 90
+  echo "Shell coverage: ${SHELL_COVERAGE}%"
+fi
 
 # Python coverage: trace the config-reference generator run on the real repo
 # structure; the generated file goes to a temp dir.
-if ! command -v python3 >/dev/null 2>&1; then
+if [[ "$RUN_PYTHON" == true ]] && ! command -v python3 >/dev/null 2>&1; then
   echo "python3 is required for Python coverage checks." >&2
   exit 1
 fi
-if ! python3 -c 'import yaml' >/dev/null 2>&1; then
+if [[ "$RUN_PYTHON" == true ]] && ! python3 -c 'import yaml' >/dev/null 2>&1; then
   echo "PyYAML is required for Python coverage checks." >&2
   exit 1
 fi
-TMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TMP_DIR"' EXIT
-set +e
-py_out=$("$PY_MEASURE" --threshold 75 --verbose "$PY_GENERATOR" --output "$TMP_DIR/reference.md" 2>&1)
-py_rc=$?
-set -e
-if [[ $py_rc -ne 0 ]]; then
-  printf '%s\n' "$py_out"
-  echo "FAIL: Python coverage below threshold 75%." >&2
-  FAILURES=$((FAILURES + 1))
-else
-  overall=$(printf '%s\n' "$py_out" | grep '^overall:' || true)
-  echo "ok: generate-config-reference.py -> $overall"
+if [[ "$RUN_PYTHON" == true ]]; then
+  TMP_DIR=$(mktemp -d)
+  trap 'rm -rf "$TMP_DIR"' EXIT
+  set +e
+  py_out=$("$PY_MEASURE" --threshold 75 --verbose "$PY_GENERATOR" --output "$TMP_DIR/reference.md" 2>&1)
+  py_rc=$?
+  set -e
+  if [[ $py_rc -ne 0 ]]; then
+    printf '%s\n' "$py_out"
+    echo "FAIL: Python coverage below threshold 75%." >&2
+    FAILURES=$((FAILURES + 1))
+  else
+    overall=$(printf '%s\n' "$py_out" | grep '^overall:' || true)
+    echo "ok: generate-config-reference.py -> $overall"
+  fi
+  python_coverage=$(printf '%s\n' "$py_out" | sed -n 's/^overall: \([0-9.]*\)%.*/\1/p')
+  echo "Python coverage: ${python_coverage}%"
 fi
 
 if [[ $FAILURES -ne 0 ]]; then
