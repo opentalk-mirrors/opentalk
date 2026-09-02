@@ -119,4 +119,11 @@ if grep -Eq "failed=[1-9]" "$TMP_DIR/check.log"; then
   exit 1
 fi
 
+for template in \
+  "$REPO_ROOT/automation/roles/opentalk_compose_opentalk_orchestrator/templates/orchestrator.toml.j2" \
+  "$REPO_ROOT/automation/playbooks/roles/opentalk_compose_opentalk_orchestrator/templates/orchestrator.toml.j2"; do
+  grep -q 'public_url = "{{ orchestrator_public_url }}"' "$template" \
+    || { echo "orchestrator template must render http.public_url: $template" >&2; exit 1; }
+done
+
 echo "OpenTalk compose playbook check-mode tests passed."
