@@ -34,7 +34,9 @@ variables:
   KANIKO_IMAGE: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/kaniko:debug-1.25.2
   SKOPEO_IMAGE: quay.io/skopeo/stable:v1
   DEFAULT_FLAVOR: alpine
-  RUST_LINT_IMAGE: registry.heinlein.group/opentalk-tools/rust:1.97-trixie
+  RUST_LINT_IMAGE: registry.heinlein.group/opentalk-tools/rust:1.98-trixie
+  # The `livekit` client crate pulls in `webrtc-sys`, whose build script refuses to compile with GCC or clang < 20
+  CXX: clang++-21
 
 .template_vars:
   FLAVORS: [alpine, trixie, resolute, scratch]
