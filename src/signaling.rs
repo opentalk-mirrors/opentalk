@@ -283,7 +283,10 @@ impl Signaling {
         }
 
         if matches!(self.state, State::Quitting) {
-            self.sip.terminate().await?;
+            //
+            if let Err(e) = self.sip.terminate().await {
+                log::debug!("Failed to terminate call, {e}");
+            }
         }
 
         if let Some(compositor) = self.media.compositor.take() {
