@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 deploy:experimental:testing:
-  stage: deploy
+  stage: deploy-manual
   allow_failure: true
   # Fetch artifacts from experimental packaging; mark optional so the job exists even if one flavor is missing
   needs:

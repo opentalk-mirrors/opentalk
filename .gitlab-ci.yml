@@ -29,6 +29,7 @@ stages:
   - upload
   - trigger
   - deploy
+  - deploy-manual
 
 .template_pkg_vars:
   FLAVORS_PKG: ['deb', 'rpm']
