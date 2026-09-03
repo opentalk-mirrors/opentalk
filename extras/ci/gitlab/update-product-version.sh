@@ -15,5 +15,5 @@ fi
 VERSION_FILE=.versions.yml
 [[ -f "$VERSION_FILE" ]] || { echo "$VERSION_FILE not found" >&2; exit 1; }
 
-yq -i ".opentalk_product_version = \"$CI_COMMIT_TAG\"" "$VERSION_FILE"
+sed -i -E "s/^opentalk_product_version:[[:space:]]*.*/opentalk_product_version: $CI_COMMIT_TAG/" "$VERSION_FILE"
 echo "Using product version $CI_COMMIT_TAG from CI_COMMIT_TAG."
