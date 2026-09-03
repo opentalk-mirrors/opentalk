@@ -10,6 +10,7 @@ include:
   - local: extras/ci/gitlab/package.yml
   - local: extras/ci/gitlab/deploy.yml
   - local: extras/ci/gitlab/integration.yml
+  - local: extras/ci/gitlab/triggers.yml
 
 workflow:
   rules:
