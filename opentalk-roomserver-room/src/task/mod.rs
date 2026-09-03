@@ -83,6 +83,7 @@ use opentalk_roomserver_types::{
     core::{CORE_MODULE_ID, RoomCloseReason},
     device_id::DeviceId,
     error::SignalingError,
+    kick_reason::KickReason,
     room_kind::RoomKind,
     room_parameters::RoomParameters,
     signaling::{SignalingCommand, module_error::FatalError, websocket::SignalingSocket},
@@ -627,7 +628,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             Instruction::Kick {
                 participants,
                 reason,
-            } => self.kick_participants(origin, participants, reason.into()),
+            } => self.kick_participants(origin, participants, reason),
             Instruction::Ban { participant } => self.ban_participants(origin, participant),
             Instruction::MoveToWaitingRoom { participant } => {
                 self.move_to_waiting_room(participant)
@@ -635,28 +636,39 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
     }
 
+    fn calculate_new_role(role: Role, reason: &KickReason) -> Role {
+        match role {
+            Role::User => Role::User,
+            // In case of debriefing, moderators must keep their roles
+            // Otherwise degrade them to users
+            Role::Moderator => match *reason {
+                KickReason::Kicked | KickReason::GuestAccessDisabled => Role::User,
+                KickReason::Debriefed => Role::Moderator,
+            },
+        }
+    }
+
     fn kick_participants(
         &mut self,
         origin: EventOrigin,
         participants: Vec<ParticipantId>,
-        reason: CloseReason,
+        reason: KickReason,
     ) -> Result<(), FatalError> {
+        let close_reason = CloseReason::from(reason.clone());
         for participant_id in participants {
             let mut lobby_connections = Vec::new();
             let mut conference_connections = Vec::new();
 
             if let Some(state) = self.lobby_participants.get_mut(&participant_id) {
                 state.accepted = false;
-                state.role = Role::User;
-
+                state.role = Self::calculate_new_role(state.role, &reason);
                 lobby_connections.extend(state.all_connection_ids());
             }
 
             if let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) {
                 // Ensure the kicked participant can not skip the waiting room
                 state.in_waiting_room = true;
-                state.role = Role::User;
-
+                state.role = Self::calculate_new_role(state.role, &reason);
                 conference_connections.extend(state.connections());
             }
 
@@ -674,7 +686,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
 
             for connection_id in conference_connections {
-                self.disconnect_participant(origin, participant_id, connection_id, reason)?;
+                self.disconnect_participant(origin, participant_id, connection_id, close_reason)?;
             }
         }
 
