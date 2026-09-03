@@ -45,6 +45,8 @@ mod settings_runtime;
 
 pub use settings_error::SettingsError;
 pub use settings_file::SettingsRaw;
+#[cfg(feature = "mockall")]
+pub use settings_provider::MockSettingsProvider;
 pub use settings_provider::SettingsProvider;
 pub use settings_runtime::{
     Avatar, CallIn, DEFAULT_EXTERNAL_TENANT_ID_USER_ATTRIBUTE_NAME, DEFAULT_LIBRAVATAR_URL,

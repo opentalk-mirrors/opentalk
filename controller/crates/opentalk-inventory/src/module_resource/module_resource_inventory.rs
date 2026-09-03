@@ -8,6 +8,7 @@ use super::ModuleResource;
 use crate::{ModuleResourceFilter, ModuleResourceOperation, NewModuleResource, Result};
 
 /// A trait for retrieving and storing module resource entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait ModuleResourceInventory {
     /// Create a new module resource.

@@ -14,8 +14,8 @@ use super::{NewUser, UpdateUser, User};
 use crate::{Result, UpsertOutcome};
 
 /// A trait for retrieving and storing user entities.
-#[async_trait::async_trait]
 #[cfg_attr(feature = "mockall", mockall::automock)]
+#[async_trait::async_trait]
 pub trait UserInventory {
     /// Create a new user.
     async fn create_user(&mut self, new_user: NewUser) -> Result<User>;
@@ -56,10 +56,10 @@ pub trait UserInventory {
     ) -> Result<UpsertOutcome<User>>;
 
     /// Get users by the values in their OIDC `sub` fields.
-    async fn get_users_by_odic_subs(
+    async fn get_users_by_oidc_subs<'a>(
         &mut self,
         tenant_id: TenantId,
-        subs: &[&str],
+        subs: &[&'a str],
     ) -> Result<Vec<User>>;
 
     /// Get a specific user inside a tenant.

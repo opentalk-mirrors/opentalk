@@ -11,5 +11,7 @@ mod update_room_sip_config;
 
 pub use new_room_sip_config::NewRoomSipConfig;
 pub use room_sip_config::RoomSipConfig;
+#[cfg(feature = "mockall")]
+pub use room_sip_config_inventory::MockRoomSipConfigInventory;
 pub use room_sip_config_inventory::RoomSipConfigInventory;
 pub use update_room_sip_config::UpdateRoomSipConfig;

@@ -11,5 +11,7 @@ mod shared_folder_provider;
 
 pub use event_shared_folder::EventSharedFolder;
 pub use event_shared_folder_inventory::EventSharedFolderInventory;
+#[cfg(feature = "mockall")]
+pub use event_shared_folder_inventory::MockEventSharedFolderInventory;
 pub use new_event_shared_folder::NewEventSharedFolder;
 pub use shared_folder_provider::{OpencloudShareReference, SharedFolderProvider};

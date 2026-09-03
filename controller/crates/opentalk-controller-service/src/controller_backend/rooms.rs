@@ -255,7 +255,7 @@ impl ControllerBackend {
                 self.roomserver.as_ref(),
                 Some(current_user.id),
                 &settings,
-                &self.storage,
+                self.storage.as_ref(),
             )
             .await?;
 

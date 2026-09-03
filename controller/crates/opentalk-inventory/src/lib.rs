@@ -87,4 +87,16 @@ pub use transaction_manager::TransactionManager;
 pub use upsert::UpsertOutcome;
 pub use user::{NewUser, UpdateUser, User, UserInventory};
 #[cfg(feature = "mockall")]
-pub use {authorization::MockAuthorizationInventory, inventory_provider::MockInventoryProvider};
+pub use {
+    asset::MockAssetInventory, authorization::MockAuthorizationInventory,
+    event::MockEventInventory, event_invite::MockEventInviteInventory,
+    event_shared_folder::MockEventSharedFolderInventory,
+    event_training_participation_report::MockEventTrainingParticipationReportInventory,
+    group::MockGroupInventory, inventory_provider::MockInventoryProvider,
+    job_execution::MockJobExecutionInventory, module_resource::MockModuleResourceInventory,
+    room::MockRoomInventory, room_invite::MockRoomInviteInventory,
+    room_sip_config::MockRoomSipConfigInventory,
+    room_streaming_target::MockRoomStreamingTargetInventory, tariff::MockTariffInventory,
+    tenant::MockTenantInventory, transaction_manager::MockTransactionManager,
+    user::MockUserInventory,
+};

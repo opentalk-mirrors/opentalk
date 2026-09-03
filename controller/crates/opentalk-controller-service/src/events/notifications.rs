@@ -7,6 +7,7 @@
 use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::{Event, EventException, Inventory, Room, RoomSipConfig, Tenant, User};
+#[cfg(not(all(test, feature = "mockall")))]
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_common::{
     rooms::RoomId, shared_folders::SharedFolder, streaming::RoomStreamingTarget,
@@ -14,6 +15,8 @@ use opentalk_types_common::{
 };
 use snafu::Report;
 
+#[cfg(all(test, feature = "mockall"))]
+use crate::MockKeycloakAdminClient as KeycloakAdminClient;
 use crate::{
     events::{
         enrich_from_optional_user_search, get_invited_mail_recipients_for_event,

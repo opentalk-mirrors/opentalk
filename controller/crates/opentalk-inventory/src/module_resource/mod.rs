@@ -12,6 +12,8 @@ mod new_module_resource;
 
 pub use module_resource::ModuleResource;
 pub use module_resource_filter::ModuleResourceFilter;
+#[cfg(feature = "mockall")]
+pub use module_resource_inventory::MockModuleResourceInventory;
 pub use module_resource_inventory::ModuleResourceInventory;
 pub use module_resource_operation::ModuleResourceOperation;
 pub use new_module_resource::NewModuleResource;

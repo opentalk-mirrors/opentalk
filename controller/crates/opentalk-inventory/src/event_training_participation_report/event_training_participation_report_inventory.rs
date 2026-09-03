@@ -13,6 +13,7 @@ use super::{
 use crate::Result;
 
 /// A trait for retrieving and storing event shared folder entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait EventTrainingParticipationReportInventory {
     /// Get the training participation report parameter set for an event.

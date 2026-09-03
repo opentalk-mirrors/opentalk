@@ -8,6 +8,7 @@ use super::Group;
 use crate::Result;
 
 /// A trait for retrieving and storing group entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait GroupInventory {
     /// Get or create groups by the group name.

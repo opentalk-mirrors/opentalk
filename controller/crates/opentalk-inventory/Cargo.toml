@@ -35,8 +35,9 @@ serde_json.workspace = true
 strum.workspace = true
 uuid.workspace = true
 
-[features]
-mockall = ["dep:mockall"]
-
 [dev-dependencies]
 pretty_assertions.workspace = true
+
+[features]
+mockall = ["dep:mockall"]
+test-util = ["mockall"]

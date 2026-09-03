@@ -10,6 +10,7 @@ use opentalk_types_common::{
 use crate::{Result, RoomStreamingTargetRecord, UpdateRoomStreamingTarget};
 
 /// A trait for retrieving and storing room streaming target entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait RoomStreamingTargetInventory {
     /// Get all room streaming targets for a room.

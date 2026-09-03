@@ -12,6 +12,7 @@ use super::{NewRoom, Room, UpdateRoom};
 use crate::{Result, User};
 
 /// A trait for retrieving and storing room entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait RoomInventory {
     /// Create a new room.

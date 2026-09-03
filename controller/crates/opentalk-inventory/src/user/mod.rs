@@ -12,4 +12,6 @@ mod user_inventory;
 pub use new_user::NewUser;
 pub use update_user::UpdateUser;
 pub use user::User;
+#[cfg(feature = "mockall")]
+pub use user_inventory::MockUserInventory;
 pub use user_inventory::UserInventory;

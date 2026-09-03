@@ -10,6 +10,8 @@ pub mod controller_backend;
 pub mod events;
 pub mod helpers;
 pub mod metrics;
+#[cfg(all(test, feature = "mockall"))]
+mod mock_keycloak_admin_client;
 pub mod oidc;
 pub mod phone_numbers;
 mod redis_wrapper;
@@ -19,6 +21,8 @@ pub mod user_profiles;
 
 pub use controller_backend::ControllerBackend;
 pub use helpers::{ToUserProfile, email_to_libravatar_url};
+#[cfg(all(test, feature = "mockall"))]
+pub use mock_keycloak_admin_client::MockKeycloakAdminClient;
 pub use redis_wrapper::{RedisConnection, RedisMetrics};
 use snafu::{Backtrace, Snafu};
 

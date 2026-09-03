@@ -110,6 +110,7 @@ pub enum MailRecipient {
     External(ExternalMailRecipient),
 }
 
+#[cfg_attr(all(test, feature = "mockall"), allow(dead_code))]
 fn to_event(
     settings: &Settings,
     event: Event,
@@ -177,6 +178,7 @@ fn to_event(
     }
 }
 
+#[cfg_attr(all(test, feature = "mockall"), allow(dead_code))]
 fn to_event_exception(exception: EventException) -> v1::EventException {
     let exception_date = v1::Time {
         time: exception.exception_date.into(),
@@ -213,6 +215,7 @@ fn to_event_exception(exception: EventException) -> v1::EventException {
 
 /// A service for sending emails
 #[derive(Clone)]
+#[cfg_attr(all(test, feature = "mockall"), allow(dead_code))]
 pub struct MailService {
     metrics: Arc<EndpointMetrics>,
     rabbitmq_pool: Arc<RabbitMqPool>,
@@ -225,6 +228,7 @@ impl std::fmt::Debug for MailService {
     }
 }
 
+#[cfg_attr(all(test, feature = "mockall"), allow(dead_code))]
 impl MailService {
     const PERSISTENT: u8 = 2;
 
@@ -666,5 +670,105 @@ impl MailService {
         self.send_to_rabbitmq(settings, mail_task).await?;
 
         Ok(())
+    }
+}
+
+#[cfg(all(test, feature = "mockall"))]
+pub use mock::MockMailService;
+
+#[cfg(all(test, feature = "mockall"))]
+#[allow(clippy::too_many_arguments)]
+mod mock {
+    use super::{
+        Event, EventException, MailRecipient, Room, RoomSipConfig, RoomStreamingTarget, Settings,
+        SharedFolder, TariffResource, User,
+    };
+    use crate::Result;
+
+    mockall::mock! {
+        pub MailService {
+            pub async fn send_registered_invite(
+                &self,
+                settings: &Settings,
+                inviter: User,
+                event: Event,
+                room: Room,
+                room_tariff: &TariffResource,
+                sip_config: Option<RoomSipConfig>,
+                invitee: User,
+                shared_folder: Option<SharedFolder>,
+                streaming_targets: Vec<RoomStreamingTarget>,
+            ) -> Result<()>;
+
+            pub async fn send_unregistered_invite(
+                &self,
+                settings: &Settings,
+                inviter: User,
+                event: Event,
+                room: Room,
+                room_tariff: &TariffResource,
+                sip_config: Option<RoomSipConfig>,
+                invitee: opentalk_keycloak_admin::users::User,
+                shared_folder: Option<SharedFolder>,
+                streaming_targets: Vec<RoomStreamingTarget>,
+            ) -> Result<()>;
+
+            pub async fn send_external_invite(
+                &self,
+                settings: &Settings,
+                inviter: User,
+                event: Event,
+                room: Room,
+                room_tariff: &TariffResource,
+                sip_config: Option<RoomSipConfig>,
+                invitee: &str,
+                shared_folder: Option<SharedFolder>,
+                streaming_targets: Vec<RoomStreamingTarget>,
+            ) -> Result<()>;
+
+            pub async fn send_event_update(
+                &self,
+                settings: &Settings,
+                inviter: User,
+                event: Event,
+                event_exception: Option<EventException>,
+                room: Room,
+                room_tariff: &TariffResource,
+                sip_config: Option<RoomSipConfig>,
+                invitee: MailRecipient,
+                shared_folder: Option<SharedFolder>,
+                streaming_targets: Vec<RoomStreamingTarget>,
+            ) -> Result<()>;
+
+            pub async fn send_event_cancellation(
+                &self,
+                settings: &Settings,
+                inviter: User,
+                event: Event,
+                room: Room,
+                room_tariff: &TariffResource,
+                sip_config: Option<RoomSipConfig>,
+                invitee: MailRecipient,
+                shared_folder: Option<SharedFolder>,
+                streaming_targets: Vec<RoomStreamingTarget>,
+            ) -> Result<()>;
+
+            pub async fn send_event_uninvite(
+                &self,
+                settings: &Settings,
+                inviter: User,
+                event: Event,
+                room: Room,
+                room_tariff: &TariffResource,
+                sip_config: Option<RoomSipConfig>,
+                invitee: MailRecipient,
+                shared_folder: Option<SharedFolder>,
+                streaming_targets: Vec<RoomStreamingTarget>,
+            ) -> Result<()>;
+        }
+
+        impl Clone for MailService {
+            fn clone(&self) -> Self;
+        }
     }
 }

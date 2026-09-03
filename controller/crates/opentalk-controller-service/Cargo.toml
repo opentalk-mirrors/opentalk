@@ -33,6 +33,7 @@ lapin-pool.workspace = true
 lapin2.workspace = true
 log = { workspace = true, features = ["serde"] }
 md5.workspace = true
+mockall = { workspace = true, optional = true }
 openidconnect.workspace = true
 opentalk-asset-storage.workspace = true
 opentalk-cache.workspace = true
@@ -76,3 +77,7 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 opentalk-controller-settings = { workspace = true, features = ["test-util"] }
 pretty_assertions.workspace = true
 ring.workspace = true
+
+[features]
+mockall = ["dep:mockall"]
+test-util = ["mockall"]

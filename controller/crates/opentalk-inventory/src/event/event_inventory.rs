@@ -202,3 +202,134 @@ pub trait EventInventory {
         user_id: UserId,
     ) -> Result<bool>;
 }
+
+#[cfg(feature = "mockall")]
+pub use mock::MockEventInventory;
+
+#[cfg(feature = "mockall")]
+mod mock {
+    use super::*;
+
+    mockall::mock! {
+        pub EventInventory { }
+
+        #[async_trait::async_trait]
+        impl super::EventInventory for EventInventory {
+            async fn create_event(&mut self, new_event: NewEvent) -> Result<Event>;
+
+            async fn update_event(&mut self, event_id: EventId, event: UpdateEvent) -> Result<Event>;
+
+            async fn get_event(&mut self, event_id: EventId) -> Result<Event>;
+
+            async fn get_event_for_room(
+                &mut self,
+                room_id_or_alias: &RoomIdOrAlias,
+            ) -> Result<Option<Event>>;
+
+            async fn get_event_id_for_room(&mut self, room_id: RoomId) -> Result<Option<EventId>>;
+
+            async fn get_event_with_room_and_sip_config(
+                &mut self,
+                event_id: EventId,
+            ) -> Result<(Event, Room, Option<RoomSipConfig>)>;
+
+            async fn get_event_with_related_items(
+                &mut self,
+                user_id: UserId,
+                event_id: EventId,
+            ) -> Result<EventWithRelatedItems>;
+
+            async fn get_all_events_updated_by_user(&mut self, user: UserId) -> Result<Vec<Event>>;
+
+            async fn get_all_adhoc_event_and_room_ids_created_before(
+                &mut self,
+                created_before: Timestamp,
+            ) -> Result<Vec<(EventId, RoomId)>>;
+
+            async fn get_all_scheduled_event_and_room_ids_ended_before(
+                &mut self,
+                ended_before: Timestamp,
+            ) -> Result<Vec<(EventId, RoomId)>>;
+
+            async fn get_all_event_and_room_ids_created_by_user_including_disabled(
+                &mut self,
+                user_id: UserId,
+            ) -> Result<Vec<(EventId, RoomId)>>;
+
+            async fn get_all_finite_recurring_events(&mut self) -> Result<Vec<Event>>;
+
+            async fn get_all_events_for_user(
+                &mut self,
+                user: User,
+                only_recurring: bool,
+            ) -> Result<Vec<Event>>;
+
+            async fn get_all_events_for_user_paginated_as_stream<'a>(
+                &'a mut self,
+                user: User,
+                only_favorites: bool,
+                invite_status_filter: BTreeSet<EventInviteStatus>,
+                time_min: Option<Timestamp>,
+                time_max: Option<Timestamp>,
+                created_before: Option<Timestamp>,
+                created_after: Option<Timestamp>,
+                adhoc: Option<bool>,
+                time_independent: Option<bool>,
+                cursor: Option<GetEventsCursor>,
+            ) -> Result<EventStream<'a>>;
+
+            async fn get_all_event_exceptions_for_user_paginated_as_stream<'a>(
+                &'a mut self,
+                user: User,
+                only_favorites: bool,
+                invite_status_filter: BTreeSet<EventInviteStatus>,
+                time_min: Option<Timestamp>,
+                time_max: Option<Timestamp>,
+                created_before: Option<Timestamp>,
+                created_after: Option<Timestamp>,
+                adhoc: Option<bool>,
+                time_independent: Option<bool>,
+                cursor: Option<GetEventExceptionsCursor>,
+            ) -> Result<EventAndExceptionStream<'a>>;
+
+            async fn create_event_exception(
+                &mut self,
+                event_exception: NewEventException,
+            ) -> Result<EventException>;
+
+            async fn get_event_exceptions(
+                &mut self,
+                event_id: EventId,
+                timestamps: &[Timestamp],
+            ) -> Result<Vec<EventException>>;
+
+            async fn get_event_exception(
+                &mut self,
+                event_id: EventId,
+                instance_id_timestamp: Timestamp,
+            ) -> Result<Option<EventException>>;
+
+            async fn update_event_exception(
+                &mut self,
+                event_exception_id: EventExceptionId,
+                event_exception: UpdateEventException,
+            ) -> Result<EventException>;
+
+            async fn delete_event_exceptions_for_event(&mut self, event_id: EventId) -> Result<()>;
+
+            async fn delete_event_for_room(&mut self, room_id: RoomId) -> Result<()>;
+
+            async fn create_event_favorite_for_user(
+                &mut self,
+                event_id: EventId,
+                user_id: UserId,
+            ) -> Result<bool>;
+
+            async fn delete_event_favorite_for_user(
+                &mut self,
+                event_id: EventId,
+                user_id: UserId,
+            ) -> Result<bool>;
+        }
+    }
+}

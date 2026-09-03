@@ -6,7 +6,10 @@
 //! If the amount of services grow, add another layer that bundles all services.
 mod mail;
 
+#[cfg(not(all(test, feature = "mockall")))]
+pub use mail::MailService;
+#[cfg(all(test, feature = "mockall"))]
+pub use mail::MockMailService as MailService;
 pub use mail::{
-    ExternalMailRecipient, MailRecipient, MailService, RegisteredMailRecipient,
-    UnregisteredMailRecipient,
+    ExternalMailRecipient, MailRecipient, RegisteredMailRecipient, UnregisteredMailRecipient,
 };

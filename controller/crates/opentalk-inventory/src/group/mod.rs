@@ -9,3 +9,5 @@ mod group_inventory;
 
 pub use group::Group;
 pub use group_inventory::GroupInventory;
+#[cfg(feature = "mockall")]
+pub use group_inventory::MockGroupInventory;

@@ -20,6 +20,8 @@ pub use job::Job;
 pub use job_execution::JobExecution;
 pub use job_execution_id::JobExecutionId;
 pub use job_execution_inventory::JobExecutionInventory;
+#[cfg(feature = "mockall")]
+pub use job_execution_inventory::MockJobExecutionInventory;
 pub use job_execution_log_level::JobExecutionLogLevel;
 pub use job_id::JobId;
 pub use job_status::JobStatus;

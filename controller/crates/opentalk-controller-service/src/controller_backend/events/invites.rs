@@ -16,6 +16,7 @@ use opentalk_inventory::{
     RoomSipConfig, Tenant, UpdateEventEmailInvite, UpdateEventInvite, User, transaction,
     utils::is_room_guest_access_allowed,
 };
+#[cfg(not(all(test, feature = "mockall")))]
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -42,6 +43,8 @@ use opentalk_types_common::{
 };
 use snafu::Report;
 
+#[cfg(all(test, feature = "mockall"))]
+use crate::MockKeycloakAdminClient as KeycloakAdminClient;
 use crate::{
     ControllerBackend,
     controller_backend::{events::EventInviteeExt, utils::verify_invite_write},

@@ -106,9 +106,9 @@ impl EventInviteInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_event_user_invites_for_events(
+    async fn get_event_user_invites_for_events<'a>(
         &mut self,
-        events: &[&inventory::Event],
+        events: &[&'a inventory::Event],
     ) -> Result<Vec<Vec<(EventInvite, User)>>> {
         let events = events
             .iter()
@@ -134,9 +134,9 @@ impl EventInviteInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_event_email_invites_for_events(
+    async fn get_event_email_invites_for_events<'a>(
         &mut self,
-        events: &[&inventory::Event],
+        events: &[&'a inventory::Event],
     ) -> Result<Vec<Vec<EventEmailInvite>>> {
         let events = events
             .iter()

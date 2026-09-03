@@ -164,6 +164,26 @@ struct ConfigSearchPath {
     deprecated: bool,
 }
 
+#[cfg(feature = "mockall")]
+pub use mock::MockSettingsProvider;
+
+#[cfg(feature = "mockall")]
+mod mock {
+    use std::sync::Arc;
+
+    use crate::Settings;
+
+    mockall::mock! {
+        pub SettingsProvider {
+            pub fn get(&self) -> Arc<Settings>;
+        }
+
+        impl Clone for SettingsProvider {
+            fn clone(&self) -> Self;
+        }
+    }
+}
+
 impl ConfigSearchPath {
     fn display_non_deprecated(&self) -> Option<String> {
         if self.deprecated {

@@ -10,4 +10,6 @@ mod tenant_inventory;
 
 pub use oidc_tenant_id::OidcTenantId;
 pub use tenant::Tenant;
+#[cfg(feature = "mockall")]
+pub use tenant_inventory::MockTenantInventory;
 pub use tenant_inventory::TenantInventory;

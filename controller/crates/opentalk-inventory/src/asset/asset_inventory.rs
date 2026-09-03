@@ -19,6 +19,7 @@ use crate::Result;
 type AssetWithRoomAndEvent = (Asset, RoomId, Option<EventId>);
 
 /// A trait for retrieving and storing event entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait AssetInventory {
     /// Create an asset for a room.

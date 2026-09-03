@@ -127,10 +127,10 @@ impl UserInventory for DatabaseConnection {
     }
 
     #[tracing::instrument(err(level = "debug"), skip_all)]
-    async fn get_users_by_odic_subs(
+    async fn get_users_by_oidc_subs<'a>(
         &mut self,
         tenant_id: TenantId,
-        subs: &[&str],
+        subs: &[&'a str],
     ) -> Result<Vec<User>> {
         Ok(
             db::queries::users::get_all_by_oidc_subs(&mut self.inner, tenant_id, subs)

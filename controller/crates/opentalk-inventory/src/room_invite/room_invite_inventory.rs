@@ -11,6 +11,7 @@ use super::RoomInvite;
 use crate::Result;
 
 /// A trait for retrieving and storing room invite entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait RoomInviteInventory {
     /// Get a room invite by the invite code.

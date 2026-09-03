@@ -8,7 +8,9 @@ pub(crate) mod notifications;
 
 use opentalk_controller_settings::{Settings, TenantAssignment};
 use opentalk_inventory::{EventSharedFolder, Inventory, Tenant};
-use opentalk_keycloak_admin::{KeycloakAdminClient, users::TenantFilter};
+#[cfg(not(all(test, feature = "mockall")))]
+use opentalk_keycloak_admin::KeycloakAdminClient;
+use opentalk_keycloak_admin::users::TenantFilter;
 use opentalk_types_api_v1::{
     events::{EventInvitee, EventInviteeProfile},
     users::UnregisteredUser,
@@ -20,6 +22,8 @@ use opentalk_types_common::{
     users::{Language, UserId},
 };
 
+#[cfg(all(test, feature = "mockall"))]
+use crate::MockKeycloakAdminClient as KeycloakAdminClient;
 use crate::services::{
     ExternalMailRecipient, MailRecipient, RegisteredMailRecipient, UnregisteredMailRecipient,
 };

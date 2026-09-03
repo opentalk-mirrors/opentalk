@@ -11,5 +11,7 @@ mod update_room;
 
 pub use new_room::NewRoom;
 pub use room::Room;
+#[cfg(feature = "mockall")]
+pub use room_inventory::MockRoomInventory;
 pub use room_inventory::RoomInventory;
 pub use update_room::UpdateRoom;

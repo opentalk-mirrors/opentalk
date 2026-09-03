@@ -9020,6 +9020,7 @@ dependencies = [
  "chrono",
  "futures",
  "http 1.5.0",
+ "mockall",
  "opentalk-controller-settings",
  "opentalk-inventory",
  "opentalk-types-api-common",
@@ -9038,6 +9039,7 @@ name = "opentalk-cache"
 version = "3.0.0"
 dependencies = [
  "async-trait",
+ "mockall",
  "moka",
  "redis",
  "rkyv",
@@ -9297,6 +9299,7 @@ dependencies = [
  "lapin-pool",
  "log",
  "md5 0.8.1",
+ "mockall",
  "openidconnect",
  "opentalk-asset-storage",
  "opentalk-cache",
@@ -9368,6 +9371,7 @@ dependencies = [
  "iana-time-zone",
  "icu_locid",
  "itertools 0.15.0",
+ "mockall",
  "openidconnect",
  "opentalk-roomserver-modules",
  "opentalk-roomserver-room",

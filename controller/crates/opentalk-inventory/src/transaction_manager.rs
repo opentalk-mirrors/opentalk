@@ -5,6 +5,7 @@
 use crate::Result;
 
 /// A trait for managing transactions in an inventory.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait TransactionManager {
     /// Begin a new transaction.
