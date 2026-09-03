@@ -23,6 +23,8 @@
 
 .package:
   stage: package
+  before_script:
+    - bash extras/ci/gitlab/update-product-version.sh
   needs:
     - job: build:pkgbuild
       optional: true

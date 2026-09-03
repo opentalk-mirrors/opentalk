@@ -65,6 +65,8 @@ lint:licensing:
 lint:release_tag:
   stage: lint
   extends: .default_conditions
+  before_script:
+    - bash extras/ci/gitlab/update-product-version.sh
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -76,6 +78,8 @@ lint:release_tag:
 lint:pre-release_tag:
   stage: lint
   extends: .default_conditions
+  before_script:
+    - bash extras/ci/gitlab/update-product-version.sh
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never

@@ -11,6 +11,8 @@ set -euo pipefail
 
 echo "Setting up integration test environment..."
 
+bash extras/ci/gitlab/update-product-version.sh
+
 # Docker login for container registry access
 docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" git.opentalk.dev:5050
 
