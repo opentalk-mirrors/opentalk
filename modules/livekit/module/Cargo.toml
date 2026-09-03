@@ -34,8 +34,10 @@ url.workspace = true
 [dev-dependencies]
 insta.workspace = true
 livekit.workspace = true
+opentalk-roomserver-module-moderation.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 opentalk-roomserver-test-util-livekit.workspace = true
+opentalk-roomserver-types-moderation.workspace = true
 pretty_assertions.workspace = true
 test-log.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }

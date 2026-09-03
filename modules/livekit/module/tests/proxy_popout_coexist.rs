@@ -1,67 +1,20 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{
-    pin::Pin,
-    task::{Context, Poll},
-    time::Duration,
-};
+use std::time::Duration;
 
-use futures::{Sink, Stream};
 use opentalk_roomserver_module_livekit::LiveKitModule;
 use opentalk_roomserver_room::mocking::room::flush_connected_events;
 use opentalk_roomserver_types::{
-    livekit_proxy::{
-        LiveKitProxyRequest, LiveKitProxyTarget,
-        websocket::{Error, LiveKitSink, LiveKitSocketMessage, LiveKitStream},
-    },
+    livekit_proxy::{LiveKitProxyRequest, LiveKitProxyTarget},
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_livekit::{LiveKitCommand, LiveKitEvent, LiveKitState};
 use tokio::sync::oneshot;
 
+use crate::common::MockClientSocket;
+
 mod common;
-
-/// A minimal downstream socket used to drive the proxy from tests.
-///
-/// It never yields inbound messages and silently discards outbound ones. Dropping it (which
-/// happens when the proxy task shuts down) closes `_alive`, allowing the test to observe whether
-/// the associated proxy is still running.
-#[derive(Debug)]
-struct MockClientSocket {
-    _alive: oneshot::Sender<()>,
-}
-
-impl Stream for MockClientSocket {
-    type Item = Result<LiveKitSocketMessage, Error>;
-
-    fn poll_next(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        Poll::Pending
-    }
-}
-
-impl Sink<LiveKitSocketMessage> for MockClientSocket {
-    type Error = Error;
-
-    fn poll_ready(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn start_send(self: Pin<&mut Self>, _item: LiveKitSocketMessage) -> Result<(), Self::Error> {
-        Ok(())
-    }
-
-    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn poll_close(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
-    }
-}
-
-impl LiveKitStream for MockClientSocket {}
-impl LiveKitSink for MockClientSocket {}
 
 /// Establishes a proxied downstream socket for the given token and returns a receiver that resolves
 /// (with an error) once the proxy for that socket shuts down.
