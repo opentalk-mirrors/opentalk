@@ -272,7 +272,9 @@ impl Signaling {
                     self.state = State::Quitting;
                 }
                 () = opt_timeout(&mut self.livekit_disconnection_grace_period) => {
-
+                    log::error!("Disconnected from livekit without being moved into waiting room, disconnecting");
+                    self.livekit_disconnection_grace_period = None;
+                    self.state = State::Quitting;
                 }
                 _ = self.shutdown.recv() => {
                     self.state = State::Quitting;
@@ -560,6 +562,7 @@ impl Signaling {
                 self.handle_participant_left(participant_id, connection_id);
             }
             OpenTalkEvent::MovedToWaitingRoom => {
+                self.livekit_disconnection_grace_period = None;
                 self.join_state = JoinState::WaitingRoom {
                     welcome_played: true,
                 };
