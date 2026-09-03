@@ -351,7 +351,7 @@ impl SessionState {
 
             // match against existing media session
             let matched_existing_media_session =
-                self.media_sessions.iter().find(|existing_session| {
+                self.media_sessions.iter_mut().find(|existing_session| {
                     // Avoid double matching
                     if matched_media_sessions.contains(&existing_session.id) {
                         return false;
@@ -380,10 +380,10 @@ impl SessionState {
                 if let Some(matched_existing_media_session) = matched_existing_media_session {
                     matched_media_sessions.push(matched_existing_media_session.id);
 
-                    (
-                        matched_existing_media_session.id,
-                        matched_existing_media_session.direction,
-                    )
+                    let direction = matched_existing_media_session.direction;
+                    matched_existing_media_session.direction = new_direction;
+
+                    (matched_existing_media_session.id, direction)
                 } else {
                     // New media session, find suitable codec
 

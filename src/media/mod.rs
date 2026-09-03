@@ -161,7 +161,9 @@ impl MediaPipeline {
                 let x = subscriber.clone();
 
                 async move {
-                    for tx in x.lock().await.values() {
+                    let sender: Vec<_> = x.lock().await.values().cloned().collect();
+
+                    for tx in sender {
                         if let Err(e) = tx.send(frame.clone()).await {
                             log::error!("Failed to forward subscriber audio frame, {e}");
                         }

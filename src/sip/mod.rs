@@ -129,11 +129,11 @@ impl AppLayer {
         }
 
         let dialog = Dialog::new_server(endpoint.clone(), &request, contact.clone())?;
-        dialog.register_usage(options::OptionsUsage { contact });
+        let _options_usage = dialog.register_usage(options::OptionsUsage { contact });
 
         let fast_picture_update_notify = broadcast::Sender::new(1);
 
-        let _usage = dialog.register_usage(media_control::MediaControlUsage {
+        let _media_control_usage = dialog.register_usage(media_control::MediaControlUsage {
             notify_picture_fast_update: fast_picture_update_notify.clone(),
         });
 
