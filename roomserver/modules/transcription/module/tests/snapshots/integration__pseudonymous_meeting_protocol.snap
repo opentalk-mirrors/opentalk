@@ -1,0 +1,41 @@
+---
+source: roomserver/modules/transcription/module/tests/integration.rs
+expression: text
+---
+
+
+Automatic Transcript
+ Date [date]
+
+Time [time_minutes] - [time_minutes]
+
+Language English
+
+Participants 2
+
+Pseudonymization Enabled
+
+Moderated by Speaker   1
+
+This transcript was generated automatically and may contain errors.
+
+[time_seconds]   Transcription was started
+
+[time_seconds]   Speaker   1
+
+Hello everyone. Let's get started.
+[time_seconds]   Speaker   2
+
+Hi Alice.
+[time_seconds]   Speaker   1
+
+First topic.
+[time_seconds]   Transcription was paused
+
+[time_seconds]   Transcription was resumed
+
+[time_seconds]   Speaker   2
+
+Welcome back.
+[time_seconds]   Transcription was stopped
+ Page   1   of   1

@@ -21,6 +21,7 @@ workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-service-auth.workspace = true
+opentalk-types-api-internal.workspace = true
 opentalk-types-common = { workspace = true, features = ["serde"] }
 opentalk-types-signaling = { workspace = true, features = ["serde"] }
 serde.workspace = true
@@ -28,3 +29,5 @@ url.workspace = true
 
 [dev-dependencies]
 insta = { workspace = true, features = ["json"] }
+pretty_assertions.workspace = true
+serde_json.workspace = true

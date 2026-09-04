@@ -66,8 +66,10 @@ async fn create_report_inner(
     generate_options.packages_path = Some(typst_package_path);
 
     let serialized = serde_json::to_string(&template_parameter)
-        .inspect_err(|e| tracing::error!("Serializing parameters failed: {e}"))
-        .map_err(|_| TrainingParticipationReportError::Generate)?
+        .map_err(|err| {
+            tracing::error!("Serializing parameters failed: {err}");
+            TrainingParticipationReportError::Generate
+        })?
         .into_bytes()
         .into();
     let files = [
@@ -80,7 +82,10 @@ async fn create_report_inner(
         BTreeMap::from_iter(files),
         &generate_options,
     )
-    .map_err(|_| TrainingParticipationReportError::Generate)?;
+    .map_err(|err| {
+        tracing::error!("Failed to generate report: {err}");
+        TrainingParticipationReportError::Generate
+    })?;
 
     let upload = storage
         .upload_asset_vec(

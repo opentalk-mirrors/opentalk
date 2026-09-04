@@ -228,6 +228,11 @@ impl TestRoomBuilder {
         self
     }
 
+    pub fn room_idle_timeout(mut self, duration: Duration) -> Self {
+        self.room_parameters.room_idle_timeout = duration;
+        self
+    }
+
     pub fn spawn(self) -> TestRoom {
         TestRoom::spawn(
             self.room_id,

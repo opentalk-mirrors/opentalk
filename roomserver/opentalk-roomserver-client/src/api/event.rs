@@ -151,7 +151,7 @@ mod tests {
     use opentalk_roomserver_types_timer::TimerEvent;
     use opentalk_roomserver_types_training_participation_report::TrainingParticipationReportEvent;
     use opentalk_roomserver_types_transcription::{
-        event::TranscriptionEvent, state::TranscriptionStatus,
+        event::TranscriptionEvent, status::TranscriptionStatus,
     };
     use opentalk_roomserver_types_whiteboard::WhiteboardEvent;
     use opentalk_types_common::{assets::AssetId, modules::ModuleId, time::Timestamp};

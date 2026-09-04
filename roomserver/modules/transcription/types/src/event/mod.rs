@@ -4,6 +4,9 @@
 
 //! Signaling events for the `transcription` namespace
 
+use opentalk_types_api_internal::module_assets::Quota;
+use opentalk_types_common::assets::AssetId;
+use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
 
 mod error;
@@ -11,8 +14,9 @@ mod error;
 pub use error::TranscriptionError;
 
 use crate::{
-    segment::TranscriptionSegment, service::command::TranscriptionServiceCommand,
-    state::TranscriptionStatus,
+    segment::TranscriptionSegment,
+    service::command::TranscriptionServiceCommand,
+    status::{TranscriptionModes, TranscriptionStatus},
 };
 
 /// Events for the `transcription` namespace
@@ -21,9 +25,34 @@ use crate::{
 pub enum TranscriptionEvent {
     Segment(TranscriptionSegment),
 
+    /// The status of the transcription service changed
     StateUpdated {
         #[serde(flatten)]
         status: TranscriptionStatus,
+    },
+
+    /// The active transcription modes changed
+    ModesUpdated {
+        #[serde(flatten)]
+        modes: TranscriptionModes,
+    },
+
+    /// A PDF asset has been created
+    PdfCreated {
+        /// The file name of the PDF asset
+        filename: String,
+        /// The asset id for the PDF asset
+        asset_id: AssetId,
+        /// The new quota values
+        quota: Quota,
+    },
+
+    /// A participant updated their meeting protocol consent
+    MeetingProtocolConsentUpdated {
+        /// The participant that updated their consent
+        participant: ParticipantId,
+        /// Whether or not the participant consents to being included in the meeting protocol.
+        consents: bool,
     },
 
     ServiceCommand {
@@ -44,8 +73,10 @@ mod tests {
     use insta::assert_json_snapshot;
     use opentalk_types_common::time::Timestamp;
     use opentalk_types_signaling::ParticipantId;
+    use serde_json::json;
 
     use super::*;
+    use crate::{config::MeetingProtocolConfig, status::MeetingProtocolMode};
 
     #[test]
     fn serialize_segment() {
@@ -115,6 +146,170 @@ mod tests {
           "status": "inactive"
         }
         "#);
+    }
+
+    #[test]
+    fn serialize_modes_updated_live_transcription() {
+        let event = TranscriptionEvent::ModesUpdated {
+            modes: TranscriptionModes {
+                live_transcription: true,
+                meeting_protocol: None,
+            },
+        };
+
+        assert_json_snapshot!(event, @ r#"
+        {
+          "message": "modes_updated",
+          "live_transcription": true
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_modes_updated_live_transcription() {
+        let produced = serde_json::from_value(json!({
+           "message": "modes_updated",
+           "live_transcription": true,
+        }))
+        .unwrap();
+        let expected = TranscriptionEvent::ModesUpdated {
+            modes: TranscriptionModes {
+                live_transcription: true,
+                meeting_protocol: None,
+            },
+        };
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_modes_updated_meeting_protocol() {
+        let event = TranscriptionEvent::ModesUpdated {
+            modes: TranscriptionModes {
+                live_transcription: false,
+                meeting_protocol: Some(MeetingProtocolMode {
+                    config: MeetingProtocolConfig { pseudonymous: true },
+                    paused: false,
+                }),
+            },
+        };
+
+        assert_json_snapshot!(event, @ r#"
+        {
+          "message": "modes_updated",
+          "live_transcription": false,
+          "meeting_protocol": {
+            "pseudonymous": true,
+            "paused": false
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_modes_updated_meeting_protocol() {
+        let produced = serde_json::from_value(json!({
+           "message": "modes_updated",
+           "live_transcription": false,
+           "meeting_protocol": {
+              "pseudonymous": false,
+              "paused": false,
+           },
+        }))
+        .unwrap();
+        let expected = TranscriptionEvent::ModesUpdated {
+            modes: TranscriptionModes {
+                live_transcription: false,
+                meeting_protocol: Some(MeetingProtocolMode {
+                    config: MeetingProtocolConfig {
+                        pseudonymous: false,
+                    },
+                    paused: false,
+                }),
+            },
+        };
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_pdf_created() {
+        let event = TranscriptionEvent::PdfCreated {
+            filename: "meeting_protocol.pdf".into(),
+            asset_id: AssetId::nil(),
+            quota: Quota {
+                total: Some(1000),
+                used: 100,
+            },
+        };
+
+        assert_json_snapshot!(event, @ r#"
+        {
+          "message": "pdf_created",
+          "filename": "meeting_protocol.pdf",
+          "asset_id": "00000000-0000-0000-0000-000000000000",
+          "quota": {
+            "total": 1000,
+            "used": 100
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_pdf_created() {
+        let produced = serde_json::from_value(json!({
+           "message": "pdf_created",
+           "filename": "meeting_protocol.pdf",
+           "asset_id": "00000000-0000-0000-0000-000000000000",
+           "quota": {
+              "total": 1000,
+              "used": 100,
+           },
+        }))
+        .unwrap();
+        let expected = TranscriptionEvent::PdfCreated {
+            filename: "meeting_protocol.pdf".into(),
+            asset_id: AssetId::nil(),
+            quota: Quota {
+                total: Some(1000),
+                used: 100,
+            },
+        };
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_meeting_protocol_consent_updated() {
+        let event = TranscriptionEvent::MeetingProtocolConsentUpdated {
+            participant: ParticipantId::nil(),
+            consents: true,
+        };
+
+        assert_json_snapshot!(event, @ r#"
+        {
+          "message": "meeting_protocol_consent_updated",
+          "participant": "00000000-0000-0000-0000-000000000000",
+          "consents": true
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_meeting_protocol_consent_updated() {
+        let produced = serde_json::from_value(json!({
+           "message": "meeting_protocol_consent_updated",
+           "participant": "00000000-0000-0000-0000-000000000000",
+           "consents": false,
+        }))
+        .unwrap();
+        let expected = TranscriptionEvent::MeetingProtocolConsentUpdated {
+            participant: ParticipantId::nil(),
+            consents: false,
+        };
+
+        assert_eq!(expected, produced);
     }
 
     #[test]

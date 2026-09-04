@@ -595,6 +595,11 @@ where
             .is_some_and(|r| r.is_moderator())
     }
 
+    pub fn is_visible(&self, participant_id: ParticipantId) -> bool {
+        self.participant_state(participant_id)
+            .is_some_and(ParticipantState::is_visible)
+    }
+
     pub fn get_client_kind(&self, participant_id: ParticipantId) -> Option<&ClientKind> {
         self.participant_state(participant_id)
             .map(|state| &state.kind)

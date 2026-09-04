@@ -10,11 +10,14 @@ use opentalk_types_common::{
 };
 
 pub mod command;
+pub mod config;
 pub mod event;
+pub mod peer_state;
 pub mod segment;
 pub mod service;
 pub mod settings;
 pub mod state;
+pub mod status;
 
 /// The namespace string for the signaling module
 pub const TRANSCRIPTION_MODULE_ID: ModuleId = module_id!("transcription");
