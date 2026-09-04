@@ -50,6 +50,12 @@ pub struct TimerModule {
     ready_participants: HashMap<RoomKind, BTreeSet<ParticipantId>>,
 }
 
+struct ReadyCheckData {
+    ready_status: bool,
+    peer_data: PeerDataMap<TimerModule>,
+    peer_events: PeerDataMap<TimerModule>,
+}
+
 impl SignalingModuleDescription for TimerModule {
     const MODULE_ID: ModuleId = TIMER_MODULE_ID;
     const DESCRIPTION: &'static str =
@@ -105,39 +111,15 @@ impl SignalingModule for TimerModule {
         };
 
         if timer.config.ready_check_enabled {
-            // Joining participants might already be ready when reconnecting
-            let ready_status = self
-                .ready_participants
-                .get(&ctx.room)
-                .with_context(|| {
-                    format!(
-                        "Room '{:?}' does not exist in participant ready state",
-                        ctx.room
-                    )
-                })?
-                .contains(&participant_id);
+            let ready_check_data = self.collect_ready_check_data(ctx, participant_id, ctx.room)?;
 
-            // Append ready state when the running timer has ready check enabled
-            let mut peer = PeerDataMap::default();
-            peer.insert_for_all(ctx, TimerPeerState { ready_status })?;
-
-            // Collect ready state of all other participants for the joined participant
-            let mut participant_states = PeerDataMap::default();
-            for p in ctx.participants.connected().ids() {
-                let ready_status = self
-                    .ready_participants
-                    .get(&ctx.room)
-                    .with_context(|| format!("Room '{:?}' does not exist in timers", ctx.room))?
-                    .contains(&p);
-                participant_states.insert(p, TimerPeerState { ready_status })?;
-            }
             Ok(ModuleJoinData {
                 join_success: Some(TimerState {
                     config: timer.config.clone(),
-                    ready_status: Some(ready_status),
+                    ready_status: Some(ready_check_data.ready_status),
                 }),
-                peer_data: participant_states,
-                peer_events: peer,
+                peer_data: ready_check_data.peer_data,
+                peer_events: ready_check_data.peer_events,
             })
         } else {
             Ok(ModuleJoinData {
@@ -192,19 +174,15 @@ impl SignalingModule for TimerModule {
             return Ok(ModuleSwitchData::<Self>::new());
         };
 
-        let ready_status = if timer.config.ready_check_enabled {
-            // Joining participants might already be ready when they were in the
-            // room before
-            Some(
-                self.ready_participants
-                    .get(&new_room)
-                    .with_context(|| {
-                        format!("Room '{new_room:?}' does not exist in participant ready state")
-                    })?
-                    .contains(&participant_id),
+        let (ready_status, peer_data, peer_events) = if timer.config.ready_check_enabled {
+            let ready_check_data = self.collect_ready_check_data(ctx, participant_id, new_room)?;
+            (
+                Some(ready_check_data.ready_status),
+                ready_check_data.peer_data,
+                ready_check_data.peer_events,
             )
         } else {
-            None
+            (None, PeerDataMap::default(), PeerDataMap::default())
         };
         let timer_state = Some(TimerState {
             config: timer.config.clone(),
@@ -219,7 +197,8 @@ impl SignalingModule for TimerModule {
 
         Ok(ModuleSwitchData {
             switch_success,
-            ..Default::default()
+            peer_data,
+            peer_events,
         })
     }
 
@@ -281,6 +260,47 @@ impl SignalingModule for TimerModule {
 }
 
 impl TimerModule {
+    fn collect_ready_check_data(
+        &self,
+        ctx: &mut ModuleContext<'_, Self>,
+        participant_id: ParticipantId,
+        room: RoomKind,
+    ) -> Result<ReadyCheckData, SignalingModuleError<<TimerModule as SignalingModule>::Error>> {
+        let others = ctx
+            .participants
+            .in_room(room)
+            .connected()
+            .ids()
+            .filter(|&other| other != participant_id);
+        let ready_participants = self.ready_participants.get(&room).with_context(|| {
+            format!("Room '{room:?}' does not exist in participant ready state")
+        })?;
+
+        // Joining participants might already be ready when they were in the room before.
+        let ready_status = ready_participants.contains(&participant_id);
+
+        // Collect ready state of all other participants for the switched participant.
+        let mut peer_data = PeerDataMap::default();
+        for p in others {
+            peer_data.insert(
+                p,
+                TimerPeerState {
+                    ready_status: ready_participants.contains(&p),
+                },
+            )?;
+        }
+
+        // Append ready state when the running timer has ready check enabled.
+        let mut peer_events = PeerDataMap::default();
+        peer_events.insert_for_all(ctx, TimerPeerState { ready_status })?;
+
+        Ok(ReadyCheckData {
+            ready_status,
+            peer_data,
+            peer_events,
+        })
+    }
+
     fn start_timer(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
