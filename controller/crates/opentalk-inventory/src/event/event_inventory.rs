@@ -22,6 +22,40 @@ use crate::{
     GetEventExceptionsCursor, Result, Room, RoomSipConfig, Tariff, User,
 };
 
+/// Contains events and associated items.
+type EventStream<'a> = Pin<
+    Box<
+        dyn Stream<
+                Item = Result<(
+                    Event,
+                    Option<EventInvite>,
+                    Room,
+                    Option<RoomSipConfig>,
+                    bool,
+                    Option<EventSharedFolder>,
+                    Tariff,
+                    Option<TrainingParticipationReportParameterSet>,
+                )>,
+            > + 'a,
+    >,
+>;
+
+/// Contains events and event exceptions.
+type EventAndExceptionStream<'a> =
+    Pin<Box<dyn Stream<Item = Result<(EventException, Event)>> + 'a>>;
+
+/// An event and its related items.
+type EventWithRelatedItems = (
+    Event,
+    Option<EventInvite>,
+    Room,
+    Option<RoomSipConfig>,
+    bool,
+    Option<EventSharedFolder>,
+    Tariff,
+    Option<EventTrainingParticipationReportParameterSet>,
+);
+
 /// A trait for retrieving and storing event entities.
 #[async_trait::async_trait]
 pub trait EventInventory {
@@ -54,16 +88,7 @@ pub trait EventInventory {
         &mut self,
         user_id: UserId,
         event_id: EventId,
-    ) -> Result<(
-        Event,
-        Option<EventInvite>,
-        Room,
-        Option<RoomSipConfig>,
-        bool,
-        Option<EventSharedFolder>,
-        Tariff,
-        Option<EventTrainingParticipationReportParameterSet>,
-    )>;
+    ) -> Result<EventWithRelatedItems>;
 
     /// Get all events updated by a specific user.
     async fn get_all_events_updated_by_user(&mut self, user: UserId) -> Result<Vec<Event>>;
@@ -110,24 +135,7 @@ pub trait EventInventory {
         adhoc: Option<bool>,
         time_independent: Option<bool>,
         cursor: Option<GetEventsCursor>,
-    ) -> Result<
-        Pin<
-            Box<
-                dyn Stream<
-                        Item = Result<(
-                            Event,
-                            Option<EventInvite>,
-                            Room,
-                            Option<RoomSipConfig>,
-                            bool,
-                            Option<EventSharedFolder>,
-                            Tariff,
-                            Option<TrainingParticipationReportParameterSet>,
-                        )>,
-                    > + 'a,
-            >,
-        >,
-    >;
+    ) -> Result<EventStream<'a>>;
 
     /// Get all event exceptions to which a user has access.
     #[expect(clippy::too_many_arguments)]
@@ -143,7 +151,7 @@ pub trait EventInventory {
         adhoc: Option<bool>,
         time_independent: Option<bool>,
         cursor: Option<GetEventExceptionsCursor>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<(EventException, Event)>> + 'a>>>;
+    ) -> Result<EventAndExceptionStream<'a>>;
 
     /// Create an event exception.
     async fn create_event_exception(
