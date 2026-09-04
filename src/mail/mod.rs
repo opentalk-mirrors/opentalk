@@ -355,13 +355,13 @@ pub fn format_telephone_number_filter(
 
     let formatted_telephone_number = match result {
         Ok(Ok(number)) => number.format().mode(mode).to_string(),
-        e if mode == phonenumber::Mode::Rfc3966 => {
-            log::warn!(" Failed to parse phone number {e:?}");
-            format!("tel:{value}")
-        }
         e => {
             log::warn!(" Failed to parse phone number {e:?}");
-            value.to_owned()
+            if mode == phonenumber::Mode::Rfc3966 {
+                format!("tel:{value}")
+            } else {
+                value.to_owned()
+            }
         }
     };
 
