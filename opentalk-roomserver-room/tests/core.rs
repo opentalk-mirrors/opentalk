@@ -228,6 +228,28 @@ async fn join_success_contains_core_modules() {
 }
 
 #[test_log::test(tokio::test)]
+async fn meeting_details_visible_to_all_when_enabled() {
+    let mut room = TestRoom::builder().show_meeting_details(true).spawn();
+
+    let alice = room.join_alice_moderator(0).await;
+    let bob = room.join_bob(0).await;
+
+    assert!(alice.join_success().meeting_details.is_some());
+    assert!(bob.join_success().meeting_details.is_some());
+}
+
+#[test_log::test(tokio::test)]
+async fn meeting_details_hidden_from_users_and_visible_for_moderators_when_disabled() {
+    let mut room = TestRoom::builder().show_meeting_details(false).spawn();
+
+    let alice = room.join_alice_moderator(0).await;
+    let bob = room.join_bob(0).await;
+
+    assert!(alice.join_success().meeting_details.is_some());
+    assert!(bob.join_success().meeting_details.is_none());
+}
+
+#[test_log::test(tokio::test)]
 async fn patch_room_parameters_notifies_only_moderators_when_meeting_details_disabled() {
     let mut room = TestRoom::builder().show_meeting_details(false).spawn();
     let mut alice = room.join_alice_moderator(0).await;
