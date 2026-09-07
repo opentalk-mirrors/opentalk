@@ -19,8 +19,8 @@ use opentalk_roomserver_types::{
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_timer::{
-    StopKind, TimerCommand, TimerConfig, TimerError, TimerEvent, command::Kind, event::Stopped,
-    peer_state::TimerPeerState, state::TimerState,
+    StopKind, TIMER_MODULE_ID, TimerCommand, TimerConfig, TimerError, TimerEvent, command::Kind,
+    event::Stopped, peer_state::TimerPeerState, state::TimerState,
 };
 
 async fn start_timer(
@@ -470,5 +470,83 @@ async fn breakout_room_ready_state() {
             ready_status: Some(true),
             ..
         })
+    );
+}
+
+/// Ensure the [`BreakoutEvent::SwitchedRoom`] event contains the ready state.
+///
+/// 1. Alice and Bob join
+/// 2. Alice creates two breakout rooms
+/// 3. Alice and Bob join separate breakout rooms
+/// 4. Alice starts the timer and sets a ready state
+/// 5. Bob joins Alice's breakout room and must receive Alice's ready state
+#[test_log::test(tokio::test)]
+async fn breakout_room_switch_contains_peer_ready_state() {
+    let mut room = TestRoom::builder().register_module::<TimerModule>().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    let alice_room = BreakoutRoomConfig {
+        name: "alice_room".into(),
+        assignments: vec![alice.id()],
+    };
+    let bob_room = BreakoutRoomConfig {
+        name: "bob_room".into(),
+        assignments: vec![bob.id()],
+    };
+    alice
+        .start_breakout_rooms(
+            &mut [&mut bob],
+            BreakoutConfig {
+                rooms: vec![alice_room, bob_room],
+                duration: None,
+            },
+        )
+        .await;
+
+    let alice_room = RoomKind::Breakout(BreakoutId::from(0));
+    let bob_room = RoomKind::Breakout(BreakoutId::from(1));
+
+    alice
+        .switch_breakout_room(&mut [&mut bob], alice_room)
+        .await;
+    bob.switch_breakout_room(&mut [&mut alice], bob_room).await;
+
+    start_timer(&mut alice, Kind::Stopwatch, None, None, true).await;
+
+    alice
+        .send_command::<TimerModule>(TimerCommand::UpdateReadyStatus { status: true }, None)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        alice.receive_event::<TimerModule>().await.unwrap().payload,
+        TimerEvent::UpdatedReadyStatus {
+            participant_id: alice.id(),
+            status: true,
+        },
+    );
+
+    let event = bob
+        .switch_breakout_room(&mut [&mut alice], alice_room)
+        .await;
+
+    let BreakoutEvent::SwitchedRoom { peer_data, .. } = event else {
+        unreachable!("Received wrong event");
+    };
+
+    let alice_timer_data = peer_data
+        .get(&alice.id())
+        .expect("Alice must be part of the peer data")
+        .get(&TIMER_MODULE_ID)
+        .expect("Timer peer data must be present");
+    let bob_state = alice_timer_data.clone_inner();
+
+    assert_eq!(
+        bob_state
+            .get("ready_status")
+            .and_then(|ready_status| ready_status.as_bool()),
+        Some(true),
     );
 }
