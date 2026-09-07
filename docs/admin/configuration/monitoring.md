@@ -12,12 +12,12 @@ this section is absent, monitoring is disabled.
 | Field  | Type     | Required | Default value | Description                                 |
 | ------ | -------- | -------- | ------------- | ------------------------------------------- |
 | `addr` | `string` | no       | `0.0.0.0`     | The address used for the monitoring server. |
-| `port` | `int`    | no       | `11412`       | The port for the monitoring server.         |
+| `port` | `int`    | no       | `11411`       | The port for the monitoring server.         |
 
 ### Example
 
 ```toml
 [monitoring]
 addr = "0.0.0.0"
-port = 11412
+port = 11411
 ```

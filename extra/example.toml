@@ -48,7 +48,7 @@ api_key = { "id" = "controller", "secret" = "secret" }
 addr = "::1"
 
 # Port for the monitoring endpoint.
-port = 11412
+port = 11411
 
 [transcription]
 # Configuration of the transcription engine.
