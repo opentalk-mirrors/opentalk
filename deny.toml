@@ -250,6 +250,7 @@ deny = []
 
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
+  { name = "base64", version = "0.22" },
   { name = "miniz_oxide", version = "0.8" },
   { name = "phf", version = "0.12" },
   { name = "phf_shared", version = "0.12" },
