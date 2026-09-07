@@ -126,7 +126,7 @@ pub(crate) struct HttpSettings {
     /// Address the HTTP API server binds to. Defaults to `0.0.0.0`.
     #[serde(default = "default_http_address")]
     pub(crate) addr: IpAddr,
-    /// Port the HTTP API server binds to. Defaults to `11411`.
+    /// Port the HTTP API server binds to. Defaults to `11413`.
     #[serde(default = "default_http_port")]
     pub(crate) port: u16,
 
