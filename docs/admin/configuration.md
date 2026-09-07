@@ -10,8 +10,15 @@ environment. It reads the settings in this order:
 
 - Read environment variables which have a specific name, see section
   [Environment variables](#environment-variables).
-- Load from a configuration file which defaults to `config.toml` in the current
-  working directory.
+- Load from a configuration file. When no path is passed explicitly, Obelisk
+  looks for a config file in these locations and uses the first one that is
+  found:
+    - `config.toml` in the current directory (deprecated, for backwards
+      compatibility only)
+    - `obelisk.toml` in the current directory
+    - `<XDG_CONFIG_HOME>/opentalk/obelisk.toml` (where `XDG_CONFIG_HOME` is
+      usually `~/.config`)
+    - `/etc/opentalk/obelisk.toml`
 
 ## Sections in the configuration file
 
@@ -28,7 +35,7 @@ Configuration values found at the root of the TOML file
 | Field          | Type     | Required | Default value | Description                                                                     |
 | -------------- | -------- | -------- | ------------- | ------------------------------------------------------------------------------- |
 | `language`     | `string` | no       | `"de"`        | Language of the audio cue to be played to the callee. (Either `"de"` or `"en"`) |
-| `clock-format` | `string` | no       | `"%x %X %Z"`  | The time format for the clock when using video, see `man strftime` for details  |
+| `clock_format` | `string` | no       | `"%x %X %Z"`  | The time format for the clock when using video, see `man strftime` for details  |
 
 ## Environment variables
 
@@ -48,10 +55,10 @@ naming pattern that could identify the index of the entry inside the list.
 
 ### Examples
 
-In order to set the `auth.client_id` field, this environment variable could be used:
+In order to set the `controller.url` field, this environment variable could be used:
 
 ```sh
-OPENTALK_OBLSK_AUTH__CLIENT_ID=Obelisk
+OPENTALK_OBLSK_CONTROLLER__URL=http://localhost:8000
 ```
 
 ## Example configuration file

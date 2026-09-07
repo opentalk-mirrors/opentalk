@@ -7,6 +7,7 @@ title: Obelisk
 ## General information about the service
 
 - [Configuration](configuration.md)
+- [Migration Guide](migration.md) for breaking configuration changes between releases.
 - [Health command](health.md) for fetching the current readiness state.⏎
 
 ## Interaction between {{ product_name }} Obelisk and other services
