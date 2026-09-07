@@ -260,6 +260,36 @@ async fn patch_room_parameters_notifies_only_moderators_when_meeting_details_dis
     let patch = RoomParametersPatch {
         password: Some(Some(RoomPassword::from_str("new_password").unwrap())),
         title: None,
+        show_meeting_details: None,
+    };
+    room.room_handle
+        .patch_parameters(patch.clone())
+        .await
+        .unwrap();
+
+    // Alice receives the room parameters changed event
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    let CoreEvent::RoomParametersChanged { change } = event else {
+        panic!("Received wrong event: {event:?}");
+    };
+    assert_eq!(change, patch);
+
+    // Bob does not receive the event because he isn't a moderator
+    assert!(bob.received_nothing());
+}
+
+#[test_log::test(tokio::test)]
+async fn patch_room_parameters_notifies_only_moderators_when_meeting_details_patched_to_disabled() {
+    let mut room = TestRoom::builder().show_meeting_details(true).spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // The room parameters are patched via a web request
+    let patch = RoomParametersPatch {
+        password: Some(None),
+        title: None,
+        show_meeting_details: Some(false),
     };
     room.room_handle
         .patch_parameters(patch.clone())
@@ -288,6 +318,7 @@ async fn patch_room_parameters_notifies_all_when_meeting_details_enabled() {
     let patch = RoomParametersPatch {
         password: Some(Some(RoomPassword::from_str("new_password").unwrap())),
         title: None,
+        show_meeting_details: None,
     };
     room.room_handle
         .patch_parameters(patch.clone())
@@ -310,6 +341,39 @@ async fn patch_room_parameters_notifies_all_when_meeting_details_enabled() {
 }
 
 #[test_log::test(tokio::test)]
+async fn patch_room_parameters_notifies_all_when_meeting_details_patched_to_enabled() {
+    let mut room = TestRoom::builder().show_meeting_details(false).spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // The room parameters are patched via a web request
+    let patch = RoomParametersPatch {
+        password: Some(None),
+        title: None,
+        show_meeting_details: Some(true),
+    };
+    room.room_handle
+        .patch_parameters(patch.clone())
+        .await
+        .unwrap();
+
+    // Alice receives the room parameters changed event
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    let CoreEvent::RoomParametersChanged { change } = event else {
+        panic!("Received wrong event: {event:?}");
+    };
+    assert_eq!(change, patch);
+
+    // Bob also receives the event because meeting details became enabled
+    let event = bob.receive::<CoreEvent>().await.unwrap().payload;
+    let CoreEvent::RoomParametersChanged { change } = event else {
+        panic!("Received wrong event: {event:?}");
+    };
+    assert_eq!(change, patch);
+}
+
+#[test_log::test(tokio::test)]
 async fn patch_room_parameters_removed_password_contains_null() {
     let mut room = TestRoom::builder()
         .password(Some("password".parse().unwrap()))
@@ -323,6 +387,7 @@ async fn patch_room_parameters_removed_password_contains_null() {
     let patch = RoomParametersPatch {
         password: Some(None),
         title: None,
+        show_meeting_details: None,
     };
     room.room_handle
         .patch_parameters(patch.clone())

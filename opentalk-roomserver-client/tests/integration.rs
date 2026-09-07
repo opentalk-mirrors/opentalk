@@ -66,6 +66,7 @@ async fn patch_room() {
     let patch = RoomParametersPatch {
         password: Some(Some(RoomPassword::from_str("new password").unwrap())),
         title: Some(EventTitle::from_str_lossy("New Event Title")),
+        show_meeting_details: None,
     };
     client.patch_room(room_id, patch).await.unwrap();
 }
