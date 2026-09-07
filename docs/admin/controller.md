@@ -21,6 +21,6 @@ The API Key for the Controller can be configured as string (<key_id>:<key_secret
 
 ```toml
 [controller]
-url = "http://localhost8000"
+url = "http://localhost:8000"
 api_key = { "id" = "controller", "secret" = "examplesecret" }
 ```

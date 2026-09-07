@@ -8,7 +8,7 @@ The endpoint id determined:
 - If not the endpoint will be loaded from the [monitoring configuration](./monitoring.md).
 - Without argument and existing configuration the command fails.
 
-## `opentalk-controller health` subcommand
+## `opentalk-obelisk health` subcommand
 
 Help output looks like this:
 
