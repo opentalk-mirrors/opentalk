@@ -61,7 +61,7 @@ impl Cache {
 
     /// Build a cache storage
     /// If Redis connection is available, combine a Redis cache with a local in-memory cache as an
-    /// overlay Otherise only local cache is used
+    /// overlay Otherwise only local cache is used
     fn build_cache<K, V>(
         redis: Option<RedisConnection>,
         prefix: String,
@@ -86,7 +86,7 @@ impl Cache {
 
     /// Build a cache storage with key hashing to reduce memory usage for large keys
     /// If Redis connection is available, compose a Redis cache with a local in-memory cache as an
-    /// overly Otherise only local cache is used
+    /// overly Otherwise only local cache is used
     fn build_cache_with_hashing<K, V>(
         redis: Option<RedisConnection>,
         prefix: String,
@@ -202,7 +202,7 @@ impl Cache {
     }
 
     /// Lazy access token invalidation based on sub logout
-    /// If an access token has been cached before it's assoiciated sub has been logged out
+    /// If an access token has been cached before it's associated sub has been logged out
     /// it is considered as revoked
     async fn is_access_token_revoked_by_sub_logout(
         &self,
@@ -216,7 +216,7 @@ impl Cache {
             Ok(None) => Ok(false),
             Err(e) => {
                 log::warn!(
-                    "Failed to retreive logout marker from the cache, error: {}",
+                    "Failed to retrieve logout marker from the cache, error: {}",
                     Report::from_error(&e)
                 );
                 Err(CaptureApiError::from(e))
@@ -325,7 +325,7 @@ impl Cache {
             Ok(None) => Ok(LogoutMarker::from(0)),
             Err(e) => {
                 log::warn!(
-                    "Failed to retreive logout marker from the cache, error: {}",
+                    "Failed to retrieve logout marker from the cache, error: {}",
                     Report::from_error(&e)
                 );
                 Err(CaptureApiError::from(e))
@@ -353,7 +353,7 @@ impl Cache {
                     CaptureApiError::from(e)
                 })
         } else {
-            log::warn!("Internal errors will not be cached for acess tokens");
+            log::warn!("Internal errors will not be cached for access tokens");
             Err(CaptureApiError::from(
                 OidcCacheError::NoCachingOfInternalErrors,
             ))
@@ -462,7 +462,7 @@ mod tests {
                 .err()
                 .map(|e| e
                     .to_string()
-                    .contains("internal errors will not be cached for acess tokens"))
+                    .contains("internal errors will not be cached for access tokens"))
                 .unwrap_or(false)
         );
     }
@@ -526,7 +526,7 @@ mod tests {
                 .err()
                 .map(|e| e
                     .to_string()
-                    .contains("token doen't exist in cache and cannot be updated"))
+                    .contains("token dosn't exist in cache and cannot be updated"))
                 .unwrap_or(false)
         );
     }
