@@ -48,7 +48,7 @@ naming pattern that could identify the index of the entry inside the list.
 In order to set the `http.port` field, this environment variable could be used:
 
 ```sh
-OPENTALK_TRANSCRIPTION_HTTP__PORT=11411
+OPENTALK_TRANSCRIPTION_HTTP__PORT=11413
 ```
 
 ## Example configuration file

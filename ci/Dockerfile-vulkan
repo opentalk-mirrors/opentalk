@@ -45,5 +45,6 @@ COPY extra/example.toml /etc/opentalk/transcription.toml
 
 USER $USERID:$GROUPID
 
+EXPOSE 11413
 EXPOSE 11411
 ENTRYPOINT [ "/transcription/opentalk-transcription" ]

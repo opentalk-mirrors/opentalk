@@ -126,7 +126,7 @@ pub(crate) struct HttpSettings {
     /// Address the HTTP API server binds to. Defaults to `0.0.0.0`.
     #[serde(default = "default_http_address")]
     pub(crate) addr: IpAddr,
-    /// Port the HTTP API server binds to. Defaults to `11411`.
+    /// Port the HTTP API server binds to. Defaults to `11413`.
     #[serde(default = "default_http_port")]
     pub(crate) port: u16,
 
@@ -147,7 +147,7 @@ pub(crate) struct MonitoringSettings {
     /// Address the monitoring endpoint binds to. Defaults to `0.0.0.0`.
     #[serde(default = "default_monitoring_http_address")]
     pub(crate) addr: IpAddr,
-    /// Port the monitoring endpoint binds to. Defaults to `11412`.
+    /// Port the monitoring endpoint binds to. Defaults to `11411`.
     #[serde(default = "default_monitoring_http_port")]
     pub(crate) port: u16,
 }
@@ -157,7 +157,7 @@ fn default_monitoring_http_address() -> IpAddr {
 }
 
 fn default_monitoring_http_port() -> u16 {
-    11412
+    11411
 }
 
 impl Default for MonitoringSettings {

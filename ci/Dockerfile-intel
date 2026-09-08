@@ -84,7 +84,7 @@ COPY extra/example.toml transcription.toml
 
 USER $USERID:$GROUPID
 
+EXPOSE 11413
 EXPOSE 11411
-EXPOSE 11311
 
 ENTRYPOINT [ "./opentalk-transcription" ]
