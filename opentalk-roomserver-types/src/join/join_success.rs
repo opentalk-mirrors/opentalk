@@ -54,7 +54,8 @@ pub struct JoinSuccess {
     pub event_info: Option<EventInfo>,
 
     /// Information about the meeting
-    pub meeting_details: MeetingDetails,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub meeting_details: Option<MeetingDetails>,
 
     /// Information about the current room
     pub room_info: RoomInfo,

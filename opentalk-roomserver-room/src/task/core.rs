@@ -705,6 +705,26 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         );
     }
 
+    fn meeting_details(&self) -> MeetingDetails {
+        MeetingDetails {
+            call_in: self.info.room.call_in.clone(),
+            streaming_links: self
+                .info
+                .room
+                .streaming_targets
+                .iter()
+                .filter_map(|target| {
+                    let url = target.streaming_target.kind.get_stream_target_location()?;
+
+                    Some(StreamingLink {
+                        name: target.streaming_target.name.clone(),
+                        url,
+                    })
+                })
+                .collect(),
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn build_join_success(
         &self,
@@ -773,23 +793,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 e2e_encryption: self.info.room.e2e_encryption,
             });
 
-        let meeting_details = MeetingDetails {
-            call_in: self.info.room.call_in.clone(),
-            streaming_links: self
-                .info
-                .room
-                .streaming_targets
-                .iter()
-                .filter_map(|target| {
-                    let url = target.streaming_target.kind.get_stream_target_location()?;
-
-                    Some(StreamingLink {
-                        name: target.streaming_target.name.clone(),
-                        url,
-                    })
-                })
-                .collect(),
-        };
+        // Moderators can always see meeting details
+        let meeting_details = (self.info.room.show_meeting_details || role == Role::Moderator)
+            .then(|| self.meeting_details());
 
         let other_connections = self
             .participants
@@ -1080,10 +1086,10 @@ mod tests {
                 password: None,
                 created_by: UserInfo::example_data(),
             },
-            meeting_details: MeetingDetails {
+            meeting_details: Some(MeetingDetails {
                 call_in: None,
                 streaming_links: vec![],
-            },
+            }),
             is_room_owner: false,
             enabled_modules: BTreeMap::from_iter([(
                 module_id!("test_module"),

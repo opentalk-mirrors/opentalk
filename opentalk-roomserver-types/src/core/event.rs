@@ -211,10 +211,10 @@ mod tests {
                 password: None,
                 created_by: UserInfo::example_data(),
             },
-            meeting_details: MeetingDetails {
+            meeting_details: Some(MeetingDetails {
                 call_in: None,
                 streaming_links: vec![],
-            },
+            }),
             is_room_owner: false,
         };
         let event = CoreEvent::JoinSuccess(Box::new(join_success));
