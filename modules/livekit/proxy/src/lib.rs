@@ -177,7 +177,8 @@ fn map_upstream_message(message: TungsteniteMessage) -> Option<LiveKitSocketMess
     match message {
         TungsteniteMessage::Text(text) => Some(LiveKitSocketMessage::Text(text.to_string())),
         TungsteniteMessage::Binary(binary) => Some(LiveKitSocketMessage::Binary(binary)),
-        TungsteniteMessage::Ping(_) | TungsteniteMessage::Pong(_) => None,
+        TungsteniteMessage::Ping(bytes) => Some(LiveKitSocketMessage::Ping(bytes)),
+        TungsteniteMessage::Pong(_) => None,
         TungsteniteMessage::Close(close_frame) => {
             Some(LiveKitSocketMessage::Close(close_frame.map(|frame| {
                 CloseFrame {
