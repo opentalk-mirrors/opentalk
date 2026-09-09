@@ -47,7 +47,7 @@ once_cell = "1.18"
 openh264 = "0.9"
 openh264-sys2 = "0.9"
 opentalk-client-signaling = "0.15"
-opentalk-compositor = { version = "0.18", default-features = false }
+opentalk-compositor = { version = "0.20", default-features = false }
 opentalk-service-auth = "0.6"
 opentalk-version = "0.4.0"
 owo-colors = "4"
@@ -67,22 +67,19 @@ tokio-native-tls = "0.3"
 url = { version = "2.2", features = ["serde"] }
 webrtc-sys = "0.3"
 
-# Pinning protocol version due to breaking changes in 0.7.12 which have not yet been fixed in the livekit crate
-livekit-protocol = "=0.7.11"
-
 # Enable tls-features for tokio tungstenite
 tokio-tungstenite029 = { package = "tokio-tungstenite", version = "0.29", features = ["rustls-tls-native-roots"] }
 tokio-tungstenite030 = { package = "tokio-tungstenite", version = "0.30", features = ["rustls-tls-native-roots"] }
 
 [package.metadata.cargo-machete]
-ignored = ["livekit-protocol", "tokio-tungstenite029", "tokio-tungstenite039"]
+ignored = ["tokio-tungstenite029", "tokio-tungstenite039"]
 
 [patch.crates-io]
 # Removes duplicate paste and therefore some compile time
 bitpattern = { git = 'https://github.com/kbalt/bitpattern', branch = 'remove-paste-010-patch' }
 
-# Update libsrtp to 2.6 & newer bindgen version until https://github.com/HyeonuPark/srtp2-sys/pull/3 is merged
-srtp2-sys = { git = "https://github.com/kbalt/srtp2-sys.git", rev = "fb3d67b5ada52d242c2ab5a06e4e6e22db31d601" }
+# Update libsrtp to 2.8 & newer bindgen version until https://github.com/HyeonuPark/srtp2-sys/pull/3 is merged
+srtp2-sys = { git = "https://github.com/kbalt/srtp2-sys.git", rev = "33110a8c3fa449c65c23dc5b6aacbc6e7ad0a0b5" }
 
 [build-dependencies]
 anyhow = "1"
