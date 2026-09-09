@@ -14,6 +14,7 @@ use opentalk_inventory::{
 };
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
+    order::Ordering,
     rooms::{RoomId, RoomIdOrAlias},
     time::Timestamp,
     training_participation_report::TrainingParticipationReportParameterSet,
@@ -225,6 +226,7 @@ impl EventInventory for DatabaseConnection {
         adhoc: Option<bool>,
         time_independent: Option<bool>,
         cursor: Option<GetEventsCursor>,
+        ordering: Ordering,
     ) -> Result<
         Pin<
             Box<
@@ -255,6 +257,7 @@ impl EventInventory for DatabaseConnection {
             adhoc,
             time_independent,
             cursor.map(Into::into),
+            ordering,
         )
         .await
         .context(DatabaseSnafu)?;
