@@ -106,7 +106,7 @@ cidr = { version = "0.3", features = ["no_unsafe", "serde"] }
 clap = { version = "4.5", features = ["derive"] }
 config = { version = "0.15", default-features = false, features = ["toml"] }
 derive_more = { version = "2", features = ["display"] }
-dirs = "6.0.0"
+dirs = "7.0.0"
 eframe = "0.36.1"
 egui = "0.36.1"
 egui_extras = { version = "0.36.1", default-features = false }
