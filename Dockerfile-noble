@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
-FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.96.0-bookworm AS builder
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98.0-trixie AS builder
 
 RUN apt-get update && apt-get install -y build-essential libclang-dev
 
@@ -11,6 +11,8 @@ WORKDIR /obelisk
 COPY ./build.rs ./build.rs
 COPY ./Cargo.toml ./Cargo.toml
 COPY ./Cargo.lock ./Cargo.lock
+
+ENV CXX=clang++-21
 
 # cache library build
 # We need a proper main.rs to make the first cargo build run

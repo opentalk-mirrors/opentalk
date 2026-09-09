@@ -12,6 +12,8 @@ COPY ./build.rs ./build.rs
 COPY ./Cargo.toml ./Cargo.toml
 COPY ./Cargo.lock ./Cargo.lock
 
+ENV CXX=clang++-21
+
 # cache library build
 # We need a proper main.rs to make the first cargo build run
 # As we haven't copied any source files yet, this will only compile the dependencies
