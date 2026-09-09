@@ -289,7 +289,7 @@ impl Signaling {
             }
         }
 
-        if let Some(compositor) = self.media.compositor.take() {
+        if let Some(mut compositor) = self.media.compositor.take() {
             let p = compositor.local_participant();
 
             for track in p.track_publications().into_keys() {
@@ -297,6 +297,8 @@ impl Signaling {
                     log::error!("Failed to unpublish track, {e}");
                 }
             }
+
+            compositor.close().await;
         }
 
         self.close_websocket().await?;

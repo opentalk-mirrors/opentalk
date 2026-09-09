@@ -52,6 +52,7 @@ use std::{
     collections::HashMap,
     future::Future,
     net::SocketAddr,
+    pin::Pin,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -872,6 +873,10 @@ impl opentalk_compositor::Sink for CompositorObeliskBridgeSink {
         }
 
         Ok(())
+    }
+
+    fn close(&mut self) -> Pin<Box<dyn Future<Output = Result<()>> + Send + '_>> {
+        Box::pin(async move { Ok(()) })
     }
 }
 
