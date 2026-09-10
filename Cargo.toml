@@ -29,7 +29,7 @@ futures = "0.3"
 itertools = "0.14"
 livekit = "0.8"
 log = "0.4"
-opentalk-client-signaling = "0.15.0"
+opentalk-client-signaling = "0.16.0"
 opentalk-orchestrator-client = "0.15.0"
 opentalk-service-auth = "0.6.0"
 opentalk-transcription-web-api = { path = "opentalk-transcription-web-api", version = "0.7.0" }
