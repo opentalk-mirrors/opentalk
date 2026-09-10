@@ -5,7 +5,94 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-08-14
+
+[0.18.0]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.17.0...v0.18.0
+
+### 🚀 New features
+
+- (docs) Add developer documentation for profiling memory usage ([!341](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/341))
+- Warn about unknown configuration fields ([!724](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/724))
+- Change the environment prefix from `MAILER` to `OPENTALK_MAIL` ([!762](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/762))
+
+### 🐛 Bug fixes
+
+- Use correct queue name in example config ([!724](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/724))
+- (ci) Generated docs are not updated ([!768](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/768))
+- (docs) Remove outdated development section ([!768](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/768))
+- (rabbitmq) Use durable non-exclusive queue ([!778](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/778), [#184](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/184))
+- (justfile) Fetch version correctly when commiting release ([!808](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/808))
+- (justfile) Only consider branch local tags when generating changelog ([!808](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/808))
+
+### 📚 Documentation
+
+- Update outdated rabbitmq docs ([!768](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/768))
+
+### 📦 Dependencies
+
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.94.0 ([!707](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/707))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.94.1 ([!713](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/713))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.1 ([!715](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/715))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.94.1 ([!714](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/714))
+- (deps) Lock file maintenance ([!716](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/716))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.2 ([!718](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/718))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.4 ([!720](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/720))
+- (deps) Lock file maintenance ([!717](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/717))
+- (deps) Lock file maintenance ([!727](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/727))
+- (deps) Update opentalk-controller to 0.44.0 ([!614](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/614))
+- (deps) Update pre-commit hook alessandrojcm/commitlint-pre-commit-hook to v9.25.0 ([!728](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/728))
+- (deps) Lock file maintenance ([!729](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/729))
+- (deps) Lock file maintenance ([!732](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/732))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.5 ([!731](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/731))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.6 ([!733](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/733))
+- (deps) Update rust crate fluent-templates to 0.14.0 ([!726](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/726))
+- (deps) Lock file maintenance ([!736](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/736))
+- (deps) Lock file maintenance ([!739](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/739))
+- (deps) Update rust crate log to v0.4.30 ([!740](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/740))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.7 ([!738](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/738))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.8 ([!741](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/741))
+- (deps) Update rust crate opentalk-types-common to v0.44.1 ([!742](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/742))
+- (deps) Lock file maintenance ([!746](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/746))
+- (deps) Update rust crate log to v0.4.31 ([!747](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/747))
+- (deps) Lock file maintenance ([!750](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/750))
+- (deps) Lock file maintenance ([!753](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/753))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.19.9 ([!754](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/754))
+- (deps) Lock file maintenance ([!759](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/759))
+- (deps) Update pre-commit hook alessandrojcm/commitlint-pre-commit-hook to v9.26.0 ([!761](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/761))
+- (deps) Lock file maintenance ([!767](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/767))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.96.0 ([!723](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/723))
+- (deps) Update ubuntu docker tag to v26 ([!725](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/725))
+- (deps) Lock file maintenance ([!771](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/771))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.97.0 ([!773](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/773))
+- (deps) Lock file maintenance ([!777](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/777))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.20.2 ([!774](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/774))
+- (deps) Update pre-commit hook davidanson/markdownlint-cli2 to v0.23.1 ([!769](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/769))
+- (deps) Lock file maintenance ([!786](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/786))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.97.1 ([!788](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/788))
+- (deps) Update rust crate css-inline to 0.21.0 ([!755](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/755))
+- (deps) Update opentalk-controller to 0.46.0 ([!781](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/781))
+- (deps) Update pre-commit hook davidanson/markdownlint-cli2 to v0.23.2 ([!794](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/794))
+- (deps) Lock file maintenance ([!793](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/793))
+- (deps) Update rust crate itertools to 0.15 ([!756](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/756))
+- (deps) Update rust crate serial_test to v4 ([!792](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/792))
+- (deps) Update rust crate tera to v2 ([!765](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/765))
+- (deps) Lock file maintenance ([!798](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/798))
+- (deps) Lock file maintenance ([!803](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/803))
+
+### ⚙ Miscellaneous
+
+- Fix clippy lints ([!798](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/798))
+
+### Ci
+
+- (just) Switch changelog tool to opentalk git-cliff ([!700](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/700))
+- Use changelog template ([!702](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/702))
+- (pre-commit) Use same markdownlint from CI in pre-commit ([!717](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/717))
+- (pre-commit) Switch from taplo to olpat (taplo is unmaintained) ([!775](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/775))
+
 ## [0.17.0] - 2026-03-10
+
+[0.17.0]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.16.0...v0.17.0
 
 ### 🚀 New features
 
@@ -66,37 +153,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ⚙ Miscellaneous
 
 - (container) Remove debian bookworm image ([!698](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/698), [#178](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/178))
-
-## [0.0.0-test-ci-v5] - 2025-12-23
-
-### 🚀 New features
-
-- (docs) Prepare documentation for mkdocs-material ([!586](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/586), [#156](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/156))
-- (ci) Push images to new registry ([!621](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/621), [#165](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/165))
-- (ci) Make MR container build optional ([!630](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/630))
-- (ci) Include commit evidence job ([!639](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/639))
-
-### 📦 Dependencies
-
-- (deps) Update rust crate insta to v1.44.1 ([!618](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/618))
-- (deps) Lock file maintenance ([!610](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/610))
-- (deps) Lock file maintenance ([!619](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/619))
-- (deps) Update rust crate log to v0.4.29 ([!629](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/629))
-- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.7 ([!620](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/620))
-- (deps) Update pre-commit hook markdownlint/markdownlint to v0.15.0 ([!624](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/624))
-- (deps) Update rust crate uuid to v1.19.0 ([!628](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/628))
-- (deps) Update rust crate insta to v1.44.3 ([!625](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/625))
-- (deps) Lock file maintenance ([!627](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/627))
-- (deps) Update rust crate tokio-reactor-trait to v4, lapin to v3 ([!617](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/617))
-- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.8 ([!631](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/631))
-- (deps) Update alpine docker tag to v3.23 ([!632](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/632))
-- (deps) Lock file maintenance ([!633](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/633))
-- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.18.9 ([!634](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/634))
-- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.92.0 ([!635](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/635))
-- (deps) Lock file maintenance ([!636](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/636))
-- (deps) Update rust crate insta to v1.45.0 ([!637](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/637))
-- (deps) Update rust crate serde_json to v1.0.146 ([!640](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/640))
-- (deps) Lock file maintenance ([!638](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/638))
 
 ## [0.16.0] - 2025-11-13
 
