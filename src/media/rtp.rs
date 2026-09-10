@@ -166,30 +166,7 @@ impl RtpSessions {
         remote_rtcp_addr: SocketAddr,
     ) -> &mut Entry {
         self.sessions.entry(session_id).or_insert_with(|| {
-            let srtp_sessions = if let Some(srtp) = srtp {
-                let policy = srtp_suite_to_policy(&srtp.suite);
-
-                let tx = srtp::Session::with_outbound_template(StreamPolicy {
-                    rtp: policy,
-                    rtcp: policy,
-                    key: &srtp.send_key,
-                    ..Default::default()
-                })
-                .unwrap();
-
-                let rx = srtp::Session::with_inbound_template(StreamPolicy {
-                    rtp: policy,
-                    rtcp: policy,
-                    key: &srtp.recv_key,
-                    allow_repeat_tx: true,
-                    ..Default::default()
-                })
-                .unwrap();
-
-                Some((tx, rx))
-            } else {
-                None
-            };
+            let srtp_sessions = srtp.map(make_srtp_sessions);
 
             let (tx, rx) = mpsc::channel(1);
 
@@ -230,6 +207,30 @@ impl RtpSessions {
             }
         });
     }
+}
+
+/// Build the sending and receiving SRTP session for an already negotiated [`SrtpInfo`].
+fn make_srtp_sessions(srtp: &SrtpInfo) -> (srtp::Session, srtp::Session) {
+    let policy = srtp_suite_to_policy(&srtp.suite);
+
+    let tx = srtp::Session::with_outbound_template(StreamPolicy {
+        rtp: policy,
+        rtcp: policy,
+        key: &srtp.send_key,
+        ..Default::default()
+    })
+    .unwrap();
+
+    let rx = srtp::Session::with_inbound_template(StreamPolicy {
+        rtp: policy,
+        rtcp: policy,
+        key: &srtp.recv_key,
+        allow_repeat_tx: true,
+        ..Default::default()
+    })
+    .unwrap();
+
+    (tx, rx)
 }
 
 fn srtp_suite_to_policy(suite: &SrtpSuite) -> CryptoPolicy {
@@ -659,6 +660,122 @@ fn log_report(packet: &ezk_rtp::rtcp_types::Packet<'_>) {
                 report_block
                     .delay_since_last_sender_report_timestamp()
                     .bright_cyan()
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Round trip tests that guard the SRTP ciphers this service negotiates.
+    //!
+    //! These tests ensure that a srtp update can not trigger a panic.
+
+    use super::*;
+
+    /// Every suite [`srtp_suite_to_policy`] maps, in the order it matches them.
+    fn mapped_suites() -> [SrtpSuite; 8] {
+        [
+            SrtpSuite::AES_CM_128_HMAC_SHA1_80,
+            SrtpSuite::AES_CM_128_HMAC_SHA1_32,
+            SrtpSuite::AES_192_CM_HMAC_SHA1_80,
+            SrtpSuite::AES_192_CM_HMAC_SHA1_32,
+            SrtpSuite::AES_256_CM_HMAC_SHA1_80,
+            SrtpSuite::AES_256_CM_HMAC_SHA1_32,
+            SrtpSuite::AEAD_AES_128_GCM,
+            SrtpSuite::AEAD_AES_256_GCM,
+        ]
+    }
+
+    const RTP_HEADER_LEN: usize = 12;
+    const PAYLOAD: &[u8] = b"opentalk-obelisk srtp round trip";
+
+    /// A 12 byte RTP header (V=2, PT=0, seq=1, ts=0, ssrc) followed by [`PAYLOAD`].
+    fn rtp_packet() -> Vec<u8> {
+        let mut packet = vec![
+            0x80, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0xde, 0xad, 0xbe, 0xef,
+        ];
+        packet.extend_from_slice(PAYLOAD);
+        packet
+    }
+
+    /// A minimal RTCP receiver report (V=2, RC=0, PT=201, length=1, ssrc).
+    fn rtcp_packet() -> Vec<u8> {
+        vec![0x80, 0xc9, 0x00, 0x01, 0xde, 0xad, 0xbe, 0xef]
+    }
+
+    /// A negotiated [`SrtpInfo`] for `suite`, using one master key in both directions so that the
+    /// sending and receiving session returned by [`make_srtp_sessions`] form a round trip.
+    fn srtp_info(suite: &SrtpSuite) -> SrtpInfo {
+        let key: Vec<u8> = (0..srtp_suite_to_policy(suite).key_len())
+            .map(|i| u8::try_from(i % 256).expect("remainder fits into u8"))
+            .collect();
+
+        SrtpInfo {
+            tag: 1,
+            suite: suite.clone(),
+            send_key: key.clone(),
+            recv_key: key,
+        }
+    }
+
+    #[test]
+    fn every_mapped_suite_round_trips_rtp() {
+        for suite in mapped_suites() {
+            let (mut tx, mut rx) = make_srtp_sessions(&srtp_info(&suite));
+
+            let plain = rtp_packet();
+            let mut buf = plain.clone();
+
+            tx.protect(&mut buf)
+                .unwrap_or_else(|e| panic!("{suite}: protect failed: {e}"));
+
+            assert_ne!(
+                &buf[RTP_HEADER_LEN..RTP_HEADER_LEN + PAYLOAD.len()],
+                PAYLOAD,
+                "{suite}: payload was left in plaintext"
+            );
+
+            rx.unprotect(&mut buf)
+                .unwrap_or_else(|e| panic!("{suite}: unprotect failed: {e}"));
+
+            assert_eq!(buf, plain, "{suite}: round trip did not restore the packet");
+        }
+    }
+
+    #[test]
+    fn every_mapped_suite_round_trips_rtcp() {
+        for suite in mapped_suites() {
+            let (mut tx, mut rx) = make_srtp_sessions(&srtp_info(&suite));
+
+            let plain = rtcp_packet();
+            let mut buf = plain.clone();
+
+            tx.protect_rtcp(&mut buf)
+                .unwrap_or_else(|e| panic!("{suite}: protect_rtcp failed: {e}"));
+
+            rx.unprotect_rtcp(&mut buf)
+                .unwrap_or_else(|e| panic!("{suite}: unprotect_rtcp failed: {e}"));
+
+            assert_eq!(buf, plain, "{suite}: round trip did not restore the packet");
+        }
+    }
+
+    #[test]
+    fn every_mapped_suite_rejects_tampered_rtp() {
+        for suite in mapped_suites() {
+            let (mut tx, mut rx) = make_srtp_sessions(&srtp_info(&suite));
+
+            let mut buf = rtp_packet();
+
+            tx.protect(&mut buf)
+                .unwrap_or_else(|e| panic!("{suite}: protect failed: {e}"));
+
+            buf[RTP_HEADER_LEN] ^= 0x01;
+
+            assert!(
+                rx.unprotect(&mut buf).is_err(),
+                "{suite}: tampered packet passed authentication"
             );
         }
     }
