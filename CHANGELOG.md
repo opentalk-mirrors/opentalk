@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.2] - 2026-08-05
+
+[0.22.2]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.22.1...v0.22.2
+
+### 🐛 Bug fixes
+
+- Rejoining from the waiting room does not work ([#316](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/316))
+- Bump ezk-sip-core to fix dns ip address selection
+
 ## [0.22.1] - 2026-07-15
 
 [0.22.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.22.0...v0.22.1
