@@ -4,7 +4,24 @@ title: Migration guide
 
 # Migration guide
 
-## Migrating from v0.17.0 to v0.18.0
+## Migrating from v0.18 to v0.19
+
+### `guest_link_builder` configuration option removed
+
+Invite links have been replaced by join links, and the `invite_code` is no
+longer used. As part of this change, the `guest_link_builder` option in the
+`[frontend]` section has been removed.
+
+If your configuration still sets `guest_link_builder`, the service keeps
+starting but logs an `Unknown configuration key` warning. Remove the option from
+your configuration to silence the warning:
+
+```toml
+[frontend]
+#guest_link_builder = "{base_url}/invite/{invite_id}"
+```
+
+## Migrating from v0.17 to v0.18
 
 ### Environment variable prefix changed to `OPENTALK_MAIL`
 
