@@ -4,7 +4,7 @@
 
 [package]
 name = "opentalk-obelisk"
-version = "0.22.1"
+version = "0.23.0"
 authors = ["OpenTalk Team <mail@opentalk.eu>"]
 edition = "2024"
 license = "EUPL-1.2"
