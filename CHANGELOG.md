@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-09-10
+
+[0.10.0]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.9.0...v0.10.0
+
+### 🚀 New features
+
+- Include example config in generated signaling module docs ([!1274](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1274))
+
+### 🐛 Bug fixes
+
+- (debriefing) Moderators keep their roles on kick ([!1295](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1295), [#326](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/326))
+- (timer) Include ready state when switching breakout rooms ([!1298](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1298), [#327](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/327))
+- (meeting_details) Hide meeting details from users ([!1301](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1301), [#329](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/329))
+- (meeting_details) Patch show_meeting_details ([!1301](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1301), [#329](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/329))
+- (livekit-proxy) Forward websocket pings ([!1306](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1306))
+
+### 📚 Documentation
+
+- Update shared folder module description to include OpenCloud ([!1274](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1274))
+- Add breakout room and congested connections metrics docs ([!1304](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1304), [#333](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/333))
+
+### 📦 Dependencies
+
+- (deps) Update pnpm to v11.24.0 ([!1281](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1281))
+- (deps) Update rust to 1.98 ([!1282](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1282))
+- (deps) Lock file maintenance ([!1282](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1282))
+- (deps) Update rust crate yaml-rust2 to 0.12 ([!1269](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1269))
+- (deps) Update egui to verion 0.36.1 ([!1246](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1246))
+- (deps) Lock file maintenance ([!1302](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1302))
+- (deps) Update livekit ([!1308](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1308))
+- (deps) Update rust crate dirs to v7 ([!1300](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1300))
+
+### Test
+
+- (livekit-proxy) Ensure user is disconnected when moved to waiting room ([!1297](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1297))
+
 ## [0.9.0] - 2026-08-28
 
 [0.9.0]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/opentalk-roomserver-web-api-v0.7.0...v0.9.0
