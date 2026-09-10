@@ -9,7 +9,7 @@ info:
   license:
     name: EUPL-1.2
     identifier: EUPL-1.2
-  version: 0.9.0
+  version: 0.10.0
 servers:
   - url: /v1
 paths:
@@ -22,7 +22,7 @@ paths:
         This endpoint establishes a WebSocket connection to the upstream LiveKit server.
         The access token can be provided either as a query parameter or in the `Authorization`
         header with the `Bearer` scheme.
-        
+
         # Available paths
         - `/livekit/rtc`
         - `/livekit/rtc/v1`
@@ -165,7 +165,7 @@ paths:
         The signaling token can be used to establish a websocket connection with the roomserver through
         the `/signaling/<token>` endpoint. The token has a limited lifetime (30 seconds by default) and
         can only be used once.
-        
+
         Calling this endpoint will start a new room task or refresh existing ones. To get a token for an
         unknown room, the request body has to contain the `room_parameters` field (See
         [`TokenRequestBody`]). If the room is already running, any provided `room_parameters` will be
@@ -337,7 +337,7 @@ components:
               $ref: "#/components/schemas/RoomKind"
               description: |-
                 Room for which the recording was requested from
-                
+
                 Recorders may only access the recording-service commands & events in this room
         - type: object
           description: Invisible service participant used by the transcription service
@@ -548,7 +548,7 @@ components:
               description: The local timezone of the user
       description: |-
         Public user details.
-        
+
         Contains general "public" information about a user. Is accessible to all other users.
       example:
         avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
@@ -1031,7 +1031,7 @@ components:
           $ref: "#/components/schemas/RoomParameters"
           description: |-
             The room that the token is requested for.
-            
+
             Once this was provided to the roomserver, further request do not need to include the room
             parameters
       example:
