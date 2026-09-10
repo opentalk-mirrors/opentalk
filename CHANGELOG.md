@@ -55,6 +55,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (moderation) Rename misleading test ([!1254](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1254))
 
+## [0.1.4] - 2026-09-09
+
+[0.1.4]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.1.3...v0.1.4
+
+### 🐛 Bug fixes
+
+- (debriefing) Moderators keep their roles on kick ([!1305](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1305), [#326](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/326))
+- (recording) Avoid duplicate start requests while pending ([!1310](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1310), [#304](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/304))
+- (recorder) Restructure start_recording flow ([!1310](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1310))
+
+### 📦 Dependencies
+
+- (deps) Update chacha20 ([!1311](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1311))
+
+## [0.1.3] - 2026-08-25
+
+[0.1.3]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.1.2...v0.1.3
+
+### 🐛 Bug fixes
+
+- Allow concurrent livekit connections ([!1284](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1284), [#321](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/321))
+
+## [0.1.2] - 2026-08-24
+
+[0.1.2]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.1.1...v0.1.2
+
+### 🐛 Bug fixes
+
+- Leaked waiting room participant when congested ([!1272](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1272), [#315](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/315))
+- (livekit-proxy) Use GET for rtc/validate endpoint ([!1278](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1278), [#318](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/318))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!1283](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1283))
+
+## [0.1.1] - 2026-08-14
+
+[0.1.1]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/opentalk-roomserver-client-0.1.1...v0.1.1
+
+### 🚀 New features
+
+- (moderation) Add an `issued_by` field to `ModerationEvent::RoleUpdated` ([!1259](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1259), [#312](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/312))
+
+### 🐛 Bug fixes
+
+- (livekit-proxy) Accept participant ids with popout stream suffix ([!1251](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1251))
+- (justfile) Only consider branch local tags when generating changelog ([!1266](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1266))
+
+### 📦 Dependencies
+
+- (deps) Update webbrowser to v1.2.4 ([!1266](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1266))
+
+### ⚙ Miscellaneous
+
+- Delete unused file ([!1251](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1251))
+- (justfile) Create per-crate releases ([!1266](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1266))
+- Use separate version for binary crate ([!1266](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1266))
+
+### Test
+
+- (livekit-module) Ensure connection is alive and can coexist ([!1251](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1251))
+
 ## [0.1.0] - 2026-07-07
 
 [0.1.0]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.0.40...v0.1.0
