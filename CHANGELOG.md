@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-09-10
+
+[0.23.0]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.22.0...v0.23.0
+
+### 🚀 New features
+
+- Implement lobby join flow ([!564](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/564), [#296](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/296))
+
+### 🐛 Bug fixes
+
+- Rejoining from the waiting room does not work ([!584](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/584), [#315](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/315))
+- Update g722 codec to fix crash when processing odd amount of samples ([!605](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/605))
+- Enable tls support for tungstenite ([!611](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/611))
+- Exit call after livekit disconnect grace timeout ([!614](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/614))
+- Do not unregister OPTIONs dialog usage early ([!614](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/614))
+- Update media direction on SDP offer session update ([!614](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/614))
+- Avoid possible deadlock in audio mixer sink ([!614](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/614))
+- Don't skip livekit room close when failing to terminate sip connection ([!614](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/614))
+- (ci) Set CXX to clang 21 enabling livekit to build ([!618](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/618))
+
+### 📚 Documentation
+
+- Add migration guide from v0.21 to v0.22 ([!616](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/616), [#321](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/321))
+- Fix minor documentation errors ([!616](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/616))
+
+### 📦 Dependencies
+
+- (deps) Bump dependencies ([!602](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/602))
+- (deps) Lock file maintenance ([!544](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/544), [!583](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/583), [!591](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/591), [!601](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/601), [!607](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/607), [!613](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/613))
+- (deps) Update opentalk ([!512](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/512), [!577](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/577), [!609](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/609), [!620](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/620))
+
+### ⚙ Miscellaneous
+
+- (justfile) Create gitlab release ([!567](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/567))
+- Remove package renames ([!572](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/572))
+- Update rand to 0.10 ([!572](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/572))
+
+### Test
+
+- (rtp) Add srtp cipher round trip tests ([!621](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/merge_requests/621))
+
+## [0.22.2] - 2026-08-05
+
+[0.22.2]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.22.1...v0.22.2
+
+### 🐛 Bug fixes
+
+- Rejoining from the waiting room does not work ([#316](https://git.opentalk.dev/opentalk/backend/services/obelisk/-/issues/316))
+- Bump ezk-sip-core to fix dns ip address selection
+
 ## [0.22.1] - 2026-07-15
 
 [0.22.1]: https://git.opentalk.dev/opentalk/backend/services/obelisk/-/compare/v0.22.0...v0.22.1
