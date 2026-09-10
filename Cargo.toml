@@ -48,7 +48,7 @@ serde_path_to_error = "0.1.4"
 service-probe = "0.4.0"
 service-probe-client = "0.4.0"
 tera = { version = "2.0.0" }
-tera-contrib = { version = "0.2.0", default-features = false, features = [
+tera-contrib = { version = "0.3.0", default-features = false, features = [
   "date",
 ] }
 textwrap = "0.16.0"
