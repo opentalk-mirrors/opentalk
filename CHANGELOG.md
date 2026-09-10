@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-09-10
+
+[0.4.0]: https://git.opentalk.dev/opentalk/backend/services/transcription/-/commits/v0.4.0
+
+### 🚀 New features
+
+- Implement lobby join flow ([!101](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/101), [#39](https://git.opentalk.dev/opentalk/backend/services/transcription/-/issues/39))
+- Add light noise suppression to audio input streams ([!117](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/117))
+- Allow changing the language mid transcription ([!129](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/129))
+- (orchestrator) Implement the resource collision callback ([!149](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/149))
+- Switch default monitoring port to 11411 ([!153](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/153))
+
+### 🐛 Bug fixes
+
+- Remove old livekit sdk patch ([!119](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/119))
+- Improve transcription quality ([!151](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/151))
+- Use default port in Dockerfile and docs ([!153](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/153))
+
+### 📚 Documentation
+
+- Default port ([!128](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/128), [#42](https://git.opentalk.dev/opentalk/backend/services/transcription/-/issues/42))
+
+### 🔨 Refactor
+
+- Replace voice detection & add dumping of segments ([!96](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/96))
+- Replace voice_activity_detector (Silero VAD v5) with earshot crate ([!119](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/119))
+- Use dedicated session handle for transcription sessions ([!149](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/149))
+- Remove transcription models from tree ([!152](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/152))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!126](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/126), [!134](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/134), [!142](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/142), [!97](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/97))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust ([!83](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/83), [!135](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/135), [!144](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/144))
+- (deps) Update opentalk ([!122](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/122), [!123](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/123), [!132](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/132), [!138](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/138), [!139](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/139), [!147](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/147), [!149](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/149))
+- (deps) Update opentalk-signaling to 0.16 ([!155](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/155))
+- (deps) Update rust crate livekit to 0.8 ([!118](https://git.opentalk.dev/opentalk/backend/services/transcription/-/merge_requests/118))
+
+### ⚙ Miscellaneous
+
+- (just) Add `use-branch-tags` for changelog building ()
+
 ## [0.3.0] - 2026-07-17
 
 [0.3.0]: https://git.opentalk.dev/opentalk/backend/services/transcription/-/compare/v0.2.0...v0.3.0
