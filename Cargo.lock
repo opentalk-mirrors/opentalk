@@ -2116,7 +2116,7 @@ dependencies = [
 
 [[package]]
 name = "opentalk-smtp-mailer"
-version = "0.17.0"
+version = "0.19.0"
 dependencies = [
  "anyhow",
  "chrono",

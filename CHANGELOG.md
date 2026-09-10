@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-09-10
+
+[0.19.0]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.18.0...v0.19.0
+
+### 🚀 New features
+
+- Render room alias instead of ID when set ([!805](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/805), [#188](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/188))
+- Replace invite link with join link, remove `invite_code` ([!772](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/772), [#185](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/185))
+
+### 🐛 Bug fixes
+
+- (justfile) Fetch version correctly when commiting release ([!807](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/807))
+- (justfile) Only consider branch local tags when generating changelog ([!807](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/807))
+- Log phone number parsing failures with debug level and remove leading whitespace ([!820](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/820), [#189](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/189))
+
+### 📚 Documentation
+
+- Migration guide 0.17 -> 0.18 ([!827](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/827))
+- Add migration 0.18 -> 0.19 ([!827](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/827))
+- Fix changelog for 0.17.0 and 0.18.0 ([!827](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/827))
+
+### 🔨 Refactor
+
+- Simplify `format_telephone_number_filter` error handling ([!820](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/820))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!811](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/811), [!819](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/819), [!823](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/823))
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust ([!816](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/816), [!817](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/817))
+- (deps) Update rust crate rstest to 0.27.0 ([!822](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/822))
+- (deps) Update rust crate tera-contrib to 0.3.0 ([!814](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/814))
+
 ## [0.18.0] - 2026-08-14
 
 [0.18.0]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.17.0...v0.18.0
