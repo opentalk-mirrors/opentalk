@@ -52,9 +52,6 @@ ignore = [
   #         └── typst-pdf
   #             └── opentalk-report-generation
   "RUSTSEC-2026-0192",
-
-  # rustybuzz is unmaintained
-  "RUSTSEC-2026-0206",
 ]
 yanked = "deny"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
