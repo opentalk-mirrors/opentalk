@@ -245,7 +245,7 @@ impl SignalingModule for TrainingParticipationReportModule {
             TrainingParticipationReportLoopback::ChannelDropped => {
                 tracing::error!("The loopback channel was dropped");
                 ctx.send_ws_message(
-                    ctx.participants.in_room(ctx.room).ids(),
+                    ctx.participants.in_room(ctx.room).connected().ids(),
                     TrainingParticipationReportEvent::Error(
                         TrainingParticipationReportError::Internal,
                     ),
