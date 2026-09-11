@@ -15,6 +15,7 @@ a change in an {{ product_name }} instance affects them. Typical notifications a
 - An event has been deleted
 
 - [Configuration](configuration.md)
+- [Migration guide](migration.md)
 
 ## Interaction with other services
 
