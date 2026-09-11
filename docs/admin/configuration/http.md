@@ -7,10 +7,10 @@ clients through a built-in HTTP server.
 
 The section in the [configuration file](README.md) is called `http`.
 
-| Field      | Type     | Required | Default value | Description                            |
-| ---------- | -------- | -------- | ------------- | -------------------------------------- |
-| `addr`     | `string` | no       | `0.0.0.0`     | The address used for the HTTP server.  |
-| `port`     | `int`    | no       | `11413`       | The port for the HTTP server.          |
+| Field      | Type     | Required | Default value | Description                                                  |
+| ---------- | -------- | -------- | ------------- | ------------------------------------------------------------ |
+| `addr`     | `string` | no       | `0.0.0.0`     | The address used for the HTTP server.                        |
+| `port`     | `int`    | no       | `11413`       | The port for the HTTP server.                                |
 | `api_keys` | `list`   | yes      | -             | The API keys for the service endpoints. See [Auth](auth.md). |
 
 ### Example

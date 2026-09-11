@@ -162,7 +162,6 @@ image, execute in the root of the repository:
 
 ```sh
 docker build -f ci/Dockerfile-vulkan . --tag <your tag>
-docker build -f ci/Dockerfile-intel . --tag <your tag>
 ```
 
 ## Administration
