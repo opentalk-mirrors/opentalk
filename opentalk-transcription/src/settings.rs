@@ -44,7 +44,8 @@ impl Settings {
                     // try_parsing, list_separator and with_list_parse_key are required
                     // to parse sequences from the environment
                     .try_parsing(true)
-                    .list_separator(","),
+                    .list_separator(",")
+                    .with_list_parse_key("http.api_keys"),
             )
             .build()?
             .try_deserialize()
