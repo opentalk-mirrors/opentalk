@@ -194,7 +194,7 @@ impl SignalingModule for PollsModule {
             }
             PollsLoopback::ChannelDropped => {
                 ctx.send_ws_message(
-                    ctx.participants.in_room(ctx.room).ids(),
+                    ctx.participants.in_room(ctx.room).connected().ids(),
                     PollsEvent::Error(Error::Internal),
                 )?;
             }

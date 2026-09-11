@@ -251,7 +251,7 @@ impl SignalingModule for ModerationModule {
             }
             ModerationLoopback::ChannelDropped => {
                 ctx.send_ws_message(
-                    ctx.participants.in_room(ctx.room).ids(),
+                    ctx.participants.in_room(ctx.room).connected().ids(),
                     ModerationEvent::Error(ModerationError::Internal),
                 )?;
             }

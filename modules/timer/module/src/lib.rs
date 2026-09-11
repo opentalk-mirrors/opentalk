@@ -244,13 +244,13 @@ impl SignalingModule for TimerModule {
         match event {
             TimerLoopback::Stopped(stopped) => {
                 ctx.send_ws_message(
-                    ctx.participants.in_room(ctx.room).ids(),
+                    ctx.participants.in_room(ctx.room).connected().ids(),
                     TimerEvent::Stopped(stopped),
                 )?;
             }
             TimerLoopback::ChannelDropped => {
                 ctx.send_ws_message(
-                    ctx.participants.in_room(ctx.room).ids(),
+                    ctx.participants.in_room(ctx.room).connected().ids(),
                     TimerEvent::Error(TimerError::Internal),
                 )?;
             }
@@ -357,7 +357,7 @@ impl TimerModule {
         });
 
         ctx.send_ws_message(
-            ctx.participants.filter().room(ctx.room).ids(),
+            ctx.participants.filter().connected().room(ctx.room).ids(),
             TimerEvent::Started {
                 config: TimerConfig {
                     started_at,
@@ -395,7 +395,7 @@ impl TimerModule {
                 // loopback task (e.g. stopwatch). In this case we can simply notify
                 // the participants that the timer was cancelled.
                 ctx.send_ws_message(
-                    ctx.participants.filter().room(ctx.room).ids(),
+                    ctx.participants.filter().connected().room(ctx.room).ids(),
                     TimerEvent::Stopped(stopped),
                 )?;
             }
@@ -460,7 +460,7 @@ impl TimerModule {
         };
         if changed {
             ctx.send_ws_message(
-                ctx.participants.filter().room(ctx.room).ids(),
+                ctx.participants.filter().connected().room(ctx.room).ids(),
                 TimerEvent::UpdatedReadyStatus {
                     participant_id: sender,
                     status: ready,
