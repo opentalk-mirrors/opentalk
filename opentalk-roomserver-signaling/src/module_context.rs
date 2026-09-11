@@ -164,7 +164,7 @@ where
 
         for participant_id in participant_ids {
             let Some(state) = self.participants.connected().get(&participant_id) else {
-                tracing::error!(
+                tracing::warn!(
                     "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
                     M::NAMESPACE
                 );
@@ -235,7 +235,7 @@ where
 
         for participant_id in participant_ids {
             let Some(waiting_participant) = self.lobby_participants.get(&participant_id) else {
-                tracing::error!(
+                tracing::warn!(
                     "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
                     M::NAMESPACE
                 );
@@ -316,7 +316,7 @@ where
             .into();
 
         let Some(state) = self.participants.connected().get(&sender) else {
-            tracing::error!(
+            tracing::warn!(
                 "Module '{}' attempted to replicate a command to unknown participant {sender}",
                 M::NAMESPACE
             );
@@ -437,7 +437,7 @@ where
                 message: shared_json,
             });
         } else {
-            tracing::error!(
+            tracing::warn!(
                 "Module '{}' attempted to send a websocket error message to unknown participant {} or connection {}",
                 M::NAMESPACE,
                 participant_origin.id,
