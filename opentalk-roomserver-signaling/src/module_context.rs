@@ -168,7 +168,7 @@ where
                     "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
                     M::NAMESPACE
                 );
-                return Ok(());
+                continue;
             };
             let mut messages = self.messages.borrow_mut();
 
@@ -239,7 +239,7 @@ where
                     "Module '{}' attempted to send a websocket message to unknown participant {participant_id}",
                     M::NAMESPACE
                 );
-                return Ok(());
+                continue;
             };
             let mut messages = self.messages.borrow_mut();
 
