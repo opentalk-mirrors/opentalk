@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+
+test:opentalk-types-common-identifiers:
+  extends: .test:types
+  variables:
+    PACKAGE: opentalk-types-common-identifiers
+  parallel:
+    matrix:
+      - FEATURES:
+          [
+          '',
+            diesel,
+            serde,
+            utoipa,
+          ]
+        EXTRA_ARGS: ['', --no-default-features]

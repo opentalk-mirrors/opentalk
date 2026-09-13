@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "OpenTalk API v1 data types"
+documentation = "https://docs.rs/opentalk-types-api-v1"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-types-api-v1"
+publish = true
+repository.workspace = true
+version = "0.66.0"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[lints]
+workspace = true
+
+[features]
+actix = ["dep:serde_json", "opentalk-types-api-common/actix", "serde"]
+axum = ["dep:serde_json", "opentalk-types-api-common/axum", "serde"]
+backend = [
+  "diesel",
+  "opentalk-types-api-common/backend",
+  "opentalk-types-common/backend",
+  "serde",
+  "utoipa",
+]
+diesel = ["opentalk-types-common/diesel"]
+frontend = [
+  "opentalk-types-api-common/frontend",
+  "opentalk-types-common/frontend",
+  "serde",
+]
+http = ["opentalk-types-api-common/http"]
+serde = [
+  "chrono-tz/serde",
+  "chrono/serde",
+  "dep:serde",
+  "dep:serde_with",
+  "opentalk-types-api-common/serde",
+  "opentalk-types-common/serde",
+]
+utoipa = [
+  "dep:serde_json",
+  "dep:utoipa",
+  "opentalk-types-api-common/utoipa",
+  "opentalk-types-common/utoipa",
+  "serde",
+]
+
+[dependencies]
+chrono.workspace = true
+chrono-tz.workspace = true
+derive_more = { workspace = true, features = [
+  "as_ref",
+  "deref",
+  "deref_mut",
+  "from",
+  "into",
+] }
+opentalk-types-api-common.workspace = true
+opentalk-types-common.workspace = true
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+serde_with = { workspace = true, optional = true }
+url.workspace = true
+utoipa = { workspace = true, features = [
+  "chrono",
+  "url",
+  "uuid",
+], optional = true }
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+serde_json.workspace = true
+serde_urlencoded.workspace = true

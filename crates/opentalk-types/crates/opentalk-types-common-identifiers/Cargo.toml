@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "Common identifier types for OpenTalk crates"
+documentation = "https://docs.rs/opentalk-types-common-identifiers"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-types-common-identifiers"
+publish = true
+repository.workspace = true
+version = "0.34.1"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[lints]
+workspace = true
+
+[features]
+diesel = ["dep:diesel", "dep:opentalk-diesel-newtype", "serde"]
+serde = ["dep:serde", "dep:serde_with"]
+typescript = ["dep:ts-rs"]
+utoipa = ["dep:serde_json", "dep:utoipa", "serde"]
+
+[dependencies]
+derive_more = { workspace = true, features = ["display"] }
+diesel = { workspace = true, optional = true }
+opentalk-diesel-newtype = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+serde_with = { workspace = true, optional = true }
+snafu.workspace = true
+ts-rs = { workspace = true, optional = true }
+utoipa = { workspace = true, optional = true }
+
+[dev-dependencies]
+pretty_assertions.workspace = true

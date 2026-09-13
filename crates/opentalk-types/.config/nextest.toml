@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[profile.default]
+# ignore the tests added by `ts-rs` by default, so we don't pollute the workspace with the generated bindings
+default-filter = 'not test(export_bindings)'
+
+[profile.ci]
+default-filter = 'all()'
+
+[profile.ci.junit]
+path = "junit.xml"

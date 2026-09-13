@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+
+test:opentalk-mail-worker-protocol:
+  extends: .test:types
+  variables:
+    PACKAGE: opentalk-mail-worker-protocol
+  parallel:
+    matrix:
+      - FEATURES:
+          [
+          '',
+            client,
+            serde,
+            serde_json,
+            utoipa,
+          ]
+        EXTRA_ARGS: ['', --no-default-features]

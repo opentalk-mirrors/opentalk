@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+
+test:opentalk-types-common-macros:
+  extends: .test:types
+  variables:
+    PACKAGE: opentalk-types-common-macros
+  parallel:
+    matrix:
+      - FEATURES:
+          ['']
+        EXTRA_ARGS: ['', --no-default-features]

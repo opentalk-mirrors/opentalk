@@ -1,0 +1,7 @@
+error: Module id must have at least 1 characters
+ --> tests/module_id/parse_invalid_empty_str.rs:8:22
+  |
+8 |     let _module_id = module_id!("");
+  |                      ^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `module_id` (in Nightly builds, run with -Z macro-backtrace for more info)

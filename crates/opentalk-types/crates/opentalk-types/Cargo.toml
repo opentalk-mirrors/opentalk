@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "Types and traits for the OpenTalk API and signaling protocols"
+documentation = "https://docs.rs/opentalk-types"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-types"
+publish = true
+repository.workspace = true
+version = "0.75.0"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[lints]
+workspace = true
+
+[features]
+default = ["types-all"]
+
+actix = ["opentalk-types-common?/actix"]
+backend = [
+  "diesel",
+  "rand",
+  "redis",
+  "serde",
+
+  "opentalk-types-api-v1?/backend",
+  "opentalk-types-common?/backend",
+  "opentalk-types-signaling?/backend",
+]
+clap = ["opentalk-types-common?/clap"]
+diesel = ["opentalk-types-api-v1?/diesel", "opentalk-types-common?/diesel"]
+frontend = [
+  "opentalk-types-api-v1?/frontend",
+  "opentalk-types-common?/frontend",
+  "opentalk-types-signaling?/frontend",
+]
+rand = ["opentalk-types-common?/rand", "opentalk-types-signaling?/rand"]
+redis = ["opentalk-types-common?/redis", "opentalk-types-signaling?/redis"]
+serde = [
+  "opentalk-types-api-v1?/serde",
+  "opentalk-types-common?/serde",
+  "opentalk-types-signaling?/serde",
+]
+utoipa = ["opentalk-types-api-v1?/utoipa", "opentalk-types-common?/utoipa"]
+
+types-all = ["api", "signaling"]
+
+api = ["api-v1"]
+api-v1 = ["common", "dep:opentalk-types-api-v1"]
+common = ["dep:opentalk-types-common"]
+signaling = ["common", "dep:opentalk-types-signaling"]
+
+[dependencies]
+opentalk-types-api-v1 = { workspace = true, optional = true }
+opentalk-types-common = { workspace = true, optional = true }
+opentalk-types-signaling = { workspace = true, optional = true }

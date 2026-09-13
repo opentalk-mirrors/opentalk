@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "Protocol datatypes for communicating mail tasks from OpenTalk Controller to OpenTalk Mailer"
+documentation = "https://docs.rs/opentalk-mail-worker-protocol"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-mail-worker-protocol"
+publish = true
+repository.workspace = true
+version = "0.50.0"
+
+[lints]
+workspace = true
+
+[dependencies]
+chrono = { workspace = true }
+opentalk-types-common = { workspace = true }
+serde = { workspace = true, features = ["derive"], optional = true }
+serde_json = { workspace = true, optional = true }
+utoipa = { workspace = true, features = [
+  "chrono",
+  "url",
+  "uuid",
+], optional = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+
+[features]
+client = ["serde"]
+default = ["serde"]
+serde = [
+  "chrono/serde",
+  "dep:serde",
+  "dep:serde_json",
+  "opentalk-types-common/serde",
+  "uuid/serde",
+]
+serde_json = ["dep:serde_json"]
+utoipa = ["dep:utoipa", "opentalk-types-common/utoipa", "serde"]
+
+[[bin]]
+name = "export_schema_and_examples"
+required-features = ["utoipa"]

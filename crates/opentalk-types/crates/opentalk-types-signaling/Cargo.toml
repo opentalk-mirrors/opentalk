@@ -1,0 +1,55 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "Signaling types and traits for OpenTalk"
+documentation = "https://docs.rs/opentalk-types-signaling"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-types-signaling"
+publish = true
+repository.workspace = true
+version = "0.51.0"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[lints]
+workspace = true
+
+[features]
+backend = ["opentalk-types-common/backend", "rand", "redis", "serde"]
+frontend = ["opentalk-types-common/frontend", "serde"]
+rand = ["opentalk-types-common/rand", "uuid/v4"]
+redis = ["dep:redis-args", "opentalk-types-common/redis", "serde"]
+serde = [
+  "dep:serde",
+  "dep:serde_json",
+  "opentalk-types-common/serde",
+  "uuid/serde",
+]
+typescript = ["dep:ts-rs"]
+utoipa = ["dep:utoipa", "opentalk-types-common/utoipa", "serde"]
+
+[dependencies]
+derive_more = { workspace = true, features = [
+  "as_ref",
+  "display",
+  "from",
+  "from_str",
+  "into",
+] }
+opentalk-types-common.workspace = true
+redis-args = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+strum.workspace = true
+ts-rs = { workspace = true, optional = true }
+utoipa = { workspace = true, optional = true }
+uuid.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true

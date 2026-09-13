@@ -1,0 +1,7 @@
+error: AssetFileKind must be at least 1 characters long
+ --> tests/asset_file_kind/parse_invalid_empty_str.rs:8:28
+  |
+8 |     let _asset_file_kind = asset_file_kind!("");
+  |                            ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `asset_file_kind` (in Nightly builds, run with -Z macro-backtrace for more info)

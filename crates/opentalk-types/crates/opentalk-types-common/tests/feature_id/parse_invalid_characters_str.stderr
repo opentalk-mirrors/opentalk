@@ -1,0 +1,7 @@
+error: Feature id may only contain lowercase letters, digits or "_"
+ --> tests/feature_id/parse_invalid_characters_str.rs:8:23
+  |
+8 |     let _feature_id = feature_id!("hello+world$123");
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `feature_id` (in Nightly builds, run with -Z macro-backtrace for more info)

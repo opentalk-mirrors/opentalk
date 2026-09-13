@@ -1,0 +1,66 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "OpenTalk API common data types"
+documentation = "https://docs.rs/opentalk-types-api-common"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-types-api-common"
+publish = true
+repository.workspace = true
+version = "0.13.0"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[lints]
+workspace = true
+
+[features]
+actix = [
+  "dep:actix-web",
+  "dep:http0",
+  "dep:log",
+  "dep:serde_json",
+  "dep:url",
+  "http",
+  "opentalk-types-common/actix",
+  "serde",
+]
+axum = ["dep:axum", "dep:serde_json", "serde"]
+backend = ["http", "opentalk-types-common/backend", "serde", "utoipa"]
+frontend = ["opentalk-types-common/frontend", "serde"]
+http = ["dep:http"]
+serde = ["dep:base64", "dep:serde", "opentalk-types-common/serde"]
+utoipa = [
+  "dep:serde_json",
+  "dep:utoipa",
+  "opentalk-types-common/utoipa",
+  "serde",
+]
+
+[dependencies]
+actix-web = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
+chrono.workspace = true
+derive_more = { workspace = true, features = ["as_ref", "deref", "deref_mut"] }
+http = { workspace = true, optional = true }
+http0 = { workspace = true, optional = true }
+log = { workspace = true, optional = true }
+opentalk-types-common.workspace = true
+postcard = { workspace = true, features = ["use-std"] }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+snafu.workspace = true
+url = { workspace = true, optional = true }
+utoipa = { workspace = true, features = ["uuid"], optional = true }
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+serde_json.workspace = true
+serde_urlencoded.workspace = true

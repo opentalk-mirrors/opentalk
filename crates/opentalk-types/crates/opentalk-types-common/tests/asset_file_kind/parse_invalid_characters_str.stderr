@@ -1,0 +1,7 @@
+error: AssetFileKind only allows alphanumeric ascii characters or '_'
+ --> tests/asset_file_kind/parse_invalid_characters_str.rs:8:28
+  |
+8 |     let _asset_file_kind = asset_file_kind!("hello+world$123");
+  |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `asset_file_kind` (in Nightly builds, run with -Z macro-backtrace for more info)

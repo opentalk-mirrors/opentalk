@@ -1,0 +1,115 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "Common types and traits for OpenTalk crates"
+documentation = "https://docs.rs/opentalk-types-common"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-types-common"
+publish = true
+repository.workspace = true
+version = "0.50.0"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[lints]
+workspace = true
+
+[features]
+actix = ["dep:actix-http", "dep:actix-web-httpauth", "dep:bytes", "serde"]
+backend = ["diesel", "rand", "redis", "serde", "utoipa"]
+clap = ["dep:clap"]
+diesel = [
+  "dep:diesel",
+  "dep:opentalk-diesel-newtype",
+  "opentalk-types-common-identifiers/diesel",
+  "serde",
+]
+frontend = ["serde"]
+rand = ["dep:rand", "uuid/v4"]
+redis = ["dep:redis", "dep:redis-args", "serde"]
+serde = [
+  "chrono-tz/serde",
+  "chrono/serde",
+  "dep:serde",
+  "dep:serde_with",
+  "icu_locid/serde",
+  "opentalk-types-common-identifiers/serde",
+  "url/serde",
+  "uuid/serde",
+]
+typescript = [
+  "dep:regex",
+  "dep:ts-rs",
+  "opentalk-types-common-identifiers/typescript",
+]
+utoipa = [
+  "dep:serde_json",
+  "dep:utoipa",
+  "opentalk-types-common-identifiers/utoipa",
+  "serde",
+]
+
+[dependencies]
+actix-http = { workspace = true, optional = true }
+actix-web-httpauth = { workspace = true, optional = true }
+bytes = { workspace = true, optional = true }
+chrono.workspace = true
+chrono-tz.workspace = true
+clap = { workspace = true, optional = true }
+derive_more = { workspace = true, features = [
+  "as_ref",
+  "deref",
+  "display",
+  "from",
+  "from_str",
+  "into",
+] }
+diesel = { workspace = true, features = ["uuid"], optional = true }
+email_address.workspace = true
+icu_locid.workspace = true
+itertools.workspace = true
+opentalk-diesel-newtype = { workspace = true, optional = true }
+opentalk-types-common-identifiers.workspace = true
+opentalk-types-common-macros.workspace = true
+rand = { workspace = true, optional = true }
+redis = { workspace = true, optional = true }
+redis-args = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+serde_with = { workspace = true, optional = true }
+snafu.workspace = true
+strum.workspace = true
+ts-rs = { workspace = true, optional = true, features = ["url-impl"] }
+url.workspace = true
+utoipa = { workspace = true, features = [
+  "chrono",
+  "url",
+  "uuid",
+], optional = true }
+uuid.workspace = true
+
+[package.metadata.cargo-machete]
+ignored = [
+  # Required for doctests only, detected as unused by `cargo machete`
+  "opentalk-types-common",
+]
+
+[dev-dependencies]
+serde.workspace = true
+serde_json.workspace = true
+trybuild.workspace = true
+
+[dev-dependencies.pretty_assertions]
+features = [
+  # This enables the assert_matches! macro, its equivalent in std is unstable as well.
+  # If anything changes in that regard, it should be rather easy to addust.
+  "unstable",
+]
+workspace = true

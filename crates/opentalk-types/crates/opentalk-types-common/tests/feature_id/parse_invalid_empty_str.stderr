@@ -1,0 +1,7 @@
+error: Feature id must have at least 1 characters
+ --> tests/feature_id/parse_invalid_empty_str.rs:8:23
+  |
+8 |     let _feature_id = feature_id!("");
+  |                       ^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `feature_id` (in Nightly builds, run with -Z macro-backtrace for more info)
