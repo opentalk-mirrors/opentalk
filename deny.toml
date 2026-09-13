@@ -1,7 +1,18 @@
-# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
-#
-# SPDX-License-Identifier: EUPL-1.2
+# This template contains all of the possible sections and their default values
 
+# Note that all fields that take a lint level have these possible values:
+# * deny - An error will be produced and the check will fail
+# * warn - A warning will be produced, but the check will not fail
+# * allow - No warning or error will be produced, though in some cases a note
+# will be
+
+# The values provided in this template are the default values that will be used
+# when any section or field is not specified in your own configuration
+
+# Root options
+
+# The graph table configures how the dependency graph is constructed and thus
+# which crates the checks are performed against
 [graph]
 # If 1 or more target triples (and optionally, target_features) are specified,
 # only the specified targets will be checked when running `cargo deny check`.
@@ -12,13 +23,8 @@
 # dependencies not shared by any other crates, would be ignored, as the target
 # list here is effectively saying which targets you are building for.
 targets = [
-  # The triple can be any string, but only the target triples built in to
-  # rustc (as of 1.40) can be checked against actual config expressions
-  #"x86_64-unknown-linux-musl",
-  # You can also specify which target_features you promise are enabled for a
-  # particular target. target_features are currently not validated against
-  # the actual valid features supported by the target architecture.
-  #{ triple = "wasm32-unknown-unknown", features = ["atomics"] },
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "x86_64-unknown-linux-musl" },
 ]
 # When creating the dependency graph used as the source of truth when checks are
 # executed, this field can be used to prune crates from the graph, removing them
@@ -52,88 +58,45 @@ feature-depth = 1
 # More documentation for the advisories section can be found here:
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
-version = 2
+# The path where the advisory databases are cloned/fetched into
+#db-path = "$CARGO_HOME/advisory-dbs"
 # The url(s) of the advisory databases to use
-db-urls = ["https://github.com/rustsec/advisory-db"]
-# The lint level for crates that have been yanked from their source registry
-yanked = "deny"
+#db-urls = ["https://github.com/rustsec/advisory-db"]
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-  # | paste unmaintained
-  # |
-  # | The creator of the crate `paste` has stated in the [`README.md`](https://github.com/dtolnay/paste/blob/master/README.md)
-  # | that this project is not longer maintained as well as archived the repository
-  # | Announcement: https://github.com/dtolnay/paste
-  # | Solution: No safe upgrade is available!
-  #
-  # We need to wait until dependencies update to an alternative crate.
-  #
-  # Dependency chains:
-  #  typst v0.13.1 -> typst-library v0.13.1 -> hayagriva v0.8.1 -> biblatex v0.10.0 -> paste v1.0.15
-  "RUSTSEC-2024-0436",
-  #
-  # | yaml-rust unmaintained
-  # | Solution: No safe upgrade is available!
-  #
-  # We need to wait until the dependency updates to an alternative crate.
-  #
-  # Dependency chain: typst 0.12.0 -> syntect 5.2.0 -> yaml-rust 0.4.5
-  "RUSTSEC-2024-0320",
-
-  # Bincode unmaintained
-  # Dependency chain:
-  # ├ bincode v1.3.3
-  # └── syntect v5.3.0
-  #     ├── two-face v0.4.5
-  #     │   └── typst-library v0.14.2
-  #     │       ├── typst v0.14.2
-  "RUSTSEC-2025-0141",
-
-  # ttf-parser is unmaintained
-  # Dependency chain:
-  # ├ ttf-parser
-  # └── fontdb
-  #     └── krilla-svg
-  #         └── typst-pdf
-  "RUSTSEC-2026-0192",
-
-  # quick-xml
-  #
-  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0194
-  # | Quadratic run time when checking a start tag for duplicate attribute names.
-  # |
-  # | A start tag with many attributes triggers an O(n^2) duplicate-name check, letting an
-  # | attacker force excessive CPU usage while parsing untrusted XML.
-  # | Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
-  #
-  # quick-xml is pulled in transitively as a build-dependency of phonenumber (v0.38.x) and via
-  # plist -> syntect -> two-face -> typst-library (v0.39.x). No updated version in the compatible
-  # range is available yet, so we have to wait until these dependencies become compatible / updated.
-  "RUSTSEC-2026-0194",
-
-  # quick-xml
-  #
-  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0195
-  # | Unbounded namespace-declaration allocation in `NsReader` enables memory-exhaustion denial of service.
-  # |
-  # | `NsReader` resolves namespaces before yielding events, allocating resolver heap proportional to the
-  # | number of xmlns declarations on a start tag with no upper bound, allowing an attacker to force large
-  # | heap allocations while parsing untrusted XML.
-  # | Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
-  #
-  # quick-xml is pulled in transitively as a build-dependency of phonenumber (v0.38.x) and via
-  # plist -> syntect -> two-face -> typst-library (v0.39.x). No updated version in the compatible
-  # range is available yet, so we have to wait until these dependencies become compatible / updated.
-  "RUSTSEC-2026-0195",
-
-  # rustybuzz is unmaintained
-  #
-  #  rustybuzz
-  #  └── krilla
-  #      └── krilla-svg
-  #          └── typst-pdf
-  "RUSTSEC-2026-0206",
+    # bincode unmaintained
+    "RUSTSEC-2025-0141",
+    # h2 unmaintained
+    "RUSTSEC-2026-0258",
+    # paste unmaintained
+    "RUSTSEC-2024-0436",
+    # rustls-pemfile unmaintained
+    "RUSTSEC-2025-0134",
+    # rustybuzz unmaintained
+    "RUSTSEC-2026-0206",
+    # ttf-parser unmaintained
+    "RUSTSEC-2026-0192",
+    # yaml-rust unmaintained
+    "RUSTSEC-2024-0320",
+    # quick-xml cve
+    # Quadratic run time when checking a start tag for duplicate attribute names
+    "RUSTSEC-2026-0194",
+    # quick-xml cve
+    # Unbounded namespace-declaration allocation in `NsReader` enables memory-exhaustion denial of service
+    "RUSTSEC-2026-0195",
+    # rsa cve
+    # Marvin Attack: potential key recovery through timing sidechannels
+    "RUSTSEC-2023-0071",
+    # rustls-webpki cve
+    # Name constraints for URI names were incorrectly accepted
+    "RUSTSEC-2026-0098",
+    # rustls-webpki cve
+    # Name constraints were accepted for certificates asserting a wildcard name
+    "RUSTSEC-2026-0099",
+    # rustls-webpki cve
+    # Reachable panic in certificate revocation list parsing
+    "RUSTSEC-2026-0104",
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
@@ -145,20 +108,27 @@ ignore = [
 # More documentation for the licenses section can be found here:
 # https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
 [licenses]
-version = 2
 # List of explicitly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
 allow = [
-  "Apache-2.0 WITH LLVM-exception",
-  "Apache-2.0",
-  "BSD-2-Clause",
-  "BSD-3-Clause",
-  "BSL-1.0",
-  "CC0-1.0",
-  "MIT",
-  "Unicode-3.0",
-  "Zlib",
+    "0BSD",
+    "Apache-2.0 WITH LLVM-exception",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "EUPL-1.2",
+    "OFL-1.1",
+    "ISC",
+    "MIT",
+    "MPL-2.0",
+    "Unlicense",
+    "Ubuntu-font-1.0",
+    "Unicode-3.0",
+    "Zlib",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
@@ -167,7 +137,11 @@ allow = [
 confidence-threshold = 0.8
 # Allow 1 or more licenses on a per-crate basis, so that particular licenses
 # aren't accepted for every possible crate as with the normal allow list
-exceptions = [{ allow = ["EUPL-1.2"], name = "opentalk-report-generation" }]
+exceptions = [
+    # Each entry is the crate and version constraint, and its specific allow
+    # list
+    #{ allow = ["Zlib"], crate = "adler32" },
+]
 
 # Some crates don't have (easily) machine readable licensing information,
 # adding a clarification entry for it allows you to manually specify the
@@ -196,14 +170,16 @@ ignore = false
 # One or more private registries that you might publish crates to, if a crate
 # is only published to private registries, and ignore is true, the crate will
 # not have its license(s) checked
-registries = []
+registries = [
+    #"https://sekretz.com/registry
+]
 
 # This section is considered when running `cargo deny check bans`.
 # More documentation about the 'bans' section can be found here:
 # https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
 [bans]
 # Lint level for when multiple versions of the same crate are detected
-multiple-versions = "deny"
+multiple-versions = "allow"
 # Lint level for when a crate version requirement is `*`
 wildcards = "allow"
 # The graph highlighting used when creating dotgraphs for crates
@@ -221,9 +197,22 @@ workspace-default-features = "allow"
 # on a crate-by-crate basis if desired.
 external-default-features = "allow"
 # List of crates that are allowed. Use with care!
-allow = []
+allow = [
+    #"ansi_term@0.11.0",
+    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is allowed" },
+]
+# If true, workspace members are automatically allowed even when using deny-by-default
+# This is useful for organizations that want to deny all external dependencies by default
+# but allow their own workspace crates without having to explicitly list them
+allow-workspace = false
 # List of crates to deny
-deny = []
+deny = [
+    #"ansi_term@0.11.0",
+    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is banned" },
+    # Wrapper crates can optionally be specified to allow the crate when it
+    # is a direct dependency of the otherwise banned crate
+    #{ crate = "ansi_term@0.11.0", wrappers = ["this-crate-directly-depends-on-ansi_term"] },
+]
 
 # List of features to allow/deny
 # Each entry the name of a crate and a version range. If version is
@@ -250,21 +239,16 @@ deny = []
 
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
-  { name = "base64", version = "0.22" },
-  { name = "miniz_oxide", version = "0.8" },
-  { name = "phf", version = "0.12" },
-  { name = "phf_shared", version = "0.12" },
-  { name = "quick-xml", version = "0.38" },
-  { name = "roxmltree", version = "0.20" },
-  { name = "syn", version = "2" },
+    #"ansi_term@0.11.0",
+    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason why it can't be updated/removed" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
 # dependencies starting at the specified crate, up to a certain depth, which is
 # by default infinite.
 skip-tree = [
-  #"ansi_term@0.11.0", # will be skipped along with _all_ of its direct and transitive dependencies
-  #{ crate = "ansi_term@0.11.0", depth = 20 },
+    #"ansi_term@0.11.0", # will be skipped along with _all_ of its direct and transitive dependencies
+    #{ crate = "ansi_term@0.11.0", depth = 20 },
 ]
 
 # This section is considered when running `cargo deny check sources`.
@@ -285,7 +269,7 @@ allow-git = []
 
 [sources.allow-org]
 # github.com organizations to allow git sources for
-github = []
+github = ["kbalt"]
 # gitlab.com organizations to allow git sources for
 gitlab = []
 # bitbucket.org organizations to allow git sources for
