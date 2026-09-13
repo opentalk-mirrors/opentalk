@@ -19,7 +19,9 @@ spec:
       regex: ^\d*$
       default: ''
 ---
-image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98.0-trixie
+image:
+  name: $RUST_LINT_IMAGE
+  pull_policy: if-not-present
 
 stages:
   - lint
@@ -33,6 +35,9 @@ variables:
   CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
   # Enable one network per build for the test container and services
   FF_NETWORK_PER_BUILD: 'true'
+  RUST_LINT_IMAGE: registry.heinlein.group/opentalk-tools/rust:1.98-trixie
+  # The `livekit` client crate pulls in `webrtc-sys`, whose build script refuses to compile with GCC or clang < 20
+  CXX: clang++-21
 
 .default_job_condition: &default_job_condition
   needs: []
@@ -52,6 +57,11 @@ variables:
   - >
     apt-get update && apt-get install -y build-essential clang libclang-dev cmake libvulkan-dev glslc
 
+.template_vars:
+  FLAVORS:
+    - vulkan
+  DEFAULT_FLAVOR: vulkan
+
 include:
   - project: opentalk/ci/templates/collect-commit-evidence
     ref: v2
@@ -65,79 +75,39 @@ include:
   - project: opentalk/ci/templates/changelog
     ref: v2
     file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/rust-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/common-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/rust-container-build
+    inputs:
+      harbor_namespace_suffix: transcription
+    ref: v2
+    file: .gitlab-ci-template.yml
 
-lint:fmt:
-  stage: lint
-  <<: *default_job_condition
-  before_script:
-    - rustup component add rustfmt --toolchain nightly
-  script:
-    - cargo +nightly fmt -- --check
-
+# Overrides template, remove once transcription works with '--all-features'
 lint:clippy:
   stage: lint
-  <<: *default_job_condition
-  before_script:
-    - *install_deps
-  script:
-    - cargo clippy --tests
-
-lint:dependency_check_advisories:
-  stage: lint
-  <<: *default_job_condition
-  allow_failure: true
-  script: cargo-deny check advisories --deny unmatched-skip --deny license-not-encountered
-
-lint:dependency_check_bans_licenses_sources:
-  stage: lint
-  <<: *default_job_condition
-  script: cargo-deny check bans licenses sources --deny unmatched-skip --deny license-not-encountered
-
-lint:yaml:
-  stage: lint
-  <<: *default_job_condition
-  image: alpine:3.24
-  before_script:
-    - apk add --no-cache yamllint
-  script: yamllint .
-
-lint:unnecessary_dependencies:
-  stage: lint
-  <<: *default_job_condition
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  before_script: if ! cargo machete --version; then cargo install cargo-machete; fi
-  script: cargo machete --with-metadata
-
-lint:markdown:
-  stage: lint
-  <<: *default_job_condition
-  image: registry.gitlab.com/pipeline-components/markdownlint:latest
-  script:
-    - mdl --style .markdown_style.rb  --warnings .
-
-lint:licensing:
-  stage: lint
-  <<: *default_job_condition
   image:
-    name: fsfe/reuse:latest
-    entrypoint: ['']
-  script:
-    - reuse lint
+    name: $RUST_LINT_IMAGE
+    pull_policy: if-not-present
+  script: cargo clippy --workspace --tests --no-default-features -- --deny warnings
 
-lint:commit:
-  cache: {}
-  image: node:lts-alpine
+# Overrides template, remove once transcription works with '--all-features'
+lint:doc:
   stage: lint
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  image:
+    name: $RUST_LINT_IMAGE
+    pull_policy: if-not-present
   variables:
-    GIT_DEPTH: 250
-  before_script:
-    - apk add --no-cache git
-    - npm install -g @commitlint/cli @commitlint/config-conventional
-  script:
-    - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
+    RUSTDOCFLAGS: -Dwarnings
+  script: cargo doc --workspace --no-deps --no-default-features
 
 test:cargo_test:
   stage: test
@@ -178,141 +148,3 @@ test:cargo_test:
 
     # Print out the coverage percentage for GitLab
     - xmllint --xpath "$COVERAGE_XML_PATH" target/coverage/cobertura.xml
-
-test:doc:
-  stage: test
-  <<: *default_job_condition
-  before_script:
-    - *install_deps
-  script:
-    - cargo doc --workspace --verbose
-
-trigger-docs:
-  stage: trigger
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "pipeline"
-      when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAME !~ /^.*canary$/ || $CI_COMMIT_TAG =~ /^v.*$/
-  trigger:
-    project: opentalk/backend/docs
-
-build:container-vulkan:
-  stage: build
-  variables:
-    IMAGE_DESTINATION_ARGS: --no-push
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      variables:
-        IMAGE_DESTINATION_ARGS: --destination $CI_REGISTRY_IMAGE:dev-vulkan
-    - if: $CI_COMMIT_TAG != null
-      variables:
-        IMAGE_DESTINATION_ARGS: >
-          --destination $CI_REGISTRY_IMAGE:latest-vulkan
-          --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG-vulkan
-    # Don't run on feature branches if there is a MR
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
-      when: never
-    # Don't run on release branches
-    - if: $CI_COMMIT_BRANCH =~ /^release\/v.*$/
-      when: never
-    - if: >
-        $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH &&
-        $CI_COMMIT_BRANCH != null
-      variables:
-        IMAGE_DESTINATION_ARGS: --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH-vulkan
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  # IMAGE_DESTINATION_ARGS will be set inside the script
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: ['']
-  script:
-    # According to https://docs.docker.com/engine/reference/commandline/tag/
-    # the tag may contain lowercase and uppercase letters, digits, underscores,
-    # periods, and hyphens, so we replace everything else by '_'. It cannot start
-    # with a period or hyphen, so we replace those if we find them at the start of a line.
-    # It must be no longer than 128 characters, so we truncate it in addition.
-    #
-    # tr -c means the same as --complement, but busybox tr doesn't have that
-    - >
-      if [ $CI_PIPELINE_SOURCE == 'merge_request_event' ]; then
-        IMAGE_TAG=$(
-          echo -n "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" |
-          tr -c '[:alnum:]_.-' '_' |
-          sed 's/^[.-]/_/' |
-          cut -c -128
-        );
-        IMAGE_DESTINATION_ARGS="--destination $CI_REGISTRY_IMAGE:$IMAGE_TAG-vulkan";
-      fi
-    - mkdir -p /kaniko/.docker
-    - >
-      echo
-      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
-      /kaniko/.docker/config.json
-    - >
-      /kaniko/executor
-      --registry-mirror=mirror.gcr.io
-      --context $CI_PROJECT_DIR
-      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile-vulkan
-      $IMAGE_DESTINATION_ARGS
-      --force
-
-build:container-intel:
-  stage: build
-  variables:
-    IMAGE_DESTINATION_ARGS: --no-push
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      variables:
-        IMAGE_DESTINATION_ARGS: --destination $CI_REGISTRY_IMAGE:dev-intel
-    - if: $CI_COMMIT_TAG != null
-      variables:
-        IMAGE_DESTINATION_ARGS: >
-          --destination $CI_REGISTRY_IMAGE:latest-intel
-          --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG-intel
-    # Don't run on feature branches if there is a MR
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
-      when: never
-    # Don't run on release branches
-    - if: $CI_COMMIT_BRANCH =~ /^release\/v.*$/
-      when: never
-    - if: >
-        $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH &&
-        $CI_COMMIT_BRANCH != null
-      variables:
-        IMAGE_DESTINATION_ARGS: --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_BRANCH-intel
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  # IMAGE_DESTINATION_ARGS will be set inside the script
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: ['']
-  script:
-    # According to https://docs.docker.com/engine/reference/commandline/tag/
-    # the tag may contain lowercase and uppercase letters, digits, underscores,
-    # periods, and hyphens, so we replace everything else by '_'. It cannot start
-    # with a period or hyphen, so we replace those if we find them at the start of a line.
-    # It must be no longer than 128 characters, so we truncate it in addition.
-    #
-    # tr -c means the same as --complement, but busybox tr doesn't have that
-    - >
-      if [ $CI_PIPELINE_SOURCE == 'merge_request_event' ]; then
-        IMAGE_TAG=$(
-          echo -n "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" |
-          tr -c '[:alnum:]_.-' '_' |
-          sed 's/^[.-]/_/' |
-          cut -c -128
-        );
-        IMAGE_DESTINATION_ARGS="--destination $CI_REGISTRY_IMAGE:$IMAGE_TAG-intel";
-      fi
-    - mkdir -p /kaniko/.docker
-    - >
-      echo
-      "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64)\"}}}" >
-      /kaniko/.docker/config.json
-    - >
-      /kaniko/executor
-      --registry-mirror=mirror.gcr.io
-      --context $CI_PROJECT_DIR
-      --dockerfile $CI_PROJECT_DIR/ci/Dockerfile-intel
-      $IMAGE_DESTINATION_ARGS
-      --force

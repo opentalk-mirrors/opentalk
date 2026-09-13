@@ -381,6 +381,8 @@ impl ReFramer {
 }
 
 mod effects {
+    #![cfg_attr(test, expect(clippy::chunks_exact_to_as_chunks))]
+
     use std::f32::consts::PI;
 
     /// Apply a partial fade-in for the n'th chunk in a series of chunks

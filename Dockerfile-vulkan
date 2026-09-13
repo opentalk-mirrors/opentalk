@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: EUPL-1.2
 
-FROM rust:slim-trixie AS builder
+FROM docker.io/library/rust:slim-trixie AS builder
 RUN mkdir /transcription
 WORKDIR /transcription
 
@@ -25,7 +25,7 @@ RUN curl -O https://repo.heinlein.group/repository/whisper-ggml-models/ggml-larg
 
 RUN cargo build --locked --release
 
-FROM debian:trixie-slim
+FROM docker.io/library/debian:trixie-slim
 
 ENV USERID=1000
 ENV GROUPID=1000
