@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+name = "opentalk-compositor"
+version = "0.20.1"
+authors = ["OpenTalk Team <mail@opentalk.eu>"]
+edition = "2021"
+description = "Compositor for the OpenTalk Recorder and Obelisk"
+documentation = "https://docs.rs/opentalk-compositor"
+homepage = "https://opentalk.eu/"
+repository = "https://gitlab.opencode.de/opentalk/libs/compositor"
+license = "EUPL-1.2"
+publish = true
+
+[features]
+default = ["gstreamer"]
+gstreamer = ["dep:glib", "dep:gstreamer-app", "dep:gstreamer-base", "dep:gstreamer"]
+
+[dependencies]
+ab_glyph = "0.2"
+anyhow = "1.0"
+chrono = "0.4"
+ezk = "0.1"
+ezk-audio = "0.1"
+ezk-audio-nodes = "0.1"
+ezk-image = { version = "0.4", default-features = false, features = ["I420", "RGBA", "RGB", "multi-thread", "resize"] }
+futures = "0.3"
+glib = { version = "0.22", optional = true }
+gstreamer = { version = "0.25", features = ["v1_22"], optional = true }
+gstreamer-app = { version = "0.25", features = ["v1_22"], optional = true }
+gstreamer-base = { version = "0.25", features = ["v1_22"], optional = true }
+image = { version = "0.25.2", default-features = false, features = ["png"] }
+livekit = { version = "0.9", features = ["rustls-tls-native-roots"] }
+livekit-api = "0.7"
+log = "0.4"
+parking_lot = "0.12.3"
+reqwest = { version = "0.12", default-features = false }
+resvg = "0.48.0"
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["signal", "sync", "time", "macros", "rt-multi-thread"] }
+uuid = { version = "1.10.0", features = ["v4"] }
+
+[dev-dependencies]
+axum = "0.8"
+env_logger = "0.11"
+livekit-api = { version = "0.7", features = ["signal-client"] }

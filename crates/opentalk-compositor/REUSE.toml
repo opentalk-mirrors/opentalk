@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+SPDX-PackageDownloadLocation = "https://gitlab.opencode.de/opentalk/libs/compositor"
+SPDX-PackageName = "OpenTalk Compositor"
+SPDX-PackageSupplier = "OpenTalk GmbH <mail@opentalk.eu>"
+version = 1
+
+[[annotations]]
+SPDX-FileCopyrightText = "OpenTalk GmbH <mail@opentalk.eu>"
+SPDX-License-Identifier = "EUPL-1.2"
+path = ["renovate.json"]
+precedence = "aggregate"
+
+[[annotations]]
+path = [
+  "assets/**.svg",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "OpenTalk GmbH <mail@opentalk.eu>"
+SPDX-License-Identifier = "CC-BY-NC-ND-4.0"

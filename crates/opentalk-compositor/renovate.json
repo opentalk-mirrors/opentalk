@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "glib",
+        "gst*"
+      ],
+      "groupName": "gstreamer",
+      "groupSlug": "gstreamer"
+    },
+    {
+      "matchPackageNames": ["livekit*"],
+      "groupName": "livekit",
+      "groupSlug": "livekit"
+    }
+  ]
+}
