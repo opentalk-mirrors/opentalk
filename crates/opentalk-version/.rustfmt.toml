@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+group_imports = "StdExternalCrate"
+imports_granularity = "Crate"

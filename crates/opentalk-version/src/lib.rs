@@ -1,0 +1,218 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: MIT OR Apache-2.0
+//! # opentalk-version
+//!
+//! Collect a set of build information and make it available for printing.
+//!
+//! ## Example usage:
+//!
+//! Add the following to your `build.rs`
+//!
+//! ```rust
+//! fn main() -> anyhow::Result<()> {
+//!     opentalk_version::collect_build_information()
+//! }
+//! ```
+//!
+//! Once this is added, you can access the build information in your crate like this:
+//!
+//! ```ignore
+//! // This adds a `build_info` module which contains a `BuildInfo` struct that
+//! // contains all collected build information.
+//! use build_info::BuildInfo;
+//! use opentalk_version::InfoArgs;
+//!
+//! opentalk_version::build_info!();
+//!
+//! pub(super) fn print_version(args: &InfoArgs) {
+//!     let build_info = BuildInfo::new();
+//!     if let Some(text) = build_info.format(&args) {
+//!         println!("{text}");
+//!     }
+//! }
+//!
+//! ```
+
+use anyhow::Context as _;
+use clap::ArgAction;
+use vergen::{Build, Cargo, Emitter, Rustc};
+use vergen_git2::Git2;
+
+/// This macro will expand to a module `build_info` which contains a struct `BuildInfo`.
+/// The struct can be used to access build information.
+///
+/// # Note
+///
+/// Make sure to call [`collect_build_information`] in your [build script](https://doc.rust-lang.org/cargo/reference/build-scripts.html).
+#[macro_export]
+macro_rules! build_info {
+    () => {
+        pub(crate) mod build_info {
+            fn profile_human() -> &'static str {
+                let profile = env!("VERGEN_CARGO_OPT_LEVEL");
+
+                // Copied from https://doc.rust-lang.org/cargo/reference/profiles.html#opt-level
+                match profile {
+                    "0" => "0, no optimizations",
+                    "1" => "1, basic optimizations",
+                    "2" => "2, some optimizations",
+                    "3" => "3, all optimizations",
+                    "s" => "'s', optimize for binary size",
+                    "z" => "'z', optimize for binary size, but also turn off loop vectorization.",
+                    profile => profile,
+                }
+            }
+
+            /// Build information about the crate.
+            #[derive(Debug, Clone)]
+            pub struct BuildInfo {
+                build_timestamp: &'static str,
+                build_version: &'static str,
+                commit_sha: Option<&'static str>,
+                commit_dirty: Option<&'static str>,
+                commit_date: Option<&'static str>,
+                commit_branch: Option<&'static str>,
+                rustc_version: &'static str,
+                rustc_channel: &'static str,
+                rustc_host_triple: &'static str,
+                cargo_target_triple: &'static str,
+                cargo_profile: &'static str,
+                license_information: Option<String>,
+            }
+
+            impl BuildInfo {
+                /// Returns a struct which contains build information.
+                pub fn new() -> Self {
+                    Self {
+                        build_timestamp: env!("VERGEN_BUILD_TIMESTAMP"),
+                        build_version: env!("CARGO_PKG_VERSION"),
+                        commit_sha: option_env!("VERGEN_GIT_SHA"),
+                        commit_dirty: option_env!("VERGEN_GIT_DIRTY"),
+                        commit_date: option_env!("VERGEN_GIT_COMMIT_TIMESTAMP"),
+                        commit_branch: option_env!("VERGEN_GIT_BRANCH"),
+                        rustc_version: env!("VERGEN_RUSTC_SEMVER"),
+                        rustc_channel: env!("VERGEN_RUSTC_CHANNEL"),
+                        rustc_host_triple: env!("VERGEN_RUSTC_HOST_TRIPLE"),
+                        cargo_target_triple: env!("VERGEN_CARGO_TARGET_TRIPLE"),
+                        cargo_profile: profile_human(),
+                        license_information: None,
+                    }
+                }
+
+                pub fn with_license(license_information: String) -> Self {
+                    let mut this = Self::new();
+                    this.license_information = Some(license_information);
+                    this
+                }
+            }
+
+            impl BuildInfo {
+                pub fn format(&self, args: &opentalk_version::InfoArgs) -> Option<String> {
+                    if !args.should_print() {
+                        return None;
+                    }
+                    let mut text = String::new();
+                    if (args.version) {
+                        let _ = self.version(&mut text);
+                    }
+                    if (args.license) {
+                        self.license(&mut text);
+                    }
+                    Some(text)
+                }
+
+                fn version(&self, text: &mut String) -> Result<(), std::fmt::Error> {
+                    use std::fmt::Write as _;
+
+                    write!(text, "Build Timestamp: {}\n", self.build_timestamp)?;
+                    write!(text, "Build Version: {}\n", self.build_version)?;
+                    if let Some(sha) = self.commit_sha {
+                        write!(text, "Commit SHA: {}", sha)?;
+                        match self.commit_dirty {
+                            Some("true") => write!(text, "-dirty\n")?,
+                            _ => write!(text, "\n")?,
+                        }
+                    }
+                    if let Some(commit_date) = self.commit_date {
+                        write!(text, "Commit Date: {}\n", commit_date)?;
+                    }
+
+                    if let Some(commit_branch) = self.commit_branch {
+                        write!(text, "Commit Branch: {}\n", commit_branch)?;
+                    }
+                    write!(text, "rustc Version: {}\n", self.rustc_version)?;
+                    write!(text, "rustc Channel: {}\n", self.rustc_channel)?;
+                    write!(text, "rustc Host Triple: {}\n", self.rustc_host_triple)?;
+                    write!(text, "cargo Target Triple: {}\n", self.cargo_target_triple)?;
+                    write!(text, "cargo Profile: {}\n", self.cargo_profile)
+                }
+
+                fn license(&self, text: &mut String) {
+                    if let Some(license) = self.license_information.as_deref() {
+                        text.push_str(license);
+                    }
+                }
+            }
+        }
+    };
+}
+
+#[derive(clap::Args, Debug, Clone)]
+pub struct InfoArgs {
+    /// Print long version description and exit.
+    #[arg(short('V'), long, action=ArgAction::SetTrue, help = "Print version information")]
+    pub version: bool,
+    /// Print license information and exit.
+    #[arg(short, long, action=ArgAction::SetTrue, help = "Print license information")]
+    pub license: bool,
+}
+
+impl InfoArgs {
+    pub fn should_print(&self) -> bool {
+        self.version || self.license
+    }
+}
+
+/// Collects the information that can be used later to identify the version of this crate.
+///
+/// # Note
+///
+/// This should be used inside the build script of your crate.
+pub fn collect_build_information() -> anyhow::Result<()> {
+    let mut emitter = Emitter::default();
+    let builder = emitter
+        .add_instructions(&Cargo::all_cargo())
+        .context("Failed to add cargo instructions")?
+        .add_instructions(&Build::all_build())
+        .context("Failed to add builder variables")?
+        .add_instructions(&Rustc::all_rustc())
+        .context("Failed to add rustc variables")?;
+
+    if is_contained_in_git()? {
+        builder
+            .add_instructions(&Git2::all_git())
+            .context("Failed to add git variables")?;
+    }
+    builder.emit().context("Failed to emit")?;
+
+    Ok(())
+}
+
+/// Checks whether the current or one of the parent directories contains a `.git` entry.
+fn is_contained_in_git() -> anyhow::Result<bool> {
+    let current_dir = std::env::current_dir().context("Failed to get current dir")?;
+    let mut path = &*current_dir
+        .canonicalize()
+        .context("Failed to canonicalize path")?;
+    loop {
+        if path.join(".git").exists() {
+            return Ok(true);
+        }
+        let Some(parent) = path.parent() else {
+            println!("cargo::warning=No .git directory found");
+            return Ok(false);
+        };
+        path = parent;
+    }
+}

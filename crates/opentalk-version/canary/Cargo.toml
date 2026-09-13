@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+authors = ["OpenTalk GmbH <mail@opentalk.eu>"]
+description = "Makes sure the opentalk-version crate actually compiles"
+edition = "2021"
+homepage = "https://opentalk.eu/"
+license = "MIT OR Apache-2.0"
+name = "canary"
+publish = false
+repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-version"
+version = "0.0.0"
+
+[build-dependencies]
+anyhow = "1"
+opentalk-version.path = ".."
+
+[dependencies]
+opentalk-version.path = ".."
+
+[package.metadata.cargo-machete]
+ignored = ["anyhow"]

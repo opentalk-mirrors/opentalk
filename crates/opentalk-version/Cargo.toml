@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[workspace]
+members = [".", "canary"]
+
+[package]
+authors = ["OpenTalk GmbH <mail@opentalk.eu>"]
+description = "Collect a set of build information and make it available for printing."
+edition = "2021"
+homepage = "https://opentalk.eu/"
+license = "MIT OR Apache-2.0"
+name = "opentalk-version"
+publish = true
+repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-version"
+version = "0.4.1-dev"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4.5", features = ["derive"] }
+vergen = { version = "10.0", features = ["build", "cargo", "rustc"] }
+vergen-git2 = "10.0"
