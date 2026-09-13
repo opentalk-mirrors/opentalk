@@ -1,0 +1,19 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: https://git.opentalk.dev/opentalk/backend/recorder
+Upstream-Name: OpenTalk Controller
+Upstream-Contact: OpenTalk GmbH <mail@opentalk.eu>
+
+Files:
+ .commitlintrc.json
+ .gitlab/issue_templates/*.md
+ CHANGELOG.md
+ Cargo.lock
+ compositor/images/**.graphml
+ compositor/images/**.png
+ compositor/images/**.xcf
+ docs/**.md
+ images/**.png
+ renovate.json
+ .mdlrc
+Copyright: OpenTalk GmbH <mail@opentalk.eu>
+License: EUPL-1.2

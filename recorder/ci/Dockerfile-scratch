@@ -1,0 +1,66 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/gstreamer:1.26-intel AS builder
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates rustup \
+    build-essential pkg-config libglib2.0-dev \
+    # This is needed for the livekit crate in the compositor
+    libxext-dev libx11-dev libgl-dev libva-dev clang && \
+    rustup set auto-self-update disable && \
+    rustup install stable --profile minimal
+
+WORKDIR /recorder
+
+COPY ./Cargo.toml ./Cargo.toml
+COPY ./Cargo.lock ./Cargo.lock
+
+COPY ./opentalk-recorder ./opentalk-recorder
+COPY ./opentalk-recorder-web-api ./opentalk-recorder-web-api
+
+RUN cargo install cargo-auditable
+
+ENV CXX=clang++-21
+
+RUN cargo auditable build --release
+
+RUN chmod +x /recorder/target/release/opentalk-recorder
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/gstreamer:1.26-intel AS preparer
+
+RUN apt-get update && apt-get full-upgrade -y --no-install-recommends && \
+    apt-get install -y --no-install-recommends libssl3 \
+    intel-media-va-driver \
+    libopenh264-8 ca-certificates \
+    tzdata \
+    fonts-terminus ttf-bitstream-vera fonts-liberation fonts-noto \
+    libcap2-bin && \
+    # intel-gpu-tools pulls in fontconfig-config as a transitive dependency which brings a
+    # new configuration file for /etc/fonts/fonts.conf.
+    apt-get -o Dpkg::Options::="--force-confnew" install -y --no-install-recommends intel-gpu-tools && \
+    setcap cap_perfmon=+ep $(which intel_gpu_top) && fc-cache -fv
+
+RUN mkdir -m 1755 /my_tmp
+
+FROM scratch
+
+COPY --from=preparer /my_tmp /tmp
+COPY --from=preparer /lib64/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
+COPY --from=preparer /usr/bin/intel_gpu_top /usr/bin/intel_gpu_top
+COPY --from=preparer /usr/bin/ld.so /lib/ld.so
+COPY --from=preparer /usr/lib /usr/lib
+COPY --from=preparer /lib /lib
+COPY --from=preparer /etc/fonts/fonts.conf /etc/fonts/fonts.conf
+COPY --from=preparer /usr/bin/gst-inspect-1.0 /usr/bin/gst-inspect-1.0
+COPY --from=preparer /usr/libexec/gstreamer-1.0 /usr/libexec/gstreamer-1.0
+COPY --from=preparer /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+COPY --from=builder /recorder/target/release/opentalk-recorder /opentalk-recorder
+
+ENV LD_LIBRARY_PATH=/usr/lib:/lib
+ENV GST_DEBUG_DUMP_DOT_DIR=/tmp
+ENV PATH=/:/usr/bin/
+
+CMD [ "/opentalk-recorder" ]

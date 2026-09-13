@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+.idea
+.vscode
+/*.dot
+/*.dot.png
+/*.webm
+/target
+config.toml
+recorder.toml
+.DS_Store
+site
+.cache
+
+# gstreamer pipelines
+/pipelines

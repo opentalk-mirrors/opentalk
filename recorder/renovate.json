@@ -1,0 +1,27 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "reviewers": [
+    "@opentalk/tools/renovate-reviewers/media"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "glib",
+        "gstreamer-*",
+        "gstreamer"
+      ],
+      "groupName": "gstreamer-rs",
+      "groupSlug": "gstreamer-rs"
+    },
+    {
+      "matchPackageNames": [
+        "opentalk-*"
+      ],
+      "groupName": "opentalk",
+      "groupSlug": "opentalk"
+    }
+  ]
+}
