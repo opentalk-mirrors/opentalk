@@ -1,0 +1,76 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[workspace]
+members = ["orchestrator", "orchestrator-shared", "orchestrator-client"]
+resolver = "2"
+
+[workspace.package]
+authors = ["OpenTalk Team <mail@opentalk.eu>"]
+edition = "2024"
+homepage = "https://opentalk.eu/"
+repository = "https://gitlab.opencode.de/opentalk/orchestrator"
+version = "0.12.0"
+license = "EUPL-1.2"
+
+[workspace.dependencies]
+anyhow = "1.0"
+async-trait = "0.1"
+axum = { version = "0.8", features = ["http2", "ws"] }
+base64 = "0.23"
+bytes = "1.12"
+clap = { version = "4.6", features = ["derive"] }
+config = "0.15"
+dirs = "6.0"
+env = "1.0"
+futures-util = "0.3"
+jsonwebtoken = { version = "11", default-features = false }
+livekit-api = { version = "0.6.0", default-features = false, features = [
+  "access-token",
+] }
+log = "0.4"
+opentalk-orchestrator-shared = { path = "./orchestrator-shared", version = "0.15.0" }
+opentalk-recorder-web-api = "0.5.0"
+opentalk-roomserver-types = "0.10"
+opentalk-roomserver-web-api = "0.10"
+opentalk-service-auth = { version = "0.6.0", default-features = false }
+opentalk-transcription-web-api = { version = "0.7.0" }
+opentalk-types-api-common = "0.13.0"
+opentalk-types-api-internal = "0.7.0"
+opentalk-types-api-v1 = { version = "0.66.0", default-features = false, features = [
+  "http",
+] }
+opentalk-types-common = { version = "0.50.0", default-features = false, features = [
+  "serde",
+] }
+owo-colors = "4.3.0"
+redis = "1.2"
+redis-args = "0.22.1"
+reqwest = { version = "0.13", default-features = false, features = [
+  "json",
+  "rustls",
+] }
+rustls = { version = "0.23", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde_ignored = "0.1.14"
+serde_json = "1.0"
+serde_path_to_error = "0.1"
+service-probe = "0.4"
+service-probe-client = "0.4"
+testcontainers = "0.28"
+thiserror = "2.0"
+tokio = { version = "1.52", default-features = false }
+tokio-tungstenite = { version = "0.30", default-features = false, features = [
+  "rustls",
+] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tungstenite = { version = "0.30", default-features = false, features = [
+  "rustls",
+] }
+url = "2.5"
+uuid = { version = "1", features = ["v4"] }
+
+[workspace.lints.clippy]
+self_named_module_files = "deny"

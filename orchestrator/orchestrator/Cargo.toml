@@ -1,0 +1,70 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+name = "opentalk-orchestrator"
+description = "OpenTalk Orchestrator Service"
+version.workspace = true
+publish = false
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+anstream = "1.0.0"
+anyhow.workspace = true
+async-trait.workspace = true
+axum = { workspace = true, features = ["original-uri"] }
+base64.workspace = true
+bytes.workspace = true
+clap.workspace = true
+config.workspace = true
+dirs.workspace = true
+futures-util.workspace = true
+jsonwebtoken = { version = "11", features = ["aws_lc_rs"] }
+livekit-api.workspace = true
+opentalk-orchestrator-shared.workspace = true
+opentalk-recorder-web-api.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-roomserver-web-api.workspace = true
+opentalk-service-auth = { version = "0.6.0", features = ["axum", "default"] }
+opentalk-transcription-web-api.workspace = true
+opentalk-types-api-common = { workspace = true, features = ["http", "serde"] }
+opentalk-types-api-internal.workspace = true
+opentalk-types-common = { workspace = true, default-features = false, features = [
+  "serde",
+  "redis",
+] }
+owo-colors.workspace = true
+redis = { workspace = true, features = ["tokio-comp", "aio", "json"] }
+redis-args.workspace = true
+reqwest = { workspace = true, features = ["stream"] }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
+serde.workspace = true
+serde_ignored.workspace = true
+serde_json.workspace = true
+serde_path_to_error.workspace = true
+service-probe.workspace = true
+service-probe-client.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = [
+  "macros",
+  "rt-multi-thread",
+  "sync",
+  "signal",
+] }
+tokio-tungstenite = { workspace = true, features = ["stream", "connect"] }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+url.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+testcontainers.workspace = true
+
+
+[lints]
+workspace = true

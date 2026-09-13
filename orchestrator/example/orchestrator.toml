@@ -1,0 +1,94 @@
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+# SPDX-License-Identifier: EUPL-1.2
+
+#[logging]
+# Logging settings are optional and default to `warn,opentalk_orchestrator=info`
+
+# The logging directives to use. Uses the same syntax as the `RUST_LOG` environment variable.
+#directives = ["warn", "opentalk_orchestrator=info"]
+
+# The `ORCHESTRATOR_LOG` and `RUST_LOG` environment variables take precedence over this setting,
+# in that order.
+
+[http]
+# HTTP server settings
+
+# The IPv4/IPv6 address to bind the HTTP server to.
+# Binds to all interfaces by default:
+#address = "0.0.0.0"
+
+# All IPv6 interfaces:
+#address = "::"
+
+# Localhost only:
+#address = "127.0.0.1"
+#address = "::1"
+
+# The port to bind the HTTP server to (defaults to 11222)
+#port = 11222
+
+# The publicly reachable address of the orchestrator.
+#
+# Clients reach both the roomserver signaling and the livekit endpoints through this URL. The
+# orchestrator injects it as the signaling URL in roomserver token responses. The configured
+# livekit URL in the controller/roomserver needs to point to `<public_url>/livekit/`.
+#
+# When the orchestrator is served under a sub path, include that path here and terminate it with a
+# trailing slash, for example `https://example.com/orchestrator/`.
+public_url = "http://localhost:11222"
+
+# The api keys for requests towards the orchestrator
+#
+# When setting the api keys through the environment, a string notation ("<key_id>:<key_secret>") must be used:
+#
+# OT_ORCHESTRATOR_HTTP__API_KEYS="orchestrator:secret,another_key:secret2"
+#
+api_keys = [{ id = "orchestrator", secret = "secret" }]
+
+#[monitoring]
+# Monitoring settings are optional and disabled by default
+#
+# When enabled, the service probe endpoints /health and /ready are available under the configured monitoring address.
+# These endpoints can be used to monitor the health of the orchestrator.
+
+# The address of the monitoring endpoint (defaults to 0.0.0.0)
+#address = "0.0.0.0"
+# The port of the monitoring endpoint (defaults to 11221)
+#port = 11221
+
+[services]
+# Service settings
+
+# The api keys that will be used to authorize requests towards orchestrated services.
+#
+# IMPORTANT: if multiple orchestrators are used, the api keys must be the same for all orchestrators. Otherwise, services
+# will not be able to register at all orchestrators.
+#
+# When a service instance attempts to register at the orchestrator, the service needs to include its configured api key
+# ids in the registration request. A service can only be accepted when the orchestrator knows at least one of the api
+# keys that were sent by the service.
+#
+# When setting the api keys through the environment, a string notation ("<key_id>:<key_secret>") must be used:
+#
+# OT_ORCHESTRATOR_SERVICES__KEYS="roomserver:secret,recorder:secret2"
+#
+# A single key:
+keys = [{ id = "roomserver", secret = "secret" }]
+
+# Multiple keys:
+#keys = [
+#    { id = "roomserver", secret = "secret" },
+#    { id = "recorder", secret = "secret" },
+#    { id = "transcription", secret = "super_secret" },
+#]
+
+[storage]
+# The orchestrators storage configuration.
+
+# The kind of storage to use. Possible values:
+# local - use local storage (default)
+# redis - use a Redis instance (minimum redis version 7, needs to be RESP3 compatible)
+kind = "redis"
+
+# The url of the storage, only required when using `redis` as the storage kind
+url = "redis://localhost:6379"

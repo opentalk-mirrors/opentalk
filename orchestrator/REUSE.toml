@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+SPDX-PackageDownloadLocation = "https://git.opentalk.dev/opentalk/backend/services/orchestrator"
+SPDX-PackageName = "OpenTalk Orchestrator"
+SPDX-PackageSupplier = "OpenTalk Team <mail@opentalk.eu>"
+version = 1
+
+[[annotations]]
+SPDX-FileCopyrightText = ["OpenTalk Team <mail@opentalk.eu>"]
+SPDX-License-Identifier = "EUPL-1.2"
+path = [
+  "**/README.md",
+  ".commitlintrc.json",
+  "CHANGELOG.md",
+  "Cargo.lock",
+  "renovate.json",
+]
+precedence = "aggregate"

@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+name = "opentalk-orchestrator-client"
+description = "Client for orchestrated services"
+version = "0.15.0"
+publish = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[lib]
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+futures-util.workspace = true
+log.workspace = true
+opentalk-orchestrator-shared.workspace = true
+opentalk-service-auth.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = [
+  "macros",
+  "rt-multi-thread",
+  "sync",
+  "time",
+] }
+tokio-tungstenite = { workspace = true, features = ["connect", "handshake"] }
+url.workspace = true
+
+[build-dependencies]
+anyhow = "1"
+
+[lints]
+workspace = true
