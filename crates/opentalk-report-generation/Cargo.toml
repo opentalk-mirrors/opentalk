@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors = ["OpenTalk Team <mail@opentalk.eu>"]
+description = "OpenTalk report generation functionality"
+documentation = "https://docs.rs/opentalk-report-generation"
+edition = "2024"
+homepage = "https://opentalk.eu/"
+license = "EUPL-1.2"
+name = "opentalk-report-generation"
+publish = true
+repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-report-generation"
+version = "0.3.0"
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+ecow = "0.2.3"
+glob = "0.3.3"
+log = "0.4"
+serde = { version = "1", features = ["derive"] }
+snafu = "0.9"
+typst = "0.15.0"
+typst-kit = { version = "0.15.0", default-features = false, features = [
+  "embedded-fonts",
+] }
+typst-pdf = "0.15.0"
+
+[dev-dependencies]
+pretty_assertions = "1"
+serde_json = "1"
