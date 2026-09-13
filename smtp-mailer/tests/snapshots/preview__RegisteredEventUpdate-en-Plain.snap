@@ -1,0 +1,38 @@
+---
+source: tests/preview.rs
+assertion_line: 42
+expression: example_mail
+---
+OpenTalk Meeting was updated - This is a Preview Event
+
+Ernest Inviter updated an OpenTalk Meeting. You can view this invite in OpenTalk. https://opentalk.example.org/dashboard/meetings/7dfb7d8d-fb57-49ba-aacc-a76b8d390000
+
+Meeting Information
+Title: This is a Preview Event
+Details: This event is a dummy event, and you should have got this invite as a registered user. You can safely ignore this description
+Time: 10.10.2024 15:30-16:10
+
+Link to Meeting: https://opentalk.example.org/room/7dfb7d8d-fb57-49ba-aacc-a76b8d390001
+Participate via Phone:
+You can use your phone to participate in this meeting.
+
+Just dial in the following number and enter the given conference ID and conference PIN, or click the Quick-Dial number on your phone.
+
+Number: +49 30 405051330
+Conference ID: 1234 5678 90
+Conference PIN: 1234 5678 90
+Quick-Dial: +4930405051330,,1234567890,,1234567890
+
+Shared Folder: https://www.example.org/read
+Folder Password: ReadSecret
+
+This is a public meeting, the links to the livestreams:
+streaming service 1: https://example.com/4385f873-6077-4d2c-8b46-dbec62029ac6
+streaming service 2: https://example.com/f544bef8-aa33-475b-8664-fa17c5ca7f83
+
+
+New to OpenTalk? Read our quick guide here: https://opentalk.eu/en/quick-manual
+
+Note for data protection: The protection of your data is important to us. Personal data can also
+be exchanged when using the video conference solution. For more information on how we handle your
+personal data, please visit https://opentalk.example.org/dataprotection.

@@ -1,0 +1,38 @@
+<div id="details" class="details">
+    <h2>{{ fluent(key="meeting-information", lang = language) }}</h2>
+    <p>
+        {# Mixing html with i18n is always hard. This could be improved here #}
+        <b>{{ fluent(key="meeting-information-title", lang = language) }}:</b> {{ event.name}}
+        <br />
+        {% if event.description -%}
+        <b>{{ fluent(key="meeting-information-details", lang = language) }}:</b> {{ event.description}}
+        <br />
+        {% endif -%}
+
+        {# fluent-rs currently does not support the datetime stuff. So we hardcode the european format here#}
+        {# This should have more logic to allow for 24h+ events #}
+
+        {% if event.start_time -%}
+            {% if event.end_time -%}
+                <b>{{ fluent(key="meeting-information-when", lang = language) }}:</b> {{ event.start_time.time | date(timezone = event.start_time.timezone, format="%d.%m.%Y %H:%M")}}-{{ event.end_time.time | date(timezone = event.end_time.timezone, format="%H:%M")}}
+            {%else -%}
+                <b>{{ fluent(key="meeting-information-when", lang = language) }}:</b> {{ event.start_time.time | date(timezone = event.start_time.timezone, format="%d.%m.%Y %H:%M")}}
+            {% endif -%}
+            <br />
+        {% endif %}
+        <b>{{ fluent(key="meeting-information-link", lang = language) }}:</b> {{<link fluent_key="join-directly-link" lang={language} href={join_link}/>}}
+        {% if event.adhoc_retention_seconds -%}
+            {% include "adhoc_html.include" %}
+        {% endif %}
+    </p>
+    {% include "callin_html.include" %}
+    {% include "shared_folder_html.include" %}
+    {% include "streaming_links_html.include" %}
+
+    {% if support -%}
+    <h2 class="margin-top-40">{{fluent(key="questions", lang = language)}}</h2>
+    <p>
+        {{fluent(key="questions.p", lang = language, phone=support.phone | format_telephone_number(mode = "international"), mail=support.mail)}}
+    </p>
+    {% endif %}
+</div>

@@ -1,0 +1,3 @@
+                    <div>
+                        {{ fluent(key="quick-guide-hint-html", lang = language) | safe }}
+                    </div>

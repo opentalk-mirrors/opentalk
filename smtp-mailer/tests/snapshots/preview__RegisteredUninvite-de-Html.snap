@@ -1,0 +1,110 @@
+---
+source: tests/preview.rs
+assertion_line: 42
+expression: example_mail
+---
+<!DOCTYPE html><html xml:lang="de-DE" lang="de-DE" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" style="margin: 0;padding: 0;font-family: 'OpenTalk', Arial;font-weight: 400;color-scheme: light dark;supported-color-schemes: light dark"><head>
+        <!--[if !mso]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta charset="UTF-8">
+        
+    </head>
+    <body style="margin: 0;padding: 0;font-family: 'OpenTalk', Arial;font-weight: 400;">
+        <div class="wrapper" style="background-color: white;padding: 0.5rem;color: #20434F;margin: 1.25rem auto;">
+            <div class="header-logo" id="header" style="text-align: center;margin: 3.125rem 0 1.875rem 0;">
+                <img src="cid:opentalk-logo" alt="logo">
+
+            </div>
+
+            <div class="meeting-description" id="cta" style="overflow: hidden;text-align: center;background: #F1F3F4;padding: 2.5rem;">
+                <h2 style="margin: 0;padding: 0;font-size: 2.063rem;">Einladung zum OpenTalk-Meeting wurde zurückgezogen - This is a Preview Event</h2>
+                <p style="line-height: 1.5;font-weight: 600;">
+                Ernest Inviter hat sie von einem OpenTalk-Meeting entfernt.
+                </p>
+            </div>
+
+            <div class="details" id="details" style="margin: 2.5rem;text-align: center;line-height: 1.5;">
+    <h2 style="padding: 0;font-size: 1.375rem;font-weight: 600;">Meeting-Information</h2>
+    <p>
+        
+        <b>Titel:</b> This is a Preview Event
+        <br>
+        <b>Details:</b> This event is a dummy event, and you should have got this invite as a registered user. You can safely ignore this description
+        <br>
+        
+        
+
+        <b>Uhrzeit:</b> 10.10.2024 15:30-16:10
+            <br>
+        
+        <b>Link zum Meeting:</b> <a class="" href="https://opentalk.example.org/room/7dfb7d8d-fb57-49ba-aacc-a76b8d390001" target="_blank" alt="Klicken um zu öffnen" style="color: #1573E6;">
+        Öffne den Raum in einem neuen Tab/Fenster
+        </a>
+
+        
+    </p>
+                    <h2 class="margin-top-40" style="margin-top: 2.5rem;padding: 0;font-size: 1.375rem;font-weight: 600;">Beitritt via Telefon</h2>
+                    <p>
+                        <b>Sie können Ihr Telefon verwenden um diesem Meeting beizutreten.</b><br>
+                        Einfach die unten angegebene Nummer wählen und Konferenzkennung sowie Konferenz-PIN angeben. Alternativ direkt mit dem Mobiltelefon auf die Schnelleinwahl klicken und direkt loslegen.
+                    </p>
+                    <div>
+                        <b>Telefonnummer:</b> +49 30 405051330
+                    </div>
+                    <div>
+                        <b>Konferenzkennung:</b> 1234 5678 90
+                    </div>
+                    <div>
+                        <b>Konferenz-PIN:</b> 1234 5678 90
+                    </div>
+
+                    
+                    
+
+                    
+                    
+                    <div>
+                        <b>Schnelleinwahl:</b> <a href="tel:+49-30-405051330,,1234567890,,1234567890" style="color: #1573E6;">+4930405051330,,1234567890,,1234567890</a>
+                    </div>
+                
+
+                    <div class="margin-top-40" style="margin-top: 2.5rem;">
+                        <b>Geteilter Ordner:</b> <a href="https://www.example.org/read" style="color: #1573E6;">https://www.example.org/read</a>
+                    </div>
+                    <div>
+                        <b>Ordnerpasswort:</b> ReadSecret
+                    </div>
+                
+
+                    <div class="margin-top-40" style="margin-top: 2.5rem;">
+                    Dies ist eine öffentliche Sitzung, die Links zu den Livestreams:
+                    streaming service 1: https://example.com/4385f873-6077-4d2c-8b46-dbec62029ac6<br>
+                    streaming service 2: https://example.com/f544bef8-aa33-475b-8664-fa17c5ca7f83<br>
+                    </div>
+                
+
+    
+</div>
+
+            <div class="footer" id="footer" style="text-align: center;background: #F1F3F4;padding: 2.5rem;line-height: 1.5;">
+                <p>
+                    Sollten die Buttons oder Links nicht funktionieren, können Sie die folgenden URLs in ihrem Browser eingeben:<br>
+                    Meeting beitreten: https://opentalk.example.org/room/7dfb7d8d-fb57-49ba-aacc-a76b8d390001<br>
+                </p>
+            </div>
+            <div class="quick_guide" style="margin-top: 1rem;padding-left: 2.5rem;padding-right: 2.5rem;line-height: 1.5;">
+                                    <div>
+                        Neu bei OpenTalk? Eine Kurzanleitung finden Sie hier: <a href="https://opentalk.eu/de/kurzanleitung">https://opentalk.eu/de/kurzanleitung</a>
+                    </div>
+
+            </div>
+            <div class="data_protection" style="margin-top: 1rem;padding-left: 2.5rem;padding-right: 2.5rem;line-height: 1.5;">
+                                    <div>
+                        Hinweis zum Datenschutz: Uns ist der Schutz Ihrer Daten besonders wichtig. Auch bei der Verwendung der Videokonferenzlösung können personenbezogene Daten ausgetauscht werden. Erfahren Sie mehr zum Umgang mit Ihren Daten auf unserer Internetseite unter <a href="https://opentalk.example.org/dataprotection">https://opentalk.example.org/dataprotection</a>.
+                    </div>
+
+            </div>
+        </div>
+    
+
+</body></html>

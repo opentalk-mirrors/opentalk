@@ -1,0 +1,22 @@
+{{ event.description }}
+
+{% if meeting_link -%}
+{{ fluent(key="meeting-information-link", lang = language) }}: {{ meeting_link }}
+{% endif -%}
+{% if event.room.password -%}
+{{ fluent(key="meeting-information-password", lang = language) }}: {{ event.room.password}}
+{% endif -%}
+{% if event.call_in %}
+{{ fluent(key="call-in-header", lang = language) }}:
+
+{{ fluent(key="call-in-number", lang = language) }}: {{ event.call_in.sip_tel | format_telephone_number(mode = "international") }}
+{{ fluent(key="call-in-id", lang = language) }}: {{ event.call_in.sip_id | space_groups }}
+{{ fluent(key="call-in-pw", lang = language) }}: {{ event.call_in.sip_password | space_groups }}
+{%- set e164 =  event.call_in.sip_tel | format_telephone_number(mode = "e164") -%}
+{% set quick_dial = e164 ~ ",," ~ event.call_in.sip_id ~ ",," ~ event.call_in.sip_password %}
+{{ fluent(key="call-in-quick-dial", lang = language) }}: {{ quick_dial }}
+{% endif %}
+{% include "shared_folder_txt.include" -%}
+{% include "streaming_links_txt.include" %}
+
+{% include "data_protection_ics.include" -%}

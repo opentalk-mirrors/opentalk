@@ -1,0 +1,2 @@
+
+{{ fluent(key="data-protection-hint", lang = language, link = data_protection_url) | wrap_text(width=100) }}.

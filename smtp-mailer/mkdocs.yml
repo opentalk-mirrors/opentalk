@@ -1,0 +1,84 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+
+site_name: OpenTalk SMTP-Mailer Documentation
+docs_dir: docs
+use_directory_urls: true
+theme:
+  name: material
+  language: en
+  palette:
+    # palette toggle for automatic mode
+    - media: (prefers-color-scheme)
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to bright mode
+
+    # palette toggle for light mode
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # palette toggle for dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to auto mode
+  features:
+    - navigation.indexes
+    - navigation.prune
+    - navigation.tabs
+    - navigation.expand
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.blocks.caption
+  - footnotes
+  - meta
+plugins:
+  - offline:
+      enabled: !ENV [OFFLINE, true]
+  - privacy
+  - literate-nav:
+      nav_file: navigation.md
+      implicit_index: true
+  - search
+  - macros
+exclude_docs: |
+  navigation.md
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn
+extra:
+  product_name: OpenTalk

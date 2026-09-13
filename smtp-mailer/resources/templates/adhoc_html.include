@@ -1,0 +1,11 @@
+                    <div>
+                        {% if event.adhoc_retention_seconds < 3600 %}
+                        {% set retention_minutes = event.adhoc_retention_seconds / 60 %}
+                        {% set retention_minutes_floored = retention_minutes | round(method="floor") %}
+                        {{ fluent(key="adhoc-meeting-info-minutes", lang = language, retentiontime = retention_minutes_floored) }}
+                        {% else %}
+                        {% set retention_hours = event.adhoc_retention_seconds / 60 / 60 %}
+                        {% set retention_hours_floored = retention_hours | round(method="floor") %}
+                        {{ fluent(key="adhoc-meeting-info-hours", lang = language, retentiontime = retention_hours_floored) }}
+                        {% endif %}
+                    </div>

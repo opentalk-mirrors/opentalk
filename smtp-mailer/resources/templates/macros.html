@@ -1,0 +1,13 @@
+{# Maybe add a button macro using this https://www.litmus.com/blog/a-guide-to-bulletproof-buttons-in-email-design/ #}
+{% component link(fluent_key, lang, href, additional=false, class="") -%}
+    {% set alt_fluent_key = fluent_key ~ ".alt" -%}
+    {% set alt_text =  fluent(key = alt_fluent_key, lang=lang, href=href) -%}
+
+    <a href="{{href}}" target="_blank" class="{{ class }}" alt="{{ alt_text }}">
+        {% if additional == false -%}
+            {{ fluent(key=fluent_key, lang=lang, href=href) }}
+        {% else -%}
+            {{ fluent(key=fluent_key, lang=lang, href=href, additional=additional) }}
+        {% endif -%}
+    </a>
+{% endcomponent link -%}

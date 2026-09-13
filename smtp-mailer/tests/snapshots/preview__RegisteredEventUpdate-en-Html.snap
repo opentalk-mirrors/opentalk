@@ -1,0 +1,117 @@
+---
+source: tests/preview.rs
+assertion_line: 42
+expression: example_mail
+---
+<!DOCTYPE html><html xml:lang="en-US" lang="en-US" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" style="margin: 0;padding: 0;font-family: 'OpenTalk', Arial;font-weight: 400;color-scheme: light dark;supported-color-schemes: light dark"><head>
+        <!--[if !mso]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta charset="UTF-8">
+        
+    </head>
+    <body style="margin: 0;padding: 0;font-family: 'OpenTalk', Arial;font-weight: 400;">
+        <div class="wrapper" style="background-color: white;padding: 0.5rem;color: #20434F;margin: 1.25rem auto;">
+            <div class="header-logo" id="header" style="text-align: center;margin: 3.125rem 0 1.875rem 0;">
+                <img src="cid:opentalk-logo" alt="logo">
+
+            </div>
+
+            <div class="meeting-description" id="cta" style="overflow: hidden;text-align: center;background: #F1F3F4;padding: 2.5rem;">
+                <h2 style="margin: 0;padding: 0;font-size: 2.063rem;">OpenTalk Meeting was updated - This is a Preview Event</h2>
+                <p style="line-height: 1.5;font-weight: 600;">
+                Ernest Inviter updated an OpenTalk Meeting. You can view this invite in OpenTalk.
+                <br>
+                
+                <a class="btn" href="https://opentalk.example.org/dashboard/meetings/7dfb7d8d-fb57-49ba-aacc-a76b8d390000" target="_blank" alt="Click to view in dashboard" style="background: #D1E545;-webkit-border-radius: 28;-moz-border-radius: 28;border-radius: 1.75rem;font-weight: 600;color: #193A47;font-size: 0.875rem;padding: 0.625rem 0.938rem;text-decoration: none;margin-top: 1.25rem;display: inline-block;">
+        View Invitation
+        </a>
+
+                </p>
+            </div>
+
+            <div class="details" id="details" style="margin: 2.5rem;text-align: center;line-height: 1.5;">
+    <h2 style="padding: 0;font-size: 1.375rem;font-weight: 600;">Meeting Information</h2>
+    <p>
+        
+        <b>Title:</b> This is a Preview Event
+        <br>
+        <b>Details:</b> This event is a dummy event, and you should have got this invite as a registered user. You can safely ignore this description
+        <br>
+        
+        
+
+        <b>Time:</b> 10.10.2024 15:30-16:10
+            <br>
+        
+        <b>Link to Meeting:</b> <a class="" href="https://opentalk.example.org/room/7dfb7d8d-fb57-49ba-aacc-a76b8d390001" target="_blank" alt="Click to open" style="color: #1573E6;">
+        Open the conference room in new tab/window
+        </a>
+
+        
+    </p>
+                    <h2 class="margin-top-40" style="margin-top: 2.5rem;padding: 0;font-size: 1.375rem;font-weight: 600;">Participate via Phone</h2>
+                    <p>
+                        <b>You can use your phone to participate in this meeting.</b><br>
+                        Just dial in the following number and enter the given conference ID and conference PIN, or click the Quick-Dial number on your phone.
+                    </p>
+                    <div>
+                        <b>Number:</b> +49 30 405051330
+                    </div>
+                    <div>
+                        <b>Conference ID:</b> 1234 5678 90
+                    </div>
+                    <div>
+                        <b>Conference PIN:</b> 1234 5678 90
+                    </div>
+
+                    
+                    
+
+                    
+                    
+                    <div>
+                        <b>Quick-Dial:</b> <a href="tel:+49-30-405051330,,1234567890,,1234567890" style="color: #1573E6;">+4930405051330,,1234567890,,1234567890</a>
+                    </div>
+                
+
+                    <div class="margin-top-40" style="margin-top: 2.5rem;">
+                        <b>Shared Folder:</b> <a href="https://www.example.org/read" style="color: #1573E6;">https://www.example.org/read</a>
+                    </div>
+                    <div>
+                        <b>Folder Password:</b> ReadSecret
+                    </div>
+                
+
+                    <div class="margin-top-40" style="margin-top: 2.5rem;">
+                    This is a public meeting, the links to the livestreams:
+                    streaming service 1: https://example.com/4385f873-6077-4d2c-8b46-dbec62029ac6<br>
+                    streaming service 2: https://example.com/f544bef8-aa33-475b-8664-fa17c5ca7f83<br>
+                    </div>
+                
+
+    
+</div>
+
+            <div class="footer" id="footer" style="text-align: center;background: #F1F3F4;padding: 2.5rem;line-height: 1.5;">
+                <p>
+                    If the buttons or links don’t work open your browser and type in the following links:<br>
+                    Join Meeting: https://opentalk.example.org/room/7dfb7d8d-fb57-49ba-aacc-a76b8d390001<br>
+                    Meeting Details: https://opentalk.example.org/dashboard/meetings/7dfb7d8d-fb57-49ba-aacc-a76b8d390000
+                </p>
+            </div>
+            <div class="quick_guide" style="margin-top: 1rem;padding-left: 2.5rem;padding-right: 2.5rem;line-height: 1.5;">
+                                    <div>
+                        New to OpenTalk? Read our quick guide here: <a href="https://opentalk.eu/en/quick-manual">https://opentalk.eu/en/quick-manual</a>
+                    </div>
+
+            </div>
+            <div class="data_protection" style="margin-top: 1rem;padding-left: 2.5rem;padding-right: 2.5rem;line-height: 1.5;">
+                                    <div>
+                        Note for data protection: The protection of your data is important to us. Personal data can also be exchanged when using the video conference solution. For more information on how we handle your personal data, please visit <a href="https://opentalk.example.org/dataprotection">https://opentalk.example.org/dataprotection</a>.
+                    </div>
+
+            </div>
+        </div>
+    
+
+</body></html>

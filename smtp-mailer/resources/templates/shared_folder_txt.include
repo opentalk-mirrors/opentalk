@@ -1,0 +1,4 @@
+{% if event.shared_folder -%}
+{{ fluent(key="shared-folder", lang = language) }}: {{ event.shared_folder.read.url }}
+{{ fluent(key="shared-folder-password", lang = language) }}: {{ event.shared_folder.read.password }}
+{% endif %}

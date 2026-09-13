@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+SPDX-PackageDownloadLocation = "https://git.opentalk.dev/opentalk/smtp-mailer"
+SPDX-PackageName = "OpenTalk SMTP Mailer"
+SPDX-PackageSupplier = "OpenTalk GmbH <mail@opentalk.eu>"
+version = 1
+
+[[annotations]]
+SPDX-FileCopyrightText = "OpenTalk GmbH <mail@opentalk.eu>"
+SPDX-License-Identifier = "EUPL-1.2"
+path = [
+  ".commitlintrc.json",
+  "CHANGELOG.md",
+  "Cargo.lock",
+  "config.toml.example",
+  "docs/**.md",
+  "renovate.json",
+  "resources/locales/**/**.ftl",
+  "resources/templates/**.css",
+  "resources/templates/**.html",
+  "resources/templates/**.include",
+  "resources/templates/**.txt",
+  "resources/templates/README.md",
+  "tests/snapshots/**",
+]
+precedence = "aggregate"
+
+[[annotations]]
+SPDX-FileCopyrightText = "OpenTalk GmbH <mail@opentalk.eu>"
+SPDX-License-Identifier = "CC-BY-NC-ND-4.0"
+path = ["resources/images/**.png"]
+precedence = "aggregate"

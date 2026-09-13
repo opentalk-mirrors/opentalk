@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# The will_not_fix flag should be fixed with the update to Debian Trixie
+# and can currently be ignored as older versions are not affected (https://security-tracker.debian.org/tracker/CVE-2023-45853)
+CVE-2023-45853
+
+# > It was discovered that dpkg-deb does not properly sanitize directory
+# > permissions when extracting a control member into a temporary directory,
+# > which is documented as being a safe operation even on untrusted data. This
+# > may result in leaving temporary files behind on cleanup. Given automated
+# > and repeated execution of dpkg-deb commands on adversarial .deb packages
+# > or with well compressible files, placed inside a directory with permissions
+# > not allowing removal by a non-root user, this can end up in a DoS scenario
+# > due to causing disk quota exhaustion or disk full conditions.
+#
+# This requires dpkg-deb to be executed which does not happen inside the
+# container after it was built. During build, it happens only for upstream
+# packages supplied by Debian, which we consider trustworthy.
+#
+# Has not been fixed for Bookworm for now, allowlisting.
+CVE-2025-6297

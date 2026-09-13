@@ -1,0 +1,240 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+---
+spec:
+  inputs:
+    release_version:
+      description: |
+        Version number, e.g. `1.2.3`. Must be in format `<major>.<minor>.<patch>`.
+        Keep at `0.0.0` unless you're in the process of creating a release.
+      type: string
+      regex: ^([0]|([1-9]\d*))\.([0]|([1-9]\d*))\.([0]|([1-9]\d*))$
+      default: 0.0.0
+    release_issue:
+      description: |
+        The number of an issue which should be closed by a release MR created by this pipeline.
+        Keep empty or unset unless you're in the process of creating a release.
+      type: string
+      regex: ^\d*$
+      default: ''
+---
+image:
+  name: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98.0-trixie
+  pull_policy: if-not-present
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  SKOPEO_IMAGE: quay.io/skopeo/stable:v1
+  DEFAULT_FLAVOR: trixie
+
+.template_vars:
+  FLAVORS: [trixie, noble, scratch]
+
+stages:
+  - lint
+  - check
+  - test
+  - build
+  - package
+  - trigger
+  - release
+
+.default_job_condition: &default_job_condition
+  needs: []
+  rules:
+    # Run in merge requests (if there is one job with this instruction, all jobs without
+    # it are ignored for the MR pipeline)
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    # Run on scheduled pipeline runs
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+
+include:
+  - project: opentalk/ci/templates/collect-commit-evidence
+    ref: v2
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/common-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/rust-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/rust-container-build
+    ref: v1
+    file: .gitlab-ci-template.yml
+    inputs:
+      dockerfile_dir: $CI_PROJECT_DIR/container
+  - project: opentalk/ci/templates/release-creation
+    inputs:
+      version: $[[ inputs.release_version ]]
+      issue: $[[ inputs.release_issue]]
+    ref: v1
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/changelog
+    ref: v2
+    file: .gitlab-ci-template.yml
+
+trigger-docs:
+  needs: []
+  stage: trigger
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAME !~ /^.*canary$/ || $CI_COMMIT_TAG =~ /^v.*$/
+  trigger:
+    project: opentalk/backend/docs
+
+check:docs-generated-parts:
+  stage: check
+  image:
+    name: git.opentalk.dev:5050/opentalk/tools/opentalk-ci-doc-updater:v0.2.0
+    entrypoint: ['']
+    pull_policy: if-not-present
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  before_script:
+    - apt-get update && apt-get install -y git
+  script:
+    - ci/docs-update-generated-parts.sh
+    - |
+      if ! git diff --exit-code; then
+        echo "Generated parts of documentation changed, run ci/docs-update-generated-parts.sh and commit the result"
+        exit 1
+      fi
+
+test:cargo_test:
+  stage: test
+  <<: *default_job_condition
+  before_script:
+    - rustup component add rustfmt
+  script:
+    - cargo test --workspace --locked
+
+build:docs:
+  stage: build
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
+    pull_policy: if-not-present
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  artifacts:
+    paths:
+      - site/
+  script:
+    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+
+package:read-tags:
+  stage: package
+  needs: []
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+  image:
+    name: alpine/git
+    entrypoint: ['']
+    pull_policy: if-not-present
+  artifacts:
+    reports:
+      dotenv: package.env
+  script:
+    - git fetch --tags
+    - TAGS=$(git tag --list | grep "^v[[:digit:]]\+\.[[:digit:]]\+\.[[:digit:]]\+$" | sort -V)
+    - TAGS=$(echo "$TAGS" | sort -V | head -n -1 | tr "\n" " ")
+    - echo "TAGS=$TAGS" > package.env
+
+package:mailer-container-create-and-push-tags:
+  parallel:
+    matrix:
+      - FLAVOR: !reference [.template_vars, FLAVORS]
+  stage: package
+  needs:
+    - job: package:read-tags
+      optional: true
+    - job: package:container-build
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        - .trivyignore-*
+        - Dockerfile-*
+  image:
+    name: $SKOPEO_IMAGE
+    entrypoint: ['']
+    pull_policy: if-not-present
+  script:
+    - TAGS_TO_PUSH=$(./ci/create-container-tags.sh "${CI_COMMIT_TAG:-main}" "$TAGS" "$FLAVOR" "$DEFAULT_FLAVOR")
+    - |
+      for tag in $TAGS_TO_PUSH; do
+        skopeo copy \
+        --src-creds="${CI_REGISTRY_USER}":"${CI_REGISTRY_PASSWORD}" \
+        --dest-creds="${CI_REGISTRY_USER}":"${CI_REGISTRY_PASSWORD}" \
+        "docker://${CI_REGISTRY_IMAGE}:$FLAVOR-${CI_COMMIT_SHA:0:8}" "docker://${CI_REGISTRY_IMAGE}:$tag"
+      done
+    - echo "TAGS_$FLAVOR=$TAGS_TO_PUSH" > package.env
+  artifacts:
+    reports:
+      dotenv: package.env
+
+push-and-sign-images-to-harbor:
+  parallel:
+    matrix:
+      - FLAVOR: !reference [.template_vars, FLAVORS]
+  needs:
+    - package:mailer-container-create-and-push-tags
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+  stage: package
+  variables:
+    PIPELINE_FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE
+    PIPELINE_NAMESPACE_SUFFIX: smtp-mailer
+    PIPELINE_TAGS_ENV_NAME: TAGS_$FLAVOR
+  trigger:
+    project: opentalk/opentalk-devops/push-and-sign-images-for-the-opentalk-namespace
+    strategy: depend
+    forward:
+      pipeline_variables: true
+
+read-trivy-ignore-file:
+  parallel:
+    matrix:
+      - FLAVOR: !reference [.template_vars, FLAVORS]
+  stage: package
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+  script:
+    - echo "TRIVY_IGNORE_STR_$FLAVOR=$(
+         cat $CI_PROJECT_DIR/.trivyignore-$FLAVOR | sed -n 'H;${x;s/^\n//;s/\n/\\n/g;p}'
+      )"  > package.env
+  artifacts:
+    reports:
+      dotenv: package.env
+
+container-scanning:
+  parallel:
+    matrix:
+      - FLAVOR: !reference [.template_vars, FLAVORS]
+  needs:
+    - package:container-build
+    - read-trivy-ignore-file
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+  stage: package
+  variables:
+    PIPELINE_FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE:latest-$FLAVOR
+    PIPELINE_PROJECT_WITH_NAMESPACE: $CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME
+    PIPELINE_ADDITIONAL_LABELS: team::conference management
+    PIPELINE_TRIVY_IGNORE_FILE_STR_VAR: TRIVY_IGNORE_STR_${FLAVOR}
+  trigger:
+    project: opentalk/opentalk-devops/scan-container
+    strategy: depend
+    forward:
+      pipeline_variables: true

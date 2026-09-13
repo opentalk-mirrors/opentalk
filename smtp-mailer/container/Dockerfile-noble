@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.96.0-bookworm AS builder
+
+ARG GIT_SHA
+ARG GIT_REF
+ARG VERGEN_GIT_SHA=$GIT_SHA
+ARG VERGEN_GIT_BRANCH=$GIT_REF
+
+RUN mkdir /smtp-mailer
+WORKDIR /smtp-mailer
+
+COPY ./build.rs .
+COPY ./src ./src
+COPY ./Cargo.* .
+COPY ./resources ./resources
+
+RUN cargo auditable build --release --locked --package opentalk-smtp-mailer
+
+FROM ubuntu:resolute
+
+RUN apt-get update && \
+    apt-get full-upgrade -y && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/smtp-mailer
+
+COPY --from=builder /smtp-mailer/target/release/opentalk-smtp-mailer .
+COPY ./resources ./resources
+
+ENV USERID=1000
+ENV GROUPID=1000
+USER $USERID:$GROUPID
+
+CMD ["/opt/smtp-mailer/opentalk-smtp-mailer"]

@@ -1,0 +1,8 @@
+                {% if event.shared_folder -%}
+                    <div class="margin-top-40">
+                        <b>{{ fluent(key="shared-folder", lang = language) }}:</b> <a href="{{ event.shared_folder.read.url }}">{{ event.shared_folder.read.url }}</a>
+                    </div>
+                    <div>
+                        <b>{{ fluent(key="shared-folder-password", lang = language) }}:</b> {{ event.shared_folder.read.password }}
+                    </div>
+                {% endif %}

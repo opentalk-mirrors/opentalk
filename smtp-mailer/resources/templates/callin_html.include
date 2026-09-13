@@ -1,0 +1,25 @@
+                {% if event.call_in -%}
+                    <h2 class="margin-top-40">{{ fluent(key="call-in-header", lang = language) }}</h2>
+                    <p>
+                        <b>{{ fluent(key="call-in-hint", lang = language) }}</b><br/>
+                        {{ fluent(key="call-in-desc", lang = language) }}
+                    </p>
+                    <div>
+                        <b>{{ fluent(key="call-in-number", lang = language) }}:</b> {{ event.call_in.sip_tel | format_telephone_number(mode = "international") }}
+                    </div>
+                    <div>
+                        <b>{{ fluent(key="call-in-id", lang = language) }}:</b> {{ event.call_in.sip_id | space_groups }}
+                    </div>
+                    <div>
+                        <b>{{ fluent(key="call-in-pw", lang = language) }}:</b> {{ event.call_in.sip_password | space_groups }}
+                    </div>
+
+                    {% set e164 =  event.call_in.sip_tel | format_telephone_number(mode = "e164") %}
+                    {% set quick_dial = e164 ~ ",," ~ event.call_in.sip_id ~ ",," ~ event.call_in.sip_password %}
+
+                    {% set rfc3966 =  event.call_in.sip_tel | format_telephone_number(mode = "rfc3966") %}
+                    {% set quick_dial_href = rfc3966 ~ ",," ~ event.call_in.sip_id ~ ",," ~ event.call_in.sip_password %}
+                    <div>
+                        <b>{{ fluent(key="call-in-quick-dial", lang = language) }}:</b> <a href="{{ quick_dial_href }}">{{ quick_dial }}</a>
+                    </div>
+                {% endif %}

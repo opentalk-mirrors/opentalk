@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+build = "build.rs"
+default-run = "opentalk-smtp-mailer"
+description = "Mail Worker that takes mail send tasks from a queue, renders them, and sends them out via SMTP"
+edition = "2024"
+name = "opentalk-smtp-mailer"
+publish = false
+version = "0.20.0-alpha"
+
+[dependencies]
+anyhow = "1.0.57"
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+clap = { version = "4.5", features = ["derive"] }
+config = { version = "0.15", default-features = false, features = ["toml"] }
+css-inline = "0.21.0"
+dirs = "6"
+env_logger = "0.11"
+fluent-langneg = "0.14.2"
+fluent-templates = { version = "0.15.0", features = ["tera"] }
+futures = "0.3.21"
+ics = "0.5"
+ics-chrono-tz = "0.4"
+icu_locid = "1"
+itertools = "0.15"
+lapin = { version = "3.7.2", default-features = false }
+lettre = { version = "0.11.0", default-features = false, features = [
+  "builder",
+  "hostname",
+  "mime03",
+  "smtp-transport",
+  "tokio1",
+  "tokio1-rustls-tls",
+] }
+log = "0.4.17"
+opentalk-mail-worker-protocol = "0.50.0"
+opentalk-types-common = { version = "0.50.0", features = ["serde"] }
+opentalk-version = "0.4.0"
+percent-encoding = "2.1"
+phonenumber = "0.3"
+serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0.81"
+serde_path_to_error = "0.1.4"
+service-probe = "0.4.0"
+service-probe-client = "0.4.0"
+tera = { version = "2.0.0" }
+tera-contrib = { version = "0.3.0", default-features = false, features = [
+  "date",
+] }
+textwrap = "0.16.0"
+tokio = { version = "1.18.2", default-features = false, features = [
+  "macros",
+  "rt-multi-thread",
+  "signal",
+] }
+tokio-executor-trait = "2"
+tokio-reactor-trait = "4"
+url = { version = "2.2.2", features = ["serde"] }
+uuid = { version = "1", features = ["serde", "v4"] }
+
+mime = "0.3.17"
+serde_ignored = "0.1"
+
+[dev-dependencies]
+insta = "1.40.0"
+rstest = "0.27.0"
+serial_test = "4"
+
+[build-dependencies]
+opentalk-version = "0.4.0"
+snafu = "0.9.0"
+
+[package.metadata.cargo-machete]
+ignored = ["snafu"]

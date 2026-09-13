@@ -1,0 +1,8 @@
+                {% if event.streaming_targets -%}
+                    <div class="margin-top-40">
+                    {{ fluent(key="streaming-header", lang = language, numberstreams = event.streaming_targets | length ) }}
+                    {% for stream in event.streaming_targets -%}
+                    {{ stream.name }}: {{ stream.public_url }}<br />
+                    {% endfor -%}
+                    </div>
+                {% endif -%}

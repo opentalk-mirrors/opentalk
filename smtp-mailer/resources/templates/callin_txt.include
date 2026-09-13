@@ -1,0 +1,13 @@
+{% if event.call_in -%}
+{{ fluent(key="call-in-header", lang = language) }}:
+{{ fluent(key="call-in-hint", lang = language) }}
+
+{{ fluent(key="call-in-desc", lang = language) }}
+
+{{ fluent(key="call-in-number", lang = language) }}: {{ event.call_in.sip_tel | format_telephone_number(mode = "international") }}
+{{ fluent(key="call-in-id", lang = language) }}: {{ event.call_in.sip_id | space_groups }}
+{{ fluent(key="call-in-pw", lang = language) }}: {{ event.call_in.sip_password | space_groups }}
+{%- set e164 =  event.call_in.sip_tel | format_telephone_number(mode = "e164") -%}
+{% set quick_dial = e164 ~ ",," ~ event.call_in.sip_id ~ ",," ~ event.call_in.sip_password %}
+{{ fluent(key="call-in-quick-dial", lang = language) }}: {{ quick_dial }}
+{% endif %}

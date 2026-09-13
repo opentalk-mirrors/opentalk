@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xml:lang="{{language}}" lang="{{language}}" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" style="color-scheme:light dark;supported-color-schemes:light dark;">
+    <head>
+        <!--[if !mso]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta charset="UTF-8">
+        <style>
+        {% include "common_styles.css" %}
+        </style>
+    </head>
+    <body>
+        <div class="wrapper">
+            <div class="header-logo" id="header">
+                {% include "header_logo.include" %}
+            </div>
+
+            <div class="meeting-description" id="cta">
+                <h2>{{fluent(key="event_cancellation", lang = language, name=event.name) }}</h2>
+                <p>
+                {{ fluent(key="event_cancellation.p", lang = language, firstname=inviter.first_name, lastname=inviter.last_name) }}
+                </p>
+            </div>
+
+            {% include "unregistered_details_html.include" %}
+            <div id="footer" class="footer">
+                <p>
+                    {{ fluent(key="fallback-footer", lang = language) }}<br/>
+                    {{ fluent(key="join-directly-fallback", lang = language, link = join_link)|safe }}<br/>
+                </p>
+            </div>
+            <div class="quick_guide">
+                {% include "quick_guide_html.include" %}
+            </div>
+            <div class="data_protection">
+                {% include "data_protection_html.include" %}
+            </div>
+        </div>
+    </body>
+</html>

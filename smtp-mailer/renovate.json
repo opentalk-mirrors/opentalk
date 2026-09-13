@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "reviewers": [
+    "@opentalk/tools/renovate-reviewers/backend"
+  ],
+  "cloneSubmodules": true,
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "chrono-tz",
+        "ics-chrono-tz"
+      ],
+      "groupName": "chrono-tz",
+      "groupSlug": "chrono-tz"
+    },
+    {
+      "matchPackagePatterns": [
+        "opentalk-mail-worker-protocol",
+        "opentalk-types"
+      ],
+      "groupName": "opentalk-controller",
+      "groupSlug": "opentalk-controller"
+    }
+  ]
+}

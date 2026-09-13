@@ -1,0 +1,33 @@
+{{fluent(key="event_uninvite", lang = language, name=event.name) }}
+
+{{ fluent(key="event_uninvite.p", lang = language, firstname=inviter.first_name, lastname=inviter.last_name) }}
+
+{{ fluent(key="meeting-information", lang = language) }}
+{{ fluent(key="meeting-information-title", lang = language) }}: {{ event.name }}
+{% if event.description -%}
+{{ fluent(key="meeting-information-details", lang = language) }}: {{ event.description }}
+{% endif -%}
+{% if event.start_time -%}
+{% if event.end_time -%}
+{{ fluent(key="meeting-information-when", lang = language) }}: {{ event.start_time.time | date(timezone = event.start_time.timezone, format="%d.%m.%Y %H:%M")}}-{{ event.end_time.time | date(timezone = event.end_time.timezone, format="%H:%M")}}
+{%else -%}
+{{ fluent(key="meeting-information-when", lang = language) }}: {{ event.start_time.time | date(timezone = event.start_time.timezone, format="%d.%m.%Y %H:%M")}}
+{% endif -%}
+{% endif %}
+{% if join_link -%}
+{{ fluent(key="meeting-information-link", lang = language) }}: {{ join_link }}
+{% endif -%}
+{% if event.room.password -%}
+{{ fluent(key="meeting-information-password", lang = language) }}: {{ event.room.password}}
+{% endif -%}
+{% include "callin_txt.include" -%}
+{% include "shared_folder_txt.include" -%}
+{% include "streaming_links_txt.include" %}
+{% if support -%}
+{{ fluent(key="questions", lang = language) }}
+{{ fluent(key="questions.p", lang = language, phone=support.phone | format_telephone_number(mode = "international"), mail=support.mail) }}
+{% endif -%}
+
+{% include "quick_guide_txt.include" -%}
+
+{% include "data_protection_txt.include" -%}

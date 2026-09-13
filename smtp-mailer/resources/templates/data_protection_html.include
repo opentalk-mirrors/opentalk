@@ -1,0 +1,3 @@
+                    <div>
+                        {{ fluent(key="data-protection-hint", lang = language, link = data_protection_url | build_link(caption=data_protection_url)) | safe }}.
+                    </div>

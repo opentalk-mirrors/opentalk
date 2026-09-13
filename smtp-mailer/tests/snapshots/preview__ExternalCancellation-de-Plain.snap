@@ -1,0 +1,38 @@
+---
+source: tests/preview.rs
+assertion_line: 42
+expression: example_mail
+---
+OpenTalk-Meeting wurde abgesagt - This is a Preview Event
+
+Ernest Inviter hat ein OpenTalk-Meeting abgesagt.
+
+Meeting-Information
+Titel: This is a Preview Event
+Details: This event is a dummy event, and you should have got this invite as a external user. You can safely ignore this description
+Uhrzeit: 10.10.2024 15:30-16:10
+
+Meeting-Passwort: password123
+Beitritt via Telefon:
+Sie können Ihr Telefon verwenden um diesem Meeting beizutreten.
+
+Einfach die unten angegebene Nummer wählen und Konferenzkennung sowie Konferenz-PIN angeben. Alternativ direkt mit dem Mobiltelefon auf die Schnelleinwahl klicken und direkt loslegen.
+
+Telefonnummer: +49 30 405051330
+Konferenzkennung: 1234 5678 90
+Konferenz-PIN: 1234 5678 90
+Schnelleinwahl: +4930405051330,,1234567890,,1234567890
+
+Geteilter Ordner: https://www.example.org/read
+Ordnerpasswort: ReadSecret
+
+Dies ist eine öffentliche Sitzung, die Links zu den Livestreams:
+streaming service 1: https://example.com/4385f873-6077-4d2c-8b46-dbec62029ac6
+streaming service 2: https://example.com/f544bef8-aa33-475b-8664-fa17c5ca7f83
+
+
+Neu bei OpenTalk? Eine Kurzanleitung finden Sie hier: https://opentalk.eu/de/kurzanleitung
+
+Hinweis zum Datenschutz: Uns ist der Schutz Ihrer Daten besonders wichtig. Auch bei der Verwendung
+der Videokonferenzlösung können personenbezogene Daten ausgetauscht werden. Erfahren Sie mehr zum
+Umgang mit Ihren Daten auf unserer Internetseite unter https://opentalk.example.org/dataprotection.
