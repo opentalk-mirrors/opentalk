@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 #
-# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-License-Identifier: EUPL-1.2
 
 ---
 # see https://yamllint.readthedocs.io/en/stable/rules.html
@@ -12,7 +12,11 @@ yaml-files:
   - .yamllint
 
 ignore: |
-  .cargo
+  **/api.yaml
+  **/api/docs/openapi.yml
+  roomserver/load-test/node_modules/
+  roomserver/load-test/pnpm-lock.yaml
+  target
 
 rules:
   braces: enable
