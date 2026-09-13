@@ -9,7 +9,7 @@ use std::{
 
 use futures_util::{SinkExt, Stream, StreamExt};
 use openidconnect::{AccessToken, http::Response};
-use reqwest::header::HeaderValue;
+use reqwest12::header::HeaderValue;
 use tokio_tungstenite::{
     WebSocketStream,
     tungstenite::{Message, client::IntoClientRequest},
@@ -50,7 +50,7 @@ impl OpenTalkClient {
             .map_err(|_| WebsocketError::UriConversionFailed)?;
 
         request.headers_mut().insert(
-            reqwest::header::AUTHORIZATION,
+            reqwest12::header::AUTHORIZATION,
             HeaderValue::from_str(format!("Bearer {}", token.secret()).as_str())
                 .map_err(|_| WebsocketError::InvalidHeader)?,
         );

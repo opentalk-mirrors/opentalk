@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-authors.workspace = true
-build = "build.rs"
-default-run = "opentalk-recorder"
-edition.workspace = true
-license.workspace = true
 name = "opentalk-recorder"
 publish = false
+default-run = "opentalk-recorder"
+build = "build.rs"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
 version.workspace = true
 
 [dependencies]

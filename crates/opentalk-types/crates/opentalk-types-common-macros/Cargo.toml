@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-authors.workspace = true
+name = "opentalk-types-common-macros"
 description = "Macros for opentalk-types-common"
 documentation = "https://docs.rs/opentalk-types-common-macros"
-edition = "2024"
-homepage.workspace = true
-license = "EUPL-1.2"
-name = "opentalk-types-common-macros"
 publish = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
 repository.workspace = true
-version = "0.33.0"
+version.workspace = true
 
 [lib]
 proc-macro = true

@@ -14,12 +14,12 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-actix = "0.13"
-actix-cors = "0.7"
-actix-http = { version = "3", features = ["rustls-0_23"] }
+actix.workspace = true
+actix-cors.workspace = true
+actix-http.workspace = true
 actix-rt.workspace = true
-actix-web = { workspace = true, features = ["rustls-0_23"] }
-actix-web-actors = "4.3"
+actix-web.workspace = true
+actix-web-actors.workspace = true
 actix-web-httpauth.workspace = true
 actix-ws.workspace = true
 bytes.workspace = true
@@ -29,8 +29,8 @@ futures.workspace = true
 http.workspace = true
 itertools.workspace = true
 jsonwebtoken.workspace = true
-lapin.workspace = true
 lapin-pool.workspace = true
+lapin2.workspace = true
 livekit-api.workspace = true
 metrics-exporter-prometheus.workspace = true
 openidconnect.workspace = true
@@ -71,21 +71,21 @@ prometheus.workspace = true
 redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
 reqwest.workspace = true
 rustc-hash.workspace = true
-rustls = "0.23"
-rustls-pemfile = "2.2"
-rustls-pki-types = "1.14"
+rustls.workspace = true
+rustls-pemfile.workspace = true
+rustls-pki-types.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-service-probe = "0.4"
+service-probe.workspace = true
 slotmap.workspace = true
 snafu.workspace = true
 tokio = { workspace = true, features = ["signal"] }
 tokio-stream.workspace = true
 tracing.workspace = true
-tracing-actix-web = { version = "0.7" }
-tracing-futures = "0.2"
+tracing-actix-web.workspace = true
+tracing-futures.workspace = true
 tracing-opentelemetry.workspace = true
-tracing-subscriber = { version = "0.3", features = [
+tracing-subscriber = { workspace = true, features = [
   "env-filter",
   "parking_lot",
 ] }

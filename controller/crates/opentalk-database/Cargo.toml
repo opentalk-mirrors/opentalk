@@ -18,7 +18,7 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-deadpool-runtime = { version = "0.3", features = ["tokio_1"] }
+deadpool-runtime = { workspace = true, features = ["tokio_1"] }
 diesel = { workspace = true, features = [
   "chrono",
   "i-implement-a-third-party-backend-and-opt-into-breaking-changes",
@@ -30,7 +30,7 @@ futures-core.workspace = true
 opentalk-controller-settings.workspace = true
 opentelemetry.workspace = true
 opentelemetry_sdk.workspace = true
-pin-project-lite = "0.2"
+pin-project-lite.workspace = true
 snafu.workspace = true
 tracing.workspace = true
 url.workspace = true

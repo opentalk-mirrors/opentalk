@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-authors.workspace = true
+name = "opentalk-recorder-web-api"
 description = "OpenTalk Recorder WebAPI routes & types"
 documentation = "https://docs.rs/crate/opentalk-recorder-web-api/"
-edition.workspace = true
-homepage = "https://opentalk.eu/"
-license.workspace = true
-name = "opentalk-recorder-web-api"
 publish = true
-repository = "https://git.opentalk.dev/opentalk/backend/services/recorder"
-version = "0.5.0"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
 async-trait.workspace = true

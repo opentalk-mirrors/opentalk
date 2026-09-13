@@ -8,7 +8,7 @@ use core::{hash::BuildHasherDefault, time::Duration};
 use std::{borrow::Cow, collections::HashMap, num::NonZero, sync::Arc};
 
 use bytestring::ByteString;
-use lapin::{
+use lapin2::{
     BasicProperties, ChannelState, Consumer, ExchangeKind,
     message::Delivery,
     options::{
@@ -36,7 +36,7 @@ pub enum Error {
     CreateChannel { source: lapin_pool::Error },
 
     #[snafu(display("failed to make consumer"), context(false))]
-    Consumer { source: lapin::Error },
+    Consumer { source: lapin2::Error },
 
     #[snafu(display("received invalid message from rabbitMQ"), context(false))]
     InvalidRmqMessage { source: serde_json::Error },
@@ -240,7 +240,7 @@ impl ExchangeTask {
         }
     }
 
-    async fn handle_delivery(&mut self, delivery: Option<lapin::Result<Delivery>>) {
+    async fn handle_delivery(&mut self, delivery: Option<lapin2::Result<Delivery>>) {
         let Some(rmq) = &mut self.rmq else { return };
 
         match delivery {
@@ -322,7 +322,7 @@ impl ExchangeTask {
     }
 }
 
-async fn make_consumer(channel: &lapin::Channel) -> Result<Consumer, Error> {
+async fn make_consumer(channel: &lapin2::Channel) -> Result<Consumer, Error> {
     channel
         .exchange_declare(
             EXCHANGE,

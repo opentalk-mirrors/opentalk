@@ -21,7 +21,7 @@ workspace = true
 # Settings related
 anstream.workspace = true
 arc-swap.workspace = true
-cidr = { version = "0.3", features = ["serde"] }
+cidr = { workspace = true, features = ["serde"] }
 config.workspace = true
 dirs.workspace = true
 iana-time-zone.workspace = true
@@ -33,13 +33,13 @@ opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-livekit.workspace = true
 opentalk-service-auth = { workspace = true, features = ["actix"] }
-opentalk-types-common = { workspace = true, features = ["serde"] }
+opentalk-types-common.workspace = true
 owo-colors.workspace = true
 phonenumber.workspace = true
 serde.workspace = true
 serde_ignored.workspace = true
 serde_json.workspace = true
-serde_path_to_error = "0.1.20"
+serde_path_to_error.workspace = true
 serde_with.workspace = true
 snafu.workspace = true
 tracing.workspace = true

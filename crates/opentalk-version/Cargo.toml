@@ -2,22 +2,19 @@
 #
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-[workspace]
-members = [".", "canary"]
-
 [package]
-authors = ["OpenTalk GmbH <mail@opentalk.eu>"]
-description = "Collect a set of build information and make it available for printing."
-edition = "2021"
-homepage = "https://opentalk.eu/"
-license = "MIT OR Apache-2.0"
 name = "opentalk-version"
+description = "Collect a set of build information and make it available for printing."
 publish = true
-repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-version"
-version = "0.4.1-dev"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
-anyhow = "1"
-clap = { version = "4.5", features = ["derive"] }
-vergen = { version = "10.0", features = ["build", "cargo", "rustc"] }
-vergen-git2 = "10.0"
+anyhow.workspace = true
+clap.workspace = true
+vergen = { workspace = true, features = ["build", "cargo", "rustc"] }
+vergen-git2.workspace = true

@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-authors.workspace = true
-edition = "2024"
-license = "EUPL-1.2"
 name = "opentalk-test-util"
 publish = false
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
 version.workspace = true
 
 [lints]
@@ -22,7 +22,7 @@ serde_json.workspace = true
 snafu.workspace = true
 tokio.workspace = true
 
-fern = "0.7"
+fern.workspace = true
 pretty_assertions.workspace = true
 
 opentalk-controller-api-authorization.workspace = true

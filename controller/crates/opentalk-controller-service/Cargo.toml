@@ -29,8 +29,8 @@ futures-util.workspace = true
 http.workspace = true
 icu_locid = { workspace = true, features = ["serde"] }
 jsonwebtoken.workspace = true
-lapin.workspace = true
 lapin-pool.workspace = true
+lapin2.workspace = true
 log = { workspace = true, features = ["serde"] }
 md5.workspace = true
 openidconnect.workspace = true

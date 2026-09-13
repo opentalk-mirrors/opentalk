@@ -5,48 +5,39 @@
 [package]
 name = "opentalk-client-signaling"
 description = "OpenTalk Client for conference Signaling API"
-version = "0.16.0"
-authors = ["OpenTalk Team <mail@opentalk.eu>"]
-edition = "2024"
-homepage = "https://opentalk.eu/"
-repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-client-signaling"
-license = "EUPL-1.2"
+documentation = "https://docs.rs/opentalk-client-signaling"
+publish = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [features]
 
 [dependencies]
-anyhow = "1"
-async-trait = "0.1"
-chrono = { version = "0.4", default-features = false }
-futures-util = { version = "0.3", default-features = false }
-jsonwebtoken = { version = "11", default-features = false, features = ["aws_lc_rs"] }
-log = "0.4"
-openidconnect = { version = "4", default-features = false, features = ["reqwest"] }
-opentalk-roomserver-client = "0.10"
-opentalk-roomserver-types = "0.10"
-opentalk-roomserver-types-livekit = "0.10"
-opentalk-roomserver-types-moderation = "0.10"
-opentalk-roomserver-types-raise-hands = "0.10"
-opentalk-roomserver-types-recording = "0.10"
-opentalk-roomserver-types-transcription = "0.10"
-opentalk-service-auth = "0.6.0"
-opentalk-types = { version = "0.75.0", default-features = false, features = [
-  "api",
-  "serde",
-  "signaling",
-] }
-opentalk-types-api-internal = "0.7.0"
-rand = "0.10.1"
-reqwest = { version = "0.12", default-features = false, features = [
-  "json",
-  "rustls-tls",
-  "stream",
-] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-thiserror = "2.0"
-tokio = { version = "1.51", features = ["macros"] }
-tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect", "handshake"] }
-
-[build-dependencies]
-anyhow = "1"
+anyhow.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+futures-util.workspace = true
+jsonwebtoken.workspace = true
+log.workspace = true
+openidconnect = { workspace = true, features = ["reqwest"] }
+opentalk-roomserver-client.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-livekit.workspace = true
+opentalk-roomserver-types-moderation.workspace = true
+opentalk-roomserver-types-raise-hands.workspace = true
+opentalk-roomserver-types-recording.workspace = true
+opentalk-roomserver-types-transcription.workspace = true
+opentalk-service-auth.workspace = true
+opentalk-types = { workspace = true, features = ["api", "serde", "signaling"] }
+opentalk-types-api-internal.workspace = true
+rand.workspace = true
+reqwest12 = { workspace = true, features = ["json", "stream"] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-tungstenite = { workspace = true, features = ["connect", "handshake"] }

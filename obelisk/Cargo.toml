@@ -4,86 +4,76 @@
 
 [package]
 name = "opentalk-obelisk"
-version = "0.23.0"
-authors = ["OpenTalk Team <mail@opentalk.eu>"]
-edition = "2024"
-license = "EUPL-1.2"
 publish = false
 build = "build.rs"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
 
 [dependencies]
-anstream = "1.0"
-anyhow = "1"
-async-trait = "0.1"
-base64 = "0.22"
-bitstream-io = "4"
-bytes = "1"
-bytesstr = "1"
-clap = { version = "4.5", features = ["derive"] }
-config = { version = "0.15", default-features = false, features = ["toml"] }
-directories = "6.0"
-env_logger = "0.11"
-ezk = "0.1"
-ezk-audio = "0.1"
-ezk-audio-nodes = "0.1"
-ezk-g711 = "0.2"
-ezk-g722 = "0.1"
-ezk-image = "0.4"
-ezk-rtp = "=0.2.0"
-ezk-sdp-types = "0.6"
-ezk-sip-auth = "0.5"
-ezk-sip-core = { version = "0.9", features = ["tls-native-tls"] }
-ezk-sip-types = "0.6"
-ezk-sip-ua = { version = "0.9", default-features = false }
-ezk-stun-types = "0.3"
-futures = "0.3"
-h264-profile-level-id = "0.2"
-hound = "3.5"
-itertools = "0.15"
-jsonwebtoken = { version = "11", default-features = false, features = ["aws_lc_rs"] }
-log = "0.4"
-native-tls = "0.2"
-once_cell = "1.18"
-openh264 = "0.9"
-openh264-sys2 = "0.9"
-opentalk-client-signaling = "0.16"
-opentalk-compositor = { version = "0.20", default-features = false }
-opentalk-service-auth = "0.6"
-opentalk-version = "0.4.0"
-owo-colors = "4"
-parking_lot = "0.12"
-rand = "0.10"
-rtp = "0.17"
-rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
-serde = { version = "1", features = ["derive"] }
-serde_ignored = "0.1.14"
-serde_path_to_error = "0.1.20"
-service-probe = "0.4"
-service-probe-client = "0.4"
-srtp = "0.7"
-thiserror = "2"
-tokio = { version = "1", features = ["rt-multi-thread", "signal"] }
-tokio-native-tls = "0.3"
-url = { version = "2.2", features = ["serde"] }
-webrtc-sys = "0.3"
+anstream.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+base64.workspace = true
+bitstream-io.workspace = true
+bytes.workspace = true
+bytesstr.workspace = true
+clap.workspace = true
+config.workspace = true
+directories.workspace = true
+env_logger.workspace = true
+ezk-audio-nodes = { workspace = true, features = ["nnnoiseless"] }
+ezk-audio.workspace = true
+ezk-g711.workspace = true
+ezk-g722.workspace = true
+ezk-image.workspace = true
+ezk-rtp.workspace = true
+ezk-sdp-types.workspace = true
+ezk-sip-auth.workspace = true
+ezk-sip-core.workspace = true
+ezk-sip-types.workspace = true
+ezk-sip-ua.workspace = true
+ezk-stun-types.workspace = true
+ezk.workspace = true
+futures.workspace = true
+h264-profile-level-id.workspace = true
+hound.workspace = true
+itertools.workspace = true
+jsonwebtoken.workspace = true
+log.workspace = true
+native-tls.workspace = true
+once_cell.workspace = true
+openh264-sys2.workspace = true
+openh264.workspace = true
+opentalk-client-signaling.workspace = true
+opentalk-compositor.workspace = true
+opentalk-service-auth.workspace = true
+opentalk-version.workspace = true
+owo-colors.workspace = true
+parking_lot.workspace = true
+rand.workspace = true
+rtp.workspace = true
+rustls.workspace = true
+serde.workspace = true
+serde_ignored.workspace = true
+serde_path_to_error.workspace = true
+service-probe-client.workspace = true
+service-probe.workspace = true
+srtp.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
+tokio-native-tls.workspace = true
+url.workspace = true
+webrtc-sys.workspace = true
 
 # Enable tls-features for tokio tungstenite
 tokio-tungstenite029 = { package = "tokio-tungstenite", version = "0.29", features = ["rustls-tls-native-roots"] }
 tokio-tungstenite030 = { package = "tokio-tungstenite", version = "0.30", features = ["rustls-tls-native-roots"] }
 
 [package.metadata.cargo-machete]
-ignored = ["tokio-tungstenite029", "tokio-tungstenite039"]
-
-[patch.crates-io]
-# Removes duplicate paste and therefore some compile time
-bitpattern = { git = 'https://github.com/kbalt/bitpattern', branch = 'remove-paste-010-patch' }
-
-# Update libsrtp to 2.8 & newer bindgen version until https://github.com/HyeonuPark/srtp2-sys/pull/3 is merged
-srtp2-sys = { git = "https://github.com/kbalt/srtp2-sys.git", rev = "33110a8c3fa449c65c23dc5b6aacbc6e7ad0a0b5" }
+ignored = ["tokio-tungstenite029", "tokio-tungstenite030"]
 
 [build-dependencies]
-anyhow = "1"
-opentalk-version = "0.4"
-
-[workspace]
-members = [".", "xtask"]
+anyhow.workspace = true
+opentalk-version.workspace = true

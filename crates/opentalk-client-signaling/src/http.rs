@@ -26,7 +26,7 @@ use opentalk_types_api_internal::{
     call_in::PostCallInStartRoomServerRequestBody, recording::RecordingTarget,
 };
 use rand::distr::SampleString;
-use reqwest::{StatusCode, Url};
+use reqwest12::{StatusCode, Url};
 
 use crate::{
     authentication::{
@@ -43,7 +43,7 @@ pub enum StartAsUserError {
     #[error("Failed to get access token from authentication backend")]
     FailedToGetAccessToken(#[source] anyhow::Error),
     #[error("Failed to make the HTTP request")]
-    HttpFailure(#[from] reqwest::Error),
+    HttpFailure(#[from] reqwest12::Error),
     #[error("Failed to parse HTTP response body")]
     InvalidResponseBody(#[from] serde_json::Error),
     #[error("Received an unexpected status: {0}")]
@@ -55,7 +55,7 @@ pub enum StartInvitedError {
     #[error("Failed to construct destination url")]
     UrlParseError(#[from] url::ParseError),
     #[error("Failed to make the HTTP request")]
-    HttpFailure(#[from] reqwest::Error),
+    HttpFailure(#[from] reqwest12::Error),
     #[error("Failed to parse HTTP response body")]
     InvalidResponseBody(#[from] serde_json::Error),
     #[error("Received an unexpected status: {0}")]
@@ -69,7 +69,7 @@ pub enum StartCallInError {
     #[error("Failed to get access token from authentication backend")]
     FailedToGetAccessToken(#[source] anyhow::Error),
     #[error("Failed to make the HTTP request")]
-    HttpFailure(#[from] reqwest::Error),
+    HttpFailure(#[from] reqwest12::Error),
     #[error("Failed to parse HTTP response body")]
     InvalidResponseBody(#[from] serde_json::Error),
     #[error("Given id or pin is invalid")]
@@ -85,7 +85,7 @@ pub enum StartRecorderError {
     #[error("Failed to get access token from authentication backend")]
     FailedToGetAccessToken(#[source] anyhow::Error),
     #[error("Failed to make the HTTP request")]
-    HttpFailure(#[from] reqwest::Error),
+    HttpFailure(#[from] reqwest12::Error),
     #[error("Failed to parse HTTP response body")]
     InvalidResponseBody(#[from] serde_json::Error),
     #[error("Received an unexpected status: {0}")]
@@ -111,7 +111,7 @@ pub enum CreateRoomError {
     #[error("Failed to get access token from authentication backend")]
     FailedToGetAccessToken(#[source] anyhow::Error),
     #[error("Request failed because of: {0}")]
-    ResponseError(#[from] reqwest::Error),
+    ResponseError(#[from] reqwest12::Error),
     #[error("Failed to create room: server responded with: {0}")]
     FailedToCreateRoom(String),
 }
@@ -123,20 +123,20 @@ pub enum GetRoomError {
     #[error("Failed to get access token from authentication backend")]
     FailedToGetAccessToken(#[source] anyhow::Error),
     #[error("Request failed because of {0}")]
-    ResponseError(#[from] reqwest::Error),
+    ResponseError(#[from] reqwest12::Error),
     #[error("Failed to get all rooms: {0}")]
     FailedToGetRooms(String),
 }
 
 pub(crate) struct HttpClient {
     device_secret: DeviceSecret,
-    http_client: reqwest::Client,
+    http_client: reqwest12::Client,
     pub(crate) authentication: Box<dyn Authentication>,
 }
 
 impl HttpClient {
     pub(crate) async fn create(config: AuthConfig) -> Result<Self, anyhow::Error> {
-        let http_client = reqwest::Client::new();
+        let http_client = reqwest12::Client::new();
 
         let authentication: Box<dyn Authentication> = match config {
             AuthConfig::ApiKey(api_key) => Box::new(ApiKeyAuthentication::from(api_key)),

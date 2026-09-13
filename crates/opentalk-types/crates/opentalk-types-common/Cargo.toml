@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-authors.workspace = true
+name = "opentalk-types-common"
 description = "Common types and traits for OpenTalk crates"
 documentation = "https://docs.rs/opentalk-types-common"
-edition = "2024"
-homepage.workspace = true
-license = "EUPL-1.2"
-name = "opentalk-types-common"
 publish = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
 repository.workspace = true
-version = "0.50.0"
+version.workspace = true
 
 [package.metadata.docs.rs]
 all-features = true
@@ -59,7 +59,7 @@ utoipa = [
 actix-http = { workspace = true, optional = true }
 actix-web-httpauth = { workspace = true, optional = true }
 bytes = { workspace = true, optional = true }
-chrono.workspace = true
+chrono = { workspace = true, features = ["std", "now"] }
 chrono-tz.workspace = true
 clap = { workspace = true, optional = true }
 derive_more = { workspace = true, features = [

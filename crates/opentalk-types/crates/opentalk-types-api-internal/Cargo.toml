@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-authors.workspace = true
+name = "opentalk-types-api-internal"
 description = "OpenTalk API internal data types"
 documentation = "https://docs.rs/opentalk-types-api-internal"
-edition = "2024"
-homepage.workspace = true
-license = "EUPL-1.2"
-name = "opentalk-types-api-internal"
 publish = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
 repository.workspace = true
-version = "0.7.0"
+version.workspace = true
 
 [features]
 axum = ["opentalk-types-api-common/axum"]

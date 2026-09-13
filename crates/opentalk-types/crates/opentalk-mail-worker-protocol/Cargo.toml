@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-authors.workspace = true
+name = "opentalk-mail-worker-protocol"
 description = "Protocol datatypes for communicating mail tasks from OpenTalk Controller to OpenTalk Mailer"
 documentation = "https://docs.rs/opentalk-mail-worker-protocol"
-edition = "2024"
-homepage.workspace = true
-license = "EUPL-1.2"
-name = "opentalk-mail-worker-protocol"
 publish = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
 repository.workspace = true
-version = "0.50.0"
+version.workspace = true
 
 [lints]
 workspace = true

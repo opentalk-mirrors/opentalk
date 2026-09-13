@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-authors.workspace = true
+name = "opentalk-types"
 description = "Types and traits for the OpenTalk API and signaling protocols"
 documentation = "https://docs.rs/opentalk-types"
-edition = "2024"
-homepage.workspace = true
-license = "EUPL-1.2"
-name = "opentalk-types"
 publish = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
 repository.workspace = true
-version = "0.75.0"
+version.workspace = true
 
 [package.metadata.docs.rs]
 all-features = true

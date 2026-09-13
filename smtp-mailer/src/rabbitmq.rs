@@ -3,23 +3,23 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use anyhow::{Context, Result};
-use lapin::options::QueueDeclareOptions;
+use lapin3::options::QueueDeclareOptions;
 use tokio_executor_trait::Tokio as TokioExecutor;
 use tokio_reactor_trait::Tokio as TokioReactor;
 
 use crate::settings;
 
 pub(crate) struct RabbitMqService {
-    _conn: lapin::Connection,
-    _channel: lapin::Channel,
-    pub consumer: lapin::Consumer,
+    _conn: lapin3::Connection,
+    _channel: lapin3::Channel,
+    pub consumer: lapin3::Consumer,
 }
 
 impl RabbitMqService {
     pub async fn new(settings: &settings::RabbitMqConfig) -> Result<Self> {
-        let conn = lapin::Connection::connect(
+        let conn = lapin3::Connection::connect(
             &settings.url,
-            lapin::ConnectionProperties::default()
+            lapin3::ConnectionProperties::default()
                 .with_executor(TokioExecutor::current())
                 .with_reactor(TokioReactor::current()),
         )

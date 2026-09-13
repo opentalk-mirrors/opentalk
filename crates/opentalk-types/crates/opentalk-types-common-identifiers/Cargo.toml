@@ -3,16 +3,16 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-authors.workspace = true
+name = "opentalk-types-common-identifiers"
 description = "Common identifier types for OpenTalk crates"
 documentation = "https://docs.rs/opentalk-types-common-identifiers"
-edition = "2024"
-homepage.workspace = true
-license = "EUPL-1.2"
-name = "opentalk-types-common-identifiers"
 publish = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
 repository.workspace = true
-version = "0.34.1"
+version.workspace = true
 
 [package.metadata.docs.rs]
 all-features = true
@@ -28,7 +28,7 @@ utoipa = ["dep:serde_json", "dep:utoipa", "serde"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["display"] }
-diesel = { workspace = true, optional = true }
+diesel = { workspace = true, optional = true, features = ["with-deprecated"] }
 opentalk-diesel-newtype = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }

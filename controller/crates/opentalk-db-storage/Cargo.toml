@@ -17,7 +17,7 @@ workspace = true
 
 [dependencies]
 async-stream.workspace = true
-barrel = { version = "0.7", features = ["pg"] }
+barrel = { workspace = true, features = ["pg"] }
 bigdecimal.workspace = true
 byteorder.workspace = true
 chrono.workspace = true
@@ -30,6 +30,7 @@ derive_more = { workspace = true, features = [
   "into",
 ] }
 diesel = { workspace = true, features = [
+  "32-column-tables",
   "chrono",
   "numeric",
   "serde_json",
@@ -44,8 +45,8 @@ opentalk-inventory.workspace = true
 opentalk-mail-worker-protocol = { workspace = true, features = ["client"] }
 opentalk-types-common = { workspace = true, features = ["backend"] }
 redis-args.workspace = true
-refinery = { version = "0.9", features = ["tokio-postgres"] }
-refinery-core = "0.9"
+refinery = { workspace = true, features = ["tokio-postgres"] }
+refinery-core.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
 snafu.workspace = true

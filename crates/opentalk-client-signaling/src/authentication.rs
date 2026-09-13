@@ -88,14 +88,14 @@ impl Authentication for ApiKeyAuthentication {
 }
 
 pub(crate) struct ClientCredentialsAuthentication {
-    http_client: reqwest::Client,
+    http_client: reqwest12::Client,
     oidc_client: OidcClient,
     current_token: Mutex<AccessToken>,
 }
 
 impl ClientCredentialsAuthentication {
     pub(crate) async fn create(
-        http_client: reqwest::Client,
+        http_client: reqwest12::Client,
         config: ClientCredentialsAuthConfig,
     ) -> Result<Self> {
         let metadata = CoreProviderMetadata::discover_async(config.issuer.clone(), &http_client)
@@ -157,14 +157,14 @@ impl Authentication for ClientCredentialsAuthentication {
 pub(crate) struct DirectAccessCredentialsAuthentication {
     config: DirectAccessCredentialsAuthConfig,
 
-    http_client: reqwest::Client,
+    http_client: reqwest12::Client,
     oidc_client: OidcClient,
     current_token: Mutex<AccessToken>,
 }
 
 impl DirectAccessCredentialsAuthentication {
     pub(crate) async fn create(
-        http_client: reqwest::Client,
+        http_client: reqwest12::Client,
         config: DirectAccessCredentialsAuthConfig,
     ) -> Result<Self> {
         let metadata = CoreProviderMetadata::discover_async(config.issuer.clone(), &http_client)

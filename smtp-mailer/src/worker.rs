@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use anyhow::{Context as _, Result};
 use futures::stream::StreamExt;
-use lapin::{message::Delivery, options::BasicRejectOptions};
+use lapin3::{message::Delivery, options::BasicRejectOptions};
 use opentalk_mail_worker_protocol as proto;
 use service_probe::{ServiceState, set_service_state};
 

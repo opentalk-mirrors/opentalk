@@ -5,13 +5,13 @@
 [package]
 name = "opentalk-orchestrator-shared"
 description = "Shared types for orchestrated services"
-version = "0.15.0"
 publish = true
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
 repository.workspace = true
 license.workspace = true
+version.workspace = true
 
 [lib]
 

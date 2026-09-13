@@ -1,0 +1,421 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[workspace]
+members = [
+  # Crates
+  "crates/opentalk-client-signaling",
+  "crates/opentalk-compositor",
+  "crates/opentalk-diesel-newtype",
+  "crates/opentalk-diesel-newtype/diesel-newtype-impl",
+  "crates/opentalk-etherpad-client",
+  "crates/opentalk-keycloak-admin",
+  "crates/opentalk-report-generation",
+  "crates/opentalk-service-auth",
+  "crates/opentalk-shared-folder/crates/*",
+  "crates/opentalk-types/crates/*",
+  "crates/opentalk-version",
+  "crates/opentalk-version/canary",
+
+  # Controller
+  "controller/crates/*",
+  "controller/xtask",
+
+  # Obelisk
+  "obelisk",
+  "obelisk/xtask",
+
+  # Orchestrator
+  "orchestrator/orchestrator",
+  "orchestrator/orchestrator-client",
+  "orchestrator/orchestrator-shared",
+
+  # Recorder
+  "recorder/opentalk-recorder",
+  "recorder/opentalk-recorder-web-api",
+
+  # Roomserver
+  "roomserver/modules/*/module",
+  "roomserver/modules/*/test-util",
+  "roomserver/modules/*/types",
+  "roomserver/modules/livekit/proxy",
+  "roomserver/opentalk-roomserver",
+  "roomserver/opentalk-roomserver-client",
+  "roomserver/opentalk-roomserver-crypto-provider",
+  "roomserver/opentalk-roomserver-dui",
+  "roomserver/opentalk-roomserver-modules",
+  "roomserver/opentalk-roomserver-room",
+  "roomserver/opentalk-roomserver-types",
+  "roomserver/opentalk-roomserver-web-api",
+
+  # SMTP-Mailer
+  "smtp-mailer",
+
+  # Transcription
+  "transcription/opentalk-transcription",
+  "transcription/opentalk-transcription-web-api",
+]
+resolver = "2"
+
+[workspace.package]
+authors = ["OpenTalk Team <mail@opentalk.eu>"]
+edition = "2024"
+homepage = "https://opentalk.eu/"
+license = "EUPL-1.2"
+repository = "https://gitlab.opencode.de/opentalk/opentalk"
+version = "3.0.0"
+
+[workspace.dependencies]
+
+# crates/opentalk-client-signaling
+opentalk-client-signaling = { path = "crates/opentalk-client-signaling", version = "3.0.0" }
+
+# crates/opentalk-compositor
+opentalk-compositor = { path = "crates/opentalk-compositor", version = "3.0.0" }
+
+# crates/opentalk-diesel-newtype
+opentalk-diesel-newtype = { path = "crates/opentalk-diesel-newtype", version = "3.0.0" }
+opentalk-diesel-newtype-impl = { path = "crates/opentalk-diesel-newtype/diesel-newtype-impl", version = "3.0.0" }
+
+# crates/opentalk-etherpad-client
+opentalk-etherpad-client = { path = "crates/opentalk-etherpad-client", version = "3.0.0" }
+
+# crates/opentalk-keycloak-admin
+opentalk-keycloak-admin = { path = "crates/opentalk-keycloak-admin", version = "3.0.0" }
+
+# crates/opentalk-report-generation
+opentalk-report-generation = { path = "crates/opentalk-report-generation", version = "3.0.0" }
+
+# crates/opentalk-service-auth
+opentalk-service-auth = { path = "crates/opentalk-service-auth", version = "3.0.0" }
+
+# crates/opentalk-shared-folder
+opentalk-nextcloud-client = { path = "crates/opentalk-shared-folder/crates/opentalk-nextcloud-client", version = "3.0.0" }
+opentalk-opencloud-client = { path = "crates/opentalk-shared-folder/crates/opentalk-opencloud-client", version = "3.0.0" }
+
+# crates/opentalk-types
+opentalk-mail-worker-protocol = { path = "crates/opentalk-types/crates/opentalk-mail-worker-protocol", version = "3.0.0" }
+opentalk-types = { path = "crates/opentalk-types/crates/opentalk-types", version = "3.0.0" }
+opentalk-types-api-common = { path = "crates/opentalk-types/crates/opentalk-types-api-common", version = "3.0.0" }
+opentalk-types-api-internal = { path = "crates/opentalk-types/crates/opentalk-types-api-internal", version = "3.0.0" }
+opentalk-types-api-v1 = { path = "crates/opentalk-types/crates/opentalk-types-api-v1", version = "3.0.0" }
+opentalk-types-common = { path = "crates/opentalk-types/crates/opentalk-types-common", version = "3.0.0" }
+opentalk-types-common-identifiers = { path = "crates/opentalk-types/crates/opentalk-types-common-identifiers", version = "3.0.0" }
+opentalk-types-common-macros = { path = "crates/opentalk-types/crates/opentalk-types-common-macros", version = "3.0.0" }
+opentalk-types-signaling = { path = "crates/opentalk-types/crates/opentalk-types-signaling", version = "3.0.0" }
+
+# Controller
+opentalk-asset-storage = { path = "controller/crates/opentalk-asset-storage", version = "3.0.0" }
+opentalk-cache = { path = "controller/crates/opentalk-cache", version = "3.0.0" }
+opentalk-controller-api-actix-web = { path = "controller/crates/opentalk-controller-api-actix-web", version = "3.0.0" }
+opentalk-controller-api-authorization = { path = "controller/crates/opentalk-controller-api-authorization", version = "3.0.0" }
+opentalk-controller-api-authorization-database = { path = "controller/crates/opentalk-controller-api-authorization-database", version = "3.0.0" }
+opentalk-controller-core = { path = "controller/crates/opentalk-controller-core", version = "3.0.0" }
+opentalk-controller-service = { path = "controller/crates/opentalk-controller-service", version = "3.0.0" }
+opentalk-controller-service-facade = { path = "controller/crates/opentalk-controller-service-facade", version = "3.0.0" }
+opentalk-controller-settings = { path = "controller/crates/opentalk-controller-settings", version = "3.0.0" }
+opentalk-controller-utils = { path = "controller/crates/opentalk-controller-utils", version = "3.0.0" }
+opentalk-database = { path = "controller/crates/opentalk-database", version = "3.0.0" }
+opentalk-db-storage = { path = "controller/crates/opentalk-db-storage", version = "3.0.0" }
+opentalk-inventory = { path = "controller/crates/opentalk-inventory", version = "3.0.0" }
+opentalk-inventory-common = { path = "controller/crates/opentalk-inventory-common", version = "3.0.0" }
+opentalk-inventory-database = { path = "controller/crates/opentalk-inventory-database", version = "3.0.0" }
+opentalk-jobs = { path = "controller/crates/opentalk-jobs", version = "3.0.0" }
+opentalk-log = { path = "controller/crates/opentalk-log", version = "3.0.0" }
+opentalk-test-util = { path = "controller/crates/opentalk-test-util", version = "3.0.0" }
+
+# crates/opentalk-version
+opentalk-version = { path = "crates/opentalk-version", version = "3.0.0" }
+
+# Orchestrator
+opentalk-orchestrator-client = { path = "orchestrator/orchestrator-client", version = "3.0.0" }
+opentalk-orchestrator-shared = { path = "orchestrator/orchestrator-shared", version = "3.0.0" }
+
+# Recorder
+opentalk-recorder-web-api = { path = "recorder/opentalk-recorder-web-api", version = "3.0.0" }
+
+# Roomserver
+opentalk-roomserver-client = { path = "roomserver/opentalk-roomserver-client", version = "3.0.0" }
+opentalk-roomserver-common = { path = "roomserver/opentalk-roomserver-common", version = "3.0.0" }
+opentalk-roomserver-crypto-provider = { path = "roomserver/opentalk-roomserver-crypto-provider", version = "3.0.0" }
+opentalk-roomserver-livekit-proxy = { path = "roomserver/modules/livekit/proxy", version = "3.0.0" }
+opentalk-roomserver-module-automod = { path = "roomserver/modules/automod/module", version = "3.0.0" }
+opentalk-roomserver-module-chat = { path = "roomserver/modules/chat/module", version = "3.0.0" }
+opentalk-roomserver-module-e2ee = { path = "roomserver/modules/e2ee/module", version = "3.0.0" }
+opentalk-roomserver-module-echo = { path = "roomserver/modules/echo/module", version = "3.0.0" }
+opentalk-roomserver-module-excalidraw = { path = "roomserver/modules/excalidraw/module", version = "3.0.0" }
+opentalk-roomserver-module-legal-vote = { path = "roomserver/modules/legal-vote/module", version = "3.0.0" }
+opentalk-roomserver-module-livekit = { path = "roomserver/modules/livekit/module", version = "3.0.0" }
+opentalk-roomserver-module-meeting-notes = { path = "roomserver/modules/meeting-notes/module", version = "3.0.0" }
+opentalk-roomserver-module-meeting-report = { path = "roomserver/modules/meeting-report/module", version = "3.0.0" }
+opentalk-roomserver-module-moderation = { path = "roomserver/modules/moderation/module", version = "3.0.0" }
+opentalk-roomserver-module-polls = { path = "roomserver/modules/polls/module", version = "3.0.0" }
+opentalk-roomserver-module-raise-hands = { path = "roomserver/modules/raise-hands/module", version = "3.0.0" }
+opentalk-roomserver-module-reaction = { path = "roomserver/modules/reaction/module", version = "3.0.0" }
+opentalk-roomserver-module-recording = { path = "roomserver/modules/recording/module", version = "3.0.0" }
+opentalk-roomserver-module-shared-folder = { path = "roomserver/modules/shared-folder/module", version = "3.0.0" }
+opentalk-roomserver-module-subroom-audio = { path = "roomserver/modules/subroom-audio/module", version = "3.0.0" }
+opentalk-roomserver-module-timer = { path = "roomserver/modules/timer/module", version = "3.0.0" }
+opentalk-roomserver-module-training-participation-report = { path = "roomserver/modules/training-participation-report/module", version = "3.0.0" }
+opentalk-roomserver-module-transcription = { path = "roomserver/modules/transcription/module", version = "3.0.0" }
+opentalk-roomserver-module-whiteboard = { path = "roomserver/modules/whiteboard/module", version = "3.0.0" }
+opentalk-roomserver-modules = { path = "roomserver/opentalk-roomserver-modules", version = "3.0.0" }
+opentalk-roomserver-room = { path = "roomserver/opentalk-roomserver-room", version = "3.0.0" }
+opentalk-roomserver-signaling = { path = "roomserver/opentalk-roomserver-signaling", version = "3.0.0" }
+opentalk-roomserver-test-util-livekit = { path = "roomserver/modules/livekit/test-util", version = "3.0.0" }
+opentalk-roomserver-types = { path = "roomserver/opentalk-roomserver-types", version = "3.0.0", features = ["utoipa"] }
+opentalk-roomserver-types-automod = { path = "roomserver/modules/automod/types", version = "3.0.0" }
+opentalk-roomserver-types-chat = { path = "roomserver/modules/chat/types", version = "3.0.0" }
+opentalk-roomserver-types-e2ee = { path = "roomserver/modules/e2ee/types", version = "3.0.0" }
+opentalk-roomserver-types-echo = { path = "roomserver/modules/echo/types", version = "3.0.0" }
+opentalk-roomserver-types-excalidraw = { path = "roomserver/modules/excalidraw/types", version = "3.0.0" }
+opentalk-roomserver-types-legal-vote = { path = "roomserver/modules/legal-vote/types", version = "3.0.0" }
+opentalk-roomserver-types-livekit = { path = "roomserver/modules/livekit/types", version = "3.0.0" }
+opentalk-roomserver-types-meeting-notes = { path = "roomserver/modules/meeting-notes/types", version = "3.0.0" }
+opentalk-roomserver-types-meeting-report = { path = "roomserver/modules/meeting-report/types", version = "3.0.0" }
+opentalk-roomserver-types-moderation = { path = "roomserver/modules/moderation/types", version = "3.0.0" }
+opentalk-roomserver-types-polls = { path = "roomserver/modules/polls/types", version = "3.0.0" }
+opentalk-roomserver-types-raise-hands = { path = "roomserver/modules/raise-hands/types", version = "3.0.0" }
+opentalk-roomserver-types-reaction = { path = "roomserver/modules/reaction/types", version = "3.0.0" }
+opentalk-roomserver-types-recording = { path = "roomserver/modules/recording/types", version = "3.0.0" }
+opentalk-roomserver-types-shared-folder = { path = "roomserver/modules/shared-folder/types", version = "3.0.0" }
+opentalk-roomserver-types-subroom-audio = { path = "roomserver/modules/subroom-audio/types", version = "3.0.0" }
+opentalk-roomserver-types-timer = { path = "roomserver/modules/timer/types", version = "3.0.0" }
+opentalk-roomserver-types-training-participation-report = { path = "roomserver/modules/training-participation-report/types", version = "3.0.0" }
+opentalk-roomserver-types-transcription = { path = "roomserver/modules/transcription/types", version = "3.0.0" }
+opentalk-roomserver-types-whiteboard = { path = "roomserver/modules/whiteboard/types", version = "3.0.0" }
+opentalk-roomserver-web-api = { path = "roomserver/opentalk-roomserver-web-api", version = "3.0.0" }
+
+# Transcription
+opentalk-transcription-web-api = { path = "transcription/opentalk-transcription-web-api", version = "3.0.0" }
+
+# External
+ab_glyph = "0.2"
+actix = "0.13"
+actix-cors = "0.7"
+actix-http = { version = "3", features = ["rustls-0_23"] }
+actix-router = "0.5"
+actix-rt = "2"
+actix-web = { version = "4", features = ["rustls-0_23"] }
+actix-web-actors = "4"
+actix-web-httpauth = "0.8"
+actix-ws = "0.4"
+anstream = "1"
+anyhow = "1"
+arc-swap = "1"
+async-stream = "0.3"
+async-trait = "0.1"
+aws-sdk-s3 = { version = "1", features = ["behavior-version-latest"] }
+axum = "0.8"
+axum-prometheus = "0.10"
+barrel = "0.7"
+base64 = "0.23"
+basen = "=0.1.0"
+bigdecimal = "0.4"
+bitstream-io = "4"
+blake3 = "1"
+byteorder = "1"
+bytes = "1"
+bytesstr = "1"
+bytestring = "1"
+cargo_metadata = "0.23"
+chrono = { version = "0.4", default-features = false }
+chrono-tz = "0.10"
+cidr = { version = "0.3", features = ["no_unsafe", "serde"] }
+clap = { version = "4", features = ["derive", "env"] }
+config = { version = "0.15", default-features = false, features = ["toml"] }
+css-inline = "0.21"
+deadpool-runtime = "0.3"
+derive_more = { version = "2", features = ["as_ref", "display", "from", "from_str", "into"] }
+devx-cmd = "0.5"
+diesel = { version = "2", default-features = false }
+diesel-async = "0.9"
+directories = "6"
+dirs = "7"
+earshot = "1"
+ecow = "0.2"
+eframe = "0.36"
+egui = "0.36"
+egui_extras = { version = "0.36", default-features = false }
+egui_json_tree = "0.17"
+either = "1"
+email_address = "0.2"
+env_logger = "0.11"
+etcd-client = "0.20"
+ezk = "0.1"
+ezk-audio = "0.1"
+ezk-audio-nodes = "0.1"
+ezk-g711 = "0.2"
+ezk-g722 = "0.1"
+ezk-image = { version = "0.4", default-features = false }
+ezk-rtp = "=0.2.0"
+ezk-sdp-types = "0.6"
+ezk-sip-auth = "0.5"
+ezk-sip-core = { version = "0.9", features = ["tls-native-tls"] }
+ezk-sip-types = "0.6"
+ezk-sip-ua = { version = "0.9", default-features = false }
+ezk-stun-types = "0.3"
+fern = "0.7"
+fluent-langneg = "0.14"
+fluent-templates = { version = "0.15", features = ["tera"] }
+flume = "0.12"
+futures = "0.3"
+futures-core = "0.3"
+futures-util = { version = "0.3", default-features = false }
+glib = "0.22"
+glob = "0.3"
+gstreamer = { version = "0.25", features = ["v1_22"] }
+gstreamer-app = { version = "0.25", features = ["v1_22"] }
+gstreamer-base = { version = "0.25", features = ["v1_22"] }
+h264-profile-level-id = "0.2"
+heck = "0.5"
+hound = "3"
+http = "1"
+http-request-derive = { version = "0.6", default-features = false }
+http0 = { version = "0", package = "http" }
+humansize = "2"
+iana-time-zone = "0.1"
+ics = "0.5"
+ics-chrono-tz = "0.5"
+icu_locid = "1"
+image = { version = "0.25", default-features = false }
+insta = "1"
+itertools = "0.15"
+json-patch = "4"
+jsonwebtoken = { version = "11", default-features = false, features = ["aws_lc_rs"] }
+language-tags = "0.3"
+lapin-pool = "0.1"
+lapin2 = { package = "lapin", version = "2", default-features = false }
+lapin3 = { package = "lapin", version = "3", default-features = false }
+lettre = { version = "0.11.0", default-features = false }
+livekit = { version = "0.9", features = ["rustls-tls-native-roots"] }
+livekit-api = { version = "0.7", features = ["rustls-tls-native-roots"] }
+livekit-protocol = "0.7"
+log = "0.4"
+md5 = "0.8"
+metrics-exporter-prometheus = { version = "0.18", default-features = false }
+mime = "0.3.17"
+mockall = "0.15"
+mockito = "1"
+moka = { version = "0.12", default-features = false }
+native-tls = "0.2"
+nix = "0.31"
+oauth2 = "5"
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSResponder", "NSEvent", "NSGraphicsContext", "NSRunningApplication"] }
+objc2-foundation = { version = "0.3", features = ["NSNotification", "NSObject", "NSThread"] }
+once_cell = "1"
+openh264 = "0.9"
+openh264-sys2 = "0.9"
+openidconnect = { version = "4", default-features = false, features = ["rustls-tls"] }
+opentelemetry = { version = "0.32", default-features = false, features = ["metrics", "trace"] }
+opentelemetry-otlp = "0.32"
+opentelemetry-prometheus = "0.32"
+opentelemetry_sdk = { version = "0.32", features = ["metrics", "rt-tokio-current-thread", "spec_unstable_metrics_views"] }
+owo-colors = "4"
+parking_lot = "0.12"
+parse-size = "1"
+pdf-extract = "0.12"
+percent-encoding = "2"
+phonenumber = "0.3"
+pin-project-lite = "0.2"
+postcard = "1"
+pretty_assertions = "1"
+proc-macro-crate = "3"
+proc-macro2 = "1"
+prometheus = "0.14"
+quote = "1"
+rand = "0.10"
+rand_chacha = "0.10"
+redis = "1.0"
+redis-args = "0.22"
+refinery = "0.9"
+refinery-core = "0.9"
+regex = "1"
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
+reqwest12 = { package = "reqwest", version = "0.12", default-features = false, features = ["rustls-tls"] }
+reqwest_dav = "0.3"
+resvg = "0.48"
+ring = "0.17"
+rkyv = "0.8"
+rrule = "0.14"
+rstest = "0.27"
+rtp = "0.17"
+rustc-hash = "2"
+rustls = "0.23"
+rustls-pemfile = "2"
+rustls-pki-types = "1"
+scoped-futures = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_ignored = "0.1"
+serde_json = "1"
+serde_path_to_error = "0.1"
+serde_repr = "0.1"
+serde_urlencoded = "0.7"
+serde_with = "3"
+serial_test = "4"
+service-probe = "0.4"
+service-probe-client = "0.4"
+siphasher = "1.0"
+slotmap = "1"
+snafu = "0.9"
+srtp = "0.7"
+strum = { version = "0.28", features = ["derive"] }
+syn = "3"
+sysinfo = "0.39"
+tabled = "0.22"
+temp-dir = "0.2"
+temp-env = "0.3"
+tempfile = "3"
+tera = { version = "2.0.0" }
+tera-contrib = { version = "0.3.0", default-features = false, features = ["date"] }
+test-log = { version = "0.2", default-features = false, features = ["trace"] }
+testcontainers = "=0.27"
+testcontainers-modules = { version = "0.15", default-features = false }
+textplots = "0.8"
+textwrap = "0.16"
+thiserror = "2"
+tokio = { version = "1", default-features = false, features = ["macros"] }
+tokio-cron-scheduler = "0.15"
+tokio-executor-trait = "3"
+tokio-native-tls = "0.3"
+tokio-reactor-trait = "4"
+tokio-stream = "0.1"
+tokio-tungstenite = { version = "0.30", default-features = false, features = ["rustls-tls-native-roots"] }
+tokio-util = "0.7"
+toml = "1"
+tower = "0.5"
+tower-http = "0.7"
+tracing = "0.1"
+tracing-actix-web = "0.7"
+tracing-futures = "0.2"
+tracing-opentelemetry = "0.33"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "parking_lot"] }
+trybuild = "1"
+ts-rs = { version = "12", features = ["chrono-impl", "uuid-impl"] }
+tungstenite = "0.30"
+typst = "0.15"
+typst-kit = { version = "0.15", default-features = false }
+typst-pdf = "0.15"
+unified-diff = "0.2"
+url = "2"
+urlencoding = "2"
+utoipa = { version = "5", features = ["yaml"] }
+utoipa-swagger-ui = { version = "9", features = ["vendored"] }
+uuid = { version = "1", features = ["v4"] }
+vergen = "10"
+vergen-git2 = "10"
+webrtc-sys = "0.3"
+whisper-rs = "0.16"
+yaml-rust2 = "0.12"
+
+[workspace.lints.clippy]
+self_named_module_files = "deny"
+
+[patch.crates-io]
+# Removes duplicate paste and therefore some compile time
+bitpattern = { git = 'https://github.com/kbalt/bitpattern', branch = 'remove-paste-010-patch' }
+
+# Update libsrtp to 2.8 & newer bindgen version until https://github.com/HyeonuPark/srtp2-sys/pull/3 is merged
+srtp2-sys = { git = "https://github.com/kbalt/srtp2-sys.git", rev = "33110a8c3fa449c65c23dc5b6aacbc6e7ad0a0b5" }

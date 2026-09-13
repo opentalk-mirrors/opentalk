@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-description = "OpenCloud client library embedded in OpenTalk"
 name = "opentalk-opencloud-client"
+description = "OpenCloud client library embedded in OpenTalk"
+documentation = "https://docs.rs/opentalk-opencloud-client"
 publish = true
-version = "0.1.0"
-
+version.workspace = true
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
@@ -21,7 +21,7 @@ futures.workspace = true
 log.workspace = true
 percent-encoding.workspace = true
 rand.workspace = true
-reqwest.workspace = true
+reqwest = { workspace = true, features = ["json"] }
 serde.workspace = true
 snafu.workspace = true
 strum.workspace = true

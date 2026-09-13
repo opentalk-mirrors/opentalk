@@ -3,27 +3,23 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-authors = ["OpenTalk Team <mail@opentalk.eu>"]
+name = "opentalk-etherpad-client"
 description = "Etherpad API client for use inside OpenTalk"
 documentation = "https://docs.rs/opentalk-etherpad-client"
-edition = "2024"
-homepage = "https://opentalk.eu/"
-license = "EUPL-1.2"
-name = "opentalk-etherpad-client"
 publish = true
-repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-etherpad-client"
-version = "0.6.0"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
-bytes = "1"
-futures = "0.3"
-reqwest = { version = "0.13", default-features = false, features = [
-  "cookies",
-  "json",
-  "stream",
-] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-serde_repr = "0.1"
-snafu = "0.9"
-url = "2"
+bytes.workspace = true
+futures.workspace = true
+reqwest = { workspace = true, features = ["cookies", "json", "stream"] }
+serde.workspace = true
+serde_json.workspace = true
+serde_repr.workspace = true
+snafu.workspace = true
+url.workspace = true

@@ -3,11 +3,12 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [package]
-name = "xtask"
-version = "0.1.0"
-edition = "2021"
+name = "obelisk-xtask"
 publish = false
+edition.workspace = true
+license.workspace = true
+version.workspace = true
 
 [dependencies]
-heck = "0.5"
-temp-dir = "0.2.0"
+heck.workspace = true
+temp-dir.workspace = true

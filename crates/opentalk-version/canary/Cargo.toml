@@ -3,22 +3,22 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 [package]
-authors = ["OpenTalk GmbH <mail@opentalk.eu>"]
-description = "Makes sure the opentalk-version crate actually compiles"
-edition = "2021"
-homepage = "https://opentalk.eu/"
-license = "MIT OR Apache-2.0"
 name = "canary"
+description = "Makes sure the opentalk-version crate actually compiles"
 publish = false
-repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-version"
-version = "0.0.0"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [build-dependencies]
-anyhow = "1"
-opentalk-version.path = ".."
+anyhow.workspace = true
+opentalk-version.workspace = true
 
 [dependencies]
-opentalk-version.path = ".."
+opentalk-version.workspace = true
 
 [package.metadata.cargo-machete]
 ignored = ["anyhow"]

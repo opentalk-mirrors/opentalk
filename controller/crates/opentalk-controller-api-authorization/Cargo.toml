@@ -18,7 +18,7 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-actix-router = { version = "0.5", optional = true }
+actix-router = { workspace = true, optional = true }
 actix-web = { workspace = true, optional = true }
 async-trait.workspace = true
 http0.workspace = true

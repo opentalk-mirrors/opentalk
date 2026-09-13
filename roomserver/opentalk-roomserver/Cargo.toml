@@ -36,7 +36,7 @@ opentalk-types-api-internal = { workspace = true, features = ["utoipa"] }
 opentalk-types-common.workspace = true
 opentalk-version.workspace = true
 opentelemetry.workspace = true
-opentelemetry-otlp.workspace = true
+opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
 opentelemetry_sdk.workspace = true
 reqwest.workspace = true
 service-probe.workspace = true
@@ -49,7 +49,7 @@ tracing-opentelemetry.workspace = true
 tracing-subscriber.workspace = true
 url.workspace = true
 utoipa.workspace = true
-utoipa-swagger-ui.workspace = true
+utoipa-swagger-ui = { workspace = true, features = ["axum"] }
 uuid = { workspace = true, features = ["v4"] }
 yaml-rust2.workspace = true
 

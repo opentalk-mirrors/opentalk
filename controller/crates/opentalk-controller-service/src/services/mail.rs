@@ -11,8 +11,8 @@
 use std::sync::Arc;
 
 use chrono::DateTime;
-use lapin::BasicProperties;
 use lapin_pool::{RabbitMqChannel, RabbitMqPool};
+use lapin2::BasicProperties;
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{
     Event, EventException, EventExceptionKind, Room, RoomSipConfig, User, utils::is_call_in_allowed,

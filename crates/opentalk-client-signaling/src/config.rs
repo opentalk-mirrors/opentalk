@@ -9,7 +9,7 @@ use openidconnect::{
     ClientId, ClientSecret, IssuerUrl, ResourceOwnerPassword, ResourceOwnerUsername, url,
 };
 use opentalk_service_auth::ApiKey;
-use reqwest::Url;
+use reqwest12::Url;
 use serde::{Deserialize, Deserializer, de};
 
 use crate::authentication::Authentication;
