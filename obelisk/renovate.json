@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "reviewers": [
+    "@opentalk/tools/renovate-reviewers/media"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "ezk-*"
+      ],
+      "groupName": "EZK-rs",
+      "groupSlug": "EZK-rs"
+    },
+    {
+      "matchPackagePatterns": [
+        "opentalk-*"
+      ],
+      "groupName": "opentalk",
+      "groupSlug": "opentalk"
+    }
+  ]
+}

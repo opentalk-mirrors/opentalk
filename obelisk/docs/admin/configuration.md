@@ -1,0 +1,157 @@
+---
+sidebar_position: 1
+title: Configuration
+---
+
+# Configuring Obelisk
+
+When Obelisk gets started, it loads the configuration from the
+environment. It reads the settings in this order:
+
+- Read environment variables which have a specific name, see section
+  [Environment variables](#environment-variables).
+- Load from a configuration file. When no path is passed explicitly, Obelisk
+  looks for a config file in these locations and uses the first one that is
+  found:
+    - `config.toml` in the current directory (deprecated, for backwards
+      compatibility only)
+    - `obelisk.toml` in the current directory
+    - `<XDG_CONFIG_HOME>/opentalk/obelisk.toml` (where `XDG_CONFIG_HOME` is
+      usually `~/.config`)
+    - `/etc/opentalk/obelisk.toml`
+
+## Sections in the configuration file
+
+Functionality that can be configured through the configuration file:
+
+- [Controller](controller.md)
+- [SIP](sip.md)
+- [Monitoring](monitoring.md)
+
+## General configuration
+
+Configuration values found at the root of the TOML file
+
+| Field          | Type     | Required | Default value | Description                                                                     |
+| -------------- | -------- | -------- | ------------- | ------------------------------------------------------------------------------- |
+| `language`     | `string` | no       | `"de"`        | Language of the audio cue to be played to the callee. (Either `"de"` or `"en"`) |
+| `clock_format` | `string` | no       | `"%x %X %Z"`  | The time format for the clock when using video, see `man strftime` for details  |
+
+## Environment variables
+
+Settings in the configuration file can be overwritten by environment variables,
+nested fields are separated by two underscores `__`. The pattern looks like
+this:
+
+```sh
+OPENTALK_OBLSK_<field>__<nested-field>…
+```
+
+### Limitations
+
+Some settings can not be overwritten by environment variables. This is for
+example the case for entries in lists, because there is no environment variable
+naming pattern that could identify the index of the entry inside the list.
+
+### Examples
+
+In order to set the `controller.url` field, this environment variable could be used:
+
+```sh
+OPENTALK_OBLSK_CONTROLLER__URL=http://localhost:8000
+```
+
+## Example configuration file
+
+This file can be found in the source code distribution under `extra/example.toml`
+
+<!-- begin:fromfile:toml:config/example.toml -->
+
+```toml
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# The clock format of the timestamp displayed inside the stream.
+clock_format = "%x %X %Z"
+
+# Language of the audio cue to be played to the callee
+language = "de"
+
+[controller]
+url = "http://localhost:8000"
+api_key = { "id" = "controller", "secret" = "examplesecret" }
+
+[monitoring]
+addr = "0.0.0.0"
+port = 11411
+
+[sip]
+
+# Local IP address to bind to (0.0.0.0 binds to every address)
+addr = "0.0.0.0"
+
+# Port to bind to (5060 is SIP default)
+port = 5060
+
+# Inbound address to use in SIP and SDP messages.
+# This setting should only be used in NAT scenarios where using a STUN server is not possible.
+#inbound_addr = "192.0.2.1:5060"
+
+# Inbound media ip which is constrained to only SDP. Overrides the value of `inbound_addr`
+# for SDP and sets the inbound IP for media (RTP / RTCP).
+#inbound_media_ip = "192.0.2.1:5061"
+
+# ID of this SIP endpoint, used for creating the From/To header in SIP REGISTER messages
+# When not set, it is generated as `sip:<username>@<regisrar-host>` if a registrar is configured.
+# If no registrar is configured it is generated the same way as the contact uri (see below).
+#id = "sip:alice@example.org"
+
+# Contact uri of this SIP endpoint, used for creating the SIP Contact header
+# When not set, it is generated as `sip:<username>@<addr>` where `addr` may be replaced by the
+# public address discovered using the stun-server.
+#contact = "sip:alice@192.168.1.100"
+
+# Username/Password pair.
+# Usually provided by the SIP provider
+username = "alice"
+
+password = "mysecurepassword"
+
+# Realm of the given username/password pair
+realm = "example.org"
+
+# SIP URI of the registrar
+registrar = "sip:sip.example.org"
+
+# Specify a SIP proxy to send all requests to
+#outbound_proxy = "sip:someotherserver.example.org"
+
+# Seconds between ping/pong to keep NAT binding alive
+#nat_ping_delta = 30
+
+# Host-port of the stun server used for SIP
+stun_server = "stun.example.org:3478"
+
+# Enforce quality of protection on SIP authentication
+# (reuse of nonce + nonce-count instead of
+#  requesting a new nonce for each request)
+#
+# Can cause compatibility issues on older registrars.
+enforce_qop = true
+
+# Maximum video bitrate in bits/s
+#max_video_bitrate = 6000000
+
+# Offer SRTP as media transport when obelisk is creating the initial SDP offer
+#offer_srtp = false
+
+# The port range for the SIP RTP/RTCP connections (inclusive).
+#
+# Defaults to 40000 - 49999
+[sip.rtp_port_range]
+end = 49999
+start = 40000
+```
+
+<!-- end:fromfile:toml:config/example.toml -->

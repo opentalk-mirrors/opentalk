@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+SPDX-PackageDownloadLocation = "https://git.opentalk.dev/opentalk/k3k-obelisk"
+SPDX-PackageName = "OpenTalk Obelisk"
+SPDX-PackageSupplier = "OpenTalk GmbH <mail@opentalk.eu>"
+version = 1
+
+[[annotations]]
+SPDX-FileCopyrightText = "OpenTalk GmbH <mail@opentalk.eu>"
+SPDX-License-Identifier = "EUPL-1.2"
+path = [
+  ".commitlintrc.json",
+  ".gitmodules",
+  ".taplo.toml",
+  "CHANGELOG.md",
+  "Cargo.lock",
+  "README.md",
+  "renovate.json",
+]
+precedence = "aggregate"
+
+[[annotations]]
+SPDX-FileCopyrightText = "OpenTalk GmbH <mail@opentalk.eu>"
+SPDX-License-Identifier = "CC-BY-NC-ND-4.0"
+path = [
+  "audio/**.wav",
+  "docs/**.md",
+  "text/**",
+]
+precedence = "aggregate"

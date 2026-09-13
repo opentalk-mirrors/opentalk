@@ -1,0 +1,55 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98.0-trixie AS builder
+
+WORKDIR /obelisk
+
+RUN apt-get --update --no-install-recommends install -y build-essential libclang-dev
+
+COPY ./build.rs ./build.rs
+COPY ./Cargo.toml ./Cargo.toml
+COPY ./Cargo.lock ./Cargo.lock
+
+ENV CXX=clang++-21
+
+# cache library build
+# We need a proper main.rs to make the first cargo build run
+# As we haven't copied any source files yet, this will only compile the dependencies
+RUN cargo new --bin xtask;\
+    mkdir src; \
+    echo 'fn main() {println!("Hello World!");}' > src/main.rs; \
+    cargo auditable build --release
+
+# Now copy the real source over
+COPY src src
+COPY audio audio
+
+# Cargo detects changes only by mtime
+RUN touch src/main.rs; \
+    cargo auditable build --release
+
+FROM debian:trixie AS preparer
+
+RUN apt --update upgrade -y
+RUN apt install ca-certificates -y --no-install-recommends
+
+FROM scratch
+
+COPY --from=preparer /lib64/ld-linux-x86-64* /lib64/
+COPY --from=preparer /usr/bin/ld.so /lib/
+COPY --from=preparer /usr/lib /usr/lib
+COPY --from=preparer /lib /lib
+COPY --from=preparer /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+COPY --from=builder /obelisk/target/release/opentalk-obelisk .
+
+ENV LD_LIBRARY_PATH=/usr/lib:/lib:/lib64
+ENV PATH=/:/usr/bin/
+
+ENV USERID=1000
+ENV GROUPID=1000
+USER $USERID:$GROUPID
+
+ENTRYPOINT [ "./opentalk-obelisk" ]
