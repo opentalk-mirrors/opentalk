@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM docker.io/library/rust:slim-trixie AS builder
+RUN mkdir /transcription
+WORKDIR /transcription
+
+ADD . /transcription
+
+RUN apt-get --update -y full-upgrade && \
+    apt-get install --no-install-recommends -y \
+    build-essential \
+    pkg-config \
+    clang \
+    libclang-dev \
+    cmake \
+    libvulkan-dev \
+    glslc \
+    libssl-dev \
+    libglib2.0-dev \
+    curl
+
+RUN curl -O https://repo.heinlein.group/repository/whisper-ggml-models/ggml-large-v3-turbo.bin
+
+RUN cargo build --locked --release
+
+FROM docker.io/library/debian:trixie-slim
+
+ENV USERID=1000
+ENV GROUPID=1000
+
+RUN apt-get --update full-upgrade -y && \
+    apt-get install --no-install-recommends -y ca-certificates libvulkan1 mesa-vulkan-drivers && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --gid $GROUPID transcription && \
+    useradd --uid $USERID --gid $GROUPID --create-home transcription && \
+    mkdir /transcription
+
+WORKDIR /transcription
+
+COPY --from=builder /transcription/ggml-large-v3-turbo.bin models/.
+COPY --from=builder /transcription/target/release/opentalk-transcription .
+COPY extra/example.toml /etc/opentalk/transcription.toml
+
+USER $USERID:$GROUPID
+
+EXPOSE 11413
+EXPOSE 11411
+ENTRYPOINT [ "/transcription/opentalk-transcription" ]

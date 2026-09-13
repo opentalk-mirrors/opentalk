@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "OpenTalk Transcription WebAPI routes & types"
+documentation = "https://docs.rs/crate/opentalk-transcription-web-api/"
+edition.workspace = true
+homepage = "https://opentalk.eu/"
+license.workspace = true
+name = "opentalk-transcription-web-api"
+publish = true
+repository = "https://git.opentalk.dev/opentalk/backend/services/transcription"
+version = "0.7.0"
+
+[dependencies]
+async-trait.workspace = true
+axum = { workspace = true, features = ["macros"] }
+opentalk-types-api-common = { workspace = true, features = ["http", "axum"] }
+opentalk-types-common.workspace = true
+serde = { workspace = true, features = ["derive"] }

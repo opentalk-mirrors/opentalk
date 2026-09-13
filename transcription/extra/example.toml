@@ -1,0 +1,64 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[http]
+# An optional address to which to bind.
+# Can be either a hostname, or an IP address.
+#
+# By default, this will accept requests on both the IPv4 and IPv6 interfaces on any address.
+#
+# The exception to this rule is "::0" which will bind to both the IPv4 and the
+# IPv6 UNSPECIFIED address, accepting requests on both of them. If the operating
+# system provides no IPv6 support, or the service should not bind to an IPv6
+# interface, "0.0.0.0" can be used instead, which will only bind to the IPv4
+# UNSPECIFIED address.
+#addr = "::0"
+#
+# A hostname or fully qualified domain name will bind to whatever the name
+# resolution returns, either one or both IP protocols.
+#addr = "controller.opentalk.example.com"
+#addr = "localhost"
+#addr = "opentalkserver"
+#
+# An explicit IPv4 or IPv6 address, will bind to the corresponding IP protocol.
+#addr = "127.0.0.1"
+#addr = "::1"
+#addr = "192.0.2.0"
+#addr = "2001:0DB8::1337:DEAD:CAFE"
+
+# The port to bind the HTTP Server to.
+#port = 11413
+# The api keys for internal service endpoints
+#
+# The transcription service can have multiple api keys configured. An api key can be configured as string ("<key_id>:<key_secret>")
+# or as key/value pair ({id = "<key_id>", secret = "<key_secret>"}).
+api_keys = [{ id = "transcription", secret = "secret" }]
+
+[controller]
+# The URL of the controller
+url = "http://localhost:8000"
+# The API to access the controller
+api_key = { "id" = "controller", "secret" = "secret" }
+
+# Monitoring endpoint configuration.
+# Provides Prometheus-compatible metrics for scraping.
+[monitoring]
+# Address to bind the monitoring endpoint to.
+addr = "::1"
+
+# Port for the monitoring endpoint.
+port = 11411
+
+[transcription]
+# Configuration of the transcription engine.
+
+# Path to the whisper model file to load.
+#model = "models/ggml-large-v3-turbo.bin"
+
+# Optional orchestrator configuration
+#[orchestrator]
+# The API key of the orchestrator
+#api_key = { id = "orchestrator", secret = "secret" }
+# The orchestrator URL
+#url = "http://127.0.0.1:11222"
