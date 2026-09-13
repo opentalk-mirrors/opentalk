@@ -72,7 +72,7 @@ version = "3.0.0"
 opentalk-client-signaling = { path = "crates/opentalk-client-signaling", version = "3.0.0" }
 
 # crates/opentalk-compositor
-opentalk-compositor = { path = "crates/opentalk-compositor", version = "3.0.0" }
+opentalk-compositor = { path = "crates/opentalk-compositor", version = "3.0.0", default-features = false }
 
 # crates/opentalk-diesel-newtype
 opentalk-diesel-newtype = { path = "crates/opentalk-diesel-newtype", version = "3.0.0" }
