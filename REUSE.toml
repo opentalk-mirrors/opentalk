@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+SPDX-PackageDownloadLocation = "https://git.opentalk.dev/opentalk/opentalk"
+SPDX-PackageName = "OpenTalk"
+SPDX-PackageSupplier = "OpenTalk Team <mail@opentalk.eu>"
+version = 1
+
+[[annotations]]
+SPDX-FileCopyrightText = [
+  "OpenTalk GmbH <mail@opentalk.eu>",
+  "OpenTalk Team <mail@opentalk.eu>",
+]
+SPDX-License-Identifier = "EUPL-1.2"
+path = [
+  "**.png",
+  "**/*.json",
+  "**/.mdlrc",
+  "**/CHANGELOG.md",
+  "**/README.md",
+  "**/api.yaml",
+  "**/docs/**.md",
+  "**/docs/**.yml",
+  "**/openapi.yml",
+  "**/package.json",
+  "**/pnpm-lock.yaml",
+  "**/snapshots/**.snap",
+  ".commitlintrc.json",
+  "Cargo.lock",
+  "api/docs/**.yml",
+  "ci/spectral/*.yml",
+  "controller/crates/opentalk-db-storage/src/migrations/**.sql",
+  "controller/crates/opentalk-db-storage/src/schema.rs",
+  "crates/opentalk-compositor/assets/**.svg",
+  "crates/opentalk-types/crates/opentalk-types-common/tests/**/**.stderr",
+  "example/**.json",
+  "example/roomserver.toml",
+  "load-test/.prettierignore",
+  "obelisk/audio/**",
+  "renovate.json",
+  "roomserver/example/roomserver.toml",
+  "roomserver/load-test/.prettierignore",
+  "smtp-mailer/resources/locales/**/**.ftl",
+  "smtp-mailer/resources/templates/**.css",
+  "smtp-mailer/resources/templates/**.html",
+  "smtp-mailer/resources/templates/**.include",
+  "smtp-mailer/resources/templates/**.txt",
+]
+precedence = "aggregate"
