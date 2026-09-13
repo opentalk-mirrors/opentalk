@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+SPDX-PackageDownloadLocation = "https://git.opentalk.dev/opentalk/backend/libs/opentalk-nextcloud-client"
+SPDX-PackageName = "OpenTalk Nextcloud Client"
+SPDX-PackageSupplier = "OpenTalk GmbH <mail@opentalk.eu>"
+version = 1
+
+[[annotations]]
+SPDX-FileCopyrightText = "OpenTalk GmbH <mail@opentalk.eu>"
+SPDX-License-Identifier = "EUPL-1.2"
+path = [
+  "**/CHANGELOG.md",
+  "**/README.md",
+  ".commitlintrc.json",
+  ".mdlrc",
+  "Cargo.lock",
+  "renovate.json",
+]
+precedence = "aggregate"
