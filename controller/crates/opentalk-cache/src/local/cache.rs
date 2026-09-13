@@ -160,11 +160,13 @@ mod tests {
             .unwrap();
         tokio::time::sleep(delta * 2).await;
 
-        // Time a bit longer than default TTL has passed since first insertion, but the entry should still be available
+        // Time a bit longer than default TTL has passed since first insertion, but the entry should
+        // still be available
         let cached_value = cache.get(&original_key).await.unwrap();
         assert_eq!(Some(new_value), cached_value);
 
-        // Time a bit longer than default TTL has passed since the update, now the entry should be expired
+        // Time a bit longer than default TTL has passed since the update, now the entry should be
+        // expired
         tokio::time::sleep(DEFAULT_TTL).await;
         let cached_value = cache.get(&original_key).await.unwrap();
         assert_eq!(cached_value, None);
@@ -186,7 +188,8 @@ mod tests {
         cache.insert(key.clone(), new_value).await.unwrap();
         tokio::time::sleep(delta * 2).await;
 
-        // Wait a bit longer than default TTL has passed since first insertion, the value should be expired
+        // Wait a bit longer than default TTL has passed since first insertion, the value should be
+        // expired
         let cached_value = cache.get(&key).await.unwrap();
         assert_eq!(cached_value, None);
     }

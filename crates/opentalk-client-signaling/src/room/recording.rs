@@ -25,7 +25,8 @@ use crate::{
 /// OpenTalk recording module events
 #[derive(Debug)]
 pub enum OpenTalkRecordingEvent {
-    /// Recording state has been updated. This can be due to the recording starting, pausing or stopping.
+    /// Recording state has been updated. This can be due to the recording starting, pausing or
+    /// stopping.
     ///
     /// The events provides both the previous and updated state
     RecordingStateUpdate {

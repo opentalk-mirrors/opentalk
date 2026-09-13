@@ -95,7 +95,8 @@ impl PageSize {
         self.saturating_add(Self::ONE)
     }
 
-    /// Get the previous page number. Will return itself if this is already the lowest possible value.
+    /// Get the previous page number. Will return itself if this is already the lowest possible
+    /// value.
     pub fn saturating_previous(&self) -> Self {
         self.saturating_sub(Self::ONE)
     }
@@ -106,7 +107,8 @@ impl PageSize {
     /// the last possible page is used, not the maximum value of [`ItemIndex`].
     pub fn first_index_on_page_saturating(&self, page: Page) -> ItemIndex {
         let index = self.0.saturating_mul(page.as_zero_based_i64());
-        // In case the value saturated, we want to go back down to the start of the last page instead.
+        // In case the value saturated, we want to go back down to the start of the last page
+        // instead.
         let index = index.saturating_sub(index % self.0);
         // It should be impossible that `unwrap_or_default()` falls back to calling `default()`,
         // because based on the calculation above `index` is valid for `ItemIndex.

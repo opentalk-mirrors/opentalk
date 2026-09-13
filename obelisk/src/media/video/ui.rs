@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::media::ToCallerVideoSinks;
+use std::{sync::Arc, thread, thread::JoinHandle, time::Duration};
+
 use ezk_image::PixelFormat;
 use opentalk_compositor::{
     HEIGHT, WIDTH,
@@ -10,8 +11,8 @@ use opentalk_compositor::{
     image::{I420Image, Point},
 };
 use parking_lot::Mutex;
-use std::{sync::Arc, thread::JoinHandle};
-use std::{thread, time::Duration};
+
+use crate::media::ToCallerVideoSinks;
 
 const HEADLINE_TOP_OFFSET: usize = 150;
 

@@ -4,27 +4,30 @@
 
 #![allow(clippy::module_name_repetitions)]
 
-use std::sync::Mutex as StdMutex;
-use std::time::Duration;
-use std::{collections::HashMap, sync::Arc, time::Instant};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex as StdMutex},
+    time::{Duration, Instant},
+};
 
-use anyhow::{bail, Context, Result};
-use audio::{audio_mixer_task, NativeAudioStreamSource, Silence};
+use anyhow::{Context, Result, bail};
+use audio::{NativeAudioStreamSource, Silence, audio_mixer_task};
 use ezk::nodes::{Access, AccessHandle};
 use ezk_audio_nodes::{AudioConvert, AudioMixer};
 use ezk_image::{ColorInfo, ColorPrimaries, ColorSpace, ColorTransfer, YuvColorInfo};
 use futures::StreamExt;
-use livekit::webrtc::prelude::I420Buffer;
 use livekit::{
     prelude::*,
-    webrtc::{audio_stream::native::NativeAudioStream, video_stream::native::NativeVideoStream},
+    webrtc::{
+        audio_stream::native::NativeAudioStream, prelude::I420Buffer,
+        video_stream::native::NativeVideoStream,
+    },
 };
 use livekit_api::access_token::{AccessToken, AccessTokenError, VideoGrants};
-use tokio::sync::watch;
-use tokio::time::timeout;
 use tokio::{
-    sync::{mpsc, Mutex},
+    sync::{Mutex, mpsc, watch},
     task::JoinHandle,
+    time::timeout,
 };
 use video::{VideoPipeline, VideoStreamCommand};
 
@@ -47,9 +50,8 @@ pub mod pipeline_watched;
 
 #[cfg(feature = "gstreamer")]
 pub use gst_with_context::*;
-pub use sinks::*;
-
 pub use livekit;
+pub use sinks::*;
 
 #[macro_use]
 extern crate log;
@@ -166,7 +168,8 @@ pub struct MixerParameters {
 impl Mixer {
     // TODO: This will be fixed later on
     #[allow(clippy::missing_errors_doc)]
-    // RoomOptions in future livekits will have #[non_exhaustive] making the struct initilization impossible
+    // RoomOptions in future livekits will have #[non_exhaustive] making the struct initilization
+    // impossible
     #[allow(clippy::field_reassign_with_default)]
     pub async fn new(parameters: MixerParameters) -> Result<Self> {
         #[cfg(feature = "gstreamer")]
@@ -179,9 +182,9 @@ impl Mixer {
         let mut room_options = RoomOptions::default();
         room_options.auto_subscribe = false;
 
-        // Livekit uses the path_segment API from the `url` crate to build their signaling path, but they don't call the
-        // `pop` method on the path segments, which results in a double slash in the path if we do not trim the trailing
-        // slash here.
+        // Livekit uses the path_segment API from the `url` crate to build their signaling path, but
+        // they don't call the `pop` method on the path segments, which results in a double
+        // slash in the path if we do not trim the trailing slash here.
         let livekit_url = parameters.livekit_url.trim_end_matches('/');
 
         let (room, room_events) = Box::pin(Room::connect(
@@ -544,7 +547,8 @@ impl Mixer {
 
     /// Set a image http url for the participant
     ///
-    /// The image is loaded asynchronously and used when the participant has no camera or screenshare enabled
+    /// The image is loaded asynchronously and used when the participant has no camera or
+    /// screenshare enabled
     ///
     /// # Panics
     ///
@@ -765,11 +769,12 @@ pub fn create_token(
 #[cfg(test)]
 mod tests {
 
-    //! Providing an url with a trailing slash to livekit will result in an invalid livekit url with two slashes in the
-    //! path. These tests ensure that we are aware of breaking changes in their api in regards to the signaling url.
+    //! Providing an url with a trailing slash to livekit will result in an invalid livekit url with
+    //! two slashes in the path. These tests ensure that we are aware of breaking changes in
+    //! their api in regards to the signaling url.
     use std::net::SocketAddr;
 
-    use axum::{routing::get, Router};
+    use axum::{Router, routing::get};
     use livekit_api::signal_client::{SignalError, SignalOptions};
     use reqwest::StatusCode;
 

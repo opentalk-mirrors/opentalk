@@ -19,9 +19,10 @@ use crate::{host::Host, utoipa::responses::InternalServerError};
 
 /// Start a signaling session with the roomserver as a registered user
 ///
-/// This endpoint has to be called in order to get a signaling token for the roomserver. This endpoint returns the token
-/// and the corresponding roomserver address. Call the  *GET `<roomserver_address>/signaling/<token>`* endpoint to
-/// establish the websocket connection with the roomserver.
+/// This endpoint has to be called in order to get a signaling token for the roomserver. This
+/// endpoint returns the token and the corresponding roomserver address. Call the  *GET
+/// `<roomserver_address>/signaling/<token>`* endpoint to establish the websocket connection with
+/// the roomserver.
 #[utoipa::path(
     operation_id = "start",
     tag = "api::v1::rooms",

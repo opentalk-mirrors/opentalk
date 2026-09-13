@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::image::{blend_yuv, I420Image, Point};
-use ab_glyph::{point, Font, FontRef, Glyph, PxScale, ScaleFont};
 use std::sync::OnceLock;
+
+use ab_glyph::{Font, FontRef, Glyph, PxScale, ScaleFont, point};
+
+use crate::image::{I420Image, Point, blend_yuv};
 
 pub(crate) fn create_font() -> &'static FontRef<'static> {
     static FONT: OnceLock<FontRef<'static>> = OnceLock::new();

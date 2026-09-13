@@ -105,7 +105,8 @@ pub enum Error {
     #[snafu()]
     Permissions {},
 
-    /// Found shared folders in the database, but the configuration file contains no shared folder settings
+    /// Found shared folders in the database, but the configuration file contains no shared folder
+    /// settings
     SharedFoldersNotConfigured,
 
     /// Error communicating with NextCloud instance: {source}

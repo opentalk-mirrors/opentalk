@@ -160,7 +160,8 @@ enum CliParameterError {
     KeyValuePair,
     /// invalid quota type
     QuotaType { source: strum::ParseError },
-    /// invalid quota value, expected 64-bit unsigned integer or size like 1M, 1MB, 1Mi, 1MiB, 1e3 or similar
+    /// invalid quota value, expected 64-bit unsigned integer or size like 1M, 1MB, 1Mi, 1MiB, 1e3
+    /// or similar
     QuotaValue { source: parse_size::Error },
 }
 

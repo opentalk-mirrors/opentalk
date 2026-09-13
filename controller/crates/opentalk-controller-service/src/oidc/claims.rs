@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 
 use super::jwt;
 
-/// Additional OIDC Claims defined by the controller, which aren't provided inside [`openidconnect::StandardClaims`]
-///
+/// Additional OIDC Claims defined by the controller, which aren't provided inside
+/// [`openidconnect::StandardClaims`]
 // A note to devs:
 // Please also update fields in `docs/admin/keycloak.md`.
 #[derive(Debug, Clone, Deserialize, Serialize)]

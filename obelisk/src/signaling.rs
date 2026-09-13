@@ -2,33 +2,35 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::media::{MediaEvent, MediaPipeline, Track, TrackController};
-use crate::settings::Settings;
-use crate::sip::{SessionState, handle_reinvite, refresh_invite_session};
+use std::{fmt::Write, future::pending, pin::Pin, sync::Arc, time::Instant};
+
 use anyhow::{Context, Result, bail};
 use bytes::Bytes;
 use bytesstr::BytesStr;
 use ezk_sip_types::{Method, Name};
 use ezk_sip_ua::invite::session::{InviteSession, InviteSessionEvent};
-use opentalk_client_signaling::http::StartCallInError;
-use opentalk_client_signaling::opentalk_roomserver_types::breakout::event::BreakoutEvent;
-use opentalk_client_signaling::opentalk_roomserver_types::connection_id::ConnectionId;
-use opentalk_client_signaling::opentalk_roomserver_types_livekit::MicrophoneRestrictionState;
-use opentalk_client_signaling::opentalk_types::common::users::DisplayName;
-use opentalk_client_signaling::opentalk_types::signaling::ParticipantId;
 use opentalk_client_signaling::{
     DisconnectReason, JoinedLobby, OpenTalkClient, OpenTalkEvent, OpenTalkLiveKitEvent,
     OpenTalkRecordingEvent, Participant, Room,
+    http::StartCallInError,
+    opentalk_roomserver_types::{breakout::event::BreakoutEvent, connection_id::ConnectionId},
+    opentalk_roomserver_types_livekit::MicrophoneRestrictionState,
+    opentalk_types::{common::users::DisplayName, signaling::ParticipantId},
 };
-use opentalk_compositor::livekit::{DisconnectReason as LiveKitDisconnectReason, track::TrackKind};
-use opentalk_compositor::{Mixer, MixerParameters};
-use std::fmt::Write;
-use std::future::pending;
-use std::pin::Pin;
-use std::sync::Arc;
-use std::time::Instant;
-use tokio::sync::{broadcast, mpsc};
-use tokio::time::{Duration, Interval, Sleep, interval, sleep};
+use opentalk_compositor::{
+    Mixer, MixerParameters,
+    livekit::{DisconnectReason as LiveKitDisconnectReason, track::TrackKind},
+};
+use tokio::{
+    sync::{broadcast, mpsc},
+    time::{Duration, Interval, Sleep, interval, sleep},
+};
+
+use crate::{
+    media::{MediaEvent, MediaPipeline, Track, TrackController},
+    settings::Settings,
+    sip::{SessionState, handle_reinvite, refresh_invite_session},
+};
 
 // DTMF digit bindings
 const DTMF_STOP_CURRENT_TRACK: u8 = 0;
@@ -109,7 +111,8 @@ pub struct Signaling {
     pin_entry_timeout_receiver: tokio::sync::mpsc::Receiver<()>,
     pin_entry_timeout_task_handle: Option<tokio::task::JoinHandle<()>>,
 
-    /// Grace period after being disconnected from livekit, since we might be moved into the waiting room
+    /// Grace period after being disconnected from livekit, since we might be moved into the
+    /// waiting room
     livekit_disconnection_grace_period: Option<Pin<Box<Sleep>>>,
 }
 
@@ -126,12 +129,13 @@ enum JoinState {
     /// The participant is entering the room id and pin via DTMF.
     #[default]
     EnteringPin,
-    /// The websocket connection was established but has not yet entered the waiting room or the room.
+    /// The websocket connection was established but has not yet entered the waiting room or the
+    /// room.
     Lobby {
         /// `true` when allowed to enter the room without going through the waiting room.
         can_enter: bool,
-        /// The display name assigned by the server in case another connection of the same participant is already
-        /// connected.
+        /// The display name assigned by the server in case another connection of the same
+        /// participant is already connected.
         display_name: Option<DisplayName>,
     },
     /// The participant is in the waiting room, waiting to be accepted by a moderator.
@@ -834,7 +838,8 @@ impl Signaling {
 
     /// Enter the waiting room and play the waiting room message.
     ///
-    /// * `welcome_played`: Whether or not the welcome message was already played before entering the waiting room.
+    /// * `welcome_played`: Whether or not the welcome message was already played before entering
+    ///   the waiting room.
     async fn enter_waiting_room(&mut self, welcome_played: bool) -> Result<()> {
         let JoinState::Lobby {
             can_enter,
@@ -988,7 +993,8 @@ impl Signaling {
             self.audio_muted = true;
         }
 
-        // The web frontend needs a mute event on the audio track to display the microphone muted symbol, just removing audio track doesn't work.
+        // The web frontend needs a mute event on the audio track to display the microphone muted
+        // symbol, just removing audio track doesn't work.
         if self.audio_muted
             && let Some(compositor) = &mut self.media.compositor
         {

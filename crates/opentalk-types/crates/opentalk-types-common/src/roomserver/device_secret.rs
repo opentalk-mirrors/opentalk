@@ -16,8 +16,8 @@ pub const DEVICE_SECRET_MAX_LENGTH: usize = 255;
 
 /// A device secret.
 ///
-/// Is generated and provided by the client to allow the roomserver to distinguish between devices. It is also used to
-/// identify the client and associate old state when reconnecting.
+/// Is generated and provided by the client to allow the roomserver to distinguish between devices.
+/// It is also used to identify the client and associate old state when reconnecting.
 ///
 /// A guest may only use one device, any new device secret would be considered a new participant.
 ///

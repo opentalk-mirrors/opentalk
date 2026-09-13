@@ -77,9 +77,9 @@ impl ts_rs::TS for TimeZone {
             .iter()
             .map(|variant| {
                 let value = variant.to_string();
-                // There is no way to obtain the original variant name, so we have to use the display representation
-                // and convert them using the same rules chrono uses to get valid, readable TypeScript enum member
-                // names.
+                // There is no way to obtain the original variant name, so we have to use the
+                // display representation and convert them using the same rules
+                // chrono uses to get valid, readable TypeScript enum member names.
                 let key = value
                     .replace("+", "Plus")
                     .replace("GMT-", "GMTMinus")

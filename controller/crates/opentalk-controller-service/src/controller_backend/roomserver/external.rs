@@ -57,7 +57,8 @@ impl RoomServerBackend for ExternalRoomServer {
                 code: RequestTokenError::RoomParametersMissing,
                 ..
             })) => {
-                // The room is unknown to the roomserver — resubmit the token request but include the room parameter
+                // The room is unknown to the roomserver — resubmit the token request but include
+                // the room parameter
                 let room_parameters =
                     build_room_parameters(inventory, settings, room, module_features).await?;
 
@@ -116,7 +117,8 @@ impl RoomServerBackend for ExternalRoomServer {
         match self.client.patch_room(room_id, patch).await {
             Ok(()) => Ok(()),
             // The roomserver returns a 404 NotFound when the room does not exist there yet.
-            // In this case there is nothing to do and the room parameters will be applied when the room is created.
+            // In this case there is nothing to do and the room parameters will be applied when the
+            // room is created.
             Err(Error::ApiError(opentalk_roomserver_client::ApiError {
                 code: PatchRoomError::NotFound,
                 ..

@@ -13,7 +13,8 @@ use crate::{
 pub struct RoomAlias {
     /// The user defined name of the room.
     pub name: RoomName,
-    /// An optional room suffix that is appended to the room name to secure it against brute-force attacks.
+    /// An optional room suffix that is appended to the room name to secure it against brute-force
+    /// attacks.
     pub suffix: Option<RoomSuffix>,
 }
 
@@ -61,7 +62,8 @@ impl<'de> serde::Deserialize<'de> for RoomAlias {
     }
 }
 
-// `RoomAlias` serializes as a string (see its `Serialize`/`Display` impls), so the derived object schema would be wrong.
+// `RoomAlias` serializes as a string (see its `Serialize`/`Display` impls), so the derived object
+// schema would be wrong.
 #[cfg(feature = "utoipa")]
 mod impl_utoipa {
     use serde_json::json;
@@ -99,7 +101,8 @@ impl ExampleData for RoomAlias {
     }
 }
 
-/// Extension trait providing a way to destructure an optional [`RoomAlias`] into its optional name and suffix components.
+/// Extension trait providing a way to destructure an optional [`RoomAlias`] into its optional name
+/// and suffix components.
 pub trait OptionalRoomAliasExt {
     /// Split an optional [`RoomAlias`] into its optional [`RoomName`] and [`RoomSuffix`].
     fn into_parts(self) -> (Option<RoomName>, Option<RoomSuffix>);

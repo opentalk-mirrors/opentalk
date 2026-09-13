@@ -6,7 +6,8 @@ use snafu::Snafu;
 
 use crate::utils::ExampleData;
 
-/// A room suffix that can be appended to a [`RoomName`](super::RoomName) to secure it against brute-force attacks.
+/// A room suffix that can be appended to a [`RoomName`](super::RoomName) to secure it against
+/// brute-force attacks.
 #[derive(Debug, Display, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(
     feature = "diesel",

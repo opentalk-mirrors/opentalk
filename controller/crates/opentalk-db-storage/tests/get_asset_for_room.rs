@@ -86,8 +86,8 @@ async fn get_asset_for_room_by_alias_returns_the_asset() {
     assert_eq!(fetched.id, created.id);
 }
 
-/// The room-asset association is the permission check: an asset must only be retrievable through a room it belongs to.
-/// Requesting it via a different room's id must not leak the asset.
+/// The room-asset association is the permission check: an asset must only be retrievable through a
+/// room it belongs to. Requesting it via a different room's id must not leak the asset.
 #[tokio::test]
 async fn get_asset_for_room_by_wrong_room_id_returns_not_found() {
     let db_ctx = opentalk_test_util::database::DatabaseContext::new().await;

@@ -50,7 +50,8 @@ fn get_current_process(system: &System) -> Result<&Process> {
         .whatever_context("Failed to get current process, that was not to expect")
 }
 
-/// Iterates over all processes to find processes with same name as the current process and a different pid
+/// Iterates over all processes to find processes with same name as the current process and a
+/// different pid
 fn search_for_target_processes(system: &System, current_process: &Process) -> Vec<Pid> {
     system
         .processes()

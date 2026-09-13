@@ -31,10 +31,11 @@ pub enum ExecutionLoggerError {
 pub struct ExecutionLogger {
     /// The execution id of the related job
     execution_id: JobExecutionId,
-    /// A sender to signal the that no further messages will be logged and the pending messages can be written to the
-    /// database.
+    /// A sender to signal the that no further messages will be logged and the pending messages can
+    /// be written to the database.
     flush_sender: UnboundedSender<()>,
-    /// Used to send logs to the database write task. Behaving like a buffer for pending log messages
+    /// Used to send logs to the database write task. Behaving like a buffer for pending log
+    /// messages
     ///
     /// This channel is closed when a database error occurs.
     log_sender: UnboundedSender<NewJobExecutionLog>,
@@ -135,7 +136,8 @@ impl LoggerTask {
 
     /// Spawns the write task that receives log messages through an unbounded channel
     ///
-    /// The channel acts as a buffer for log messages. The messages are then bulk inserted in a fixed interval.
+    /// The channel acts as a buffer for log messages. The messages are then bulk inserted in a
+    /// fixed interval.
     ///
     /// When writing to the database fails, the log messages will be printed to the stdout.
     fn spawn_write_task(mut self) {

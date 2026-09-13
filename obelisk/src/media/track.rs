@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::media::{RAW_AUDIO_CONFIG, RAW_AUDIO_CONFIG_RANGE};
-use crate::settings::Language;
+use std::{collections::VecDeque, sync::Arc, time::Duration};
+
 use ezk::{ConfigRange, Frame, NextEventIsCancelSafe, Source, SourceEvent};
 use ezk_audio::{
     Channels, RawAudio, RawAudioConfig, RawAudioConfigRange, RawAudioFrame, SampleRate,
@@ -11,11 +11,15 @@ use ezk_audio::{
 use hound::WavReader;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
-use std::collections::VecDeque;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::broadcast;
-use tokio::time::{Interval, interval};
+use tokio::{
+    sync::broadcast,
+    time::{Interval, interval},
+};
+
+use crate::{
+    media::{RAW_AUDIO_CONFIG, RAW_AUDIO_CONFIG_RANGE},
+    settings::Language,
+};
 
 const SAMPLE_RATE: u64 = 48000;
 const CHANNELS: u64 = 2;

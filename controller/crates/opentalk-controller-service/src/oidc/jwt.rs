@@ -155,7 +155,8 @@ fn map_algorithm(alg: Algorithm) -> Option<CoreJwsSigningAlgorithm> {
         Algorithm::PS384 => Some(CoreJwsSigningAlgorithm::RsaSsaPssSha384),
         Algorithm::PS512 => Some(CoreJwsSigningAlgorithm::RsaSsaPssSha512),
         Algorithm::EdDSA => None,
-        // We can not be defensive here and have to use a wildcard because `Algorithm` is marked as non_exhaustive
+        // We can not be defensive here and have to use a wildcard because `Algorithm` is marked as
+        // non_exhaustive
         _ => None,
     }
 }

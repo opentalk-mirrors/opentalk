@@ -2,14 +2,16 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::str::from_utf8;
+
 use async_trait::async_trait;
 use ezk_sip_core::{Endpoint, IncomingRequest, MayTake};
 use ezk_sip_types::{Method, StatusCode, header::typed::ContentType};
 use ezk_sip_ua::dialog::Usage;
-use std::str::from_utf8;
 use tokio::sync::broadcast;
 
-/// Simple Dialog Usage which reacts to `picture_fast_update` messages in the `media_control` protocol
+/// Simple Dialog Usage which reacts to `picture_fast_update` messages in the `media_control`
+/// protocol
 pub(super) struct MediaControlUsage {
     pub(super) notify_picture_fast_update: broadcast::Sender<()>,
 }

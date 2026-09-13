@@ -229,7 +229,8 @@ impl RegistrationTask {
                             // Force registration attempt immediately
                             self.registration.reset_expiry_timer();
                         } else {
-                            // If the REGISTER request was not rejected, but another failure happened, reselect transport
+                            // If the REGISTER request was not rejected, but another failure
+                            // happened, reselect transport
                             self.reselect_transport().await;
                         }
                     } else {
@@ -246,7 +247,8 @@ impl RegistrationTask {
                     if let Some((transport, target)) = &self.target.transport
                         && transport.is_udp()
                     {
-                        // Only send pings to the target if a UDP transport is used, for connection this is not needed
+                        // Only send pings to the target if a UDP transport is used, for connection
+                        // this is not needed
                         if let Err(e) = transport.send(b"\r\n", *target).await {
                             log::error!("failed to send keep-alive, {e}");
                             set_service_state(ServiceState::Up);

@@ -18,11 +18,13 @@ pub(crate) struct Args {
     ///
     /// If present, exactly this config file will be used.
     ///
-    /// If absent, `transcription` looks for a config file in these locations and uses the first one that is found:
+    /// If absent, `transcription` looks for a config file in these locations and uses the first
+    /// one that is found:
     ///
     /// - `config.toml` in the current directory (deprecated, for backwards compatibility only)
     /// - `transcription.toml` in the current directory
-    /// - `<XDG_CONFIG_HOME>/opentalk/transcription.toml` (where `XDG_CONFIG_HOME` is usually `~/.config`)
+    /// - `<XDG_CONFIG_HOME>/opentalk/transcription.toml` (where `XDG_CONFIG_HOME` is usually
+    ///   `~/.config`)
     /// - `/etc/opentalk/transcription.toml`
     #[clap(short, long, verbatim_doc_comment)]
     pub(crate) config: Option<String>,

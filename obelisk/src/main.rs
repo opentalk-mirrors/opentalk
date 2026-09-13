@@ -2,12 +2,13 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use anyhow::Result;
 use std::{process::exit, sync::Arc};
 
-use crate::cli::{Args, Commands, print_info};
+use anyhow::Result;
 use clap::Parser;
 use service_probe_client::is_ready;
+
+use crate::cli::{Args, Commands, print_info};
 
 mod cli;
 mod media;

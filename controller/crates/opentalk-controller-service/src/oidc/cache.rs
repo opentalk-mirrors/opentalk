@@ -60,8 +60,8 @@ impl Cache {
     }
 
     /// Build a cache storage
-    /// If Redis connection is available, combine a Redis cache with a local in-memory cache as an overlay
-    /// Otherise only local cache is used
+    /// If Redis connection is available, combine a Redis cache with a local in-memory cache as an
+    /// overlay Otherise only local cache is used
     fn build_cache<K, V>(
         redis: Option<RedisConnection>,
         prefix: String,
@@ -85,8 +85,8 @@ impl Cache {
     }
 
     /// Build a cache storage with key hashing to reduce memory usage for large keys
-    /// If Redis connection is available, compose a Redis cache with a local in-memory cache as an overly
-    /// Otherise only local cache is used
+    /// If Redis connection is available, compose a Redis cache with a local in-memory cache as an
+    /// overly Otherise only local cache is used
     fn build_cache_with_hashing<K, V>(
         redis: Option<RedisConnection>,
         prefix: String,
@@ -128,7 +128,8 @@ impl Cache {
         // Don't cache tokens without expiration
         let Some(expires_at) = maybe_expires_at else {
             let error = CaptureApiError::from(OidcCacheError::NoExpiryForToken);
-            // Even if caching will return error, we still want to return the original error to the caller, as it is more relevant
+            // Even if caching will return error, we still want to return the original error to the
+            // caller, as it is more relevant
             let _ = self
                 .cache_access_token_error(access_token, error.clone())
                 .await;
@@ -225,7 +226,8 @@ impl Cache {
 
     /// Get cached result for an access token
     /// Function also performs lazy invalidation of the access token
-    /// If the cached token has been revoked by backchannel logout, it will update the entry with the error
+    /// If the cached token has been revoked by backchannel logout, it will update the entry with
+    /// the error
     pub async fn get_access_token(
         &self,
         access_token: &AccessToken,
@@ -237,7 +239,8 @@ impl Cache {
                     .await;
                 if let Ok(true) = is_revoked {
                     let error = CaptureApiError::from(OidcCacheError::RevokedByLogout);
-                    // Even if caching will return error, we still want to return the original error to the caller, as it is more relevant
+                    // Even if caching will return error, we still want to return the original error
+                    // to the caller, as it is more relevant
                     let _ = self
                         .cache_access_token_error(access_token, error.clone())
                         .await;
@@ -331,7 +334,8 @@ impl Cache {
     }
 
     /// Caches access token errors such as verification errors or inactive tokens
-    /// Internal errors will not be cached, as they can be relevant and not related to the token validity
+    /// Internal errors will not be cached, as they can be relevant and not related to the token
+    /// validity
     async fn cache_access_token_error(
         &self,
         access_token: &AccessToken,

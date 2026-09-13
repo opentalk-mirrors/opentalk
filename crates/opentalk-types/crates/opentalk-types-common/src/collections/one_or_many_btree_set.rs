@@ -4,9 +4,10 @@
 
 //! A module providing the [`OneOrManyBTreeSet`] type. As a bonus, this module can
 //! be used for (de-)serializing a [`BTreeSet`] through the
-//! [`OneOrManyBTreeSet`] type in a `#[serde(with = "opentalk_types_common::collections::one_or_many_btree_set")]`
-//! attribute. The same is possible for an [`Option<BTreeSet>`] using
-//! `#[serde(with = "opentalk_types_common::collections::one_or_many_btree_set_option")]`
+//! [`OneOrManyBTreeSet`] type in a `#[serde(with =
+//! "opentalk_types_common::collections::one_or_many_btree_set")]` attribute. The same is possible
+//! for an [`Option<BTreeSet>`] using `#[serde(with =
+//! "opentalk_types_common::collections::one_or_many_btree_set_option")]`
 
 use std::collections::BTreeSet;
 
@@ -130,7 +131,8 @@ pub mod one_or_many_btree_set_option {
     use super::OneOrManyBTreeSet;
 
     /// serde deserialize function, needed in order to use this module in the
-    /// `#[serde(with = "opentalk_types_common::collections::one_or_many_btree_set_option")]` attribute.
+    /// `#[serde(with = "opentalk_types_common::collections::one_or_many_btree_set_option")]`
+    /// attribute.
     pub fn deserialize<'de, D, T>(deserializer: D) -> Result<Option<BTreeSet<T>>, D::Error>
     where
         D: Deserializer<'de>,
@@ -141,7 +143,8 @@ pub mod one_or_many_btree_set_option {
     }
 
     /// serde serialize function, needed in order to use this module in the
-    /// `#[serde(with = "opentalk_types_common::collections::one_or_many_btree_set_option")]` attribute.
+    /// `#[serde(with = "opentalk_types_common::collections::one_or_many_btree_set_option")]`
+    /// attribute.
     pub fn serialize<S, T>(value: &Option<BTreeSet<T>>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

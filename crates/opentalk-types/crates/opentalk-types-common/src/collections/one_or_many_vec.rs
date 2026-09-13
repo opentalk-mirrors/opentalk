@@ -4,9 +4,10 @@
 
 //! A module providing the [`OneOrManyVec`] type. As a bonus, this module can
 //! be used for (de-)serializing a [`Vec`] through the
-//! [`OneOrManyVec`] type in a `#[serde(with = "opentalk_types_common::collections::one_or_many_vec")]`
-//! attribute. The same is possible for an [`Option<Vec>`] using
-//! `#[serde(with = "opentalk_types_common::collections::one_or_many_vec_option")]`
+//! [`OneOrManyVec`] type in a `#[serde(with =
+//! "opentalk_types_common::collections::one_or_many_vec")]` attribute. The same is possible for an
+//! [`Option<Vec>`] using `#[serde(with =
+//! "opentalk_types_common::collections::one_or_many_vec_option")]`
 
 /// A container that either contains a single value or a set of zero or more values.
 ///

@@ -2,11 +2,11 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 use async_trait::async_trait;
 use axum::{
+    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::post,
-    Json,
 };
 use opentalk_types_api_common::error::ApiError;
 use opentalk_types_api_internal::recording::RecordingTarget;

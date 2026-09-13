@@ -95,7 +95,8 @@ impl Page {
         self.saturating_add(Self::ONE)
     }
 
-    /// Get the previous page number. Will return itself if this is already the lowest possible value.
+    /// Get the previous page number. Will return itself if this is already the lowest possible
+    /// value.
     pub fn saturating_previous(&self) -> Self {
         self.saturating_sub(Self::ONE)
     }

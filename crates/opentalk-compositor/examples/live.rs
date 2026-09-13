@@ -14,15 +14,15 @@ mod example {
     use std::time::Duration;
 
     use opentalk_compositor::{
-        create_token, EncoderType, Mixer, MixerParameters, SystemSink, WebMParameters, WebMSink,
+        EncoderType, Mixer, MixerParameters, SystemSink, WebMParameters, WebMSink, create_token,
     };
     use tokio::{
         select,
         signal::{
             ctrl_c,
-            unix::{signal, SignalKind},
+            unix::{SignalKind, signal},
         },
-        time::{interval_at, Instant},
+        time::{Instant, interval_at},
     };
 
     #[tokio::main]

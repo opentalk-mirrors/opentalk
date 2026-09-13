@@ -12,11 +12,13 @@ impl OpenTalkAuthorizerBackend {
     ///
     /// Access rights for the [`RoomNameVerify`] resource.
     ///
-    /// Any registered user can access this endpoint, regardless of the access method (read or write).
+    /// Any registered user can access this endpoint, regardless of the access method (read or
+    /// write).
     ///
-    /// This resource allows checking if a room name is available. Knowledge of a room name allows anybody to join the
-    /// room when room alias suffix is disabled and the room has guest access enabled and no password. Only registered
-    /// users need to check room name availability because unregistered users can not create rooms.
+    /// This resource allows checking if a room name is available. Knowledge of a room name allows
+    /// anybody to join the room when room alias suffix is disabled and the room has guest
+    /// access enabled and no password. Only registered users need to check room name
+    /// availability because unregistered users can not create rooms.
     ///
     /// | Subject                 | Access |
     /// | ----------------------- | ------ |

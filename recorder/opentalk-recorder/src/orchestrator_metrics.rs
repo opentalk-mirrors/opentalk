@@ -5,13 +5,13 @@
 use std::sync::atomic::Ordering;
 
 use opentalk_orchestrator_client::{
-    client::StateProvider, Metrics, RecorderResource, RegisterRecorder, RegisterType,
-    ServiceResource,
+    Metrics, RecorderResource, RegisterRecorder, RegisterType, ServiceResource,
+    client::StateProvider,
 };
 
 use crate::{
-    system_info::{CURRENT_LOAD, IS_FEASIBLE},
     RecorderTasks,
+    system_info::{CURRENT_LOAD, IS_FEASIBLE},
 };
 
 pub struct OrchestratorStateProvider {

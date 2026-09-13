@@ -16,7 +16,8 @@ use crate::{
 
 /// Event exception resource
 ///
-/// Overrides event properties for a event recurrence. May only exist for events of type `recurring`.
+/// Overrides event properties for a event recurrence. May only exist for events of type
+/// `recurring`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
@@ -101,7 +102,8 @@ pub struct EventExceptionResource {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub ends_at: Option<DateTimeTz>,
 
-    /// The `starts_at` of the instance this exception modifies. Used to match the exception the instance
+    /// The `starts_at` of the instance this exception modifies. Used to match the exception the
+    /// instance
     pub original_starts_at: DateTimeTz,
 
     /// Must always be `exception`

@@ -79,7 +79,8 @@ mod type_polyfills {
 
     /// An SQL datetime type
     ///
-    /// Barrel 0.6.5 is missing datetime and 0.6.6 is not out yet, furthermore 0.6.6 only support TIMESTAMP which is without any timezone information
+    /// Barrel 0.6.5 is missing datetime and 0.6.6 is not out yet, furthermore 0.6.6 only support
+    /// TIMESTAMP which is without any timezone information
     pub fn datetime() -> Type {
         Type {
             nullable: false,
@@ -99,8 +100,9 @@ mod migration_tests {
 
     /// Tests the refinery database migration.
     ///
-    /// A dedicated postgres [testcontainer] is started automatically, so a working docker (or compatible) environment
-    /// is required. See [`opentalk_test_util::database::DatabaseContext`] for details.
+    /// A dedicated postgres [testcontainer] is started automatically, so a working docker (or
+    /// compatible) environment is required. See
+    /// [`opentalk_test_util::database::DatabaseContext`] for details.
     ///
     /// [testcontainer]: https://testcontainers.com/
     #[tokio::test]

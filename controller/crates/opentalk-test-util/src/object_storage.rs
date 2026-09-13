@@ -53,8 +53,8 @@ admin_token = "test-admin-token"
 
 /// Provides an S3-compatible object storage backed by a [Garage] [testcontainer].
 ///
-/// The container is owned by the returned [`ObjectStorageContext`] and is stopped and removed when it is dropped, so
-/// callers must keep the context alive for as long as they use its storage.
+/// The container is owned by the returned [`ObjectStorageContext`] and is stopped and removed when
+/// it is dropped, so callers must keep the context alive for as long as they use its storage.
 ///
 /// [Garage]: https://garagehq.deuxfleurs.fr/
 /// [testcontainer]: https://testcontainers.com/
@@ -70,9 +70,9 @@ pub struct ObjectStorageContext {
 impl ObjectStorageContext {
     /// Create a new [`ObjectStorageContext`].
     ///
-    /// Starts a dedicated Garage [testcontainer] for this context. Because every context gets its own container, tests
-    /// are isolated from each other and can run in parallel. Running the tests requires a working docker (or
-    /// compatible) environment.
+    /// Starts a dedicated Garage [testcontainer] for this context. Because every context gets its
+    /// own container, tests are isolated from each other and can run in parallel. Running the
+    /// tests requires a working docker (or compatible) environment.
     ///
     /// [testcontainer]: https://testcontainers.com/
     pub async fn new() -> Self {

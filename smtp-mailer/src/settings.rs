@@ -43,7 +43,8 @@ pub struct Settings {
 
 impl Settings {
     /// Creates a new Settings instance from the provided TOML file.
-    /// Specific fields can be set or overwritten with environment variables (See struct level docs for more details).
+    /// Specific fields can be set or overwritten with environment variables (See struct level docs
+    /// for more details).
     pub fn load_from_path(file_path: &Path) -> Result<Settings, ConfigError> {
         let config = Config::builder()
             .add_source(File::from(file_path).format(FileFormat::Toml))

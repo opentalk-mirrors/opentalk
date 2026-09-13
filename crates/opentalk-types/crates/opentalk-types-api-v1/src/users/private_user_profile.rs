@@ -9,8 +9,8 @@ use opentalk_types_common::{
 
 /// Private user profile.
 ///
-/// Similar to [`super::PublicUserProfile`], but contains additional "private" information about a user.
-/// Is only accessible to the user himself.
+/// Similar to [`super::PublicUserProfile`], but contains additional "private" information about a
+/// user. Is only accessible to the user himself.
 /// Is used on */users/me* endpoints.
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

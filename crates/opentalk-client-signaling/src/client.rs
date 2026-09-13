@@ -147,7 +147,8 @@ impl OpenTalkClient {
     }
 }
 
-/// Intermediate type used by [`OpenTalkClient::start_call_in`] & [`OpenTalkClient::connect_call_in`]
+/// Intermediate type used by [`OpenTalkClient::start_call_in`] &
+/// [`OpenTalkClient::connect_call_in`]
 #[derive(Debug)]
 pub struct CallInConnectToken {
     response: RoomserverStartResponseBody,

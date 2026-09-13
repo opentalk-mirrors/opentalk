@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! This module contains the error type that is returned form the traits defined in the opentalk-inventory crate.
+//! This module contains the error type that is returned form the traits defined in the
+//! opentalk-inventory crate.
 //!
 //! [snafu::whatever] can be used with this type as well if necessary.
 

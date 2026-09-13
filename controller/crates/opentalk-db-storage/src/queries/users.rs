@@ -32,7 +32,8 @@ fn active_users_query() -> users::BoxedQuery<'static, Pg> {
         .into_boxed()
 }
 
-/// Get an active user with the given `id`. If the user has a `disabled_since` entry, a NotFound error is returned.
+/// Get an active user with the given `id`. If the user has a `disabled_since` entry, a NotFound
+/// error is returned.
 ///
 /// If no user exists with `user_id` this returns an Error
 #[tracing::instrument(err(level = "debug"), skip_all)]

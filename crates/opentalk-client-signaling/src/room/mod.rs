@@ -86,8 +86,8 @@ enum WaitingRoomState {
 
 pub struct JoinedLobby {
     pub room: Room,
-    /// The participant is allowed to join the conference when `true`. Otherwise they have to go trough the waiting
-    /// room.
+    /// The participant is allowed to join the conference when `true`. Otherwise they have to go
+    /// trough the waiting room.
     pub can_enter: bool,
     /// The display name of the participant in the conference.
     pub display_name: Option<DisplayName>,
@@ -98,7 +98,8 @@ pub struct JoinedLobby {
 pub enum OpenTalkEvent {
     /// The permission to enter the conference changed while this connection was in the lobby.
     EntryPermissionChanged {
-        /// `true` when the participant can enter the conference without going through the waiting room.
+        /// `true` when the participant can enter the conference without going through the waiting
+        /// room.
         can_enter: bool,
     },
 
@@ -122,7 +123,8 @@ pub enum OpenTalkEvent {
     /// The participant was moved to the waiting room
     MovedToWaitingRoom,
 
-    /// The participant was accepted from the waiting room and may now join the conference with [`Room::enter_room`].
+    /// The participant was accepted from the waiting room and may now join the conference with
+    /// [`Room::enter_room`].
     WaitingRoomAccepted,
 
     /// All events from the livekit module
@@ -452,7 +454,8 @@ impl Room {
                 self.breakout_state.current_room = RoomKind::Main;
                 self.breakout_state.config = None;
             }
-            // these events are forwarded to the client but don't require any state changes in the Room struct
+            // these events are forwarded to the client but don't require any state changes in the
+            // Room struct
             BreakoutEvent::CloseNotice { .. } | BreakoutEvent::Closing { .. } => (),
 
             BreakoutEvent::Error(breakout_error) => {
@@ -465,7 +468,8 @@ impl Room {
 
     /// Wait until accepted into the room, while inside the waiting room
     ///
-    /// If the function completes, the [`OpenTalkEvent::WaitingRoomAccepted`] will not be returned by the call to [`recv`](Self::recv).
+    /// If the function completes, the [`OpenTalkEvent::WaitingRoomAccepted`] will not be returned
+    /// by the call to [`recv`](Self::recv).
     pub async fn wait_until_accepted(&mut self) -> Result<()> {
         log::debug!("wait until accepted");
         loop {
@@ -767,21 +771,24 @@ impl Room {
         BreakoutApi { room: self }
     }
 
-    /// Access the [`RecordingServiceApi`] which contains functions to interact with the recording service module
+    /// Access the [`RecordingServiceApi`] which contains functions to interact with the recording
+    /// service module
     pub fn recording_service_api(&mut self) -> Option<RecordingServiceApi<'_>> {
         self.recording_service_state
             .is_some()
             .then_some(RecordingServiceApi { room: self })
     }
 
-    /// Access the [`TranscriptionApi`] which contains function to interact with the transcription module
+    /// Access the [`TranscriptionApi`] which contains function to interact with the transcription
+    /// module
     pub fn transcription_api(&mut self) -> Option<TranscriptionApi<'_>> {
         self.transcription_state
             .is_some()
             .then_some(TranscriptionApi { room: self })
     }
 
-    /// Access the [`TranscriptionServiceApi`] which contains functions to interact with the transcription service module
+    /// Access the [`TranscriptionServiceApi`] which contains functions to interact with the
+    /// transcription service module
     pub fn transcription_service_api(&mut self) -> Option<TranscriptionServiceApi<'_>> {
         self.transcription_state
             .is_some()

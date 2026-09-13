@@ -4,19 +4,19 @@
 
 use std::sync::Arc;
 
-use futures::{stream, StreamExt as _, TryStreamExt as _};
+use futures::{StreamExt as _, TryStreamExt as _, stream};
 use log::warn;
-use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
+use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 use reqwest::{Response, StatusCode};
 use url::Url;
 
 use crate::{
+    CreateLinkOptions, DriveId, Error, ItemId, LinkUpdater, PermissionId, Result,
     link_creator::CreateLinkBody,
     types::{
         CreatedShareLink, Drive, DriveItem, DriveItemList, DriveList, OcsCapabilitiesEnvelope,
         PasswordPolicy, Permission,
     },
-    CreateLinkOptions, DriveId, Error, ItemId, LinkUpdater, PermissionId, Result,
 };
 
 /// Characters that must be percent-encoded in a single path segment.
@@ -418,7 +418,7 @@ impl Client {
 mod tests {
     use url::Url;
 
-    use super::{encode_path, encode_segment, Client};
+    use super::{Client, encode_path, encode_segment};
     use crate::DriveId;
 
     #[test]

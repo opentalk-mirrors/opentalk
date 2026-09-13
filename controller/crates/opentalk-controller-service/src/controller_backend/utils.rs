@@ -113,8 +113,8 @@ pub(crate) fn build_room_alias(name: Option<RoomName>, settings: &Settings) -> O
 
 /// Resolves a [`RoomIdOrAlias`] into a concrete [`RoomId`].
 ///
-/// If the given value is already a [`RoomId`], it is returned directly. Otherwise, the room is looked up by its
-/// alias in the inventory and its ID is returned.
+/// If the given value is already a [`RoomId`], it is returned directly. Otherwise, the room is
+/// looked up by its alias in the inventory and its ID is returned.
 pub(crate) async fn resolve_room_id(
     inventory: &mut dyn Inventory,
     room_id_or_alias: &RoomIdOrAlias,

@@ -182,7 +182,8 @@ impl ControllerBackend {
         Ok(room_resource)
     }
 
-    /// Updates a room in the database and applies the necessary changes in the authorization middleware.
+    /// Updates a room in the database and applies the necessary changes in the authorization
+    /// middleware.
     pub(crate) async fn update_room(
         &self,
         room_id_or_alias: RoomIdOrAlias,
@@ -240,8 +241,9 @@ impl ControllerBackend {
         let settings = self.settings_provider.get();
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
-        // Resolve the room alias to a room id here instead of piping the `RoomIdOrAlias` through the `RoomDeleter`
-        // because the `RoomDeleter` interacts with the auth API, which only accepts room ids, not aliases.
+        // Resolve the room alias to a room id here instead of piping the `RoomIdOrAlias` through
+        // the `RoomDeleter` because the `RoomDeleter` interacts with the auth API, which
+        // only accepts room ids, not aliases.
         let room_id = resolve_room_id(inventory.as_mut(), &room_id_or_alias).await?;
         let deleter = RoomDeleter::new(room_id, force_delete_reference_if_external_services_fail);
 
@@ -266,7 +268,8 @@ impl ControllerBackend {
     ) -> Result<PostRoomNameVerifyResponseBody, CaptureApiError> {
         let settings = self.settings_provider.get();
 
-        // When the suffix is enabled, we can assume that the room name is available because the alias will be unique.
+        // When the suffix is enabled, we can assume that the room name is available because the
+        // alias will be unique.
         if !settings.defaults.room_alias.disable_suffix {
             return Ok(PostRoomNameVerifyResponseBody { available: true });
         }

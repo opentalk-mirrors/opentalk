@@ -111,7 +111,8 @@ impl ExampleData for ModuleFeatureId {
 /// The error that is returned by [ModuleFeatureId::from_str] on failure.
 #[derive(Debug, Snafu)]
 pub enum ParseModuleFeatureIdError {
-    /// Invalid string pattern. The string must be either a [ModuleId] and a [FeatureId] separated by [NAMESPACE_SEPARATOR], or a [FeatureId].
+    /// Invalid string pattern. The string must be either a [ModuleId] and a [FeatureId] separated
+    /// by [NAMESPACE_SEPARATOR], or a [FeatureId].
     #[snafu(display(
         "Feature id must either be \"<feature>\" or \"<module>{separator}<feature>\""
     ))]

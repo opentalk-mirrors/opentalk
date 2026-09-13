@@ -23,8 +23,8 @@ pub struct CallInInfo {
     /// SIP ID which must transmitted via DTMF (number field on the phone) to identify this room
     pub id: String,
 
-    /// SIP password which must be transmitted via DTMF (number field on the phone) after entering the `sip_id`
-    /// to enter the room
+    /// SIP password which must be transmitted via DTMF (number field on the phone) after entering
+    /// the `sip_id` to enter the room
     pub password: String,
 }
 

@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-/// An API response that can contain paging information which will be added in a `Link` header in the response.
+/// An API response that can contain paging information which will be added in a `Link` header in
+/// the response.
 #[derive(Debug, Clone)]
 pub struct PagedApiResponse<T, P> {
     inner: T,

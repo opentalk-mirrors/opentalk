@@ -11,7 +11,8 @@ use super::{
     decode_from_cache_error::InvalidHttpStatusCodeSnafu,
 };
 
-/// (De)Serializable version of [`opentalk_types_api_v1::error::ApiError`] so it can be externally cached
+/// (De)Serializable version of [`opentalk_types_api_v1::error::ApiError`] so it can be externally
+/// cached
 #[derive(Serialize, Deserialize, Archive, Debug, Clone, PartialEq, Eq)]
 pub struct ApiError {
     status: u16,

@@ -2,20 +2,28 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::settings::Settings;
+use std::{
+    collections::BTreeSet,
+    io::ErrorKind,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
+
 use anyhow::{Context, Result, anyhow, bail};
-use ezk_stun_types::attributes::{MappedAddress, Software, XorMappedAddress};
-use ezk_stun_types::{Class, Message, MessageBuilder, Method, TransactionId};
+use ezk_stun_types::{
+    Class, Message, MessageBuilder, Method, TransactionId,
+    attributes::{MappedAddress, Software, XorMappedAddress},
+};
 use once_cell::sync::OnceCell;
 use rand::prelude::IteratorRandom;
-use std::collections::BTreeSet;
-use std::io::ErrorKind;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::net::{UdpSocket, lookup_host};
-use tokio::sync::Mutex;
-use tokio::time::timeout;
+use tokio::{
+    net::{UdpSocket, lookup_host},
+    sync::Mutex,
+    time::timeout,
+};
+
+use crate::settings::Settings;
 
 static INSTANCE: OnceCell<PortPool> = OnceCell::new();
 
@@ -38,7 +46,8 @@ impl AddressFamily {
 pub struct SocketPair {
     /// Local UDP port on which RTP is sent/received
     pub local_rtp_port: u16,
-    /// public RTP port resolved using the configured STUN server, or if none is set, same as `local_rtp_port`
+    /// public RTP port resolved using the configured STUN server, or if none is set, same as
+    /// `local_rtp_port`
     pub public_rtp_port: u16,
     /// public RTCP port, same as `public_rtp_port`
     pub public_rtcp_port: u16,

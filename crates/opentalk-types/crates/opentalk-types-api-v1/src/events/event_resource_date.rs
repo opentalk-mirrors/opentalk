@@ -25,7 +25,8 @@ pub enum EventResourceDate {
     Single {
         /// Should the event be all-day?
         ///
-        /// If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time part.
+        /// If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time
+        /// part.
         #[cfg_attr(feature = "serde", serde(default))]
         is_all_day: bool,
         /// Start time of the event.
@@ -41,7 +42,8 @@ pub enum EventResourceDate {
     Recurring {
         /// Should the event be all-day?
         ///
-        /// If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time part.
+        /// If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time
+        /// part.
         #[cfg_attr(feature = "serde", serde(default))]
         is_all_day: bool,
         /// Start time of the event.

@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use gstreamer::{Bin, GhostPad};
 
 use crate::{
-    gstreamer::{add_ghost_pad, GStreamerSink},
+    gstreamer::{GStreamerSink, add_ghost_pad},
     parse_bin_from_description_with_context,
 };
 

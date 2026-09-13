@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::I420_COLOR;
 use anyhow::{Context, Result};
 use ezk_image::{Image, ImageRef, PixelFormat};
-use image::{imageops::FilterType, DynamicImage, ImageBuffer, Rgba};
+use image::{DynamicImage, ImageBuffer, Rgba, imageops::FilterType};
 use livekit::webrtc::prelude::I420Buffer;
+
+use crate::I420_COLOR;
 
 const PLACEHOLDER_WIDTH: u32 = 640;
 const PLACEHOLDER_HEIGHT: u32 = 360;

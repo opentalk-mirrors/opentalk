@@ -14,7 +14,8 @@ pub struct NewRoom {
     /// The creator of the room.
     pub created_by: UserId,
 
-    /// An alias that can be used in the URL to access the room instead of the [`RoomId`](opentalk_types_common::rooms::RoomId).
+    /// An alias that can be used in the URL to access the room instead of the
+    /// [`RoomId`](opentalk_types_common::rooms::RoomId).
     pub alias: Option<RoomAlias>,
 
     /// An optional password for the room.

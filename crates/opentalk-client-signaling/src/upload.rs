@@ -59,12 +59,14 @@ impl OpenTalkClient {
             .await
             .map_err(WebsocketError::ConnectionFailed)
     }
-    /// Opens a websocket connection and uploads all the transfered bytes through the `receiver` object
+    /// Opens a websocket connection and uploads all the transfered bytes through the `receiver`
+    /// object
     ///
     /// # Remarks
     ///
-    /// `on_chunk_limit_reached` is called once, when the maximum amount of chunks is about to be reached.
-    /// While this does not stop the upload, the stream must be properly flushed and closed as soon as possible.
+    /// `on_chunk_limit_reached` is called once, when the maximum amount of chunks is about to be
+    /// reached. While this does not stop the upload, the stream must be properly flushed and
+    /// closed as soon as possible.
     ///
     /// Each chunk in the `receiver` must contain a `u32` for the first 4 bytes in `Big Endian`.
     ///

@@ -57,7 +57,8 @@ pub struct EventResource {
     /// May also be true if there are no invitees but no invitees were requested
     pub invitees_truncated: bool,
 
-    /// List of event invitees and their invite status. Might not be complete, see `invite_truncated`
+    /// List of event invitees and their invite status. Might not be complete, see
+    /// `invite_truncated`
     pub invitees: Vec<EventInvitee>,
 
     /// Flag indicating whether the event is ad-hoc created.
@@ -90,7 +91,8 @@ pub struct EventResource {
     )]
     pub streaming_targets: Vec<RoomStreamingTarget>,
 
-    /// Indicates whether meeting details should be provided. If absent, no meeting details are made available.
+    /// Indicates whether meeting details should be provided. If absent, no meeting details are
+    /// made available.
     pub show_meeting_details: bool,
 
     /// The training participation report parameter set for the event.

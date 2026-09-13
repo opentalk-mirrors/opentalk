@@ -4,7 +4,7 @@
 
 use std::{
     fmt::Debug,
-    future::{ready, Future},
+    future::{Future, ready},
     pin::Pin,
     time::Instant,
 };
@@ -12,20 +12,21 @@ use std::{
 use anyhow::{Context, Result};
 use ezk::Frame;
 use ezk_audio::RawAudio;
-use futures::{future::BoxFuture, FutureExt};
+use futures::{FutureExt, future::BoxFuture};
 use glib::object::Cast;
 use gstreamer::{
-    prelude::{ElementExt, GstBinExt, PipelineExt},
     Bin, Buffer, ClockTime, Element, ElementFactory, Fraction, GhostPad, Sample, State,
     SystemClock,
+    prelude::{ElementExt, GstBinExt, PipelineExt},
 };
 use gstreamer_app::AppSrc;
 
 use super::pipeline_watched::PipelineWatched;
 use crate::{
+    FRAMES_PER_SECOND, GstBinErrorExt, GstElementBuilderErrorExt, GstElementErrorExt,
+    GstGhostPadErrorExt, GstPadErrorExt, HEIGHT, Sink, WIDTH,
     audio::{CHANNELS, SAMPLE_RATE},
-    debug, GstBinErrorExt, GstElementBuilderErrorExt, GstElementErrorExt, GstGhostPadErrorExt,
-    GstPadErrorExt, Sink, FRAMES_PER_SECOND, HEIGHT, WIDTH,
+    debug,
 };
 
 /// Trait of an output sink.
@@ -38,7 +39,8 @@ pub trait GStreamerSink: Send + Debug + 'static {
     /// Get sink pad of the video sink.
     fn video(&self) -> GhostPad;
 
-    /// Decides if the bus should not be watched, because the bus watcher is required outside of this sink
+    /// Decides if the bus should not be watched, because the bus watcher is required outside of
+    /// this sink
     fn init_bus_watch(&self) -> bool {
         true
     }

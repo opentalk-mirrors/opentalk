@@ -12,8 +12,8 @@ use opentalk_inventory::{InventoryProvider, Tenant, User};
 use super::provisioning;
 
 /// Authenticate user via access token and provision user data
-/// Cache authentication results for access tokens to optimize subsequent authentications with the same token
-/// Return user profile on success or an appropriate error on failure
+/// Cache authentication results for access tokens to optimize subsequent authentications with the
+/// same token Return user profile on success or an appropriate error on failure
 #[tracing::instrument(skip_all)]
 pub(super) async fn authenticate_user(
     settings: &Settings,

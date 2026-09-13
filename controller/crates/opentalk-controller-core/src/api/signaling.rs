@@ -81,7 +81,8 @@ pub async fn get(
     let (outgoing_tx, mut outgoing_rx) = mpsc::channel(CHANNEL_BUFFER_SIZE);
 
     // Spawn a local task to bridge the actix-ws Session/MessageStream with the mpsc channels.
-    // This task must run on the local thread (spawn_local) because Session and MessageStream are !Send.
+    // This task must run on the local thread (spawn_local) because Session and MessageStream are
+    // !Send.
     actix_web::rt::spawn(async move {
         let mut session = session;
         let mut msg_stream = msg_stream;

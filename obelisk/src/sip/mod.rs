@@ -2,30 +2,40 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::media::{MediaPipeline, Track};
-use crate::settings::{DisplayNameSource, MonitoringSettings, Settings};
-use crate::signaling::Signaling;
-use crate::sip::registration::RegistrationTask;
+use std::{
+    borrow::Cow,
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
+
 use anyhow::{Context, Result, bail};
 use bytesstr::BytesStr;
 use ezk_sip_core::{Endpoint, EndpointBuilder, IncomingRequest, Layer, MayTake};
-use ezk_sip_types::header::typed::{Contact, ContentType, Refresher};
-use ezk_sip_types::uri::{NameAddr, SipUri, SipUriUserPart};
-use ezk_sip_types::{Method, Name, StatusCode};
-use ezk_sip_ua::dialog::{Dialog, DialogLayer};
-use ezk_sip_ua::invite::InviteLayer;
-use ezk_sip_ua::invite::acceptor::InviteAcceptor;
-use opentalk_client_signaling::config::ClientConfig;
-use opentalk_client_signaling::{AuthConfig, OpenTalkClient};
+use ezk_sip_types::{
+    Method, Name, StatusCode,
+    header::typed::{Contact, ContentType, Refresher},
+    uri::{NameAddr, SipUri, SipUriUserPart},
+};
+use ezk_sip_ua::{
+    dialog::{Dialog, DialogLayer},
+    invite::{InviteLayer, acceptor::InviteAcceptor},
+};
+use opentalk_client_signaling::{AuthConfig, OpenTalkClient, config::ClientConfig};
 use service_probe::{ServiceState, start_probe};
-use std::borrow::Cow;
-use std::net::{IpAddr, SocketAddr};
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::net::lookup_host;
-use tokio::signal::unix::{SignalKind, signal};
-use tokio::sync::broadcast;
-use tokio::time::sleep;
+use tokio::{
+    net::lookup_host,
+    signal::unix::{SignalKind, signal},
+    sync::broadcast,
+    time::sleep,
+};
+
+use crate::{
+    media::{MediaPipeline, Track},
+    settings::{DisplayNameSource, MonitoringSettings, Settings},
+    signaling::Signaling,
+    sip::registration::RegistrationTask,
+};
 
 mod codec;
 mod media_control;

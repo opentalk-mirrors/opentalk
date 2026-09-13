@@ -23,16 +23,19 @@ pub struct Args {
     ///
     /// If present, exactly this config file will be used.
     ///
-    /// If absent, `controller` looks for a config file in these locations and uses the first one that is found:
+    /// If absent, `controller` looks for a config file in these locations and uses the first one
+    /// that is found:
     ///
     /// - `config.toml` in the current directory (deprecated, for backwards compatiblity only)
     /// - `controller.toml` in the current directory
-    /// - `<XDG_CONFIG_HOME>/opentalk/controller.toml` (where `XDG_CONFIG_HOME` is usually `~/.config`)
+    /// - `<XDG_CONFIG_HOME>/opentalk/controller.toml` (where `XDG_CONFIG_HOME` is usually
+    ///   `~/.config`)
     /// - `/etc/opentalk/controller.toml`
     #[clap(short, long, verbatim_doc_comment)]
     pub config: Option<PathBuf>,
 
-    /// Triggers a reload of reloadable configuration options (deprecated, use the `reload` subcommand instead)
+    /// Triggers a reload of reloadable configuration options (deprecated, use the `reload`
+    /// subcommand instead)
     #[clap(long)]
     pub reload: bool,
 

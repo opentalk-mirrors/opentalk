@@ -206,7 +206,8 @@ impl ControllerBackend {
             let mut found_kc_users = match &settings.tenants.assignment {
                 TenantAssignment::Static { .. } => {
                     // Do not filter by tenant_id if the assignment is static, since that's used
-                    // when Keycloak does not provide any tenant information we can filter over anyway
+                    // when Keycloak does not provide any tenant information we can filter over
+                    // anyway
                     user_search_client
                         .search_user(&query.q, MAX_USER_SEARCH_RESULTS)
                         .await
@@ -237,14 +238,15 @@ impl ControllerBackend {
             // Keycloak's id field is used for user assignment instead.
             let user_attribute_name = external_id_user_attribute_name.as_deref();
 
-            // Get the Keycloak user ids for Keycloak users found above, omitting users for whom no Keycloak
-            // user id is provided
+            // Get the Keycloak user ids for Keycloak users found above, omitting users for whom no
+            // Keycloak user id is provided
             let keycloak_user_ids: Vec<&str> = found_kc_users
                 .iter()
                 .filter_map(|kc_user| kc_user.get_keycloak_user_id(user_attribute_name))
                 .collect();
 
-            // For all Keycloak users found above, get the according users already registered from the database
+            // For all Keycloak users found above, get the according users already registered from
+            // the database
             let registered_users = inventory
                 .get_users_by_odic_subs(current_tenant.id, &keycloak_user_ids)
                 .await?;

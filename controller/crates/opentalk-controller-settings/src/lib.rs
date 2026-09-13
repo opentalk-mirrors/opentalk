@@ -6,7 +6,8 @@
 //!
 //! The application settings are set with a TOML config file. Settings specified in the config file
 //! can be overwritten by environment variables. To do so, set an environment variable
-//! with the prefix `OPENTALK_CTRL_` followed by the field names you want to set. Nested fields are separated by two underscores `__`.
+//! with the prefix `OPENTALK_CTRL_` followed by the field names you want to set. Nested fields are
+//! separated by two underscores `__`.
 //! ```sh
 //! OPENTALK_CTRL_<field>__<field-of-field>...
 //! ```
@@ -29,7 +30,8 @@
 //!
 //! # Implementation Details:
 //!
-//! Setting categories, in which all properties implement a default value, should also implement the [`Default`] trait.
+//! Setting categories, in which all properties implement a default value, should also implement the
+//! [`Default`] trait.
 
 pub mod common;
 pub mod settings_file;

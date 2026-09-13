@@ -116,8 +116,8 @@ pub(crate) async fn proxy_socket(
 
     let mut shutdown_rx = shutdown.subscribe();
 
-    // Spawn the proxy task before connecting the downstream socket to ensure errors get propagated correctly should
-    // the connection fail
+    // Spawn the proxy task before connecting the downstream socket to ensure errors get propagated
+    // correctly should the connection fail
     actix_web::rt::spawn(async move {
         let mut session = session;
         let mut msg_stream = msg_stream;

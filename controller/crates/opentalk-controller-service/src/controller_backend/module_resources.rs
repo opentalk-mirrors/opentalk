@@ -162,8 +162,9 @@ fn api_resource_from_db_resource(db_resource: DbModuleResource) -> ModuleResourc
         created_by: db_resource.created_by,
         created_at: db_resource.created_at,
         updated_at: db_resource.updated_at,
-        // This should always work, inserting new ModuleResources requires a namespace with the ModuleId type. If we
-        // would return an error, the ModuleResource would be indefinitely inaccessible for an API caller
+        // This should always work, inserting new ModuleResources requires a namespace with the
+        // ModuleId type. If we would return an error, the ModuleResource would be
+        // indefinitely inaccessible for an API caller
         namespace: ModuleId::try_from(db_resource.namespace)
             .unwrap_or(module_id!("invalid_namespace")),
         tag: db_resource.tag,

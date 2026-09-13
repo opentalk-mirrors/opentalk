@@ -6,8 +6,8 @@ use std::{ops::Deref, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
 use glib::{ControlFlow, GString};
-use gstreamer::{bus::BusWatchGuard, prelude::*, MessageView, Object, Pipeline};
-use log::{max_level, Level};
+use gstreamer::{MessageView, Object, Pipeline, bus::BusWatchGuard, prelude::*};
+use log::{Level, max_level};
 use parking_lot::Mutex;
 use tokio::{sync::oneshot, time::timeout};
 

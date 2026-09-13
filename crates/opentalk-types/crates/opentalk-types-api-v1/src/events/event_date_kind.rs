@@ -53,7 +53,8 @@ impl EventDateKind {
         Some(date)
     }
 
-    /// Get the `is_all_day` field for a time-dependent event, [`None`] for a time-independent event.
+    /// Get the `is_all_day` field for a time-dependent event, [`None`] for a time-independent
+    /// event.
     pub fn is_all_day(&self) -> Option<bool> {
         self.event_date().map(|d| d.is_all_day)
     }

@@ -7,11 +7,11 @@
 //! links, so a conforming password is built locally from the policy.
 
 use rand::{
-    seq::{IndexedRandom as _, SliceRandom},
     Rng,
+    seq::{IndexedRandom as _, SliceRandom},
 };
 
-use crate::{types::PasswordPolicy, Error, Result};
+use crate::{Error, Result, types::PasswordPolicy};
 
 const LOWERCASE: &[u8] = b"abcdefghijklmnopqrstuvwxyz";
 const UPPERCASE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";

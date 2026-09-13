@@ -11,8 +11,8 @@ use crate::events::UTC_DT_FORMAT;
 
 /// ID of an EventInstance
 ///
-/// Is created from the starts_at datetime of the original recurrence (original meaning that exceptions don't change
-/// the instance id).
+/// Is created from the starts_at datetime of the original recurrence (original meaning that
+/// exceptions don't change the instance id).
 #[derive(
     Debug,
     Copy,

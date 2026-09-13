@@ -4,7 +4,8 @@
 
 use opentalk_types_common::{rooms::RoomIdOrAlias, streaming::StreamingTargetId};
 
-/// The parameter set for */rooms/{room_id_or_alias}/streaming_targets/{streaming_target_id}* endpoints
+/// The parameter set for */rooms/{room_id_or_alias}/streaming_targets/{streaming_target_id}*
+/// endpoints
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::IntoParams))]

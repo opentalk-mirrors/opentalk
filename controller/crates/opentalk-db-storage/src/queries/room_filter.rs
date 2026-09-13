@@ -13,10 +13,11 @@ use opentalk_types_common::rooms::{RoomAlias, RoomIdOrAlias};
 
 use crate::schema::rooms;
 
-/// Restrict a query to a single room, identified either by its id or by its alias (name and optional suffix).
+/// Restrict a query to a single room, identified either by its id or by its alias (name and
+/// optional suffix).
 ///
-/// The query is boxed internally, so any clause that shapes the `SELECT` or `FROM` (e.g. `select`, `inner_join`) must
-/// be applied before calling `filter_by_room`.
+/// The query is boxed internally, so any clause that shapes the `SELECT` or `FROM` (e.g. `select`,
+/// `inner_join`) must be applied before calling `filter_by_room`.
 pub trait FilterByRoom<'a>: Sized {
     /// The boxed query type returned after applying the room filter.
     type Output;
@@ -46,8 +47,9 @@ where
             }) => query
                 .filter(rooms::name.eq(name))
                 .filter(rooms::suffix.eq(suffix)),
-            // A room without a suffix (suffix disabled): the column is `NULL`, which must be matched with `IS NULL`
-            // rather than `= NULL` (the latter never matches in SQL).
+            // A room without a suffix (suffix disabled): the column is `NULL`, which must be
+            // matched with `IS NULL` rather than `= NULL` (the latter never matches in
+            // SQL).
             RoomIdOrAlias::Alias(RoomAlias { name, suffix: None }) => query
                 .filter(rooms::name.eq(name))
                 .filter(rooms::suffix.is_null()),

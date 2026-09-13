@@ -7,7 +7,7 @@
 use std::{
     collections::HashMap,
     net::IpAddr,
-    process::{exit, Command, Stdio},
+    process::{Command, Stdio, exit},
     sync::Arc,
 };
 
@@ -18,15 +18,15 @@ use clap::Parser;
 use gstreamer::glib;
 use log::warn;
 use opentalk_client_signaling::{
-    config::ClientConfig, opentalk_types::api::v1::error::ApiError, AuthConfig, OpenTalkClient,
+    AuthConfig, OpenTalkClient, config::ClientConfig, opentalk_types::api::v1::error::ApiError,
 };
 use opentalk_orchestrator_client::{
-    client::OrchestratorHandle, OrchestratorClient, ServiceAddress,
+    OrchestratorClient, ServiceAddress, client::OrchestratorHandle,
 };
 use opentalk_recorder_web_api::v1::{self, RecorderBackend, RecordingAction};
 use opentalk_service_auth::service::ApiKeyAuthorization;
 use opentalk_types_api_internal::recording::RecordingTarget;
-use service_probe::{set_service_state, start_probe, ServiceState};
+use service_probe::{ServiceState, set_service_state, start_probe};
 use service_probe_client::is_ready;
 use settings::{HardwareAcceleration, HardwareAccelerationIntel, MonitoringSettings, Settings};
 use system_info::{cpu::cpu_usage_poll, gpu_intel::gpu_intel_usage_poll};
@@ -35,13 +35,13 @@ use tokio::{
     select,
     signal::{
         ctrl_c,
-        unix::{signal, SignalKind},
+        unix::{SignalKind, signal},
     },
-    sync::{broadcast, Mutex},
+    sync::{Mutex, broadcast},
 };
 
 use crate::{
-    cli::{print_info, Args, Commands},
+    cli::{Args, Commands, print_info},
     orchestrator_metrics::OrchestratorStateProvider,
     recorder::{Recorder, RecordingSessionHandle},
     system_info::is_new_recording_feasible,
@@ -191,8 +191,8 @@ fn main() {
     use std::sync::mpsc::channel;
 
     use objc2::{
-        define_class, msg_send, rc::Retained, runtime::ProtocolObject, DefinedClass,
-        MainThreadMarker, MainThreadOnly,
+        DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send, rc::Retained,
+        runtime::ProtocolObject,
     };
     use objc2_app_kit::{
         NSApplication, NSApplicationDelegate, NSEvent, NSEventModifierFlags, NSEventSubtype,

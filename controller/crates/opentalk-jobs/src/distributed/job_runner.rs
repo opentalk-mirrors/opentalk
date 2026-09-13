@@ -127,9 +127,11 @@ impl JobRunner {
         Ok(())
     }
 
-    /// React to state changes from the [`ElectionTask`] and start/stop the [`JobQueue`] and `JobExecutor` accordingly.
+    /// React to state changes from the [`ElectionTask`] and start/stop the [`JobQueue`] and
+    /// `JobExecutor` accordingly.
     ///
-    /// This method only returns on shutdown. In case of an error, the [`JobRunner`] enters a reconnect loop.
+    /// This method only returns on shutdown. In case of an error, the [`JobRunner`] enters a
+    /// reconnect loop.
     async fn run(&mut self) {
         loop {
             let Err(e) = self.run_inner().await else {
@@ -153,8 +155,9 @@ impl JobRunner {
                     match ElectionTask::start(self.etcd_urls.clone()).await {
                         Ok(new_election_task_handle) => {
                             log::info!("Successfully recreated election task");
-                            // This will also cause the current election handle to gracefully exit it's loop
-                            // because we drop the current handle.
+                            // This will also cause the current election handle to gracefully exit
+                            // it's loop because we drop the current
+                            // handle.
                             self.election = new_election_task_handle;
                             break;
                         }

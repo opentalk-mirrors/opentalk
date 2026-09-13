@@ -251,9 +251,8 @@ impl ObjectStorage {
 
     /// Create a broken placeholder S3 client for tests
     ///
-    /// The resulting [`ObjectStorage`] will error on first access. This is a placeholder until we can mock the client
-    /// or have a minio test deployment.
-    ///
+    /// The resulting [`ObjectStorage`] will error on first access. This is a placeholder until we
+    /// can mock the client or have a minio test deployment.
     // TODO: create mock client or minio test deployment
     pub fn broken() -> Self {
         let credentials = AwsCred::new("broken", "broken", None, None, "broken");
@@ -276,7 +275,8 @@ impl ObjectStorage {
 
     /// Put an object into S3 storage
     ///
-    /// Depending on the data size, this function will either use the `put_object` or `multipart_upload` S3 API call.
+    /// Depending on the data size, this function will either use the `put_object` or
+    /// `multipart_upload` S3 API call.
     ///
     /// Returns the file size of the uploaded object
     pub async fn put<E>(

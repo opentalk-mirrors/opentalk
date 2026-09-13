@@ -199,13 +199,15 @@ mod tests {
     /// The id for an asset that has no related storage file
     const LOST_ASSET_ID: AssetId = AssetId::from_u128(42);
 
-    /// Test the database/storage file synchronization and delete assets that have to related storage object
+    /// Test the database/storage file synchronization and delete assets that have to related
+    /// storage object
     #[actix_rt::test]
     async fn sync_files_and_delete_missing() {
         sync_asset_test(99, &MissingStorageFileHandling::DeleteAssetEntry).await
     }
 
-    /// Test the database/storage file synchronization and set the file size of assets that have no related storage object to zero
+    /// Test the database/storage file synchronization and set the file size of assets that have no
+    /// related storage object to zero
     #[actix_rt::test]
     async fn sync_files_and_set_missing_to_zero() {
         sync_asset_test(99, &MissingStorageFileHandling::SetFileSizeToZero).await
@@ -298,7 +300,8 @@ mod tests {
         }
     }
 
-    /// Creates multiple valid database assets with their associated storage object as well as one invalid database asset.
+    /// Creates multiple valid database assets with their associated storage object as well as one
+    /// invalid database asset.
     async fn prepare_db_and_storage(
         test_ctx: &TestContext,
         object_storage: &ObjectStorage,

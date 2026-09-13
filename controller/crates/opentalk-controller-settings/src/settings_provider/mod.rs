@@ -254,8 +254,8 @@ mod tests {
     }
 
     fn reload_inner() {
-        // TODO(w.rabl) Why exactly do we have to remove these env vars first? See according discussion:
-        // https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1671#note_237430
+        // TODO(w.rabl) Why exactly do we have to remove these env vars first? See according
+        // discussion: https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1671#note_237430
         unsafe {
             env::remove_var("OPENTALK_CTRL_DATABASE__URL");
             env::remove_var("OPENTALK_CTRL_HTTP__PORT");

@@ -17,7 +17,8 @@ use opentalk_types_api_v1::{
 
 use crate::utoipa::responses::InternalServerError;
 
-/// **Deprecated**: This endpoint exists only for backwards compatibility and must no longer be used.
+/// **Deprecated**: This endpoint exists only for backwards compatibility and must no longer be
+/// used.
 ///
 /// The login endpoint
 ///

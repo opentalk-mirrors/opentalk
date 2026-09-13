@@ -64,7 +64,8 @@ pub struct EventInstance {
     pub room: EventRoomInfo,
     /// Flag which indicates if `invitees` contains all invites as far as known to the application
     pub invitees_truncated: bool,
-    /// List of event invitees and their invite status. Might not be complete, see `invite_truncated`
+    /// List of event invitees and their invite status. Might not be complete, see
+    /// `invite_truncated`
     pub invitees: Vec<EventInvitee>,
     /// Flag indicating whether the event is all-day
     pub is_all_day: bool,

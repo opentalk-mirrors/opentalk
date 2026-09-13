@@ -24,7 +24,8 @@ pub struct TranscriptionTarget {
     /// This is the internal equivalent to opentalk-roomserver-types's `BreakoutId`
     pub breakout_room: Option<u32>,
 
-    /// Target language of the transcription, specified as a two-letter language code (e.g., `de`, `en`).
+    /// Target language of the transcription, specified as a two-letter language code (e.g., `de`,
+    /// `en`).
     ///
     /// Set to `None` for auto-detection.
     pub language: Option<String>,

@@ -382,8 +382,9 @@ pub async fn get_all_events_for_user_paginated_as_stream(
             ));
 
             // Get all records that are behind the cursor position.
-            // Records with no start date are considered to be less than the cursor specifies because
-            // they don't pass the '>' comparison below (a comparison with NULL is always NULL).
+            // Records with no start date are considered to be less than the cursor specifies
+            // because they don't pass the '>' comparison below (a comparison with NULL
+            // is always NULL).
             query = query.filter(expr.gt((from_starts_at, cursor.from_created_at, cursor.from_id)));
         } else {
             let expr = AsExpression::<Record<(Timestamptz, Uuid)>>::as_expression((
@@ -558,8 +559,9 @@ pub async fn get_all_events_exceptions_for_user_paginated_as_stream(
             ));
 
             // Get all records that are behind the cursor position.
-            // Records with no start date are considered to be less than the cursor specifies because
-            // they don't pass the '>' comparison below (a comparison with NULL is always NULL).
+            // Records with no start date are considered to be less than the cursor specifies
+            // because they don't pass the '>' comparison below (a comparison with NULL
+            // is always NULL).
             query = query.filter(expr.gt((
                 from_starts_at,
                 cursor.from_created_at,

@@ -41,7 +41,6 @@ pub struct UpdateUser<'a> {
 
     // The tenant_id should never be updated!
     //pub tenant_id: Option<TenantId>,
-    //
     /// Update the tariff id.
     pub tariff_id: Option<TariffId>,
 

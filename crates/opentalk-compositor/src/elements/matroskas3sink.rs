@@ -15,7 +15,8 @@ pub(crate) const DEFAULT_CHUNK_SIZE: u64 = 5 * 1024 * 1024;
 
 /// # Errors
 ///
-/// Returns an error if Gstreamer is not initialized or this function was already called in this proccess.
+/// Returns an error if Gstreamer is not initialized or this function was already called in this
+/// proccess.
 pub fn register() -> anyhow::Result<()> {
     gstreamer::Element::register(
         None,
@@ -34,15 +35,15 @@ mod imp {
     };
 
     use anyhow::{Context, Result};
-    use glib::{object::ObjectExt, value::ToValue, BorrowedObject, ParamSpecBuilderExt};
+    use glib::{BorrowedObject, ParamSpecBuilderExt, object::ObjectExt, value::ToValue};
     use gstreamer::{
+        EventView, Format, GenericFormattedValue, QueryViewMut, StreamError,
         format::Bytes,
         glib::{self, subclass::Signal},
         prelude::StaticType,
         subclass::prelude::{
             ElementImpl, GstObjectImpl, ObjectImpl, ObjectSubclass, ObjectSubclassExt,
         },
-        EventView, Format, GenericFormattedValue, QueryViewMut, StreamError,
     };
     use gstreamer_base::subclass::prelude::{BaseSinkImpl, BaseSinkImplExt};
     use parking_lot::Mutex;
@@ -103,9 +104,11 @@ mod imp {
     impl ObjectImpl for MatroskaS3Sink {
         fn signals() -> &'static [glib::subclass::Signal] {
             static SIGNALS: LazyLock<Vec<Signal>> = LazyLock::new(|| {
-                vec![Signal::builder("part")
-                    .param_types([u64::static_type(), glib::Bytes::static_type()])
-                    .build()]
+                vec![
+                    Signal::builder("part")
+                        .param_types([u64::static_type(), glib::Bytes::static_type()])
+                        .build(),
+                ]
             });
 
             &SIGNALS
@@ -113,11 +116,13 @@ mod imp {
 
         fn properties() -> &'static [glib::ParamSpec] {
             static PROPERTIES: LazyLock<Vec<glib::ParamSpec>> = LazyLock::new(|| {
-                vec![glib::ParamSpecUInt64::builder("chunk-size")
-                    .readwrite()
-                    .blurb("chunk size in bytes")
-                    .default_value(DEFAULT_CHUNK_SIZE)
-                    .build()]
+                vec![
+                    glib::ParamSpecUInt64::builder("chunk-size")
+                        .readwrite()
+                        .blurb("chunk size in bytes")
+                        .default_value(DEFAULT_CHUNK_SIZE)
+                        .build(),
+                ]
             });
 
             &PROPERTIES
@@ -151,11 +156,11 @@ mod imp {
             static ELEMENT_METADATA: LazyLock<gstreamer::subclass::ElementMetadata> = LazyLock::new(
                 || {
                     gstreamer::subclass::ElementMetadata::new(
-                    "OpenTalkMatroskaS3Sink",
-                    "Sink/Network",
-                    "Split a matroska stream into chunks that can be uploaded using the S3 multipart API",
-                    "Konstantin Baltruschat"
-                )
+                        "OpenTalkMatroskaS3Sink",
+                        "Sink/Network",
+                        "Split a matroska stream into chunks that can be uploaded using the S3 multipart API",
+                        "Konstantin Baltruschat",
+                    )
                 },
             );
 
@@ -257,11 +262,14 @@ mod imp {
             buf: &[u8],
         ) -> io::Result<usize> {
             // Skip searching large buffers to optimize performance.
-            // The condition below ensures that we only search for the Matroska cluster's magic bytes in small buffers (less than 400 bytes).
-            // This is based on the observation that the header chunks containing these magic bytes are typically around 100 bytes.
-            // By limiting the search to smaller buffers, we avoid the expensive operation of scanning large data chunks,
-            // which can significantly slow down the process. This threshold of 400 bytes provides a good balance,
-            // allowing us to catch the header while minimizing unnecessary computation.
+            // The condition below ensures that we only search for the Matroska cluster's magic
+            // bytes in small buffers (less than 400 bytes). This is based on the
+            // observation that the header chunks containing these magic bytes are typically around
+            // 100 bytes. By limiting the search to smaller buffers, we avoid the
+            // expensive operation of scanning large data chunks,
+            // which can significantly slow down the process. This threshold of 400 bytes provides a
+            // good balance, allowing us to catch the header while minimizing
+            // unnecessary computation.
             if buf.len() < 400 {
                 // Check if a new matroska cluster is written by identifying these magic bytes
                 const MATROSKA_MAGIC_BYTES: [u8; 4] = [0x1F, 0x43, 0xB6, 0x75];
@@ -330,7 +338,8 @@ mod imp {
                 obj.emit_by_name::<()>("part", &[&self.total_s3_chunks_produced, &bytes]);
             }
 
-            // Update the first chunk we've ever emitted with the current buffer (which should contain the matroska header)
+            // Update the first chunk we've ever emitted with the current buffer (which should
+            // contain the matroska header)
             Cursor::new(&mut self.first_s3_chunk)
                 .write_all(self.current_buffer.get_ref())
                 .expect("unable to write all current buffer into cursor for matroskas3sink");

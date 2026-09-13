@@ -2,16 +2,18 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::{
-    settings::Settings,
-    sip::{
-        H264PacketizationMode, MediaSessionId, SdpRecvCodec, SdpSendCodec, SdpSendCodecParams,
-        SrtpInfo,
-    },
+use core::fmt;
+use std::{
+    collections::HashMap,
+    future::Future,
+    net::SocketAddr,
+    pin::Pin,
+    sync::Arc,
+    time::{Duration, Instant},
 };
+
 use anyhow::{Context, Result};
 use codec::Codec;
-use core::fmt;
 use dtmf_filter::DtmfFilter;
 use ezk::{
     BoxedSourceCancelSafe, ConfigRange, Frame, NextEventIsCancelSafe, Source, SourceEvent,
@@ -48,14 +50,6 @@ use opentalk_compositor::{
 };
 use rand::RngExt;
 use rtp::{RtpMpscSource, RtpSessions};
-use std::{
-    collections::HashMap,
-    future::Future,
-    net::SocketAddr,
-    pin::Pin,
-    sync::Arc,
-    time::{Duration, Instant},
-};
 use tokio::{
     net::UdpSocket,
     sync::{Mutex, RwLock, broadcast, mpsc},
@@ -64,6 +58,14 @@ use tokio::{
 use video::{
     h264::{H264Decoder, H264Encoder},
     ui,
+};
+
+use crate::{
+    settings::Settings,
+    sip::{
+        H264PacketizationMode, MediaSessionId, SdpRecvCodec, SdpSendCodec, SdpSendCodecParams,
+        SrtpInfo,
+    },
 };
 
 pub mod codec;
@@ -500,7 +502,8 @@ impl MediaPipeline {
 
         let mut h264_enc = H264Encoder::create(packetization_mode, bitrate, profile, level, fps)?;
 
-        // With a clock-rate of 90_000 a u32 timestamp can cover 47721 seconds of time, so generate a random point in that timestamp range
+        // With a clock-rate of 90_000 a u32 timestamp can cover 47721 seconds of time, so generate
+        // a random point in that timestamp range
         let start_timestamp = Instant::now()
             .checked_sub(Duration::from_secs(rand::rng().random_range(0..45000)))
             .unwrap();
@@ -517,7 +520,8 @@ impl MediaPipeline {
             let packets =
                 h264_enc.encode_and_packetize(buf, target_width, target_height, force_intra_frame);
 
-            // Calculate the timestamp from the seconds passed since origin * clock-rate (90_000) and use only the lower 32bit
+            // Calculate the timestamp from the seconds passed since origin * clock-rate (90_000)
+            // and use only the lower 32bit
             #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
             let timestamp = (((start_timestamp.elapsed().as_secs_f64() * 90_000.0) as u64)
                 & u64::from(u32::MAX)) as u32;
@@ -764,7 +768,8 @@ async fn livekit_publish_video(
 ) -> Result<(TrackSid, NativeVideoSource)> {
     let video_source = NativeVideoSource::new(
         VideoResolution {
-            // The resolution is arbitrary and doesn't really matter, since livekit adapts to any resolution we capture
+            // The resolution is arbitrary and doesn't really matter, since livekit adapts to any
+            // resolution we capture
             width: 1920,
             height: 1080,
         },

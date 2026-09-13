@@ -7,8 +7,8 @@ use reqwest::{RequestBuilder, StatusCode};
 use serde::Serialize;
 
 use crate::{
-    client::error_for_status, types::Permission, Client, DriveId, Error, ItemId, PermissionId,
-    Result, SharingLinkType,
+    Client, DriveId, Error, ItemId, PermissionId, Result, SharingLinkType,
+    client::error_for_status, types::Permission,
 };
 
 #[derive(Debug, Clone, Serialize)]

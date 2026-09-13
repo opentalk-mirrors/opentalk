@@ -49,7 +49,8 @@ pub enum ElectionState {
 struct Lease {
     /// The lease id
     id: i64,
-    /// The leases time to live, the server may respond with a different TTL than requested by the client
+    /// The leases time to live, the server may respond with a different TTL than requested by the
+    /// client
     ttl: i64,
 }
 
@@ -75,7 +76,8 @@ impl Lease {
     }
 }
 
-/// The [`ElectionTask`] manages the leader election between multiple [`JobRunners`](crate::job_runner::JobRunner).
+/// The [`ElectionTask`] manages the leader election between multiple
+/// [`JobRunners`](crate::job_runner::JobRunner).
 pub struct ElectionTask {
     /// Etcd connections
     etcd_urls: Vec<String>,
@@ -122,7 +124,8 @@ impl ElectionTask {
         loop {
             match self.run_inner().await {
                 Ok(_) => {
-                    // if the inner loop returns ok, some condition to gracefully shutdown has been met and this can exit
+                    // if the inner loop returns ok, some condition to gracefully shutdown has been
+                    // met and this can exit
                     return;
                 }
                 Err(e) => {
@@ -224,7 +227,8 @@ impl ElectionTask {
 
     /// Something about the leader key changed.
     ///
-    /// When the leader key was deleted, we can attempt to be the first to set it again and thus become the new leader
+    /// When the leader key was deleted, we can attempt to be the first to set it again and thus
+    /// become the new leader
     async fn handle_watch_msg(&mut self, msg: WatchResponse) -> Result<(), ElectionTaskError> {
         for event in msg.events() {
             if event.event_type() == EventType::Delete {

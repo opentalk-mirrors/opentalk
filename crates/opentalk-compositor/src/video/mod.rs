@@ -7,20 +7,18 @@ use std::{
     collections::HashMap,
     future::poll_fn,
     pin::Pin,
-    sync::Arc,
+    sync::{Arc, Mutex as StdMutex},
     task::Poll,
     time::{Duration, Instant},
 };
 
-use std::sync::Mutex as StdMutex;
-
 use anyhow::{Context, Result};
 use chrono::Local;
 use ezk_image::{
-    resize::{FilterType, ResizeAlg, Resizer},
     Cropped, Image, ImageRef, PixelFormat, Window,
+    resize::{FilterType, ResizeAlg, Resizer},
 };
-use futures::{stream::SelectAll, FutureExt, Stream, StreamExt};
+use futures::{FutureExt, Stream, StreamExt, stream::SelectAll};
 use image::DynamicImage;
 use livekit::{
     id::{ParticipantIdentity, TrackSid},
@@ -28,16 +26,16 @@ use livekit::{
     webrtc::video_frame::{I420Buffer, VideoBuffer},
 };
 use tokio::{
-    sync::{mpsc, watch, Mutex},
+    sync::{Mutex, mpsc, watch},
     task::JoinHandle,
-    time::{interval_at, Interval, MissedTickBehavior},
+    time::{Interval, MissedTickBehavior, interval_at},
 };
 
 use crate::{
+    BORDER, HEIGHT, I420_COLOR, OFFSET_TOP, PADDING, Participant, Shared, Sink, SpeakingState,
+    WIDTH, WantShutdown,
     font::{DrawText, SimpleText, TextBox},
-    image::{blend_yuv, I420BufferImageRef, I420Image, Point},
-    Participant, Shared, Sink, SpeakingState, WantShutdown, BORDER, HEIGHT, I420_COLOR, OFFSET_TOP,
-    PADDING, WIDTH,
+    image::{I420BufferImageRef, I420Image, Point, blend_yuv},
 };
 
 pub(crate) mod placeholder;
@@ -452,7 +450,8 @@ impl VideoPipeline {
                                 && !t.is_muted
                         });
 
-                        // TODO: if we ever use screenshare audio we can return TrackSource::ScreenShare audio here instead
+                        // TODO: if we ever use screenshare audio we can return
+                        // TrackSource::ScreenShare audio here instead
                         if participant_has_camera {
                             continue;
                         }
@@ -482,7 +481,8 @@ impl VideoPipeline {
                     )?;
                 }
             } else {
-                // We're not rendering a any video tracks for this participant, always render the camera off icon
+                // We're not rendering a any video tracks for this participant, always render the
+                // camera off icon
                 let window = Window {
                     x: window.x + 10,
                     y: window.y + 10,
@@ -495,7 +495,8 @@ impl VideoPipeline {
                     &mut Cropped::new(&mut base_image, window)?,
                 )?;
 
-                // If there's not any audio for this participant of any kind - render the mic off icon on the current tile
+                // If there's not any audio for this participant of any kind - render the mic off
+                // icon on the current tile
                 let has_any_audio = self.tracks.values().any(|track_data| {
                     track_data.participant_identity == participant_to_show.participant_identity
                         && (track_data.source == TrackSource::Microphone

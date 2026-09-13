@@ -24,7 +24,8 @@ use crate::{
 ///
 /// Delete/Withdraw an event invitation using the email address as the identifier.
 ///
-/// This will also withdraw invites from registered users if the provided email address matches theirs.
+/// This will also withdraw invites from registered users if the provided email address matches
+/// theirs.
 #[utoipa::path(
     operation_id = "delete_email_invite_to_event",
     tag = "api::v1::events::invites",

@@ -8,13 +8,13 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use config::{Config, Environment, File, FileFormat, FileSourceFile};
 use itertools::Itertools;
 use opentalk_client_signaling::BaseUrl;
 use opentalk_compositor::{ClockFormat, EncoderType};
 use opentalk_orchestrator_client::OrchestratorConfig;
-use opentalk_service_auth::{service::ApiKeys, ApiKey};
+use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use owo_colors::OwoColorize;
 use serde::{Deserialize, Deserializer};
 
@@ -96,8 +96,9 @@ impl Settings {
         // tracing/log crates.
         use owo_colors::OwoColorize as _;
 
-        // When an unused key starts with an underscore, it is a strong indicator that the deprecated double underscore
-        // prefix has been used for the configuration with environment variables.
+        // When an unused key starts with an underscore, it is a strong indicator that the
+        // deprecated double underscore prefix has been used for the configuration with
+        // environment variables.
         if !FOUND_UNKNOWN_KEY_WITH_UNDERSCORE_PREFIX.load(Ordering::Relaxed)
             && path.to_string().starts_with('_')
         {

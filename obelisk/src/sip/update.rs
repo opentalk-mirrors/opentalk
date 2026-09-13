@@ -2,11 +2,6 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use super::{
-    MediaSessionState, SdpSendCodecParams,
-    sdp::{MediaChange, SessionState},
-};
-use crate::media::MediaPipeline;
 use anyhow::{Context, Result, bail};
 use ezk_sip_types::{CodeKind, Method, Name, StatusCode, header::typed::ContentType};
 use ezk_sip_ua::invite::{
@@ -14,12 +9,19 @@ use ezk_sip_ua::invite::{
     session::{InviteSession, ReInviteReceived},
 };
 
+use super::{
+    MediaSessionState, SdpSendCodecParams,
+    sdp::{MediaChange, SessionState},
+};
+use crate::media::MediaPipeline;
+
 pub async fn apply_changes(
     media: &mut MediaPipeline,
     session_state: &mut SessionState,
     changes: Vec<MediaChange>,
 ) -> Result<()> {
-    // Track the framerate at which the compositor should run, which will be the lowest of all video streams
+    // Track the framerate at which the compositor should run, which will be the lowest of all video
+    // streams
     let mut target_fps = None;
 
     for change in changes {
@@ -161,7 +163,8 @@ pub async fn handle_reinvite(
     Ok(())
 }
 
-/// Related to the SIP `timer` extension, send an INVITE request inside an existing session to refresh it
+/// Related to the SIP `timer` extension, send an INVITE request inside an existing session to
+/// refresh it
 pub async fn refresh_invite_session(
     media: &mut MediaPipeline,
     media_session: &mut SessionState,

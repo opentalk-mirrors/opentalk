@@ -32,8 +32,8 @@ pub async fn get_asset_for_room(
     room: &RoomIdOrAlias,
     asset_id: AssetId,
 ) -> Result<Asset> {
-    //FIXME: The inner_joins below (as well as the room parameter) can be removed when assets have their own
-    // permission check and don't rely on room permissions
+    //FIXME: The inner_joins below (as well as the room parameter) can be removed when assets have
+    // their own permission check and don't rely on room permissions
     assets::table
         .inner_join(room_assets::table.on(room_assets::asset_id.eq(assets::id)))
         .inner_join(rooms::table.on(rooms::id.eq(room_assets::room_id)))
@@ -119,8 +119,8 @@ pub async fn delete_asset_from_room(
     asset_id: AssetId,
 ) -> Result<FileSize> {
     conn.transaction(async |conn| {
-        //FIXME: This check (as well as the room_id parameter) can be removed when assets have their own permission
-        // check and don't rely on room permissions
+        //FIXME: This check (as well as the room_id parameter) can be removed when assets have
+        // their own permission check and don't rely on room permissions
         //
         // check if the asset exists for the specified room
         room_assets::table

@@ -70,7 +70,8 @@ impl ControllerBackend {
 
         // FIXME: Preliminary solution, consider using UNION when Diesel supports it.
         // As in #[get("/events")], we simply get all invitees and truncate them afterwards.
-        // Note that get_for_event_paginated returns a total record count of 0 when paging beyond the end.
+        // Note that get_for_event_paginated returns a total record count of 0 when paging beyond
+        // the end.
 
         let (event_invites_with_user, event_invites_total) = inventory
             .get_event_invites_paginated(event_id, PageSize::MAX, Page::DEFAULT, status_filter)
@@ -289,9 +290,9 @@ impl ControllerBackend {
         drop(inventory);
 
         if let Some(mail_service) = &mail_service {
-            // Notify just the specified user. Currently, unlike the create_invite_to_event counterpart, this endpoint
-            // only handles and notifies a single registered user. This somehow contradicts patch_event and delete_event
-            // as well.
+            // Notify just the specified user. Currently, unlike the create_invite_to_event
+            // counterpart, this endpoint only handles and notifies a single registered
+            // user. This somehow contradicts patch_event and delete_event as well.
             // See this issue for more details: https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/499.
             let users_to_notify: Vec<MailRecipient> = invited_users
                 .into_iter()
@@ -387,7 +388,8 @@ impl ControllerBackend {
                     .delete_event_invite_by_invitee(event_id, current_user.id)
                     .await?;
 
-                // user access is going to be removed for the event, remove favorite entry if it exists
+                // user access is going to be removed for the event, remove favorite entry if it
+                // exists
                 _ = inventory
                     .delete_event_favorite_for_user(event_id, current_user.id)
                     .await?;
@@ -597,9 +599,9 @@ async fn create_user_event_invite(
 
 /// Create an invite to an event via email address
 ///
-/// Checks first if a user exists with the email address in our database and creates a regular invite,
-/// else checks if the email is registered with the Keycloak (or external invitee support is configured)
-/// and then creates an email invite
+/// Checks first if a user exists with the email address in our database and creates a regular
+/// invite, else checks if the email is registered with the Keycloak (or external invitee support is
+/// configured) and then creates an email invite
 #[expect(clippy::too_many_arguments)]
 async fn create_email_event_invite(
     settings: &Settings,

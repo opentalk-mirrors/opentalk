@@ -15,8 +15,8 @@ pub const MAXIMUM_WEBSOCKET_BUFFER_SIZE: usize = 100_000_000;
 
 /// Define HTTP Websocket actor
 ///
-/// This actor will relay all text and binary received websocket messages to the given unbounded sender
-/// It is up to the receiver of the channel to extract the underlying message.
+/// This actor will relay all text and binary received websocket messages to the given unbounded
+/// sender It is up to the receiver of the channel to extract the underlying message.
 ///
 /// Handling timeouts is also done in this actor.
 pub struct UploadWebSocketActor {

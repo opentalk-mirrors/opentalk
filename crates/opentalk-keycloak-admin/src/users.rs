@@ -138,11 +138,12 @@ impl KeycloakAdminClient {
         let url = self.api_url(["users"])?;
 
         // TODO: Fix this code once https://github.com/keycloak/keycloak/issues/16687 is resolved.
-        // Currently we let keycloak give us MAX_NUM_KEYCLOAK_SEARCH_RESULTS users matching the search_str
-        // and then filter by the tenant_id.
-        // Ideally we want keycloak to filter these out for us. In a larger user base with more tenants this will
-        // be insufficient to provide a good auto-completion, since more than MAX_NUM_KEYCLOAK_SEARCH_RESULTS
-        // users outside of the searched tenant might match.
+        // Currently we let keycloak give us MAX_NUM_KEYCLOAK_SEARCH_RESULTS users matching the
+        // search_str and then filter by the tenant_id.
+        // Ideally we want keycloak to filter these out for us. In a larger user base with more
+        // tenants this will be insufficient to provide a good auto-completion, since more
+        // than MAX_NUM_KEYCLOAK_SEARCH_RESULTS users outside of the searched tenant might
+        // match.
         let query = SearchQuery {
             search: search_str,
             max: MAX_NUM_KEYCLOAK_SEARCH_RESULTS,

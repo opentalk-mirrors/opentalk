@@ -39,12 +39,13 @@ pub enum RoomServerKind {
 
 /// Configuration for the the websocket rate limiting
 ///
-/// The implementation uses the token bucket algorithm. Each websocket message that is sent by a participant consumes
-/// one token. A websocket connection has a maximum amount of tokens that can be available at a time (the token bucket).
-/// Each second, the bucket is filled with a configured amount of tokens.
+/// The implementation uses the token bucket algorithm. Each websocket message that is sent by a
+/// participant consumes one token. A websocket connection has a maximum amount of tokens that can
+/// be available at a time (the token bucket). Each second, the bucket is filled with a configured
+/// amount of tokens.
 ///
-/// The algorithm allows the configuration to have a reasonably small amount of messages per second, while still
-/// allowing 'bursts' of messages until the tokens in the bucket are fully consumed.
+/// The algorithm allows the configuration to have a reasonably small amount of messages per second,
+/// while still allowing 'bursts' of messages until the tokens in the bucket are fully consumed.
 ///
 /// A participant gets kicked from the conference when no tokens remain.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

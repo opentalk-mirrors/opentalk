@@ -2,16 +2,20 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::media::{DEFAULT_FPS, codec::Codec};
-use crate::settings::Settings;
+use std::{cmp, mem::MaybeUninit, str::FromStr};
+
 use ezk_sdp_types::{ImageAttrSets, ImageAttrXyRange, MediaDescription, RtpMap};
 use h264_profile_level_id::{Level, Profile};
-use openh264::OpenH264API;
-use openh264::encoder::{Level as OpenH264Level, Profile as OpenH264Profile};
+use openh264::{
+    OpenH264API,
+    encoder::{Level as OpenH264Level, Profile as OpenH264Profile},
+};
 use openh264_sys2::API;
-use std::cmp;
-use std::mem::MaybeUninit;
-use std::str::FromStr;
+
+use crate::{
+    media::{DEFAULT_FPS, codec::Codec},
+    settings::Settings,
+};
 
 /// Describes the codec used to receive audio/video
 #[derive(Debug, Clone)]

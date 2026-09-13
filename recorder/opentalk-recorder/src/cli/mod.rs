@@ -16,11 +16,13 @@ pub struct Args {
     ///
     /// If present, exactly this config file will be used.
     ///
-    /// If absent, `recorder` looks for a config file in these locations and uses the first one that is found:
+    /// If absent, `recorder` looks for a config file in these locations and uses the first one
+    /// that is found:
     ///
     /// - `config.toml` in the current directory (deprecated, for backwards compatibility only)
     /// - `recorder.toml` in the current directory
-    /// - `<XDG_CONFIG_HOME>/opentalk/recorder.toml` (where `XDG_CONFIG_HOME` is usually `~/.config`)
+    /// - `<XDG_CONFIG_HOME>/opentalk/recorder.toml` (where `XDG_CONFIG_HOME` is usually
+    ///   `~/.config`)
     /// - `/etc/opentalk/recorder.toml`
     #[clap(short, long, verbatim_doc_comment)]
     pub config: Option<String>,

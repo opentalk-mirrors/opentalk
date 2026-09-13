@@ -36,7 +36,8 @@ pub struct RoomServer {
     /// Settings regarding the RoomServer modules
     pub modules: ModuleSettings,
 
-    /// Rate limit settings for RoomServer WebSocket connections. If `None`, the WebSocket rate limit is disabled.
+    /// Rate limit settings for RoomServer WebSocket connections. If `None`, the WebSocket rate
+    /// limit is disabled.
     pub websocket_rate_limit: Option<RateLimitSettings>,
 
     /// The duration after which a room without participants is closed.
@@ -127,7 +128,8 @@ fn rate_limit_from_settings_file(config: Option<WebSocketRateLimit>) -> Option<R
         disabled,
         tokens_per_second,
         token_bucket_size,
-        // Do not use rest pattern (`..`) here. We ensure that all fields are used by destructuring `WebSocketRateLimit`
+        // Do not use rest pattern (`..`) here. We ensure that all fields are used by destructuring
+        // `WebSocketRateLimit`
     } = config;
 
     if disabled {

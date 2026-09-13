@@ -155,7 +155,8 @@ impl ApiError {
         )
     }
 
-    /// Creates a new 413 Payload Too Large error that indicates that the storage quota was exceeded.
+    /// Creates a new 413 Payload Too Large error that indicates that the storage quota was
+    /// exceeded.
     pub fn storage_quota_exceeded() -> Self {
         Self::new_standard(
             StatusCode::PAYLOAD_TOO_LARGE,

@@ -7,7 +7,8 @@ use opentalk_types_common::rooms::{GuestAccess, RoomAlias, RoomPassword};
 /// Representation of an update to a room in the inventory.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateRoom {
-    /// A custom room alias that can be used as part of the URL alias to access the room instead of the [`RoomId`].
+    /// A custom room alias that can be used as part of the URL alias to access the room instead of
+    /// the [`RoomId`].
     ///
     /// [`RoomId`]: opentalk_types_common::rooms::RoomId
     pub alias: Option<Option<RoomAlias>>,

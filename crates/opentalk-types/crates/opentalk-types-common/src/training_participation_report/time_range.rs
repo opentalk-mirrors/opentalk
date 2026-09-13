@@ -31,7 +31,8 @@ const MAX_TIME_WINDOW: Duration = Duration::from_hours(10);
     ts(export_to = "training-participation-report/")
 )]
 pub struct TimeRange {
-    /// The shortest duration that needs to elapse before the checkpoint can be created, represented in seconds.
+    /// The shortest duration that needs to elapse before the checkpoint can be created,
+    /// represented in seconds.
     #[cfg_attr(feature = "serde", serde(with = "crate::utils::duration_seconds"))]
     #[cfg_attr(
         feature = "utoipa",

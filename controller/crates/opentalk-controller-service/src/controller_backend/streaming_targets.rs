@@ -43,7 +43,8 @@ impl ControllerBackend {
         let mut inventory = self.inventory_provider.get_inventory().await?;
 
         let room = inventory.get_room(&room_id_or_alias).await?;
-        // TODO: No paginated DB access is done here for now though the API provides pagination parameters
+        // TODO: No paginated DB access is done here for now though the API provides pagination
+        // parameters
         let room_streaming_targets = inventory.get_room_streaming_targets(room.id).await?;
 
         let with_streaming_key = room.created_by == user_id;

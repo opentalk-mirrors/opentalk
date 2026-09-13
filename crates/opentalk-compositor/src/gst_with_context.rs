@@ -8,9 +8,9 @@ use std::panic::Location;
 use anyhow::{Context, Result};
 use glib::object::{IsA, ObjectExt as _};
 use gstreamer::{
+    Bin, Element, ElementFactory, GhostPad, Object, Pad, PadLinkSuccess, State, StateChangeSuccess,
     element_factory::ElementBuilder,
     prelude::{ElementExt, ElementExtManual, GstBinExt, GstBinExtManual, PadExt},
-    Bin, Element, ElementFactory, GhostPad, Object, Pad, PadLinkSuccess, State, StateChangeSuccess,
 };
 
 pub trait GstBinErrorExt: IsA<Bin> {

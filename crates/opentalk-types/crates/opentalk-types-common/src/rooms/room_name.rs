@@ -21,9 +21,9 @@ const ALLOWED_NON_ALPHANUMERIC_CHARS: &[char] = &['.', '-'];
 /// * not be a valid UUID
 ///
 /// The "not a valid UUID" rule exists so that a [`RoomName`] can never be confused with a
-/// [`RoomId`](super::RoomId): both can appear in the same URL position and are resolved via the untagged
-/// [`RoomIdOrAlias`](super::RoomIdOrAlias) enum. Without it, users could hijack rooms by creating a name that
-/// collides with an existing room's ID.
+/// [`RoomId`](super::RoomId): both can appear in the same URL position and are resolved via the
+/// untagged [`RoomIdOrAlias`](super::RoomIdOrAlias) enum. Without it, users could hijack rooms by
+/// creating a name that collides with an existing room's ID.
 #[derive(Debug, Display, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(
     feature = "diesel",
@@ -95,9 +95,10 @@ impl TryFrom<String> for RoomName {
             return Err(TryFromRoomNameError::InvalidCharacter);
         }
 
-        // Reject UUID-shaped names so that a `RoomName` can never collide with a `RoomId`. Without this, a name that
-        // parses as a UUID would deserialize as a `RoomId` when used in a `RoomIdOrAlias` context, which would allow
-        // users to hijack rooms by creating a name that collides with an existing room's ID.
+        // Reject UUID-shaped names so that a `RoomName` can never collide with a `RoomId`. Without
+        // this, a name that parses as a UUID would deserialize as a `RoomId` when used in a
+        // `RoomIdOrAlias` context, which would allow users to hijack rooms by creating a
+        // name that collides with an existing room's ID.
         if Uuid::parse_str(&value).is_ok() {
             return Err(TryFromRoomNameError::UuidNotAllowed);
         }

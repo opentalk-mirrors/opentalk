@@ -50,8 +50,8 @@ pub(super) struct OidcContext {
     /// the introspection request go to the same host as the one that issued the frontend token).
     ///
     /// This will be set to a different client if:
-    /// - The `OIDC_INTROSPECT_AND_USERINFO_SET_X_FORWARDED_HOST` environment
-    ///   variable is set to `true` (case-insensitive) or `1`.
+    /// - The `OIDC_INTROSPECT_AND_USERINFO_SET_X_FORWARDED_HOST` environment variable is set to
+    ///   `true` (case-insensitive) or `1`.
     /// - The `frontend_auth_base_url` differs from the `controller_auth_base_url`.
     ///
     /// This client adds a `x-forwarded-host` header derived from the frontend auth base url,
@@ -319,7 +319,8 @@ impl OidcContext {
         };
 
         // Convert missing claims to empty strings to hotfix https://git.opentalk.dev/opentalk/product/tickets/-/work_items/223
-        // Later on we should represent data correctly, storing missing claims as `null` in the database or passing them to the frontend
+        // Later on we should represent data correctly, storing missing claims as `null` in the
+        // database or passing them to the frontend
         let firstname = claims
             .given_name()
             .and_then(|claim| claim.get(None))

@@ -107,8 +107,8 @@ fn init_tracing_layer(
 }
 /// Create the logging filter
 ///
-/// The filter is a combination of the values from the RUST_LOG environment variable, the config file and
-/// the controllers defaults.
+/// The filter is a combination of the values from the RUST_LOG environment variable, the config
+/// file and the controllers defaults.
 ///
 /// The priority of the different config options is RUST_LOG > config file > controller defaults.
 fn create_filter(settings: &Logging) -> Result<EnvFilter> {

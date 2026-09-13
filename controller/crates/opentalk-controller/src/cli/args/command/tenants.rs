@@ -76,7 +76,8 @@ async fn list_all_tenants(settings: &Settings) -> Result<(), DatabaseError> {
     Ok(())
 }
 
-/// Implementation of the `opentalk-controller tenants set-oidc-id <tenant-id> <new-oidc-id>` command
+/// Implementation of the `opentalk-controller tenants set-oidc-id <tenant-id> <new-oidc-id>`
+/// command
 async fn set_oidc_id(
     settings: &Settings,
     id: TenantId,

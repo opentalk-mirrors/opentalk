@@ -4,11 +4,12 @@
 
 use anyhow::{Context, Result};
 use ezk_image::{Image, PixelFormat};
-use resvg::tiny_skia::{Color, Pixmap};
-use resvg::usvg::{Options, Transform, Tree};
+use resvg::{
+    tiny_skia::{Color, Pixmap},
+    usvg::{Options, Transform, Tree},
+};
 
-use crate::video::placeholder::PLACEHOLDER_BACKGROUND_COLOR;
-use crate::I420_COLOR;
+use crate::{I420_COLOR, video::placeholder::PLACEHOLDER_BACKGROUND_COLOR};
 
 /// Render a SVG file to a I420 image from source
 pub(crate) fn load(source: &[u8]) -> Result<Image<Vec<u8>>> {

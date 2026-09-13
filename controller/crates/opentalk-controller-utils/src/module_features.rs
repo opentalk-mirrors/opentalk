@@ -16,7 +16,8 @@ use snafu::{Snafu, ensure};
 
 use crate::CaptureApiError;
 
-/// Error that is returned when a required feature is disabled, either by configuration or by tariff.
+/// Error that is returned when a required feature is disabled, either by configuration or by
+/// tariff.
 #[derive(Debug, Snafu)]
 #[snafu(display("The feature \"{feature}\" is disabled"))]
 pub struct FeatureRequiredError {

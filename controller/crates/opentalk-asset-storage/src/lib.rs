@@ -49,7 +49,8 @@ pub enum AssetError {
     AssetStorageExceeded,
 
     #[snafu(display("The storage quota was exceeded"))]
-    // Use AssetError instead of Self, since self will refer to the RollbackSnafu inside the expanded code
+    // Use AssetError instead of Self, since self will refer to the RollbackSnafu inside the
+    // expanded code
     Rollback {
         /// The error that caused the rollback to fail
         #[snafu(source(from(AssetError, Box::new)))]
@@ -370,8 +371,8 @@ async fn get_storage_quota(inventory: &mut dyn Inventory, user_id: UserId) -> Re
     Ok(Quota { total, used })
 }
 
-/// Verify that the storage quota wasn't exhausted. Files don't need to fit into the remaining quota,
-/// there only needs to be remaining quota.
+/// Verify that the storage quota wasn't exhausted. Files don't need to fit into the remaining
+/// quota, there only needs to be remaining quota.
 ///
 /// # Return Value
 ///

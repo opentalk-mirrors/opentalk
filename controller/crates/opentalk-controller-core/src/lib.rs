@@ -103,7 +103,8 @@ where
     fut.await.context(BlockingSnafu)
 }
 
-/// Controller struct representation containing all fields required to extend and drive the controller
+/// Controller struct representation containing all fields required to extend and drive the
+/// controller
 pub struct Controller {
     pub service: Arc<dyn OpenTalkControllerService>,
 
@@ -113,7 +114,8 @@ pub struct Controller {
     /// Settings loaded on [Controller::create]
     pub startup_settings: Arc<Settings>,
 
-    /// Cloneable shared settings, can be used to reload settings from, when receiving the `reload` signal.
+    /// Cloneable shared settings, can be used to reload settings from, when receiving the `reload`
+    /// signal.
     pub settings_provider: SettingsProvider,
 
     /// Path of the configuration file
@@ -147,8 +149,8 @@ pub struct Controller {
     /// `controller.reload.subscribe()` to receive a receiver to the reload-signal.
     pub reload: broadcast::Sender<()>,
 
-    /// Shutdown signal which is triggered when the controller is exiting, either because a fatal error occurred
-    /// or a user requested the shutdown.
+    /// Shutdown signal which is triggered when the controller is exiting, either because a fatal
+    /// error occurred or a user requested the shutdown.
     ///
     /// `controller.shutdown.subscribe()` to receive a receiver to the reload-signal.
     /// The controller will wait up 10 seconds before forcefully shutting down.
@@ -772,7 +774,8 @@ fn v1_scope(
             .service(v1::auth::logout::post)
             .service(v1::rooms::by_id::roomserver::start_invited::post)
             .service(v1::rooms::by_id::start_invited::post)
-            // The invite-code API has been removed; respond with `410 Gone` instead of `404 Not Found`
+            // The invite-code API has been removed; respond with `410 Gone` instead of `404 Not
+            // Found`
             .service(v1::rooms::by_id::invites::collection())
             .service(v1::rooms::by_id::invites::by_code())
             .service(v1::turn::get)
@@ -796,7 +799,8 @@ fn v1_scope(
             .service(v1::rooms::name::verify::post)
             .service(v1::events::post)
             .service(v1::events::get)
-            // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed before
+            // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed
+            // before
             .service(v1::events::instances::get)
             .service(v1::events::by_id::get)
             .service(v1::events::by_id::patch)

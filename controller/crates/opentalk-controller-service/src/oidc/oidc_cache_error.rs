@@ -47,7 +47,8 @@ pub enum OidcCacheError {
     RevokedByLogout,
 
     /// Error on attmept to cache an internal error for an access token
-    /// This is not allowed, because such errors are transient and do not relate to the token validity
+    /// This is not allowed, because such errors are transient and do not relate to the token
+    /// validity
     #[snafu(display("internal errors will not be cached for acess tokens"))]
     NoCachingOfInternalErrors,
 }

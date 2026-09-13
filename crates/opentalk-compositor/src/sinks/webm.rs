@@ -9,9 +9,10 @@ use serde::Deserialize;
 use tokio::sync::broadcast;
 
 use crate::{
+    EncoderType, GstBinErrorExt,
     elements::matroskas3sink::DEFAULT_CHUNK_SIZE,
-    gstreamer::{add_ghost_pad, GStreamerSink},
-    parse_bin_from_description_with_context, EncoderType, GstBinErrorExt,
+    gstreamer::{GStreamerSink, add_ghost_pad},
+    parse_bin_from_description_with_context,
 };
 
 #[derive(Debug)]

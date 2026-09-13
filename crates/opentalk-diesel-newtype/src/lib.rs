@@ -13,7 +13,7 @@ use diesel::{
     pg::Pg,
     sql_types::{SingleValue, SqlType},
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 #[doc(hidden)]
 pub mod __exports {

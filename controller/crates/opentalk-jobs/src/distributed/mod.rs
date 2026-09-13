@@ -2,22 +2,25 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Contains the components for a system that allows one of many controllers to be elected as a job executor. There can
-//! only be one job executor at a time. In case of a failure, another running controller will take over.
+//! Contains the components for a system that allows one of many controllers to be elected as a job
+//! executor. There can only be one job executor at a time. In case of a failure, another running
+//! controller will take over.
 //!
-//! An etcd setup is required for the leader election, this system only starts when the `[etcd]` config values are set.
+//! An etcd setup is required for the leader election, this system only starts when the `[etcd]`
+//! config values are set.
 //!
-//! The elected job executor reads the configured jobs and their parameters from the database and puts them in a queue
-//! based on their schedule. These jobs are then run sequentially from the queue, their progress and logs are saved in
-//! the database.
+//! The elected job executor reads the configured jobs and their parameters from the database and
+//! puts them in a queue based on their schedule. These jobs are then run sequentially from the
+//! queue, their progress and logs are saved in the database.
 //!
-//! The [`JobRunner`](job_runner::JobRunner) is the main entry point to start and manage all related tasks:
+//! The [`JobRunner`](job_runner::JobRunner) is the main entry point to start and manage all related
+//! tasks:
 //!
 //! [`ElectionTask`](election_task::ElectionTask) - Manages the etcd leader election
-//! [`JobQueue`](job_queue::JobQueue) - A cron based scheduler that create the job queue entries in etcd
-//! [`JobExecutor`](executor_task::JobExecutor) - The task that watches the queue and executes jobs
-//! [`ExecutionLogger`](execution_logger::ExecutionLogger) - A logger that writes to the database
-//!
+//! [`JobQueue`](job_queue::JobQueue) - A cron based scheduler that create the job queue entries in
+//! etcd [`JobExecutor`](executor_task::JobExecutor) - The task that watches the queue and executes
+//! jobs [`ExecutionLogger`](execution_logger::ExecutionLogger) - A logger that writes to the
+//! database
 
 use opentalk_inventory::JobId;
 mod election_task;

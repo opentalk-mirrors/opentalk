@@ -2,28 +2,31 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use super::codec::{SdpRecvCodec, SdpSendCodec, offer_all_audio_codecs, offer_all_video_codecs};
-use crate::media::codec::MediaType;
-use crate::media::{AddressFamily, PortPool, SocketPair};
-use crate::settings::Settings;
-use crate::sip::codec::{available_video_codec, choose_audio_codec, choose_video_codec};
-use anyhow::{Context, Result, bail};
-use base64::prelude::*;
-use bytes::Bytes;
-use bytesstr::BytesStr;
 use core::fmt;
-use ezk_sdp_types::{
-    Connection, Direction, Fmtp, IceOptions, Media, MediaDescription, MediaType as SdpMediaType,
-    Origin, Rtcp, RtpMap, SessionDescription, SrtpCrypto, SrtpKeyingMaterial, SrtpSuite,
-    TaggedAddress, Time, TransportProtocol,
-};
-use rand::Rng;
 use std::{
     io,
     net::{IpAddr, SocketAddr, ToSocketAddrs},
     num::Wrapping,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
+};
+
+use anyhow::{Context, Result, bail};
+use base64::prelude::*;
+use bytes::Bytes;
+use bytesstr::BytesStr;
+use ezk_sdp_types::{
+    Connection, Direction, Fmtp, IceOptions, Media, MediaDescription, MediaType as SdpMediaType,
+    Origin, Rtcp, RtpMap, SessionDescription, SrtpCrypto, SrtpKeyingMaterial, SrtpSuite,
+    TaggedAddress, Time, TransportProtocol,
+};
+use rand::Rng;
+
+use super::codec::{SdpRecvCodec, SdpSendCodec, offer_all_audio_codecs, offer_all_video_codecs};
+use crate::{
+    media::{AddressFamily, PortPool, SocketPair, codec::MediaType},
+    settings::Settings,
+    sip::codec::{available_video_codec, choose_audio_codec, choose_video_codec},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

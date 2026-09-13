@@ -31,7 +31,6 @@
 //!         println!("{text}");
 //!     }
 //! }
-//!
 //! ```
 
 use anyhow::Context as _;

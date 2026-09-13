@@ -54,7 +54,8 @@ impl AuthorizedClient {
         })
     }
 
-    /// Internal function used to aquire a new token when an `401 Unauthorized` http response was received
+    /// Internal function used to aquire a new token when an `401 Unauthorized` http response was
+    /// received
     ///
     /// Acquires the internal token and checks if it has changed from the current one or else
     /// calls `get_access_token` to get a new one from keycloak which it then saves.
@@ -129,10 +130,11 @@ impl AuthorizedClient {
         Ok(response.access_token)
     }
 
-    /// Internal function to send a request by passing a closure which constructs the request to send
+    /// Internal function to send a request by passing a closure which constructs the request to
+    /// send
     ///
-    /// Will try the request with the clients current token once and if the token has expired it will
-    /// refresh the token and try the request again once
+    /// Will try the request with the clients current token once and if the token has expired it
+    /// will refresh the token and try the request again once
     pub(crate) async fn send_authorized(
         &self,
         f: impl Fn(&Client) -> RequestBuilder,

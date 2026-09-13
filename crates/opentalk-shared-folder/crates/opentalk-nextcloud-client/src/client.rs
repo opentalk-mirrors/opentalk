@@ -10,8 +10,8 @@ use reqwest_dav as dav;
 use url::Url;
 
 use crate::{
-    types::{OcsPassword, ShareResponse},
     Error, Result, ShareCreator, ShareId, ShareType, ShareUpdater,
+    types::{OcsPassword, ShareResponse},
 };
 
 #[derive(Clone)]

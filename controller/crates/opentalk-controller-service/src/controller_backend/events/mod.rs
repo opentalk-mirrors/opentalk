@@ -1973,7 +1973,8 @@ fn compare_inventory_events_or_exceptions(
         ),
     };
 
-    // This comparison requires that the streams are properly sorted with NULLs (i.e. `None` values) first.
+    // This comparison requires that the streams are properly sorted with NULLs (i.e. `None` values)
+    // first.
     match (starts_at_1, starts_at_2) {
         (None, _) => Ordering::Less,
         (_, None) => Ordering::Greater,

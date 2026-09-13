@@ -49,7 +49,8 @@ impl EventResourceDateKind {
         is_time_independent: TimeIndependentMarker,
     };
 
-    /// Get the `is_all_day` field for a time-dependent event, [`None`] for a time-independent event.
+    /// Get the `is_all_day` field for a time-dependent event, [`None`] for a time-independent
+    /// event.
     pub fn is_all_day(&self) -> Option<bool> {
         let EventResourceDateKind::TimeDependent { date, .. } = self else {
             return None;

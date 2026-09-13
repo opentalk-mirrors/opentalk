@@ -462,7 +462,8 @@ pub fn get_fluent_language_identifier(
     <fluent_templates::LanguageIdentifier as FromStr>::Err,
 > {
     // Return a corresponding unic_langid_impl::LanguageIdentifier (instead of the
-    // icu_locid::langid::LanguageIdentifier embedded in opentalk_types_common::users::language::Language)
+    // icu_locid::langid::LanguageIdentifier embedded in
+    // opentalk_types_common::users::language::Language)
     language.to_string().parse()
 }
 

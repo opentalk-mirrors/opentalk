@@ -35,7 +35,8 @@ pub enum EventStatus {
 
 /// The Event type that is used when creating an ICS event object.
 ///
-/// The type is similar to the [`v1::Event`] but the `start_time` and `end_time` fields are mandatory
+/// The type is similar to the [`v1::Event`] but the `start_time` and `end_time` fields are
+/// mandatory
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct IcsCompatibleEvent {
     pub id: Uuid,
@@ -111,7 +112,8 @@ pub(crate) fn create_ics_v1(
 
     match status {
         EventStatus::Created | EventStatus::Updated => {
-            // if the ics file is created for cancelling an event exception, the ics Method should be `CANCEL`
+            // if the ics file is created for cancelling an event exception, the ics Method should
+            // be `CANCEL`
             if let Some(v1::EventExceptionKind::Canceled) = exception.map(|e| &e.kind) {
                 calendar.push(Method::new("CANCEL"));
             } else {
@@ -347,8 +349,8 @@ fn create_exception_event_object<'a>(
         }
     }
 
-    // FIXME: handle all_day events, these are not handled at all from the SMTP mailer at the moment.
-    // if let Some(is_all_day) = exception.is_all_day
+    // FIXME: handle all_day events, these are not handled at all from the SMTP mailer at the
+    // moment. if let Some(is_all_day) = exception.is_all_day
 
     let dt_start = exception
         .starts_at

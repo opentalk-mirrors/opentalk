@@ -39,19 +39,22 @@ pub struct DatabaseContext {
     pub inventory_provider: Arc<DatabaseConnectionPool>,
     /// The postgres testcontainer backing this context.
     ///
-    /// Dropping the [`DatabaseContext`] stops and removes the container (and with it the test database).
+    /// Dropping the [`DatabaseContext`] stops and removes the container (and with it the test
+    /// database).
     _container: ContainerAsync<Postgres>,
 }
 
 impl DatabaseContext {
     /// Create a new [`DatabaseContext`]
     ///
-    /// Starts a dedicated postgres [testcontainer] for this context and creates a migrated database inside it. Because
-    /// every context gets its own container, tests are isolated from each other and can run in parallel. Running the
-    /// tests requires a working docker (or compatible) environment.
+    /// Starts a dedicated postgres [testcontainer] for this context and creates a migrated database
+    /// inside it. Because every context gets its own container, tests are isolated from each
+    /// other and can run in parallel. Running the tests requires a working docker (or
+    /// compatible) environment.
     ///
-    /// The container is owned by the returned [`DatabaseContext`] and is stopped and removed when it is dropped, so
-    /// callers must keep the context alive for as long as they use its [`Db`] or any connection obtained from it.
+    /// The container is owned by the returned [`DatabaseContext`] and is stopped and removed when
+    /// it is dropped, so callers must keep the context alive for as long as they use its [`Db`]
+    /// or any connection obtained from it.
     ///
     /// [testcontainer]: https://testcontainers.com/
     pub async fn new() -> Self {

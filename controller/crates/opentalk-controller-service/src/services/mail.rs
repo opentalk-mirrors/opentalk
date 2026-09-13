@@ -6,8 +6,8 @@
 //!
 //! Used to have a clean interface for various kinds of mails
 //! that are sent from the Web-API and possibly other connected services.
-//!
-// TODO: We probably can avoid the conversion to MailTasks if no rabbit_mq_queue is set in all mail fns
+// TODO: We probably can avoid the conversion to MailTasks if no rabbit_mq_queue is set in all mail
+// fns
 use std::sync::Arc;
 
 use chrono::DateTime;

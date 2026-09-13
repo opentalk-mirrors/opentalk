@@ -317,8 +317,8 @@ impl JobExecutor {
         let result = self.run_job_inner(job_id).await;
 
         if let Err(e) = self.clear_job_keys(job_id).await {
-            // The job related keys could not be deleted. The keys are bound to this executors lease and will be removed
-            // anyway when the lease expires.
+            // The job related keys could not be deleted. The keys are bound to this executors lease
+            // and will be removed anyway when the lease expires.
             log::error!("failed to remove job with id `{job_id}` from job queue: {e:?}");
 
             return Err(e);
@@ -405,7 +405,8 @@ impl JobExecutor {
 
     /// Flags the job as running.
     ///
-    /// Tags the related job queue key with this executors lease, automatically deleting it when this executor crashes
+    /// Tags the related job queue key with this executors lease, automatically deleting it when
+    /// this executor crashes
     ///
     /// Returns `false` if the job is not in the queue or already flagged as running.
     async fn mark_job_as_running(&mut self, job_id: JobId) -> Result<(), ExecutorError> {
@@ -422,8 +423,8 @@ impl JobExecutor {
             .and_then([
                 // Add this executors lease to the queue key
                 //
-                // In a scenario of a successful job but a lost etcd connection, we could have the problem of a queue
-                // key remaining in the list.
+                // In a scenario of a successful job but a lost etcd connection, we could have the
+                // problem of a queue key remaining in the list.
                 // This ensures that the queue key is removed, even if the executor fails
                 // to remove the key after completing the job.
                 TxnOp::put(
@@ -530,8 +531,8 @@ impl JobExecutor {
 
     /// Extract the jobs id from a given [`etcd_client::KeyValue`]
     ///
-    /// If the job id cannot be parsed from the keys value, this function will attempt to delete the unparsable key
-    /// and return [`Ok(None)`], this means that the job should be skipped.
+    /// If the job id cannot be parsed from the keys value, this function will attempt to delete the
+    /// unparsable key and return [`Ok(None)`], this means that the job should be skipped.
     /// If the key could not be deleted for whatever reason, this function errors and the
     /// [`JobExecutor`] should exit.
     async fn extract_job_id(&mut self, kv: &KeyValue) -> Result<Option<JobId>, ExecutorError> {

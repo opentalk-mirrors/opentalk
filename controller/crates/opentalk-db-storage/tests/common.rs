@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-// Each `tests/*.rs` file is compiled as its own crate and pulls in this module via `mod common;`. No single test
-// binary uses every helper, so items unused by a given binary would otherwise trip `dead_code`.
+// Each `tests/*.rs` file is compiled as its own crate and pulls in this module via `mod common;`.
+// No single test binary uses every helper, so items unused by a given binary would otherwise trip
+// `dead_code`.
 #![allow(dead_code)]
 
 use opentalk_database::DbConnection;

@@ -28,7 +28,8 @@ impl SubjectCollection {
         self.0.iter().filter_map(Subject::as_user).copied()
     }
 
-    /// Query whether the subject collection contains any of the users present in the keys of a `BTreeMap`.
+    /// Query whether the subject collection contains any of the users present in the keys of a
+    /// `BTreeMap`.
     pub fn contains_any_user_by_key<V>(&self, users: &BTreeMap<UserId, V>) -> bool {
         self.0
             .iter()

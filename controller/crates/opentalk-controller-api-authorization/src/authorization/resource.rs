@@ -12,14 +12,12 @@ use opentalk_types_common::{
 ///
 /// Variants come in two flavours:
 ///
-/// * **Authenticated resources** require the caller to be a [`Subject`] (i.e.
-///   an authenticated or unauthenticated user) and are checked
-///   against an ACL by the authorization backend.
-/// * **Public resources** are served without authentication and the
-///   authorization backend admits any caller — including unauthenticated
-///   ones. They are still represented here so that the middleware can map
-///   every routed request to a known [`Resource`] and the "allowed by
-///   default" decision is explicit and testable.
+/// * **Authenticated resources** require the caller to be a [`Subject`] (i.e. an authenticated or
+///   unauthenticated user) and are checked against an ACL by the authorization backend.
+/// * **Public resources** are served without authentication and the authorization backend admits
+///   any caller — including unauthenticated ones. They are still represented here so that the
+///   middleware can map every routed request to a known [`Resource`] and the "allowed by default"
+///   decision is explicit and testable.
 ///
 /// [`Subject`]: super::Subject
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

@@ -78,7 +78,8 @@ pub struct GetEventsAndInstancesQuery {
 
     /// Cursor token to get the next page of events and instances
     ///
-    /// Returned by the endpoint if the maximum number of events and instances per page has been hit
+    /// Returned by the endpoint if the maximum number of events and instances per page has been
+    /// hit
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub after: Option<Cursor<GetEventsAndInstancesCursorData>>,
 

@@ -2,6 +2,12 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use std::{
+    net::{IpAddr, SocketAddr},
+    path::PathBuf,
+    time::Duration,
+};
+
 use anyhow::{Context, Result, bail};
 use config::{Config, Environment, File, FileFormat, FileSourceFile};
 use itertools::Itertools;
@@ -10,11 +16,6 @@ use opentalk_compositor::ClockFormat;
 use opentalk_service_auth::ApiKey;
 use owo_colors::OwoColorize as _;
 use serde::Deserialize;
-use std::{
-    net::{IpAddr, SocketAddr},
-    path::PathBuf,
-    time::Duration,
-};
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
@@ -314,8 +315,9 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use std::{env, str::FromStr};
+
+    use super::*;
 
     #[test]
     fn settings_env_vars_overwite_config() -> anyhow::Result<()> {

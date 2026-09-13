@@ -134,7 +134,8 @@ impl VadStage {
 
 /// Wraps VoiceActivityDetector and adds audio padding around detected speech segments
 ///
-/// Extends detected speech segments with padding (audio before/after each segment), preventing abrupt cut-offs
+/// Extends detected speech segments with padding (audio before/after each segment), preventing
+/// abrupt cut-offs
 struct VoiceDetector {
     detector: Box<earshot::Detector>,
     threshold: f32,
@@ -148,7 +149,8 @@ struct VoiceDetector {
     /// Always a maximum of `max_padding_chunks`
     before_padding_chunks: VecDeque<(Vec<f32>, Instant)>,
 
-    /// Number of remaining chunks to emit after the speech threshold drops below `max_padding_chunks`
+    /// Number of remaining chunks to emit after the speech threshold drops below
+    /// `max_padding_chunks`
     ///
     /// Is set back to `max_padding_chunks` when speech is detected
     remaining_after_speech_padding: usize,
@@ -354,7 +356,8 @@ impl ReFramer {
         }
     }
 
-    // Removes at least one frame's worth of samples from the given `samples` and stores them in `current` or emits them directly
+    // Removes at least one frame's worth of samples from the given `samples` and stores them in
+    // `current` or emits them directly
     fn bite_off_frame(
         &mut self,
         samples: &mut &[f32],

@@ -6,8 +6,8 @@
 
 use glib::object::Cast;
 use gstreamer::{
-    prelude::{GstBinExtManual, GstObjectExt as _},
     DebugGraphDetails,
+    prelude::{GstBinExtManual, GstObjectExt as _},
 };
 
 /// Pipeline DOT debugging parameters
@@ -51,7 +51,6 @@ impl Default for Params {
 /// # Arguments
 ///
 /// - `element`: Element in the pipeline which shall be generated a DOT file from.
-///
 pub fn debug_dot(
     element: &impl glib::object::IsA<gstreamer::Element>,
     filename_without_extension: &str,
@@ -66,7 +65,6 @@ pub fn debug_dot(
 /// # Arguments
 ///
 /// - `element`: Element in the pipeline which shall be generated a DOT file from.
-///
 pub fn dot(element: &impl glib::object::IsA<gstreamer::Element>, filename_without_extension: &str) {
     dot_ext(element, filename_without_extension, &Params::default());
 }
@@ -108,7 +106,9 @@ pub fn dot_ext(
     // recursion to top parent
     if let Some(parent) = object.parent() {
         let Ok(element) = parent.dynamic_cast::<gstreamer::Element>() else {
-            error!("Generation of dot file failed: unable to dynamic cast the `object` to 'gstreamer::Element'");
+            error!(
+                "Generation of dot file failed: unable to dynamic cast the `object` to 'gstreamer::Element'"
+            );
             return;
         };
 
@@ -141,7 +141,6 @@ pub fn dot_ext(
 /// # Arguments
 ///
 /// - `object`: Object to return name from.
-///
 pub fn name(object: &impl glib::object::IsA<gstreamer::Object>) -> glib::GString {
     if let Some(parent) = object.parent() {
         format!("{}.{}", name(&parent), object.name()).into()

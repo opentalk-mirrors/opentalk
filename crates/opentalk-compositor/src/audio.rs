@@ -6,7 +6,7 @@ use std::{collections::HashMap, future::Future, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
 use ezk::{
-    nodes::Access, ConfigRange, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange,
+    ConfigRange, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange, nodes::Access,
 };
 use ezk_audio::{
     Channels, Format, RawAudio, RawAudioConfig, RawAudioConfigRange, RawAudioFrame, SampleRate,
@@ -17,7 +17,7 @@ use futures::StreamExt;
 use livekit::webrtc::audio_stream::native::NativeAudioStream;
 use tokio::{
     sync::Mutex,
-    time::{interval, Interval},
+    time::{Interval, interval},
 };
 
 use crate::Sink;

@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::sip::H264PacketizationMode;
+use std::time::Instant;
+
 use anyhow::{Context, Result};
 use bytes::Bytes;
 use livekit::webrtc::video_frame::{I420Buffer, VideoFrame};
@@ -20,7 +21,8 @@ use rtp::{
     codecs::h264::{H264Packet, H264Payloader},
     packetizer::{Depacketizer, Payloader},
 };
-use std::time::Instant;
+
+use crate::sip::H264PacketizationMode;
 
 const MTU: u32 = 1200;
 

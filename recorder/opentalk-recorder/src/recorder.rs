@@ -4,7 +4,7 @@
 
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -13,11 +13,12 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{bail, Context as ErrorContext, Result};
+use anyhow::{Context as ErrorContext, Result, bail};
 use bytes::Bytes;
 use futures::Stream;
 use log::error;
 use opentalk_client_signaling::{
+    JoinedLobby, OpenTalkClient, OpenTalkEvent, OpenTalkRecordingServiceEvent, Participant, Room,
     opentalk_roomserver_types::{
         breakout::{breakout_id::BreakoutId, event::BreakoutEvent},
         connection_id::ConnectionId,
@@ -30,13 +31,12 @@ use opentalk_client_signaling::{
         },
         signaling::ParticipantId,
     },
-    JoinedLobby, OpenTalkClient, OpenTalkEvent, OpenTalkRecordingServiceEvent, Participant, Room,
 };
 use opentalk_compositor::{
     EncoderType, Mixer, MixerParameters, ParticipantIdentity, RTMPParameters, RTMPSink, SystemSink,
     WebMParameters, WebMSink,
 };
-use opentalk_orchestrator_client::{client::OrchestratorHandle, RecorderEvent, RecorderResource};
+use opentalk_orchestrator_client::{RecorderEvent, RecorderResource, client::OrchestratorHandle};
 use opentalk_types_api_internal::recording::RecordingTarget;
 use reqwest::Url;
 use thiserror::Error;
@@ -454,8 +454,8 @@ impl RecordingSession {
             .await
             .context("unable to link recording sink to compositor")?;
 
-        // probably actually use a channel to signal when limit reached, would probably make much more sense
-        // than to attempt to circumvent the move
+        // probably actually use a channel to signal when limit reached, would probably make much
+        // more sense than to attempt to circumvent the move
         tokio::spawn({
             let service_context = self.service_context.clone();
 
@@ -920,7 +920,9 @@ async fn move_to_breakout_room(room_state: &mut Room, breakout_target: BreakoutI
         .iter()
         .any(|room| room.id == breakout_target)
     {
-        return Err(anyhow::anyhow!("Got breakout target {breakout_target} but it was not found in the room's breakout configuration"));
+        return Err(anyhow::anyhow!(
+            "Got breakout target {breakout_target} but it was not found in the room's breakout configuration"
+        ));
     }
 
     room_state

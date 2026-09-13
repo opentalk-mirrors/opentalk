@@ -142,8 +142,8 @@ async fn update_room_fails_on_collision_without_suffix() {
         .await
         .unwrap();
 
-    // Updating the second room to the same name without a suffix cannot be resolved by regenerating the suffix, so it
-    // must fail.
+    // Updating the second room to the same name without a suffix cannot be resolved by regenerating
+    // the suffix, so it must fail.
     let err = db::queries::rooms::update_room(
         &mut conn,
         update_alias(Some(name), None),
@@ -186,7 +186,8 @@ async fn update_room_allows_multiple_rooms_without_alias() {
     .await
     .unwrap();
 
-    // Removing the alias yields a `NULL` alias, which may exist any number of times, so both updates succeed.
+    // Removing the alias yields a `NULL` alias, which may exist any number of times, so both
+    // updates succeed.
     let first_updated =
         db::queries::rooms::update_room(&mut conn, update_alias(None, None), &first.id.into())
             .await

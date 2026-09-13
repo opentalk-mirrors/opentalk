@@ -361,7 +361,8 @@ impl TranscriptionSession {
     async fn handle_breakout_event(&mut self, breakout_event: BreakoutEvent) -> Result<()> {
         match breakout_event {
             BreakoutEvent::ParticipantSwitchedRoom { .. } => {
-                // nothing to do, participant tracks are added through livekit events and removed through track state
+                // nothing to do, participant tracks are added through livekit events and removed
+                // through track state
             }
             BreakoutEvent::Closed => {
                 if self.room.breakout_api().current_room() != RoomKind::Main {

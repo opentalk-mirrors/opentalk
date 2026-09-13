@@ -119,7 +119,8 @@ impl ControllerBackend {
             )
             .await?;
 
-        // Return all non-recurring events, but recurring events only if event instances are suppressed
+        // Return all non-recurring events, but recurring events only if event instances are
+        // suppressed
         let events_stream = events_stream.filter(|result| {
             futures::future::ready({
                 if let Ok(stream_item) = result {
@@ -130,7 +131,8 @@ impl ControllerBackend {
             })
         });
 
-        // Prepare all streams to interweave (one for the events and one for each event's instances).
+        // Prepare all streams to interweave (one for the events and one for each event's
+        // instances).
         let mut events_and_instances_streams: Vec<
             Pin<Box<dyn Stream<Item = opentalk_inventory::Result<InternalEventOrInstance>>>>,
         > = Vec::with_capacity(recurring_events.len() + 1);
@@ -446,7 +448,8 @@ impl ControllerBackend {
             )
             .await?;
 
-        // Enrich the invitees for the first instance only and reuse them as all instances have the same invitees.
+        // Enrich the invitees for the first instance only and reuse them as all instances have the
+        // same invitees.
         let mut instances: Vec<EventInstance> = Vec::with_capacity(items_per_page);
         let mut reused_enriched_invitees: Option<Vec<EventInvitee>> = None;
         while let Some(instance) = stream.next().await {
@@ -1018,7 +1021,8 @@ fn compare_inventory_events_or_instances(
         ),
     };
 
-    // This comparison requires that the streams are properly sorted with NULLs (i.e. `None` values) first.
+    // This comparison requires that the streams are properly sorted with NULLs (i.e. `None` values)
+    // first.
     match (starts_at_1, starts_at_2) {
         (None, _) => Ordering::Less,
         (_, None) => Ordering::Greater,

@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use super::{MediaEvent, RtpMpscSource};
+use std::io::Cursor;
+
 use anyhow::{Context, Result};
 use bitstream_io::{BigEndian, BitRead, BitReader};
 use ezk::{NextEventIsCancelSafe, Source, SourceEvent};
 use ezk_rtp::{Rtp, RtpConfig, RtpConfigRange};
-use std::io::Cursor;
 use tokio::sync::mpsc;
+
+use super::{MediaEvent, RtpMpscSource};
 
 pub(super) struct DtmfFilter {
     pub(super) source: RtpMpscSource,

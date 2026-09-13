@@ -10,8 +10,8 @@ use reqwest::StatusCode;
 use serde::Serialize;
 
 use crate::{
-    types::{OcsShareData, OcsShareResponse, ShareResponse},
     Client, Error, Result, ShareId, SharePermission,
+    types::{OcsShareData, OcsShareResponse, ShareResponse},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

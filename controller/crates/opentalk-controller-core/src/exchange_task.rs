@@ -8,6 +8,7 @@ use core::{hash::BuildHasherDefault, time::Duration};
 use std::{borrow::Cow, collections::HashMap, num::NonZero, sync::Arc};
 
 use bytestring::ByteString;
+use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use lapin2::{
     BasicProperties, ChannelState, Consumer, ExchangeKind,
     message::Delivery,
@@ -17,7 +18,6 @@ use lapin2::{
     },
     types::FieldTable,
 };
-use lapin_pool::{RabbitMqChannel, RabbitMqPool};
 use rustc_hash::FxHasher;
 use serde::{Deserialize, Serialize};
 use slotmap::{SlotMap, new_key_type};
@@ -48,13 +48,14 @@ new_key_type! {
     struct SubscriberKey;
 }
 
-/// Task that runs in the background. Receives messages from RabbitMQ and distributes them to its subscribers.
+/// Task that runs in the background. Receives messages from RabbitMQ and distributes them to its
+/// subscribers.
 ///
-/// This exchange task works similar to the RabbitMQ topic exchange. Subscribers register routing-keys (topics) that
-/// they are interested in and want to receive messages from.
+/// This exchange task works similar to the RabbitMQ topic exchange. Subscribers register
+/// routing-keys (topics) that they are interested in and want to receive messages from.
 ///
-/// Messages sent using the [`ExchangeHandle`] will be distributed internally before being sent to other controllers
-/// via a RabbitMQ fanout exchange.
+/// Messages sent using the [`ExchangeHandle`] will be distributed internally before being sent to
+/// other controllers via a RabbitMQ fanout exchange.
 pub struct ExchangeTask {
     /// Some unique ID to identify messages sent by ourselves
     id: Uuid,
@@ -385,7 +386,8 @@ pub struct CreateSubscriberError;
 pub struct PublishError;
 
 impl ExchangeHandle {
-    /// Create a new [`SubscriberHandle`] which will receive all messages that match the given `routing_keys`
+    /// Create a new [`SubscriberHandle`] which will receive all messages that match the given
+    /// `routing_keys`
     ///
     /// Returns a error when the exchange is not reachable. The error is permanent.
     pub async fn create_subscriber(

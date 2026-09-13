@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use crate::sip::{MediaSessionId, SrtpInfo};
+use std::{collections::HashMap, future::pending, io, net::SocketAddr, sync::Arc, time::Duration};
+
 use anyhow::{Context, Result, ensure};
 use ezk::{BoxedSourceCancelSafe, Frame, NextEventIsCancelSafe, Source, SourceEvent, ValueRange};
 use ezk_rtp::{Rtp, RtpConfig, RtpConfigRange, RtpPacket, Session, rtcp_types::Compound};
@@ -10,12 +11,13 @@ use ezk_sdp_types::SrtpSuite;
 use owo_colors::OwoColorize;
 use parking_lot::Mutex;
 use srtp::{CryptoPolicy, StreamPolicy};
-use std::{collections::HashMap, future::pending, io, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{
     net::UdpSocket,
     sync::mpsc,
     time::{Instant, interval, interval_at},
 };
+
+use crate::sip::{MediaSessionId, SrtpInfo};
 
 pub struct RtpSessions {
     sessions: HashMap<MediaSessionId, Entry>,
@@ -273,7 +275,8 @@ struct RtpTask {
     state: State,
     on_err: Arc<Box<dyn Fn() + Send + Sync>>,
 
-    /// Channel to receive commands from the `RtpSessions` object from. When this returns None, the Task quits
+    /// Channel to receive commands from the `RtpSessions` object from. When this returns None, the
+    /// Task quits
     commands_rx: mpsc::Receiver<RtpTaskCommand>,
 
     /// RTP Session
@@ -290,7 +293,8 @@ struct RtpTask {
     /// Reusable buffer to serialize RTP/RTCP packets into
     encode_buf: Vec<u8>,
 
-    /// The RTP task polls this source yielding RTP packets, which are then sent out using the `rtp_socket` to `remote_rtp_addr`
+    /// The RTP task polls this source yielding RTP packets, which are then sent out using the
+    /// `rtp_socket` to `remote_rtp_addr`
     rtp_sender_source: Option<BoxedSourceCancelSafe<Rtp>>,
 
     /// Sink to dump RTP packets into, that have been received on the `rtp_socket`

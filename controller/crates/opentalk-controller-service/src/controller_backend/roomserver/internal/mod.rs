@@ -172,7 +172,8 @@ impl RoomServerBackend for InternalRoomServer {
                         log::debug!(
                             "Guest access is disabled for room {room_id}, rejecting access"
                         );
-                        // Do not leak the existence of the room to guests if guest access is disabled
+                        // Do not leak the existence of the room to guests if guest access is
+                        // disabled
                         return Err(ApiError::not_found());
                     }
                     None => {
