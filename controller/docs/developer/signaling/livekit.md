@@ -83,7 +83,7 @@ Requests the creation of a new access token.
 
 #### Response
 
-[Credential Event](#credentials_1)
+[Credential Event](#credentials)
 
 ### ForceMute
 

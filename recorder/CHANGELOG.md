@@ -615,7 +615,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Close the livekit session after recording has finished ([!307](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/307), [#179](https://git.opentalk.dev/opentalk/backend/services/recorder/-/issues/179))
 
-## 0.10.0
+## [0.10.0]
 
 [0.10.0]: https://git.opentalk.dev/opentalk/backend/services/recorder/-/compare/v0.7.0...v0.10.0
 
