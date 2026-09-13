@@ -1,0 +1,18 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "reviewers": [
+    "@opentalk/tools/renovate-reviewers/backend"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "opentalk-*"
+      ],
+      "groupName": "opentalk",
+      "groupSlug": "opentalk"
+    }
+  ]
+}

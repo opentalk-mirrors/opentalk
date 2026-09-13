@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors = ["OpenTalk Team <mail@opentalk.eu>"]
+description = "Authorize internal services using API-Tokens"
+edition = "2024"
+homepage = "https://opentalk.eu/"
+license = "EUPL-1.2"
+name = "opentalk-service-auth"
+publish = true
+repository = "https://gitlab.opencode.de/opentalk/libs/opentalk-service-auth"
+version = "0.6.0"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[features]
+actix = ["dep:actix-web", "dep:futures", "opentalk-types-api-common/actix"]
+axum = [
+  "dep:axum",
+  "dep:futures",
+  "dep:tower",
+  "opentalk-types-api-common/axum",
+]
+default = ["jsonwebtoken/aws_lc_rs"]
+
+[dependencies]
+actix-web = { version = "4.12", optional = true }
+axum = { version = "0.8", optional = true }
+futures = { version = "0.3", optional = true }
+jsonwebtoken = { version = "11.0" }
+opentalk-types-api-common = { version = "0.13.0", optional = true, features = [
+  "http",
+] }
+rand = "0.10"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tower = { version = "0.5", optional = true }
+
+[dev-dependencies]
+config = "0.15"
+toml = "1.0"
+
+[lints.clippy]
+self_named_module_files = "deny"
