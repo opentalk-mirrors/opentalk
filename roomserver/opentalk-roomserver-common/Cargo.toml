@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "OpenTalk RoomServer Common"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-common"
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anstream.workspace = true
+anyhow.workspace = true
+cidr.workspace = true
+config.workspace = true
+dirs.workspace = true
+opentalk-orchestrator-client.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-service-auth = { workspace = true, features = ["axum"] }
+opentalk-types-common.workspace = true
+owo-colors.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_ignored.workspace = true
+serde_path_to_error.workspace = true
+thiserror.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+temp-env = "0.3.6"
+toml.workspace = true

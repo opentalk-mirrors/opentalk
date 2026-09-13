@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "OpenTalk RoomServer Signaling"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-signaling"
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+bytes.workspace = true
+chrono.workspace = true
+fluent-langneg.workspace = true
+futures.workspace = true
+icu_locid.workspace = true
+opentalk-roomserver-common.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-types-api-internal.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, features = ["raw_value"] }
+thiserror.workspace = true
+tokio.workspace = true
+toml.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+opentalk-types-signaling = { workspace = true, features = ["rand"] }

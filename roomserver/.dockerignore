@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+# SPDX-License-Identifier: EUPL-1.2
+
+# Compiled files
+target/
+**/target/
+
+# IDE/editor files
+*.rs.bk
+*.swp
+*.swo
+*.idea/
+.vscode/
+*.iml
+
+# OS generated files
+.DS_Store
+Thumbs.db

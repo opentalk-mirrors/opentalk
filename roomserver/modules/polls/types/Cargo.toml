@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "OpenTalk RoomServer Types Polls"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-types-polls"
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+chrono.workspace = true
+derive_more = { workspace = true, features = [
+  "as_ref",
+  "display",
+  "from",
+  "from_str",
+  "into",
+] }
+opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+serde.workspace = true
+uuid = { workspace = true, features = ["v4"] }
+
+[dev-dependencies]
+chrono.workspace = true
+derive_more.workspace = true
+insta.workspace = true
+opentalk-types-common.workspace = true
+pretty_assertions.workspace = true
+serde_json.workspace = true
+uuid.workspace = true

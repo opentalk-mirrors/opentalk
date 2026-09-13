@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+# SPDX-License-Identifier: EUPL-1.2
+---
+apiVersion: 1
+
+providers:
+  - name: load-tests
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: true
+    options:
+      path: /dashboards

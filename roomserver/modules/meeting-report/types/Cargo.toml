@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "Opentalk RoomServer Meeting Report Types"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-types-meeting-report"
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-types-common.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+serde_json.workspace = true

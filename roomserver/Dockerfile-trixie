@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+ARG typst_plugins_version=dev
+ARG typst_plugins_flavor=scratch
+
+FROM rust:slim-trixie AS builder
+
+RUN mkdir /opentalk-roomserver
+WORKDIR /opentalk-roomserver
+
+ADD . /opentalk-roomserver
+
+RUN apt-get update && apt-get full-upgrade -y && \
+    apt-get install --no-install-recommends -y ca-certificates pkg-config libssl-dev
+
+RUN cargo build --release --locked -p opentalk-roomserver
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:${typst_plugins_flavor}-${typst_plugins_version} AS typst-plugins
+
+FROM debian:trixie-slim
+
+RUN apt-get update && apt-get full-upgrade -y && \
+    apt-get install --no-install-recommends -y ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV USERID=1000
+ENV GROUPID=1000
+
+RUN mkdir /opentalk-roomserver
+WORKDIR /opentalk-roomserver
+
+COPY --from=builder /opentalk-roomserver/target/release/opentalk-roomserver .
+COPY --from=typst-plugins /usr/share/typst/packages/preview/linguify/ /usr/share/typst/packages/preview/linguify/
+
+USER $USERID:$GROUPID
+
+EXPOSE 11333
+ENTRYPOINT [ "./opentalk-roomserver" ]

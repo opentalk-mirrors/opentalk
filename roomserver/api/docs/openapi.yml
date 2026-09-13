@@ -1,0 +1,1181 @@
+---
+openapi: 3.1.0
+info:
+  title: OpenTalk RoomServer API
+  description: Specifies the endpoints and structure of the OpenTalk RoomServer Web API
+  contact:
+    name: OpenTalk Team
+    email: mail@opentalk.eu
+  license:
+    name: EUPL-1.2
+    identifier: EUPL-1.2
+  version: 0.11.0-alpha
+servers:
+  - url: /v1
+paths:
+  /livekit/rtc:
+    get:
+      tags:
+        - livekit_proxy
+      summary: Opens a new LiveKit WebSocket connection for RTC communication.
+      description: |-
+        This endpoint establishes a WebSocket connection to the upstream LiveKit server.
+        The access token can be provided either as a query parameter or in the `Authorization`
+        header with the `Bearer` scheme.
+
+        # Available paths
+        - `/livekit/rtc`
+        - `/livekit/rtc/v1`
+      operationId: proxy_socket
+      parameters:
+        - name: access_token
+          in: query
+          description: "LiveKit access token (JWT) as query parameter. If not provided, must be in Authorization header with Bearer scheme"
+          required: false
+          schema:
+            type: string
+      responses:
+        "101":
+          description: Successfully upgraded connection to WebSocket for RTC communication
+        "400":
+          description: Invalid token format or missing required token claims
+        "401":
+          description: Missing access token or invalid token scheme
+        "500":
+          description: An internal server error occurred
+      security:
+        - Livekit-Token: []
+  /livekit/rtc/validate:
+    get:
+      tags:
+        - livekit_proxy
+      summary: Proxies the LiveKit validate request to the upstream livekit service via the room task
+      description: |-
+        # Available paths
+        - `/livekit/rtc/validate`
+        - `/livekit/rtc/v1/validate`
+      operationId: proxy_validate
+      responses:
+        "200":
+          description: Validation response from LiveKit
+        "400":
+          description: Invalid request headers
+        "422":
+          description: No livekit module configured for the request
+        "500":
+          description: An internal server error occurred
+      security:
+        - Livekit-Token: []
+  "/rooms/{room_id}":
+    put:
+      tags:
+        - "v1::rooms"
+      summary: |-
+        Creates a new room instance with the specified parameters if no room with the provided id
+        exists.
+      description: "If a room with the provided room ID already exists, the rooms idle timeout is refreshed."
+      operationId: put_room
+      parameters:
+        - name: room_id
+          in: path
+          description: The UUID that identifies the room
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomParameters"
+        required: true
+      responses:
+        "201":
+          description: Successfully created a new room
+        "204":
+          description: The room did exist before and the parameter were updated if necessary
+        "400":
+          description: The provided API token or json body could not be parsed
+        "401":
+          description: The provided API token is invalid
+        "422":
+          description: The request body did not match the expected format
+        "500":
+          description: An internal server error occurred
+      security:
+        - API-Token: []
+    delete:
+      tags:
+        - "v1::rooms"
+      summary: Close the room
+      operationId: delete_room
+      parameters:
+        - name: room_id
+          in: path
+          description: The UUID that identifies the room
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
+      responses:
+        "200":
+          description: The room was closed successfully or did not exist
+        "400":
+          description: The provided API token could not be parsed
+        "401":
+          description: The provided API token is invalid
+      security:
+        - API-Token: []
+    patch:
+      tags:
+        - "v1::rooms"
+      summary: Modifies the room parameters of an active room.
+      description: Change the parameters of an existing room
+      operationId: patch_room
+      parameters:
+        - name: room_id
+          in: path
+          description: The UUID that identifies the room
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomParametersPatch"
+        required: true
+      responses:
+        "204":
+          description: Successfully updated the room parameters
+        "400":
+          description: The provided API token or json body could not be parsed
+        "401":
+          description: The provided API token is invalid
+        "404":
+          description: The provided room does not exist
+        "422":
+          description: The patch could not be applied
+      security:
+        - API-Token: []
+  "/rooms/{room_id}/token":
+    post:
+      tags:
+        - "v1::rooms"
+      summary: Creates a new signaling token for the specified user and room
+      description: |-
+        The signaling token can be used to establish a websocket connection with the roomserver through
+        the `/signaling/<token>` endpoint. The token has a limited lifetime (30 seconds by default) and
+        can only be used once.
+
+        Calling this endpoint will start a new room task or refresh existing ones. To get a token for an
+        unknown room, the request body has to contain the `room_parameters` field (See
+        [`TokenRequestBody`]). If the room is already running, any provided `room_parameters` will be
+        ignored.
+      operationId: request_token
+      parameters:
+        - name: room_id
+          in: path
+          description: The UUID that identifies the room
+          required: true
+          schema:
+            $ref: "#/components/schemas/RoomId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenRequestBody"
+        required: true
+      responses:
+        "200":
+          description: The response body contains the signaling token and the public URL of the roomserver
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomServerAccess"
+        "400":
+          description: The provided API token or json body could not be parsed
+        "401":
+          description: The provided API token is invalid
+        "403":
+          description: The requesting participant is banned from the room
+        "422":
+          description: The request body did not match the expected format or the room does not exist and no room parameters were provided
+        "500":
+          description: An internal server error occurred
+      security:
+        - API-Token: []
+  "/signaling/{token}":
+    get:
+      tags:
+        - "v1::signaling"
+      summary: Opens a new signaling websocket connection.
+      operationId: open_signaling_socket
+      parameters:
+        - name: token
+          in: path
+          description: The roomserver token that authorizes the user
+          required: true
+          schema:
+            $ref: "#/components/schemas/Token"
+      responses:
+        "101":
+          description: Successfully upgraded connection to WebSocket
+        "401":
+          description: The token was invalid
+        "404":
+          description: The requested room does not exist
+        "500":
+          description: An internal server error occurred
+      security: []
+  "/user/{user_id}/storage_quota":
+    post:
+      tags:
+        - "v1::user"
+      summary: Updates the storage quota (used and limit) of the specified user.
+      operationId: post_storage_quota
+      parameters:
+        - name: user_id
+          in: path
+          description: The UUID that identifies the user
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Quota"
+        required: true
+      responses:
+        "204":
+          description: The storage quota was updated successfully
+        "404":
+          description: No rooms created by the specified user exist
+      security:
+        - API-Token: []
+components:
+  schemas:
+    BreakoutId:
+      type: integer
+      format: int32
+      minimum: 0
+    CallInId:
+      $ref: "#/components/schemas/NumericId"
+      description: The id of a call-in participation
+    CallInInfo:
+      type: object
+      description: Information needed to participate in a call-in connection.
+      required:
+        - tel
+        - id
+        - password
+        - mask_unmapped_phone_numbers
+        - default_country_code
+      properties:
+        default_country_code:
+          type: string
+          description: |-
+            The default country code (CLDR region codes), which is used if a phone number does not
+            contain a country code.
+          example: DE
+        id:
+          $ref: "#/components/schemas/CallInId"
+          description: SIP ID which must transmitted via DTMF (number field on the phone) to identify this room
+        mask_unmapped_phone_numbers:
+          type: boolean
+          description: Mask phone numbers of call-in users.
+        password:
+          $ref: "#/components/schemas/CallInPassword"
+          description: |-
+            SIP password which must be transmitted via DTMF (number field on the phone) after entering
+            the `sip_id` to enter the room
+        tel:
+          type: string
+          description: SIP Call-In phone number which must be used to reach the room
+      example:
+        default_country_code: DE
+        id: "1234567890"
+        mask_unmapped_phone_numbers: true
+        password: "0987654321"
+        tel: +555-123-456-789
+    CallInPassword:
+      $ref: "#/components/schemas/NumericId"
+      description: The password for authenticating call-in participation
+    ClientKind:
+      oneOf:
+        - type: object
+          description: A registered user
+          required:
+            - profile
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - registered
+            profile:
+              $ref: "#/components/schemas/PublicUserProfile"
+        - type: object
+          description: A guest participant
+          required:
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - guest
+        - type: object
+          description: Invisible recording participant
+          required:
+            - room
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - recorder
+            room:
+              $ref: "#/components/schemas/RoomKind"
+              description: |-
+                Room for which the recording was requested from
+
+                Recorders may only access the recording-service commands & events in this room
+        - type: object
+          description: Invisible service participant used by the transcription service
+          required:
+            - room
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - transcription
+            room:
+              $ref: "#/components/schemas/RoomKind"
+              description: Room for which the transcription was requested from
+        - type: object
+          description: Telephone call-In participant which identifies via a meeting id & pin
+          required:
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - call_in
+        - type: object
+          description: |-
+            Same as `ClientKind::CallIn` but the controller may associate a user to the call-in
+            participant if phonenumber matching is enabled
+          required:
+            - profile
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - registered_call_in
+            profile:
+              $ref: "#/components/schemas/PublicUserProfile"
+    ClientParameters:
+      allOf:
+        - $ref: "#/components/schemas/ClientKind"
+          description: Information about a registered user
+        - type: object
+          required:
+            - device_secret
+            - role
+          properties:
+            device_secret:
+              $ref: "#/components/schemas/DeviceSecret"
+              description: "Identifier to maintain participant state across reconnections, is generated by the client"
+            role:
+              $ref: "#/components/schemas/Role"
+              description: The role that the client assumes in the meeting.
+      description: Client context required for a signaling connection
+      example:
+        device_secret: v3rys3cr3tD3v1ce5tr1ng
+        kind: registered
+        profile:
+          avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+          display_name: Alice Adams
+          email: alice@example.com
+          firstname: Alice
+          id: 00000000-0000-0000-0000-0000000a11c3
+          lastname: Adams
+          timezone: Europe/Berlin
+          title: ""
+        role: moderator
+    DeviceSecret:
+      type: string
+      description: A device secret
+      examples:
+        - v3rys3cr3tD3v1ce5tr1ng
+      maxLength: 255
+      minLength: 16
+    DisplayName:
+      type: string
+      description: The display name of a user or participant
+      examples:
+        - Alice Adams
+      maxLength: 255
+    EventContext:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - is_adhoc
+      properties:
+        description:
+          $ref: "#/components/schemas/EventDescription"
+        ends_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        id:
+          $ref: "#/components/schemas/EventId"
+        is_adhoc:
+          type: boolean
+        shared_folder:
+          $ref: "#/components/schemas/SharedFolder"
+        starts_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        title:
+          $ref: "#/components/schemas/EventTitle"
+      example:
+        description: The Weekly Team Event
+        ends_at: "1970-01-01T01:00:00Z"
+        id: 00000000-0000-0000-0000-004433221100
+        is_adhoc: false
+        shared_folder:
+          read:
+            password: v3rys3cr3t
+            url: "https://cloud.example.com/shares/abc123"
+        starts_at: "1970-01-01T00:00:00Z"
+        title: Team Event
+    EventDescription:
+      type: string
+      description: The description of an event
+      examples:
+        - The Weekly Team Event
+      maxLength: 4096
+    EventId:
+      type: string
+      format: uuid
+      description: The identifier of an event
+      example: 00000000-0000-0000-0000-004433221100
+    EventTitle:
+      type: string
+      description: The title of an event
+      examples:
+        - Team Event
+      maxLength: 255
+    FeatureId:
+      type: string
+      description: A feature identifier
+      examples:
+        - myfeature
+      maxLength: 255
+      minLength: 1
+      pattern: "^[_0-9a-z]*$"
+    ModuleFeatureId:
+      anyOf:
+        - type: string
+          description: A feature identifier
+          examples:
+            - myfeature
+          maxLength: 255
+          minLength: 1
+          pattern: "^[_0-9a-z]*$"
+        - type: string
+          description: A module feature identifier
+          examples:
+            - "mymodule::myfeature"
+          pattern: "^[_0-9a-z]{1,255}::[_0-9a-z]{1,255}$"
+      example: "mymodule::myfeature"
+    ModuleSettings:
+      type: object
+      description: |-
+        A struct containing settings for multiple signaling modules, each associated with the module's
+        namespace.
+      additionalProperties: {}
+      propertyNames:
+        anyOf:
+          - type: string
+            description: A module identifier
+            examples:
+              - mymodule
+            maxLength: 255
+            minLength: 1
+            pattern: "^[_0-9a-z]*$"
+        default: core
+        example: mymodule
+      example:
+        livekit:
+          api_key: devkey
+          api_secret: secret
+          public_url: "http://localhost:7880"
+          service_url: "http://localhost:7880"
+    NumericId:
+      type: string
+      description: A string containing number characters
+      examples:
+        - "0000000000"
+      maxLength: 10
+      minLength: 10
+      pattern: "[0-9]+"
+    PublicUserProfile:
+      allOf:
+        - $ref: "#/components/schemas/UserInfo"
+          description: General information about the user
+        - type: object
+          required:
+            - id
+            - email
+            - timezone
+          properties:
+            email:
+              type: string
+              description: The email of the user
+            id:
+              $ref: "#/components/schemas/UserId"
+              description: The user id
+            timezone:
+              $ref: "#/components/schemas/TimeZone"
+              description: The local timezone of the user
+      description: |-
+        Public user details.
+
+        Contains general "public" information about a user. Is accessible to all other users.
+      example:
+        avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+        display_name: Alice Adams
+        email: alice@example.com
+        firstname: Alice
+        id: 00000000-0000-0000-0000-0000000a11c3
+        lastname: Adams
+        timezone: Europe/Berlin
+        title: ""
+    Quota:
+      type: object
+      description: Quota information
+      required:
+        - used
+      properties:
+        total:
+          type:
+            - integer
+            - "null"
+          format: int64
+          description: "The total quota available, if applicable"
+          minimum: 0
+        used:
+          type: integer
+          format: int64
+          description: The used quota
+          minimum: 0
+    RateLimitSettings:
+      type: object
+      required:
+        - tokens_per_second
+        - token_bucket_size
+      properties:
+        token_bucket_size:
+          type: integer
+          format: int32
+          description: The maximum amount of tokens that a token bucket can hold at a time
+          minimum: 0
+        tokens_per_second:
+          type: integer
+          format: int32
+          description: The number of tokens that are added to the bucket per second
+          minimum: 0
+      example:
+        token_bucket_size: 30
+        tokens_per_second: 10
+    Role:
+      type: string
+      enum:
+        - user
+        - moderator
+    RoomAlias:
+      type: string
+      description: A human readable alias for a room.
+      examples:
+        - personal-room-name_0000000000000000
+    RoomId:
+      type: string
+      format: uuid
+      description: The id of a room
+      example: 00000000-0000-0000-0000-0000abadcafe
+    RoomKind:
+      oneOf:
+        - type: object
+          required:
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - main
+        - type: object
+          required:
+            - id
+            - kind
+          properties:
+            id:
+              $ref: "#/components/schemas/BreakoutId"
+            kind:
+              type: string
+              enum:
+                - breakout
+    RoomParameters:
+      type: object
+      required:
+        - created_by
+        - guest_access
+        - waiting_room
+        - tariff
+        - streaming_targets
+        - show_meeting_details
+        - e2e_encryption
+        - module_settings
+        - preferred_language
+        - fallback_language
+        - allowed_origins
+      properties:
+        alias:
+          $ref: "#/components/schemas/RoomAlias"
+          description: |-
+            An alias that can be used in the URL to access the room instead of the
+            [`RoomId`](opentalk_types_common::rooms::RoomId).
+        allowed_origins:
+          type: array
+          items:
+            type: string
+          description: |-
+            Allowed Origins for Cross-Origin Resource Sharing (CORS) when accessing the roomserver's
+            HTTP API.
+        call_in:
+          $ref: "#/components/schemas/CallInInfo"
+        created_by:
+          $ref: "#/components/schemas/PublicUserProfile"
+        e2e_encryption:
+          type: boolean
+          description: Indicates whether the meeting room should have e2e encryption enabled.
+        event:
+          $ref: "#/components/schemas/EventContext"
+        fallback_language:
+          type: string
+          description: |-
+            Fallback language to be used for localization purposes when the default language is not
+            available.
+          example: en
+        guest_access:
+          type: boolean
+          description: "When `true`, guests are allowed to participate in the meeting."
+        module_settings:
+          $ref: "#/components/schemas/ModuleSettings"
+          description: Additional configuration options that are used by modules during initialization.
+        password:
+          $ref: "#/components/schemas/RoomPassword"
+        preferred_language:
+          type: string
+          description: The preferred language of the room.
+          example: de
+        room_idle_timeout:
+          type: integer
+          format: uint64
+          description: The duration in milliseconds after which a room without participants is closed.
+          minimum: 0
+        show_meeting_details:
+          type: boolean
+          description: |-
+            When true the meeting details are visible to all participants. When false, they are visible
+            to moderators only.
+        streaming_targets:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoomStreamingTarget"
+        tariff:
+          $ref: "#/components/schemas/TariffDetails"
+        waiting_room:
+          $ref: "#/components/schemas/WaitingRoom"
+          description: Defines who has to wait in the waiting room until admitted by a moderator.
+        ws_rate_limit:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/RateLimitSettings"
+              description: |-
+                WebSocket rate limit settings of the room. No rate limiting is applied if the field is set
+                to [`None`].
+      example:
+        alias: personal-room-name_0000000000000000
+        allowed_origins:
+          - "https://example.com"
+        call_in:
+          default_country_code: DE
+          id: "1234567890"
+          mask_unmapped_phone_numbers: true
+          password: "0987654321"
+          tel: +555-123-456-789
+        created_by:
+          avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+          display_name: Alice Adams
+          email: alice@example.com
+          firstname: Alice
+          id: 00000000-0000-0000-0000-0000000a11c3
+          lastname: Adams
+          timezone: Europe/Berlin
+          title: ""
+        e2e_encryption: false
+        event:
+          description: The Weekly Team Event
+          ends_at: "1970-01-01T01:00:00Z"
+          id: 00000000-0000-0000-0000-004433221100
+          is_adhoc: false
+          shared_folder:
+            read:
+              password: v3rys3cr3t
+              url: "https://cloud.example.com/shares/abc123"
+          starts_at: "1970-01-01T00:00:00Z"
+          title: Team Event
+        fallback_language: en
+        guest_access: false
+        module_settings:
+          livekit:
+            api_key: devkey
+            api_secret: secret
+            public_url: "http://localhost:7880"
+            service_url: "http://localhost:7880"
+        password: "1234"
+        preferred_language: de
+        room_idle_timeout: 60000
+        show_meeting_details: true
+        streaming_targets:
+          - id: 00000000-0000-0000-0000-000043434343
+            kind: custom
+            name: Example Stream
+            public_url: "https://streaming.example.com/livestream123"
+            streaming_endpoint: "https://ingress.streaming.example.com/"
+            streaming_key: aabbccddeeff
+        tariff:
+          disabled_features:
+            - "recording::record"
+          id: 00000000-0000-0000-0000-000000000000
+          name: Starter tariff
+          quotas:
+            max_storage: 50000
+          used_quota:
+            max_storage: 20000
+        waiting_room: disabled
+        ws_rate_limit:
+          token_bucket_size: 30
+          tokens_per_second: 10
+    RoomParametersPatch:
+      type: object
+      properties:
+        password:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/RoomPassword"
+        show_meeting_details:
+          type:
+            - boolean
+            - "null"
+        title:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/EventTitle"
+      example:
+        password: v3rys3cr3t
+        show_meeting_details: true
+        title: Team Event
+    RoomPassword:
+      type: string
+      description: A room password
+      examples:
+        - v3rys3cr3t
+      maxLength: 255
+      minLength: 1
+    RoomServerAccess:
+      type: object
+      required:
+        - public_url
+        - token
+      properties:
+        public_url:
+          type: string
+          format: uri
+          description: The public url for the roomserver with the requested room
+        token:
+          $ref: "#/components/schemas/Token"
+          description: The signaling token for the requested room
+      example:
+        public_url: "https://example.com/"
+        token: 00000000-0000-0000-0000-0000abadcafe
+    RoomStreamingTarget:
+      allOf:
+        - $ref: "#/components/schemas/StreamingTarget"
+          description: The streaming target
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              $ref: "#/components/schemas/StreamingTargetId"
+              description: The streaming target id
+      description: A streaming target which is specific for a Room
+      example:
+        id: 00000000-0000-0000-0000-000043434343
+        kind: custom
+        name: Example Stream
+        public_url: "https://streaming.example.com/livestream123"
+        streaming_endpoint: "https://ingress.streaming.example.com/"
+        streaming_key: aabbccddeeff
+    SharedFolder:
+      type: object
+      description: |-
+        Information about a shared folder containing
+        read and optional write access
+      required:
+        - read
+      properties:
+        read:
+          $ref: "#/components/schemas/SharedFolderAccess"
+          description: Read access information for the shared folder
+        read_write:
+          $ref: "#/components/schemas/SharedFolderAccess"
+          description: Read-write access information for the shared folder
+      example:
+        read:
+          password: v3rys3cr3t
+          url: "https://cloud.example.com/shares/abc123"
+    SharedFolderAccess:
+      type: object
+      description: Information required to access a shared folder
+      required:
+        - url
+        - password
+      properties:
+        password:
+          type: string
+          description: Password required to access the shared folder
+        url:
+          type: string
+          description: Shared folder URL
+      example:
+        password: v3rys3cr3t
+        url: "https://cloud.example.com/shares/abc123"
+    StreamingKey:
+      type: string
+      description: The secret key of a streaming target
+      example: aabbccddeeff
+    StreamingLink:
+      type: object
+      description: Streaming link for an event
+      required:
+        - name
+        - url
+      properties:
+        name:
+          type: string
+          description: The name of the streaming link
+        url:
+          type: string
+          format: uri
+          description: The url of the streaming link
+      example:
+        name: My OwnCast Stream
+        url: "https://owncast.example.com/mystream"
+    StreamingTarget:
+      allOf:
+        - $ref: "#/components/schemas/StreamingTargetKind"
+          description: The kind of the streaming target
+        - type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              description: The name of the streaming target
+      description: A streaming target
+      example:
+        kind: custom
+        name: Example Stream
+        public_url: "https://streaming.example.com/livestream123"
+        streaming_endpoint: "https://ingress.streaming.example.com/"
+        streaming_key: aabbccddeeff
+    StreamingTargetId:
+      type: string
+      format: uuid
+      description: ID of a streaming target
+      example: 00000000-0000-0000-0000-000043434343
+    StreamingTargetKind:
+      oneOf:
+        - type: object
+          description: "The \"custom\" kind"
+          required:
+            - streaming_endpoint
+            - streaming_key
+            - public_url
+            - kind
+          properties:
+            kind:
+              type: string
+              enum:
+                - custom
+            public_url:
+              type: string
+              format: uri
+              description: The url from which the stream can be accessed
+            streaming_endpoint:
+              type: string
+              format: uri
+              description: The endpoint url of the streaming target
+            streaming_key:
+              $ref: "#/components/schemas/StreamingKey"
+              description: The streaming key
+      description: A streaming target kind
+      example:
+        kind: custom
+        public_url: "https://streaming.example.com/livestream123"
+        streaming_endpoint: "https://ingress.streaming.example.com/"
+        streaming_key: aabbccddeeff
+    TariffDetails:
+      type: object
+      description: Tariff information related to a room
+      required:
+        - id
+        - name
+        - quotas
+        - used_quota
+        - disabled_features
+      properties:
+        disabled_features:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModuleFeatureId"
+          description: Disabled module features
+          uniqueItems: true
+        id:
+          $ref: "#/components/schemas/TariffId"
+          description: The ID of the tariff
+        name:
+          type: string
+          description: The name of the tariff
+        quotas:
+          type: object
+          description: The quotas of the tariff
+          additionalProperties:
+            type: integer
+            format: int64
+            minimum: 0
+          propertyNames:
+            anyOf:
+              - type: string
+                description: A quota type
+                examples:
+                  - max_storage
+            example: max_storage
+        used_quota:
+          type: object
+          description: The amount of used quota from the tariff
+          additionalProperties:
+            type: integer
+            format: int64
+            minimum: 0
+          propertyNames:
+            anyOf:
+              - type: string
+                description: A quota type
+                examples:
+                  - max_storage
+            example: max_storage
+      example:
+        disabled_features:
+          - "recording::record"
+        id: 00000000-0000-0000-0000-000000000000
+        name: Starter tariff
+        quotas:
+          max_storage: 50000
+        used_quota:
+          max_storage: 20000
+    TariffId:
+      type: string
+      format: uuid
+      description: The id of a tariff
+    TimeZone:
+      type: string
+      description: A time zone
+      examples:
+        - Europe/Berlin
+    Token:
+      type: string
+      format: uuid
+      description: The token that is required to start a roomserver signaling session
+      example: 00000000-0000-0000-0000-0000abadcafe
+    TokenRequestBody:
+      type: object
+      description: "The request body for GET `/rooms/{room_id}/token`"
+      required:
+        - client_parameters
+      properties:
+        client_parameters:
+          $ref: "#/components/schemas/ClientParameters"
+          description: Information regarding the requesting client
+        room_parameters:
+          $ref: "#/components/schemas/RoomParameters"
+          description: |-
+            The room that the token is requested for.
+
+            Once this was provided to the roomserver, further request do not need to include the room
+            parameters
+      example:
+        client_parameters:
+          device_secret: v3rys3cr3tD3v1ce5tr1ng
+          kind: registered
+          profile:
+            avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+            display_name: Alice Adams
+            email: alice@example.com
+            firstname: Alice
+            id: 00000000-0000-0000-0000-0000000a11c3
+            lastname: Adams
+            timezone: Europe/Berlin
+            title: ""
+          role: moderator
+        room_parameters:
+          alias: personal-room-name_0000000000000000
+          allowed_origins:
+            - "https://example.com"
+          call_in:
+            default_country_code: DE
+            id: "1234567890"
+            mask_unmapped_phone_numbers: true
+            password: "0987654321"
+            tel: +555-123-456-789
+          created_by:
+            avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+            display_name: Alice Adams
+            email: alice@example.com
+            firstname: Alice
+            id: 00000000-0000-0000-0000-0000000a11c3
+            lastname: Adams
+            timezone: Europe/Berlin
+            title: ""
+          e2e_encryption: false
+          event:
+            description: The Weekly Team Event
+            ends_at: "1970-01-01T01:00:00Z"
+            id: 00000000-0000-0000-0000-004433221100
+            is_adhoc: false
+            shared_folder:
+              read:
+                password: v3rys3cr3t
+                url: "https://cloud.example.com/shares/abc123"
+            starts_at: "1970-01-01T00:00:00Z"
+            title: Team Event
+          fallback_language: en
+          guest_access: false
+          module_settings:
+            livekit:
+              api_key: devkey
+              api_secret: secret
+              public_url: "http://localhost:7880"
+              service_url: "http://localhost:7880"
+          password: "1234"
+          preferred_language: de
+          room_idle_timeout: 60000
+          show_meeting_details: true
+          streaming_targets:
+            - id: 00000000-0000-0000-0000-000043434343
+              kind: custom
+              name: Example Stream
+              public_url: "https://streaming.example.com/livestream123"
+              streaming_endpoint: "https://ingress.streaming.example.com/"
+              streaming_key: aabbccddeeff
+          tariff:
+            disabled_features:
+              - "recording::record"
+            id: 00000000-0000-0000-0000-000000000000
+            name: Starter tariff
+            quotas:
+              max_storage: 50000
+            used_quota:
+              max_storage: 20000
+          waiting_room: disabled
+          ws_rate_limit:
+            token_bucket_size: 30
+            tokens_per_second: 10
+    UserId:
+      type: string
+      format: uuid
+      description: The id of a user
+      example: 00000009-9889-9889-9889-988000000000
+    UserInfo:
+      type: object
+      description: Information about the room creator
+      required:
+        - title
+        - firstname
+        - lastname
+        - display_name
+        - avatar_url
+      properties:
+        avatar_url:
+          type: string
+          description: The creators avatar url
+        display_name:
+          $ref: "#/components/schemas/DisplayName"
+          description: The creators display name
+        firstname:
+          type: string
+          description: The creators first name
+        lastname:
+          type: string
+          description: The creators last name
+        title:
+          $ref: "#/components/schemas/UserTitle"
+          description: Optional title of the creator
+      example:
+        avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+        display_name: Alice Adams
+        firstname: Alice
+        lastname: Adams
+        title: ""
+    UserTitle:
+      type: string
+      description: The title of a user
+      examples:
+        - M.Sc.
+      maxLength: 255
+    WaitingRoom:
+      type: string
+      enum:
+        - disabled
+        - for_guests
+        - for_everyone
+  securitySchemes:
+    API-Token:
+      type: http
+      scheme: bearer
+      bearerFormat: api token
+      description: "The roomservers API token is expected to be in the `Authorization` header with the format: `bearer <token>`"
+    Livekit-Token:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "The access token to authorize against the LiveKit server. This can also be provided via query parameters. This token is expected in the `Authorization` header with the format: `bearer <token>`"
+tags:
+  - name: "v1::rooms"
+    description: Endpoints related to rooms
+  - name: "v1::user"
+    description: Endpoints related to a user
+  - name: "v1::signaling"
+    description: Endpoints related to signaling connections
+  - name: livekit_proxy
+    description: Endpoints related to the LiveKit proxy

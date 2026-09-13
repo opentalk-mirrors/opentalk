@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "OpenTalk RoomServer Module Moderation"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-module-moderation"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+itertools.workspace = true
+opentalk-roomserver-module-livekit.workspace = true
+opentalk-roomserver-module-shared-folder.workspace = true
+opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-livekit.workspace = true
+opentalk-roomserver-types-moderation.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+http.workspace = true
+insta.workspace = true
+livekit.workspace = true
+opentalk-roomserver-room = { workspace = true, features = ["mock"] }
+opentalk-roomserver-test-util-livekit.workspace = true
+opentalk-roomserver-types-shared-folder.workspace = true
+pretty_assertions.workspace = true
+serde_json.workspace = true
+test-log.workspace = true
+tokio.workspace = true
+toml.workspace = true
+uuid.workspace = true

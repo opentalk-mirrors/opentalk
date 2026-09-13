@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+---
+services:
+  roomserver:
+    image: roomserver
+    build: ../
+    container_name: roomserver
+    # use network mode host to remove potential performance impacts of port-forwarding
+    network_mode: host
+    environment:
+      - OPENTALK_ROOM_HTTP__ADDRESS=${DEVICE_UNDER_TEST_ADDRESS}
+      - OPENTALK_ROOM_HTTP__PUBLIC_URL=${LOAD_TEST_BASE_URL}
+      - OPENTALK_ROOM_METRICS__ALLOWLIST=${TEST_DEVICE_CIDR}
+      - OPENTALK_ROOM_MONITORING__ADDR=${DEVICE_UNDER_TEST_ADDRESS}
+    volumes:
+      - ./roomserver.toml:/etc/opentalk/roomserver.toml:ro,z
+    ulimits:
+      nofile: 4096
+
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - --path.rootfs=/host
+      - --web.listen-address=${DEVICE_UNDER_TEST_ADDRESS}
+    network_mode: host
+    pid: host
+    restart: on-failure
+    volumes:
+      - /:/host:ro,z,rslave

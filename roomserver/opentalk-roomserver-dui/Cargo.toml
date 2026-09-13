@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "Graphical interface for for the RoomServer signaling, used for testing and development."
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-dui"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+clap = { workspace = true, features = ["derive"] }
+eframe = { workspace = true, features = ["persistence"] }
+egui = { workspace = true, features = ["persistence"] }
+egui_extras = { workspace = true, features = ["syntect"] }
+egui_json_tree.workspace = true
+env_logger.workspace = true
+futures.workspace = true
+icu_locid.workspace = true
+livekit.workspace = true
+log.workspace = true
+opentalk-roomserver-client.workspace = true
+opentalk-roomserver-common.workspace = true
+opentalk-roomserver-crypto-provider.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-chat.workspace = true
+opentalk-roomserver-types-moderation.workspace = true
+opentalk-roomserver-types-timer.workspace = true
+opentalk-service-auth.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+opentalk-version.workspace = true
+rand.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
+url.workspace = true
+uuid.workspace = true
+
+[build-dependencies]
+anyhow.workspace = true
+opentalk-version.workspace = true

@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "Opentalk RoomServer Types"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-types"
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+actix-ws = { workspace = true, optional = true }
+anyhow.workspace = true
+axum = { workspace = true, optional = true, features = ["ws"] }
+bytes.workspace = true
+chrono.workspace = true
+derive_more.workspace = true
+futures.workspace = true
+http.workspace = true
+icu_locid.workspace = true
+opentalk-types-api-internal.workspace = true
+opentalk-types-common = { workspace = true, features = ["rand"] }
+opentalk-types-signaling = { workspace = true, features = ["utoipa"] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+tokio-util.workspace = true
+url.workspace = true
+utoipa = { workspace = true, features = [
+  "chrono",
+  "url",
+  "uuid",
+], optional = true }
+uuid = { workspace = true, features = ["v4"] }
+
+[dev-dependencies]
+insta.workspace = true
+pretty_assertions.workspace = true
+
+[features]
+actix = ["dep:actix-ws"]
+axum = ["dep:axum"]
+default = []
+utoipa = ["dep:utoipa"]
+
+[package.metadata.cargo-machete]
+ignored = ["opentalk-roomserver-signaling"]

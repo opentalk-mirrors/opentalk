@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "Shared LiveKit websocket proxy utilities for RoomServer modules"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-livekit-proxy"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+futures.workspace = true
+opentalk-roomserver-types.workspace = true
+tokio.workspace = true
+tokio-tungstenite = { features = [
+  "connect",
+  "rustls-tls-native-roots",
+  "stream",
+], workspace = true }
+tracing.workspace = true
+url.workspace = true

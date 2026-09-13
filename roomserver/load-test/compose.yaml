@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+---
+services:
+  k6:
+    image: grafana/k6
+    entrypoint: [k6, run, -o, experimental-prometheus-rw, --summary-mode=disabled]
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    working_dir: /load-test/tests
+    volumes:
+      - ./src:/load-test:ro,z
+    environment:
+      - K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
+      # send native histograms to Prometheus
+      - K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true
+      - LOAD_TEST_BASE_URL=${LOAD_TEST_BASE_URL}
+      - K6_PROMETHEUS_RW_PUSH_INTERVAL=1s
+    depends_on:
+      - prometheus
+
+  prometheus:
+    image: quay.io/prometheus/prometheus:latest
+    command:
+      # the default config is sufficient
+      - --config.file=/etc/prometheus/prometheus.yaml
+      # enable remote write receiver to accept data from k6
+      - --web.enable-remote-write-receiver
+      # enable native histograms
+      - --enable-feature=native-histograms
+    ports:
+      - 127.0.0.1:9090:9090
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro,z
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: on-failure
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 127.0.0.1:9000:3000
+    volumes:
+      - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/prometheus.yaml:ro,z
+      - ./grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro,z
+      - ./grafana/dashboards:/dashboards:ro,z
+    restart: on-failure
+    depends_on:
+      - prometheus
+
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - --path.rootfs=/host
+    network_mode: host
+    pid: host
+    restart: on-failure
+    volumes:
+      - /:/host:ro,z,rslave

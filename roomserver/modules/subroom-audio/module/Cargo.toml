@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "SubroomAudio module for the OpenTalk RoomServer."
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-module-subroom-audio"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+livekit-api.workspace = true
+livekit-protocol.workspace = true
+opentalk-roomserver-livekit-proxy.workspace = true
+opentalk-roomserver-module-livekit.workspace = true
+opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-livekit.workspace = true
+opentalk-roomserver-types-subroom-audio.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+opentalk-roomserver-room = { workspace = true, features = ["mock"] }
+opentalk-roomserver-test-util-livekit.workspace = true
+test-log.workspace = true
+toml.workspace = true

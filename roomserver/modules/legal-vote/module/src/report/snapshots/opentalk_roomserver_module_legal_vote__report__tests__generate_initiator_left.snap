@@ -1,0 +1,56 @@
+---
+source: modules/legal-vote/module/src/report/mod.rs
+expression: generate(&report_data)
+---
+
+
+OpenTalk Vote Report
+ Title : Weather Vote
+
+Subtitle : Another one of these weather votes
+
+Topic : Is the weather good today?
+
+Pseudonymous : No
+
+Referendum leader : Alice Adams
+
+Vote id : ee621ab4-72f6-4d39-bbc4-dc1b96a606cf
+
+Start : 2025-01-02 03:04:05
+
+End : 2025-01-02 03:09:05
+
+Report timezone : Europe/Berlin
+
+Participant count : 8
+
+Scheduled duration : 300 s
+
+Abstention : Disallowed
+
+Automatic close : Enabled
+
+Vote ended due to : Aborted by vote initiator leaving
+
+Number of votes : 6
+
+Recorded votes
+ Name Token Vote Timestamp
+
+Alice Adams aaaaaaaa Approval 2025-01-02 03:04:24
+
+Bob Burton bbbbbbbb Disapproval 2025-01-02 03:04:20
+
+Charlie Cooper cccccccc Disapproval 2025-01-02 03:04:21
+
+Dave Dunn dddddddd Approval 2025-01-02 03:04:19
+
+Erin Eaton eeeeeeee Approval 2025-01-02 03:06:00
+
+George Grump gggggggg Approval 2025-01-02 03:06:00
+
+Event log
+ Name Timestamp Event
+
+Charlie Cooper 2025-01-02 03:04:18 Reports a screenshare issue

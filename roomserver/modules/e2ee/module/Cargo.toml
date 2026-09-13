@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "End-to-end encryption module for the OpenTalk RoomServer."
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-module-e2ee"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-e2ee.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+bytes = { workspace = true, features = ["serde"] }
+insta.workspace = true
+opentalk-roomserver-room = { workspace = true, features = ["mock"] }
+pretty_assertions.workspace = true
+test-log.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
+toml.workspace = true

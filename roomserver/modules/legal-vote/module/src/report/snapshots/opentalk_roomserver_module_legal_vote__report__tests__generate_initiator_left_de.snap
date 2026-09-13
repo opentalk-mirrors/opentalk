@@ -1,0 +1,56 @@
+---
+source: modules/legal-vote/module/src/report/mod.rs
+expression: generate(&report_data)
+---
+
+
+OpenTalk Abstimmungsbericht
+ Titel : Weather Vote
+
+Untertitel : Another one of these weather votes
+
+Thema : Is the weather good today?
+
+Pseudonym : Nein
+
+Abstimmungsleitung : Alice Adams
+
+Abstimmungs-ID : ee621ab4-72f6-4d39-bbc4-dc1b96a606cf
+
+Beginn : 2025-01-02 03:04:05
+
+Ende : 2025-01-02 03:09:05
+
+Zeitzone des Berichts : Europe/Berlin
+
+Anzahl Teilnehmende : 8
+
+Geplante Dauer : 300 s
+
+Enthaltung : nicht zulässig
+
+Automatisches Ende : aktiviert
+
+Abstimmung endete auf Grund von : Abgebrochen weil Abstimmungsleitung den Raum verlassen hat
+
+Anzahl abgegebener Stimmen : 6
+
+Recorded votes
+ Name Token Stimme Zeitpunkt
+
+Alice Adams aaaaaaaa Zustimmung 2025-01-02 03:04:24
+
+Bob Burton bbbbbbbb Ablehnung 2025-01-02 03:04:20
+
+Charlie Cooper cccccccc Ablehnung 2025-01-02 03:04:21
+
+Dave Dunn dddddddd Zustimmung 2025-01-02 03:04:19
+
+Erin Eaton eeeeeeee Zustimmung 2025-01-02 03:06:00
+
+George Grump gggggggg Zustimmung 2025-01-02 03:06:00
+
+Ereignisprotokoll
+ Name Zeitpunkt Ereignis
+
+Charlie Cooper 2025-01-02 03:04:18 Meldet ein Screenshare-Problem

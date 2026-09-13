@@ -1,0 +1,16 @@
+{
+  "name": "@opentalk/roomserver-load-tests",
+  "version": "1.0.0",
+  "description": "k6 load tests for OpenTalk roomserver",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fmt": "prettier --write \"./**/*.{js,ts}\"",
+    "fmt:ci": "prettier --check \"./**/*.{js,ts}\""
+  },
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
+    "prettier": "^3.8.0"
+  },
+  "packageManager": "pnpm@12.3.4"
+}

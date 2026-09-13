@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+# SPDX-FileCopyrightText: Wolfgang Silbermayr <w.silbermayr@opentalk.eu>
+
+SPDX-PackageDownloadLocation = "https://git.opentalk.dev/opentalk/backend/services/roomserver"
+SPDX-PackageName = "OpenTalk RoomServer"
+SPDX-PackageSupplier = "OpenTalk Team <mail@opentalk.eu>"
+version = 1
+
+[[annotations]]
+SPDX-FileCopyrightText = [
+  "Albrecht Weiche <a.weiche@opentalk.eu>",
+  "OpenTalk Team <mail@opentalk.eu>",
+  "Wolfgang Silbermayr <w.silbermayr@opentalk.eu>",
+]
+SPDX-License-Identifier = "EUPL-1.2"
+path = [
+  "**/*.json",
+  "**/CHANGELOG.md",
+  "**/README.md",
+  "**/package.json",
+  "**/pnpm-lock.yaml",
+  "**/snapshots/**.snap",
+  ".commitlintrc.json",
+  "Cargo.lock",
+  "api/docs/**.yml",
+  "ci/spectral/*.yml",
+  "docs/**.md",
+  "docs/**.yml",
+  "example/**.json",
+  "example/roomserver.toml",
+  "load-test/.prettierignore",
+  "renovate.json",
+]
+precedence = "aggregate"

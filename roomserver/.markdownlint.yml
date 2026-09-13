@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# Enable all rules by default
+---
+default: true
+
+# All unordered lists must use '-' consistently at all levels
+MD004:
+  style: dash
+
+MD007:
+  indent: 4
+
+MD029:
+  style: ordered
+
+# We want to allow a few specific HTML tags
+MD033:
+  allowed_elements: swagger-ui
+
+# Disable duplicate heading check
+MD024: false
+
+# Disable check that first line must be top level header as its incompatible with docusaurus
+MD041: false
+
+# Disable line length limit because markdown tables can't have linebreaks in them
+MD013: false
+
+# Allow code block identation to make tera templates more "readable"
+MD046: false
+
+# These are triggered as false positives when used inside blockquoste
+# See also https://github.com/markdownlint/markdownlint/issues/472
+MD055: false
+MD057: false
+MD025: false

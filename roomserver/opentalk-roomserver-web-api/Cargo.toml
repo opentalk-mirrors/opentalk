@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "OpenTalk RoomServer Types"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-web-api"
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait.workspace = true
+axum = { workspace = true, features = ["ws"] }
+jsonwebtoken.workspace = true
+livekit-api.workspace = true
+opentalk-roomserver-types = { workspace = true, features = ["axum"] }
+opentalk-service-auth = { workspace = true, features = ["axum"] }
+opentalk-types-api-internal = { workspace = true, features = [
+  "axum",
+  "http",
+  "utoipa",
+] }
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+tower-http = { workspace = true, features = ["cors"] }
+tracing.workspace = true
+utoipa.workspace = true
+uuid.workspace = true

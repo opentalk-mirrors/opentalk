@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+
+test:opentalk-types-signaling-chat:
+  extends: .test:types
+  variables:
+    PACKAGE: opentalk-types-signaling-chat
+  parallel:
+    matrix:
+      - FEATURES:
+          [
+          '',
+            backend,
+            frontend,
+            rand,
+            serde,
+          ]
+        EXTRA_ARGS: ['', --no-default-features]

@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "Signaling types for the OpenTalk transcription module in the roomserver"
+documentation = "https://docs.rs/opentalk-roomserver-types-transcription"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-types-transcription"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-service-auth.workspace = true
+opentalk-types-common = { workspace = true, features = ["serde"] }
+opentalk-types-signaling = { workspace = true, features = ["serde"] }
+serde.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+insta = { workspace = true, features = ["json"] }

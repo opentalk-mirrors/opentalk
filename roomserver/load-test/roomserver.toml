@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+# HTTP server settings
+[http]
+
+# The ipv4/ipv6 address to bind the HTTP server to. Binds to all interfaces by default
+#address = "::0" # set by environment variable
+
+# The port to bind the HTTP server to (defaults to 11311)
+port = 11333
+
+# The api token for internal service endpoints
+api_keys = [{ id = "roomserver", secret = "secret" }]
+#public_url = "http://host.container.internal:11333" # set by environment variable
+
+# Tracing settings
+#
+# Tracing is optional and disabled by default
+#[tracing]
+#otlp_tracing_endpoint = "http://localhost:4317"
+
+[metrics]
+allowlist = []
+port = 11412
+
+[monitoring]
+#addr = "0.0.0.0" # set by environment variable
+port = 11411
+
+[conference]
+room_idle_timeout = 60

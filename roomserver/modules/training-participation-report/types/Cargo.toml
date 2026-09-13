@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "OpenTalk Roomserver Types Training Participation Report"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-types-training-participation-report"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-types-api-internal.workspace = true
+opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+pretty_assertions.workspace = true
+serde_json.workspace = true

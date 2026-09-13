@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "OpenTalk RoomServer Room"
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-room"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+axum-prometheus.workspace = true
+blake3.workspace = true
+bytes.workspace = true
+chrono.workspace = true
+futures.workspace = true
+icu_locid = { workspace = true, optional = true }
+json-patch.workspace = true
+opentalk-orchestrator-client.workspace = true
+opentalk-roomserver-common.workspace = true
+opentalk-roomserver-signaling.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-livekit.workspace = true
+opentalk-roomserver-types-subroom-audio.workspace = true
+opentalk-service-auth.workspace = true
+opentalk-types-api-internal = { workspace = true, features = ["http"] }
+opentalk-types-common.workspace = true
+opentalk-types-signaling = { workspace = true, features = ["rand"] }
+phonenumber.workspace = true
+reqwest = { workspace = true, features = ["query", "stream"] }
+serde.workspace = true
+serde_json = { workspace = true, features = ["raw_value"] }
+sysinfo.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["rt", "signal"] }
+tokio-stream.workspace = true
+tokio-util = { workspace = true, optional = true }
+toml.workspace = true
+tracing.workspace = true
+url.workspace = true
+uuid = { workspace = true, features = ["v4"] }
+
+[dev-dependencies]
+bytes.workspace = true
+icu_locid.workspace = true
+insta = { workspace = true, features = ["json", "redactions"] }
+mockito.workspace = true
+opentalk-orchestrator-shared.workspace = true
+opentalk-roomserver-crypto-provider.workspace = true
+pretty_assertions.workspace = true
+test-log.workspace = true
+tokio = { workspace = true, features = ["macros", "rt", "test-util"] }
+tokio-util.workspace = true
+
+[features]
+mock = ["dep:icu_locid", "dep:tokio-util"]

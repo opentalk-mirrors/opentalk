@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "Opentalk RoomServer LiveKit test utilities."
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-test-util-livekit"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+livekit.workspace = true
+opentalk-roomserver-crypto-provider.workspace = true
+opentalk-roomserver-types-livekit.workspace = true
+testcontainers.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+url.workspace = true

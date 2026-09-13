@@ -1,0 +1,47 @@
+---
+source: modules/legal-vote/module/tests/integration.rs
+expression: content
+---
+
+
+OpenTalk Vote Report
+ Title : Vote
+
+Pseudonymous : Yes
+
+Referendum leader : Alice Aal
+
+Vote id : [legal_vote_id]
+
+Start : [timestamp]
+
+End : [timestamp]
+
+Report timezone : Europe/Berlin
+
+Participant count : 2
+
+Scheduled duration : Unlimited
+
+Abstention : Disallowed
+
+Automatic close : Enabled
+
+Vote ended due to : User "⁨ Alice Aal "⁨  ended the vote
+
+Number of votes : 1
+
+Results
+ Vote Count
+
+Approval 1
+
+Disapproval 0
+
+Recorded votes
+ Name Token Vote Timestamp
+
+Hidden [token] Approval —
+
+Event log
+ Name Timestamp Event

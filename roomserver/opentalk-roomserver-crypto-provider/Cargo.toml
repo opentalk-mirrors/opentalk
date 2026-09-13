@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+[package]
+authors.workspace = true
+description = "Crypto provider setup for the OpenTalk RoomServer."
+edition = "2024"
+homepage.workspace = true
+license.workspace = true
+name = "opentalk-roomserver-crypto-provider"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+jsonwebtoken = { workspace = true, features = ["aws_lc_rs"] }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
