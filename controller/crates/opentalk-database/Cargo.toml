@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "OpenTalk database functionality"
+documentation = "https://docs.rs/opentalk-database"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-database"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+deadpool-runtime = { version = "0.3", features = ["tokio_1"] }
+diesel = { workspace = true, features = [
+  "chrono",
+  "i-implement-a-third-party-backend-and-opt-into-breaking-changes",
+  "serde_json",
+  "uuid",
+] }
+diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
+futures-core.workspace = true
+opentalk-controller-settings.workspace = true
+opentelemetry.workspace = true
+opentelemetry_sdk.workspace = true
+pin-project-lite = "0.2"
+snafu.workspace = true
+tracing.workspace = true
+url.workspace = true

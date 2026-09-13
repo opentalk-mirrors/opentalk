@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "Utilities used in opentalk-controller"
+edition = "2024"
+license = "EUPL-1.2"
+name = "opentalk-controller-utils"
+publish = false
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+actix-web.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+diesel.workspace = true
+log.workspace = true
+opentalk-asset-storage.workspace = true
+opentalk-cache.workspace = true
+opentalk-controller-api-authorization.workspace = true
+opentalk-controller-service-facade.workspace = true
+opentalk-controller-settings.workspace = true
+opentalk-database.workspace = true
+opentalk-inventory.workspace = true
+opentalk-log.workspace = true
+opentalk-nextcloud-client.workspace = true
+opentalk-opencloud-client.workspace = true
+opentalk-types-api-common = { workspace = true, features = ["actix"] }
+opentalk-types-common = { workspace = true }
+rand.workspace = true
+rrule.workspace = true
+snafu.workspace = true
+url.workspace = true

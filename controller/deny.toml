@@ -1,0 +1,673 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[graph]
+# If 1 or more target triples (and optionally, target_features) are specified,
+# only the specified targets will be checked when running `cargo deny check`.
+# This means, if a particular package is only ever used as a target specific
+# dependency, such as, for example, the `nix` crate only being used via the
+# `target_family = "unix"` configuration, that only having windows targets in
+# this list would mean the nix crate, as well as any of its exclusive
+# dependencies not shared by any other crates, would be ignored, as the target
+# list here is effectively saying which targets you are building for.
+targets = [
+  { triple = "x86_64-unknown-linux-gnu" },
+  { triple = "x86_64-unknown-linux-musl" },
+]
+
+# This section is considered when running `cargo deny check advisories`
+# More documentation for the advisories section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
+[advisories]
+version = 2
+# The url(s) of the advisory databases to use
+db-urls = ["https://github.com/rustsec/advisory-db"]
+# The lint level for crates that have been yanked from their source registry
+ignore = [
+  # | Marvin Attack: potential key recovery through timing sidechannels
+  # | in `rsa 0.9.3`.
+  # | Solution: No safe upgrade is available!
+  #
+  # This library is used as a dependency of `openidconnect 3.4.0`, so unless we
+  # want to replace that no further action is available until either:
+  # - openidconnect switches to a different dependency
+  # - rsa releases a fixed version
+  "RUSTSEC-2023-0071",
+
+  # | rustls-pemfile is unmaintained
+  # |
+  # | The rustls-pemfile crate is no longer maintained. The repository has been archived since August
+  # | 2025, and users are encouraged to depend directly on the underlying PEM parsing code included
+  # | in rustls-pki-types since 1.9.0. The latest version of rustls-pemfile is in fact a thin wrapper
+  # | around the same code used in rustls-pki-types, so migrating should be straightforward.
+  #
+  # We need to wait until dependencies update to an alternative crate.
+  "RUSTSEC-2025-0134",
+
+  # | yaml-rust is unmaintained.
+  # |
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2024-0320
+  # | The maintainer seems [unreachable](https://github.com/chyh1990/yaml-rust/issues/197).
+  # |
+  # | Many issues and pull requests have been submitted over the years
+  # | without any [response](https://github.com/chyh1990/yaml-rust/issues/160).
+  # |
+  # | ## Alternatives
+  # |
+  # | Consider switching to the actively maintained `yaml-rust2` fork of the original project:
+  # |
+  # | - [yaml-rust2](https://github.com/Ethiraric/yaml-rust2)
+  # | - [yaml-rust2 @ crates.io](https://crates.io/crates/yaml-rust2)
+  # | Announcement: https://github.com/rustsec/advisory-db/issues/1921
+  # | Solution: No safe upgrade is available!
+  #
+  # This is a transitive dependency, so we can't just switch, but must instead wait for
+  # our dependencies to do so.
+  "RUSTSEC-2024-0320",
+
+  # | Bincode is unmaintained
+  # |
+  # | Due to a doxxing and harassment incident, the bincode team has taken the decision to cease development permanently.
+  # |
+  # | The team considers version 1.3.3 a complete version of bincode that is not in need of any updates.
+  # |
+  # | ## Alternatives to consider
+  # |
+  # | * [wincode](https://crates.io/crates/wincode)
+  # | * [postcard](https://crates.io/crates/postcard)
+  # | * [bitcode](https://crates.io/crates/bitcode)
+  # | * [rkyv](https://crates.io/crates/rkyv)
+  # |
+  # | Announcement: https://git.sr.ht/~stygianentity/bincode/tree/v3.0/item/README.md
+  # | Solution: No safe upgrade is available!
+  #
+  # This is a transitive dependency, so we can't just switch, but must instead wait for
+  # our dependencies to do so.
+  "RUSTSEC-2025-0141",
+
+  # | paste - no longer maintained
+  # |
+  # | The creator of the crate `paste` has stated in the [`README.md`](https://github.com/dtolnay/paste/blob/master/README.md)
+  # | that this project is not longer maintained as well as archived the repository
+  # |
+  # | ## Possible Alternative(s)
+  # |
+  # | - [`pastey`]: a fork of paste and is aimed to be a drop-in replacement with additional features for paste crate
+  # | - [`with_builtin_macros`]: crate providing a [superset of `paste`'s functionality including general `macro_rules!` eager expansions](https://docs.rs/with_builtin_macros/0.1.0/with_builtin_macros/macro.with_eager_expansions.html)  and `concat!`/`concat_idents!` macros
+
+  # | [`pastey`]: https://crates.io/crates/pastey
+  # | [`with_builtin_macros`]: https://crates.io/crates/with_builtin_macros
+  # | Announcement: https://github.com/dtolnay/paste
+  # | Solution: No safe upgrade is available!
+  #
+  # This is a transitive dependency, so we can't just switch, but must instead wait for
+  # our dependencies to do so.
+  "RUSTSEC-2024-0436",
+
+  # rustls-webpki
+  #
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0098
+  # |
+  # | Name constraints for URI names were ignored and therefore accepted.
+  # |
+  # | Note this library does not provide an API for asserting URI names, and URI name constraints are otherwise not implemented.  URI name constraints are now rejected unconditionally.
+  # |
+  # | Since name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.
+  # |
+  # | This vulnerability is identified as [GHSA-965h-392x-2mh5](https://github.com/rustls/webpki/security/advisories/GHSA-965h-392x-2mh5). Thank you to @1seal for the report.
+  # | Solution: Upgrade to >=0.103.12, <0.104.0-alpha.1 OR >=0.104.0-alpha.6 (try `cargo update -p rustls-webpki`)
+  #
+  # This version of the rustls-webpki crate is pulled in as a transitive dependency of actix-web, and so far
+  # no updated version which matches the compatible range is available, so we have to wait until the dependency
+  # tree of actix-web becomes compatible / updated.
+  "RUSTSEC-2026-0098",
+
+  # rustls-webpki
+  #
+  # | rustls-webpki 0.101.7 registry+https://github.com/rust-lang/crates.io-index
+  # |
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0099
+  # | Permitted subtree name constraints for DNS names were accepted for certificates asserting a wildcard name.
+  # |
+  # | This was incorrect because, given a name constraint of `accept.example.com`, `*.example.com` could feasibly allow a name of `reject.example.com` which is outside the constraint.
+  # | This is very similar to [CVE-2025-61727](https://go.dev/issue/76442).
+  # |
+  # | Since name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.
+  # |
+  # | This vulnerability is identified as [GHSA-xgp8-3hg3-c2mh](https://github.com/rustls/webpki/security/advisories/GHSA-xgp8-3hg3-c2mh). Thank you to @1seal for the report.
+  # | Solution: Upgrade to >=0.103.12, <0.104.0-alpha.1 OR >=0.104.0-alpha.6 (try `cargo update -p rustls-webpki`)
+  #
+  # This version of the rustls-webpki crate is pulled in as a transitive dependency of actix-web, and so far
+  # no updated version which matches the compatible range is available, so we have to wait until the dependency
+  # tree of actix-web becomes compatible / updated.
+  "RUSTSEC-2026-0099",
+
+  # rustls-webpki
+  #
+  # | rustls-webpki 0.101.7 registry+https://github.com/rust-lang/crates.io-index
+  # |
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0099
+  # | Permitted subtree name constraints for DNS names were accepted for certificates asserting a wildcard name.
+  # |
+  # | This was incorrect because, given a name constraint of `accept.example.com`, `*.example.com` could feasibly allow a name of `reject.example.com` which is outside the constraint.
+  # | This is very similar to [CVE-2025-61727](https://go.dev/issue/76442).
+  # |
+  # | Since name constraints are restrictions on otherwise properly-issued certificates, this bug is reachable only after signature verification and requires misissuance to exploit.
+  # |
+  # | This vulnerability is identified as [GHSA-xgp8-3hg3-c2mh](https://github.com/rustls/webpki/security/advisories/GHSA-xgp8-3hg3-c2mh). Thank you to @1seal for the report.
+  # | Solution: Upgrade to >=0.103.12, <0.104.0-alpha.1 OR >=0.104.0-alpha.6 (try `cargo update -p rustls-webpki`)
+  #
+  # This version of the rustls-webpki crate is pulled in as a transitive dependency of actix-web, and so far
+  # no updated version which matches the compatible range is available, so we have to wait until the dependency
+  # tree of actix-web becomes compatible / updated.
+  "RUSTSEC-2026-0104",
+
+  # ttf-parser
+  #
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0192.html
+  # | The author of `ttf-parser` has stated that the crate is unmaintained and will not receive further fixes (see the referenced issue).
+  # |
+  # | ## Alternative(s)
+  # |
+  # | - [`skrifa`](https://crates.io/crates/skrifa), an actively maintained TrueType and OpenType font parsing crate, part of the Google Fonts "oxidize" (`fontations`) project.
+  #
+  # typst-pdf v0.14.2 depends on ttf-parser v0.25.1, which is curretnlty unmaintained.
+  # We have to wait until typst-pdf drops or replaces it.
+  "RUSTSEC-2026-0192",
+
+  # quick-xml
+  #
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0194
+  # | Quadratic run time when checking a start tag for duplicate attribute names.
+  # |
+  # | `BytesStart::attributes()` returns an `Attributes` iterator which, by default
+  # | (`with_checks(true)`), rejects a start tag that repeats an attribute name. For
+  # | each attribute yielded, the iterator compared the new name against every name
+  # | seen so far in the same tag using a linear scan, so a start tag with `N`
+  # | distinct attribute names cost `O(N²)` byte comparisons.
+  # | Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+  #
+  # quick-xml v0.38.4 is pulled in as a transitive dependency of typst-library
+  # (via citationberg). We have to wait until typst-library updates its dependency
+  # tree to receive a compatible version.
+  "RUSTSEC-2026-0194",
+
+  # quick-xml
+  #
+  # | Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0195
+  # | Unbounded namespace-declaration allocation in `NsReader` enables
+  # | memory-exhaustion denial of service.
+  # |
+  # | `NsReader` resolves namespaces by calling `NamespaceResolver::push` for every
+  # | `Start`/`Empty` event *before* the event is returned to the caller. `push`
+  # | iterated all `xmlns` / `xmlns:*` attributes on the start tag and, for each one,
+  # | pushed an entry into an unbounded internal buffer.
+  # | Solution: Upgrade to >=0.41.0 (try `cargo update -p quick-xml`)
+  #
+  # quick-xml v0.39.4 is pulled in as a transitive dependency of typst-library
+  # (via syntect -> plist -> two-face). We have to wait until typst-library
+  # updates its dependency tree to receive a compatible version.
+  "RUSTSEC-2026-0195",
+
+  # `rustybuzz` is unmaintained
+  "RUSTSEC-2026-0206",
+
+  # The h2 crate, used internally by hyper, had a flaw that would accept and queue empty DATA frames without limit.
+  # If streams were not actively drained, this could lead to unbounded memory usage, or a panic if the length overflows.
+  # Low severity.
+  #
+  # Announcement: https://github.com/hyperium/hyper/security/advisories/GHSA-q83h-524g-xf6h
+  #
+  # This version of h2 is a transient dependency pulled in by actix-web.
+  "RUSTSEC-2026-0258",
+] # A list of advisory IDs to ignore. Note that ignored advisories will still
+yanked = "deny"
+# output a note when they are encountered.
+# Threshold for security vulnerabilities, any vulnerability with a CVSS score
+# lower than the range specified will be ignored. Note that ignored advisories
+# will still output a note when they are encountered.
+# * None - CVSS Score 0.0
+# * Low - CVSS Score 0.1 - 3.9
+# * Medium - CVSS Score 4.0 - 6.9
+# * High - CVSS Score 7.0 - 8.9
+# * Critical - CVSS Score 9.0 - 10.0
+#severity-threshold =
+
+# This section is considered when running `cargo deny check licenses`
+# More documentation for the licenses section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
+[licenses]
+version = 2
+# List of explicitly allowed licenses
+# See https://spdx.org/licenses/ for list of possible licenses
+# [possible values: any SPDX 3.11 short identifier (+ optional exception)].
+allow = [
+  "Apache-2.0 WITH LLVM-exception",
+  "Apache-2.0",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "ISC",
+  "MIT",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Zlib",
+]
+# The confidence threshold for detecting a license from license text.
+# The higher the value, the more closely the license text must be to the
+# canonical license text of a valid SPDX license file.
+# [possible values: any between 0.0 and 1.0].
+confidence-threshold = 0.8
+# Allow 1 or more licenses on a per-crate basis, so that particular licenses
+# aren't accepted for every possible crate as with the normal allow list
+exceptions = [
+  { allow = [
+    "EUPL-1.2",
+  ], name = "lapin-pool" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-asset-storage" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-cache" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-controller-api-authorization" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-controller-api-authorization-database" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-controller-service" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-controller-service-facade" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-controller-settings" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-database" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-diesel-newtype" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-diesel-newtype-impl" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-etherpad-client" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-keycloak-admin" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-mail-worker-protocol" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-nextcloud-client" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-opencloud-client" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-orchestrator-client" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-orchestrator-shared" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-report-generation" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-client" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-common" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-livekit-proxy" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-automod" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-chat" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-e2ee" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-echo" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-excalidraw" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-legal-vote" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-livekit" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-meeting-notes" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-meeting-report" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-moderation" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-polls" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-raise-hands" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-reaction" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-recording" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-shared-folder" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-subroom-audio" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-timer" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-training-participation-report" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-transcription" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-module-whiteboard" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-modules" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-room" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-signaling" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-automod" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-chat" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-e2ee" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-echo" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-excalidraw" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-legal-vote" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-livekit" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-meeting-notes" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-meeting-report" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-moderation" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-polls" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-raise-hands" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-reaction" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-recording" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-shared-folder" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-subroom-audio" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-timer" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-training-participation-report" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-transcription" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-types-whiteboard" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-roomserver-web-api" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-service-auth" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-transcription-web-api" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-api-common" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-api-internal" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-api-v1" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-common" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-common-identifiers" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-common-macros" },
+  { allow = [
+    "EUPL-1.2",
+  ], name = "opentalk-types-signaling" },
+]
+
+# Some crates don't have (easily) machine readable licensing information,
+# adding a clarification entry for it allows you to manually specify the
+# licensing information
+#[[licenses.clarify]]
+# The name of the crate the clarification applies to
+#name = "ring"
+# The optional version constraint for the crate
+#version = "*"
+# The SPDX expression for the license requirements of the crate
+#expression = "MIT AND ISC AND OpenSSL"
+# One or more files in the crate's source used as the "source of truth" for
+# the license expression. If the contents match, the clarification will be used
+# when running the license check, otherwise the clarification will be ignored
+# and the crate will be checked normally, which may produce warnings or errors
+# depending on the rest of your configuration
+#license-files = [
+# Each entry is a crate relative path, and the (opaque) hash of its contents
+#{ path = "LICENSE", hash = 0xbd0eed23 }
+#]
+
+[[licenses.clarify]]
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
+name = "ring"
+version = "*"
+
+[licenses.private]
+# If true, ignores workspace crates that aren't published, or are only
+# published to private registries
+ignore = true
+# One or more private registries that you might publish crates to, if a crate
+# is only published to private registries, and ignore is true, the crate will
+# not have its license(s) checked
+registries = []
+
+# This section is considered when running `cargo deny check bans`.
+# More documentation about the 'bans' section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
+[bans]
+# Lint level for when multiple versions of the same crate are detected
+multiple-versions = "deny"
+# Lint level for when a crate version requirement is `*`
+wildcards = "allow"
+# The graph highlighting used when creating dotgraphs for crates
+# with multiple versions
+# * lowest-version - The path to the lowest versioned duplicate is highlighted
+# * simplest-path - The path to the version with the fewest edges is highlighted
+# * all - Both lowest-version and simplest-path are used
+highlight = "all"
+# List of crates that are allowed. Use with care!
+allow = []
+# List of crates to deny
+skip = [
+  { name = "async-io", version = "1" },
+  { name = "async-lock", version = "2" },
+  { name = "base64", version = "0.21" },
+  { name = "base64", version = "0.22" },
+  { name = "bitflags", version = "1" },
+  { name = "block-buffer", version = "0.10" },
+  { name = "const-oid", version = "0.9" },
+  { name = "cookie", version = "0.16" },
+  { name = "cpufeatures", version = "0.2" },
+  { name = "crypto-common", version = "0.1" },
+  { name = "darling", version = "0.20" },
+  { name = "darling", version = "0.21" },
+  { name = "darling", version = "0.23" },
+  { name = "darling_core", version = "0.20" },
+  { name = "darling_core", version = "0.21" },
+  { name = "darling_core", version = "0.23" },
+  { name = "darling_macro", version = "0.20" },
+  { name = "darling_macro", version = "0.21" },
+  { name = "darling_macro", version = "0.23" },
+  { name = "digest", version = "0.10" },
+  { name = "dirs", version = "6.0.0" },
+  { name = "event-listener", version = "2" },
+  { name = "fastrand", version = "1" },
+  { name = "fixedbitset", version = "0.4" },
+  { name = "foldhash", version = "0.1" },
+  { name = "futures-lite", version = "1" },
+  { name = "getrandom", version = "0.2" },
+  { name = "getrandom", version = "0.3" },
+  { name = "h2", version = "0.3" },
+  { name = "hashbrown", version = "0.15" },
+  { name = "hashbrown", version = "0.16" },
+  { name = "heck", version = "0.4" },
+  { name = "hmac", version = "0.12" },
+  { name = "http", version = "0.2" },
+  { name = "http-body", version = "0.4" },
+  { name = "hyper", version = "0.14" },
+  { name = "hyper-rustls", version = "0.24" },
+  { name = "impl-more", version = "0.1" },
+  { name = "itertools", version = "0.10" },
+  { name = "itertools", version = "0.11" },
+  { name = "itertools", version = "0.12" },
+  { name = "itertools", version = "0.14" },
+  { name = "jsonwebtoken", version = "10" },
+  { name = "linux-raw-sys", version = "0.3" },
+  { name = "litemap", version = "0.7" },
+  { name = "livekit-api", version = "0.6.4" },
+  { name = "md-5", version = "0.10" },
+  { name = "miniz_oxide", version = "0.8" },
+  { name = "num-bigint", version = "0.4" },
+  { name = "petgraph", version = "0.6" },
+  { name = "phf", version = "0.12" },
+  { name = "phf_shared", version = "0.12" },
+  { name = "polling", version = "2" },
+  { name = "prost", version = "0.12" },
+  { name = "prost-build", version = "0.12" },
+  { name = "prost-derive", version = "0.12" },
+  { name = "prost-types", version = "0.12" },
+  { name = "quick-xml", version = "0.38" },
+  { name = "quick-xml", version = "0.41" },
+  { name = "rand", version = "0.8" },
+  { name = "rand", version = "0.9" },
+  { name = "rand_chacha", version = "0.3" },
+  { name = "rand_core", version = "0.6" },
+  { name = "rand_core", version = "0.9" },
+  { name = "regex-syntax", version = "0.6" },
+  { name = "reqwest", version = "0.12" },
+  { name = "roxmltree", version = "0.20" },
+  { name = "rustix", version = "0.37" },
+  { name = "rustls", version = "0.21" },
+  { name = "rustls-webpki", version = "0.101" },
+  { name = "serde_spanned", version = "0.6" },
+  { name = "sha1", version = "0.10" },
+  { name = "sha2", version = "0.10" },
+  { name = "snafu", version = "0.8" },
+  { name = "snafu-derive", version = "0.8" },
+  { name = "socket2", version = "0.4" },
+  { name = "socket2", version = "0.5" },
+  { name = "spin", version = "0.9" },
+  { name = "strum", version = "0.27" },
+  { name = "strum_macros", version = "0.27" },
+  { name = "syn", version = "2" },
+  { name = "thiserror", version = "1" },
+  { name = "thiserror-impl", version = "1" },
+  { name = "tinystr", version = "0.7" },
+  { name = "tokio-rustls", version = "0.24" },
+  { name = "tokio-tungstenite", version = "0.29" },
+  { name = "toml", version = "0.8" },
+  { name = "toml_datetime", version = "0.6" },
+  { name = "toml_edit", version = "0.22" },
+  { name = "tower-http", version = "0.6" },
+  { name = "tungstenite", version = "0.29" },
+  { name = "untrusted", version = "0.7" },
+  { name = "winnow", version = "0.7" },
+  { name = "writeable", version = "0.5" },
+] # Certain crates/versions that will be skipped when doing duplicate detection.deny = []
+# Similarly to `skip` allows you to skip certain crates during duplicate
+# detection. Unlike skip, it also includes the entire tree of transitive
+# dependencies starting at the specified crate, up to a certain depth, which is
+# by default infinite
+skip-tree = []
+
+# This section is considered when running `cargo deny check sources`.
+# More documentation about the 'sources' section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/sources/cfg.html
+[sources]
+# Lint level for what to happen when a crate from a crate registry that is not
+# in the allow list is encountered
+unknown-registry = "warn"
+# Lint level for what to happen when a crate from a git repository that is not
+# in the allow list is encountered
+unknown-git = "warn"
+# List of URLs for allowed crate registries. Defaults to the crates.io index
+# if not specified. If it is specified but empty, no registries are allowed.
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# List of URLs for allowed Git repositories
+allow-git = []
+
+[sources.allow-org]
+# 1 or more github.com organizations to allow git sources for
+github = []
+# 1 or more gitlab.com organizations to allow git sources for
+gitlab = []
+# 1 or more bitbucket.org organizations to allow git sources for
+bitbucket = []

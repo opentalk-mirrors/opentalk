@@ -1,0 +1,60 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "Settings for opentalk-controller"
+documentation = "https://docs.rs/opentalk-controller-settings"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-controller-settings"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Settings related
+anstream.workspace = true
+arc-swap.workspace = true
+cidr = { version = "0.3", features = ["serde"] }
+config.workspace = true
+dirs.workspace = true
+iana-time-zone.workspace = true
+icu_locid = { workspace = true, features = ["serde"] }
+itertools.workspace = true
+openidconnect.workspace = true
+opentalk-roomserver-modules.workspace = true
+opentalk-roomserver-room.workspace = true
+opentalk-roomserver-types.workspace = true
+opentalk-roomserver-types-livekit.workspace = true
+opentalk-service-auth = { workspace = true, features = ["actix"] }
+opentalk-types-common = { workspace = true, features = ["serde"] }
+owo-colors.workspace = true
+phonenumber.workspace = true
+serde.workspace = true
+serde_ignored.workspace = true
+serde_json.workspace = true
+serde_path_to_error = "0.1.20"
+serde_with.workspace = true
+snafu.workspace = true
+tracing.workspace = true
+url.workspace = true
+uuid = { workspace = true, features = ["v4"] }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true, features = [
+  # assert_matches! is still considered unstable, but it should be fairly
+  # straight forward to adjust when it changes
+  "unstable",
+] }
+serial_test.workspace = true
+tempfile.workspace = true
+toml.workspace = true
+
+[features]
+test-util = []

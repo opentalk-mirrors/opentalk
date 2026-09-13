@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# The will_not_fix flag should be fixed with the update to Debian Trixie
+# and can currently be ignored as older versions are not affected (https://security-tracker.debian.org/tracker/CVE-2023-45853)
+CVE-2023-45853

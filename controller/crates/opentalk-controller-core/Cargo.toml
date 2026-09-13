@@ -1,0 +1,107 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+edition = "2024"
+license = "EUPL-1.2"
+name = "opentalk-controller-core"
+publish = false
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+actix = "0.13"
+actix-cors = "0.7"
+actix-http = { version = "3", features = ["rustls-0_23"] }
+actix-rt.workspace = true
+actix-web = { workspace = true, features = ["rustls-0_23"] }
+actix-web-actors = "4.3"
+actix-web-httpauth.workspace = true
+actix-ws.workspace = true
+bytes.workspace = true
+bytestring.workspace = true
+chrono.workspace = true
+futures.workspace = true
+http.workspace = true
+itertools.workspace = true
+jsonwebtoken.workspace = true
+lapin.workspace = true
+lapin-pool.workspace = true
+livekit-api.workspace = true
+metrics-exporter-prometheus.workspace = true
+openidconnect.workspace = true
+opentalk-asset-storage.workspace = true
+opentalk-controller-api-actix-web.workspace = true
+opentalk-controller-api-authorization = { workspace = true, features = [
+  "actix-web",
+] }
+opentalk-controller-api-authorization-database.workspace = true
+opentalk-controller-service.workspace = true
+opentalk-controller-service-facade.workspace = true
+opentalk-controller-settings.workspace = true
+opentalk-controller-utils.workspace = true
+opentalk-database.workspace = true
+opentalk-db-storage.workspace = true
+opentalk-inventory.workspace = true
+opentalk-inventory-database.workspace = true
+opentalk-jobs.workspace = true
+opentalk-keycloak-admin.workspace = true
+opentalk-roomserver-modules.workspace = true
+opentalk-roomserver-room.workspace = true
+opentalk-roomserver-types = { workspace = true, features = ["actix"] }
+opentalk-roomserver-web-api.workspace = true
+opentalk-service-auth = { workspace = true, features = ["actix"] }
+opentalk-types-api-internal = { workspace = true, features = ["utoipa"] }
+opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
+opentalk-types-common = { workspace = true, features = [
+  "actix",
+  "backend",
+  "clap",
+] }
+opentelemetry = { workspace = true, features = ["metrics", "trace"] }
+opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
+opentelemetry-prometheus.workspace = true
+opentelemetry_sdk.workspace = true
+phonenumber.workspace = true
+prometheus.workspace = true
+redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
+reqwest.workspace = true
+rustc-hash.workspace = true
+rustls = "0.23"
+rustls-pemfile = "2.2"
+rustls-pki-types = "1.14"
+serde.workspace = true
+serde_json.workspace = true
+service-probe = "0.4"
+slotmap.workspace = true
+snafu.workspace = true
+tokio = { workspace = true, features = ["signal"] }
+tokio-stream.workspace = true
+tracing.workspace = true
+tracing-actix-web = { version = "0.7" }
+tracing-futures = "0.2"
+tracing-opentelemetry.workspace = true
+tracing-subscriber = { version = "0.3", features = [
+  "env-filter",
+  "parking_lot",
+] }
+utoipa = { workspace = true, features = ["actix_extras"] }
+utoipa-swagger-ui = { workspace = true, features = [
+  "actix-web",
+], optional = true }
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+
+[features]
+default = []
+swagger = ["dep:utoipa-swagger-ui"]
+# is used inside macros from opentelemetry, provides internal
+# logging for the OpenTelemetry library via tracing
+internal-logs = []
+mocking = []

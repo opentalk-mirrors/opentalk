@@ -1,0 +1,308 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+---
+spec:
+  inputs:
+    release_version:
+      description: |
+        Version number, e.g. `1.2.3`. Must be in format `<major>.<minor>.<patch>`.
+        Keep at `0.0.0` unless you're in the process of creating a release.
+      type: string
+      regex: ^([0]|([1-9]\d*))\.([0]|([1-9]\d*))\.([0]|([1-9]\d*))$
+      default: 0.0.0
+    release_issue:
+      description: |
+        The number of an issue which should be closed by a release MR created by this pipeline.
+        Keep empty or unset unless you're in the process of creating a release.
+      type: string
+      regex: ^\d*$
+      default: ''
+---
+image:
+  name: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98-trixie
+  pull_policy: if-not-present
+
+stages:
+  - lint
+  - test
+  - build
+  - check
+  - package
+  - trigger
+  - release
+  - scan
+
+variables:
+  OPENTALK_CONTROLLER_PROJECT: opentalk-controller
+  # Enable one network per build for the test container and services
+  FF_NETWORK_PER_BUILD: 'true'
+  # Will be set to the same namespace as the source project for a MR,
+  # or the same namespace as the current project for the `main` branch.
+  # Can be overridden entirely from project settings.
+  KANIKO_IMAGE: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/kaniko:debug-1.25
+  SKOPEO_IMAGE: quay.io/skopeo/stable:v1.20
+  DEFAULT_FLAVOR: trixie
+
+.template_vars:
+  FLAVORS: [trixie, resolute, scratch]
+  DEFAULT_FLAVOR: trixie
+
+.default_job_condition: &default_job_condition
+  needs: []
+  rules:
+    # Run in merge requests (if there is one job with this instruction, all jobs without
+    # it are ignored for the MR pipeline)
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    # Run on scheduled pipeline runs
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+
+include:
+  - project: opentalk/ci/templates/collect-commit-evidence
+    ref: v2
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/rust-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/common-lint
+    ref: v1
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/release-creation
+    inputs:
+      version: $[[ inputs.release_version ]]
+      issue: $[[ inputs.release_issue]]
+    ref: v1
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/changelog
+    ref: v2
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/rust-container-build
+    inputs:
+      harbor_namespace_suffix: controller
+      additional_labels: team-dashboard
+    ref: v2
+    file: .gitlab-ci-template.yml
+  - project: opentalk/ci/templates/container-scanning
+    file: .gitlab-ci-template.yml
+    ref: v2
+
+lint:openapi:
+  stage: lint
+  <<: *default_job_condition
+  image:
+    name: redocly/cli:1.34.19
+    entrypoint: ['']
+    pull_policy: if-not-present
+  script:
+    - /usr/local/bin/openapi lint docs/developer/api.yaml
+
+lint:openapi-spectral:
+  stage: lint
+  <<: *default_job_condition
+  image:
+    name: stoplight/spectral:6.16
+    entrypoint: ['']
+    pull_policy: if-not-present
+  script:
+    - spectral lint --ruleset ci/spectral/openapi.yml lint docs/developer/api.yaml
+
+test:load_typst_plugins:
+  stage: test
+  <<: *default_job_condition
+  needs: []
+  artifacts:
+    paths:
+      - target/typst
+    expire_in: 1 day
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:alpine-dev
+    pull_policy: if-not-present
+  script:
+    - mkdir -p target
+    - cp -r /usr/share/typst target/typst
+
+test:cargo_test:
+  stage: test
+  <<: *default_job_condition
+  # Runs on a runner that exposes a docker daemon, so the database tests can spin up their own
+  # throwaway postgres instances via testcontainers.
+  tags:
+    - testcontainers
+  needs:
+    - test:load_typst_plugins
+  artifacts:
+    reports:
+      junit: target/nextest/ci/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: target/llvm-cov-target/cobertura.xml
+  # this uses region for coverage summary
+  coverage: /TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/
+  variables:
+    TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
+  script:
+    - cargo llvm-cov --no-report nextest --profile ci --workspace --locked
+    # code coverage for doctests is unstable, so we run them separately
+    - cargo test --doc --workspace --locked
+    - cargo llvm-cov report --cobertura --output-path target/llvm-cov-target/cobertura.xml
+    - cargo llvm-cov report --summary-only
+
+test:cargo_xtask:
+  stage: test
+  <<: *default_job_condition
+  variables:
+    POSTGRES_DB: opentalk
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: password123
+    POSTGRES_HOST_AUTH_METHOD: trust
+    POSTGRES_BASE_URL: postgres://postgres:password123@postgres:5432
+    DATABASE_NAME: opentalk
+  services:
+    - name: postgres:18-alpine
+      alias: postgres
+  script:
+    - cargo install diesel_cli --version ~2 --no-default-features --features="postgres"
+    # Verify that the HEAD schema.rs matches the actual HEAD migration database schema.
+    - RUST_LOG=error cargo xtask verify-db-schema --postgres-url="${POSTGRES_BASE_URL}"
+
+build:
+  stage: build
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    # Tags must be in the form of vMAJOR.MINOR.PATCH
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  variables:
+    VERGEN_GIT_SHA: $CI_COMMIT_SHA
+    VERGEN_GIT_BRANCH: $CI_COMMIT_REF_NAME
+  artifacts:
+    paths:
+      - target/release/opentalk-controller
+    expire_in: 1 week
+  before_script:
+    - apt-get --update install -y libpq-dev musl-tools protobuf-compiler
+  script:
+    - cargo auditable build --release --locked --workspace
+
+check:er-diagram:
+  stage: check
+  needs:
+    - job: build
+      artifacts: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  artifacts:
+    paths:
+      - target/docs/temporary/database/er-diagram.mermaid
+  variables:
+    # Set ENV vars for services
+    POSTGRES_DB: opentalk
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: password123
+    POSTGRES_HOST_AUTH_METHOD: trust
+    POSTGRES_BASE_URL: postgres://postgres:password123@postgres:5432
+    OPENTALK_CTRL_DATABASE__URL: postgres://postgres:password123@postgres:5432/opentalk
+  services:
+    - name: postgres:18-alpine
+      alias: postgres
+  script:
+    - ci/docs-generate-mermaid.sh
+
+check:docs-generated-parts:
+  stage: check
+  image:
+    name: git.opentalk.dev:5050/opentalk/tools/opentalk-ci-doc-updater:v0.2.0
+    entrypoint: ['']
+    pull_policy: if-not-present
+  needs:
+    - job: build
+      artifacts: true
+    - job: check:er-diagram
+      artifacts: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  before_script:
+    - apt-get --update install -y git
+  script:
+    - ci/docs-update-generated-parts.sh
+    - |
+      if ! git diff --exit-code; then
+        echo "Generated parts of documentation changed, run ci/docs-update-generated-parts.sh and commit the result"
+        exit 1
+      fi
+
+check:openapi:
+  stage: check
+  needs:
+    - job: build
+      artifacts: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  script:
+    - ./ci/update-openapi-spec.sh
+    - |
+      if ! git diff --ignore-space-at-eol --exit-code --submodule=diff; then
+        echo "Generated parts of documentation changed, run ci/update-openapi-spec.sh and commit the result"
+        exit 1
+      fi
+
+build:docs:
+  stage: build
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  artifacts:
+    paths:
+      - site/
+  script:
+    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+
+build:pages:
+  stage: build
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
+    pull_policy: if-not-present
+  pages:
+    publish: site
+  needs: []
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  before_script: []
+  script:
+    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+
+trigger:service-integration-tests:
+  stage: trigger
+  variables:
+    OPENTALK_CONTROLLER_IMAGE_TAG: dev
+    OPENTALK_CONTROLLER_IMAGE_NAME: registry.heinlein.group/opentalk/controller
+  needs:
+    - job: package:container-build-mr
+      optional: true
+    - job: push-and-sign-images-to-harbor
+      optional: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  trigger:
+    project: opentalk/qa/service-integration-tests
+    branch: main
+    forward:
+      pipeline_variables: true
+
+trigger-docs:
+  stage: trigger
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  trigger:
+    project: opentalk/backend/docs

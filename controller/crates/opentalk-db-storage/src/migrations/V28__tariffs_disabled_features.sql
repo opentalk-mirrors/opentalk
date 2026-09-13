@@ -1,0 +1,1 @@
+ALTER TABLE tariffs ADD COLUMN disabled_features TEXT[] DEFAULT ARRAY[]::TEXT[] NOT NULL;

@@ -1,0 +1,560 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[frontend]
+# The base URL of the frontend.
+base_url = "https://example.com"
+
+# Information regarding the operator that is responsible for user-facing communication and legal
+# disclosure.
+#[operator_information]
+# The URL where users can find the data protection or privacy policy.
+#data_protection_url = "https://example.com/data-protection"
+# The phone number users can call for support.
+#support_phone_number = "+493012345678"
+# The email address users can contact for support.
+#support_email_address = "support@example.com"
+
+[logging]
+# Default tracing directives that will always be applied after RUST_LOG's directives.
+# Each array entry may contain a single directive.
+# Below are some example directives which are used by default to reduce the amount of spamming some crates do by default.
+# The defaults will always apply, but they can be explicitly overwritten with this config or the RUST_LOG environment
+# variable. The priority of the different configuration options is: RUST_LOG > config file > defaults
+#default_directives = [
+#   "ERROR",
+#   "opentalk=INFO",
+#   "pinky_swear=OFF",
+#   "rustls=WARN",
+#   "mio=ERROR",
+#   "lapin=WARN",
+#   "execution_id=trace"
+#]
+
+# Specify an optional OTLP tracing endpoint to export traces to
+#otlp_tracing_endpoint = "http://localhost:4317"
+
+# Service name when using opentelemetry
+#service_name = "controller"
+# Service namespace when using opentelemetry
+#service_namespace = "opentalk"
+# Service instance id when using opentelemetry. A random UUID will be generated at runtime if not set here.
+#service_instance_id = "627cc493-f310-47de-96bd-71410b7dec09"
+
+[database]
+# URL used to connect to a postgres.
+url = "postgres://postgres:password123@localhost:5432/opentalk"
+
+# Maximum number of connections allowed to the server.
+# Defaults to 100 which is the default of postgres.
+#max_connections = 100
+
+#[monitoring]
+#addr = "0.0.0.0"
+#port = 11411
+
+[http]
+# An optional address to which to bind.
+# Can be either a hostname, or an IP address.
+#
+# By default, this will accept requests on both the IPv4 and IPv6 interfaces on any address.
+#
+# The exception to this rule is "::0" which will bind to both the IPv4 and the
+# IPv6 UNSPECIFIED address, accepting requests on both of them. If the operating
+# system provides no IPv6 support, or the service should not bind to an IPv6
+# interface, "0.0.0.0" can be used instead, which will only bind to the IPv4
+# UNSPECIFIED address.
+#addr = "::0"
+#
+# A hostname or fully qualified domain name will bind to whatever the name
+# resolution returns, either one or both IP protocols.
+#addr = "controller.opentalk.example.com"
+#addr = "localhost"
+#addr = "opentalkserver"
+#
+# An explicit IPv4 or IPv6 address, will bind to the corresponding IP protocol.
+#addr = "127.0.0.1"
+#addr = "::1"
+#addr = "192.0.2.0"
+#addr = "2001:0DB8::1337:DEAD:CAFE"
+
+# The port to bind the HTTP Server to (defaults to 11311).
+#port = 11311
+
+# The configured API keys for the internal service APIs that are served by the controller
+#
+# These APIs are currently exclusively used by the roomserver.
+# When a roomserver is configured, this setting is mandatory.
+service_api_keys = [{ "id" = "controller", "secret" = "secret" }]
+
+# The maximum size for an uploaded asset, in bytes (defauls to 100,000,000)
+#upload_size_limit = 100_000_000
+
+# Settings for the CORS headers.
+#[http.cors]
+#
+# Configuration of the "Access-Control-Allow-Origin" CORS header.
+# If this option is absent, the header is derived from the frontend.base_url field.
+#
+# Allow requests in browsers from all origins. If a "*" is present, it must be
+# the only element in the list.
+#allowed_origin = ["*"]
+#
+# Explicitly set the list of allowed origins. In order for standard deployments
+# to work properly when the allowed origins configured explicitly, the usually
+# should contain the value corresponding to frontend.base_url, otherwise a
+# frontend deployed there won't be able to connect.
+#allowed_origin = ["https://example.com", "https://opentalk.example.com:1337"]
+
+# Settings for the Keycloak which is the user provider and allows authentication via OIDC.
+# This is deprecated, replace with [oidc] and [user_search] sections.
+#[keycloak]
+# URL to the Keycloak
+#base_url = "http://example.com/auth"
+# Name of the Keycloak realm
+#realm = "MyRealm"
+# Client ID
+#client_id = "Controller"
+# Client secret (application requires confidential client).
+#client_secret = "v3rys3cr3t"
+
+# Configure how Keycloak users resulting from a search and registered Opentalk users are assigned to each other
+# The following assignment strategies are available:
+#   - by Keycloak id (default): Keycloak users are assigned to Opentalk users using Keycloak's id field.
+#   - by user attribute: Keycloak must provide a user attribute holding the user IDs. The name of this user
+#                        attribute must be set here in external_id_user_attribute_name.
+#external_id_user_attribute_name = "my_user_attribute_name"
+
+# OIDC configuration.
+# Currently only Keycloak is supported. Full compliance with other OIDC providers is not guaranteed.
+[oidc]
+# Base url for the OIDC authority. Will be used for frontend and controller unless overwritten by
+# `oidc.frontend.authority` or `oidc.controller.authority`.
+authority = "https://example.com/auth/realms/OPENTALK"
+
+[oidc.frontend]
+# OIDC authority base url for the frontend.
+# Optional, if not set, the value from `oidc.authority` is used.
+# Will be made available to the frontend via the `GET /v1/auth/login` endpoint.
+#authority = "https://example.com/auth/realms/OPENTALK"
+
+# Client id that will be used by the frontend when connecting to the oidc provider.
+client_id = "Frontend"
+
+[oidc.controller]
+# OIDC authority base url for the controller.
+# Optional, if not set, the value from `oidc.authority` is used.
+#authority = "https://example.com/auth/realms/OPENTALK"
+
+# Client id that will be used by the controller when connecting to the oidc provider.
+client_id = "Controller"
+
+# Client secret that will be used by the controller when connecting to the oidc provider.
+client_secret = "v3rys3cr3t"
+
+[user_search]
+# Defines which backend to use for user search. Only `keycloak_webapi` is currently available.
+backend = "keycloak_webapi"
+
+# Base URL of the Keycloak web api.
+api_base_url = "https://example.com/auth/admin/realms/OPENTALK"
+
+# Client id that is used to authenticate against the user search API.
+# Optional, if not set, the value from `oidc.controller.client_id` is used.
+client_id = "Controller"
+
+# Client secret that is used to authenticate against the user search API.
+# Optional, if not set, the value from `oidc.controller.client_secret` is used.
+client_secret = "v3rys3cr3t"
+
+# Configure how Keycloak users resulting from a search and registered Opentalk users are assigned to each other
+# The following assignment strategies are available:
+#   - by Keycloak id (default): Keycloak users are assigned to Opentalk users using Keycloak's id field.
+#   - by user attribute: Keycloak must provide a user attribute holding the user IDs. The name of this user
+#                        attribute must be set here in external_id_user_attribute_name.
+#external_id_user_attribute_name = "my_user_attribute_name"
+
+# Set the behavior of the `/users/find` endpoint.
+# This allows searching for users who have not yet logged into the controller.
+# You can choose where to search for users or disable the endpoint completely for performance or privacy reasons.
+# Possible values are "disabled", "from_database" and "from_user_search_backend".
+users_find_behavior = "from_user_search_backend"
+
+#[rabbit_mq]
+# The URL to use to connect to the rabbit mq broker
+#url = "amqp://guest:guest@localhost:5672"
+
+# The rabbitmq queue name for the mail worker,
+# mailing is disabled when this is not set.
+#mail_task_queue = "opentalk_mailer"
+
+# The rabbitmq queue name for the recorder,
+# recording is disabled when this is not set.
+#recording_task_queue = "opentalk_recorder"
+
+# Minimum amount of connections to retain when removing stale connections
+#min_connections = 10
+
+# Maximum number of amqp channels per connection
+#max_channels_per_connection = 100
+
+# The time-to-live for messages delivered through the RabbitMQ service, in seconds.
+# Messages will be dropped by RabbitMQ if they have not been processed by the
+# receiver within that time. This helps to avoid unresolvable congestion in
+# the queues.
+#
+# When set to 0, no time-to-live exists and the task will be handled by RabbitMQ
+# and its receivers infinitely if it doesn't finish successfully. This is the
+# same behavior that was implemented in controller 0.30.2 and earlier.
+#message_ttl_seconds = 3600
+
+#[redis]
+# Configuration of a redis server which can be used for synchronizing multiple
+# controllers running in a cluster to provide an OpenTalk web api and meeting
+# signaling service.
+#
+# If this section is present, then the redis service will be used for
+# synchronizing meeting state throughout all controllers in the cluster. If it
+# is left out entirely, then the service will run in "standalone" mode.
+#
+# Redis URL used to connect the redis server
+#url = "redis://localhost:6379/"
+
+[roomserver]
+# Configure a roomserver for this controller.
+#
+# Whether the roomserver is running embedded in the controller process (internal) or as an external service.
+kind = "external"
+
+# The URL the controller uses for requests to the roomserver.
+# Only relevant when `roomserver.kind` is `external`.
+service_url = "http://localhost:11333"
+
+# The roomservers API key id and secret.
+# Only relevant when `roomserver.kind` is `external`.
+api_key = { id = "roomserver", secret = "secret" }
+
+# Conference settings are optional and only relevant when `roomserver.kind` is `internal`.
+# [roomserver.conference]
+# Used to derive participant ids from device secrets.
+# A random salt is generated at startup when not set. This value must be kept secret.
+# signaling_salt = "random string at least 24 characters long"
+
+# Defaults are optional and only relevant when `roomserver.kind` is `internal`.
+# [roomserver.defaults]
+# When true, participants can't share their screens unless permission is granted by a moderator.
+# Moderators can always share their screen.
+# screen_share_requires_permission = true
+
+# Reports settings are optional and only relevant when `roomserver.kind` is `internal`.
+#[roomserver.reports.typst]
+# The location where typst looks for packages.
+#packages_path = "/usr/share/typst/packages"
+
+# RoomServer websocket rate limiting configuration
+#
+# Rate limiting is enabled by default, to disable it, you have to set the `disabled` flag to `true`. A missing
+# configuration will fall back to the default values.
+#
+# The implementation uses the token bucket algorithm. Each websocket message that is sent by a participant consumes
+# one token. A websocket connection has a maximum amount of tokens that can be available at a time (the token bucket).
+# Each second, the bucket is filled with a configured amount of tokens.
+#
+# The algorithm allows the configuration to have a reasonably small amount of messages per second, while still
+# allowing 'bursts' of messages until the tokens in the bucket are fully consumed.
+#
+# A participant has to wait for new tokens when no tokens remain.
+#[roomserver.websocket_rate_limit]
+# Whether rate limiting will be disabled
+#disabled = false
+# The amount of messages that can be consistently sent by participants (defaults to 10)
+#tokens_per_second = 10
+# The maximum amount of tokens that can be held per websocket connection (defaults to 30)
+#token_bucket_size = 30
+
+# The duration in seconds after which a room without participants is closed.
+#room_idle_timeout = 60
+
+# The modules that are enabled in the roomserver.
+#
+# A module is enabled by adding its `[roomserver.modules.<module>]` table. Some modules require
+# additional configuration fields, others are enabled simply by adding their (otherwise empty)
+# table. Modules that are commented out below are disabled.
+[roomserver.modules]
+
+# Handles auto-moderation functionality such as the talking stick.
+[roomserver.modules.automod]
+
+# Handles room chat functionality.
+[roomserver.modules.chat]
+# RoomServer chat rate limiting configuration.
+#
+# The implementation uses the token bucket algorithm. Each chat message consumes one token, and the
+# bucket is refilled at a fixed rate each second. This allows short bursts of messages while
+# limiting the sustained message rate.
+#[roomserver.modules.chat.rate_limit]
+# The number of sustained messages per second.
+#tokens_per_second = 10
+# The burst size. A user can send 30 messages within a second without being throttled.
+#token_bucket_size = 30
+# If 80% of the token bucket is used, the RoomServer will signal the frontend to slow down.
+# The frontend will enforce a slight delay before another message can be sent.
+#slow_down_threshold = 0.8
+
+# Handles end-to-end encryption functionality.
+#[roomserver.modules.e2ee]
+
+# Handles the legal-vote functionality.
+#[roomserver.modules.legal_vote]
+
+# Handles Livekit media streams coordination and integration.
+[roomserver.modules.livekit]
+# The API key for connecting to LiveKit.
+api_key = "devkey"
+# The API secret for connecting to LiveKit.
+api_secret = "secret"
+# The public url that OpenTalk clients will use for connecting to LiveKit.
+public_url = "http://localhost:7880"
+# The url that the OpenTalk controller will use for connecting to LiveKit.
+service_url = "http://localhost:7880"
+
+# Handles meeting note editing and viewing functionality.
+#[roomserver.modules.meeting_notes]
+# The base URL of the Etherpad instance.
+#base_url = "http://localhost:9001"
+# The API key for accessing the Etherpad instance.
+#api_key = "secret"
+
+# Handles generation of meeting reports, e.g. participant list export.
+#[roomserver.modules.meeting_report]
+
+# Handles moderation functionality.
+[roomserver.modules.moderation]
+
+# Handles recording functionality.
+#[roomserver.modules.recording]
+# The recorder service base url.
+#url = "http://localhost:5555"
+# The API key for signing recorder JWT tokens.
+#api_key = { id = "recorder", secret = "secret" }
+
+# Used for internal connection checking.
+[roomserver.modules.echo]
+
+# Handles meeting polls functionality.
+[roomserver.modules.polls]
+
+# Handles emoji reactions.
+[roomserver.modules.reaction]
+
+# Handles shared folder integration. This allows automatic creation of shares on a NextCloud
+# instance using the OCS API
+# (https://docs.nextcloud.com/server/latest/developer_manual/client_apis/OCS/ocs-api-overview.html)
+# or on an OpenCloud instance using its Graph API (https://owncloud.dev/libre-graph-api/) and WebDAV
+# (https://docs.opencloud.eu/docs/dev/apis/webdav) endpoints.
+#[roomserver.modules.shared_folder]
+
+# Handles sub-room audio, allowing participants to talk to each other in a separate audio group.
+#[roomserver.modules.subroom_audio]
+
+# Handles timer functionality including the coffee-break timer.
+[roomserver.modules.timer]
+
+# Handles training participation report functionality. Participants are asked to confirm their
+# presence repeatedly at pre-configured time intervals. These confirmations are documented in the
+# training participation report which is created automatically at the end of the meeting.
+#[roomserver.modules.training_participation_report]
+# When set, participation logging starts automatically with the given parameters.
+#[roomserver.modules.training_participation_report.autostart]
+# The time range definition for the initial checkpoint delay. Both `after` and `within` are given in
+# seconds. `after` is the shortest duration that needs to elapse before the checkpoint can be
+# created, `within` is the time window within which the checkpoint is created.
+#initial_checkpoint_delay = { after = 100, within = 200 }
+# The time range definition for the subsequent checkpoints, in the same format as above.
+#checkpoint_interval = { after = 300, within = 400 }
+
+# Live transcription for meetings.
+#[roomserver.modules.transcription]
+# The URL of the transcription service.
+#url = "http://localhost:11413"
+# The API key to authenticate with the transcription service.
+#api_key = { id = "transcription", secret = "secret" }
+
+# Handles the raising hand functionality.
+[roomserver.modules.raise_hands]
+
+# Handles whiteboard integration. The whiteboard is a collaborative drawing board that can be used
+# during the meeting.
+#[roomserver.modules.whiteboard]
+# The base URL of the Spacedeck instance.
+#base_url = "http://localhost:9666"
+# The API key for accessing the Spacedeck instance.
+#api_key = "secret"
+
+# Handles excalidraw whiteboard integration. Excalidraw is a collaborative drawing board.
+#[roomserver.modules.excalidraw]
+
+#[call_in]
+# Set a phone number which will be displayed to the user
+# for the call-in service
+#tel="+493012345678"
+# Enable the mapping of user names to their phone number. This requires
+# the OIDC provider to have a phone number field configured for their users.
+#enable_phone_mapping=false
+# Mask unmapped phone numbers to protect privacy.
+#mask_unmapped_numbers=true
+# The default country code for call in numbers. Notated in Alpha-2 code (ISO 3166)
+# Phone numbers that do not fall in the category of the default country must be notated
+# in the international format.
+#default_country_code="DE"
+
+# MinIO configuration
+[minio]
+# The URI to the MinIO instance
+uri = "http://localhost:9555"
+# Name of the bucket
+bucket = "controller"
+# Access key for the MinIO bucket
+access_key = "minioadmin"
+# Secret key for the MinIO bucket
+secret_key = "minioadmin"
+# Enables force path style path
+# force_path_style = false
+# AWS region
+# region = "unknown"
+
+# Etcd configuration
+#[etcd]
+# A list urls of a etcd cluster
+#urls = ["localhost:2379"]
+
+# Shared folder configuration
+#[shared_folder]
+#provider = "nextcloud"
+#url = "https://nextcloud.example.org/"
+#username = "exampleuser"
+#password = "v3rys3cr3t"
+# Optional subdirectory under the user's folder
+#directory = "opentalk/meetings"
+# Optional expiry of folder shares in days
+#expiry = 48
+
+# Default/fallback values
+[defaults]
+# Default language of a new user
+#user_language = "en-US"
+# The timezone used by the system and as the users' default, in IANA format (e.g. "Europe/Berlin").
+# If not set here, the TZ environment variable and the OS are consulted in this order, finally falling back to "Etc/UTC")
+#timezone = "Etc/UTC"
+# Default presenter role for all users (defaults to false if not set)
+#screen_share_requires_permission = false
+# A list of disabled features in the controller. By default all features are enabled.
+# Format: <module>::<feature>. A missing module defaults to "core".
+# Currently supported features:
+# - core::call_in
+# - integration::outlook
+#disabled_features = ["core::call_in", "integration::outlook"]
+#[defaults.room_alias]
+# When `true`, rooms with an alias will not have a suffix appended to their name. This makes the rooms vulnerable
+# to brute-force attacks and is therefore considered **insecure** when untrusted people can reach your OpenTalk
+# instance and should only be enabled in trusted environments.
+#disable_suffix = false
+# The number of characters the suffix appended to a room name has. The suffix is a randomly generated string that
+# protects the room alias against brute-force guessing. This is only relevant when `disable_suffix` is `false`
+# (default).
+# Short suffixes are vulnerable to brute-force attacks, so it is recommended to use a length of at least 16
+# characters.
+# Allowed values are between 8 and 64, inclusive.
+#suffix_length = 16
+
+# Settings for endpoints
+#[endpoints]
+# Disable the /users/find endpoint for performance or privacy reasons.
+# This is deprecated, replace with `user_search.users_find_behavior`.
+#disable_users_find = false
+
+# Enable user-searching using Keycloak's admin API.
+# This allows for finding users which have not yet logged into the controller
+# This is deprecated, replace with `user_search.users_find_behavior`.
+#users_find_use_kc = false
+
+# Allow inviting any unchecked email address.
+# Not recommended without proper outgoing anti-spam protection
+#event_invite_external_email_address = false
+
+# Prohibit users from changing the display name (guests are always allowed to change it)
+#disallow_custom_display_name = false
+
+# Disable the OpenAPI endpoint under `/v1/openapi.json` and the corresponding
+# swagger endpoint under `/swagger`.
+#disable_openapi = false
+
+# Configuration for the /metrics HTTP endpoint
+#[metrics]
+# Allowlist for the /metrics endpoint
+#
+# Example: Allow all traffic from localhost
+#allowlist = ["127.0.0.0/24", "::ffff:0:0/96"]
+
+#[tenants]
+# Configure how users are assigned to tenants
+# The following assignment strategies are available:
+#   - "static" (default): Every user is assigned to a single tenant with a tenant_id specified in the static_tenant_id field.
+#                         static_tenant_id's default value is "OpenTalkDefaultTenant".
+#   - "by_external_tenant_id": The OIDC provider (Keycloak) must be configured to include a "tenant_id" field in its
+#                              id_token's JWT claims. It is used to assign users to the correct tenant.
+#                              The OIDC provider must also provide a user attribute holding the tenant_id. The name of this
+#                              field ist set here in external_tenant_id_user_attribute_name, the default field name is "tenant_id".
+#
+# Static assignment (Default configuration if nothing is specified):
+#assignment = "static"
+#static_tenant_id = "OpenTalkDefaultTenant"
+#
+# Assignment by JWT tenant_id:
+#assignment = "by_external_tenant_id"
+#external_tenant_id_user_attribute_name = "tenant_id"
+
+#[tariffs]
+# Configure how tariffs are assigned to users
+# The following assignment strategies are available:
+#   - "static" (default): Every user is assigned the same tariff with the tariff's name specified in a separate field
+#               called static_tariff_name. The default value is "OpenTalkDefaultTariff".
+#   - "by_external_tariff_id": The OIDC provider (Keycloak) must be configured to include a "tariff_id" field it's
+#                              id_token's JWT claims. It is used to assign users the correct tariff.
+#
+# Static Example (Default configuration if nothing is specified)
+#assignment = "static"
+#static_tariff_name = "OpenTalkDefaultTariff"
+#
+# Assignment by JWT tariff_id example:
+#assignment = "by_external_tariff_id"
+#
+# Status mapping for tariff status. Can only be used if the tariff assignment
+# is configured as "by_external_tariff_id". If present, the controller will look
+# at the JWT attribute named "tariff_status" and transfer its value to its
+# internal tariff status based on the values of the "default", "paid" and
+# "downgraded" field values. An entry in any of the lists below must be unique
+# across all lists. For example, if the paid list contains "all_ok", then
+# "all_ok" must not appear in any other list.
+#[tariffs.status_mapping]
+#
+# The name of the tariff that gets applied when the user's tariff state is "downgraded".
+#downgraded_tariff_name = "basic"
+#
+# The default tariff status, usually a tariff that any user can get without paying
+# Any user with an invalid value in the "tariff_status" attribute will be set to
+# the default status, but a warning will be issued if the mapping does not contain
+# that attribute value.
+#default = ["default"]
+#
+# The user's tariff has been paid and is valid.
+#paid = ["paid", "all_ok"]
+#
+# The user has booked a specific tariff, but is not allowed to use it, e.g. because
+# it is unpaid. Therefore the user's tariff is downgraded to the fallback tariff.
+#downgraded = ["unpaid"]
+#
+#[reports.typst]
+# The location where typst looks for packages.
+#packages_path = "/usr/share/typst/packages"

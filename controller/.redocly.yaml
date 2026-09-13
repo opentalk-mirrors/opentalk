@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# yamllint disable rule:truthy
+rules:
+  # FIXME: Enable this in the future again
+  operation-4xx-response: off
+  no-unused-components: off

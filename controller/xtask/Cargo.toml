@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+edition = "2024"
+license = "EUPL-1.2"
+name = "xtask"
+publish = false
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+opentalk-database.workspace = true
+opentalk-db-storage.workspace = true
+
+cargo_metadata = { version = "0.23" }
+clap = { workspace = true, features = ["env"] }
+devx-cmd = { version = "0.5.0" }
+diesel = { workspace = true }
+diesel-async = { workspace = true, features = ["deadpool", "postgres"] }
+env_logger.workspace = true
+log.workspace = true
+rand.workspace = true
+snafu.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+unified-diff = { version = "0.2.1" }
+url.workspace = true

@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "Authorization middleware for opentalk-controller API endpoints"
+documentation = "https://docs.rs/opentalk-controller-api-authorization"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-controller-api-authorization"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+actix-router = { version = "0.5", optional = true }
+actix-web = { workspace = true, optional = true }
+async-trait.workspace = true
+http0.workspace = true
+mockall = { workspace = true, optional = true }
+opentalk-inventory.workspace = true
+opentalk-types-api-v1.workspace = true
+opentalk-types-common.workspace = true
+serde = { workspace = true, optional = true }
+snafu.workspace = true
+tracing.workspace = true
+
+[features]
+# TODO: this should be empty, only enabled for as long as no dependency uses the `serde` feature
+default = ["serde"]
+
+actix-web = [
+  "dep:actix-router",
+  "dep:actix-web",
+  "dep:serde",
+  "opentalk-types-common/serde",
+]
+mockall = ["dep:mockall"]
+serde = ["dep:serde", "opentalk-types-common/serde", "serde/derive"]
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+serde_json.workspace = true

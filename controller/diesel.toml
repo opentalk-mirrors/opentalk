@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[print_schema]
+generate_missing_sql_type_definitions = false

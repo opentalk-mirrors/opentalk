@@ -1,0 +1,17 @@
+# {{ product_name }} Signaling Data Types
+
+- [Automoderation](automod.md)
+- [Chat](chat.md)
+- [Control](control.md)
+- [Legal Vote](legalvote.md)
+- [LiveKit](livekit.md)
+- [Meeting Notes](meeting_notes.md)
+- [Meeting Report](meeting_report.md)
+- [Moderation](moderation.md)
+- [Poll](poll.md)
+- [Recording](recording.md)
+- [Shared Folder](shared_folder.md)
+- [Subroom Audio](subroom_audio.md)
+- [Timer](timer.md)
+- [Training Participation Report](training_participation_report.md)
+- [Whiteboard](whiteboard.md)

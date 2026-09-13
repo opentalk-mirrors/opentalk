@@ -1,0 +1,160 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[workspace]
+members = ["crates/*", "xtask"]
+resolver = "2"
+
+[workspace.package]
+authors = ["OpenTalk Team <mail@opentalk.eu>"]
+homepage = "https://opentalk.eu/"
+repository = "https://gitlab.opencode.de/opentalk/controller"
+version = "0.36.0-alpha"
+
+[workspace.dependencies]
+opentalk-asset-storage = { path = "crates/opentalk-asset-storage", version = "0.36.0-alpha" }
+opentalk-cache = { path = "crates/opentalk-cache", version = "0.36.0-alpha" }
+opentalk-controller-api-actix-web = { path = "crates/opentalk-controller-api-actix-web", version = "0.36.0-alpha" }
+opentalk-controller-api-authorization = { path = "crates/opentalk-controller-api-authorization", version = "0.36.0-alpha" }
+opentalk-controller-api-authorization-database = { path = "crates/opentalk-controller-api-authorization-database", version = "0.36.0-alpha" }
+opentalk-controller-core = { path = "crates/opentalk-controller-core", version = "0.36.0-alpha" }
+opentalk-controller-service = { path = "crates/opentalk-controller-service", version = "0.36.0-alpha" }
+opentalk-controller-service-facade = { path = "crates/opentalk-controller-service-facade", version = "0.36.0-alpha" }
+opentalk-controller-settings = { path = "crates/opentalk-controller-settings", version = "0.36.0-alpha" }
+opentalk-controller-utils = { path = "crates/opentalk-controller-utils", version = "0.36.0-alpha" }
+opentalk-database = { path = "crates/opentalk-database", version = "0.36.0-alpha" }
+opentalk-db-storage = { path = "crates/opentalk-db-storage", version = "0.36.0-alpha" }
+opentalk-inventory = { path = "crates/opentalk-inventory", version = "0.36.0-alpha" }
+opentalk-inventory-common = { path = "crates/opentalk-inventory-common", version = "0.36.0-alpha" }
+opentalk-inventory-database = { path = "crates/opentalk-inventory-database", version = "0.36.0-alpha" }
+opentalk-jobs = { path = "crates/opentalk-jobs", version = "0.36.0-alpha" }
+opentalk-log = { path = "crates/opentalk-log", version = "0.36.0-alpha" }
+opentalk-test-util = { path = "crates/opentalk-test-util", version = "0.36.0-alpha" }
+
+actix-http = "3"
+actix-rt = "2"
+actix-web = { version = "4", default-features = true }
+actix-web-httpauth = "0.8"
+actix-ws = "0.4.0"
+anstream = "1.0"
+arc-swap = "1"
+async-stream = "0.3"
+async-trait = "0.1"
+aws-sdk-s3 = { version = "1.129.0", features = ["behavior-version-latest"] }
+axum = "0.8"
+base64 = "0.23"
+bigdecimal = "0.4"
+byteorder = "1.5"
+bytes = "1"
+bytestring = "1"
+chrono = "0.4"
+chrono-tz = "0.10"
+clap = { version = "4", features = ["derive"] }
+config = { version = "0.15", default-features = false, features = ["toml"] }
+derive_more = "2.1"
+diesel = "2"
+diesel-async = "0.9"
+dirs = "6"
+either = "1"
+env_logger = "0.11"
+fluent-langneg = "0.14.2"
+flume = "0.12"
+futures = "0.3"
+futures-core = "0.3"
+futures-util = "0.3.32"
+glob = "0.3.3"
+http = "1"
+http-request-derive = { version = "0.6.0", default-features = false }
+http0 = { version = "0", package = "http" }
+humansize = "2.1.3"
+iana-time-zone = "0.1.65"
+icu_locid = "1"
+insta = "1"
+itertools = "0.15"
+jsonwebtoken = "11"
+language-tags = "0.3.2"
+lapin = { version = "2", default-features = false }
+lapin-pool = "0.1"
+livekit-api = { version = "0.6.0", features = ["rustls-tls-native-roots"] }
+log = "0.4"
+md5 = "0.8"
+metrics-exporter-prometheus = { version = "0.18", default-features = false }
+mockall = "0.15"
+oauth2 = "5.0.0"
+openidconnect = "4"
+opentalk-diesel-newtype = "0.13"
+opentalk-keycloak-admin = "0.6.0"
+opentalk-mail-worker-protocol = "0.50.0"
+opentalk-nextcloud-client = "0.3.0"
+opentalk-opencloud-client = "0.1"
+opentalk-roomserver-client = "0.10.1"
+opentalk-roomserver-modules = "0.10.1"
+opentalk-roomserver-room = "0.10.1"
+opentalk-roomserver-types = "0.10.1"
+opentalk-roomserver-types-livekit = "0.10.1"
+opentalk-roomserver-types-training-participation-report = "0.10.1"
+opentalk-roomserver-web-api = "0.10.1"
+opentalk-service-auth = { version = "0.6.0", default-features = false }
+opentalk-types-api-common = "0.13.0"
+opentalk-types-api-internal = "0.7.0"
+opentalk-types-api-v1 = "0.66.0"
+opentalk-types-common = "0.50.0"
+opentalk-types-signaling = "0.51.0"
+opentalk-version = "0.4.0"
+opentelemetry = { version = "0.32.0", default-features = false, features = [
+  "metrics",
+  "trace",
+] }
+opentelemetry-otlp = "0.32.0"
+opentelemetry-prometheus = "0.32.0"
+opentelemetry_sdk = { version = "0.32.0", features = [
+  "metrics",
+  "rt-tokio-current-thread",
+  "spec_unstable_metrics_views",
+] }
+owo-colors = "4"
+parking_lot = "0.12"
+parse-size = "1.1.0"
+pdf-extract = "0.12"
+percent-encoding = "2.3"
+phonenumber = "0.3"
+pretty_assertions = "1"
+prometheus = "0.14.0"
+rand = "0.10"
+rand_chacha = "0.10"
+redis = "1"
+redis-args = "0.22.1"
+reqwest = { version = "0.13", default-features = false }
+ring = "0.17"
+rkyv = "0.8.15"
+rrule = "0.14"
+rstest = "0.27.0"
+rustc-hash = "2.1"
+rustls = "0.23"
+scoped-futures = "0.1.4"
+serde = { version = "1", features = ["derive"] }
+serde_ignored = "0.1.14"
+serde_json = "1"
+serde_with = "3.18.0"
+serial_test = "4"
+slotmap = "1"
+snafu = "0.9.0"
+strum = { version = "0.28", features = ["derive"] }
+tempfile = "3"
+testcontainers = "0.27"
+testcontainers-modules = { version = "0.15", default-features = false }
+tokio = "1"
+tokio-stream = { version = "0.1", features = ["sync"] }
+tokio-util = "0.7"
+toml = "1.1"
+tracing = "0.1"
+tracing-opentelemetry = "0.33.0"
+url = "2"
+utoipa = "5"
+utoipa-swagger-ui = { version = "9", features = ["vendored"] }
+uuid = "1"
+yaml-rust2 = "0.12.0"
+
+[workspace.lints.clippy]
+self_named_module_files = "deny"

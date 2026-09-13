@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "OpenTalk caching of redis data in local memory"
+documentation = "https://docs.rs/opentalk-cache"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-cache"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait.workspace = true
+moka = { version = "0.12", default-features = false, features = [
+  "atomic64",
+  "future",
+  "quanta",
+] }
+redis = { workspace = true, features = ["connection-manager", "tokio-comp"] }
+rkyv.workspace = true
+siphasher = "1.0"
+snafu.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }

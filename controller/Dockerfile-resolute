@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+ARG typst_plugins_version=dev
+ARG typst_plugins_flavor=scratch
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98.0-trixie AS builder
+
+RUN mkdir /controller
+WORKDIR /controller
+
+ADD . /controller
+
+RUN apt-get update && apt-get install --no-install-recommends -y libpq-dev protobuf-compiler
+
+RUN cargo auditable build --release --locked --package opentalk-controller
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:${typst_plugins_flavor}-${typst_plugins_version} AS typst-plugins
+
+FROM ubuntu:resolute
+
+RUN apt-get update && apt-get full-upgrade -y && \
+    apt-get install --no-install-recommends -y libpq5 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV USERID=1000
+ENV GROUPID=1000
+
+RUN mkdir /controller
+WORKDIR /controller
+
+COPY --from=builder /controller/target/release/opentalk-controller .
+COPY example/controller.toml /etc/opentalk/controller.toml
+
+COPY --from=typst-plugins /usr/share/typst/packages/preview/linguify/ /usr/share/typst/packages/preview/linguify/
+
+USER $USERID:$GROUPID
+
+EXPOSE 11311
+ENTRYPOINT [ "/controller/opentalk-controller" ]

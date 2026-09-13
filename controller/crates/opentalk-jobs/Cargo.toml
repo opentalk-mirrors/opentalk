@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "OpenTalk job execution system"
+edition = "2024"
+license = "EUPL-1.2"
+name = "opentalk-jobs"
+publish = false
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait.workspace = true
+chrono.workspace = true
+etcd-client = "0.20"
+log.workspace = true
+opentalk-asset-storage.workspace = true
+opentalk-controller-api-authorization.workspace = true
+opentalk-controller-api-authorization-database.workspace = true
+opentalk-controller-settings.workspace = true
+opentalk-controller-utils.workspace = true
+opentalk-inventory.workspace = true
+opentalk-keycloak-admin.workspace = true
+opentalk-log.workspace = true
+opentalk-nextcloud-client.workspace = true
+opentalk-types-common.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+snafu.workspace = true
+tokio = { workspace = true, features = ["time"] }
+tokio-cron-scheduler = "0.15"
+uuid.workspace = true
+
+[dev-dependencies]
+actix-rt.workspace = true
+bytes.workspace = true
+env_logger.workspace = true
+futures.workspace = true
+opentalk-test-util = { workspace = true, features = [
+  "controller",
+  "database",
+  "object-storage",
+] }

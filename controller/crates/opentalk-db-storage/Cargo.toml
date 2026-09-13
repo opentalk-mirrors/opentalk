@@ -1,0 +1,61 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+edition = "2024"
+license = "EUPL-1.2"
+name = "opentalk-db-storage"
+publish = false
+version.workspace = true
+
+[lints]
+workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-stream.workspace = true
+barrel = { version = "0.7", features = ["pg"] }
+bigdecimal.workspace = true
+byteorder.workspace = true
+chrono.workspace = true
+chrono-tz = { workspace = true, features = ["serde"] }
+derive_more = { workspace = true, features = [
+  "as_ref",
+  "display",
+  "from",
+  "from_str",
+  "into",
+] }
+diesel = { workspace = true, features = [
+  "chrono",
+  "numeric",
+  "serde_json",
+  "uuid",
+] }
+diesel-async.workspace = true
+futures-core.workspace = true
+icu_locid.workspace = true
+opentalk-database.workspace = true
+opentalk-diesel-newtype.workspace = true
+opentalk-inventory.workspace = true
+opentalk-mail-worker-protocol = { workspace = true, features = ["client"] }
+opentalk-types-common = { workspace = true, features = ["backend"] }
+redis-args.workspace = true
+refinery = { version = "0.9", features = ["tokio-postgres"] }
+refinery-core = "0.9"
+serde.workspace = true
+serde_json = { workspace = true, features = ["raw_value"] }
+snafu.workspace = true
+strum.workspace = true
+tokio = { workspace = true, features = ["signal"] }
+tracing.workspace = true
+url.workspace = true
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+[dev-dependencies]
+actix-rt.workspace = true
+opentalk-test-util = { workspace = true, features = ["database"] }
+pretty_assertions.workspace = true

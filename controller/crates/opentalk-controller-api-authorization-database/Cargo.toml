@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+description = "WebAPI endpoint authorization based on permissions stored in the database"
+documentation = "https://docs.rs/opentalk-controller-api-authorization-database"
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-controller-api-authorization-database"
+publish = true
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait.workspace = true
+opentalk-controller-api-authorization.workspace = true
+opentalk-controller-settings.workspace = true
+opentalk-inventory.workspace = true
+opentalk-types-common.workspace = true
+
+[dev-dependencies]
+mockall.workspace = true
+opentalk-controller-settings = { workspace = true, features = ["test-util"] }
+opentalk-inventory = { workspace = true, features = ["mockall"] }
+opentalk-types-api-v1.workspace = true
+pretty_assertions.workspace = true
+rstest.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }

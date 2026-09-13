@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+edition = "2024"
+homepage.workspace = true
+license = "EUPL-1.2"
+name = "opentalk-controller-api-actix-web"
+publish = false
+repository.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+actix-web.workspace = true
+either.workspace = true
+futures.workspace = true
+oauth2.workspace = true
+opentalk-controller-service-facade.workspace = true
+opentalk-types-api-v1 = { workspace = true, features = ["actix"] }
+opentalk-types-common.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+tracing.workspace = true
+url.workspace = true
+utoipa = { workspace = true, features = ["actix_extras"] }

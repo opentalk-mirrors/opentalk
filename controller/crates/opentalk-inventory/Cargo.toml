@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+edition = "2024"
+license = "EUPL-1.2"
+name = "opentalk-inventory"
+publish = false
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait.workspace = true
+chrono.workspace = true
+chrono-tz.workspace = true
+clap.workspace = true
+derive_more = { workspace = true, features = [
+  "as_ref",
+  "display",
+  "from",
+  "from_str",
+  "into",
+] }
+futures-util.workspace = true
+icu_locid = { workspace = true, features = ["serde"] }
+mockall = { workspace = true, optional = true }
+opentalk-inventory-common.workspace = true
+opentalk-types-common = { workspace = true, features = ["rand", "serde"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+strum.workspace = true
+uuid.workspace = true
+
+[features]
+mockall = ["dep:mockall"]
+
+[dev-dependencies]
+pretty_assertions.workspace = true

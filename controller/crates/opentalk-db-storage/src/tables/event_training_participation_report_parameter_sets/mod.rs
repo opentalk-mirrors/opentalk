@@ -1,0 +1,13 @@
+// SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+//
+// SPDX-License-Identifier: EUPL-1.2
+
+//! Contains event training participation report parameter sets table structs
+
+mod duration;
+mod event_training_participation_report_parameter_set;
+mod update_event_training_participation_report_parameter_set;
+
+pub use duration::Duration;
+pub use event_training_participation_report_parameter_set::EventTrainingParticipationReportParameterSet;
+pub use update_event_training_participation_report_parameter_set::UpdateEventTrainingParticipationReportParameterSet;

@@ -1,0 +1,60 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+authors.workspace = true
+build = "build.rs"
+default-run = "opentalk-controller"
+edition = "2024"
+license = "EUPL-1.2"
+name = "opentalk-controller"
+publish = false
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+actix-web.workspace = true
+chrono.workspace = true
+clap = { workspace = true, features = ["derive"] }
+diesel.workspace = true
+humansize.workspace = true
+itertools.workspace = true
+jsonwebtoken = { workspace = true, features = ["aws_lc_rs"] }
+log.workspace = true
+nix = { version = "0.31", features = ["signal"] }
+opentalk-controller-api-authorization.workspace = true
+opentalk-controller-api-authorization-database.workspace = true
+opentalk-controller-core.workspace = true
+opentalk-controller-service.workspace = true
+opentalk-controller-settings.workspace = true
+opentalk-database.workspace = true
+opentalk-db-storage.workspace = true
+opentalk-inventory.workspace = true
+opentalk-inventory-database.workspace = true
+opentalk-jobs.workspace = true
+opentalk-roomserver-modules.workspace = true
+opentalk-types-common.workspace = true
+opentalk-version.workspace = true
+parse-size.workspace = true
+rustls.workspace = true
+serde_json.workspace = true
+service-probe-client = "0.4"
+snafu.workspace = true
+strum.workspace = true
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+tabled = "0.22"
+url.workspace = true
+utoipa.workspace = true
+uuid = { workspace = true, features = ["serde", "v4"] }
+yaml-rust2.workspace = true
+
+[features]
+default = ["swagger"]
+swagger = ["opentalk-controller-core/swagger"]
+
+[build-dependencies]
+opentalk-version.workspace = true
+snafu.workspace = true

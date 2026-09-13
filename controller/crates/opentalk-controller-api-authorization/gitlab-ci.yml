@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+
+test:opentalk-controller-api-authorization:
+  extends: .test:types
+  variables:
+    PACKAGE: opentalk-controller-api-authorization
+  parallel:
+    matrix:
+      - FEATURES:
+          [
+          '',
+            actix-web,
+            serde,
+          ]
+        EXTRA_ARGS: ['', --no-default-features]
