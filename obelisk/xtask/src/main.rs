@@ -30,9 +30,10 @@ fn main() -> Result<(), ()> {
 
     for (i, [ident, text_de, text_en]) in text::TEXT.iter().enumerate() {
         if let Some(filter) = &filter
-            && *ident != filter.trim() {
-                continue;
-            }
+            && *ident != filter.trim()
+        {
+            continue;
+        }
 
         println!("[{:2}/{}] Generate {ident}", i + 1, text::TEXT.len(),);
 

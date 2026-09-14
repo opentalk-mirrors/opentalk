@@ -709,21 +709,22 @@ async fn close_mixer(
     shutdown_tx.send_replace(WantShutdown::Yes);
 
     if let Some(video_task) = video_task
-        && !video_task.is_finished() {
-            log::debug!("Waiting for video task to be finished");
+        && !video_task.is_finished()
+    {
+        log::debug!("Waiting for video task to be finished");
 
-            match timeout(Duration::from_secs(8), video_task).await {
-                Ok(Ok(())) => {
-                    log::debug!("Video task has completed");
-                }
-                Ok(Err(err)) => {
-                    log::warn!("Failed to wait for video task, {err:?}");
-                }
-                Err(_) => {
-                    log::warn!("Timeout while waiting for video task");
-                }
+        match timeout(Duration::from_secs(8), video_task).await {
+            Ok(Ok(())) => {
+                log::debug!("Video task has completed");
+            }
+            Ok(Err(err)) => {
+                log::warn!("Failed to wait for video task, {err:?}");
+            }
+            Err(_) => {
+                log::warn!("Timeout while waiting for video task");
             }
         }
+    }
 
     log::debug!("Drop all active sinks");
     let mut sinks = sinks.lock().await;

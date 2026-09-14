@@ -99,16 +99,17 @@ fn get_sql_type_from_attributes(attrs: &[syn::Attribute]) -> Result<syn::Type, s
     let mut found_attr = None;
     for attr in attrs {
         if let Some(segment) = attr.path().segments.iter().next()
-            && segment.ident == ATTRIBUTE_NAME {
-                if found_attr.is_some() {
-                    return Err(syn::Error::new(
-                        Span::call_site(),
-                        format!("Multiple #[{ATTRIBUTE_NAME}(...)] found"),
-                    ));
-                }
-
-                found_attr = Some(attr);
+            && segment.ident == ATTRIBUTE_NAME
+        {
+            if found_attr.is_some() {
+                return Err(syn::Error::new(
+                    Span::call_site(),
+                    format!("Multiple #[{ATTRIBUTE_NAME}(...)] found"),
+                ));
             }
+
+            found_attr = Some(attr);
+        }
     }
 
     if let Some(attr) = found_attr {
