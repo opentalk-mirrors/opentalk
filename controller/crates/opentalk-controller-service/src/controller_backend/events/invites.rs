@@ -47,7 +47,7 @@ use snafu::Report;
 use crate::MockKeycloakAdminClient as KeycloakAdminClient;
 use crate::{
     ControllerBackend,
-    controller_backend::{events::EventInviteeExt, utils::verify_invite_write},
+    controller_backend::events::EventInviteeExt,
     events::{
         enrich_from_optional_user_search, enrich_invitees_from_optional_user_search,
         get_invited_mail_recipients_for_event, get_tenant_filter,
@@ -810,99 +810,82 @@ async fn create_invite_to_non_matching_email(
         None
     };
 
-    if invitee_user.is_some()
-        || (settings.endpoints.event_invite_external_email_address
-            && is_room_guest_access_allowed(&room, room_tariff))
-    {
-        let inviter = current_user.clone();
-        let invitee_email = email.clone();
+    let is_registered_user = invitee_user.is_some();
+    let is_external_invite_allowed = settings.endpoints.event_invite_external_email_address
+        && is_room_guest_access_allowed(&room, room_tariff);
 
-        let mut inventory = inventory_provider.get_inventory().await?;
-
-        let res = {
-            let event_id = event.id;
-            let current_user_id = current_user.id;
-
-            inventory
-                .try_create_event_email_invite(NewEventEmailInvite {
-                    event_id,
-                    email: email.into(),
-                    role,
-                    created_by: current_user_id,
-                })
-                .await?
-        };
-
-        match res {
-            Some(_) => {
-                if let (Some(invitee_user), Some(mail_service)) = (invitee_user, mail_service) {
-                    mail_service
-                        .send_unregistered_invite(
-                            settings,
-                            inviter,
-                            event,
-                            room,
-                            room_tariff,
-                            sip_config,
-                            invitee_user,
-                            shared_folder,
-                            streaming_targets,
-                        )
-                        .await
-                        .map_err(|e| {
-                            log::warn!(
-                                "Failed to send with MailService: {}",
-                                Report::from_error(e)
-                            );
-                            ApiError::internal()
-                        })?;
-                } else {
-                    // # DO NOT REMOVE
-                    //
-                    // Super duper important (for now).
-                    //
-                    // This is part of a hopefully soon-to-be legacy implementation, that aims to
-                    // ensure that no event invite codes are created when e2ee is enabled.
-                    //
-                    // There is going to be refactor that addresses this in a more idiomatic manner,
-                    // but in the meantime this check **cannot** be removed.
-                    verify_invite_write(room_tariff, &room)?;
-
-                    if let Some(mail_service) = mail_service {
-                        mail_service
-                            .send_external_invite(
-                                settings,
-                                inviter,
-                                event,
-                                room,
-                                room_tariff,
-                                sip_config,
-                                invitee_email.as_ref(),
-                                shared_folder,
-                                streaming_targets,
-                            )
-                            .await
-                            .map_err(|e| {
-                                log::warn!(
-                                    "Failed to send with MailService: {}",
-                                    Report::from_error(e)
-                                );
-                                ApiError::internal()
-                            })?;
-                    }
-                }
-
-                Ok(true)
-            }
-            None => Ok(false),
-        }
-    } else {
-        Err(ApiError::conflict()
+    // Return an error if the invitee is not reqistered and external invites are disabled
+    if !is_registered_user && !is_external_invite_allowed {
+        return Err(ApiError::conflict()
             .with_code("unknown_email")
             .with_message(
                 "Only emails registered with the systems are allowed to be used for invites",
             )
-            .into())
+            .into());
+    }
+
+    let inviter = current_user.clone();
+    let invitee_email = email.clone();
+
+    let mut inventory = inventory_provider.get_inventory().await?;
+
+    let res = {
+        let event_id = event.id;
+        let current_user_id = current_user.id;
+
+        inventory
+            .try_create_event_email_invite(NewEventEmailInvite {
+                event_id,
+                email: email.into(),
+                role,
+                created_by: current_user_id,
+            })
+            .await?
+    };
+
+    match res {
+        Some(_) => {
+            if let (Some(invitee_user), Some(mail_service)) = (invitee_user, mail_service) {
+                mail_service
+                    .send_unregistered_invite(
+                        settings,
+                        inviter,
+                        event,
+                        room,
+                        room_tariff,
+                        sip_config,
+                        invitee_user,
+                        shared_folder,
+                        streaming_targets,
+                    )
+                    .await
+                    .map_err(|e| {
+                        log::warn!("Failed to send with MailService: {}", Report::from_error(e));
+                        ApiError::internal()
+                    })?;
+            } else if let Some(mail_service) = mail_service {
+                mail_service
+                    .send_external_invite(
+                        settings,
+                        inviter,
+                        event,
+                        room,
+                        room_tariff,
+                        sip_config,
+                        invitee_email.as_ref(),
+                        shared_folder,
+                        streaming_targets,
+                    )
+                    .await
+                    .map_err(|e| {
+                        log::warn!("Failed to send with MailService: {}", Report::from_error(e));
+                        ApiError::internal()
+                    })?;
+            }
+
+            Ok(true)
+        }
+        None => Ok(false),
     }
 }
 
