@@ -1,0 +1,84 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "glib",
+        "gst*",
+        "gstreamer-*",
+        "gstreamer"
+      ],
+      "groupName": "gstreamer",
+      "groupSlug": "gstreamer"
+    },
+    {
+      "matchPackageNames": [
+        "typst-*"
+      ],
+      "groupName": "typst",
+      "groupSlug": "typst"
+    },
+    {
+      "matchPackagePatterns": [
+        "ezk-*"
+      ],
+      "groupName": "EZK-rs",
+      "groupSlug": "EZK-rs"
+    },
+    {
+      "matchPackagePatterns": [
+        "^vergen*"
+      ],
+      "groupName": "vergen",
+      "groupSlug": "vergen"
+    },
+    {
+      "matchPackageNames": [
+        "egui*",
+        "eframe"
+      ],
+      "groupName": "egui",
+      "groupSlug": "egui"
+    },
+    {
+      "matchPackageNames": [
+        "tungstenite",
+        "tokio-tungstenite"
+      ],
+      "groupName": "tungstenite",
+      "groupSlug": "tungstenite"
+    },
+    {
+      "matchPackagePatterns": [
+        "chrono-tz",
+        "ics-chrono-tz"
+      ],
+      "groupName": "chrono-tz",
+      "groupSlug": "chrono-tz"
+    },
+    {
+      "matchPackageNames": [
+        "/opentelemetry/"
+      ],
+      "groupName": "opentelemetry-rs",
+      "groupSlug": "opentelemetry-rs"
+    },
+    {
+      "matchPackageNames": [
+        "/^livekit/"
+      ],
+      "groupName": "livekit",
+      "groupSlug": "livekit"
+    },
+    {
+      "matchPackageNames": [
+        "/^testcontainers/"
+      ],
+      "groupName": "testcontainers",
+      "groupSlug": "testcontainers"
+    }
+  ]
+}
