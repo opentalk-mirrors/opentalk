@@ -45,10 +45,10 @@ macro_rules! wav_file {
 // Statically load all audio files as WAV and decode them lazily
 // WAV files must be 48000Hz 2 channel interleaved (and optimally i16/S16LE) audio
 macro_rules! audio_files {
-    ($($name:literal, $ident:ident;)*) => {
+    ($($(#[$attr:meta])* $name:literal, $ident:ident;)*) => {
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub(crate) enum Track {
-            $($ident,)*
+            $( $(#[$attr])* $ident,)*
         }
 
         impl Track {
@@ -89,10 +89,14 @@ macro_rules! audio_files {
 }
 
 audio_files! {
+    #[allow(dead_code)]
     "consent_stopped_accept", ConsentStoppedAccept;
+    #[allow(dead_code)]
     "consent_stopped_reject", ConsentStoppedReject;
     "conference_closed", ConferenceClosed;
+    #[allow(dead_code)]
     "conference_timelimit", ConferenceTimelimit;
+    #[allow(dead_code)]
     "conference_userlimit", ConferenceUserlimit;
     "consent_accept", ConsentAccept;
     "consent_info", ConsentInfo;
@@ -100,19 +104,26 @@ audio_files! {
     "consent_reject", ConsentReject;
     "entering_conference", EnteringConference;
     "input_invalid", InputInvalid;
+    #[allow(dead_code)]
     "input_timeout", InputTimeout;
     "moderator_kicked", ModeratorKicked;
+    #[allow(dead_code)]
     "moderator_lowered_hand", ModeratorLoweredHand;
     "moderator_muted", ModeratorMuted;
+    #[allow(dead_code)]
     "moderator_paused", ModeratorPaused;
+    #[allow(dead_code)]
     "moderator_resumed", ModeratorResumed;
     "moderator_send_waiting_room", ModeratorSendWaitingRoom;
     "waiting_room_entered", WaitingRoomEntered;
     "waiting_room_please_hold", WaitingRoomPleaseHold;
     "welcome_conference_id", WelcomeConferenceId;
     "welcome_passcode", WelcomePasscode;
+    #[allow(dead_code)]
     "welcome_refused", WelcomeRefused;
+    #[allow(dead_code)]
     "welcome_time", WelcomeTime;
+    #[allow(dead_code)]
     "welcome_unavailable", WelcomeUnavailable;
     "welcome_usage", WelcomeUsage;
     "microphones_restriction_enabled", MicrophonesRestrictionEnabled;
