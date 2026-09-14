@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn deserialize_toml() {
-        let toml = r#"        
+        let toml = r#"
         [http]
         url = ""
         api_keys= [

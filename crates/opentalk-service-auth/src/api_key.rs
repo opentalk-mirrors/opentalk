@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn deserialize_str() {
-        let toml = r#"        
+        let toml = r#"
         api_key = "roomserver:secret"
         "#;
 
@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn deserialize_missing_key_str() {
-        let toml = r#"        
+        let toml = r#"
         api_key = ":secret"
         "#;
 
@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn deserialize_missing_secret_str() {
-        let toml = r#"        
+        let toml = r#"
         api_key = "key_id:"
         "#;
 
@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn deserialize_missing_colon_str() {
-        let toml = r#"        
+        let toml = r#"
         api_key = "key_id:"
         "#;
 
@@ -202,7 +202,7 @@ mod tests {
 
     #[test]
     fn deserialize_struct() {
-        let toml = r#"        
+        let toml = r#"
         [api_key]
             id = "roomserver"
             secret = "secret"
