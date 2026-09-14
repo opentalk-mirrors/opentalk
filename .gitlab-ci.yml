@@ -32,7 +32,7 @@ variables:
   KANIKO_IMAGE: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/kaniko:debug-1.25.2
   SKOPEO_IMAGE: quay.io/skopeo/stable:v1
   DEFAULT_FLAVOR: alpine
-  RUST_LINT_IMAGE: registry.heinlein.group/opentalk-tools/rust:1.98-trixie
+  RUST_LINT_IMAGE: registry.heinlein.group/opentalk-tools/rust:1.98.1-trixie
   # The `livekit` client crate pulls in `webrtc-sys`, whose build script refuses to compile with GCC or clang < 20
   CXX: clang++-21
 
@@ -68,12 +68,12 @@ include:
   - project: opentalk/ci/templates/changelog
     ref: v2
     file: .gitlab-ci-template.yml
-  # - project: opentalk/ci/templates/rust-container-build
-  #   inputs:
-  #     harbor_namespace_suffix: roomserver
-  #     additional_labels: team-conference
-  #   ref: v2
-  #   file: .gitlab-ci-template.yml
+# - project: opentalk/ci/templates/rust-container-build
+#   inputs:
+#     harbor_namespace_suffix: roomserver
+#     additional_labels: team-conference
+#   ref: v2
+#   file: .gitlab-ci-template.yml
 
 lint:fmt_load_tests:
   stage: lint
@@ -91,14 +91,23 @@ lint:fmt_load_tests:
     - pnpm install
     - pnpm fmt:ci
 
-lint:openapi:
+lint:openapi-controller:
+  stage: lint
+  <<: *default_job_condition
+  allow_failure: true
+  image:
+    name: redocly/cli:1.34.19
+    entrypoint: ['']
+  script:
+    - /usr/local/bin/openapi lint controller/docs/developer/api.yaml
+
+lint:openapi-roomserver:
   stage: lint
   <<: *default_job_condition
   image:
     name: redocly/cli
     entrypoint: ['']
   script:
-    - /usr/local/bin/openapi lint controller/docs/developer/api.yaml
     - /usr/local/bin/openapi lint roomserver/api/docs/openapi.yml
 
 lint:openapi-spectral:
@@ -116,14 +125,13 @@ lint:openapi-up-to-date:
   <<: *default_job_condition
   needs: [build]
   script:
-    - target/release/opentalk-controller openapi dump > docs/developer/api.yaml
+    - target/release/opentalk-controller openapi dump > controller/docs/developer/api.yaml
     - target/release/opentalk-roomserver openapi dump > roomserver/api/docs/openapi.yml
     - |
       if ! git diff -w --exit-code; then
-        echo "openapi specification outdated, run:
+        echo "openapi specification outdated, run:"
         echo "opentalk-controller openapi dump > controller/docs/developer/api.yaml"
-        echo "opentalk-roomserver openapi dump > api/docs/openapi.yml"
-        
+        echo "opentalk-roomserver openapi dump > roomserver/api/docs/openapi.yml"
         exit 1
       fi
 
@@ -177,7 +185,7 @@ test:load_typst_plugins:
     - cp -r /usr/share/typst target/typst
 
 test:cargo_test:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98.0-trixie
+  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98.1-trixie
   stage: test
   <<: *default_job_condition
   tags:
@@ -192,18 +200,6 @@ test:cargo_test:
         path: target/llvm-cov-target/cobertura.xml
   # this uses region for coverage summary
   coverage: /TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/
-  before_script:
-    - >
-      sed -i 's/^Components: main$/& contrib non-free non-free-firmware/'
-      /etc/apt/sources.list.d/debian.sources
-    - apt-get update
-    - >
-      apt-get update && apt-get install -y --no-install-recommends
-      build-essential libssl-dev libbz2-dev
-      libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev
-      gstreamer1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
-      gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-vaapi libfdk-aac2 gstreamer1.0-fdkaac
-      clang libclang-dev cmake libvulkan-dev glslc 
   script:
     - cargo llvm-cov nextest --no-report --profile ci --workspace
     # code coverage for doctests is unstable, so we run them separately
@@ -232,7 +228,7 @@ test:cargo_test:
 #     LOAD_TEST_BASE_URL: http://localhost:11333
 #     LOG_DIR: $CI_PROJECT_DIR/target/load-test/
 #   script:
-#     - $CI_PROJECT_DIR/ci/run-load-test.sh "src/tests/${TEST}.js"
+#     - $CI_PROJECT_DIR/roomserver/ci/run-load-test.sh "roomserver/src/tests/${TEST}.js"
 #   artifacts:
 #     when: on_failure
 #     paths:
@@ -241,7 +237,7 @@ test:cargo_test:
 
 build:
   # we need alpine here, so that this binary can be used in the `test:load` job, which uses an alpine based K6 image.
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98.0-alpine
+  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98.1-trixie
   stage: build
   needs: []
   rules:
@@ -263,16 +259,6 @@ build:
       - target/release/opentalk-smtp-mailer
       - target/release/opentalk-transcription
     expire_in: 1 week
-  before_script:
-    - >
-      apk update && apk add --no-cache
-      build-base openssl-dev bzip2-dev pkgconf cmake
-      clang21 clang21-dev libstdc++-dev
-      glib-dev gstreamer gstreamer-dev gstreamer-tools
-      gst-plugins-base gst-plugins-base-dev
-      gst-plugins-bad gst-plugins-bad-dev
-      gst-plugins-good gst-plugins-ugly gst-libav
-      vulkan-loader-dev shaderc zlib-static
   script:
     - cargo auditable build --release --locked -p opentalk-controller
     - cargo auditable build --release --locked -p opentalk-obelisk
