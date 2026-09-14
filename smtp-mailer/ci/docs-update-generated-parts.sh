@@ -22,7 +22,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 DOCS_TEMP_DIR=target/docs/temporary
 CONFIG_DIR="$DOCS_TEMP_DIR"/config
 
-# shellcheck source=ci/include/codify.sh
+# shellcheck source=smtp-mailer/ci/include/codify.sh
 source "$SCRIPT_DIR"/include/codify.sh
 
 if ! command -v opentalk-ci-doc-updater; then
