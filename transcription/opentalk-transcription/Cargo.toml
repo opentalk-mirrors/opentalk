@@ -30,7 +30,7 @@ earshot.workspace = true
 env_logger.workspace = true
 ezk.workspace = true
 ezk-audio.workspace = true
-ezk-audio-nodes.workspace = true
+ezk-audio-nodes = { workspace = true, features = ["nnnoiseless"] }
 futures.workspace = true
 hound.workspace = true
 itertools.workspace = true
