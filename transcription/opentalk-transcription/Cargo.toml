@@ -14,8 +14,6 @@ version.workspace = true
 
 [features]
 default = ["vulkan"]
-cuda = ["whisper-rs/cuda"]
-sycl = ["whisper-rs/intel-sycl"]
 vulkan = ["whisper-rs/vulkan"]
 
 [dependencies]
