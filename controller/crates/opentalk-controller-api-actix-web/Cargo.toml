@@ -21,7 +21,7 @@ either.workspace = true
 futures.workspace = true
 oauth2.workspace = true
 opentalk-controller-service-facade.workspace = true
-opentalk-types-api-v1 = { workspace = true, features = ["actix"] }
+opentalk-types-api-v1 = { workspace = true, features = ["actix", "utoipa"] }
 opentalk-types-common.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

@@ -20,7 +20,7 @@ opentalk-roomserver-types-recording = { workspace = true }
 opentalk-types-api-internal = { workspace = true }
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
-reqwest.workspace = true
+reqwest = { workspace = true, features = ["json"] }
 tracing.workspace = true
 
 [dev-dependencies]
