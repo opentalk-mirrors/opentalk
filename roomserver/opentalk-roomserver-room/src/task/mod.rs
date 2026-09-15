@@ -55,7 +55,6 @@ use std::{
         hash_map::Entry::{Occupied, Vacant},
     },
     mem,
-    pin::Pin,
     sync::Arc,
     time::Duration,
 };
@@ -95,6 +94,7 @@ use opentalk_types_common::{
 };
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, oneshot};
+use tracing::Instrument;
 use uuid::Uuid;
 
 use super::{message_router::CloseReason, signaling::module_initializer::Modules};
@@ -191,10 +191,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         ctx: RoomTaskContext,
         room_id: RoomId,
         mut room_parameters: Arc<RoomParameters>,
-    ) -> (
-        RoomTaskHandle<Socket>,
-        Pin<Box<dyn Future<Output = ()> + Send>>,
-    ) {
+    ) -> (RoomTaskHandle<Socket>, impl Future<Output = ()> + Send) {
         let (tx, rx) = mpsc::channel(20);
 
         let message_router = MessageRouter::new(
@@ -266,7 +263,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
             room_task.run().await;
             tracing::debug!("RoomTask closed");
-        });
+        })
+        .instrument(tracing::Span::current());
 
         (room_handle, future_room)
     }
