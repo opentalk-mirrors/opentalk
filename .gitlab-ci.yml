@@ -128,7 +128,7 @@ lint:openapi-up-to-date:
     - target/release/opentalk-controller openapi dump > controller/docs/developer/api.yaml
     - target/release/opentalk-roomserver openapi dump > roomserver/api/docs/openapi.yml
     - |
-      if ! git diff -w --exit-code; then
+      if ! git diff -w --exit-code -- controller/ roomserver/ ; then
         echo "openapi specification outdated, run:"
         echo "opentalk-controller openapi dump > controller/docs/developer/api.yaml"
         echo "opentalk-roomserver openapi dump > roomserver/api/docs/openapi.yml"
