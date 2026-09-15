@@ -341,6 +341,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             )?;
         }
 
+        tracing::debug!("Participant entered room");
         Ok(())
     }
 
