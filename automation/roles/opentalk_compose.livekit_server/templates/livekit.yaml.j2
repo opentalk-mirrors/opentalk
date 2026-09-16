@@ -200,8 +200,10 @@ turn:
 {% if livekit_turn_embedded_udp_port is defined and livekit_turn_embedded_udp_port %}
   udp_port: {{ livekit_turn_embedded_udp_port }}
 {% endif %}
-{% if livekit_turn_embedded_tls_enabled is defined and livekit_turn_embedded_tls_enabled %}
+{% if livekit_turn_embedded_tls_port is defined and livekit_turn_embedded_tls_port %}
   tls_port: {{ livekit_turn_embedded_tls_port }}
+{% endif %}
+{% if livekit_turn_embedded_external_tls is defined and livekit_turn_embedded_external_tls %}
   external_tls: {{ livekit_turn_embedded_external_tls | to_json}}
 {% endif %}
 {% if livekit_turn_embedded_relay_range_start is defined and livekit_turn_embedded_relay_range_end is defined %}
