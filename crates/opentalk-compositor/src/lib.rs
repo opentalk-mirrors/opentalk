@@ -467,7 +467,7 @@ impl Mixer {
     ///
     /// # Panics
     ///
-    /// Panics if the lock for the [`Shared`] object could not be acquired.
+    /// Panics if the internal shared lock could not be acquired.
     pub fn set_event_title(&mut self, title: String) {
         self.shared.lock().unwrap().event_title = Some(title);
     }
@@ -513,11 +513,11 @@ impl Mixer {
             .expect("unable to send add event to video_stream_tx");
     }
 
-    /// Adds a Participant to the [`Shared`] list.
+    /// Adds a Participant to the compositor to be rendered
     ///
     /// # Panics
     ///
-    /// Panics if the [`Shared`] object lock couldn't be acquired.
+    /// Panics if the internal shared lock could not be acquired.
     pub fn add_participant(&mut self, identity: &ParticipantIdentity, display_name: String) {
         log::debug!("Add participant {identity:?}");
 
@@ -552,7 +552,7 @@ impl Mixer {
     ///
     /// # Panics
     ///
-    /// Panics if the [`Shared`] object lock couldn't be acquired.
+    /// Panics if the internal shared lock could not be acquired.
     pub fn set_participant_avatar_url(
         &mut self,
         identity: &ParticipantIdentity,
@@ -631,7 +631,7 @@ impl Mixer {
     ///
     /// # Panics
     ///
-    /// Panics if the [`Shared`] lock couldn't be acquired.
+    /// Panics if the internal shared lock could not be acquired.
     pub fn set_video_support(&mut self, enabled: bool) {
         let mut shared = self.shared.lock().unwrap();
 
