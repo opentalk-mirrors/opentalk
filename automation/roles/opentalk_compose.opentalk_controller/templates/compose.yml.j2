@@ -35,7 +35,7 @@ services:
 {% endif %}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.controller.rule=Host(`{{ ot_domain }}`) && PathPrefix(`/controller`)"
+      - "traefik.http.routers.controller.rule=Host(`{{ ot_domain }}`) && (PathPrefix(`/controller`) || PathPrefix(`/v1/rooms`))"
       - "traefik.http.routers.controller.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
       - "traefik.http.routers.controller-signaling.rule=Host(`{{ ot_domain }}`) && PathPrefix(`/v1/signaling`)"
       - "traefik.http.routers.controller-signaling.priority=100"
