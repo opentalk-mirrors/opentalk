@@ -13,7 +13,7 @@ opentalk_obelisk_version: v0.22.2
 opentalk_recorder_version: v0.17.5
 opentalk_roomserver_version: v0.1.4
 opentalk_smtp_mailer_version: v0.18.0
-opentalk_orchestrator_version: v0.8.1
+opentalk_orchestrator_version: v0.8.3
 opentalk_outlook_add_in_version: v0.3.6-2
 spacedeck_version: v3.0.3
 etherpad_version: v2.0.4
