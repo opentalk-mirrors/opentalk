@@ -50,6 +50,7 @@ pub(crate) async fn build_roomserver_params(
         password: room.password,
         guest_access: room.guest_access,
         waiting_room: room.waiting_room,
+        e2e_encryption: room.e2e_encryption,
     };
 
     let device_secret = rand::rng()

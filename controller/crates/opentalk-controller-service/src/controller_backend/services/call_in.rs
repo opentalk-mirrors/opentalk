@@ -102,6 +102,7 @@ impl ControllerBackend {
             guest_access: room.guest_access,
             waiting_room: room.waiting_room,
             alias: room.alias,
+            e2e_encryption: room.e2e_encryption,
         };
 
         let device_secret = rand::rng()
