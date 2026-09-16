@@ -168,6 +168,11 @@ impl TestRoomBuilder {
         self
     }
 
+    pub fn e2ee(mut self, e2ee: bool) -> Self {
+        self.room_parameters.e2e_encryption = e2ee;
+        self
+    }
+
     pub fn waiting_room(mut self, waiting_room: WaitingRoom) -> Self {
         self.room_parameters.waiting_room = waiting_room;
         self

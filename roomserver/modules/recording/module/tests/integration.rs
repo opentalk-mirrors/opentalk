@@ -971,3 +971,21 @@ async fn joining_contains_own_consent_state() {
 
     assert!(recording_state.consents_recording);
 }
+
+#[test_log::test(tokio::test)]
+async fn e2ee_disables_recording() {
+    let mut room = TestRoom::builder()
+        .add_init_module_data(&RecordingSettings {
+            url: "https://localhost:5555".parse().unwrap(),
+            api_key: ApiKey::new("recorder", "secret"),
+        })
+        .expect("valid recording module settings")
+        .e2ee(true)
+        .register_module::<RecordingModule>()
+        .spawn();
+
+    let alice = room.join_alice_moderator(0).await;
+    let module_data = &alice.join_success().module_data;
+
+    assert!(!module_data.contains_key(&RECORDING_MODULE_ID));
+}
