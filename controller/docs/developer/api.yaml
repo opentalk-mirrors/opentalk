@@ -9,7 +9,7 @@ info:
   license:
     name: EUPL-1.2
     identifier: EUPL-1.2
-  version: 0.36.0-alpha
+  version: 3.0.0
 servers:
   - url: /v1
 paths:
@@ -35,7 +35,9 @@ paths:
     post:
       tags:
         - "api::v1::auth"
-      summary: "**Deprecated**: This endpoint exists only for backwards compatibility and must no longer be used."
+      summary: |-
+        **Deprecated**: This endpoint exists only for backwards compatibility and must no longer be
+        used.
       description: |-
         The login endpoint
 
@@ -394,7 +396,8 @@ paths:
           description: |-
             Cursor token to get the next page of events and instances
 
-            Returned by the endpoint if the maximum number of events and instances per page has been hit
+            Returned by the endpoint if the maximum number of events and instances per page has been
+            hit
           required: false
           schema:
             oneOf:
@@ -943,7 +946,8 @@ paths:
       description: |-
         Delete/Withdraw an event invitation using the email address as the identifier.
 
-        This will also withdraw invites from registered users if the provided email address matches theirs.
+        This will also withdraw invites from registered users if the provided email address matches
+        theirs.
       operationId: delete_email_invite_to_event
       parameters:
         - name: event_id
@@ -1178,7 +1182,9 @@ paths:
             $ref: "#/components/schemas/EventId"
         - name: force_delete_reference_if_shared_folder_deletion_fails
           in: query
-          description: Flag to force delete the reference to the shared folder if the deletion of the shared folder fails
+          description: |-
+            Flag to force delete the reference to the shared folder if the deletion of the shared
+            folder fails
           required: false
           schema:
             type: boolean
@@ -2160,9 +2166,10 @@ paths:
         - "api::v1::rooms"
       summary: Start a signaling session with the roomserver as a registered user
       description: |-
-        This endpoint has to be called in order to get a signaling token for the roomserver. This endpoint returns the token
-        and the corresponding roomserver address. Call the  *GET `<roomserver_address>/signaling/<token>`* endpoint to
-        establish the websocket connection with the roomserver.
+        This endpoint has to be called in order to get a signaling token for the roomserver. This
+        endpoint returns the token and the corresponding roomserver address. Call the  *GET
+        `<roomserver_address>/signaling/<token>`* endpoint to establish the websocket connection with
+        the roomserver.
       operationId: start
       parameters:
         - name: room_id_or_alias
@@ -2230,9 +2237,10 @@ paths:
         - "api::v1::rooms"
       summary: Start a signaling session with the roomserver with an invitation code
       description: |-
-        This endpoint has to be called in order to get a signaling token for the roomserver. This endpoint returns the token
-        and the corresponding roomserver address. Call the  *GET `<roomserver_address>/signaling/<token>`* endpoint to
-        establish the websocket connection with the roomserver.
+        This endpoint has to be called in order to get a signaling token for the roomserver. This
+        endpoint returns the token and the corresponding roomserver address. Call the  *GET
+        `<roomserver_address>/signaling/<token>`* endpoint to establish the websocket connection with
+        the roomserver.
       operationId: start_invited
       parameters:
         - name: room_id_or_alias
@@ -2879,8 +2887,8 @@ components:
         password:
           type: string
           description: |-
-            SIP password which must be transmitted via DTMF (number field on the phone) after entering the `sip_id`
-            to enter the room
+            SIP password which must be transmitted via DTMF (number field on the phone) after entering
+            the `sip_id` to enter the room
         tel:
           type: string
           description: SIP Call-In phone number which must be used to reach the room
@@ -3123,7 +3131,8 @@ components:
       description: |-
         Event exception resource
 
-        Overrides event properties for a event recurrence. May only exist for events of type `recurring`.
+        Overrides event properties for a event recurrence. May only exist for events of type
+        `recurring`.
       required:
         - id
         - recurring_event_id
@@ -3163,7 +3172,9 @@ components:
           description: "Override the `is_all_day` property of the instance"
         original_starts_at:
           $ref: "#/components/schemas/DateTimeTz"
-          description: "The `starts_at` of the instance this exception modifies. Used to match the exception the instance"
+          description: |-
+            The `starts_at` of the instance this exception modifies. Used to match the exception the
+            instance
         recurring_event_id:
           $ref: "#/components/schemas/EventId"
           description: ID of the event  the exception belongs to
@@ -3328,7 +3339,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/EventInvitee"
-          description: "List of event invitees and their invite status. Might not be complete, see `invite_truncated`"
+          description: |-
+            List of event invitees and their invite status. Might not be complete, see
+            `invite_truncated`
         invitees_truncated:
           type: boolean
           description: "Flag which indicates if `invitees` contains all invites as far as known to the application"
@@ -3664,7 +3677,9 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/EventInvitee"
-              description: "List of event invitees and their invite status. Might not be complete, see `invite_truncated`"
+              description: |-
+                List of event invitees and their invite status. Might not be complete, see
+                `invite_truncated`
             invitees_truncated:
               type: boolean
               description: |-
@@ -3684,7 +3699,9 @@ components:
               description: Information about the shared folder for the event
             show_meeting_details:
               type: boolean
-              description: "Indicates whether meeting details should be provided. If absent, no meeting details are made available."
+              description: |-
+                Indicates whether meeting details should be provided. If absent, no meeting details are
+                made available.
             streaming_targets:
               type: array
               items:
@@ -3813,7 +3830,8 @@ components:
               description: |-
                 Should the event be all-day?
 
-                If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time part.
+                If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time
+                part.
             starts_at:
               $ref: "#/components/schemas/DateTimeTz"
               description: |-
@@ -3842,7 +3860,8 @@ components:
               description: |-
                 Should the event be all-day?
 
-                If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time part.
+                If true, requires `starts_at.datetime` and `ends_at.datetime` to have a 00:00 time
+                part.
             recurrence_pattern:
               $ref: "#/components/schemas/RecurrencePattern"
               description: |-
@@ -4532,10 +4551,12 @@ components:
                 - type: "null"
                 - $ref: "#/components/schemas/RoomName"
                   description: |-
-                    A custom room name that can be used as part of the URL alias to access the room instead of the [`RoomId`].
+                    A custom room name that can be used as part of the URL alias to access the room instead of
+                    the [`RoomId`].
 
-                    The name is only one part of the alias. The full alias additionally contains a code that is generated by the
-                    controller. Whether such a code is generated depends on the controller configuration.
+                    The name is only one part of the alias. The full alias additionally contains a code that is
+                    generated by the controller. Whether such a code is generated depends on the controller
+                    configuration.
 
                     [`RoomId`]: opentalk_types_common::rooms::RoomId
             waiting_room:
@@ -4546,10 +4567,10 @@ components:
           description: |-
             Patch the date of the event.
 
-            - If `is_time_independent` is `false` the body **must** have
-              `is_all_day`, `starts_at` and `ends_at`
-            - If `is_time_independent` is `true` the body **can** have
-              `is_all_day, `starts_at` and `ends_at`
+            - If `is_time_independent` is `false` the body **must** have `is_all_day`, `starts_at` and
+              `ends_at`
+            - If `is_time_independent` is `true` the body **can** have `is_all_day, `starts_at` and
+              `ends_at`
         - type: object
           properties:
             description:
@@ -4804,10 +4825,12 @@ components:
             - type: "null"
             - $ref: "#/components/schemas/RoomName"
               description: |-
-                A custom name that can be used as part of the URL alias to access the room instead of the [`RoomId`](opentalk_types_common::rooms::RoomId).
+                A custom name that can be used as part of the URL alias to access the room instead of the
+                [`RoomId`](opentalk_types_common::rooms::RoomId).
 
-                The name is only one part of the alias. The full alias additionally contains a code that is generated by the
-                controller. Whether such a code is generated depends on the controller configuration.
+                The name is only one part of the alias. The full alias additionally contains a code that is
+                generated by the controller. Whether such a code is generated depends on the controller
+                configuration.
         password:
           oneOf:
             - type: "null"
@@ -4884,10 +4907,12 @@ components:
             room_name:
               $ref: "#/components/schemas/RoomName"
               description: |-
-                A custom name that can be used as part of the URL alias to access the room instead of the [`RoomId`](opentalk_types_common::rooms::RoomId).
+                A custom name that can be used as part of the URL alias to access the room instead of the
+                [`RoomId`](opentalk_types_common::rooms::RoomId).
 
-                The name is only one part of the alias. The full alias additionally contains a code that is generated by the
-                controller. Whether such a code is generated depends on the controller configuration.
+                The name is only one part of the alias. The full alias additionally contains a code that is
+                generated by the controller. Whether such a code is generated depends on the controller
+                configuration.
             show_meeting_details:
               type: boolean
               description: Should it be able to show the meeting details?
@@ -5027,10 +5052,12 @@ components:
         name:
           $ref: "#/components/schemas/RoomName"
           description: |-
-            A custom name that can be used as part of the URL alias to access the room instead of the [`RoomId`](opentalk_types_common::rooms::RoomId).
+            A custom name that can be used as part of the URL alias to access the room instead of the
+            [`RoomId`](opentalk_types_common::rooms::RoomId).
 
-            The name is only one part of the alias. The full alias additionally contains a code that is generated by the
-            controller. Whether such a code is generated depends on the controller configuration.
+            The name is only one part of the alias. The full alias additionally contains a code that is
+            generated by the controller. Whether such a code is generated depends on the controller
+            configuration.
         password:
           oneOf:
             - type: "null"
@@ -5067,8 +5094,8 @@ components:
       description: |-
         Private user profile.
 
-        Similar to [`super::PublicUserProfile`], but contains additional "private" information about a user.
-        Is only accessible to the user himself.
+        Similar to [`super::PublicUserProfile`], but contains additional "private" information about a
+        user. Is only accessible to the user himself.
         Is used on */users/me* endpoints.
       required:
         - id
@@ -5276,9 +5303,9 @@ components:
         * not be a valid UUID
 
         The "not a valid UUID" rule exists so that a [`RoomName`] can never be confused with a
-        [`RoomId`](super::RoomId): both can appear in the same URL position and are resolved via the untagged
-        [`RoomIdOrAlias`](super::RoomIdOrAlias) enum. Without it, users could hijack rooms by creating a name that
-        collides with an existing room's ID.
+        [`RoomId`](super::RoomId): both can appear in the same URL position and are resolved via the
+        untagged [`RoomIdOrAlias`](super::RoomIdOrAlias) enum. Without it, users could hijack rooms by
+        creating a name that collides with an existing room's ID.
       example: personal-room-name
     RoomPassword:
       type: string
@@ -5697,7 +5724,9 @@ components:
         after:
           type: integer
           format: int32
-          description: "The shortest duration that needs to elapse before the checkpoint can be created, represented in seconds."
+          description: |-
+            The shortest duration that needs to elapse before the checkpoint can be created,
+            represented in seconds.
           maximum: 36000
           minimum: 60
         within:

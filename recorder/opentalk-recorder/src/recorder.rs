@@ -175,16 +175,15 @@ async fn notify_orchestrator_recording_stopped(
     orchestrator_handle: Option<OrchestratorHandle>,
     recording_target: RecordingTarget,
 ) {
-    if let Some(handle) = orchestrator_handle {
-        if let Err(e) = handle
+    if let Some(handle) = orchestrator_handle
+        && let Err(e) = handle
             .send_event(RecorderEvent::RemoveRecording(RecorderResource {
                 room_id: recording_target.room_id,
                 breakout_id: recording_target.breakout_room,
             }))
             .await
-        {
-            error!("Failed to send RemoveRoom event to orchestrator: {e}");
-        }
+    {
+        error!("Failed to send RemoveRoom event to orchestrator: {e}");
     }
 }
 
@@ -389,11 +388,11 @@ impl RecordingSession {
         // The streaming targets are per session
         // therefore making sure we're in the right context isn't necessary here.
         log::debug!("Recorder is done, attempting to upload remaining streams...");
-        if self.recording_status.is_running() {
-            if let Err(err) = self.handle_stop_recording().await {
-                log::error!("Failed to stop recording: {err:?}");
-            };
-        }
+        if self.recording_status.is_running()
+            && let Err(err) = self.handle_stop_recording().await
+        {
+            log::error!("Failed to stop recording: {err:?}");
+        };
 
         let running_stream_ids = self
             .livestream_states

@@ -33,7 +33,7 @@ MODULES_DIR="$DOCS_TEMP_DIR"/modules
 CMDNAME=opentalk-controller
 ER_DIAGRAM_MERMAID="$DB_DIR/er-diagram.mermaid"
 
-# shellcheck source=ci/include/codify.sh
+# shellcheck source=controller/ci/include/codify.sh
 source "$SCRIPT_DIR"/include/codify.sh
 
 if ! command -v opentalk-ci-doc-updater; then

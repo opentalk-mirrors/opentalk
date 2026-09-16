@@ -14,8 +14,6 @@ version.workspace = true
 
 [features]
 default = ["vulkan"]
-cuda = ["whisper-rs/cuda"]
-sycl = ["whisper-rs/intel-sycl"]
 vulkan = ["whisper-rs/vulkan"]
 
 [dependencies]
@@ -30,7 +28,7 @@ earshot.workspace = true
 env_logger.workspace = true
 ezk.workspace = true
 ezk-audio.workspace = true
-ezk-audio-nodes.workspace = true
+ezk-audio-nodes = { workspace = true, features = ["nnnoiseless"] }
 futures.workspace = true
 hound.workspace = true
 itertools.workspace = true

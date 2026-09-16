@@ -38,7 +38,7 @@ opentalk-types-common = { workspace = true, features = ["serde", "redis"] }
 owo-colors.workspace = true
 redis = { workspace = true, features = ["tokio-comp", "aio", "json"] }
 redis-args.workspace = true
-reqwest = { workspace = true, features = ["stream"] }
+reqwest = { workspace = true, features = ["json", "stream"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 serde.workspace = true
 serde_ignored.workspace = true

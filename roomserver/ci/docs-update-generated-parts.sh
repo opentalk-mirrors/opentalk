@@ -23,7 +23,7 @@ OPENTALK_ROOMSERVER_CMD=${OPENTALK_ROOMSERVER_CMD:-target/release/opentalk-rooms
 CLI_DIR="$DOCS_TEMP_DIR"/cli-usage
 CONFIG_DIR="$DOCS_TEMP_DIR"/example
 
-# shellcheck source=ci/include/codify.sh
+# shellcheck source=roomserver/ci/include/codify.sh
 source "$SCRIPT_DIR"/include/codify.sh
 
 if ! command -v opentalk-ci-doc-updater > /dev/null; then

@@ -467,7 +467,7 @@ impl Mixer {
     ///
     /// # Panics
     ///
-    /// Panics if the lock for the [`Shared`] object could not be acquired.
+    /// Panics if the internal shared lock could not be acquired.
     pub fn set_event_title(&mut self, title: String) {
         self.shared.lock().unwrap().event_title = Some(title);
     }
@@ -513,11 +513,11 @@ impl Mixer {
             .expect("unable to send add event to video_stream_tx");
     }
 
-    /// Adds a Participant to the [`Shared`] list.
+    /// Adds a Participant to the compositor to be rendered
     ///
     /// # Panics
     ///
-    /// Panics if the [`Shared`] object lock couldn't be acquired.
+    /// Panics if the internal shared lock could not be acquired.
     pub fn add_participant(&mut self, identity: &ParticipantIdentity, display_name: String) {
         log::debug!("Add participant {identity:?}");
 
@@ -552,7 +552,7 @@ impl Mixer {
     ///
     /// # Panics
     ///
-    /// Panics if the [`Shared`] object lock couldn't be acquired.
+    /// Panics if the internal shared lock could not be acquired.
     pub fn set_participant_avatar_url(
         &mut self,
         identity: &ParticipantIdentity,
@@ -631,7 +631,7 @@ impl Mixer {
     ///
     /// # Panics
     ///
-    /// Panics if the [`Shared`] lock couldn't be acquired.
+    /// Panics if the internal shared lock could not be acquired.
     pub fn set_video_support(&mut self, enabled: bool) {
         let mut shared = self.shared.lock().unwrap();
 
@@ -708,20 +708,20 @@ async fn close_mixer(
 
     shutdown_tx.send_replace(WantShutdown::Yes);
 
-    if let Some(video_task) = video_task {
-        if !video_task.is_finished() {
-            log::debug!("Waiting for video task to be finished");
+    if let Some(video_task) = video_task
+        && !video_task.is_finished()
+    {
+        log::debug!("Waiting for video task to be finished");
 
-            match timeout(Duration::from_secs(8), video_task).await {
-                Ok(Ok(())) => {
-                    log::debug!("Video task has completed");
-                }
-                Ok(Err(err)) => {
-                    log::warn!("Failed to wait for video task, {err:?}");
-                }
-                Err(_) => {
-                    log::warn!("Timeout while waiting for video task");
-                }
+        match timeout(Duration::from_secs(8), video_task).await {
+            Ok(Ok(())) => {
+                log::debug!("Video task has completed");
+            }
+            Ok(Err(err)) => {
+                log::warn!("Failed to wait for video task, {err:?}");
+            }
+            Err(_) => {
+                log::warn!("Timeout while waiting for video task");
             }
         }
     }

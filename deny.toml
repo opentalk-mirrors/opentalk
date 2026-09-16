@@ -26,8 +26,8 @@
 # dependencies not shared by any other crates, would be ignored, as the target
 # list here is effectively saying which targets you are building for.
 targets = [
-    { triple = "x86_64-unknown-linux-gnu" },
-    { triple = "x86_64-unknown-linux-musl" },
+  { triple = "x86_64-unknown-linux-gnu" },
+  { triple = "x86_64-unknown-linux-musl" },
 ]
 # When creating the dependency graph used as the source of truth when checks are
 # executed, this field can be used to prune crates from the graph, removing them
@@ -68,38 +68,38 @@ feature-depth = 1
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-    # bincode unmaintained
-    "RUSTSEC-2025-0141",
-    # h2 unmaintained
-    "RUSTSEC-2026-0258",
-    # paste unmaintained
-    "RUSTSEC-2024-0436",
-    # rustls-pemfile unmaintained
-    "RUSTSEC-2025-0134",
-    # rustybuzz unmaintained
-    "RUSTSEC-2026-0206",
-    # ttf-parser unmaintained
-    "RUSTSEC-2026-0192",
-    # yaml-rust unmaintained
-    "RUSTSEC-2024-0320",
-    # quick-xml cve
-    # Quadratic run time when checking a start tag for duplicate attribute names
-    "RUSTSEC-2026-0194",
-    # quick-xml cve
-    # Unbounded namespace-declaration allocation in `NsReader` enables memory-exhaustion denial of service
-    "RUSTSEC-2026-0195",
-    # rsa cve
-    # Marvin Attack: potential key recovery through timing sidechannels
-    "RUSTSEC-2023-0071",
-    # rustls-webpki cve
-    # Name constraints for URI names were incorrectly accepted
-    "RUSTSEC-2026-0098",
-    # rustls-webpki cve
-    # Name constraints were accepted for certificates asserting a wildcard name
-    "RUSTSEC-2026-0099",
-    # rustls-webpki cve
-    # Reachable panic in certificate revocation list parsing
-    "RUSTSEC-2026-0104",
+  # bincode unmaintained
+  "RUSTSEC-2025-0141",
+  # h2 unmaintained
+  "RUSTSEC-2026-0258",
+  # paste unmaintained
+  "RUSTSEC-2024-0436",
+  # rustls-pemfile unmaintained
+  "RUSTSEC-2025-0134",
+  # rustybuzz unmaintained
+  "RUSTSEC-2026-0206",
+  # ttf-parser unmaintained
+  "RUSTSEC-2026-0192",
+  # yaml-rust unmaintained
+  "RUSTSEC-2024-0320",
+  # quick-xml cve
+  # Quadratic run time when checking a start tag for duplicate attribute names
+  "RUSTSEC-2026-0194",
+  # quick-xml cve
+  # Unbounded namespace-declaration allocation in `NsReader` enables memory-exhaustion denial of service
+  "RUSTSEC-2026-0195",
+  # rsa cve
+  # Marvin Attack: potential key recovery through timing sidechannels
+  "RUSTSEC-2023-0071",
+  # rustls-webpki cve
+  # Name constraints for URI names were incorrectly accepted
+  "RUSTSEC-2026-0098",
+  # rustls-webpki cve
+  # Name constraints were accepted for certificates asserting a wildcard name
+  "RUSTSEC-2026-0099",
+  # rustls-webpki cve
+  # Reachable panic in certificate revocation list parsing
+  "RUSTSEC-2026-0104",
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
@@ -115,23 +115,23 @@ ignore = [
 # See https://spdx.org/licenses/ for list of possible licenses
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
 allow = [
-    "0BSD",
-    "Apache-2.0 WITH LLVM-exception",
-    "Apache-2.0",
-    "BSD-2-Clause",
-    "BSD-3-Clause",
-    "BSL-1.0",
-    "CC0-1.0",
-    "CDLA-Permissive-2.0",
-    "EUPL-1.2",
-    "OFL-1.1",
-    "ISC",
-    "MIT",
-    "MPL-2.0",
-    "Unlicense",
-    "Ubuntu-font-1.0",
-    "Unicode-3.0",
-    "Zlib",
+  "0BSD",
+  "Apache-2.0 WITH LLVM-exception",
+  "Apache-2.0",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "EUPL-1.2",
+  "OFL-1.1",
+  "ISC",
+  "MIT",
+  "MPL-2.0",
+  "Unlicense",
+  "Ubuntu-font-1.0",
+  "Unicode-3.0",
+  "Zlib",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
@@ -141,9 +141,9 @@ confidence-threshold = 0.8
 # Allow 1 or more licenses on a per-crate basis, so that particular licenses
 # aren't accepted for every possible crate as with the normal allow list
 exceptions = [
-    # Each entry is the crate and version constraint, and its specific allow
-    # list
-    #{ allow = ["Zlib"], crate = "adler32" },
+  # Each entry is the crate and version constraint, and its specific allow
+  # list
+  #{ allow = ["Zlib"], crate = "adler32" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,
@@ -174,7 +174,7 @@ ignore = false
 # is only published to private registries, and ignore is true, the crate will
 # not have its license(s) checked
 registries = [
-    #"https://sekretz.com/registry
+  #"https://sekretz.com/registry
 ]
 
 # This section is considered when running `cargo deny check bans`.
@@ -201,8 +201,8 @@ workspace-default-features = "allow"
 external-default-features = "allow"
 # List of crates that are allowed. Use with care!
 allow = [
-    #"ansi_term@0.11.0",
-    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is allowed" },
+  #"ansi_term@0.11.0",
+  #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is allowed" },
 ]
 # If true, workspace members are automatically allowed even when using deny-by-default
 # This is useful for organizations that want to deny all external dependencies by default
@@ -210,11 +210,11 @@ allow = [
 allow-workspace = false
 # List of crates to deny
 deny = [
-    #"ansi_term@0.11.0",
-    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is banned" },
-    # Wrapper crates can optionally be specified to allow the crate when it
-    # is a direct dependency of the otherwise banned crate
-    #{ crate = "ansi_term@0.11.0", wrappers = ["this-crate-directly-depends-on-ansi_term"] },
+  #"ansi_term@0.11.0",
+  #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is banned" },
+  # Wrapper crates can optionally be specified to allow the crate when it
+  # is a direct dependency of the otherwise banned crate
+  #{ crate = "ansi_term@0.11.0", wrappers = ["this-crate-directly-depends-on-ansi_term"] },
 ]
 
 # List of features to allow/deny
@@ -242,16 +242,16 @@ deny = [
 
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
-    #"ansi_term@0.11.0",
-    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason why it can't be updated/removed" },
+  #"ansi_term@0.11.0",
+  #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason why it can't be updated/removed" },
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
 # detection. Unlike skip, it also includes the entire tree of transitive
 # dependencies starting at the specified crate, up to a certain depth, which is
 # by default infinite.
 skip-tree = [
-    #"ansi_term@0.11.0", # will be skipped along with _all_ of its direct and transitive dependencies
-    #{ crate = "ansi_term@0.11.0", depth = 20 },
+  #"ansi_term@0.11.0", # will be skipped along with _all_ of its direct and transitive dependencies
+  #{ crate = "ansi_term@0.11.0", depth = 20 },
 ]
 
 # This section is considered when running `cargo deny check sources`.

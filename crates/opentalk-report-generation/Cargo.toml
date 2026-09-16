@@ -15,7 +15,7 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-chrono = { workspace = true, features = ["serde"] }
+chrono = { workspace = true, features = ["clock", "serde"] }
 chrono-tz.workspace = true
 ecow.workspace = true
 glob.workspace = true

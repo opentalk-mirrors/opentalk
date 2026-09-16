@@ -54,17 +54,19 @@ pub enum BuildMiddlewareError {
 /// type.
 ///
 /// ```rust
+/// use config::{Config, Environment};
+///
 /// let config = Config::builder()
-/// .add_source(
-///     Environment::with_prefix("OT_TEST")
-///         .prefix_separator("_")
-///         .separator("__")
-///         .try_parsing(true)
-///         .list_separator(","),
-///         .with_list_parse_key("http.api_keys")
-/// )
-/// .build()
-/// .unwrap();
+///     .add_source(
+///         Environment::with_prefix("OT_TEST")
+///             .prefix_separator("_")
+///             .separator("__")
+///             .try_parsing(true)
+///             .list_separator(",")
+///             .with_list_parse_key("http.api_keys"),
+///     )
+///     .build()
+///     .unwrap();
 /// ```
 ///
 /// The config above would allow an environment variable like this:
