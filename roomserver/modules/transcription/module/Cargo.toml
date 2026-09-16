@@ -21,7 +21,7 @@ opentalk-roomserver-types-transcription.workspace = true
 opentalk-transcription-web-api.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
-reqwest.workspace = true
+reqwest = { workspace = true, features = ["json"] }
 tracing.workspace = true
 
 [dev-dependencies]
