@@ -272,7 +272,6 @@ h264-profile-level-id = "0.2"
 heck = "0.5"
 hound = "3"
 http = "1"
-http-request-derive = { version = "0.6", default-features = false }
 http0 = { version = "0", package = "http" }
 humansize = "2"
 iana-time-zone = "0.1"
