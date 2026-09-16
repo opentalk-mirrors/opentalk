@@ -5,7 +5,7 @@
 //! Functionality to delete events including all associated resources
 
 use log::Log;
-use opentalk_asset_storage::{ObjectStorage, asset_key};
+use opentalk_asset_storage::{ObjectStorageBackend, asset_key};
 use opentalk_controller_api_authorization::authorization::{
     AccessMethod, AuthorizationChange, AuthorizationTarget, Authorizer, Resource, Subject,
     SubjectCollection,
@@ -192,7 +192,7 @@ impl Deleter for EventDeleter {
         logger: &dyn Log,
         _settings: &Settings,
         authorizer: Authorizer,
-        storage: &ObjectStorage,
+        storage: &dyn ObjectStorageBackend,
     ) -> Result<(), Error> {
         debug!(
             log: logger,

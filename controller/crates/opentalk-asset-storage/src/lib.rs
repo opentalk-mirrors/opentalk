@@ -11,7 +11,9 @@ use std::{
 use aws_sdk_s3::primitives::{ByteStream, ByteStreamError};
 use bytes::Bytes;
 use futures::Stream;
-pub use object_storage::{ChunkFormat, ObjectStorage, ObjectStorageError};
+#[cfg(feature = "mockall")]
+pub use object_storage::MockObjectStorageBackend;
+pub use object_storage::{ChunkFormat, ObjectStorage, ObjectStorageBackend, ObjectStorageError};
 use opentalk_inventory::{Asset, Inventory, InventoryProvider, NewAsset, Room};
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
@@ -305,7 +307,7 @@ impl futures::stream::Stream for ByStreamExt {
 
 /// Get an asset from the object storage
 pub async fn get_asset(
-    storage: &ObjectStorage,
+    storage: &dyn ObjectStorageBackend,
     asset_id: &AssetId,
 ) -> Result<ByStreamExt, crate::object_storage::ObjectStorageError> {
     let stream = storage.get(asset_key(asset_id)).await?;
@@ -314,7 +316,7 @@ pub async fn get_asset(
 
 /// Delete an asset from the object storage
 pub async fn delete_asset(
-    storage: &ObjectStorage,
+    storage: &dyn ObjectStorageBackend,
     inventory_provider: &dyn InventoryProvider,
     storage_notifier: &dyn StorageNotifier,
     room: &RoomIdOrAlias,

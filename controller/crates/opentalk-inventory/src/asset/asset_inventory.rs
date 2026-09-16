@@ -14,7 +14,12 @@ use opentalk_types_common::{
 use super::{Asset, NewAsset, UpdateAsset};
 use crate::Result;
 
+/// An asset together with the room it belongs to, and the event that room
+/// is associated with, if any.
+type AssetWithRoomAndEvent = (Asset, RoomId, Option<EventId>);
+
 /// A trait for retrieving and storing event entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait AssetInventory {
     /// Create an asset for a room.
@@ -60,7 +65,7 @@ pub trait AssetInventory {
         page: Page,
         sort: AssetSorting,
         order: Ordering,
-    ) -> Result<(Vec<(Asset, RoomId, Option<EventId>)>, ItemCount)>;
+    ) -> Result<(Vec<AssetWithRoomAndEvent>, ItemCount)>;
 
     /// Update an asset.
     ///

@@ -8,6 +8,7 @@ use super::{EventSharedFolder, NewEventSharedFolder};
 use crate::Result;
 
 /// A trait for retrieving and storing event shared folder entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait EventSharedFolderInventory {
     /// Create a new shared folder.

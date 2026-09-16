@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use log::Log;
-use opentalk_asset_storage::ObjectStorage;
+use opentalk_asset_storage::ObjectStorageBackend;
 use opentalk_controller_api_authorization::authorization::{AuthorizationChange, Authorizer};
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::Inventory;
@@ -37,7 +37,7 @@ pub trait Deleter: Sync {
         stop_room_backend: &dyn StopRoomBackend,
         user_id: Option<UserId>,
         settings: &Settings,
-        object_storage: &ObjectStorage,
+        object_storage: &dyn ObjectStorageBackend,
     ) -> Result<(), Error> {
         let prepared_commit = self.prepare_commit(logger, inventory).await?;
         self.check_permissions(&prepared_commit, logger, authorizer.clone(), user_id)
@@ -120,7 +120,7 @@ pub trait Deleter: Sync {
         _logger: &dyn Log,
         _settings: &Settings,
         _authorizer: Authorizer,
-        _storage: &ObjectStorage,
+        _storage: &dyn ObjectStorageBackend,
     ) -> Result<(), Error> {
         Ok(())
     }

@@ -39,17 +39,17 @@ pub enum OidcCacheError {
     NoExpiryForToken,
 
     /// Error on attempt to update a token, which do not exist in the cache yet
-    #[snafu(display("token doen't exist in cache and cannot be updated"))]
+    #[snafu(display("token dosn't exist in cache and cannot be updated"))]
     CannotUpdateNonExistingToken,
 
     /// Error indicating that a formerly valid access token has been revoked by sub logout
     #[snafu(display("token has been revoked by sub logout"))]
     RevokedByLogout,
 
-    /// Error on attmept to cache an internal error for an access token
+    /// Error on attempt to cache an internal error for an access token
     /// This is not allowed, because such errors are transient and do not relate to the token
     /// validity
-    #[snafu(display("internal errors will not be cached for acess tokens"))]
+    #[snafu(display("internal errors will not be cached for access tokens"))]
     NoCachingOfInternalErrors,
 }
 

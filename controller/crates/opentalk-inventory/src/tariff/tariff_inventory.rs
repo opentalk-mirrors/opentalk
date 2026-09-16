@@ -8,6 +8,7 @@ use super::{ExternalTariffId, ExternalTariffMapping, NewTariff, Tariff, UpdateTa
 use crate::Result;
 
 /// A trait for retrieving and storing tariff entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait TariffInventory {
     /// Get all tariffs.

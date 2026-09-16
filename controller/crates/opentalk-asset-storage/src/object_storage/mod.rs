@@ -696,6 +696,63 @@ struct MultipartUploadContext {
     parts: BTreeMap<i32, CompletedPart>,
 }
 
+/// The subset of [`ObjectStorage`]'s API used by code that needs to be
+/// testable against a mocked object storage backend.
+#[async_trait::async_trait]
+#[cfg_attr(feature = "mockall", mockall::automock)]
+pub trait ObjectStorageBackend: Send + Sync {
+    /// Get an object from storage.
+    async fn get(&self, key: String) -> Result<ByteStream>;
+
+    /// Delete an object from storage.
+    async fn delete(&self, key: String) -> Result<()>;
+
+    /// Get a proxy download token for an object.
+    async fn get_proxy_download_token(
+        &self,
+        key: &str,
+        expires_in: Duration,
+        content_disposition: String,
+    ) -> Result<String>;
+
+    /// Get a proxied download stream for an object.
+    async fn get_proxied(
+        &self,
+        key: &str,
+        token: String,
+        range_header: Option<String>,
+    ) -> Result<DownloadProxyStream, ProxyRequestError>;
+}
+
+#[async_trait::async_trait]
+impl ObjectStorageBackend for ObjectStorage {
+    async fn get(&self, key: String) -> Result<ByteStream> {
+        ObjectStorage::get(self, key).await
+    }
+
+    async fn delete(&self, key: String) -> Result<()> {
+        ObjectStorage::delete(self, key).await
+    }
+
+    async fn get_proxy_download_token(
+        &self,
+        key: &str,
+        expires_in: Duration,
+        content_disposition: String,
+    ) -> Result<String> {
+        ObjectStorage::get_proxy_download_token(self, key, expires_in, content_disposition).await
+    }
+
+    async fn get_proxied(
+        &self,
+        key: &str,
+        token: String,
+        range_header: Option<String>,
+    ) -> Result<DownloadProxyStream, ProxyRequestError> {
+        ObjectStorage::get_proxied(self, key, token, range_header).await
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{

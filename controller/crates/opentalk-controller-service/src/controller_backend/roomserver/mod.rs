@@ -140,9 +140,9 @@ pub fn build(
 #[async_trait::async_trait]
 pub trait RoomServerBackend: StopRoomBackend + Send + Sync {
     /// Request a room access token from the roomserver.
-    async fn request_access(
+    async fn request_access<'a>(
         &self,
-        inventory: &mut dyn Inventory,
+        inventory: &mut (dyn Inventory + 'a),
         settings: Arc<Settings>,
         module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
         room: RoomResource,
@@ -158,6 +158,46 @@ pub trait RoomServerBackend: StopRoomBackend + Send + Sync {
         room_id: RoomId,
         patch: RoomParametersPatch,
     ) -> Result<(), ApiError>;
+}
+
+#[cfg(feature = "mockall")]
+pub use mock::MockRoomServerBackend;
+
+#[cfg(feature = "mockall")]
+// mockall's `mock!` macro requires parens around `dyn Trait + 'a`
+#[allow(unused_parens)]
+mod mock {
+    use opentalk_controller_utils::deletion::StopRoomError;
+
+    use super::*;
+
+    mockall::mock!(
+        pub RoomServerBackend {}
+
+        #[async_trait::async_trait]
+        impl StopRoomBackend for RoomServerBackend {
+            async fn stop_room(&self, room_id: RoomId) -> Result<(), StopRoomError>;
+        }
+
+        #[async_trait::async_trait]
+        impl RoomServerBackend for RoomServerBackend {
+            async fn request_access<'a>(
+                &self,
+                inventory: &mut (dyn Inventory + 'a),
+                settings: Arc<Settings>,
+                module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
+                room: RoomResource,
+                client_parameters: ClientParameters,
+                host: Url,
+            ) -> Result<RoomServerAccess, ApiError>;
+
+            async fn patch_room_parameters(
+                &self,
+                room_id: RoomId,
+                patch: RoomParametersPatch,
+            ) -> Result<(), ApiError>;
+        }
+    );
 }
 
 /// A trait for handling signaling connections to the internal roomserver.

@@ -28,6 +28,8 @@ pub use event_exception::EventException;
 pub use event_exception_id::EventExceptionId;
 pub use event_exception_kind::EventExceptionKind;
 pub use event_inventory::EventInventory;
+#[cfg(feature = "mockall")]
+pub use event_inventory::MockEventInventory;
 pub use event_recurrence::EventRecurrence;
 pub use get_event_exceptions_cursor::GetEventExceptionsCursor;
 pub use get_events_cursor::GetEventsCursor;

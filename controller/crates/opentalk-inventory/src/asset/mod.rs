@@ -11,5 +11,7 @@ mod update_asset;
 
 pub use asset::Asset;
 pub use asset_inventory::AssetInventory;
+#[cfg(feature = "mockall")]
+pub use asset_inventory::MockAssetInventory;
 pub use new_asset::NewAsset;
 pub use update_asset::UpdateAsset;

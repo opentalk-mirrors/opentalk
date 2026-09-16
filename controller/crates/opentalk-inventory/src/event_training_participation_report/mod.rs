@@ -7,5 +7,7 @@ mod event_training_participation_report_parameter_set;
 mod update_event_training_participation_report_parameter_set;
 
 pub use event_training_participation_report_inventory::EventTrainingParticipationReportInventory;
+#[cfg(feature = "mockall")]
+pub use event_training_participation_report_inventory::MockEventTrainingParticipationReportInventory;
 pub use event_training_participation_report_parameter_set::EventTrainingParticipationReportParameterSet;
 pub use update_event_training_participation_report_parameter_set::UpdateEventTrainingParticipationReportParameterSet;

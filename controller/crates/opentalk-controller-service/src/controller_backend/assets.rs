@@ -55,7 +55,7 @@ impl ControllerBackend {
             .get_asset_for_room(&room_id_or_alias, asset_id)
             .await?;
 
-        let stream = get_asset(&self.storage, &asset.id).await?;
+        let stream = get_asset(self.storage.as_ref(), &asset.id).await?;
 
         Ok(stream)
     }
@@ -105,7 +105,7 @@ impl ControllerBackend {
         let settings = self.settings_provider.get();
 
         let res = save_asset(
-            &self.storage.clone(),
+            self.storage.as_ref(),
             self.inventory_provider.as_ref(),
             storage_notifier,
             &room_id_or_alias,
@@ -146,7 +146,7 @@ impl ControllerBackend {
         asset_id: AssetId,
     ) -> Result<(), CaptureApiError> {
         delete_asset(
-            &self.storage,
+            self.storage.as_ref(),
             self.inventory_provider.as_ref(),
             storage_notifier,
             &room_id_or_alias,

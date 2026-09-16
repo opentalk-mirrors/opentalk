@@ -8,6 +8,7 @@ use super::{OidcTenantId, Tenant};
 use crate::Result;
 
 /// A trait for retrieving and storing room entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait TenantInventory {
     /// Get a tenant by its id.

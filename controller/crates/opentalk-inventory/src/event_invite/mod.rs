@@ -17,6 +17,8 @@ pub use event_email_invite::EventEmailInvite;
 pub use event_invite::EventInvite;
 pub use event_invite_id::EventInviteId;
 pub use event_invite_inventory::EventInviteInventory;
+#[cfg(feature = "mockall")]
+pub use event_invite_inventory::MockEventInviteInventory;
 pub use new_event_email_invite::NewEventEmailInvite;
 pub use new_event_invite::NewEventInvite;
 pub use update_event_email_invite::UpdateEventEmailInvite;

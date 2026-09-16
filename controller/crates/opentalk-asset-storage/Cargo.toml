@@ -24,6 +24,7 @@ aws-sdk-s3.workspace = true
 bytes.workspace = true
 futures.workspace = true
 http.workspace = true
+mockall = { workspace = true, optional = true }
 opentalk-controller-settings.workspace = true
 opentalk-inventory.workspace = true
 opentalk-types-api-common.workspace = true
@@ -39,3 +40,7 @@ axum.workspace = true
 chrono.workspace = true
 pretty_assertions.workspace = true
 tokio = { workspace = true, features = ["macros", "net", "rt-multi-thread"] }
+
+[features]
+mockall = ["dep:mockall"]
+test-util = ["mockall"]

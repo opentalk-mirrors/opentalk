@@ -15,6 +15,7 @@ pub mod redis;
 pub type Result<T, E = CacheError> = std::result::Result<T, E>;
 
 #[async_trait::async_trait(?Send)]
+#[cfg_attr(feature = "mockall", mockall::automock)]
 pub trait CacheStorage<K, V> {
     fn ttl(&self) -> Duration;
 

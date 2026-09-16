@@ -248,7 +248,7 @@ impl ControllerBackend {
             // For all Keycloak users found above, get the according users already registered from
             // the database
             let registered_users = inventory
-                .get_users_by_odic_subs(current_tenant.id, &keycloak_user_ids)
+                .get_users_by_oidc_subs(current_tenant.id, &keycloak_user_ids)
                 .await?;
 
             // From the list of Keycloak users found above, remove all users already registered

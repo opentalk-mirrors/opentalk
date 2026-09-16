@@ -35,8 +35,12 @@ use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_service_facade::{
     AssetDownloadProxyStream, OpenTalkControllerService, RequestUser,
 };
+#[cfg(test)]
+use opentalk_controller_settings::MockSettingsProvider as SettingsProvider;
+#[cfg(not(test))]
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_inventory::InventoryProvider;
+#[cfg(not(all(test, feature = "mockall")))]
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_types_api_internal::{
     call_in::PostCallInStartRoomServerRequestBody,
@@ -100,6 +104,8 @@ use opentalk_types_common::{
 };
 use url::Url;
 
+#[cfg(all(test, feature = "mockall"))]
+use crate::MockKeycloakAdminClient as KeycloakAdminClient;
 pub use crate::controller_backend::events::shared_folder::{
     delete_shared_folders, put_shared_folder,
 };

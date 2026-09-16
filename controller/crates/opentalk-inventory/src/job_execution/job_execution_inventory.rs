@@ -9,6 +9,7 @@ use super::{
 use crate::Result;
 
 /// A trait for retrieving and storing job execution log entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait JobExecutionInventory {
     /// Get a job by its id.

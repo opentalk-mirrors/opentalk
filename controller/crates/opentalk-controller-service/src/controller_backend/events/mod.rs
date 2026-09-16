@@ -25,6 +25,7 @@ use opentalk_inventory::{
     UpdateEventRecurrence, UpdateEventTrainingParticipationReportParameterSet, User, transaction,
     utils::is_call_in_allowed,
 };
+#[cfg(not(all(test, feature = "mockall")))]
 use opentalk_keycloak_admin::KeycloakAdminClient;
 use opentalk_roomserver_types::room_parameters_patch::RoomParametersPatch;
 use opentalk_types_api_v1::{
@@ -55,6 +56,8 @@ use opentalk_types_common::{
 use rrule::{Frequency, RRuleSet};
 use snafu::Report;
 
+#[cfg(all(test, feature = "mockall"))]
+use crate::MockKeycloakAdminClient as KeycloakAdminClient;
 use crate::{
     ControllerBackend, ToUserProfile as _,
     controller_backend::{
@@ -1202,7 +1205,7 @@ impl ControllerBackend {
                 self.roomserver.as_ref(),
                 Some(current_user_id),
                 &settings,
-                &self.storage,
+                self.storage.as_ref(),
             )
             .await?;
 

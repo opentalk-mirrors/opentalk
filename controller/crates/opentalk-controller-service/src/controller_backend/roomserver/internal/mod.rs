@@ -140,9 +140,9 @@ impl SignalingProxyBackend for InternalRoomServer {}
 #[async_trait::async_trait]
 impl RoomServerBackend for InternalRoomServer {
     #[tracing::instrument(level = "debug", skip(self, inventory, settings, room), fields(%room_id = room.id))]
-    async fn request_access(
+    async fn request_access<'a>(
         &self,
-        inventory: &mut dyn Inventory,
+        inventory: &mut (dyn Inventory + 'a),
         settings: Arc<Settings>,
         module_features: BTreeMap<ModuleId, BTreeSet<FeatureId>>,
         room: RoomResource,

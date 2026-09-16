@@ -15,5 +15,7 @@ pub use external_tariff_id::ExternalTariffId;
 pub use external_tariff_mapping::ExternalTariffMapping;
 pub use new_tariff::NewTariff;
 pub use tariff::Tariff;
+#[cfg(feature = "mockall")]
+pub use tariff_inventory::MockTariffInventory;
 pub use tariff_inventory::TariffInventory;
 pub use update_tariff::UpdateTariff;

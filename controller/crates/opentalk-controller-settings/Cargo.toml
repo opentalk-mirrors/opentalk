@@ -27,6 +27,7 @@ dirs.workspace = true
 iana-time-zone.workspace = true
 icu_locid = { workspace = true, features = ["serde"] }
 itertools.workspace = true
+mockall = { workspace = true, optional = true }
 openidconnect.workspace = true
 opentalk-roomserver-modules.workspace = true
 opentalk-roomserver-room.workspace = true
@@ -57,4 +58,5 @@ tempfile.workspace = true
 toml.workspace = true
 
 [features]
-test-util = []
+mockall = ["dep:mockall"]
+test-util = ["mockall"]

@@ -16,6 +16,7 @@ use super::{
 use crate::{Event, EventInvite, Result, User};
 
 /// A trait for retrieving and storing event invite entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait EventInviteInventory {
     /// Attempts to create an [`EventEmailInvite`]. Returns `Ok(None)` when
@@ -57,15 +58,15 @@ pub trait EventInviteInventory {
     ) -> Result<Option<EventInvite>>;
 
     /// Get event user invites for a set of events.
-    async fn get_event_user_invites_for_events(
+    async fn get_event_user_invites_for_events<'a>(
         &mut self,
-        events: &[&Event],
+        events: &[&'a Event],
     ) -> Result<Vec<Vec<(EventInvite, User)>>>;
 
     /// Get event email invites for a set of events.
-    async fn get_event_email_invites_for_events(
+    async fn get_event_email_invites_for_events<'a>(
         &mut self,
-        events: &[&Event],
+        events: &[&'a Event],
     ) -> Result<Vec<Vec<EventEmailInvite>>>;
 
     /// Get all pending invites for a user.

@@ -14,6 +14,7 @@ use crate::Result;
 
 /// The handler for OIDC tokens
 #[async_trait::async_trait(?Send)]
+#[cfg_attr(feature = "mockall", mockall::automock)]
 pub trait OidcTokenHandler: Sync + Send {
     /// Call the OIDC's userinfo endpoint to fetch the user data associated with the access token
     async fn user_info(

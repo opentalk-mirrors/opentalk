@@ -68,7 +68,7 @@ impl AssetStorageProvider for AssetStorage {
         });
 
         save_asset(
-            &self.storage,
+            self.storage.as_ref(),
             self.inventory_provider.as_ref(),
             self.storage_notifier.as_ref(),
             &context.room_id.into(),

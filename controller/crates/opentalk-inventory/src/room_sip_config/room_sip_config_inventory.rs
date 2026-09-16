@@ -11,6 +11,7 @@ use super::{NewRoomSipConfig, RoomSipConfig, UpdateRoomSipConfig};
 use crate::{Result, Room, User};
 
 /// A trait for retrieving and storing room sip config entities.
+#[cfg_attr(feature = "mockall", mockall::automock)]
 #[async_trait::async_trait]
 pub trait RoomSipConfigInventory {
     /// Get the SIP config for a room.

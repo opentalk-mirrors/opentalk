@@ -5,7 +5,7 @@
 //! Functionality to delete users including all associated resources
 
 use log::Log;
-use opentalk_asset_storage::ObjectStorage;
+use opentalk_asset_storage::ObjectStorageBackend;
 use opentalk_controller_api_authorization::authorization::{AuthorizationChange, Authorizer};
 use opentalk_controller_settings::Settings;
 use opentalk_inventory::{Inventory, transaction};
@@ -89,7 +89,7 @@ impl Deleter for UserDeleter {
         _logger: &dyn Log,
         _settings: &Settings,
         _authorizer: Authorizer,
-        _storage: &ObjectStorage,
+        _storage: &dyn ObjectStorageBackend,
     ) -> Result<(), Error> {
         Ok(())
     }
