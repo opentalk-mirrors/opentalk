@@ -397,7 +397,7 @@ impl Mixer {
     ///
     /// # Panics
     ///
-    /// Panics if the [`Shared`] lock couldn't be acquired.
+    /// Panics if the shared lock couldn't be acquired.
     fn handle_active_speakers_changed(&mut self, speakers: Vec<livekit::participant::Participant>) {
         let shared = &mut *self.shared.lock().unwrap();
 

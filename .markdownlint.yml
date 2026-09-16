@@ -18,7 +18,8 @@ MD029:
 
 # We want to allow a few specific HTML tags
 MD033:
-  allowed_elements: swagger-ui
+  allowed_elements:
+    - swagger-ui
 
 # Disable duplicate heading check
 MD024: false
@@ -29,7 +30,8 @@ MD041: false
 # Disable line length limit because markdown tables can't have linebreaks in them
 MD013: false
 
-# Allow code block identation to make tera templates more "readable"
+# Allow code block identation to make tera templates more "readable".
+# Also triggers on MkDocs Admonitions.
 MD046: false
 
 # These are triggered as false positives when used inside blockquoste
