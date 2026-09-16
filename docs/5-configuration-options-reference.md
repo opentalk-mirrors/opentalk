@@ -13,6 +13,13 @@ Variables are collected from `defaults/*.yml` and `vars/*.yml`.
 Commented role variables are included to document available settings.
 Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 
+{% raw %}
+<!--
+The tables below are wrapped in an escape block because many
+default/example values contain Jinja-style {{ ... }} expressions. Without the raw
+block, the mkdocs-macros plugin would try to evaluate them as macros and fail to render.
+-->
+
 ## Global Variables in settings.yml
 
 | Variable | Type | Default / Example Value |
@@ -958,3 +965,5 @@ Default values should be overridden in `/etc/opentalk-compose/settings.yml`.
 | `traefik_providers_docker_exposedByDefault` | boolean | `false` |
 | `traefik_providers_file_directory` | string | `/etc/traefik/dynamic` |
 | `traefik_providers_file_watch` | boolean | `true` |
+
+{% endraw %}
