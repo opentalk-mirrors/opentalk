@@ -25,8 +25,6 @@ stages:
   - lint
   - test
   - trigger
-  # - package
-  # - release
 
 variables:
   KANIKO_IMAGE: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/kaniko:debug-1.25.2
@@ -50,21 +48,12 @@ variables:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
 
 include:
-  # - project: opentalk/ci/templates/collect-commit-evidence
-  #   ref: v2
-  #   file: .gitlab-ci-template.yml
   - project: opentalk/ci/templates/rust-lint
     ref: v1
     file: .gitlab-ci-template.yml
   - project: opentalk/ci/templates/common-lint
     ref: v1
     file: .gitlab-ci-template.yml
-  # - project: opentalk/ci/templates/release-creation
-  #   inputs:
-  #     version: $[[ inputs.release_version ]]
-  #     issue: $[[ inputs.release_issue]]
-  #   ref: v1
-  #   file: .gitlab-ci-template.yml
   - project: opentalk/ci/templates/changelog
     ref: v2
     file: .gitlab-ci-template.yml
