@@ -86,6 +86,13 @@ pub async fn post(
             body = GetLoginResponseBody,
         ),
         (
+            status = StatusCode::UNAUTHORIZED,
+            description = "An `Authorization` header was sent, but the contained access token is \
+                           invalid or expired. The endpoint itself requires no authentication, a \
+                           request without an `Authorization` header always succeeds.",
+            body = ErrorBody,
+        ),
+        (
             status = StatusCode::INTERNAL_SERVER_ERROR,
             response = InternalServerError,
         ),

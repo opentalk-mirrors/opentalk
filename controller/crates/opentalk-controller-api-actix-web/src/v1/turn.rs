@@ -8,6 +8,7 @@
 #![allow(deprecated)]
 
 use actix_web::get;
+use opentalk_types_api_v1::error::ErrorBody;
 
 use crate::response::NoContent;
 
@@ -22,6 +23,13 @@ use crate::response::NoContent;
         (
             status = StatusCode::NO_CONTENT,
             description = "No TURN servers have been configured",
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            description = "An `Authorization` header was sent, but the contained access token is \
+                           invalid or expired. The endpoint itself requires no authentication, a \
+                           request without an `Authorization` header always succeeds.",
+            body = ErrorBody,
         ),
     ),
     security(),

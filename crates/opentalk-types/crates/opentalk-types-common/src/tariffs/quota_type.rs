@@ -13,6 +13,10 @@ use crate::utils::ExampleData;
     serde(rename_all = "snake_case")
 )]
 #[cfg_attr(
+   feature = "utoipa",
+   derive(utoipa::ToSchema),
+   schema(example = json!(QuotaType::example_data())))]
+#[cfg_attr(
     feature = "clap",
     derive(clap::ValueEnum),
     clap(rename_all = "snake_case")
@@ -35,48 +39,6 @@ pub enum QuotaType {
 
     /// This quota sets a limit on the number of participants that can join a room.
     RoomParticipantLimit,
-}
-
-#[cfg(feature = "utoipa")]
-mod impl_utoipa {
-    //! The `#[derive(utoipa::ToSchema)] implementation does not yet properly support
-    //! exposing schema information of types wrapped by the NewType pattern, therefore
-    //! a manual implementation is required for now.
-    //! Issue: <https://github.com/juhaku/utoipa/issues/663>
-
-    use serde_json::json;
-    use utoipa::{
-        PartialSchema, ToSchema,
-        openapi::{ObjectBuilder, RefOr, Schema, Type, schema::AnyOf},
-    };
-
-    use super::QuotaType;
-    use crate::utils::ExampleData as _;
-
-    impl PartialSchema for QuotaType {
-        fn schema() -> RefOr<Schema> {
-            Schema::AnyOf(AnyOf {
-                items: vec![
-                    ObjectBuilder::new()
-                        .schema_type(Type::String)
-                        .description(Some("A quota type"))
-                        .examples([json!(QuotaType::example_data())])
-                        .into(),
-                ],
-                description: None,
-                example: Some(json!(Self::example_data())),
-                discriminator: None,
-                ..Default::default()
-            })
-            .into()
-        }
-    }
-
-    impl ToSchema for QuotaType {
-        fn schemas(schemas: &mut Vec<(String, RefOr<Schema>)>) {
-            schemas.push((Self::name().into(), Self::schema()));
-        }
-    }
 }
 
 impl ExampleData for QuotaType {
