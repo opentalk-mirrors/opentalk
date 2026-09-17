@@ -17,6 +17,9 @@ use super::proxy_socket;
 
 pub mod validate;
 
+/// Opens a new LiveKit WebSocket connection for RTC.
+///
+/// This is a proxy of LiveKit's `/rtc/v1` endpoint.
 #[utoipa::path(
     get,
     path = "/livekit/rtc/v1",

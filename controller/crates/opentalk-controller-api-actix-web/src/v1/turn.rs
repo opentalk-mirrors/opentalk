@@ -24,6 +24,7 @@ use crate::response::NoContent;
             description = "No TURN servers have been configured",
         ),
     ),
+    security(),
 )]
 #[get("/turn")]
 #[deprecated = "This endpoint and related turn settings will be removed in the future"]

@@ -79,6 +79,11 @@
       ],
       "groupName": "testcontainers",
       "groupSlug": "testcontainers"
+    },
+    {
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["redocly/cli"],
+      "extends": ["schedule:monthly"]
     }
   ]
 }
