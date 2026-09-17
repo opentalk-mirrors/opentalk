@@ -62,36 +62,36 @@ port = 11411
 # The URL of the controller
 url = "http://localhost:11311"
 # The API to access the controller
-api_key = { "id" = "controller", "secret" = "secret" }
+api_key = { "id" = "recorder", "secret" = "secret" }
 
 # Optional orchestrator configuration
 #[orchestrator]
 # The API key of the orchestrator
-#api_key = { id = "orchestrator", secret = "secret" }
+#api_key = { id = "recorder", secret = "secret" }
 # The orchestrator URL
 #url = "http://127.0.0.1:11222"
 
 [http]
 # The address to bind the HTTP Server to (defaults to 0.0.0.0).
-addr = "0.0.0.0"
+#addr = "0.0.0.0"
 # The port to bind the HTTP Server to (defaults to 11511).
-port = 11511
+#port = 11511
 
 # The api keys for internal service endpoints
 #
 # The recorder can have multiple api keys configured. An api key can be configured as string ("<key_id>:<key_secret>")
 # or as key/value pair ({id = "<key_id>", secret = "<key_secret>"})
-api_keys = [{ id = "recorder", secret = "secret" }]
+api_keys = [{ id = "roomserver", secret = "secret" }]
 
 [recorder]
 # Shows a display sink, for debug purpose
-display = true
+#display = false
 
 # see `man strftime`
 # European style - alpine with musl has no locale
-clock_format = "%d.%m.%y %X %Z"
+#clock_format = "%d.%m.%y %X %Z"
 
-# US style
+# US style (default)
 #clock_format = "%x %X %Z"
 
 # Enables Hardware Acceleration for Intel GPUs
