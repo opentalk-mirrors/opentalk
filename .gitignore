@@ -68,3 +68,6 @@ site
 
 # load-tests
 **/node_modules
+
+# large transcription models
+transcription/models
