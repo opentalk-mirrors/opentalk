@@ -1333,4 +1333,429 @@ mod tests {
         let err = futures::executor::block_on(take_with_has_more(stream, 2));
         assert_eq!(err, Err("peek-err"));
     }
+
+    /// Regression coverage for the "GET /events/instances" endpoint: a meeting that
+    /// has just ended must show up in the "Past Meetings" list, the same way it
+    /// correctly showed up in the "future" list before it started and correctly
+    /// disappeared from it once it ended.
+    mod past_meetings_regression {
+        use std::{collections::BTreeMap, sync::Arc};
+
+        use futures_util::stream;
+        use opentalk_controller_api_authorization::authorization::{
+            Authorizer, MockAuthorizerBackend,
+        };
+        use opentalk_controller_settings::{MockSettingsProvider, Settings, test_util};
+        use opentalk_inventory::{
+            EventRecurrence, Inventory, MockInventory, MockInventoryProvider, Tenant,
+        };
+        use opentalk_types_common::{tariffs::TariffId, tenants::TenantId, utils::ExampleData};
+
+        use super::*;
+        use crate::{
+            ControllerBackend,
+            controller_backend::roomserver::MockRoomServerBackend,
+            oidc::{Cache, MockOidcTokenHandler},
+        };
+
+        fn request_user(user: &User) -> RequestUser {
+            RequestUser {
+                id: user.id,
+                email: user.email.clone(),
+                title: user.title.clone(),
+                firstname: user.firstname.clone(),
+                lastname: user.lastname.clone(),
+                language: user.language.clone(),
+                display_name: user.display_name.clone(),
+                dashboard_theme: user.dashboard_theme,
+                conference_theme: user.conference_theme,
+                tenant_id: user.tenant_id,
+                tariff_id: user.tariff_id,
+                tariff_status: user.tariff_status,
+                avatar_url: user.avatar_url.clone(),
+            }
+        }
+
+        fn test_room(id: RoomId, created_by: UserId, tenant_id: TenantId) -> Room {
+            Room {
+                id,
+                alias: None,
+                id_serial: 0,
+                created_by,
+                created_at: Timestamp::unix_epoch(),
+                password: None,
+                waiting_room: false,
+                guest_access: GuestAccess::default(),
+                tenant_id,
+                e2e_encryption: false,
+            }
+        }
+
+        /// A single (non-recurring) scheduled meeting with the given start/end.
+        fn scheduled_meeting(
+            id: EventId,
+            created_by: UserId,
+            tenant_id: TenantId,
+            starts_at: Timestamp,
+            ends_at: Timestamp,
+        ) -> Event {
+            Event {
+                id,
+                id_serial: 0,
+                title: "Team sync".parse().expect("valid event title"),
+                description: "".parse().expect("valid event description"),
+                room: RoomId::nil(),
+                created_by,
+                created_at: starts_at,
+                updated_by: created_by,
+                updated_at: starts_at,
+                is_adhoc: false,
+                tenant_id,
+                revision: 0,
+                show_meeting_details: true,
+                date: Some(EventDate {
+                    is_all_day: false,
+                    starts_at,
+                    starts_at_tz: TimeZone::utc(),
+                    ends_at,
+                    ends_at_tz: TimeZone::utc(),
+                    duration_secs: (*ends_at - *starts_at).num_seconds() as i32,
+                    recurrence: None,
+                }),
+            }
+        }
+
+        /// A recurring meeting whose first occurrence starts at `starts_at`, repeating
+        /// according to `recurrence_pattern` (an RRULE string, e.g. `"FREQ=DAILY"`).
+        fn recurring_meeting(
+            id: EventId,
+            created_by: UserId,
+            tenant_id: TenantId,
+            starts_at: Timestamp,
+            ends_at: Timestamp,
+            recurrence_pattern: &str,
+        ) -> Event {
+            Event {
+                id,
+                id_serial: 0,
+                title: "Recurring sync".parse().expect("valid event title"),
+                description: "".parse().expect("valid event description"),
+                room: RoomId::nil(),
+                created_by,
+                created_at: starts_at,
+                updated_by: created_by,
+                updated_at: starts_at,
+                is_adhoc: false,
+                tenant_id,
+                revision: 0,
+                show_meeting_details: true,
+                date: Some(EventDate {
+                    is_all_day: false,
+                    starts_at,
+                    starts_at_tz: TimeZone::utc(),
+                    ends_at,
+                    ends_at_tz: TimeZone::utc(),
+                    duration_secs: (*ends_at - *starts_at).num_seconds() as i32,
+                    recurrence: Some(EventRecurrence {
+                        recurrence_pattern: recurrence_pattern.to_string(),
+                    }),
+                }),
+            }
+        }
+
+        fn test_tariff() -> Tariff {
+            Tariff {
+                id: TariffId::nil(),
+                name: "test".to_string(),
+                created_at: Timestamp::unix_epoch(),
+                updated_at: Timestamp::unix_epoch(),
+                quotas: Default::default(),
+                disabled_modules: Vec::new(),
+                disabled_features: Vec::new(),
+            }
+        }
+
+        type EventStreamItem = (
+            Event,
+            Option<EventInvite>,
+            Room,
+            Option<RoomSipConfig>,
+            bool,
+            Option<EventSharedFolder>,
+            Tariff,
+            Option<TrainingParticipationReportParameterSet>,
+        );
+
+        fn stream_item(event: Event, tenant_id: TenantId) -> EventStreamItem {
+            let room = test_room(event.room, event.created_by, tenant_id);
+            (event, None, room, None, false, None, test_tariff(), None)
+        }
+
+        /// Builds an [`InventoryProvider`] mock that, on every `get_inventory()` call,
+        /// hands out a fresh [`MockInventory`] backing the handful of inventory calls
+        /// this scenario needs.
+        fn inventory_provider(
+            user: User,
+            tenant: Tenant,
+            events_in_ascending_order: Vec<Event>,
+            recurring_events: Vec<Event>,
+        ) -> MockInventoryProvider {
+            let mut provider = MockInventoryProvider::new();
+            provider.expect_get_inventory().returning(move || {
+                let mut inventory = MockInventory::new();
+
+                let get_user = user.clone();
+                inventory
+                    .expect_get_user()
+                    .returning(move |_| Ok(get_user.clone()));
+
+                let get_users_by_ids = user.clone();
+                inventory.expect_get_users_by_ids().returning(move |ids| {
+                    Ok(ids.iter().map(|_| get_users_by_ids.clone()).collect())
+                });
+
+                let get_tenant = tenant.clone();
+                inventory
+                    .expect_get_tenant()
+                    .returning(move |_| Ok(get_tenant.clone()));
+
+                let all_events_for_user = recurring_events.clone();
+                inventory
+                    .expect_get_all_events_for_user()
+                    .returning(move |_, _| Ok(all_events_for_user.clone()));
+
+                let events_with_related_items = recurring_events.clone();
+                let tenant_id = tenant.id;
+                inventory
+                    .expect_get_event_with_related_items()
+                    .returning(move |_, event_id| {
+                        let event = events_with_related_items
+                            .iter()
+                            .find(|event| event.id == event_id)
+                            .cloned()
+                            .expect("event must be one of the configured recurring events");
+                        let room = test_room(event.room, event.created_by, tenant_id);
+                        Ok((event, None, room, None, false, None, test_tariff(), None))
+                    });
+
+                inventory
+                    .expect_get_event_exceptions()
+                    .returning(|_, _| Ok(Vec::new()));
+
+                let items: Vec<EventStreamItem> = events_in_stream_order
+                    .iter()
+                    .cloned()
+                    .map(|event| stream_item(event, tenant.id))
+                    .collect();
+                inventory
+                    .expect_get_all_events_for_user_paginated_as_stream()
+                    .returning(move |_, _, _, _, _, _, _, _, _, _| {
+                        Ok(Box::pin(stream::iter(items.clone().into_iter().map(Ok))) as _)
+                    });
+
+                Ok(Box::new(inventory) as Box<dyn Inventory>)
+            });
+            provider
+        }
+
+        fn build_backend(
+            user: User,
+            tenant: Tenant,
+            events_in_ascending_order: Vec<Event>,
+            recurring_events: Vec<Event>,
+        ) -> ControllerBackend {
+            let mut settings_provider = MockSettingsProvider::new();
+            let settings: Arc<Settings> =
+                test_util::settings_provider_from_example_raw_settings().get();
+            settings_provider
+                .expect_get()
+                .returning(move || settings.clone());
+
+            let provider =
+                inventory_provider(user, tenant, events_in_ascending_order, recurring_events);
+
+            ControllerBackend::new(
+                settings_provider,
+                Authorizer::new(MockAuthorizerBackend::new()),
+                Arc::new(provider),
+                Arc::new(Cache::create(None)),
+                Arc::new(MockOidcTokenHandler::new()),
+                opentalk_types_api_v1::auth::OidcProvider {
+                    name: "test".to_string(),
+                    url: "https://example.org".to_string(),
+                },
+                Arc::new(opentalk_asset_storage::ObjectStorage::broken()),
+                Arc::new(None),
+                Arc::new(None),
+                BTreeMap::new(),
+                Arc::new(MockRoomServerBackend::new()),
+            )
+        }
+
+        #[tokio::test]
+        async fn meeting_appears_in_future_list_before_it_starts() {
+            let user = User::example_data();
+            let tenant = Tenant::example_data();
+            let now = Timestamp::now();
+            let meeting = scheduled_meeting(
+                EventId::from_u128(1),
+                user.id,
+                tenant.id,
+                now + chrono::Duration::hours(1),
+                now + chrono::Duration::hours(2),
+            );
+
+            let backend = build_backend(
+                user.clone(),
+                tenant.clone(),
+                vec![meeting.clone()],
+                Vec::new(),
+            );
+            let query = GetEventsAndInstancesQuery {
+                time_min: Some(now),
+                ..Default::default()
+            };
+
+            let (items, _before, _after) = backend
+                .get_events_and_instances_interwoven(request_user(&user), query)
+                .await
+                .expect("query must succeed");
+
+            assert!(
+                items
+                    .iter()
+                    .any(|item| matches!(item, EventOrInstance::Event(e) if e.id == meeting.id)),
+                "the upcoming meeting must be visible in the future meetings list before it starts"
+            );
+        }
+
+        #[tokio::test]
+        async fn meeting_is_removed_from_future_list_once_it_has_ended() {
+            let user = User::example_data();
+            let tenant = Tenant::example_data();
+            let now = Timestamp::now();
+            let backend = build_backend(user.clone(), tenant.clone(), Vec::new(), Vec::new());
+
+            let query = GetEventsAndInstancesQuery {
+                time_min: Some(now),
+                ..Default::default()
+            };
+
+            let (items, _before, _after) = backend
+                .get_events_and_instances_interwoven(request_user(&user), query)
+                .await
+                .expect("query must succeed");
+
+            assert!(
+                items.is_empty(),
+                "a meeting that has already ended must no longer be shown in the future meetings list"
+            );
+        }
+
+        #[tokio::test]
+        async fn recently_ended_meeting_included_in_the_past_meetings_list() {
+            const EVENTS_PER_PAGE: i64 = 10;
+
+            let user = User::example_data();
+            let tenant = Tenant::example_data();
+            let now = Timestamp::now();
+
+            // Fill entire page with events.
+            let mut events: Vec<Event> = (0..EVENTS_PER_PAGE)
+                .map(|i| {
+                    scheduled_meeting(
+                        EventId::from_u128((100 + i) as u128),
+                        user.id,
+                        tenant.id,
+                        now + chrono::Duration::days(-365) + chrono::Duration::hours(i),
+                        now + chrono::Duration::days(-365) + chrono::Duration::hours(i + 1),
+                    )
+                })
+                .collect();
+
+            let recently_ended_meeting = scheduled_meeting(
+                EventId::from_u128(999),
+                user.id,
+                tenant.id,
+                now + chrono::Duration::hours(-2),
+                now + chrono::Duration::hours(-1),
+            );
+            events.push(recently_ended_meeting.clone());
+
+            let backend = build_backend(user.clone(), tenant.clone(), events, Vec::new());
+            let page_size = PageSize::from_i64_clamped(EVENTS_PER_PAGE);
+
+            let query = GetEventsAndInstancesQuery {
+                time_max: Some(now),
+                per_page: Some(page_size),
+                ..Default::default()
+            };
+
+            let (items, _before, _after) = backend
+                .get_events_and_instances_interwoven(request_user(&user), query)
+                .await
+                .expect("query must succeed");
+
+            assert!(
+                items
+                    .iter()
+                    .any(|item| matches!(item, EventOrInstance::Event(e) if e.id == recently_ended_meeting.id)),
+                "the meeting that just ended must be visible in the past meetings list"
+            );
+        }
+
+        /// A recurring meeting's oldest occurrence must not push its newest one out
+        /// of the results.
+        #[tokio::test]
+        async fn recent_instance_of_long_running_recurring_meeting_is_not_excluded() {
+            let user = User::example_data();
+            let tenant = Tenant::example_data();
+            let now = Timestamp::now();
+
+            // Today's occurrence ended 2h ago; the first was 730 occurrences earlier.
+            let just_ended_instance_starts_at = now + chrono::Duration::hours(-2);
+            let anchor_starts_at = just_ended_instance_starts_at + chrono::Duration::days(-730);
+            let anchor_ends_at = anchor_starts_at + chrono::Duration::hours(1);
+
+            let long_running_meeting = recurring_meeting(
+                EventId::from_u128(1),
+                user.id,
+                tenant.id,
+                anchor_starts_at,
+                anchor_ends_at,
+                "FREQ=DAILY;INTERVAL=1",
+            );
+
+            let backend = build_backend(
+                user.clone(),
+                tenant.clone(),
+                Vec::new(),
+                vec![long_running_meeting.clone()],
+            );
+
+            let query = GetEventsAndInstancesQuery {
+                time_max: Some(now),
+                per_page: Some(PageSize::from_i64_clamped(10)),
+                // Small enough that 730 older occurrences would fill the window first.
+                instances_max: 3.into(),
+                ..Default::default()
+            };
+
+            let (items, _before, _after) = backend
+                .get_events_and_instances_interwoven(request_user(&user), query)
+                .await
+                .expect("query must succeed");
+
+            assert!(
+                items.iter().any(|item| matches!(
+                    item,
+                    EventOrInstance::Instance(instance)
+                        if instance.recurring_event_id == long_running_meeting.id
+                            && instance.starts_at.datetime > *(now + chrono::Duration::hours(-3))
+                )),
+                "the most recent instance of a long-running recurring meeting must be \
+                 visible in the past meetings list, not just its oldest occurrences"
+            );
+        }
+    }
 }
