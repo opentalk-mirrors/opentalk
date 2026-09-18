@@ -42,6 +42,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let connection = participant.get_mut().remove_connection(connection_id);
         if !participant.get().is_connected() {
             participant.remove();
+            tracing::debug!("Lobby connection disconnected, participant removed");
+        } else {
+            tracing::debug!("Lobby connection disconnected");
         }
 
         // Only notify moderators in case the participant was in the waiting room.
@@ -203,6 +206,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             },
         )?;
 
+        tracing::debug!("Participant left lobby and entered the waiting room");
         Ok(())
     }
 }

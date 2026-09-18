@@ -55,7 +55,9 @@ impl Timeout {
 
     /// Stops the timeout
     pub(super) fn stop(&mut self) {
-        tracing::debug!("Idle timer stopped");
+        if self.timeout.is_some() {
+            tracing::debug!("Idle timer stopped");
+        }
         self.timeout = None;
     }
 

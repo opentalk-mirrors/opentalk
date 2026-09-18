@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
-use std::{collections::HashSet, pin::Pin, sync::Arc};
+use std::{collections::HashSet, sync::Arc};
 
 use opentalk_orchestrator_client::{RoomserverEvent, client::OrchestratorHandle};
 use opentalk_roomserver_types::{
@@ -115,7 +115,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         created_by: UserId,
         mut rooms: tokio::sync::RwLockWriteGuard<'_, RoomMap<Socket>>,
         task_handle: &RoomTaskHandle<Socket>,
-        future_room: Pin<Box<dyn Future<Output = ()> + Send>>,
+        future_room: impl Future<Output = ()> + Send + 'static,
     ) {
         let this = self.clone();
 
