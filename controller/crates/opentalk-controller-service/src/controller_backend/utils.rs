@@ -7,8 +7,8 @@ use std::{cmp::Ordering, pin::Pin};
 use async_stream::{__private::AsyncStream, stream};
 use futures_util::{Stream, StreamExt};
 use opentalk_controller_settings::Settings;
-use opentalk_controller_utils::{CaptureApiError, TariffResourceExt};
-use opentalk_inventory::{Inventory, Result, Room, utils::is_room_guest_access_allowed};
+use opentalk_controller_utils::TariffResourceExt;
+use opentalk_inventory::{Inventory, Result};
 use opentalk_types_api_v1::error::ApiError;
 use opentalk_types_common::{
     features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
@@ -64,32 +64,12 @@ pub(crate) fn interweave_result_streams<'a, T: 'a>(
     }
 }
 
-/// Verifies if invites can be written for a given room
-/// Returns an error if invites the action is not allowed
-pub fn verify_invite_write(tariff: &TariffResource, room: &Room) -> Result<(), CaptureApiError> {
-    if is_room_guest_access_allowed(room, tariff) {
-        Ok(())
-    } else {
-        Err(ApiError::forbidden()
-            .with_code("service_unavailable")
-            .with_message("Invites are not available: either the guest feature is disabled, guest access is disabled for this room or the room is encrypted".to_string())
-            .into())
-    }
-}
-
 pub fn ensure_guest_access_valid(
     guest_access: GuestAccess,
-    e2ee_enabled: bool,
     tariff: &TariffResource,
 ) -> Result<(), ApiError> {
     if guest_access.is_disabled() {
         return Ok(());
-    }
-
-    if e2ee_enabled {
-        return Err(ApiError::bad_request()
-            .with_code("invalid_guest_access")
-            .with_message("Guest access cannot be enabled for encrypted rooms".to_string()));
     }
 
     tariff.require_feature(&GUESTS_ALLOWED_MODULE_FEATURE_ID)?;
@@ -180,32 +160,19 @@ mod tests {
     #[test]
     fn disabled_guest_access_is_always_valid() {
         // No feature checks apply when guest access is disabled
-        ensure_guest_access_valid(GuestAccess::Disabled, true, &guests_disabled_tariff()).unwrap();
-        ensure_guest_access_valid(GuestAccess::Disabled, false, &guests_disabled_tariff()).unwrap();
+        ensure_guest_access_valid(GuestAccess::Disabled, &guests_disabled_tariff()).unwrap();
     }
 
     #[test]
-    fn enabled_guest_access_is_valid_when_allowed_and_not_encrypted() {
-        ensure_guest_access_valid(GuestAccess::DirectAccess, false, &guests_allowed_tariff())
-            .unwrap();
-        ensure_guest_access_valid(GuestAccess::WaitingRoom, false, &guests_allowed_tariff())
-            .unwrap();
-    }
-
-    #[test]
-    fn enabled_guest_access_rejected_when_e2ee_enabled() {
-        let err =
-            ensure_guest_access_valid(GuestAccess::DirectAccess, true, &guests_allowed_tariff())
-                .unwrap_err();
-        assert_eq!(err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(err.body.code, "invalid_guest_access");
+    fn enabled_guest_access_is_valid_when_allowed() {
+        ensure_guest_access_valid(GuestAccess::DirectAccess, &guests_allowed_tariff()).unwrap();
+        ensure_guest_access_valid(GuestAccess::WaitingRoom, &guests_allowed_tariff()).unwrap();
     }
 
     #[test]
     fn enabled_guest_access_rejected_when_feature_disabled() {
-        let err =
-            ensure_guest_access_valid(GuestAccess::DirectAccess, false, &guests_disabled_tariff())
-                .unwrap_err();
+        let err = ensure_guest_access_valid(GuestAccess::DirectAccess, &guests_disabled_tariff())
+            .unwrap_err();
         assert_eq!(err.status, StatusCode::FORBIDDEN);
         assert_eq!(err.body.code, "feature_disabled");
     }

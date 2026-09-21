@@ -1453,7 +1453,7 @@ async fn create_time_independent_event(
     training_participation_report: Option<TrainingParticipationReportParameterSet>,
 ) -> Result<(EventResource, Option<MailResource>), CaptureApiError> {
     let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
-    ensure_guest_access_valid(guest_access, e2e_encryption, user_tariff)?;
+    ensure_guest_access_valid(guest_access, user_tariff)?;
     let alias = build_room_alias(room_name, settings);
 
     let room = inventory
@@ -1559,7 +1559,7 @@ async fn create_time_dependent_event(
         parse_event_dt_params(is_all_day, starts_at, ends_at, &recurrence_pattern)?;
 
     let guest_access = guest_access.unwrap_or(GuestAccess::WaitingRoom);
-    ensure_guest_access_valid(guest_access, e2e_encryption, user_tariff)?;
+    ensure_guest_access_valid(guest_access, user_tariff)?;
 
     let alias = build_room_alias(room_name, settings);
 

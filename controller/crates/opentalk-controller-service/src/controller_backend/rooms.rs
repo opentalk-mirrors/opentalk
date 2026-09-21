@@ -87,7 +87,7 @@ impl ControllerBackend {
         if enable_sip {
             Self::ensure_call_in_permission(e2e_encryption, guest_access, &tariff)?
         }
-        ensure_guest_access_valid(guest_access, e2e_encryption, &tariff)?;
+        ensure_guest_access_valid(guest_access, &tariff)?;
 
         let alias = build_room_alias(name, &settings);
 
@@ -198,14 +198,13 @@ impl ControllerBackend {
 
         let alias = name.map(|name| build_room_alias(name, &settings));
 
-        if guest_access.is_some() || e2e_encryption.is_some() {
+        if guest_access.is_some() {
             let room = inventory.get_room(&room_id_or_alias).await?;
             let tariff = self.get_tariff_for_user(room.created_by).await?;
 
             let guest_access = guest_access.unwrap_or(room.guest_access);
-            let e2e_encryption = e2e_encryption.unwrap_or(room.e2e_encryption);
 
-            ensure_guest_access_valid(guest_access, e2e_encryption, &tariff)?;
+            ensure_guest_access_valid(guest_access, &tariff)?;
         }
 
         let room = inventory

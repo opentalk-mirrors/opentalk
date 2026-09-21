@@ -68,8 +68,7 @@ pub fn is_call_in_allowed(room: &Room, tariff: &TariffResource) -> bool {
 ///
 /// This only checks if guests are allowed in the room in general.
 pub fn is_room_guest_access_allowed(room: &Room, tariff: &TariffResource) -> bool {
-    !room.e2e_encryption
-        && !room.guest_access.is_disabled()
+    !room.guest_access.is_disabled()
         && tariff.has_feature_enabled(
             &GUESTS_ALLOWED_MODULE_FEATURE_ID.module,
             &GUESTS_ALLOWED_MODULE_FEATURE_ID.feature,
@@ -199,7 +198,7 @@ mod tests {
             e2e_encryption: true,
             alias: None,
         };
-        assert!(!is_room_guest_access_allowed(
+        assert!(is_room_guest_access_allowed(
             &encrypted_room,
             &allowed_tariff
         ));
