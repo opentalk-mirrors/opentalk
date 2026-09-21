@@ -92,7 +92,7 @@ pub use {
     event::MockEventInventory, event_invite::MockEventInviteInventory,
     event_shared_folder::MockEventSharedFolderInventory,
     event_training_participation_report::MockEventTrainingParticipationReportInventory,
-    group::MockGroupInventory, inventory_provider::MockInventoryProvider,
+    group::MockGroupInventory, inventory::MockInventory, inventory_provider::MockInventoryProvider,
     job_execution::MockJobExecutionInventory, module_resource::MockModuleResourceInventory,
     room::MockRoomInventory, room_invite::MockRoomInviteInventory,
     room_sip_config::MockRoomSipConfigInventory,
