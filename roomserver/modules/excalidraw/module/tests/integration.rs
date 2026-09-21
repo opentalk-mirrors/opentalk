@@ -9,7 +9,10 @@ use opentalk_roomserver_room::mocking::{
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
-    breakout::breakout_config::{BreakoutConfig, BreakoutRoomConfig},
+    breakout::{
+        breakout_config::{BreakoutConfig, BreakoutRoomConfig},
+        event::BreakoutEvent,
+    },
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_excalidraw::{
@@ -513,6 +516,53 @@ async fn follow_unfollow_across_room_boundaries() {
 
     // Bob should not receive any follow related events from another room
     assert!(bob.received_nothing());
+}
+
+#[test_log::test(tokio::test)]
+async fn autostart_in_breakout_room() {
+    let mut room = TestRoom::builder()
+        .register_module::<ExcalidrawModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // Alice starts excalidraw in the main room
+    start_excalidraw(&mut alice, &mut []).await;
+
+    // Alice starts a breakout room
+    alice
+        .start_breakout_rooms(
+            &mut [],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "Room 0".to_string(),
+                    assignments: vec![alice.id()],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    // Alice switches to the breakout room without starting excalidraw there herself
+    let event = alice
+        .switch_breakout_room(&mut [], RoomKind::Breakout(0.into()))
+        .await;
+
+    let BreakoutEvent::SwitchedRoom { own_data, .. } = event else {
+        panic!("Expected BreakoutEvent::SwitchedRoom, got: {event:?}");
+    };
+
+    // Excalidraw was autostarted in the breakout room with a fresh, empty board
+    let state = own_data
+        .get::<ExcalidrawState>()
+        .expect("Module data must be present")
+        .expect("Excalidraw must have been autostarted in the breakout room");
+    assert_eq!(
+        state,
+        ExcalidrawState {
+            scene: serde_json::json!({"elements": []}),
+            edit_restrictions: EditRestrictions::Disabled,
+        }
+    );
 }
 
 #[test_log::test(tokio::test)]

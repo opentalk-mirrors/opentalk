@@ -15,6 +15,7 @@ use opentalk_roomserver_signaling::{
     },
 };
 use opentalk_roomserver_types::{
+    breakout::BreakoutRoom,
     connection_id::ConnectionId,
     room_kind::RoomKind,
     signaling::module_error::{FatalError, SignalingModuleError},
@@ -121,6 +122,30 @@ impl SignalingModule for ExcalidrawModule {
                 self.disable_edit_restrictions(ctx, sender)
             }
         }
+    }
+
+    fn on_breakout_start(
+        &mut self,
+        _ctx: &mut ModuleContext<'_, Self>,
+        rooms: &[BreakoutRoom],
+        _duration: Option<std::time::Duration>,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        // Autostart excalidraw with a fresh board in the breakout rooms when it is already
+        // running in the main room.
+        if self.state.contains_key(&RoomKind::Main) {
+            self.state.extend(rooms.iter().map(|room| {
+                (
+                    RoomKind::Breakout(room.id),
+                    ExcalidrawState {
+                        // Initializing whiteboard with empty scene; required by the frontend to be
+                        // set correctly.
+                        scene: serde_json::json!({"elements": []}),
+                        edit_restrictions: EditRestrictions::default(),
+                    },
+                )
+            }));
+        }
+        Ok(())
     }
 
     fn on_breakout_switch(
