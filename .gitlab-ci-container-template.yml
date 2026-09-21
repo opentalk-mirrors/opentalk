@@ -1,0 +1,200 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+---
+spec:
+  inputs:
+    service:
+      type: string
+    flavors:
+      type: array
+    default_flavor:
+      type: string
+    dockerfile_dir:
+      default: $CI_PROJECT_DIR/container/$[[ inputs.service ]]
+    harbor_push_project:
+      description: The GitLab project path for the push-and-sign pipeline.
+      type: string
+      default: opentalk/opentalk-devops/push-and-sign-images-for-the-opentalk-namespace
+
+---
+
+# Runs on merge requests
+#
+# Builds the service's containers and pushes them
+# to the local gitlab container registry as '{merge-request-branch-slug}-{flavor}'
+container-mr-$[[ inputs.service ]]:
+  parallel:
+    matrix:
+      - FLAVOR: $[[ inputs.flavors ]]
+  stage: package
+  needs:
+    - job: build
+      artifacts: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: manual
+      allow_failure: true
+  image:
+    name: $BUILDAH_IMAGE
+    pull_policy: if-not-present
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | buildah login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - TAG="$CI_COMMIT_REF_SLUG-$FLAVOR"
+    - >
+      buildah build
+      -f $[[ inputs.dockerfile_dir ]]/Dockerfile-$FLAVOR
+      -t "$CI_REGISTRY_IMAGE/$[[ inputs.service ]]:$TAG"
+      "$CI_PROJECT_DIR"
+    - buildah push "$CI_REGISTRY_IMAGE/$[[ inputs.service ]]:$TAG"
+
+# Runs on main & release branches
+#
+# Build the service's containers as pushes them as
+# {flavor}-{git-commit-short-sha} (e.g. ubuntu-e2d7f9579)
+# into the local gitlab container repository
+container-$[[ inputs.service ]]:
+  parallel:
+    matrix:
+      - FLAVOR: $[[ inputs.flavors ]]
+  stage: package
+  needs:
+    - job: build
+      artifacts: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
+  image:
+    name: $BUILDAH_IMAGE
+    pull_policy: if-not-present
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | buildah login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - TAG=$FLAVOR-$CI_COMMIT_SHORT_SHA
+    - >
+      buildah build
+      -f $[[ inputs.dockerfile_dir ]]/Dockerfile-$FLAVOR
+      -t "$CI_REGISTRY_IMAGE/$[[ inputs.service ]]:$TAG"
+      "$CI_PROJECT_DIR"
+    - buildah push "$CI_REGISTRY_IMAGE/$[[ inputs.service ]]:$TAG"
+
+# Runs on main branch and tags
+#
+# Reads all valid release tags into a package.env file
+# and provides it as artifact for 'container-create-and-push-tags'
+read-tags:
+  stage: read-tags
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
+  image:
+    name: alpine/git:v2.52.0
+    entrypoint: ['']
+    pull_policy: if-not-present
+  artifacts:
+    reports:
+      dotenv: package.env
+  script:
+    - git fetch --tags
+    - |
+      TAGS=$(git tag --list --sort=v:refname \
+              | sed -n '/^v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$/p' \
+              | head -n -1 \
+              | tr '\n' ' ')
+    - echo "TAGS=$TAGS" > package.env
+
+# Runs on main branch and tags of only the opentalk main repository,
+# not forks to avoid accidental publishes to harbor.
+#
+# re-tags all current images of the service into different version
+# of the latest version tag, provided by 'read-tags' and pushes them to the gitlab repository.
+#
+# E.g. latest tag is v0.123.0 so this pushes it to latest, v0, v0.123, v0.123.1
+#      and also with all flavors suffixed: latest-ubuntu, v0-ubuntu, etc...
+#
+# Exports all new tags into a package.env which is then used by 'push-and-sign-images-to-harbor'
+container-create-and-push-tags-$[[ inputs.service ]]:
+  parallel:
+    matrix:
+      - FLAVOR: $[[ inputs.flavors ]]
+  stage: push
+  needs:
+    - job: read-tags
+      optional: true
+    - job: container-$[[ inputs.service ]]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    # Prevent forks from triggering the downstream pipeline
+    - if: $CI_PROJECT_ROOT_NAMESPACE != "opentalk"
+      when: never
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
+  image:
+    name: git.opentalk.dev:5050/opentalk/ci/templates/rust-container-build:v2
+    entrypoint: ['']
+    pull_policy: if-not-present
+  variables:
+    DEFAULT_FLAVOR: $[[ inputs.default_flavor ]]
+  script:
+    - >
+      TAGS_TO_PUSH=$(create-container-tags
+      "${CI_COMMIT_TAG:-$CI_COMMIT_REF_NAME}"
+      "$TAGS" "$FLAVOR" "$DEFAULT_FLAVOR" "$CI_DEFAULT_BRANCH")
+    - |
+      for tag in $TAGS_TO_PUSH; do
+        skopeo copy \
+        --src-creds="${CI_REGISTRY_USER}":"${CI_REGISTRY_PASSWORD}" \
+        --dest-creds="${CI_REGISTRY_USER}":"${CI_REGISTRY_PASSWORD}" \
+        "docker://${CI_REGISTRY_IMAGE}/$[[ inputs.service ]]:$FLAVOR-${CI_COMMIT_SHORT_SHA}" \
+        "docker://${CI_REGISTRY_IMAGE}/$[[ inputs.service ]]:$tag"
+      done
+    - echo "TAGS_$FLAVOR=$TAGS_TO_PUSH" > package.env
+  artifacts:
+    reports:
+      dotenv: package.env
+
+# Runs on main branch and tags of only the opentalk main repository,
+# not forks to avoid accidental publishes to harbor.
+#
+# Trigger harbor publish pipeline which copies container tags provided
+# via package.env from 'container-create-and-push-tags' into a separate container registry.
+push-and-sign-images-to-harbor-$[[ inputs.service ]]:
+  parallel:
+    matrix:
+      - FLAVOR: $[[ inputs.flavors ]]
+  needs:
+    - job: container-create-and-push-tags-$[[ inputs.service ]]
+      parallel:
+        matrix:
+          - FLAVOR: $[[ inputs.flavors ]]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    # Prevent forks from triggering the downstream pipeline
+    - if: $CI_PROJECT_ROOT_NAMESPACE != "opentalk"
+      when: never
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
+  stage: push-harbor
+  variables:
+    PIPELINE_FULL_IMAGE_NAME: $CI_REGISTRY_IMAGE/$[[ inputs.service ]]
+    PIPELINE_NAMESPACE_SUFFIX: $[[ inputs.service ]]
+    PIPELINE_TAGS_ENV_NAME: TAGS_$FLAVOR
+  trigger:
+    project: $[[ inputs.harbor_push_project ]]
+    strategy: depend
+    forward:
+      pipeline_variables: true

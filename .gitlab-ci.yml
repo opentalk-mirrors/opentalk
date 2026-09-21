@@ -18,25 +18,28 @@ spec:
       regex: ^\d*$
       default: ''
 ---
-image: $RUST_LINT_IMAGE
+image: $RUST_IMAGE
 
 stages:
   - build
   - lint
   - test
-  - trigger
+  - read-tags
+  - package
+  - push
+  - push-harbor
+  # - release
 
 variables:
-  KANIKO_IMAGE: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/kaniko:debug-1.25.2
-  SKOPEO_IMAGE: quay.io/skopeo/stable:v1
-  DEFAULT_FLAVOR: alpine
-  RUST_LINT_IMAGE: registry.heinlein.group/opentalk-tools/rust:1.98.1-trixie
+  BUILDAH_IMAGE: quay.io/buildah/stable:v1.43.1
+  RUST_IMAGE: registry.heinlein.group/opentalk-tools/rust:1.98.1-trixie
+
+  # Included jobs need these
+  RUST_LINT_IMAGE: $RUST_IMAGE
+  RUST_BUILD_IMAGE: $RUST_IMAGE
+
   # The `livekit` client crate pulls in `webrtc-sys`, whose build script refuses to compile with GCC or clang < 20
   CXX: clang++-21
-
-.template_vars:
-  FLAVORS: [alpine, trixie, resolute, scratch]
-  DEFAULT_FLAVOR: alpine
 
 .default_job_condition: &default_job_condition
   needs: []
@@ -48,6 +51,42 @@ variables:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
 
 include:
+  - local: .gitlab-ci-container-template.yml
+    inputs:
+      service: controller
+      flavors: [ubuntu, scratch]
+      default_flavor: ubuntu
+  - local: .gitlab-ci-container-template.yml
+    inputs:
+      service: obelisk
+      flavors: [ubuntu, scratch]
+      default_flavor: ubuntu
+  - local: .gitlab-ci-container-template.yml
+    inputs:
+      service: orchestrator
+      flavors: [ubuntu, scratch]
+      default_flavor: ubuntu
+  - local: .gitlab-ci-container-template.yml
+    inputs:
+      service: roomserver
+      flavors: [ubuntu, scratch]
+      default_flavor: ubuntu
+  - local: .gitlab-ci-container-template.yml
+    inputs:
+      service: smtp-mailer
+      flavors: [ubuntu, scratch]
+      default_flavor: ubuntu
+  - local: .gitlab-ci-container-template.yml
+    inputs:
+      service: recorder
+      flavors: [intel, scratch]
+      default_flavor: intel
+  - local: .gitlab-ci-container-template.yml
+    inputs:
+      service: transcription
+      flavors: [vulkan]
+      default_flavor: vulkan
+
   - project: opentalk/ci/templates/rust-lint
     ref: v1
     file: .gitlab-ci-template.yml
@@ -57,12 +96,6 @@ include:
   - project: opentalk/ci/templates/changelog
     ref: v2
     file: .gitlab-ci-template.yml
-# - project: opentalk/ci/templates/rust-container-build
-#   inputs:
-#     harbor_namespace_suffix: roomserver
-#     additional_labels: team-conference
-#   ref: v2
-#   file: .gitlab-ci-template.yml
 
 lint:fmt_load_tests:
   stage: lint
@@ -198,7 +231,7 @@ test:load_typst_plugins:
     - cp -r /usr/share/typst target/typst
 
 test:cargo_test:
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98.1-trixie
+  image: $RUST_IMAGE
   stage: test
   <<: *default_job_condition
   tags:
@@ -249,14 +282,15 @@ test:cargo_test:
 #     expire_in: 1 week
 
 build:
-  # we need alpine here, so that this binary can be used in the `test:load` job, which uses an alpine based K6 image.
-  image: git.opentalk.dev:5050/opentalk/backend/containers/rust:1.98.1-trixie
+  image: $RUST_IMAGE
   stage: build
   needs: []
   rules:
     - if: $CI_PIPELINE_SOURCE == "pipeline"
       when: never
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
     - if: $CI_COMMIT_TAG != null
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   variables:
@@ -280,6 +314,7 @@ build:
     - cargo auditable build --release --locked -p opentalk-roomserver
     - cargo auditable build --release --locked -p opentalk-smtp-mailer
     - cargo auditable build --release --locked -p opentalk-transcription
+    - du -ch target/release/opentalk-*
 
 # The DUI requires glibc. We therefore build it with a Debian based container.
 build:dui:

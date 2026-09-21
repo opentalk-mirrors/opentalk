@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM ubuntu:resolute AS preparer
+
+RUN apt-get update && apt-get full-upgrade -y && \
+    apt-get install --no-install-recommends -y ca-certificates && \
+    update-ca-certificates
+
+FROM scratch
+
+COPY --from=preparer /lib64/ld-linux-x86-64* /lib64/
+COPY --from=preparer /usr/bin/ld.so /lib/
+COPY --from=preparer /usr/lib /usr/lib
+COPY --from=preparer /etc/nsswitch.conf /etc/nsswitch.conf
+COPY --from=preparer /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+ENV LD_LIBRARY_PATH=/usr/lib:/lib:/lib64
+ENV PATH=/:/usr/bin/
+
+ENV USERID=1000
+ENV GROUPID=1000
+
+WORKDIR /orchestrator
+
+COPY target/release/opentalk-orchestrator .
+
+USER $USERID:$GROUPID
+
+EXPOSE 11222
+ENTRYPOINT [ "/orchestrator/opentalk-orchestrator" ]

@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+ARG typst_plugins_version=dev
+ARG typst_plugins_flavor=scratch
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:${typst_plugins_flavor}-${typst_plugins_version} AS typst-plugins
+
+FROM ubuntu:resolute AS preparer
+
+RUN apt-get update && apt-get full-upgrade -y && \
+    apt-get install --no-install-recommends -y ca-certificates && \
+    update-ca-certificates
+
+FROM scratch
+
+COPY --from=preparer /lib64/ld-linux-x86-64* /lib64/
+COPY --from=preparer /usr/bin/ld.so /lib/
+COPY --from=preparer /usr/lib /usr/lib
+COPY --from=preparer /etc/nsswitch.conf /etc/nsswitch.conf
+COPY --from=preparer /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+ENV LD_LIBRARY_PATH=/usr/lib:/lib:/lib64
+ENV PATH=/:/usr/bin/
+
+ENV USERID=1000
+ENV GROUPID=1000
+
+WORKDIR /opentalk-roomserver
+
+COPY target/release/opentalk-roomserver .
+COPY --from=typst-plugins /usr/share/typst/packages/preview/linguify/ /usr/share/typst/packages/preview/linguify/
+
+USER $USERID:$GROUPID
+
+EXPOSE 11333
+ENTRYPOINT [ "/opentalk-roomserver/opentalk-roomserver" ]

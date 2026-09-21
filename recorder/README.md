@@ -44,13 +44,3 @@ ulimit for optimal performance.
 It's also worth noting that you can adjust the ulimit within the [docker-
 compose](https://docs.docker.com/compose/compose-file/compose-file-v3/#ulimits)
 configuration if you are using Docker.
-
-## Build the container image
-
-The `Dockerfile` is located at `ci/Dockerfile`.
-
-To build the image, execute in the root of the repository:
-
-```bash
-docker build -f ci/Dockerfile . --tag <your tag>
-```

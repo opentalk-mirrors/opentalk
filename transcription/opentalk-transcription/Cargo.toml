@@ -32,7 +32,7 @@ ezk-audio-nodes = { workspace = true, features = ["nnnoiseless"] }
 futures.workspace = true
 hound.workspace = true
 itertools.workspace = true
-livekit = { workspace = true, features = ["native-tls"] }
+livekit.workspace = true
 log.workspace = true
 opentalk-client-signaling.workspace = true
 opentalk-orchestrator-client.workspace = true

@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM ubuntu:resolute
+
+RUN apt-get --update full-upgrade -y && \
+    apt-get install libssl3 ca-certificates -y --no-install-recommends && \
+    update-ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /obelisk
+
+COPY target/release/opentalk-obelisk .
+RUN ln -s opentalk-obelisk k3k-obelisk
+
+ENV USERID=1000
+ENV GROUPID=1000
+USER $USERID:$GROUPID
+
+ENTRYPOINT [ "/obelisk/opentalk-obelisk" ]

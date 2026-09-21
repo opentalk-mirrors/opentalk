@@ -155,15 +155,6 @@ or be passed explicitly:
 cargo run -- -c ./extra/example.toml
 ```
 
-## Build the container image
-
-The Dockerfiles are located in the `ci` directory, one per backend. To build an
-image, execute in the root of the repository:
-
-```sh
-docker build -f ci/Dockerfile-vulkan . --tag <your tag>
-```
-
 ## Administration
 
 See the [administration guide](docs/admin/README.md) for configuration and

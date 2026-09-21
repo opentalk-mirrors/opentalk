@@ -5,3 +5,27 @@
 [alias]
 controller-xtask = "run --package controller-xtask --"
 obelisk-xtask = "run --package obelisk-xtask --"
+
+[env]
+
+# GGML (used by transcription's whisper.cpp) defaults to native build,
+# which enables all CPU features available by the building host system
+#
+# We're targeting the `x86-64-v3` architecture,
+# which theres no single option for, so set all 
+# configurable CPU features manually below.
+
+GGML_NATIVE = "OFF"
+
+GGML_SSE42 = "ON"
+GGML_AVX = "ON"
+GGML_AVX2 = "ON"
+GGML_FMA = "ON"
+GGML_F16C = "ON"
+GGML_BMI2 = "ON"
+
+GGML_AVX_VNNI = "OFF"
+GGML_AVX512 = "OFF"
+GGML_AVX512_VBMI = "OFF"
+GGML_AVX512_VNNI = "OFF"
+GGML_AVX512_BF16 = "OFF"

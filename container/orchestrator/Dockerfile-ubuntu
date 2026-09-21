@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM ubuntu:resolute
+
+RUN apt-get update && \
+    apt-get full-upgrade -y && \
+    apt-get install --no-install-recommends -y ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV USERID=1000
+ENV GROUPID=1000
+
+WORKDIR /orchestrator
+
+COPY target/release/opentalk-orchestrator .
+
+USER $USERID:$GROUPID
+
+EXPOSE 11222
+ENTRYPOINT [ "/orchestrator/opentalk-orchestrator" ]
