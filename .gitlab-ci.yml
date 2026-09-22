@@ -131,25 +131,56 @@ lint:commit-signature:
       git log --format=format:'%G?' $CI_MERGE_REQUEST_DIFF_BASE_SHA..HEAD
       | grep --null-data --quiet --invert-match --regexp="N" --regexp="B"
 
-# lint:docs-generated-parts:
-#   stage: lint
-#   image:
-#     name: git.opentalk.dev:5050/opentalk/tools/opentalk-ci-doc-updater:v0.2.0
-#     entrypoint: ['']
-#   needs:
-#     - job: build
-#       artifacts: true
-#   rules:
-#     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-#   before_script:
-#     - apt-get update && apt-get install -y git
-#   script:
-#     - ci/docs-update-generated-parts.sh
-#     - |
-#       if ! git diff --exit-code; then
-#         echo "Generated parts of documentation changed, run ci/docs-update-generated-parts.sh and commit the result"
-#         exit 1
-#       fi
+lint:er-diagram:
+  stage: lint
+  needs:
+    - job: build
+      artifacts: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  artifacts:
+    paths:
+      - controller/target/docs/temporary/controller/database/er-diagram.mermaid
+    expire_in: 1 day
+  variables:
+    POSTGRES_DB: opentalk
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: password123
+    POSTGRES_HOST_AUTH_METHOD: trust
+    POSTGRES_BASE_URL: postgres://postgres:password123@postgres:5432
+    OPENTALK_CTRL_DATABASE__URL: postgres://postgres:password123@postgres:5432/opentalk
+  services:
+    - name: postgres:18-alpine
+      alias: postgres
+  script:
+    - controller/ci/docs-generate-mermaid.sh
+
+lint:docs-generated-parts:
+  stage: lint
+  image:
+    name: git.opentalk.dev:5050/opentalk/tools/opentalk-ci-doc-updater:v0.2.0
+    entrypoint: ['']
+  needs:
+    - job: build
+      artifacts: true
+    - job: lint:er-diagram
+      artifacts: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  parallel:
+    matrix:
+      - COMPONENT: [controller, obelisk, roomserver, smtp-mailer]
+  before_script:
+    - apt-get update && apt-get install -y git git-lfs
+    - git lfs install
+  script:
+    - $COMPONENT/ci/docs-update-generated-parts.sh
+    - |
+      if ! git diff --exit-code; then
+        echo "Generated parts of documentation changed, run" \
+          "$COMPONENT/ci/docs-update-generated-parts.sh and commit the result"
+        exit 1
+      fi
 
 test:load_typst_plugins:
   stage: test
