@@ -56,7 +56,7 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `backup_dir_config` | string | `{{ backup_dir }}/config` |
 | `backup_dir_sql_dumps` | string | `{{ backup_dir }}/dumps` |
 | `backup_dir_volumes` | string | `{{ backup_dir }}/volumes` |
-| `backup_docker_volume_list` | string | `{{`<br>`  ( [compose_project_name ~ '_garage_meta', compose_project_name ~ '_garage_data']`<br>`    if (s3_storage_provider \| default('garage')) == 'garage'`<br>`    else [compose_project_name ~ '_minio'] )`<br>`  + [compose_project_name ~ '_rabbitmq', compose_project_name ~ '_traefik']`<br>`}}` |
+| `backup_docker_volume_list` | string | `{{`<br>`  ( [compose_project_name ~ '_garage_meta', compose_project_name ~ '_garage_data']`<br>`    if (s3_storage_provider &#124; default('garage')) == 'garage'`<br>`    else [compose_project_name ~ '_minio'] )`<br>`  + [compose_project_name ~ '_rabbitmq', compose_project_name ~ '_traefik']`<br>`}}` |
 | `backup_docker_volume_restore_files` | list | `[]` |
 | `backup_retention_max_age_days` | integer | `7` |
 | `backup_retention_max_items` | integer | `5` |
@@ -493,7 +493,11 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `controller_http_addr` | string | `::0` |
 | `controller_http_cors_allowed_origin` | string | `["*"]` |
 | `controller_http_port` | integer | `11311` |
-| `controller_http_service_api_keys` | list | `[{id: controller, secret: secret}]` |
+| `controller_http_service_api_keys` | list | `[{id: controller, secret: {{ OIDC_CONTROLLER_CLIENT_SECRET }}}]` |
+| `controller_livekit_api_key` | string | `controller` |
+| `controller_livekit_api_secret` | string | `{{ LIVEKIT_API_SECRET }}` |
+| `controller_livekit_public_url` | string | `wss://{{ (ot_domain, ot_ingress_port) \| build_host }}/livekit` |
+| `controller_livekit_service_url` | string | `http://host.docker.internal:7880` |
 | `controller_http_upload_size_limit` | string | `100000000` |
 | `controller_logging_default_directives` | list | `[ERROR, opentalk=INFO, pinky_swear=OFF, rustls=WARN, mio=ERROR, lapin=WARN, execution_id=trace]` |
 | `controller_logging_otlp_tracing_endpoint` | string | `http://localhost:4317` |
