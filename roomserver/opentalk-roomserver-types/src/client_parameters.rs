@@ -456,4 +456,15 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn is_call_in_affects_all_call_in_kinds() {
+        let call_in = ClientKind::CallIn;
+        assert!(call_in.is_call_in());
+
+        let registered_call_in = ClientKind::RegisteredCallIn {
+            profile: PublicUserProfile::example_data(),
+        };
+        assert!(registered_call_in.is_call_in());
+    }
 }

@@ -30,7 +30,6 @@ tokio.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-http.workspace = true
 insta.workspace = true
 livekit.workspace = true
 opentalk-roomserver-module-shared-folder.workspace = true

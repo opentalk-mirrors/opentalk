@@ -155,6 +155,24 @@ impl ApiError {
         )
     }
 
+    /// Creates a new 403 Forbidden error that indicates that the user is banned.
+    pub fn banned() -> Self {
+        Self::new_standard(
+            StatusCode::FORBIDDEN,
+            "banned",
+            "User is banned from this room",
+        )
+    }
+
+    /// Creates a new 403 Forbidden error that indicates that guest access is disabled.
+    pub fn guest_access_disabled() -> Self {
+        Self::new_standard(
+            StatusCode::FORBIDDEN,
+            "guest_access_disabled",
+            "Guest access disabled",
+        )
+    }
+
     /// Creates a new 413 Payload Too Large error that indicates that the storage quota was
     /// exceeded.
     pub fn storage_quota_exceeded() -> Self {

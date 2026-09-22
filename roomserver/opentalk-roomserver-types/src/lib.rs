@@ -7,6 +7,7 @@
 
 pub mod api;
 pub mod breakout;
+pub mod client_allowed;
 pub mod client_parameters;
 pub mod connection_id;
 pub mod core;

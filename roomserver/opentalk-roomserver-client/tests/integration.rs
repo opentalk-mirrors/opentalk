@@ -207,8 +207,10 @@ async fn request_token_guest_access_disabled() {
         kind: ClientKind::Guest,
         role: Role::User,
     };
-    let mut room_parameters = RoomParameters::example_data();
-    room_parameters.guest_access = false;
+    let room_parameters = RoomParameters {
+        guest_access: false,
+        ..RoomParameters::example_data()
+    };
 
     // Guests requesting a token for a new room fails when guest access is disabled
     let error = client

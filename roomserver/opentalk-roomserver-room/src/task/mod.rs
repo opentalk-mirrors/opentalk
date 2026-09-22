@@ -77,7 +77,8 @@ use opentalk_roomserver_signaling::{
 };
 use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
-    client_parameters::{ClientKind, ClientParameters, Role},
+    client_allowed::{ClientAllowed, ClientNotAllowedReason},
+    client_parameters::{ClientKind, ClientParameters, ParticipationKind, Role},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, RoomCloseReason},
     device_id::DeviceId,
@@ -89,8 +90,12 @@ use opentalk_roomserver_types::{
 };
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
-    modules::ModuleId, rooms::RoomId, roomserver::DeviceSecret, tariffs::QuotaType,
-    time::Timestamp, users::DisplayName,
+    modules::ModuleId,
+    rooms::RoomId,
+    roomserver::DeviceSecret,
+    tariffs::QuotaType,
+    time::Timestamp,
+    users::{DisplayName, UserId},
 };
 use opentalk_types_signaling::ParticipantId;
 use tokio::sync::{mpsc, oneshot};
@@ -402,21 +407,22 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     "Failed to respond to StorageQuotaChanged, response channel dropped",
                 )?;
             }
-            Request::IsBanned { response, user_id } => {
-                let participant_id = ParticipantId::from(Uuid::from(user_id));
-                response
-                    .send(Ok(self.banned_participants.contains_key(&participant_id)))
+            Request::IsClientAllowed {
+                response: response_tx,
+                user_id,
+                participation_kind,
+            } => {
+                let client_allowed = self.is_client_allowed(user_id, participation_kind);
+
+                response_tx
+                    .send(Ok(client_allowed))
                     .ok()
-                    .context("Failed to respond to IsBanned, response channel dropped")?;
+                    .context("Failed to respond to IsClientAllowed, response channel dropped")?;
             }
             Request::AllowedOrigins { response } => response
                 .send(Ok(self.info.room.allowed_origins.clone()))
                 .ok()
                 .context("Failed to respond to AllowedOrigins, response channel dropped")?,
-            Request::GuestAccess { response } => response
-                .send(Ok(self.info.room.guest_access))
-                .ok()
-                .context("Failed to respond to GuestAccess, response channel dropped")?,
             Request::WsJoin {
                 response,
                 socket,
@@ -755,6 +761,28 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     #[tracing::instrument(level = "info", skip(self))]
     fn set_parameters(&mut self, room_parameters: RoomParameters) {
         self.info.room = room_parameters
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    fn is_client_allowed(&self, user_id: Option<UserId>, kind: ParticipationKind) -> ClientAllowed {
+        // Check if the user is banned
+        if let Some(user_id) = user_id {
+            let participant_id = ParticipantId::from(Uuid::from(user_id));
+            if self.banned_participants.contains_key(&participant_id) {
+                return ClientAllowed::No {
+                    reason: ClientNotAllowedReason::Banned,
+                };
+            }
+        }
+
+        // Check guest access
+        if !self.info.room.guest_access && kind.is_guest_or_callin() {
+            ClientAllowed::No {
+                reason: ClientNotAllowedReason::GuestAccessDisabled,
+            }
+        } else {
+            ClientAllowed::Yes
+        }
     }
 
     #[tracing::instrument(level = "info", skip_all)]

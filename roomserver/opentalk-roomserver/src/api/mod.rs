@@ -32,6 +32,7 @@ use opentalk_roomserver_signaling::storage::{
 };
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
+    client_allowed::{ClientAllowed, ClientNotAllowedReason},
     client_parameters::ClientParameters,
     livekit_proxy::{LiveKitProxyRequest, PreparedSocket, websocket::LiveKitSocket},
     room_action::RoomAction,
@@ -305,9 +306,7 @@ impl RoomBackend for Context {
             // Room needs to be created
             (None, Some(parameters)) => {
                 if client_parameters.kind.is_guest_or_callin() && !parameters.guest_access {
-                    return Err(ApiError::forbidden()
-                        .with_code("guest_access_disabled")
-                        .with_message("Guest access disabled"));
+                    return Err(ApiError::guest_access_disabled());
                 }
 
                 let ctx = self.create_task_context(&parameters.tariff);
@@ -324,25 +323,10 @@ impl RoomBackend for Context {
                     return Err(ApiError::internal().with_message("Failed to refresh idle timeout"));
                 }
 
-                // Ensure the user isn't banned
-                if let Some(user_id) = client_parameters.kind.user_id() {
-                    task_handle.reject_if_banned(user_id).await?;
-                }
-
-                if client_parameters.kind.is_guest_or_callin() {
-                    match task_handle.is_guest_access_allowed().await {
-                        Some(true) => {}
-                        Some(false) => {
-                            return Err(ApiError::forbidden()
-                                .with_code("guest_access_disabled")
-                                .with_message("Guest access disabled"));
-                        }
-                        None => {
-                            return Err(ApiError::internal()
-                                .with_message("Failed to check room guest access"));
-                        }
-                    }
-                }
+                let allowed = task_handle
+                    .is_client_allowed(&client_parameters.kind)
+                    .await?;
+                reject_if_client_not_allowed(allowed)?;
             }
         }
 
@@ -503,6 +487,16 @@ impl UserBackend for Context {
     }
 }
 
+pub(crate) fn reject_if_client_not_allowed(allowed: ClientAllowed) -> Result<(), ApiError> {
+    match allowed {
+        ClientAllowed::Yes => Ok(()),
+        ClientAllowed::No { reason } => Err(match reason {
+            ClientNotAllowedReason::Banned => ApiError::banned(),
+            ClientNotAllowedReason::GuestAccessDisabled => ApiError::guest_access_disabled(),
+        }),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::{assert_matches, borrow::Cow, sync::Arc, time::Duration};
@@ -517,6 +511,7 @@ mod test {
         room_parameters::WaitingRoom,
         tariff_details::TariffDetails,
     };
+    use opentalk_roomserver_web_api::v1::signaling::SignalingBackend;
     use opentalk_service_auth::{ApiKey, service::ApiKeys};
     use opentalk_types_api_internal::error::ErrorBody;
     use opentalk_types_common::{
@@ -686,9 +681,11 @@ mod test {
     #[test_log::test(tokio::test)]
     async fn request_token_guests_disabled() {
         let mut ctx = test_context();
+        let room_parameters = RoomParameters {
+            guest_access: false,
+            ..room_parameters()
+        };
 
-        let mut room_parameters = room_parameters();
-        room_parameters.guest_access = false;
         let error = ctx
             .request_room_token(
                 RoomId::nil(),
@@ -698,6 +695,7 @@ mod test {
             .await
             .unwrap_err();
         assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "guest_access_disabled");
 
         let room_action = ctx.put_room(RoomId::nil(), room_parameters.clone()).await;
         assert_eq!(room_action, Ok(RoomAction::Created));
@@ -707,10 +705,52 @@ mod test {
             .request_room_token(
                 RoomId::nil(),
                 guest_client_parameters(),
-                Some(room_parameters.clone()),
+                Some(room_parameters),
             )
             .await
             .unwrap_err();
+
         assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "guest_access_disabled");
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn reject_guest_when_guest_access_disabled_after_token_was_issued() {
+        let mut ctx = test_context();
+        let room_id = RoomId::nil();
+
+        let room_action = ctx.put_room(room_id, room_parameters()).await;
+        assert_eq!(room_action, Ok(RoomAction::Created));
+
+        // The guest receives a token while guest access is still enabled
+        let token = ctx
+            .request_room_token(room_id, guest_client_parameters(), None)
+            .await;
+        assert!(token.is_ok());
+
+        ctx.reject_if_client_not_allowed(&guest_client_parameters().kind, room_id)
+            .await
+            .expect("Guest must be allowed while guest access is enabled");
+
+        // Guest access is disabled after the token was issued
+        let room_action = ctx
+            .put_room(
+                room_id,
+                RoomParameters {
+                    guest_access: false,
+                    ..room_parameters()
+                },
+            )
+            .await;
+        assert_eq!(room_action, Ok(RoomAction::Updated));
+
+        // Opening a signaling connection with the previously issued token must be rejected
+        let error = ctx
+            .reject_if_client_not_allowed(&guest_client_parameters().kind, room_id)
+            .await
+            .unwrap_err();
+
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "guest_access_disabled");
     }
 }

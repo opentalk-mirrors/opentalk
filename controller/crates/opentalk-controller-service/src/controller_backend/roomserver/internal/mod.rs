@@ -22,6 +22,7 @@ use opentalk_roomserver_room::{
 };
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
+    client_allowed::{ClientAllowed, ClientNotAllowedReason},
     client_parameters::ClientParameters,
     livekit_proxy::{LiveKitProxyRequest, PreparedSocket, websocket::LiveKitSocket},
     room_parameters_patch::RoomParametersPatch,
@@ -160,33 +161,32 @@ impl RoomServerBackend for InternalRoomServer {
                 return Err(ApiError::internal().with_message("Failed to refresh idle timeout"));
             }
 
-            // Ensure the user isn't banned
-            if let Some(user_id) = client_parameters.kind.user_id() {
-                task_handle.reject_if_banned(user_id).await?;
-            }
+            match task_handle
+                .is_client_allowed(&client_parameters.kind)
+                .await?
+            {
+                ClientAllowed::Yes => {}
+                ClientAllowed::No { reason } => {
+                    let err = match reason {
+                        ClientNotAllowedReason::Banned => ApiError::banned(),
+                        ClientNotAllowedReason::GuestAccessDisabled => {
+                            log::debug!(
+                                "Guest access is disabled for room {room_id}, rejecting access"
+                            );
+                            // Do not leak the existence of the room to guests if guest access is
+                            // disabled
+                            ApiError::not_found()
+                        }
+                    };
 
-            if client_parameters.kind.is_guest_or_callin() {
-                match task_handle.is_guest_access_allowed().await {
-                    Some(true) => {}
-                    Some(false) => {
-                        log::debug!(
-                            "Guest access is disabled for room {room_id}, rejecting access"
-                        );
-                        // Do not leak the existence of the room to guests if guest access is
-                        // disabled
-                        return Err(ApiError::not_found());
-                    }
-                    None => {
-                        log::error!(
-                            "Failed to check guest access for room {room_id}, rejecting access"
-                        );
-                        // Do not leak the existence of the room
-                        return Err(ApiError::not_found());
-                    }
+                    return Err(err);
                 }
-            }
+            };
         } else {
             if client_parameters.kind.is_guest_or_callin() && room.guest_access.is_disabled() {
+                log::debug!(
+                    "Guest attempted to request a token for a room with guest access disabled, rejecting access"
+                );
                 // Do not leak the existence of the room to guests if guest access is disabled
                 return Err(ApiError::not_found());
             }
