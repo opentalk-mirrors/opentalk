@@ -17,6 +17,8 @@ use opentalk_types_api_v1::{
 };
 
 use crate::utoipa::responses::{InternalServerError, Unauthorized};
+
+/// Verify that a given room name is valid and available.
 #[utoipa::path(
    request_body = PostRoomNameVerifyRequestBody,
    operation_id = "verify_room_name",

@@ -17,6 +17,7 @@ use crate::api::{
     v1::{ApiResponse, DefaultApiResult},
 };
 
+/// Create a module resource.
 #[utoipa::path(
     context_path = "/internal",
     operation_id = "internal_create_module_resource",
@@ -64,6 +65,7 @@ pub async fn create(
     ))
 }
 
+/// Get the module resources matching a filter.
 #[utoipa::path(
     context_path = "/internal",
     operation_id = "internal_get_module_resource",
@@ -116,6 +118,7 @@ pub async fn get(
     ))
 }
 
+/// Patch the module resources matching a filter.
 #[utoipa::path(
     context_path = "/internal",
     operation_id = "internal_patch_module_resource",
@@ -172,6 +175,7 @@ pub async fn patch(
     ))
 }
 
+/// Delete the module resources matching a filter.
 #[utoipa::path(
     context_path = "/internal",
     operation_id = "internal_delete_module_resource",

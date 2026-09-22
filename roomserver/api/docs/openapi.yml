@@ -473,14 +473,6 @@ components:
       examples:
         - Team Event
       maxLength: 255
-    FeatureId:
-      type: string
-      description: A feature identifier
-      examples:
-        - myfeature
-      maxLength: 255
-      minLength: 1
-      pattern: "^[_0-9a-z]*$"
     ModuleFeatureId:
       anyOf:
         - type: string
@@ -503,16 +495,14 @@ components:
         namespace.
       additionalProperties: {}
       propertyNames:
-        anyOf:
-          - type: string
-            description: A module identifier
-            examples:
-              - mymodule
-            maxLength: 255
-            minLength: 1
-            pattern: "^[_0-9a-z]*$"
+        type: string
+        description: A module identifier
         default: core
-        example: mymodule
+        examples:
+          - mymodule
+        maxLength: 255
+        minLength: 1
+        pattern: "^[_0-9a-z]*$"
       example:
         livekit:
           api_key: devkey
@@ -874,23 +864,6 @@ components:
       type: string
       description: The secret key of a streaming target
       example: aabbccddeeff
-    StreamingLink:
-      type: object
-      description: Streaming link for an event
-      required:
-        - name
-        - url
-      properties:
-        name:
-          type: string
-          description: The name of the streaming link
-        url:
-          type: string
-          format: uri
-          description: The url of the streaming link
-      example:
-        name: My OwnCast Stream
-        url: "https://owncast.example.com/mystream"
     StreamingTarget:
       allOf:
         - $ref: "#/components/schemas/StreamingTargetKind"
@@ -975,11 +948,12 @@ components:
             format: int64
             minimum: 0
           propertyNames:
-            anyOf:
-              - type: string
-                description: A quota type
-                examples:
-                  - max_storage
+            type: string
+            description: The quota types that can be enforced on tenants.
+            enum:
+              - max_storage
+              - room_time_limit_secs
+              - room_participant_limit
             example: max_storage
         used_quota:
           type: object
@@ -989,11 +963,12 @@ components:
             format: int64
             minimum: 0
           propertyNames:
-            anyOf:
-              - type: string
-                description: A quota type
-                examples:
-                  - max_storage
+            type: string
+            description: The quota types that can be enforced on tenants.
+            enum:
+              - max_storage
+              - room_time_limit_secs
+              - room_participant_limit
             example: max_storage
       example:
         disabled_features:

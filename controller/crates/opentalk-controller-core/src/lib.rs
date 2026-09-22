@@ -744,6 +744,19 @@ impl utoipa::Modify for SecurityAddon {
             "BearerAuth",
             SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer)),
         );
+
+        let livekit_http_scheme = Http::builder()
+            .scheme(HttpAuthScheme::Bearer)
+            .bearer_format("JWT")
+            .description(
+                "The access token to authorize against the LiveKit server. This can also be \
+               provided via query parameters. This token is expected in the `Authorization` \
+               header with the format: `bearer <token>`"
+                    .into(),
+            )
+            .build();
+
+        components.add_security_scheme("Livekit-Token", SecurityScheme::Http(livekit_http_scheme));
     }
 }
 

@@ -6,7 +6,6 @@
 ///
 /// This ensures `is_time_independent: false` appears in JSON for TimeDependent variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct TimeDependentMarker;
 
 #[cfg(feature = "serde")]
@@ -32,6 +31,34 @@ impl<'de> serde::Deserialize<'de> for TimeDependentMarker {
             Err(serde::de::Error::custom(
                 "Expected is_time_independent to be false for TimeDependent variant.",
             ))
+        }
+    }
+}
+
+#[cfg(feature = "utoipa")]
+mod impl_utoipa {
+    use serde_json::json;
+    use utoipa::{
+        PartialSchema, ToSchema,
+        openapi::{ObjectBuilder, RefOr, Type, schema::Schema},
+    };
+
+    use crate::events::TimeDependentMarker;
+
+    impl PartialSchema for TimeDependentMarker {
+        fn schema() -> RefOr<Schema> {
+            ObjectBuilder::new()
+                .schema_type(Type::Boolean)
+                .enum_values(Some([json!(false)]))
+                .description(Some("Marker type that serializes to `false`."))
+                .examples([json!(false)])
+                .into()
+        }
+    }
+
+    impl ToSchema for TimeDependentMarker {
+        fn schemas(schemas: &mut Vec<(String, RefOr<Schema>)>) {
+            schemas.push((Self::name().into(), Self::schema()));
         }
     }
 }

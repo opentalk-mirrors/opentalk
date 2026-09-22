@@ -80,24 +80,17 @@ lint:fmt_load_tests:
     - pnpm install
     - pnpm fmt:ci
 
-lint:openapi-controller:
+lint:openapi:
   stage: lint
   <<: *default_job_condition
-  allow_failure: true
+  parallel:
+    matrix:
+      - FILE: [roomserver/api/docs/openapi.yml, controller/docs/developer/api.yaml]
   image:
-    name: redocly/cli:1.34.19
+    name: redocly/cli:2.53.3
     entrypoint: ['']
   script:
-    - /usr/local/bin/openapi lint controller/docs/developer/api.yaml
-
-lint:openapi-roomserver:
-  stage: lint
-  <<: *default_job_condition
-  image:
-    name: redocly/cli
-    entrypoint: ['']
-  script:
-    - /usr/local/bin/openapi lint roomserver/api/docs/openapi.yml
+    - /usr/local/bin/openapi lint "$FILE"
 
 lint:openapi-spectral:
   stage: lint

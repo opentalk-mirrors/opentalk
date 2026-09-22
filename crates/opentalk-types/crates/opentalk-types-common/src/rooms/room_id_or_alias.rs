@@ -10,7 +10,6 @@ use crate::{
 
 /// An enum that represents either a room id or a room alias.
 #[derive(Debug, Display, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(example = json!(RoomIdOrAlias::example_data())))]
 #[cfg_attr(
     feature = "serde",
     derive(serde::Serialize, serde::Deserialize),
@@ -21,6 +20,55 @@ pub enum RoomIdOrAlias {
     Id(RoomId),
     /// A room alias.
     Alias(RoomAlias),
+}
+
+#[cfg(feature = "utoipa")]
+mod impl_utoipa {
+    //! A `RoomId` is also a syntactically valid `RoomAlias`, so the variants are not mutually
+    //! exclusive. The `#[derive(utoipa::ToSchema)]` implementation emits `oneOf` for enums, which
+    //! would claim exactly one variant matches. A manual implementation is required to emit
+    //! `anyOf` instead.
+
+    use serde_json::json;
+    use utoipa::{
+        PartialSchema, ToSchema,
+        openapi::{Ref, RefOr, Schema, schema::AnyOf},
+    };
+
+    use super::RoomIdOrAlias;
+    use crate::{
+        rooms::{RoomAlias, RoomId},
+        utils::ExampleData as _,
+    };
+
+    impl PartialSchema for RoomIdOrAlias {
+        fn schema() -> RefOr<Schema> {
+            Schema::AnyOf(AnyOf {
+                items: vec![
+                    Ref::builder()
+                        .ref_location_from_schema_name(RoomId::name())
+                        .description(Some("A room id."))
+                        .into(),
+                    Ref::builder()
+                        .ref_location_from_schema_name(RoomAlias::name())
+                        .description(Some("A room alias."))
+                        .into(),
+                ],
+                description: Some(
+                    "An enum that represents either a room id or a room alias.".into(),
+                ),
+                example: Some(json!(Self::example_data())),
+                ..Default::default()
+            })
+            .into()
+        }
+    }
+
+    impl ToSchema for RoomIdOrAlias {
+        fn schemas(schemas: &mut Vec<(String, RefOr<Schema>)>) {
+            schemas.push((Self::name().into(), Self::schema()));
+        }
+    }
 }
 
 impl ExampleData for RoomIdOrAlias {

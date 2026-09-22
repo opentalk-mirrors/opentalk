@@ -9,6 +9,7 @@
 //! `v1/rooms/{room_id}/start`.
 
 use actix_web::{HttpResponse, http::header, post, web::Path};
+use opentalk_types_api_v1::error::ErrorBody;
 use opentalk_types_common::rooms::{RoomId, RoomIdOrAlias};
 
 /// Start a signaling session with the roomserver with an invitation code
@@ -31,6 +32,13 @@ use opentalk_types_common::rooms::{RoomId, RoomIdOrAlias};
             headers(
              ("location", description = "Target URL: `/v1/rooms/{room_id_or_alias}/start`"),
             ),
+        ),
+        (
+            status = StatusCode::UNAUTHORIZED,
+            description = "An `Authorization` header was sent, but the contained access token is \
+                           invalid or expired. The endpoint itself requires no authentication, a \
+                           request without an `Authorization` header always succeeds.",
+            body = ErrorBody,
         ),
     ),
     security(),

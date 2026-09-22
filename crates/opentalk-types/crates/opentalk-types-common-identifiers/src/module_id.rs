@@ -106,7 +106,7 @@ mod impl_utoipa {
     use serde_json::json;
     use utoipa::{
         PartialSchema, ToSchema,
-        openapi::{ObjectBuilder, RefOr, Schema, Type, schema::AnyOf},
+        openapi::{ObjectBuilder, RefOr, Schema, Type},
     };
 
     use super::{
@@ -115,24 +115,15 @@ mod impl_utoipa {
 
     impl PartialSchema for ModuleId {
         fn schema() -> RefOr<Schema> {
-            Schema::AnyOf(AnyOf {
-                items: vec![
-                    ObjectBuilder::new()
-                        .schema_type(Type::String)
-                        .description(Some("A module identifier"))
-                        .min_length(Some(MODULE_ID_MIN_LENGTH))
-                        .max_length(Some(MODULE_ID_MAX_LENGTH))
-                        .pattern(Some(format!("^{MODULE_ID_SCHEMA_CHARS_REGEX}*$")))
-                        .examples([json!(ModuleId::example_data())])
-                        .into(),
-                ],
-                description: None,
-                default: Some(json!(ModuleId::default())),
-                example: Some(json!(Self::example_data())),
-                discriminator: None,
-                ..Default::default()
-            })
-            .into()
+            ObjectBuilder::new()
+                .schema_type(Type::String)
+                .description(Some("A module identifier"))
+                .min_length(Some(MODULE_ID_MIN_LENGTH))
+                .max_length(Some(MODULE_ID_MAX_LENGTH))
+                .pattern(Some(format!("^{MODULE_ID_SCHEMA_CHARS_REGEX}*$")))
+                .default(Some(json!(ModuleId::default())))
+                .examples([json!(ModuleId::example_data())])
+                .into()
         }
     }
 

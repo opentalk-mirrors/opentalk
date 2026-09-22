@@ -29,6 +29,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetLoginResponseBody"
+        "401":
+          description: "An `Authorization` header was sent, but the contained access token is invalid or expired. The endpoint itself requires no authentication, a request without an `Authorization` header always succeeds."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security: []
@@ -1211,6 +1217,7 @@ paths:
     get:
       tags:
         - "api::internal::module_resources"
+      summary: Get the module resources matching a filter.
       operationId: internal_get_module_resource
       requestBody:
         description: The filter that is applied to the module resource search
@@ -1243,6 +1250,7 @@ paths:
     post:
       tags:
         - "api::internal::module_resources"
+      summary: Create a module resource.
       operationId: internal_create_module_resource
       requestBody:
         description: The module resource to create
@@ -1271,6 +1279,7 @@ paths:
     delete:
       tags:
         - "api::internal::module_resources"
+      summary: Delete the module resources matching a filter.
       operationId: internal_delete_module_resource
       requestBody:
         description: The module resource filter
@@ -1303,6 +1312,7 @@ paths:
     patch:
       tags:
         - "api::internal::module_resources"
+      summary: Patch the module resources matching a filter.
       operationId: internal_patch_module_resource
       requestBody:
         description: The module resource filter and a list of patch operations
@@ -1464,6 +1474,8 @@ paths:
     get:
       tags:
         - "livekit::rtc::v1"
+      summary: Opens a new LiveKit WebSocket connection for RTC.
+      description: "This is a proxy of LiveKit's `/rtc/v1` endpoint."
       operationId: livekit_rtc_v1
       parameters:
         - name: access_token
@@ -1683,6 +1695,7 @@ paths:
     post:
       tags:
         - "api::v1::rooms::name"
+      summary: Verify that a given room name is valid and available.
       operationId: verify_room_name
       requestBody:
         content:
@@ -2263,6 +2276,12 @@ paths:
               schema:
                 type: string
               description: "Target URL: `/v1/rooms/{room_id_or_alias}/start`"
+        "401":
+          description: "An `Authorization` header was sent, but the contained access token is invalid or expired. The endpoint itself requires no authentication, a request without an `Authorization` header always succeeds."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
       security: []
   "/rooms/{room_id_or_alias}/streaming_targets":
     get:
@@ -2540,7 +2559,14 @@ paths:
       responses:
         "204":
           description: No TURN servers have been configured
+        "401":
+          description: "An `Authorization` header was sent, but the contained access token is invalid or expired. The endpoint itself requires no authentication, a request without an `Authorization` header always succeeds."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
       deprecated: true
+      security: []
   /users/find:
     get:
       tags:
@@ -4264,16 +4290,14 @@ components:
       type: string
       description: A logout token
     ModuleId:
-      anyOf:
-        - type: string
-          description: A module identifier
-          examples:
-            - mymodule
-          maxLength: 255
-          minLength: 1
-          pattern: "^[_0-9a-z]*$"
+      type: string
+      description: A module identifier
       default: core
-      example: mymodule
+      examples:
+        - mymodule
+      maxLength: 255
+      minLength: 1
+      pattern: "^[_0-9a-z]*$"
     ModuleResource:
       type: object
       description: The representation of a module resource
@@ -5283,7 +5307,7 @@ components:
       description: The id of a room
       example: 00000000-0000-0000-0000-0000abadcafe
     RoomIdOrAlias:
-      oneOf:
+      anyOf:
         - $ref: "#/components/schemas/RoomId"
           description: A room id.
         - $ref: "#/components/schemas/RoomAlias"
@@ -5637,16 +5661,14 @@ components:
           additionalProperties:
             $ref: "#/components/schemas/TariffModuleResource"
           propertyNames:
-            anyOf:
-              - type: string
-                description: A module identifier
-                examples:
-                  - mymodule
-                maxLength: 255
-                minLength: 1
-                pattern: "^[_0-9a-z]*$"
+            type: string
+            description: A module identifier
             default: core
-            example: mymodule
+            examples:
+              - mymodule
+            maxLength: 255
+            minLength: 1
+            pattern: "^[_0-9a-z]*$"
         name:
           type: string
           description: The name of the tariff
@@ -5658,11 +5680,12 @@ components:
             format: int64
             minimum: 0
           propertyNames:
-            anyOf:
-              - type: string
-                description: A quota type
-                examples:
-                  - max_storage
+            type: string
+            description: The quota types that can be enforced on tenants.
+            enum:
+              - max_storage
+              - room_time_limit_secs
+              - room_participant_limit
             example: max_storage
       example:
         id: 00000000-0000-0000-0000-000000000000
@@ -5699,17 +5722,19 @@ components:
         - system
       example: system
     TimeDependentMarker:
-      description: |-
-        Marker type that serializes to `false`.
-
-        This ensures `is_time_independent: false` appears in JSON for TimeDependent variant.
-      default: ~
+      type: boolean
+      description: "Marker type that serializes to `false`."
+      enum:
+        - false
+      examples:
+        - false
     TimeIndependentMarker:
-      description: |-
-        Marker type that serializes to `true`
-
-        This ensures `is_time_independent: true` appears in JSON for TimeIndependent variant
-      default: ~
+      type: boolean
+      description: "Marker type that serializes to `true`."
+      enum:
+        - true
+      examples:
+        - true
     TimeRange:
       type: object
       description: |-
@@ -5984,6 +6009,11 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
+    Livekit-Token:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "The access token to authorize against the LiveKit server. This can also be provided via query parameters. This token is expected in the `Authorization` header with the format: `bearer <token>`"
 tags:
   - name: "api::v1::auth"
     description: Endpoints related to authentication
