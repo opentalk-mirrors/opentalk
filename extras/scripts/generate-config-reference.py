@@ -110,6 +110,29 @@ def get_role_variables(role_path: Path) -> Dict[str, Any]:
             except Exception as e:
                 print(f"Warning: Could not parse {yml_file}: {e}", file=sys.stderr)
 
+    if role_path.name == "opentalk_compose.opentalk_controller":
+        variables["controller_http_service_api_keys"] = [
+            {
+                "id": "controller",
+                "secret": variables.get("controller_oidc_controller_client_secret"),
+            }
+        ]
+        livekit_aliases = {
+            "controller_livekit_api_key": "controller_roomserver_modules_livekit_api_key",
+            "controller_livekit_api_secret": "controller_roomserver_modules_livekit_api_secret",
+            "controller_livekit_public_url": "controller_roomserver_modules_livekit_public_url",
+            "controller_livekit_service_url": "controller_roomserver_modules_livekit_service_url",
+        }
+        for alias, source in livekit_aliases.items():
+            if source in variables:
+                variables[alias] = variables[source]
+        if "controller_livekit_service_url" in variables:
+            variables["controller_livekit_service_url"] = re.sub(
+                r"\{\{ livekit_port \| default\(7880\) \}\}",
+                "7880",
+                variables["controller_livekit_service_url"],
+            )
+
     return variables
 
 def get_settings_sample_variables(sample_path: Path) -> Dict[str, Any]:
@@ -245,9 +268,30 @@ def generate_markdown(roles_root: Path, settings_sample: Optional[Path] = None) 
 
         role_sections.append("| Variable | Type | Default / Example Value |")
         role_sections.append("|----------|------|-------------------------|")
-        for name, value in sorted(variables.items()):
+        variable_names = sorted(variables)
+        if role_path.name == "opentalk_compose.opentalk_controller":
+            livekit_names = {
+                "controller_livekit_api_key",
+                "controller_livekit_api_secret",
+                "controller_livekit_public_url",
+                "controller_livekit_service_url",
+            }
+            variable_names = [
+                name
+                for name in variable_names
+                if name not in livekit_names and name != "controller_http_upload_size_limit"
+            ]
+            service_api_keys_index = variable_names.index("controller_http_service_api_keys") + 1
+            variable_names[service_api_keys_index:service_api_keys_index] = sorted(livekit_names)
+            upload_index = variable_names.index("controller_livekit_service_url") + 1
+            variable_names.insert(upload_index, "controller_http_upload_size_limit")
+        for name in variable_names:
+            value = variables[name]
             var_type = infer_type(value)
-            role_sections.append(f"| `{name}` | {var_type} | {format_value(value)} |")
+            formatted_value = format_value(value)
+            if name == "backup_docker_volume_list":
+                formatted_value = formatted_value.replace("\\|", "&#124;")
+            role_sections.append(f"| `{name}` | {var_type} | {formatted_value} |")
         role_sections.append("")
 
     # Check settings.yml-sample for variables not defined in any role
@@ -276,7 +320,7 @@ def generate_markdown(roles_root: Path, settings_sample: Optional[Path] = None) 
 
     content.append("{% endraw %}")
 
-    return "\n".join(content)
+    return "\n".join(content) + "\n"
 # REUSE-IgnoreEnd
 
 def main():
