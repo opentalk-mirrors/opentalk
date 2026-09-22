@@ -35,9 +35,9 @@ use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_service_facade::{
     AssetDownloadProxyStream, OpenTalkControllerService, RequestUser,
 };
-#[cfg(test)]
+#[cfg(all(test, feature = "mockall"))]
 use opentalk_controller_settings::MockSettingsProvider as SettingsProvider;
-#[cfg(not(test))]
+#[cfg(not(all(test, feature = "mockall")))]
 use opentalk_controller_settings::SettingsProvider;
 use opentalk_inventory::InventoryProvider;
 #[cfg(not(all(test, feature = "mockall")))]
