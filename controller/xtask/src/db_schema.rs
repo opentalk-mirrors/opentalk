@@ -15,7 +15,8 @@ use unified_diff::diff;
 
 use crate::{Result, locate_project_root};
 
-const SCHEMA_RS_PATH: &str = "crates/opentalk-db-storage/src/schema.rs";
+const SCHEMA_RS_PATH: &str = "controller/crates/opentalk-db-storage/src/schema.rs";
+const DIESEL_CONFIG_PATH: &str = "controller/diesel.toml";
 const DATABASE_DEFAULT_URL: &str = "postgres://postgres:password123@localhost:5432";
 
 pub async fn generate_db_schema(
@@ -141,10 +142,13 @@ fn change_database_of_url(database_url: &str, default_database: &str) -> (String
 }
 
 fn run_diesel_cli(db_url: &str) -> Result<Vec<u8>> {
+    let config_file = locate_project_root().join(DIESEL_CONFIG_PATH);
     let mut cmd = cmd!("diesel");
     cmd.arg("--database-url")
         .arg(db_url)
         .arg("print-schema")
+        .arg("--config-file")
+        .arg(config_file)
         .arg("--import-types")
         .arg("crate::sql_types::*")
         .log_cmd(None)

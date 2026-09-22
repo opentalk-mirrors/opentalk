@@ -3,4 +3,5 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 [alias]
-xtask = "run --package xtask --"
+controller-xtask = "run --package controller-xtask --"
+obelisk-xtask = "run --package obelisk-xtask --"
