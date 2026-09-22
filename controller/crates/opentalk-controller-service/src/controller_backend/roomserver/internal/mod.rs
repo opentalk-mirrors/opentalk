@@ -177,12 +177,27 @@ impl RoomServerBackend for InternalRoomServer {
                             // disabled
                             ApiError::not_found()
                         }
+                        ClientNotAllowedReason::E2eeEnabled => {
+                            log::debug!(
+                                "Client is not allowed when e2ee is enabled, rejecting access"
+                            );
+                            ApiError::e2ee_enabled()
+                        }
                     };
 
                     return Err(err);
                 }
             };
         } else {
+            // Check services before guest access, so services receive the correct `e2ee_enabled`
+            // reason instead of the `not_found` that is sent to guests.
+            if client_parameters.kind.is_service_or_callin() && room.e2e_encryption {
+                log::debug!(
+                    "Service attempted to request a token for a room with e2ee enabled, rejecting access"
+                );
+                return Err(ApiError::e2ee_enabled());
+            }
+
             if client_parameters.kind.is_guest_or_callin() && room.guest_access.is_disabled() {
                 log::debug!(
                     "Guest attempted to request a token for a room with guest access disabled, rejecting access"
@@ -366,5 +381,197 @@ impl SignalingHandler for InternalRoomServer {
             })?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use http::StatusCode;
+    use opentalk_asset_storage::NoOpStorageNotifier;
+    use opentalk_controller_settings::test_util::settings_provider_from_example_raw_settings;
+    use opentalk_inventory::{MockInventory, MockInventoryProvider};
+    use opentalk_roomserver_types::{
+        client_parameters::{ClientKind, Role},
+        room_kind::RoomKind,
+        room_parameters::RoomParameters,
+    };
+    use opentalk_types_common::{roomserver::DeviceSecret, utils::ExampleData};
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    const ROOM_ID: RoomId = RoomId::nil();
+
+    /// Builds an [`InternalRoomServer`] for testing.
+    ///
+    /// The returned [`broadcast::Sender`] must be kept alive for the duration of the test.
+    /// Dropping it closes the shutdown channel, which moves the application state to
+    /// [`ApplicationState::ShuttingDown`] and terminates all running room tasks.
+    fn test_roomserver() -> (InternalRoomServer, broadcast::Sender<()>) {
+        let (shutdown, shutdown_receiver) = broadcast::channel(1);
+
+        let roomserver = InternalRoomServer::new(
+            RoomTaskRegistry::new(None),
+            settings_provider_from_example_raw_settings(),
+            Arc::new(MockInventoryProvider::new()),
+            // Requesting access never touches the object storage, so a broken placeholder is
+            // sufficient here.
+            Arc::new(ObjectStorage::broken()),
+            Arc::new(NoOpStorageNotifier),
+            Task::default(),
+            ModuleRegistry::new(),
+            shutdown_receiver,
+        )
+        .expect("Failed to build the internal roomserver");
+
+        (roomserver, shutdown)
+    }
+
+    fn recorder_client_parameters() -> ClientParameters {
+        ClientParameters {
+            device_secret: DeviceSecret::example_data(),
+            kind: ClientKind::Recorder {
+                room: RoomKind::Main,
+            },
+            role: Role::User,
+        }
+    }
+
+    fn call_in_client_parameters() -> ClientParameters {
+        ClientParameters {
+            device_secret: DeviceSecret::example_data(),
+            kind: ClientKind::CallIn,
+            role: Role::User,
+        }
+    }
+
+    fn room_resource(e2e_encryption: bool) -> RoomResource {
+        RoomResource {
+            id: ROOM_ID,
+            e2e_encryption,
+            ..RoomResource::example_data()
+        }
+    }
+
+    fn host() -> Url {
+        Url::parse("http://localhost:11311").expect("Host URL must be valid")
+    }
+
+    /// Spawns a running room task for [`ROOM_ID`] in the roomserver's registry.
+    async fn spawn_room(roomserver: &InternalRoomServer, e2e_encryption: bool) {
+        let room_parameters = RoomParameters {
+            e2e_encryption,
+            ..RoomParameters::example_data()
+        };
+        let ctx = roomserver.room_task_context(room_parameters.created_by.id);
+
+        roomserver
+            .room_tasks
+            .create_if_not_exists(ctx, ROOM_ID, room_parameters.into())
+            .await;
+    }
+
+    #[tokio::test]
+    async fn request_access_recorder_e2ee_enabled_room_not_spawned() {
+        let (roomserver, _shutdown) = test_roomserver();
+
+        let error = roomserver
+            .request_access(
+                &mut MockInventory::new(),
+                settings_provider_from_example_raw_settings().get(),
+                BTreeMap::new(),
+                room_resource(true),
+                recorder_client_parameters(),
+                host(),
+            )
+            .await
+            .expect_err("Recorders must not get access to an e2ee room");
+
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "e2ee_enabled");
+
+        // The room must not have been created as a side effect of the rejected request
+        assert!(
+            roomserver
+                .room_tasks
+                .get_task_handle(&ROOM_ID)
+                .await
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn request_access_recorder_e2ee_enabled_room_spawned() {
+        let (roomserver, _shutdown) = test_roomserver();
+        spawn_room(&roomserver, true).await;
+
+        // The room resource deliberately reports `e2e_encryption: false` to assert that the
+        // running room task is the source of truth once the room exists.
+        let error = roomserver
+            .request_access(
+                &mut MockInventory::new(),
+                settings_provider_from_example_raw_settings().get(),
+                BTreeMap::new(),
+                room_resource(false),
+                recorder_client_parameters(),
+                host(),
+            )
+            .await
+            .expect_err("Recorders must not get access to an e2ee room");
+
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "e2ee_enabled");
+    }
+
+    #[tokio::test]
+    async fn request_access_call_in_e2ee_enabled_room_not_spawned() {
+        let (roomserver, _shutdown) = test_roomserver();
+
+        let error = roomserver
+            .request_access(
+                &mut MockInventory::new(),
+                settings_provider_from_example_raw_settings().get(),
+                BTreeMap::new(),
+                room_resource(true),
+                call_in_client_parameters(),
+                host(),
+            )
+            .await
+            .expect_err("Call-in must not get access to an e2ee room");
+
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "e2ee_enabled");
+
+        // The room must not have been created as a side effect of the rejected request
+        assert!(
+            roomserver
+                .room_tasks
+                .get_task_handle(&ROOM_ID)
+                .await
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn request_access_call_in_e2ee_enabled_room_spawned() {
+        let (roomserver, _shutdown) = test_roomserver();
+        spawn_room(&roomserver, true).await;
+
+        // The room resource deliberately reports `e2e_encryption: false` to assert that the
+        // running room task is the source of truth once the room exists.
+        let error = roomserver
+            .request_access(
+                &mut MockInventory::new(),
+                settings_provider_from_example_raw_settings().get(),
+                BTreeMap::new(),
+                room_resource(false),
+                call_in_client_parameters(),
+                host(),
+            )
+            .await
+            .expect_err("Call-in must not get access to an e2ee room");
+
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "e2ee_enabled");
     }
 }

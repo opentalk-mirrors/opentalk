@@ -14,6 +14,7 @@ use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
     public_user_profile::PublicUserProfile,
+    room_kind::RoomKind,
     room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch,
 };
@@ -192,6 +193,70 @@ async fn request_token_without_room_params() {
     };
 
     assert_eq!(api_error.code, RequestTokenError::RoomParametersMissing);
+}
+
+#[test_log::test(tokio::test)]
+#[ignore = "Requires an up-to-date roomserver container"]
+async fn request_recorder_token_e2ee_enabled() {
+    let (_container, base_url) = spawn_roomserver().await;
+    let client = Client::new(base_url, api_key());
+
+    let room_id = RoomId::from_u128(1);
+    let recorder_client_params = ClientParameters {
+        device_secret: DeviceSecret::from_str("recorder device secret")
+            .expect("Device secret must be valid"),
+        kind: ClientKind::Recorder {
+            room: RoomKind::Main,
+        },
+        role: Role::User,
+    };
+    let room_parameters = RoomParameters {
+        e2e_encryption: true,
+        ..RoomParameters::example_data()
+    };
+
+    // Recorders requesting a token for a new room fails when e2ee is enabled
+    let error = client
+        .request_token(room_id, recorder_client_params, Some(room_parameters))
+        .await
+        .unwrap_err();
+
+    let Error::ApiError(api_error) = error else {
+        panic!("Expected ApiError, received {error:#?}");
+    };
+
+    assert_eq!(api_error.code, RequestTokenError::E2eeEnabled);
+}
+
+#[test_log::test(tokio::test)]
+#[ignore = "Requires an up-to-date roomserver container"]
+async fn request_call_in_token_e2ee_enabled() {
+    let (_container, base_url) = spawn_roomserver().await;
+    let client = Client::new(base_url, api_key());
+
+    let room_id = RoomId::from_u128(1);
+    let call_in_client_params = ClientParameters {
+        device_secret: DeviceSecret::from_str("call-in device secret")
+            .expect("Device secret must be valid"),
+        kind: ClientKind::CallIn,
+        role: Role::User,
+    };
+    let room_parameters = RoomParameters {
+        e2e_encryption: true,
+        ..RoomParameters::example_data()
+    };
+
+    // Requesting a call-in token for a new room fails when e2ee is enabled
+    let error = client
+        .request_token(room_id, call_in_client_params, Some(room_parameters))
+        .await
+        .unwrap_err();
+
+    let Error::ApiError(api_error) = error else {
+        panic!("Expected ApiError, received {error:#?}");
+    };
+
+    assert_eq!(api_error.code, RequestTokenError::E2eeEnabled);
 }
 
 #[test_log::test(tokio::test)]

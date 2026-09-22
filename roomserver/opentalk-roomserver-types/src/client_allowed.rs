@@ -17,4 +17,6 @@ pub enum ClientNotAllowedReason {
     Banned,
     /// The client is a guest and guest access is disabled for the room.
     GuestAccessDisabled,
+    /// The client does not support e2ee (e.g. a service) and e2ee is enabled for the room.
+    E2eeEnabled,
 }

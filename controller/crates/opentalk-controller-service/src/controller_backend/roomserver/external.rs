@@ -82,6 +82,13 @@ impl RoomServerBackend for ExternalRoomServer {
                 Err(ApiError::banned())
             }
             Err(Error::ApiError(opentalk_roomserver_client::ApiError {
+                code: RequestTokenError::E2eeEnabled,
+                ..
+            })) => {
+                log::debug!("service attempted to request a token for a room with e2ee enabled");
+                Err(ApiError::e2ee_enabled())
+            }
+            Err(Error::ApiError(opentalk_roomserver_client::ApiError {
                 code: RequestTokenError::GuestAccessDisabled,
                 ..
             })) => {

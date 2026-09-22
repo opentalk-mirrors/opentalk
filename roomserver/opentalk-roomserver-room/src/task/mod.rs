@@ -763,7 +763,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.info.room = room_parameters
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn is_client_allowed(&self, user_id: Option<UserId>, kind: ParticipationKind) -> ClientAllowed {
         // Check if the user is banned
         if let Some(user_id) = user_id {
@@ -773,6 +773,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     reason: ClientNotAllowedReason::Banned,
                 };
             }
+        }
+
+        // Check services before guest access, so services receive the correct `e2ee_enabled` reason
+        // instead of the `not_found` that is sent to guests.
+        if self.info.room.e2e_encryption && kind.is_service_or_callin() {
+            return ClientAllowed::No {
+                reason: ClientNotAllowedReason::E2eeEnabled,
+            };
         }
 
         // Check guest access

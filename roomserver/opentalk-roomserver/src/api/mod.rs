@@ -305,6 +305,12 @@ impl RoomBackend for Context {
 
             // Room needs to be created
             (None, Some(parameters)) => {
+                // Check services before guest access, so services receive the correct
+                // `e2ee_enabled` reason instead of the `not_found` that is sent to guests.
+                if client_parameters.kind.is_service_or_callin() && parameters.e2e_encryption {
+                    return Err(ApiError::e2ee_enabled());
+                }
+
                 if client_parameters.kind.is_guest_or_callin() && !parameters.guest_access {
                     return Err(ApiError::guest_access_disabled());
                 }
@@ -493,6 +499,7 @@ pub(crate) fn reject_if_client_not_allowed(allowed: ClientAllowed) -> Result<(),
         ClientAllowed::No { reason } => Err(match reason {
             ClientNotAllowedReason::Banned => ApiError::banned(),
             ClientNotAllowedReason::GuestAccessDisabled => ApiError::guest_access_disabled(),
+            ClientNotAllowedReason::E2eeEnabled => ApiError::e2ee_enabled(),
         }),
     }
 }
@@ -508,6 +515,7 @@ mod test {
         client_parameters::{ClientKind, Role},
         module_settings::ModuleSettings,
         public_user_profile::PublicUserProfile,
+        room_kind::RoomKind,
         room_parameters::WaitingRoom,
         tariff_details::TariffDetails,
     };
@@ -564,6 +572,24 @@ mod test {
             tracing: None,
             internal: Default::default(),
             task: Arc::default(),
+        }
+    }
+
+    fn recorder_client_parameters() -> ClientParameters {
+        ClientParameters {
+            device_secret: DeviceSecret::example_data(),
+            kind: ClientKind::Recorder {
+                room: RoomKind::Main,
+            },
+            role: Role::User,
+        }
+    }
+
+    fn call_in_client_parameters() -> ClientParameters {
+        ClientParameters {
+            device_secret: DeviceSecret::example_data(),
+            kind: ClientKind::CallIn,
+            role: Role::User,
         }
     }
 
@@ -676,6 +702,80 @@ mod test {
             .await;
 
         assert!(token.is_ok())
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn request_recorder_token_e2ee_enabled() {
+        let mut ctx = test_context();
+        let room_parameters = RoomParameters {
+            e2e_encryption: true,
+            ..room_parameters()
+        };
+
+        // Trying to start an e2ee room with a recorder client fails
+        let error = ctx
+            .request_room_token(
+                RoomId::nil(),
+                recorder_client_parameters(),
+                Some(room_parameters.clone()),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "e2ee_enabled");
+
+        let room_action = ctx.put_room(RoomId::nil(), room_parameters.clone()).await;
+        assert_eq!(room_action, Ok(RoomAction::Created));
+
+        // Requesting tokens also fails if the room already exists
+        let error = ctx
+            .request_room_token(
+                RoomId::nil(),
+                recorder_client_parameters(),
+                Some(room_parameters),
+            )
+            .await
+            .unwrap_err();
+
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "e2ee_enabled");
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn request_call_in_token_e2ee_enabled() {
+        let mut ctx = test_context();
+        let room_parameters = RoomParameters {
+            e2e_encryption: true,
+            ..room_parameters()
+        };
+
+        // Trying to start an e2ee room with a call-in client fails
+        let error = ctx
+            .request_room_token(
+                RoomId::nil(),
+                call_in_client_parameters(),
+                Some(room_parameters.clone()),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "e2ee_enabled");
+
+        let room_action = ctx.put_room(RoomId::nil(), room_parameters.clone()).await;
+        assert_eq!(room_action, Ok(RoomAction::Created));
+
+        // Requesting tokens also fails if the room already exists
+        let error = ctx
+            .request_room_token(
+                RoomId::nil(),
+                call_in_client_parameters(),
+                Some(room_parameters),
+            )
+            .await
+            .unwrap_err();
+
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "e2ee_enabled");
     }
 
     #[test_log::test(tokio::test)]

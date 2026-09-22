@@ -173,6 +173,15 @@ impl ApiError {
         )
     }
 
+    /// Creates a new 403 Forbidden error that indicates that e2ee is enabled.
+    pub fn e2ee_enabled() -> Self {
+        Self::new_standard(
+            StatusCode::FORBIDDEN,
+            "e2ee_enabled",
+            "E2ee is enabled for this room",
+        )
+    }
+
     /// Creates a new 413 Payload Too Large error that indicates that the storage quota was
     /// exceeded.
     pub fn storage_quota_exceeded() -> Self {
