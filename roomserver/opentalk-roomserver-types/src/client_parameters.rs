@@ -119,35 +119,26 @@ impl ClientKind {
         }
     }
 
+    /// Returns `true` if the participant is a service, `false` otherwise.
+    ///
+    /// Returns `false` for call-in users because they're users even tough they're proxied through a
+    /// service.
     pub fn is_service(&self) -> bool {
-        match self {
-            ClientKind::Registered { .. }
-            | ClientKind::Guest
-            | ClientKind::CallIn
-            | ClientKind::RegisteredCallIn { .. } => false,
-            ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => true,
-        }
+        self.participant_kind().is_service()
     }
 
     /// Returns `true` if the participant is a registered, non call-in user, `false` otherwise.
     pub fn is_registered_non_callin_user(&self) -> bool {
-        match self {
-            ClientKind::Registered { .. } => true,
-            ClientKind::Guest
-            | ClientKind::Recorder { .. }
-            | ClientKind::Transcription { .. }
-            | ClientKind::CallIn
-            | ClientKind::RegisteredCallIn { .. } => false,
-        }
+        self.participant_kind().is_registered_non_callin_user()
     }
 
+    /// Returns `true` if the participant is a guest or call-in user, otherwise return `false`.
     pub fn is_guest_or_callin(&self) -> bool {
-        match self {
-            ClientKind::Registered { .. }
-            | ClientKind::Recorder { .. }
-            | ClientKind::Transcription { .. } => false,
-            ClientKind::Guest | ClientKind::CallIn | ClientKind::RegisteredCallIn { .. } => true,
-        }
+        self.participant_kind().is_guest_or_callin()
+    }
+
+    pub fn is_service_or_callin(&self) -> bool {
+        self.participant_kind().is_service_or_callin()
     }
 
     /// Returns `true` if the participant is a call-in user, otherwise return `false`.
@@ -234,6 +225,57 @@ pub enum ParticipationKind {
     Transcription,
     CallIn,
     RegisteredCallIn,
+}
+
+impl ParticipationKind {
+    /// Returns `true` if the participant is a service, `false` otherwise.
+    ///
+    /// Returns `false` for call-in users because they're users even tough they're proxied through a
+    /// service.
+    pub fn is_service(&self) -> bool {
+        match self {
+            ParticipationKind::Registered
+            | ParticipationKind::Guest
+            | ParticipationKind::CallIn
+            | ParticipationKind::RegisteredCallIn => false,
+            ParticipationKind::Recorder | ParticipationKind::Transcription => true,
+        }
+    }
+
+    /// Returns `true` if the participant is a service or call-in user, otherwise return `false`.
+    pub fn is_service_or_callin(&self) -> bool {
+        match self {
+            ParticipationKind::Registered | ParticipationKind::Guest => false,
+            ParticipationKind::Recorder
+            | ParticipationKind::Transcription
+            | ParticipationKind::CallIn
+            | ParticipationKind::RegisteredCallIn => true,
+        }
+    }
+
+    /// Returns `true` if the participant is a registered, non call-in user, `false` otherwise.
+    pub fn is_registered_non_callin_user(&self) -> bool {
+        match self {
+            ParticipationKind::Registered => true,
+            ParticipationKind::Guest
+            | ParticipationKind::Recorder
+            | ParticipationKind::Transcription
+            | ParticipationKind::CallIn
+            | ParticipationKind::RegisteredCallIn => false,
+        }
+    }
+
+    /// Returns `true` if the participant is a guest or call-in user, otherwise return `false`.
+    pub fn is_guest_or_callin(&self) -> bool {
+        match self {
+            ParticipationKind::Registered
+            | ParticipationKind::Recorder
+            | ParticipationKind::Transcription => false,
+            ParticipationKind::Guest
+            | ParticipationKind::CallIn
+            | ParticipationKind::RegisteredCallIn => true,
+        }
+    }
 }
 
 impl From<&ClientKind> for ParticipationKind {
