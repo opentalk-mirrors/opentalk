@@ -16,6 +16,7 @@ use opentalk_roomserver_signaling::{
     lobby_participant::{LobbyConnection, LobbyParticipant, WaitingRoomState},
     module_context::ModuleMessage,
     participant_state::ParticipantState,
+    signaling_event::SignalingEvent,
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, Role as RoomserverClientRole},
@@ -560,8 +561,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     pub(super) fn participant_limit_reached(mut socket: Socket) -> Result<(), FatalError> {
         const WS_CLOSE_TRY_AGAIN_LATER: u16 = 1013;
-        let event = CoreEvent::JoinBlocked {
-            reason: JoinBlockedReason::ParticipantLimitReached,
+        let event = SignalingEvent {
+            namespace: CORE_MODULE_ID,
+            transaction_id: None,
+            timestamp: Timestamp::now(),
+            payload: CoreEvent::JoinBlocked {
+                reason: JoinBlockedReason::ParticipantLimitReached,
+            },
         };
         let msg = serde_json::to_string(&event)
             .context("Failed to serialize `JoinBlocked` event")
