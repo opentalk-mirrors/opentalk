@@ -59,6 +59,7 @@ impl ModuleResourceProvider for ControllerModuleStorage {
             .body(new_resource_body)
             .header(CONTENT_TYPE, "application/json")
             .bearer_auth(token)
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .send()
             .await
             .context("Failed to send POST module resource request")?;
@@ -87,6 +88,7 @@ impl ModuleResourceProvider for ControllerModuleStorage {
             .body(request_body)
             .header(CONTENT_TYPE, "application/json")
             .bearer_auth(token)
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .send()
             .await
             .context("Failed to send GET module resource request")?;
@@ -124,6 +126,7 @@ impl ModuleResourceProvider for ControllerModuleStorage {
             .body(request_body)
             .header(CONTENT_TYPE, "application/json")
             .bearer_auth(token)
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .send()
             .await
             .context("Failed to send PATCH module resource request")?;
@@ -152,6 +155,7 @@ impl ModuleResourceProvider for ControllerModuleStorage {
             .body(request_body)
             .header(CONTENT_TYPE, "application/json")
             .bearer_auth(token)
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .send()
             .await
             .context("Failed to send DELETE module resource request")?;

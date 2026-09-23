@@ -8,6 +8,8 @@
 //! `tracing-subscriber` registry configuration that was previously duplicated
 //! across the controller, roomserver and recorder services.
 
+use std::sync::Once;
+
 use anyhow::Context as _;
 use opentelemetry::{KeyValue, trace::TracerProvider as _};
 use opentelemetry_otlp::{SpanExporter, WithExportConfig as _};
@@ -16,6 +18,8 @@ pub use opentelemetry_sdk::trace::SdkTracerProvider;
 use serde::Deserialize;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt as _, util::SubscriberInitExt as _};
 use uuid::Uuid;
+
+pub mod propagation;
 
 /// Resolved configuration for exporting traces to an OTLP collector.
 struct OtlpConfig {
@@ -114,6 +118,8 @@ pub struct TracingParams<'a> {
     pub filter_env_vars: &'a [&'a str],
 }
 
+static INIT: Once = Once::new();
+
 /// Initialize the global tracing subscriber for a service.
 ///
 /// Installs an [`EnvFilter`], a formatting layer writing to stdout and, when
@@ -153,6 +159,11 @@ pub fn init(
         .with(fmt)
         .with(otel_layer)
         .init();
+
+    // Parse incoming traceparent/tracestate only when OTLP export is enabled.
+    if provider.is_some() {
+        INIT.call_once(propagation::init);
+    }
 
     Ok(provider)
 }

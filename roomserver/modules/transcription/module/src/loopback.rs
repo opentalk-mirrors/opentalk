@@ -57,9 +57,12 @@ pub(super) async fn request_transcription(
 
     tracing::debug!("Sending transcription start request to {url} with body {body:#?}");
 
+    let trace_headers = opentalk_tracing::propagation::current_context_headers();
+
     let response = http_client
         .post(url)
         .bearer_auth(jwt_bearer_token)
+        .headers(trace_headers)
         .json(&body)
         .send()
         .await;

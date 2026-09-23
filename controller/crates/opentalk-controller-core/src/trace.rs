@@ -9,6 +9,7 @@ use actix_web::{
 };
 use opentalk_controller_settings::Logging;
 use opentalk_tracing::{Bootstrap, SdkTracerProvider, TracingParams};
+use opentelemetry::propagation::Extractor;
 use snafu::ResultExt as _;
 use tracing::Span;
 use tracing_actix_web::{RequestId, RootSpanBuilder};
@@ -60,7 +61,9 @@ pub struct ReducedSpanBuilder;
 
 impl RootSpanBuilder for ReducedSpanBuilder {
     fn on_request_start(request: &ServiceRequest) -> Span {
-        create_span(request)
+        let span = create_span(request);
+        opentalk_tracing::propagation::set_parent(&span, &ActixHeaderExtractor(request.headers()));
+        span
     }
 
     fn on_request_end<B>(span: Span, outcome: &Result<ServiceResponse<B>, Error>) {
@@ -75,6 +78,18 @@ impl RootSpanBuilder for ReducedSpanBuilder {
             }
             Err(error) => handle_error(span, error),
         };
+    }
+}
+
+struct ActixHeaderExtractor<'a>(&'a actix_web::http::header::HeaderMap);
+
+impl Extractor for ActixHeaderExtractor<'_> {
+    fn get(&self, key: &str) -> Option<&str> {
+        self.0.get(key)?.to_str().ok()
+    }
+
+    fn keys(&self) -> Vec<&str> {
+        self.0.keys().map(|name| name.as_str()).collect()
     }
 }
 

@@ -47,7 +47,7 @@ opentalk-keycloak-admin.workspace = true
 opentalk-mail-worker-protocol = { workspace = true, features = ["client"] }
 opentalk-nextcloud-client.workspace = true
 opentalk-opencloud-client.workspace = true
-opentalk-roomserver-client.workspace = true
+opentalk-roomserver-client = { workspace = true, features = ["opentalk-trace-propagation"] }
 opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types = { workspace = true, features = ["actix"] }
 opentalk-roomserver-types-training-participation-report.workspace = true

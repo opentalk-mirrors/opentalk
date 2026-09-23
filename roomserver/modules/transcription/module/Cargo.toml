@@ -22,6 +22,7 @@ opentalk-roomserver-room.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-transcription.workspace = true
+opentalk-tracing.workspace = true
 opentalk-transcription-web-api.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
