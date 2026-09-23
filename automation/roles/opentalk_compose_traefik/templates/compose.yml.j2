@@ -1,0 +1,63 @@
+---
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+services:
+  traefik:
+    image: "{{ traefik_docker_image_src }}:{{ traefik_version }}"
+    ulimits:
+      nofile:
+        soft: {{ traefik_docker_compose_ulimits_nofile_soft }}
+        hard: {{ traefik_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ traefik_docker_compose_ulimits_nproc }}
+    extra_hosts:
+{% for host in traefik_docker_extra_hosts %}
+      - {{ host }}
+{% endfor %}
+    restart: {{ traefik_docker_restart }}
+    ports:
+{% for port in traefik_docker_ports %}
+      - target: {{ port.target }}
+        published: {{ port.published }}
+{% if port.mode is defined %}
+        mode: {{ port.mode }}
+{% endif %}
+{% endfor %}
+    networks:
+      {{ docker_network_name }}:
+{% if traefik_docker_network_aliases is defined and traefik_docker_network_aliases %}
+        aliases:
+{% for alias in traefik_docker_network_aliases %}
+          - {{ alias }}
+{% endfor %}
+{% endif %}
+    healthcheck:
+      test: ['CMD', 'traefik', 'healthcheck', '--ping']
+    labels:
+      - "traefik.enable=true"
+      # HeadersRegexp is needed to serve both, Api and Dashboard
+      - "traefik.http.routers.dashboard.rule=Host(`{{ ot_domain }}`) && (PathPrefix(`/adm/traefik`) || HeaderRegexp(`Referer`, `/traefik`))"
+      - "traefik.http.routers.dashboard.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+      - "traefik.http.routers.dashboard.tls={{ (traefik_letsencrypt_enable or custom_certificates_enabled) | to_json }}"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares={{ traefik_docker_label_http_routers_dashboard_middlewares }}"
+      - "traefik.http.middlewares.dashboard-strip.stripprefix.prefixes=/adm/traefik"
+      - "traefik.http.routers.livekit-host.rule=Host(`{{ ot_domain }}`) && (PathPrefix(`/livekit`) || PathPrefix(`/twirp`))"
+      - "traefik.http.routers.livekit-host.priority=120"
+      - "traefik.http.routers.livekit-host.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+      - "traefik.http.routers.livekit-host.tls={{ (traefik_letsencrypt_enable or custom_certificates_enabled) | to_json }}"
+      - "traefik.http.routers.livekit-host.middlewares=livekit-host-strip"
+      - "traefik.http.middlewares.livekit-host-strip.stripprefix.prefixes=/livekit"
+      - "traefik.http.routers.livekit-host.service=livekit-host-service"
+      - "traefik.http.services.livekit-host-service.loadbalancer.server.url=http://host.docker.internal:{{ livekit_port | default(7880) }}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config:/etc/traefik
+      - traefik:/data
+{% if custom_certificates_enabled is defined and custom_certificates_enabled is true %}
+      - /etc/opentalk-compose/ssl:/etc/traefik/ssl
+{% endif %}
+
+volumes:
+  traefik:

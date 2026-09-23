@@ -23,22 +23,22 @@ The target server should meet at least:
 
 ### 1.2 Supported Operating Systems
 
-Releases are provided as DEB and RPM packages. The packages are built for the x86-64 architecture and not tied to a specific Linux distribution.
+Releases are provided as DEB and RPM packages for x86-64 Linux systems. Supported distributions must provide `glibc 2.34` or newer.
 
 Recommended distributions:
 
-| Distributions using `.deb`                 | Distributions using `.rpm`  |
-|--------------------------------------------|-----------------------------|
-| Debian 12 "Bookworm"                       | RHEL 9                      |
-| Debian 13 "Trixie"                         | RHEL 10                     |
-| Ubuntu 22.04 LTS "Jammy Jellyfish"         | AlmaLinux 9                 |
-| Ubuntu 24.04 LTS "Noble Numbat"            | AlmaLinux 10                |
-| Ubuntu 26.04 LTS "Resolute Raccoon"        | Rocky Linux 9               |
-|                                            | Rocky Linux 10              |
-|                                            | openSUSE Leap 15            |
-|                                            | openSUSE Leap 16            |
-|                                            | SLES 15                     |
-|                                            | SLES 16                     |
+| Distributions using `.deb`                 | Distributions using `.rpm` |
+|--------------------------------------------|----------------------------|
+| Debian 12 "Bookworm"                       | RHEL 9                     |
+| Debian 13 "Trixie"                         | RHEL 10                    |
+| Ubuntu 22.04 LTS "Jammy Jellyfish"         | AlmaLinux 9                |
+| Ubuntu 24.04 LTS "Noble Numbat"            | AlmaLinux 10               |
+| Ubuntu 26.04 LTS "Resolute Raccoon"        | Rocky Linux 9              |
+|                                            | Rocky Linux 10             |
+|                                            | openSUSE Leap 16           |
+|                                            | openSUSE Leap 15.6+        |
+|                                            | SLES 16                    |
+|                                            | SLES 15 SP6+               |
 
 ### 1.3 Firewall Configuration
 
@@ -90,80 +90,80 @@ while convenient this can changed by:
 
 ### 2.1 Add the Package Repository and install `opentalk-compose`
 
-=== "Debian / Ubuntu"
+#### Debian / Ubuntu
 
-  For Debian 12, 13 and Ubuntu 24.04/26.04 based systems.
+For Debian 12, 13 and Ubuntu 24.04/26.04 based systems.
 
-    ```bash
-    # Download and install the GPG public key
-    curl -fsSL \
-      https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc | \
-      sudo tee /etc/apt/trusted.gpg.d/opentalk-archive-keyring.asc > /dev/null
+```bash
+# Download and install the GPG public key
+curl -fsSL \
+  https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc | \
+  sudo tee /etc/apt/trusted.gpg.d/opentalk-archive-keyring.asc > /dev/null
 
-    # Add the OpenTalk Compose repository
-    echo "deb [arch=amd64] \
-      https://repo.heinlein.group/repo/opentalk-compose/deb/stable/ all main" | \
-      sudo tee /etc/apt/sources.list.d/opentalk-compose.list
+# Add the OpenTalk Compose repository
+echo "deb [arch=amd64] \
+  https://repo.heinlein.group/repo/opentalk-compose/deb/stable/ all main" | \
+  sudo tee /etc/apt/sources.list.d/opentalk-compose.list
 
-    # Update package index
-    sudo apt update
+# Update package index
+sudo apt update
 
-    # Install package opentalk-compose
-    sudo apt install opentalk-compose
-    ```
+# Install package opentalk-compose
+sudo apt install opentalk-compose
+```
 
 
-=== "RHEL / Rocky / AlmaLinux"
+#### RHEL / Rocky / AlmaLinux
 
-    For RHEL 9, 10 and compatible distributions (Rocky Linux, AlmaLinux, etc.).
+For RHEL 9, 10 and compatible distributions (Rocky Linux, AlmaLinux, etc.).
 
-    ```bash
-    # Download and install the GPG public key
-    sudo rpm --import \
-      https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
+```bash
+# Download and install the GPG public key
+sudo rpm --import \
+  https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
 
-    # Add the OpenTalk Compose repository
-    sudo tee /etc/yum.repos.d/opentalk-stable.repo <<EOF
-    [opentalk-compose]
-    name=OpenTalk Compose Repository - Stable Releases
-    baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
-    enabled=1
-    gpgcheck=1
-    gpgkey=https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
-    EOF
+# Add the OpenTalk Compose repository
+sudo tee /etc/yum.repos.d/opentalk-stable.repo <<EOF
+[opentalk-compose]
+name=OpenTalk Compose Repository - Stable Releases
+baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
+EOF
 
-    # Update repository metadata
-    sudo dnf makecache
+# Update repository metadata
+sudo dnf makecache
 
-    # Install package opentalk-compose
-    sudo dnf install opentalk-compose
-    ```
+# Install package opentalk-compose
+sudo dnf install opentalk-compose
+```
 
-=== "SLES / openSUSE"
+#### SLES / openSUSE
 
-    For SUSE Linux Enterprise 15, 16 and openSUSE Leap based distributions.
+For openSUSE Leap 15.6, SUSE Linux Enterprise 16 and other SUSE-based distributions with glibc 2.34 or newer. Older SUSE releases and SLES 15 service packs require an explicit glibc check.
 
-    ```bash
-    # Download and install the GPG public key
-    sudo rpm --import \
-      https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
+```bash
+# Download and install the GPG public key
+sudo rpm --import \
+  https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
 
-    # Add the OpenTalk Compose (stable) repository
-    sudo tee /etc/zypp/repos.d/opentalk-stable.repo <<EOF
-    [opentalk-compose-stable]
-    name=OpenTalk Compose Repository - Stable Releases
-    baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
-    enabled=1
-    gpgcheck=1
-    gpgkey=https://repo.heinlein.group/repo/opentalk-compose/opentalk-compose_sign.asc
-    EOF
+# Add the OpenTalk Compose (stable) repository
+sudo tee /etc/zypp/repos.d/opentalk-stable.repo <<EOF
+[opentalk-compose-stable]
+name=OpenTalk Compose Repository - Stable Releases
+baseurl=https://repo.heinlein.group/repo/opentalk-compose/rpm/stable/
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.heinlein.group/repo/opentalk-compose_sign.asc
+EOF
 
-    # Refresh repositories and install OpenTalk Compose
-    sudo zypper refresh
+# Refresh repositories and install OpenTalk Compose
+sudo zypper refresh
 
-    # Install package opentalk-compose
-    sudo zypper install opentalk-compose
-    ```
+# Install package opentalk-compose
+sudo zypper install opentalk-compose
+```
 
 ### 2.2 Initialize the Deployment Environment
 
@@ -292,7 +292,78 @@ Notes:
 - Volume names must match exactly (no automatic prefixing).
 - Extra vars can be passed via `OTCTL_BACKUP_EXTRA_VARS` for advanced use.
 
-### 2.7 Reference: `otctl` Overview
+### 2.7 Restoring Backups
+
+Restores are **destructive**: they overwrite live databases, configuration or volume contents. `otctl restore`
+therefore shows a plan of exactly what will be restored and requires you to type `restore` before
+continuing (or to pass `--yes` in non-interactive sessions).
+
+> **Important:** Run `otctl backup all` before any restore to keep a rollback point.
+
+Core commands:
+
+```bash
+otctl restore ls                    # List existing backup artifacts
+otctl restore all                   # Restore config + controller DB + keycloak DB + volumes (newest artifacts)
+otctl restore controller-db [FILE]  # Restore controller DB from a SQL dump (FILE optional, defaults to newest)
+otctl restore keycloak-db [FILE]    # Restore keycloak DB from a SQL dump (FILE optional, defaults to newest)
+otctl restore config [FILE]         # Restore config from an archive (FILE optional, defaults to newest)
+otctl restore volume [NAME]         # Restore all configured volumes, or a single volume NAME
+```
+
+Behavior notes:
+
+- For database restores, the corresponding application container (`controller`, `keycloak`) is stopped
+  before the dump is applied and started afterwards; the database container itself keeps running.
+- For volume restores, the containers of the backing services (e.g. `garage`, `minio`, `rabbitmq`,
+  `traefik`) are stopped for the duration of the restore.
+- Restore requires an explicit confirmation; raw `ansible-playbook` runs additionally need
+  `-e restore_confirmation=yes`.
+
+#### Backup/Restore test procedure
+
+After a new installation or a major update, verify that backups restore correctly:
+
+1. Create a full baseline backup:
+
+   ```bash
+   otctl backup all
+   otctl backup ls   # verify all artifacts are present
+   ```
+
+2. Set a marker in the controller database (data created *after* the backup):
+
+   ```bash
+   PGPASSWORD="$(yq -r '.CONTROLLER_DB_PASSWORD' /etc/opentalk-compose/secrets/secrets.yml)" \
+     otctl compose exec -T controller-db psql -U ot -d controller \
+     -c "CREATE TABLE IF NOT EXISTS restore_test(id int); INSERT INTO restore_test VALUES (42);"
+   ```
+
+3. Restore the controller database from the newest dump:
+
+   ```bash
+   otctl restore controller-db
+   ```
+
+4. Verify the marker is gone (restore brought back the pre-marker state):
+
+   ```bash
+   PGPASSWORD="$(yq -r '.CONTROLLER_DB_PASSWORD' /etc/opentalk-compose/secrets/secrets.yml)" \
+     otctl compose exec -T controller-db psql -U ot -d controller \
+     -c "SELECT count(*) FROM restore_test;"
+   ```
+
+   Expected result: `ERROR: relation "restore_test" does not exist` – the table was created *after*
+   the backup and must be gone again. If the query returns `1`, the restore did not apply (check the
+   output of step 3 and retry).
+
+5. Optionally repeat the same procedure for a volume: back it up (`otctl backup volume <name>`),
+   write a marker file into the volume from a container that mounts it, run
+   `otctl restore volume <name>`, and verify the marker file is gone.
+
+6. Check overall health after the restore: `otctl status` and the web interfaces (see section 2.5).
+
+### 2.8 Reference: `otctl` Overview
 
 | Command | Purpose |
 |---------|---------|
@@ -302,6 +373,7 @@ Notes:
 | otctl restart \[svc...\] | Restart services |
 | otctl recreate \[svc...\] | Recreate containers |
 | otctl backup … | Backup workflows |
+| otctl restore … | Restore workflows (destructive, asks for confirmation) |
 | otctl version | Show versions |
 | otctl compose … | Pass through to docker compose |
 | otctl playbook … | Advanced Ansible usage |
@@ -319,7 +391,7 @@ Health column semantics (`otctl status`):
 
 The SMTP Mailer service sends transactional emails for OpenTalk (meeting invitations, notifications). It connects to a configured SMTP server and derives sender addresses and links from your `ot_domain` setting. The mailer requires valid credentials for your SMTP server; therefore it is disabled by default until configured.
 
-For a full list of available SMTP Mailer configuration variables see the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_smtp_mailer).
+For a full list of available SMTP Mailer configuration variables see the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_compose_opentalk_smtp_mailer).
 
 ### 3.2 Enable & Configure SMTP Mailer
 
@@ -392,7 +464,7 @@ Obelisk is a SIP (Session Initiation Protocol) telephony bridge service that ena
 - Connect from SIP-enabled desk phones
 - Provide dial-in access for participants without internet or video capabilities
 
-For all Obelisk-related configuration variables refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_obelisk).
+For all Obelisk-related configuration variables refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_compose_opentalk_obelisk).
 
 Obelisk requires credentials for your SIP provider or PBX system, so it is disabled by default.
 
@@ -523,7 +595,7 @@ Look for successful SIP registration messages. If there are connection issues, v
 3. Network connectivity to SIP server
 4. DNS resolution of SIP server hostname
 
-For detailed configuration options, refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_composeopentalk_obelisk).
+For detailed configuration options, refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_compose_opentalk_obelisk).
 
 ## 5. Optional: TURN over TLS with Embedded TURN Server (LiveKit)
 
@@ -648,7 +720,7 @@ otctl backup all
 otctl backup ls   # (optional) verify backup presence
 ```
 
-Backups are stored under `/var/opt/opentalk-compose/backups`. Keep sufficient disk space free. For more granular commands see section 2.8.
+Backups are stored under `/var/opt/opentalk-compose/backups`. Keep sufficient disk space free. For more granular commands see section 2.6.
 
 If the release includes a PostgreSQL major upgrade (for example controller-db/keycloak-db image major bump), create dedicated database dumps before deploying:
 
@@ -657,7 +729,7 @@ otctl backup dump controller
 otctl backup dump keycloak
 ```
 
-Use the backup workflow from section 2.6 for restore planning.
+Use the restore workflow from section 2.7 for rollback planning.
 
 ### 7.3 Step 2: Update Repository & Package
 

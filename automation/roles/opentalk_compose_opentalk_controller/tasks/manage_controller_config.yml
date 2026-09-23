@@ -1,0 +1,149 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Ensure OpenTalk Controller Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: "0755"
+    state: directory
+  with_items:
+    - "{{ controller_docker_compose_services_dir }}"
+    - "{{ controller_docker_compose_services_dir }}/opentalk-controller"
+    - "{{ controller_docker_compose_services_dir }}/opentalk-controller/config"
+
+- name: Set roomserver URLs for internal kind
+  ansible.builtin.set_fact:
+    controller_roomserver_service_url: "http://localhost:11333"
+    controller_roomserver_public_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/roomserver"
+  when: (controller_roomserver_kind | default('external')) == 'internal'
+
+- name: Set roomserver URLs defaults for external kind
+  ansible.builtin.set_fact:
+    controller_roomserver_service_url: "{{ controller_roomserver_service_url | default('http://roomserver:' ~ (roomserver_http_port | default('11333') | string)) }}"
+    controller_roomserver_public_url: "{{ controller_roomserver_public_url | default((ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url ~ '/roomserver') }}"
+  when: (controller_roomserver_kind | default('external')) == 'external'
+
+- name: Validate external roomserver URLs
+  ansible.builtin.assert:
+    that:
+      - controller_roomserver_service_url is defined
+      - controller_roomserver_service_url | string | length > 0
+      - controller_roomserver_public_url is defined
+      - controller_roomserver_public_url | string | length > 0
+      - "'localhost' not in (controller_roomserver_service_url | lower)"
+      - "'localhost' not in (controller_roomserver_public_url | lower)"
+    fail_msg: >-
+      When controller_roomserver_kind is "external",
+      controller_roomserver_service_url/controller_roomserver_public_url must be set,
+      and neither URL may point to localhost.
+  when: (controller_roomserver_kind | default('external')) == 'external'
+
+- name: Warn about deprecated controller_spacedeck_* variables
+  ansible.builtin.debug:
+    msg: >-
+      DEPRECATION WARNING: 'controller_spacedeck_api_key'/'controller_spacedeck_url' are deprecated and will be
+      removed in a future release. Migrate to 'controller_roomserver_modules_whiteboard_api_key' and
+      'controller_roomserver_modules_whiteboard_base_url' in settings.yml.
+  when: controller_spacedeck_api_key is defined
+
+- name: Override whiteboard module config from deprecated spacedeck vars
+  ansible.builtin.set_fact:
+    controller_roomserver_modules_whiteboard_api_key: "{{ controller_spacedeck_api_key }}"
+    controller_roomserver_modules_whiteboard_base_url: "{{ controller_spacedeck_url }}"
+  when: controller_spacedeck_api_key is defined
+
+- name: Warn about deprecated controller_etherpad_* variables
+  ansible.builtin.debug:
+    msg: >-
+      DEPRECATION WARNING: 'controller_etherpad_api_key'/'controller_etherpad_url' are deprecated and will be
+      removed in a future release. Migrate to 'controller_roomserver_modules_meeting_notes_api_key' and
+      'controller_roomserver_modules_meeting_notes_base_url' in settings.yml.
+  when: controller_etherpad_api_key is defined
+
+- name: Override meeting_notes module config from deprecated etherpad vars
+  ansible.builtin.set_fact:
+    controller_roomserver_modules_meeting_notes_api_key: "{{ controller_etherpad_api_key }}"
+    controller_roomserver_modules_meeting_notes_base_url: "{{ controller_etherpad_url }}"
+  when: controller_etherpad_api_key is defined
+
+- name: Warn about deprecated controller_livekit_* variables
+  ansible.builtin.debug:
+    msg: >-
+      DEPRECATION WARNING: 'controller_livekit_api_key'/'controller_livekit_api_secret'/'controller_livekit_public_url'/'controller_livekit_service_url'
+      are deprecated and will be removed in a future release. Migrate to
+      'controller_roomserver_modules_livekit_api_key', 'controller_roomserver_modules_livekit_api_secret',
+      'controller_roomserver_modules_livekit_public_url' and 'controller_roomserver_modules_livekit_service_url' in settings.yml.
+  when: controller_livekit_api_key is defined
+
+- name: Override livekit module config from deprecated livekit vars
+  ansible.builtin.set_fact:
+    controller_roomserver_modules_livekit_api_key: "{{ controller_livekit_api_key }}"
+    controller_roomserver_modules_livekit_api_secret: "{{ controller_livekit_api_secret }}"
+    controller_roomserver_modules_livekit_public_url: "{{ controller_livekit_public_url }}"
+    controller_roomserver_modules_livekit_service_url: "{{ controller_livekit_service_url }}"
+  when: controller_livekit_api_key is defined
+
+# Set module vars from compose service flags when not already set explicitly in settings.yml
+- name: Set whiteboard module vars from spacedeck service config
+  ansible.builtin.set_fact:
+    controller_roomserver_modules_whiteboard_api_key: "{{ SPACEDECK_API_KEY }}"
+    controller_roomserver_modules_whiteboard_base_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/whiteboard"
+  when:
+    - compose_service_spacedeck_enabled | default(false) | bool
+    - controller_roomserver_modules_whiteboard_api_key is not defined
+
+- name: Set meeting_notes module vars from etherpad service config
+  ansible.builtin.set_fact:
+    controller_roomserver_modules_meeting_notes_api_key: "{{ controller_roomserver_modules_meeting_notes_api_key | default(ETHERPAD_API_KEY) }}"
+    controller_roomserver_modules_meeting_notes_base_url: "{{ controller_roomserver_modules_meeting_notes_base_url | default((ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url ~ '/etherpad') }}"
+  when:
+    - compose_service_etherpad_enabled | default(false) | bool
+    - controller_roomserver_modules_meeting_notes_api_key is not defined or controller_roomserver_modules_meeting_notes_base_url is not defined
+
+- name: Set livekit module vars from livekit service config
+  ansible.builtin.set_fact:
+    controller_roomserver_modules_livekit_api_key: "controller"
+    controller_roomserver_modules_livekit_api_secret: "{{ LIVEKIT_API_SECRET }}"
+    controller_roomserver_modules_livekit_public_url: "wss://{{ (ot_domain, ot_ingress_port) | build_host }}/livekit"
+    controller_roomserver_modules_livekit_service_url: "http://host.docker.internal:{{ livekit_port | default(7880) }}"
+  when:
+    - compose_service_livekit_server_enabled | default(false) | bool
+    - controller_roomserver_modules_livekit_api_key is not defined
+
+- name: Set recording module vars from recorder service config
+  ansible.builtin.set_fact:
+    controller_roomserver_modules_recording_api_key_id: >-
+      {{ controller_roomserver_modules_recording_api_key_id
+         | default(
+             (recorder_http_api_keys[0].id
+               if (recorder_http_api_keys is defined
+                   and recorder_http_api_keys | length > 0
+                   and recorder_http_api_keys[0].id is defined)
+               else recorder_controller_api_key_id)
+           ) }}
+    controller_roomserver_modules_recording_api_key_secret: >-
+      {{ controller_roomserver_modules_recording_api_key_secret
+         | default(
+             (recorder_http_api_keys[0].secret
+               if (recorder_http_api_keys is defined
+                   and recorder_http_api_keys | length > 0
+                   and recorder_http_api_keys[0].secret is defined)
+               else recorder_controller_api_key_secret)
+           ) }}
+    controller_roomserver_modules_recording_url: >-
+      {{ controller_roomserver_modules_recording_url
+         | default('http://recorder:' ~ (recorder_http_port | default('5555') | string)) }}
+  when:
+    - compose_service_opentalk_recorder_enabled | default(false) | bool
+    - controller_roomserver_modules_recording_api_key_id is not defined
+      or controller_roomserver_modules_recording_api_key_secret is not defined
+      or controller_roomserver_modules_recording_url is not defined
+
+- name: Render OpenTalk Controller static config
+  ansible.builtin.template:
+    src: controller.toml.j2
+    dest: "{{ controller_docker_compose_services_dir }}/opentalk-controller/config/controller.toml"
+    mode: '0644'
+  notify: Restart Docker Service OpenTalk Controller

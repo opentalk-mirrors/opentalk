@@ -20,7 +20,7 @@ set -euo pipefail
 #
 # Default: Remove build directory only (preserve artifacts)
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="${CLEANUP_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 FORCE=0
 MODE="standard"
 RELOCATED=0
@@ -54,8 +54,9 @@ cleanup_artifacts() {
   
   local found=0
   for pattern in "*.deb" "*.rpm" "*.tar.gz" "*.tar.xz"; do
-    if compgen -G "$ROOT/$pattern" >/dev/null 2>&1; then
-      rm -f "$ROOT"/"$pattern"
+    mapfile -t matches < <(compgen -G "$ROOT/$pattern" 2>/dev/null)
+    if (( ${#matches[@]} > 0 )); then
+      rm -f "${matches[@]}"
       echo "[cleanup] - Removed $pattern files"
       found=1
     fi

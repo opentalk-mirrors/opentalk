@@ -25,9 +25,11 @@ repos:
     rev: v25.11.0
     hooks:
       - id: ansible-lint
+        entry: env ANSIBLE_COLLECTIONS_PATH=.ansible/collections ansible-lint automation
         files: \.(yaml|yml)$
         name: Ansible Lint
         language_version: python3
+        pass_filenames: false
         description: Run configurations on .ansible-lint file
 
   - repo: local

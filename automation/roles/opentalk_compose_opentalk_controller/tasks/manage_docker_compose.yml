@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: OpenTalk Controller Compose path include
+  ansible.builtin.blockinfile:
+    path: "{{ deploy_dir }}/compose.yml"
+    insertafter: '^include:\\s*$'
+    marker: "# Ansible managed - opentalk-controller include {mark}"
+    block: |
+      - path:
+          - services/opentalk-controller/compose.yml
+    state: "{{ 'present' if compose_service_opentalk_controller_enabled | bool else 'absent' }}"
+  register: _blockinfile_result
+
+- name: Invalidate compose includes check on blockinfile change # noqa no-handler
+  ansible.builtin.set_fact:
+    compose_includes_ready: false
+  when: _blockinfile_result.changed
+
+- name: Render Controller compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ controller_docker_compose_services_dir }}/opentalk-controller/compose.yml"
+    mode: "0644"
+  when: compose_service_opentalk_controller_enabled | bool
+
+- name: Check if all compose includes exist
+  ansible.builtin.include_tasks:
+    file: "{{ playbook_dir }}/../roles/opentalk_compose_docker_env/tasks/check_compose_includes.yml"
+  when:
+    - compose_service_opentalk_controller_enabled | bool
+    - not (compose_includes_ready | default(false))
+
+- name: Manage OpenTalk Controller Docker Compose state
+  community.docker.docker_compose_v2:
+    project_src: "{{ controller_docker_compose_project_src }}"
+    project_name: "{{ controller_docker_compose_project_name }}"
+    services:
+      - controller
+      - controller-db
+    files:
+      - compose.yml
+    state: "{{ controller_docker_compose_services_state }}"
+  when:
+    - compose_service_opentalk_controller_enabled | bool
+    - compose_includes_ready | default(false)

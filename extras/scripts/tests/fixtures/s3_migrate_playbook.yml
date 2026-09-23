@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - role: opentalk_compose_s3_migrate
+  vars:
+    s3_migrate_settings_file: "{{ lookup('ansible.builtin.env', 'OT_TEST_SETTINGS_FILE') }}"
+  post_tasks:
+    - name: Export derived migration facts
+      ansible.builtin.copy:
+        content: >-
+          {{
+            {
+              'source': s3_migration_source,
+              'destination': s3_migration_destination,
+              'source_endpoint': s3_migrate_source_endpoint,
+              'dest_endpoint': s3_migrate_dest_endpoint,
+              'settings_file': s3_migrate_settings_file,
+            } | to_json
+          }}
+        dest: "{{ lookup('ansible.builtin.env', 'OT_TEST_RESULT_FILE') }}"
+  tags:
+    - s3_migrate_logic

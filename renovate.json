@@ -6,15 +6,31 @@
   "pip_requirements": {
     "fileMatch": ["^extras/packaging/requirements-ansible\\.in$"]
   },
-  "regexManagers": [
+  "customManagers": [
     {
-      "fileMatch": ["^extras/packaging/astral_python\\.version$"],
+      "customType": "regex",
+      "description": "Component versions in .versions.yml, driven by a '# renovate:' annotation above each entry",
+      "fileMatch": ["^\\.versions\\.yml$"],
       "matchStrings": [
-        "ASTRAL_PBS_RELEASE=(?<currentValue>\\d+)"
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?\\s*\\n[A-Za-z0-9_.-]+: *\"?(?<currentValue>[^\"\\s]+)\"?"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "OpenTalk's own services are released together, so update them in one MR",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": [
+        "registry.heinlein.group/opentalk/web-frontend",
+        "registry.heinlein.group/opentalk/controller",
+        "registry.heinlein.group/opentalk/obelisk",
+        "registry.heinlein.group/opentalk/recorder",
+        "registry.heinlein.group/opentalk/roomserver",
+        "registry.heinlein.group/opentalk/smtp-mailer",
+        "registry.heinlein.group/opentalk/outlook-add-in",
+        "git.opentalk.dev:5050/opentalk/backend/services/orchestrator"
       ],
-      "depNameTemplate": "astral-sh/python-build-standalone",
-      "datasourceTemplate": "github-releases",
-      "versioningTemplate": "loose"
+      "groupName": "OpenTalk services"
     }
   ]
 }

@@ -1,0 +1,62 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Restore config archive directly into {{ config_dir }} without adding an extra top-level directory.
+# Many archive tools (tar) preserve the initial directory name (e.g. opentalk-compose/...).
+# We extract to a temp dir first, detect a single top-level folder and then sync its contents.
+
+- name: Restore configuration from backup archive
+  tags:
+    - restore
+    - config_restore
+    - never
+  block:
+    - name: Check restore file is provided
+      ansible.builtin.assert:
+        that:
+          - config_backup_restore_file | length > 0
+        fail_msg: "config_backup_restore_file must be set to a .tar.gz archive name"
+
+    - name: Create temporary extraction directory
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: config_restore_
+      register: _cfg_restore_tmp
+
+    - name: Extract archive to temp directory
+      ansible.builtin.unarchive:
+        src: "{{ backup_dir_config }}/{{ config_backup_restore_file }}"
+        dest: "{{ _cfg_restore_tmp.path }}"
+        remote_src: true
+      register: _cfg_unarchive
+
+    - name: List extracted top-level entries
+      ansible.builtin.find:
+        paths: "{{ _cfg_restore_tmp.path }}"
+        file_type: any
+        depth: 1
+      register: _cfg_extracted_root
+
+    - name: Determine content source path
+      ansible.builtin.set_fact:
+        _cfg_restore_content_src: >-
+          {{ (
+               (_cfg_extracted_root.files | length == 1) and
+               (_cfg_extracted_root.files[0].isdir | default(false))
+             ) | ternary(_cfg_extracted_root.files[0].path, _cfg_restore_tmp.path) }}
+
+    - name: Sync extracted config into target directory
+      ansible.builtin.copy:
+        src: "{{ _cfg_restore_content_src }}/"
+        dest: "{{ config_dir | default('/etc/opentalk-compose') }}/"
+        owner: "{{ config_restore_owner | default('root') }}"
+        group: "{{ config_restore_group | default('root') }}"
+        mode: preserve
+      notify: []
+
+    - name: Cleanup temp extraction directory
+      ansible.builtin.file:
+        path: "{{ _cfg_restore_tmp.path }}"
+        state: absent

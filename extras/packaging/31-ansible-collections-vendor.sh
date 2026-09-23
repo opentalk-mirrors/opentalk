@@ -4,8 +4,10 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 set -euo pipefail
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 # Install downloaded collection tarballs into build/vendor (offline layout).
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$PACKAGING_ROOT"
 REQ="${1:-$ROOT/automation/collections/requirements.yml}"
 DIST="$ROOT/build/collections_dist"
 VENDOR="$ROOT/build/vendor"
@@ -51,7 +53,7 @@ done
 set +x
 
 find "$VENDOR/collections" -maxdepth 4 -type d -name ansible_collections -print | sed 's/^/[vendor] + /' || true
-if ! find "$VENDOR/collections" -maxdepth 3 -type d -name ansible_collections -quit; then
+if ! find "$VENDOR/collections" -maxdepth 3 -type d -name ansible_collections -print -quit | grep -q .; then
   echo "[vendor] ERROR: ansible_collections directory not created."
   exit 1
 fi

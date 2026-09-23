@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Ensure SQL dump backup directory
+  ansible.builtin.command:
+    cmd: mkdir -p "{{ backup_dir_sql_dumps }}"
+    creates: "{{ backup_dir_sql_dumps }}"
+
+- name: Create SQL dump Keycloak DB
+  ansible.builtin.shell: |
+    docker run --rm \
+      --network {{ docker_network_name | quote }} \
+      -e PGPASSWORD="$PGPASSWORD" \
+      {{ (postgres_docker_image_src ~ ':' ~ postgres_version) | quote }} \
+      pg_dump -h {{ keycloak_db_host | quote }} -p {{ keycloak_db_port | quote }} \
+      -U {{ keycloak_db_user | quote }} {{ keycloak_db_name | quote }} \
+      > {{ keycloak_db_dump_file | quote }}
+  environment:
+    PGPASSWORD: "{{ keycloak_db_password }}"
+  changed_when: true
+  tags: [keycloak_db_dump]

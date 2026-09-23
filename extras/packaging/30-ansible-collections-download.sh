@@ -5,8 +5,10 @@
 
 # shellcheck disable=SC2012  # Using ls for simple glob existence/count; acceptable for controlled filenames.
 set -euo pipefail
+# shellcheck disable=SC1091
+. "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 # Download Ansible collection tarballs (offline cache).
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$PACKAGING_ROOT"
 REQ="${1:-$ROOT/automation/collections/requirements.yml}"
 OUT="$ROOT/build/collections_dist"
 STATE="$ROOT/build/.cache/collections.requirements.sha256"
@@ -30,9 +32,19 @@ fi
 echo "[collections] Downloading (changed or forced)..."
 rm -f "$OUT"/*.tar.gz 2>/dev/null || true
 ANSIBLE_GALAXY="${ANSIBLE_GALAXY_BIN:-ansible-galaxy}"
-set -x
-$ANSIBLE_GALAXY collection download -r "$REQ" -p "$OUT"
-set +x
+# Retry: the Galaxy API occasionally returns a malformed response, causing
+# ansible-galaxy to fail with "KeyError: 'results'".
+attempt=1
+max_attempts=3
+until $ANSIBLE_GALAXY collection download -r "$REQ" -p "$OUT"; do
+  if [[ $attempt -ge $max_attempts ]]; then
+    echo "[collections] ERROR: download failed after $attempt attempts." >&2
+    exit 1
+  fi
+  echo "[collections] Download attempt $attempt failed; retrying..." >&2
+  attempt=$((attempt + 1))
+  sleep 5
+done
 echo "$CUR_HASH" > "$STATE"
 
 count=$(\ls -1 "$OUT"/*.tar.gz 2>/dev/null | wc -l || true)

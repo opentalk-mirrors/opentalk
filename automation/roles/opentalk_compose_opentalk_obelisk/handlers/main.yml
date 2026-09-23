@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# handlers file for opentalk_compose_opentalk_obelisk
+- name: "Restart Docker Service OpenTalk Obelisk"
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_dir }}/opentalk-obelisk"
+    project_name: "{{ compose_project_name }}"
+    files:
+      - compose.yml
+      - "{{ deploy_dir }}/common.yml"
+    recreate: never
+    state: restarted
+  tags:
+    - obelisk

@@ -31,7 +31,9 @@
       when: import_users_file is not defined
       tags: ["always"]
 
-    - block:
+    - name: Load deployment secrets
+      tags: ["always"]
+      block:
         - name: Check for secrets vars file
           ansible.builtin.stat:
             path: "{{ config_dir | default('/etc/opentalk-compose') }}/secrets/secrets.yml"
@@ -43,7 +45,5 @@
           ansible.builtin.fail:
             msg: "Secrets file '{{ config_dir | default('/etc/opentalk-compose') }}/secrets/secrets.yml' not found. Run 'otctl deploy' first."
           when: not secrets_file.stat.exists
-      tags: ["always"]
-
   roles:
-    - role: opentalk_compose.import_users
+    - role: opentalk_compose_import_users

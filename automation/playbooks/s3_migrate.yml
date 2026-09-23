@@ -29,7 +29,9 @@
       when: s3_migration_source is not defined
       tags: ["always"]
 
-    - block:
+    - name: Load deployment secrets
+      tags: ["always"]
+      block:
         - name: Check for secrets vars file
           ansible.builtin.stat:
             path: "{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml"
@@ -41,7 +43,5 @@
           ansible.builtin.fail:
             msg: "Secrets file '{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml' not found. Run 'otctl deploy' first."
           when: not secrets_file.stat.exists
-      tags: ["always"]
-
   roles:
-    - role: opentalk_compose.s3_migrate
+    - role: opentalk_compose_s3_migrate

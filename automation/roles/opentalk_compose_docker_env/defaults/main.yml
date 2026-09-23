@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose_docker_env
+docker_network_name: "opentalk_internal"
+docker_network_driver: "bridge"
+docker_network_state: "present"
+
+docker_overwrite_main_compose_file: false

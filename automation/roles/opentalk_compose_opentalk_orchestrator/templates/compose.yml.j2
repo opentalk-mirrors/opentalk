@@ -1,0 +1,20 @@
+---
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+services:
+  orchestrator:
+    image: "{{ orchestrator_docker_image_src }}:{{ opentalk_orchestrator_version }}"
+    ulimits:
+      nofile:
+        soft: {{ orchestrator_docker_compose_ulimits_nofile_soft }}
+        hard: {{ orchestrator_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ orchestrator_docker_compose_ulimits_nproc }}
+    restart: always
+    volumes:
+      - ./config/orchestrator.toml:/.config/opentalk/orchestrator.toml
+    environment:
+      - RUST_LOG={{ orchestrator_logging_default_directives }}
+    networks:
+      - {{ docker_network_name }}

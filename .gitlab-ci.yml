@@ -3,9 +3,25 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgbuild:dev
+image: $CI_REGISTRY_IMAGE/pkgbuild:latest
+
+include:
+  - local: extras/ci/gitlab/lint.yml
+  - local: extras/ci/gitlab/package.yml
+  - local: extras/ci/gitlab/deploy.yml
+  - local: extras/ci/gitlab/integration.yml
+  - local: extras/ci/gitlab/triggers.yml
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_TAG'
 
 stages:
+  - image
   - lint
   - docs
   - package
@@ -13,6 +29,7 @@ stages:
   - upload
   - trigger
   - deploy
+  - deploy-manual
 
 .template_pkg_vars:
   FLAVORS_PKG: ['deb', 'rpm']
@@ -21,13 +38,14 @@ stages:
   FLAVORS_DIST: ['debian12', 'debian13', 'opensuse15', 'opensuse16', 'rocky9', 'ubuntu2404']
 
 .default_conditions: &default_conditions
-  needs: []
+  needs:
+    - job: build:pkgbuild
+      optional: true
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
     - if: '$CI_COMMIT_TAG'
-
 
 trigger_changelog_preview:
   stage: trigger
@@ -42,722 +60,47 @@ trigger_changelog_preview:
     PIPELINE_MERGE_REQUEST_IID: $CI_MERGE_REQUEST_IID
   trigger: opentalk/tools/check-changelog
 
-# ----------------------------
-# LINTER JOBS
-# ----------------------------
-
-lint:shellcheck:
-  stage: lint
-  <<: *default_conditions
-  script:
-    - echo "🔍 Linting shell scripts..."
-    - git ls-files -z '*.sh' | xargs -0r shellcheck
-    - shellcheck extras/packaging/wrappers/*
-
-lint:yamllint:
-  stage: lint
-  <<: *default_conditions
-  script:
-    - echo "🔍 Linting YAML files..."
-    - yamllint .
-
-lint:markdown:
-  stage: lint
-  <<: *default_conditions
-  script:
-    - echo "🔍 Linting Markdown files..."
-    - |
-      git ls-files '*.md' | grep -v 'docs/5-configuration-options-reference.md' | \
-        xargs -P4 -n1 sh -c '
-          f="$1"
-          sed "/\[\[_TOC_\]\]/Id" "$f" | mdl --style .markdown_style.rb - 2>&1 |
-          sed "s|^|$f: |"
-        ' _
-
-lint:ansible-lint:
-  stage: lint
-  <<: *default_conditions
-  script:
-    - echo "🔍 Linting Ansible code ..."
-    - ansible-lint .
-
-lint:licensing:
-  stage: lint
-  <<: *default_conditions
-  script:
-    - echo "🔍 Check license compliance..."
-    - reuse lint
-
-lint:release_tag:
-  stage: lint
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
-    - when: never
-  script:
-    - echo "🔍 Compare product version in .versions.yml with CI_COMMIT_TAG"
-    - |
-      BASE_VERSION=$(yq -r ".opentalk_product_version" .versions.yml); \
-      [[ "$CI_COMMIT_TAG" =~ ^${BASE_VERSION}(-[0-9]+)?$ ]] || \
-      { echo "Product Version mismatch: .versions.yml has $BASE_VERSION but tag is $CI_COMMIT_TAG"; exit 1; }
-lint:pre-release_tag:
-  stage: lint
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
-    - when: never
-  script:
-    - echo "🔍 Compare product version in .versions.yml with CI_COMMIT_TAG"
-    - |
-      BASE_VERSION=$(yq -r ".opentalk_product_version" .versions.yml); \
-      [[ "$CI_COMMIT_TAG" =~ ^${BASE_VERSION}(-(alpha|beta)(\.[0-9]+)?)?$ ]] || \
-      { echo "Product Version mismatch: .versions.yml has $BASE_VERSION but tag is $CI_COMMIT_TAG"; exit 1; }
-lint:commitlint:
-  cache: {}
-  stage: lint
-  allow_failure: false
-  <<: *default_conditions
+build:pkgbuild:
+  stage: image
+  image: docker:27-cli
+  services:
+    - docker:27-dind
+  tags:
+    - dind
   variables:
-    GIT_DEPTH: 0
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  rules:
+    - changes:
+        - extras/ci/pkgbuild/**/*
+        - .gitlab-ci.yml
+    - when: never
   script:
-    - set -euo pipefail
-    - |
-      if [ -n "${CI_MERGE_REQUEST_DIFF_BASE_SHA:-}" ]; then
-        BASE="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
-        echo "Checking commits from $BASE to HEAD"
-        git log --oneline "$BASE..HEAD"
-        if ! npx commitlint --from "$BASE" --to HEAD --verbose; then
-          echo "❌ Commitlint found problems - blocking pipeline!"
-          exit 1
-        fi
-      else
-        echo "Push pipeline detected - linting only the HEAD commit message"
-        echo "(individual commits were already checked in their source MR pipelines)"
-        git log -1 --pretty=%B HEAD
-        if ! git log -1 --pretty=%B HEAD | npx commitlint --verbose; then
-          echo "❌ Commitlint found problems - blocking pipeline!"
-          exit 1
-        fi
-      fi
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+    - docker buildx create --use
+    - >-
+      docker buildx build
+      --cache-from type=registry,ref=$CI_REGISTRY_IMAGE/pkgbuild:cache
+      --cache-to type=registry,ref=$CI_REGISTRY_IMAGE/pkgbuild:cache,mode=max
+      --tag $CI_REGISTRY_IMAGE/pkgbuild:latest
+      --push
+      extras/ci/pkgbuild
 
 docs:mkdocs:
   stage: docs
-  image:
-    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
-    entrypoint: ['']
   <<: *default_conditions
   script:
-    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+    # The privacy plugin fetches external assets (e.g. Google Fonts); retry on
+    # transient network timeouts.
+    - |
+      for i in 1 2 3; do
+        just docs && exit 0
+        echo "just docs attempt $i failed; retrying..."
+        sleep 10
+      done
+      exit 1
   artifacts:
     paths:
       - site/
   pages:
     publish: site
-
-# ------------------------------
-# PACKAGE JOBS
-# ------------------------------
-
-package:stable:
-  stage: package
-  needs:
-    - lint:shellcheck
-    - lint:yamllint
-    - lint:markdown
-    - lint:ansible-lint
-    - lint:licensing
-    - lint:commitlint
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
-    - when: never
-  script:
-    - extras/packaging/build-all.sh --${FLAVOR} --version "$CI_COMMIT_TAG"
-    - |
-      if [ "$FLAVOR" = "rpm" ]; then
-        export GNUPGHOME="$HOME/.gnupg"
-        mkdir -p "$GNUPGHOME"
-        chmod 700 "$GNUPGHOME"
-        export GPG_TTY=$(tty 2>/dev/null || echo /dev/tty)
-        echo "Importing GPG key..."
-        echo "$GPG_PRIVATE_KEY_BASE64" | base64 --decode | gpg --batch --import
-        GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/ {print $5; exit}')
-        echo "Using GPG_KEY_ID=$GPG_KEY_ID"
-        echo "$GPG_PASSPHRASE" > /tmp/.gpg-passphrase
-        chmod 600 /tmp/.gpg-passphrase
-        echo "%_signature gpg" > ~/.rpmmacros
-        echo "%_gpg_path $GNUPGHOME" >> ~/.rpmmacros
-        echo "%_gpg_name $GPG_KEY_ID" >> ~/.rpmmacros
-        echo "%__gpg_sign_cmd %{__gpg} gpg --batch --pinentry-mode loopback --passphrase-file /tmp/.gpg-passphrase --no-verbose --no-armor --no-secmem-warning -u \"%{_gpg_name}\" -sbo %{__signature_filename} %{__plaintext_filename}" >> ~/.rpmmacros
-        for pkg in artifacts/*.rpm; do
-          echo "Signing $pkg"
-          rpmsign --addsign "$pkg"
-        done
-        rm -f /tmp/.gpg-passphrase
-      fi
-  artifacts:
-    paths:
-      - artifacts/*
-    expire_in: 1 day
-
-package:pre-release:
-  stage: package
-  needs:
-    - lint:shellcheck
-    - lint:yamllint
-    - lint:markdown
-    - lint:ansible-lint
-    - lint:licensing
-    - lint:commitlint
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
-    - when: never
-  script:
-    - extras/packaging/build-all.sh --${FLAVOR} --version "$CI_COMMIT_TAG"
-    - |
-      if [ "$FLAVOR" = "rpm" ]; then
-        export GNUPGHOME="$HOME/.gnupg"
-        mkdir -p "$GNUPGHOME"
-        chmod 700 "$GNUPGHOME"
-        export GPG_TTY=$(tty 2>/dev/null || echo /dev/tty)
-        echo "Importing GPG key..."
-        echo "$GPG_PRIVATE_KEY_BASE64" | base64 --decode | gpg --batch --import
-        GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/ {print $5; exit}')
-        echo "Using GPG_KEY_ID=$GPG_KEY_ID"
-        echo "$GPG_PASSPHRASE" > /tmp/.gpg-passphrase
-        chmod 600 /tmp/.gpg-passphrase
-        echo "%_signature gpg" > ~/.rpmmacros
-        echo "%_gpg_path $GNUPGHOME" >> ~/.rpmmacros
-        echo "%_gpg_name $GPG_KEY_ID" >> ~/.rpmmacros
-        echo "%__gpg_sign_cmd %{__gpg} gpg --batch --pinentry-mode loopback --passphrase-file /tmp/.gpg-passphrase --no-verbose --no-armor --no-secmem-warning -u \"%{_gpg_name}\" -sbo %{__signature_filename} %{__plaintext_filename}" >> ~/.rpmmacros
-        for pkg in artifacts/*.rpm; do
-          echo "Signing $pkg"
-          rpmsign --addsign "$pkg"
-        done
-        rm -f /tmp/.gpg-passphrase
-      fi
-  artifacts:
-    paths:
-      - artifacts/*
-    expire_in: 1 day
-
-package:experimental:
-  stage: package
-  needs:
-    - lint:shellcheck
-    - lint:yamllint
-    - lint:markdown
-    - lint:ansible-lint
-    - lint:licensing
-    - lint:commitlint
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - when: never
-  script:
-    - |
-      if [ -z "$CI_COMMIT_TAG" ]; then
-        VERSION="$(yq -r '.opentalk_product_version' .versions.yml)+git${CI_COMMIT_SHORT_SHA}"
-      else
-        VERSION="${CI_COMMIT_TAG}+git${CI_COMMIT_SHORT_SHA}"
-      fi
-      echo "VERSION=$VERSION"
-    - extras/packaging/build-all.sh --${FLAVOR} --version "$VERSION"
-    - |
-      if [ "$FLAVOR" = "rpm" ]; then
-        export GNUPGHOME="$HOME/.gnupg"
-        mkdir -p "$GNUPGHOME"
-        chmod 700 "$GNUPGHOME"
-        export GPG_TTY=$(tty 2>/dev/null || echo /dev/tty)
-        echo "Importing GPG key..."
-        echo "$GPG_PRIVATE_KEY_BASE64" | base64 --decode | gpg --batch --import
-        GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/ {print $5; exit}')
-        echo "Using GPG_KEY_ID=$GPG_KEY_ID"
-        echo "$GPG_PASSPHRASE" > /tmp/.gpg-passphrase
-        chmod 600 /tmp/.gpg-passphrase
-        echo "%_signature gpg" > ~/.rpmmacros
-        echo "%_gpg_path $GNUPGHOME" >> ~/.rpmmacros
-        echo "%_gpg_name $GPG_KEY_ID" >> ~/.rpmmacros
-        echo "%__gpg_sign_cmd %{__gpg} gpg --batch --pinentry-mode loopback --passphrase-file /tmp/.gpg-passphrase --no-verbose --no-armor --no-secmem-warning -u \"%{_gpg_name}\" -sbo %{__signature_filename} %{__plaintext_filename}" >> ~/.rpmmacros
-        for pkg in artifacts/*.rpm; do
-          echo "Signing $pkg"
-          rpmsign --addsign "$pkg"
-        done
-        rm -f /tmp/.gpg-passphrase
-      fi
-  artifacts:
-    paths:
-      - artifacts/*
-    expire_in: 2 hours
-
-# ------------------------------
-# UPLOAD JOBS
-# ------------------------------
-
-upload:stable:
-  stage: upload
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
-  needs:
-    - job: package:stable
-      artifacts: true
-    - job: int:stable
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
-    - when: never
-  script:
-    - |
-      for file in artifacts/*.${FLAVOR}; do
-        [ -f "$file" ] || continue
-        filename=$(basename "$file")
-        curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
-             --upload-file "$file" \
-             "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
-        echo "Uploaded to gitlab: $filename"
-        if [ "$FLAVOR" = "deb" ]; then
-            NEXUS_URL="${NEXUS_REPO_BASE_URL}/${NEXUS_REPO_NAME_DEB_STABLE}/"
-            curl --progress-bar -v -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${file}" "${NEXUS_URL}" | tee /dev/null
-            echo "Uploaded to Nexus: $filename"
-        fi
-        if [ "$FLAVOR" = "rpm" ]; then
-            NEXUS_URL="${NEXUS_REPO_BASE_URL}/${NEXUS_REPO_NAME_RPM_STABLE}/"
-            curl --progress-bar -v -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" --upload-file ${file} "${NEXUS_URL}" | tee /dev/null
-            echo "Uploaded to Nexus: $filename"
-        fi
-        echo "curl -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${file}" "${NEXUS_URL}""
-        curl -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${file}" "${NEXUS_URL}"
-        echo "Uploaded to Nexus: $filename"
-        openrepo --debug upload "$file" -r "${FLAVOR}" -o
-        echo "Uploaded to openrepo (stable): $filename"
-        sleep 2
-      done
-
-upload:pre-release:
-  stage: upload
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
-  needs:
-    - job: package:pre-release
-      artifacts: true
-    - job: int:pre-release
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
-    - when: never
-  script:
-    - |
-      for file in artifacts/*.${FLAVOR}; do
-        [ -f "$file" ] || continue
-        filename=$(basename "$file")
-        curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
-             --upload-file "$file" \
-             "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
-        echo "Uploaded to gitlab: $filename"
-        if [ "$FLAVOR" = "deb" ]; then
-            NEXUS_URL="${NEXUS_REPO_BASE_URL}/${NEXUS_REPO_NAME_DEB_BETA}/"
-            curl --progress-bar -v -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${file}" "${NEXUS_URL}" | tee /dev/null
-            echo "Uploaded to Nexus: $filename"
-        fi
-        if [ "$FLAVOR" = "rpm" ]; then
-            NEXUS_URL="${NEXUS_REPO_BASE_URL}/${NEXUS_REPO_NAME_RPM_BETA}/"
-            curl --progress-bar -v -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" --upload-file ${file} "${NEXUS_URL}" | tee /dev/null
-            echo "Uploaded to Nexus: $filename"
-        fi
-        openrepo --debug upload "$file" -r "${FLAVOR}-testing" -o
-        echo "Uploaded to openrepo (testing): $filename"
-        sleep 2
-      done
-
-upload:experimental:
-  stage: upload
-  parallel:
-    matrix:
-      - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
-  needs:
-    - job: package:experimental
-      artifacts: true
-    - job: int:experimental
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - when: never
-  script:
-    - |
-      for file in artifacts/*.${FLAVOR}; do
-        [ -f "$file" ] || continue
-        filename=$(basename "$file")
-        curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
-             --upload-file "$file" \
-             "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/opentalk-compose/${CI_COMMIT_TAG}/$filename"
-        echo "Uploaded to gitlab: $filename"
-        if [ "$FLAVOR" = "deb" ]; then
-            NEXUS_URL="${NEXUS_REPO_BASE_URL}/${NEXUS_REPO_NAME_DEB_EXPERIMENTAL}/"
-            curl --progress-bar -v -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" -H "Content-Type: multipart/form-data" --data-binary "@${file}" "${NEXUS_URL}" | tee /dev/null
-            echo "Uploaded to Nexus: $filename"
-        fi
-        if [ "$FLAVOR" = "rpm" ]; then
-            NEXUS_URL="${NEXUS_REPO_BASE_URL}/${NEXUS_REPO_NAME_RPM_EXPERIMENTAL}/"
-            curl --progress-bar -v -u "${NEXUS_API_USER}:${NEXUS_API_KEY}" --upload-file ${file} "${NEXUS_URL}" | tee /dev/null
-            echo "Uploaded to Nexus: $filename"
-        fi
-        openrepo --debug upload "$file" -r "${FLAVOR}-experimental" -o
-        echo "Uploaded to openrepo (experimental): $filename"
-        sleep 2
-      done
-
-.int_before_script:
-  before_script:
-    - docker login -u gitlab-ci-token -p "$CI_JOB_TOKEN" git.opentalk.dev:5050
-
-# ------------------------------
-# INTEGRATION TESTS
-# ------------------------------
-
-int:experimental:
-  stage: integration
-  tags:
-    - dind
-  parallel:
-    matrix:
-      - DIST: debian12
-      - DIST: debian13
-      - DIST: ubuntu2404
-      - DIST: opensuse15
-      - DIST: opensuse16
-      - DIST: rocky9
-      - DIST: rocky10
-  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
-  needs:
-    - job: package:experimental
-      artifacts: true
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - when: never
-  variables:
-    OT_SETTINGS: |
-      ot_domain: 'localhost'
-      ot_ingress_port: 443
-      ot_ingress_protocol: https
-      config_dir: "/etc/opentalk-compose"
-      services_dir: "/opt/opentalk-compose/services"
-      deploy_dir: "/opt/opentalk-compose"
-      compose_project_name: "opentalk"
-      compose_service_opentalk_controller_enabled: true
-      compose_service_opentalk_roomserver_enabled: false
-      compose_service_opentalk_orchestrator_enabled: false
-      compose_service_opentalk_obelisk_enabled: false
-      compose_service_opentalk_outlook_add_in_enabled: false
-      compose_service_opentalk_recorder_enabled: true
-      compose_service_opentalk_smtp_mailer_enabled: false
-      compose_service_opentalk_web_frontend_enabled: true
-      compose_service_etherpad_enabled: true
-      compose_service_spacedeck_enabled: true
-      compose_service_keycloak_enabled: true
-      compose_service_livekit_server_enabled: true
-      compose_service_minio_enabled: true
-      compose_service_rabbitmq_enabled: true
-      compose_service_traefik_enabled: true
-      compose_service_ndt_enabled: true
-      compose_service_mailcrab_enabled: false
-      self_signed_certificates_generate: true
-      custom_certificates_enabled: true
-      custom_certificates_fullchain_cert_file: fullchain.crt
-      custom_certificates_private_key_file: privkey.key
-      custom_certificates_ca_root_cert_file: ca.crt
-  before_script:
-    - !reference [.int_before_script, before_script]
-  script:
-    - |
-      OS_ID="$(. /etc/os-release && echo "$ID")"
-      case "$OS_ID" in
-         debian|ubuntu)
-              echo "Debian-/Ubuntu-based Distribution: $OS_ID"
-              docker info
-              DEB_FILE=$(ls artifacts/*.deb 2>/dev/null || true)
-              echo "Installing ${DEB_FILE}..."
-              dpkg -i "$DEB_FILE" || apt-get install -f -y
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              ;;
-          rocky)
-              echo "RHEL-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              dnf install -y "$RPM_FILE" --nogpgcheck
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              ;;
-          opensuse-leap)
-              echo "SUSE-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              ;;
-          *)
-              echo "Unknown or unsupported Distribution: $OS_ID"
-              exit 1
-              ;;
-      esac
-
-int:pre-release:
-  stage: integration
-  tags:
-    - dind
-  parallel:
-    matrix:
-      - DIST: debian12
-      - DIST: debian13
-      - DIST: ubuntu2404
-      - DIST: opensuse15
-      - DIST: opensuse16
-      - DIST: rocky9
-      - DIST: rocky10
-  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
-  needs:
-    - job: package:pre-release
-      artifacts: true
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
-    - when: never
-  variables:
-    OT_SETTINGS: |
-      ot_domain: 'localhost'
-      ot_ingress_port: 443
-      ot_ingress_protocol: https
-      config_dir: "/etc/opentalk-compose"
-      services_dir: "/opt/opentalk-compose/services"
-      deploy_dir: "/opt/opentalk-compose"
-      compose_project_name: "opentalk"
-      compose_service_opentalk_controller_enabled: true
-      compose_service_opentalk_roomserver_enabled: false
-      compose_service_opentalk_obelisk_enabled: false
-      compose_service_opentalk_outlook_add_in_enabled: false
-      compose_service_opentalk_recorder_enabled: true
-      compose_service_opentalk_smtp_mailer_enabled: false
-      compose_service_opentalk_web_frontend_enabled: true
-      compose_service_etherpad_enabled: true
-      compose_service_spacedeck_enabled: true
-      compose_service_keycloak_enabled: true
-      compose_service_livekit_server_enabled: true
-      compose_service_minio_enabled: true
-      compose_service_rabbitmq_enabled: true
-      compose_service_traefik_enabled: true
-      compose_service_ndt_enabled: true
-      compose_service_mailcrab_enabled: false
-      self_signed_certificates_generate: true
-      custom_certificates_enabled: true
-      custom_certificates_fullchain_cert_file: fullchain.crt
-      custom_certificates_private_key_file: privkey.key
-      custom_certificates_ca_root_cert_file: ca.crt
-  before_script:
-    - !reference [.int_before_script, before_script]
-  script:
-    - |
-      OS_ID="$(. /etc/os-release && echo "$ID")"
-      case "$OS_ID" in
-         debian|ubuntu)
-              echo "Debian-/Ubuntu-based Distribution: $OS_ID"
-              docker info
-              DEB_FILE=$(ls artifacts/*.deb 2>/dev/null || true)
-              echo "Installing ${DEB_FILE}..."
-              dpkg -i "$DEB_FILE" || apt-get install -f -y
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              ;;
-          rocky)
-              echo "RHEL-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              dnf install -y "$RPM_FILE" --nogpgcheck
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              ;;
-          opensuse-leap)
-              echo "SUSE-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              ;;
-          *)
-              echo "Unknown or unsupported Distribution: $OS_ID"
-              exit 1
-              ;;
-      esac
-
-int:stable:
-  stage: integration
-  tags:
-    - dind
-  parallel:
-    matrix:
-      - DIST: debian12
-      - DIST: debian13
-      - DIST: ubuntu2404
-      - DIST: opensuse15
-      - DIST: opensuse16
-      - DIST: rocky9
-      - DIST: rocky10
-  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
-  needs:
-    - job: package:stable
-      artifacts: true
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
-    - when: never
-  variables:
-    OT_SETTINGS: |
-      ot_domain: 'localhost'
-      ot_ingress_port: 443
-      ot_ingress_protocol: https
-      config_dir: "/etc/opentalk-compose"
-      services_dir: "/opt/opentalk-compose/services"
-      deploy_dir: "/opt/opentalk-compose"
-      compose_project_name: "opentalk"
-      compose_service_opentalk_controller_enabled: true
-      compose_service_opentalk_roomserver_enabled: false
-      compose_service_opentalk_obelisk_enabled: false
-      compose_service_opentalk_outlook_add_in_enabled: false
-      compose_service_opentalk_recorder_enabled: true
-      compose_service_opentalk_smtp_mailer_enabled: false
-      compose_service_opentalk_web_frontend_enabled: true
-      compose_service_etherpad_enabled: true
-      compose_service_spacedeck_enabled: true
-      compose_service_keycloak_enabled: true
-      compose_service_livekit_server_enabled: true
-      compose_service_minio_enabled: true
-      compose_service_rabbitmq_enabled: true
-      compose_service_traefik_enabled: true
-      compose_service_ndt_enabled: true
-      compose_service_mailcrab_enabled: false
-      self_signed_certificates_generate: true
-      custom_certificates_enabled: true
-      custom_certificates_fullchain_cert_file: fullchain.crt
-      custom_certificates_private_key_file: privkey.key
-      custom_certificates_ca_root_cert_file: ca.crt
-  before_script:
-    - !reference [.int_before_script, before_script]
-  script:
-    - |
-      OS_ID="$(. /etc/os-release && echo "$ID")"
-      case "$OS_ID" in
-         debian|ubuntu)
-              echo "Debian-/Ubuntu-based Distribution: $OS_ID"
-              docker info
-              DEB_FILE=$(ls artifacts/*.deb 2>/dev/null || true)
-              echo "Installing ${DEB_FILE}..."
-              dpkg -i "$DEB_FILE" || apt-get install -f -y
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              ;;
-          rocky)
-              echo "RHEL-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              dnf install -y "$RPM_FILE" --nogpgcheck
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              ;;
-          opensuse-leap)
-              echo "SUSE-based Distribution: $OS_ID"
-              docker info
-              RPM_FILE=$(ls artifacts/*.rpm 2>/dev/null || true)
-              echo "Installing ${RPM_FILE}..."
-              zypper --non-interactive --no-gpg-checks install "$RPM_FILE"
-              echo "$OT_SETTINGS" > /etc/opentalk-compose/settings.yml
-              otctl deploy
-              ;;
-          *)
-              echo "Unknown or unsupported Distribution: $OS_ID"
-              exit 1
-              ;;
-      esac
-
-deploy:experimental:testing:
-  stage: deploy
-  allow_failure: true
-  # Fetch artifacts from experimental packaging; mark optional so the job exists even if one flavor is missing
-  needs:
-    - job: "package:experimental: [deb]"
-      artifacts: true
-      optional: true
-    - job: "package:experimental: [rpm]"
-      artifacts: true
-      optional: true
-  # Show manual button on typical branch/MR experimental pipelines; hide on tag pipelines
-  rules:
-    - if: '$CI_COMMIT_TAG'
-      when: manual
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: manual
-    - when: never
-  resource_group: remote-deploy-$HOST
-  variables:
-    GIT_STRATEGY: none
-  parallel:
-    matrix:
-      - DIST: debian12
-        HOST: $DEPLOY_TARGET_HOST_DEBIAN12
-        PKG_CMD: apt
-        PKG_TYPE: deb
-      - DIST: debian13
-        HOST: $DEPLOY_TARGET_HOST_DEBIAN13
-        PKG_CMD: apt
-        PKG_TYPE: deb
-      - DIST: ubuntu2404
-        HOST: $DEPLOY_TARGET_HOST_UBUNTU2404
-        PKG_CMD: apt
-        PKG_TYPE: deb
-      - DIST: opensuse15
-        HOST: $DEPLOY_TARGET_HOST_OPENSUSE15
-        PKG_CMD: zypper
-        PKG_TYPE: rpm
-      - DIST: opensuse16
-        HOST: $DEPLOY_TARGET_HOST_OPENSUSE16
-        PKG_CMD: zypper
-        PKG_TYPE: rpm
-      - DIST: rocky9
-        HOST: $DEPLOY_TARGET_HOST_ROCKY9
-        PKG_CMD: dnf
-        PKG_TYPE: rpm
-      - DIST: rocky10
-        HOST: $DEPLOY_TARGET_HOST_ROCKY10
-        PKG_CMD: dnf
-        PKG_TYPE: rpm
-  before_script:
-    - set -euo pipefail
-    # Add SSH client config with jump host
-    - sh "$SH_SSH_CLIENT_CONFIG"
-  script:
-    - sh -euo pipefail
-    # Locate artifacts from experimental packaging
-    - sh "$SH_INSTALL_OPENTALK_COMPOSE"

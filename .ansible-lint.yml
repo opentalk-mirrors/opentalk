@@ -7,8 +7,11 @@
 
 profile: production
 
+skip_list:
+  # Role variables are public configuration keys and retain their stable prefixes.
+  - var-naming[no-role-prefix]
+
 exclude_paths:
-  - automation/
   - docs/
   - extras/
   - LICENSES/

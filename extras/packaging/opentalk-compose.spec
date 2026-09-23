@@ -79,7 +79,7 @@ fi
 %postun
 if [ $1 -eq 0 ]; then # final removal
   if [ -x /opt/opentalk-compose/bin/pkg-postrm.sh ]; then
-    /opt/opentalk-compose/bin/pkg-postrm.sh || echo "WARN: postrm failed"
+    /opt/opentalk-compose/bin/pkg-postrm.sh "$1" || echo "WARN: postrm failed"
   fi
 fi
 

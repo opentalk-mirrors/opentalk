@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Ensure Traefik Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: "0755"
+    state: directory
+  with_items:
+    - "{{ traefik_docker_compose_services_dir }}"
+    - "{{ traefik_docker_compose_services_dir }}/traefik"
+    - "{{ traefik_docker_compose_services_dir }}/traefik/config"
+    - "{{ traefik_docker_compose_services_dir }}/traefik/config/dynamic"
+
+- name: Render Traefik static config
+  ansible.builtin.template:
+    src: traefik.yaml.j2
+    dest: "{{ traefik_docker_compose_services_dir }}/traefik/config/traefik.yaml"
+    mode: '0644'
+  notify: Restart Docker service traefik
+
+- name: Render Traefik dynamic HTTP config
+  ansible.builtin.template:
+    src: traefik_dynamic_http.yaml.j2
+    dest: "{{ traefik_docker_compose_services_dir }}/traefik/config/dynamic/http.yaml"
+    mode: '0644'
+  notify: Restart Docker service traefik

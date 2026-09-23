@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Ensure Keycloak Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: "0755"
+    state: directory
+  with_items:
+    - "{{ services_dir }}"
+    - "{{ services_dir }}/keycloak"
+
+- name: Copy Opentalk Keycloak theme
+  ansible.builtin.copy:
+    src: keycloak-ot-theme.jar
+    dest: "{{ services_dir }}/keycloak/keycloak-ot-theme.jar"
+    mode: "0644"
+
+- name: Copy default Keycloak configuration
+  ansible.builtin.template:
+    src: keycloak.conf.j2
+    dest: "{{ services_dir }}/keycloak/keycloak.conf"
+    mode: "0600"
+
+- name: Render Keycloak compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ services_dir }}/keycloak/compose.yml"
+    mode: "0644"
