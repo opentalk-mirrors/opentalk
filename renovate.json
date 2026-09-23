@@ -6,6 +6,7 @@
   "pre-commit": {
     "enabled": true
   },
+  "configMigration": true,
   "packageRules": [
     {
       "matchPackageNames": [
