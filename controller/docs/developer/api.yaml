@@ -2542,6 +2542,8 @@ paths:
       responses:
         "101":
           description: WebSocket connection successfully established
+        "403":
+          description: "The client is not allowed to join the room, e.g. when banned or guest access is disabled"
         "404":
           description: "The signaling token is invalid, expired, or the internal roomserver is not enabled"
         "500":

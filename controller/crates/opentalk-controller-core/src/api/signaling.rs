@@ -40,6 +40,10 @@ const CHANNEL_BUFFER_SIZE: usize = 32;
             description = "WebSocket connection successfully established",
         ),
         (
+            status = StatusCode::FORBIDDEN,
+            description = "The client is not allowed to join the room, e.g. when banned or guest access is disabled",
+        ),
+        (
             status = StatusCode::NOT_FOUND,
             description = "The signaling token is invalid, expired, or the internal roomserver is not enabled",
         ),
@@ -69,6 +73,7 @@ pub async fn get(
 
     // Consume the token before upgrading so we can still return an HTTP error
     let signaling_ctx = signaling.consume_signaling_token(&token).await?;
+    let authorized_ctx = signaling.authorize_client(signaling_ctx).await?;
 
     // Perform the WebSocket upgrade
     let (response, session, msg_stream) = actix_ws::handle(&req, payload).map_err(|err| {
@@ -148,7 +153,7 @@ pub async fn get(
 
     // Attach the signaling connection to the room task via the roomserver backend
     signaling
-        .accept_signaling_connection(signaling_ctx, incoming_rx, outgoing_tx)
+        .accept_signaling_connection(authorized_ctx, incoming_rx, outgoing_tx)
         .await?;
 
     Ok(response)

@@ -40,7 +40,8 @@ use url::Url;
 use crate::{
     Whatever,
     controller_backend::roomserver::{
-        RoomServerBackend, SignalingHandler, SignalingProxyBackend, build_room_parameters,
+        AuthorizedClientContext, RoomServerBackend, SignalingHandler, SignalingProxyBackend,
+        build_room_parameters,
         internal::{asset_storage::AssetStorage, module_resources::ModuleResources},
         websocket_adapter::WebSocketAdapter,
     },
@@ -350,16 +351,37 @@ impl SignalingHandler for InternalRoomServer {
             })
     }
 
-    async fn accept_signaling_connection(
+    async fn authorize_client(
         &self,
         ctx: SignalingClientContext,
+    ) -> Result<AuthorizedClientContext, ApiError> {
+        // Unlike [`RoomServerBackend::request_access`], this does not hide the existence of the
+        // room from guests: reaching the signaling endpoint requires a valid token, which is itself
+        // proof that the room exists and that access was granted when the token was issued.
+        match self
+            .room_tasks
+            .is_client_allowed(&ctx.client_parameters.kind, ctx.room_id)
+            .await?
+        {
+            ClientAllowed::Yes => Ok(AuthorizedClientContext(ctx)),
+            ClientAllowed::No { reason } => Err(match reason {
+                ClientNotAllowedReason::Banned => ApiError::banned(),
+                ClientNotAllowedReason::GuestAccessDisabled => ApiError::guest_access_disabled(),
+                ClientNotAllowedReason::E2eeEnabled => ApiError::e2ee_enabled(),
+            }),
+        }
+    }
+
+    async fn accept_signaling_connection(
+        &self,
+        ctx: AuthorizedClientContext,
         incoming: mpsc::Receiver<Result<Message, ProtocolError>>,
         outgoing: mpsc::Sender<SignalingSocketMessage>,
     ) -> Result<(), ApiError> {
         let SignalingClientContext {
             room_id,
             client_parameters,
-        } = ctx;
+        } = ctx.into_inner();
 
         let task_handle = self
             .room_tasks
@@ -392,6 +414,7 @@ mod test {
     use opentalk_inventory::{MockInventory, MockInventoryProvider};
     use opentalk_roomserver_types::{
         client_parameters::{ClientKind, Role},
+        public_user_profile::PublicUserProfile,
         room_kind::RoomKind,
         room_parameters::RoomParameters,
     };
@@ -441,6 +464,24 @@ mod test {
         ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: ClientKind::CallIn,
+            role: Role::User,
+        }
+    }
+
+    fn registered_client_parameters() -> ClientParameters {
+        ClientParameters {
+            device_secret: DeviceSecret::example_data(),
+            kind: ClientKind::Registered {
+                profile: PublicUserProfile::example_data(),
+            },
+            role: Role::User,
+        }
+    }
+
+    fn guest_client_parameters() -> ClientParameters {
+        ClientParameters {
+            device_secret: DeviceSecret::example_data(),
+            kind: ClientKind::Guest,
             role: Role::User,
         }
     }
@@ -573,5 +614,75 @@ mod test {
 
         assert_eq!(error.status, StatusCode::FORBIDDEN);
         assert_eq!(error.body.code, "e2ee_enabled");
+    }
+
+    #[tokio::test]
+    async fn authorize_client_rejects_recorder_in_e2ee_room() {
+        let (roomserver, _shutdown) = test_roomserver();
+        spawn_room(&roomserver, true).await;
+
+        let error = roomserver
+            .authorize_client(SignalingClientContext::new(
+                ROOM_ID,
+                recorder_client_parameters(),
+            ))
+            .await
+            .expect_err("Recorders must not open a signaling connection to an e2ee room");
+
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "e2ee_enabled");
+    }
+
+    #[tokio::test]
+    async fn authorize_client_rejects_call_in_in_e2ee_room() {
+        let (roomserver, _shutdown) = test_roomserver();
+        spawn_room(&roomserver, true).await;
+
+        let error = roomserver
+            .authorize_client(SignalingClientContext::new(
+                ROOM_ID,
+                call_in_client_parameters(),
+            ))
+            .await
+            .expect_err("Call-in must not open a signaling connection to an e2ee room");
+
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "e2ee_enabled");
+    }
+
+    /// Guards against the e2ee check rejecting more client kinds than intended, which would make
+    /// e2ee rooms unjoinable for everyone.
+    #[tokio::test]
+    async fn authorize_client_allows_registered_user_in_e2ee_room() {
+        let (roomserver, _shutdown) = test_roomserver();
+        spawn_room(&roomserver, true).await;
+
+        let _authorized = roomserver
+            .authorize_client(SignalingClientContext::new(
+                ROOM_ID,
+                registered_client_parameters(),
+            ))
+            .await
+            .expect("Registered users must be able to join an e2ee room");
+    }
+
+    /// Unlike [`RoomServerBackend::request_access`], the signaling endpoint reports a disabled
+    /// guest access as `403` instead of hiding the room behind a `404`.
+    #[tokio::test]
+    async fn authorize_client_rejects_guest_when_guest_access_is_disabled() {
+        let (roomserver, _shutdown) = test_roomserver();
+        // `RoomParameters::example_data` disables guest access
+        spawn_room(&roomserver, false).await;
+
+        let error = roomserver
+            .authorize_client(SignalingClientContext::new(
+                ROOM_ID,
+                guest_client_parameters(),
+            ))
+            .await
+            .expect_err("Guests must not join a room with guest access disabled");
+
+        assert_eq!(error.status, StatusCode::FORBIDDEN);
+        assert_eq!(error.body.code, "guest_access_disabled");
     }
 }
