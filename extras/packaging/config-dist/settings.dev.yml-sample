@@ -46,7 +46,6 @@ traefik_letsencrypt_enable: false
 
 traefik_docker_extra_hosts: 
   - host.docker.internal:host-gateway
-  - keycloak.localhost:host-gateway
 traefik_docker_network_aliases:
   - opentalk.dev.localhost
   - whiteboard.dev.localhost
@@ -71,13 +70,11 @@ custom_certificates_enabled: false
 #livekit_turn_embedded_enabled
 
 
-opentalk_web_frontend_docker_extra_hosts:
-  - "keycloak.localhost:host-gateway"  
 opentalk_web_frontend_environment_insecure: true
 opentalk_web_frontend_environment_base_url: "http://opentalk.dev.localhost:{{ ot_ingress_port }}"
-opentalk_web_frontend_environment_oidc_issuer: "http://keycloak.localhost:8001/auth/realms/opentalk"
+opentalk_web_frontend_environment_oidc_issuer: "http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/realms/opentalk"
 opentalk_web_frontend_environment_livekit_server_url: "http://opentalk.dev.localhost:{{ ot_ingress_port }}/livekit"
-opentalk_web_frontend_environment_change_password_url: "http://keycloak.localhost:8001/auth/realms/opentalk/account/"
+opentalk_web_frontend_environment_change_password_url: "http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/realms/opentalk/account/"
 
 
 controller_docker_extra_hosts:
@@ -85,25 +82,19 @@ controller_docker_extra_hosts:
   - "etherpad.dev.localhost:host-gateway"
   - "whiteboard.dev.localhost:host-gateway"
   - "host.docker.internal:host-gateway"
-  - "keycloak.localhost:host-gateway"
   - "etherpad.localhost:host-gateway"
   - "spacedeck.localhost:host-gateway"
 
 recorder_docker_extra_hosts:
   - "host.docker.internal:host-gateway"
-  - "keycloak.localhost:host-gateway"
 recorder_docker_network_mode: host
 recorder_controller_url: "http://host.docker.internal:11311"
 
-obelisk_docker_extra_hosts:
-  - "keycloak.localhost:host-gateway"
 obelisk_controller_domain: "localhost:{{ ot_ingress_port }}/controller"
 obelisk_controller_insecure: true
 obelisk_sip_addr: "localhost"
 
 
-spacedeck_docker_extra_hosts:
-  - "keycloak.localhost:host-gateway"
 spacedeck_docker_ports:
   - "9666:9666"
 spacedeck_docker_labels_traefik_host: whiteboard.dev.localhost
@@ -140,13 +131,10 @@ controller_logging_default_directives:
   - mio=ERROR
   - lapin=DEBUG
   - execution_id=trace
-controller_oidc_authority: http://keycloak.localhost:8001/auth/realms/opentalk
+controller_oidc_authority: http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/realms/opentalk
 controller_oidc_frontend_authority: http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/realms/opentalk
-controller_user_search_api_base_url: http://keycloak.localhost:8001/auth/admin/realms/opentalk
+controller_user_search_api_base_url: http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/admin/realms/opentalk
 
-keycloak_api_base_url: http://keycloak.localhost:8001/auth/admin/realms/opentalk
-keycloak_base_url: http://keycloak.localhost:8001/auth
-keycloak_hostname: http://keycloak.localhost:8001/auth
 keycloak_redirectUris_uris:
   - http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/popup_callback
   - http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/callback
@@ -155,10 +143,6 @@ keycloak_redirectUris_uris:
   - http://opentalk.dev.localhost:{{ ot_ingress_port }}/room/*
   - http://opentalk.dev.localhost:{{ ot_ingress_port }}/join
   - http://opentalk.dev.localhost:{{ ot_ingress_port }}/
-
-## Only useful when running on localhost
-keycloak_local_hostname: keycloak
-keycloak_local_port: 8001
 
 keycloak_demo_user_email: demo.user@localhost.localhost
 

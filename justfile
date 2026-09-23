@@ -102,7 +102,7 @@ _dev-compose args="":
 
 # Deploy and start the complete local OpenTalk Compose environment.
 compose-deploy: compose-setup
-    dev_root="$(realpath -m "{{dev_dir}}")"; ingress_port="$(awk '/^ot_ingress_port:/ {print $2; exit}' "$dev_root/config/settings.yml")"; just _dev-ansible "-e ansible_become=false"; printf '\nLocal OpenTalk services:\n  Web UI:      http://opentalk.dev.localhost:%s/\n  Keycloak:   http://keycloak.localhost:8001/auth/\n  Traefik:    http://localhost:7777/\n  Etherpad:   http://opentalk.dev.localhost:%s/etherpad/\n  Whiteboard: http://whiteboard.dev.localhost:%s/whiteboard/\n\n' "$ingress_port" "$ingress_port" "$ingress_port"
+    dev_root="$(realpath -m "{{dev_dir}}")"; ingress_port="$(awk '/^ot_ingress_port:/ {print $2; exit}' "$dev_root/config/settings.yml")"; just _dev-ansible "-e ansible_become=false"; printf '\nLocal OpenTalk services:\n  Web UI:      http://opentalk.dev.localhost:%s/\n  Keycloak:   http://opentalk.dev.localhost:%s/auth/\n  Traefik:    http://localhost:7777/\n  Etherpad:   http://opentalk.dev.localhost:%s/etherpad/\n  Whiteboard: http://whiteboard.dev.localhost:%s/whiteboard/\n\n' "$ingress_port" "$ingress_port" "$ingress_port" "$ingress_port"
 
 # Create or update the local demo user in Keycloak.
 compose-demo-user:
