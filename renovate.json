@@ -3,6 +3,9 @@
   "extends": [
     "config:recommended"
   ],
+  "pre-commit": {
+    "enabled": true
+  },
   "packageRules": [
     {
       "matchPackageNames": [
@@ -84,6 +87,12 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": ["redocly/cli"],
       "extends": ["schedule:monthly"]
+    },
+    {
+      "matchManagers": ["pre-commit"],
+      "groupName": "pre-commit hooks",
+      "groupSlug": "pre-commit",
+      "extends": ["schedule:weekly"]
     }
   ]
 }
