@@ -26,18 +26,18 @@
       "groupSlug": "typst"
     },
     {
-      "matchPackagePatterns": [
-        "ezk-*"
-      ],
       "groupName": "EZK-rs",
-      "groupSlug": "EZK-rs"
+      "groupSlug": "EZK-rs",
+      "matchPackageNames": [
+        "/ezk-*/"
+      ]
     },
     {
-      "matchPackagePatterns": [
-        "^vergen*"
-      ],
       "groupName": "vergen",
-      "groupSlug": "vergen"
+      "groupSlug": "vergen",
+      "matchPackageNames": [
+        "/^vergen*/"
+      ]
     },
     {
       "matchPackageNames": [
@@ -56,12 +56,12 @@
       "groupSlug": "tungstenite"
     },
     {
-      "matchPackagePatterns": [
-        "chrono-tz",
-        "ics-chrono-tz"
-      ],
       "groupName": "chrono-tz",
-      "groupSlug": "chrono-tz"
+      "groupSlug": "chrono-tz",
+      "matchPackageNames": [
+        "/chrono-tz/",
+        "/ics-chrono-tz/"
+      ]
     },
     {
       "matchPackageNames": [
