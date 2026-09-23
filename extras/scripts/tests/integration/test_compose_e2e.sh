@@ -20,15 +20,12 @@ BACKUP_RESTORE_TEST="$REPO_ROOT/extras/scripts/tests/integration/test_backup_res
 # own published ports (all overridable) so containers, volumes, networks, and
 # host ports stay separate from the local stack.
 INGRESS_PORT=${OPENTALK_E2E_INGRESS_PORT:-8082}
-KEYCLOAK_PORT=${OPENTALK_E2E_KEYCLOAK_PORT:-8002}
 PROJECT_NAME=${OPENTALK_E2E_PROJECT_NAME:-opentalk-e2e}
 E2E_DEV_DIR=${OPENTALK_E2E_DEV_DIR:-"$REPO_ROOT/build/opentalk-compose-e2e-dev"}
-for port in "$INGRESS_PORT" "$KEYCLOAK_PORT"; do
-  if [[ ! $port =~ ^[0-9]+$ ]]; then
-    echo "Port override must be numeric, got: $port" >&2
-    exit 1
-  fi
-done
+if [[ ! $INGRESS_PORT =~ ^[0-9]+$ ]]; then
+  echo "Port override must be numeric, got: $INGRESS_PORT" >&2
+  exit 1
+fi
 if [[ -z $PROJECT_NAME ]]; then
   echo "Compose project name must not be empty (OPENTALK_E2E_PROJECT_NAME)." >&2
   exit 1
@@ -51,10 +48,12 @@ cleanup
 dev_root="$E2E_DEV_DIR"
 settings_file="$dev_root/config/settings.yml"
 mkdir -p "$(dirname "$settings_file")"
+rm -f "$settings_file"
 sed -e "s/^ot_ingress_port:.*/ot_ingress_port: $INGRESS_PORT/" \
-    -e "s/^keycloak_local_port:.*/keycloak_local_port: $KEYCLOAK_PORT/" \
+	-e "s/^keycloak_local_hostname:.*/keycloak_local_hostname: ''/" \
+    -e "s/^keycloak_local_port:.*/keycloak_local_port: $INGRESS_PORT/" \
     -e "s/^compose_project_name:.*/compose_project_name: \"$PROJECT_NAME\"/" \
-    -e "s#http://keycloak.localhost:8001#http://keycloak.localhost:$KEYCLOAK_PORT#g" \
+    -e "s#http://keycloak.localhost:8001#http://opentalk.dev.localhost:$INGRESS_PORT#g" \
     "$REPO_ROOT/extras/packaging/config-dist/settings.dev.yml-sample" > "$settings_file"
 
 just compose-deploy
@@ -63,7 +62,7 @@ COMPOSE_PROJECT_NAME="$PROJECT_NAME" bash "$RUNTIME_TEST"
 for endpoint in \
   "http://opentalk.dev.localhost:$INGRESS_PORT/" \
   "http://whiteboard.dev.localhost:$INGRESS_PORT/whiteboard/" \
-  "http://localhost:$KEYCLOAK_PORT/auth/"; do
+  "http://opentalk.dev.localhost:$INGRESS_PORT/auth/"; do
   status=$(curl --max-time 20 --silent --output /dev/null --write-out '%{http_code}' "$endpoint")
   if [[ $endpoint == *'/auth/' ]]; then
     [[ $status == 302 ]] || { echo "$endpoint returned HTTP $status." >&2; exit 1; }

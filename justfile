@@ -85,7 +85,7 @@ compose-settings:
 
 # Create or update the local Python and Ansible virtual environment.
 compose-python:
-    dev_root="$(realpath -m "{{dev_dir}}")"; mkdir -p "$dev_root"; uv venv --allow-existing "$dev_root/.venv"; uv pip install --python "$dev_root/.venv/bin/python" --requirement extras/packaging/requirements-ansible.txt
+    dev_root="$(realpath -m "{{dev_dir}}")"; requirements_in="extras/packaging/requirements-ansible.in"; requirements_lock="extras/packaging/requirements-ansible.txt"; mkdir -p "$dev_root"; uv venv --allow-existing "$dev_root/.venv"; if test ! -f "$requirements_lock"; then uv pip compile --python "$dev_root/.venv/bin/python" --generate-hashes --output-file "$requirements_lock" "$requirements_in"; fi; uv pip install --python "$dev_root/.venv/bin/python" --requirement "$requirements_lock"
 
 # Install the pinned Ansible Collections used by the local Compose deployment.
 compose-collections: compose-python
@@ -95,7 +95,7 @@ compose-collections: compose-python
 compose-setup: compose-settings compose-collections
 
 _dev-ansible args="":
-    dev_root="$(realpath -m "{{dev_dir}}")"; collections_root="$(realpath -m "{{dev_collections}}")"; env OT_SETTINGS_FILE="$dev_root/config/settings.yml" OPENTALK_DEV_DIR="$dev_root" ANSIBLE_CONFIG="$PWD/automation/ansible.cfg" ANSIBLE_COLLECTIONS_PATH="$collections_root" "$dev_root/.venv/bin/ansible-playbook" -i automation/inventory.yml automation/playbooks/opentalk_compose.yml {{args}}
+    dev_root="$(realpath -m "{{dev_dir}}")"; collections_root="$(realpath -m "{{dev_collections}}")"; env OT_SETTINGS_FILE="$dev_root/config/settings.yml" OPENTALK_DEV_DIR="$dev_root" ANSIBLE_CONFIG="$PWD/automation/ansible.cfg" ANSIBLE_COLLECTIONS_PATH="$collections_root" "$dev_root/.venv/bin/ansible-playbook" -e "ansible_python_interpreter=$dev_root/.venv/bin/python" -i automation/inventory.yml automation/playbooks/opentalk_compose.yml {{args}}
 
 _dev-compose args="":
     dev_root="$(realpath -m "{{dev_dir}}")"; docker compose --project-directory "$dev_root" -f "$dev_root/compose.yml" {{args}}

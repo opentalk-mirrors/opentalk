@@ -11,11 +11,13 @@ INTEGRATION_CI_FILE="$REPO_ROOT/extras/ci/gitlab/integration.yml"
 INTEGRATION_SETTINGS_FILE="$REPO_ROOT/extras/ci/gitlab/integration-settings.yml"
 E2E_TEST="$REPO_ROOT/extras/scripts/tests/integration/test_compose_e2e.sh"
 RUNTIME_TEST="$REPO_ROOT/extras/scripts/tests/integration/test_deployment_runtime.sh"
+JUSTFILE="$REPO_ROOT/justfile"
 
 [[ -f "$CI_FILE" ]] || { echo ".gitlab-ci.yml not found." >&2; exit 1; }
 [[ -f "$INTEGRATION_CI_FILE" ]] || { echo "extras/ci/gitlab/integration.yml not found." >&2; exit 1; }
 [[ -f "$INTEGRATION_SETTINGS_FILE" ]] || { echo "extras/ci/gitlab/integration-settings.yml not found." >&2; exit 1; }
 [[ -f "$E2E_TEST" ]] || { echo "test_compose_e2e.sh not found." >&2; exit 1; }
+[[ -f "$JUSTFILE" ]] || { echo "justfile not found." >&2; exit 1; }
 
 failed=0
 fail() {
@@ -54,8 +56,14 @@ grep -q 'OPENTALK_E2E_DEV_DIR:-"$REPO_ROOT/build/opentalk-compose-e2e-dev"' "$E2
   || fail "E2E default dev dir must be build/opentalk-compose-e2e-dev"
 grep -q 'OPENTALK_E2E_INGRESS_PORT:-8082' "$E2E_TEST" \
   || fail "E2E default ingress port must be 8082"
-grep -q 'OPENTALK_E2E_KEYCLOAK_PORT:-8002' "$E2E_TEST" \
-  || fail "E2E default Keycloak port must be 8002"
+# shellcheck disable=SC2016 # The script variable must be matched literally.
+grep -q "keycloak_local_hostname: ''" "$E2E_TEST" \
+  || fail "E2E Keycloak URL must use the isolated ingress hostname"
+# shellcheck disable=SC2016 # The script variable must be matched literally.
+grep -q 'keycloak_local_port: \$INGRESS_PORT' "$E2E_TEST" \
+  || fail "E2E Keycloak URL must use the isolated ingress port"
+grep -q 'http://keycloak.localhost:8001#http://opentalk.dev.localhost' "$E2E_TEST" \
+  || fail "E2E Keycloak and controller OIDC URLs must use the Traefik host"
 # shellcheck disable=SC2016
 grep -q 'compose_project_name:.*\$PROJECT_NAME' "$E2E_TEST" \
   || fail "E2E settings must inject the isolated Compose project name"
@@ -65,6 +73,15 @@ grep -q 'docker volume ls -q --filter "label=com.docker.compose.project=$PROJECT
 # shellcheck disable=SC2016
 grep -q 'export OPENTALK_DEV_DIR="$E2E_DEV_DIR"' "$E2E_TEST" \
   || fail "E2E test must point the deployment at its own dev dir"
+
+# The ignored lock file is absent in a fresh CI checkout. compose-python must
+# create it from the tracked input before compose-deploy can install Ansible.
+# shellcheck disable=SC2016 # The recipe variables must be matched literally.
+grep -q 'uv pip compile .*--output-file "\$requirements_lock" "\$requirements_in"' "$JUSTFILE" \
+  || fail "compose-python must create the Ansible lock file when it is missing"
+# shellcheck disable=SC2016 # The recipe variable must be matched literally.
+grep -q 'ansible_python_interpreter=\$dev_root/.venv/bin/python' "$JUSTFILE" \
+  || fail "compose deployment must run Ansible modules with its venv Python"
 
 # The runtime health test the E2E stack runs against must accept the project
 # name from the environment.
