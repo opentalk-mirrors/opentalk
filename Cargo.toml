@@ -308,10 +308,10 @@ once_cell = "1"
 openh264 = "0.9"
 openh264-sys2 = "0.9"
 openidconnect = { version = "4", default-features = false, features = ["rustls-tls"] }
-opentelemetry = { version = "0.32", default-features = false, features = ["metrics", "trace"] }
-opentelemetry-otlp = "0.32"
-opentelemetry-prometheus = "0.32"
-opentelemetry_sdk = { version = "0.32", features = ["metrics", "rt-tokio-current-thread", "spec_unstable_metrics_views"] }
+opentelemetry = { version = "0.33", default-features = false, features = ["metrics", "trace"] }
+opentelemetry-otlp = "0.33"
+opentelemetry-prometheus = "0.33"
+opentelemetry_sdk = { version = "0.33", features = ["metrics", "rt-tokio-current-thread", "spec_unstable_metrics_views"] }
 owo-colors = "4"
 parking_lot = "0.12"
 parse-size = "1"
@@ -389,7 +389,7 @@ tower-http = "0.7"
 tracing = "0.1"
 tracing-actix-web = "0.7"
 tracing-futures = "0.2"
-tracing-opentelemetry = "0.33"
+tracing-opentelemetry = "0.34"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "parking_lot"] }
 trybuild = "1"
 ts-rs = { version = "12", features = ["chrono-impl", "uuid-impl"] }
