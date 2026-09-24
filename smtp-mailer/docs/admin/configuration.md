@@ -122,6 +122,14 @@ queue_name = "opentalk_mailer"
 addr = "0.0.0.0"
 port = 11411
 
+# Optional OpenTelemetry tracing configuration.
+#[tracing]
+#otlp_tracing_endpoint = "http://localhost:4317"
+#service_name = "smtp-mailer"
+#service_namespace = "opentalk"
+#service_instance_id = "627cc493-f310-47de-96bd-71410b7dec09"
+#default_directives = ["warn", "html5ever=warn", "selectors=warn"]
+
 # Optional support contact information
 # Adds a support contact section to the template
 [support_contact]

@@ -20,7 +20,6 @@ clap = { workspace = true, features = ["derive"] }
 config.workspace = true
 css-inline.workspace = true
 dirs.workspace = true
-env_logger.workspace = true
 fluent-langneg.workspace = true
 fluent-templates.workspace = true
 futures.workspace = true
@@ -33,6 +32,7 @@ lettre = { workspace = true, features = ["builder", "hostname", "mime03", "smtp-
 log.workspace = true
 mime.workspace = true
 opentalk-mail-worker-protocol.workspace = true
+opentalk-tracing.workspace = true
 opentalk-types-common.workspace = true
 opentalk-version.workspace = true
 percent-encoding.workspace = true

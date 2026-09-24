@@ -39,6 +39,9 @@ pub struct Settings {
     pub monitoring: Option<MonitoringSettings>,
 
     pub support_contact: Option<SupportContact>,
+
+    #[serde(default)]
+    pub tracing: Option<opentalk_tracing::TracingSettings>,
 }
 
 impl Settings {

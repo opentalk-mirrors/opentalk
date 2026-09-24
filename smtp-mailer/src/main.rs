@@ -6,7 +6,6 @@ use std::{path::PathBuf, process::exit};
 
 use build_info::BuildInfo;
 use clap::{Parser, Subcommand};
-use log::LevelFilter;
 use opentalk_smtp_mailer::{
     preview::{OutputVariant, TemplateVariant, preview_send_mail},
     run, settings,
@@ -17,6 +16,7 @@ use service_probe_client::is_ready;
 use url::Url;
 
 mod license;
+mod trace;
 
 #[derive(Parser, Debug)]
 #[clap(author, about = env!("CARGO_PKG_DESCRIPTION"), long_about = None)]
@@ -94,20 +94,13 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    const DEFAULT_LOG_LEVEL: LevelFilter = LevelFilter::Warn;
-
-    env_logger::Builder::new()
-        .filter_level(DEFAULT_LOG_LEVEL)
-        .filter_module("html5ever", DEFAULT_LOG_LEVEL)
-        .filter_module("selectors", DEFAULT_LOG_LEVEL)
-        .parse_default_env()
-        .init();
-
     let settings = if let Some(settings_path) = &args.config {
         settings::Settings::load_from_path(settings_path)?
     } else {
         settings::Settings::load_from_standard_paths()?
     };
+
+    let _tracer_provider = trace::init(settings.tracing.as_ref())?;
 
     if let Some(Commands::Health { endpoint }) = args.command {
         let Some(monitoring_endpoint) = endpoint.or_else(|| {
