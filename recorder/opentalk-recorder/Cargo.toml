@@ -22,16 +22,15 @@ clap = { workspace = true, features = ["derive"] }
 opentalk-compositor = { workspace = true, features = ["gstreamer"] }
 config = { workspace = true, features = ["toml"] }
 directories.workspace = true
-env_logger.workspace = true
 jsonwebtoken.workspace = true
 futures.workspace = true
 gstreamer.workspace = true
 itertools.workspace = true
 log.workspace = true
-opentalk-client-signaling.workspace = true
 opentalk-orchestrator-client.workspace = true
 opentalk-recorder-web-api.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum"] }
+opentalk-tracing.workspace = true
 opentalk-types-api-internal.workspace = true
 opentalk-version.workspace = true
 owo-colors.workspace = true
@@ -58,6 +57,7 @@ urlencoding.workspace = true
 
 # Required for roomserver-client
 tokio-tungstenite.workspace = true
+opentalk-client-signaling.workspace = true
 
 [build-dependencies]
 anyhow.workspace = true

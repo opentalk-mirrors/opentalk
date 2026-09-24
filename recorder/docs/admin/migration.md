@@ -3,6 +3,29 @@
 This guide describes breaking changes to the configuration file and how to
 update an existing settings file between releases.
 
+## `v0.18` -> `v0.19`
+
+The `default_directives` field in the `[tracing]` section is now a **list of
+strings** instead of a single string. This aligns the recorder's tracing
+configuration with the other OpenTalk services.
+
+### `[tracing].default_directives` is now a list
+
+Wrap your existing value in an array. Each array entry may itself contain one or
+more comma-separated directives.
+
+```toml
+# BEFORE (v0.18)
+[tracing]
+default_directives = "warn,opentalk_recorder=info"
+
+# AFTER (v0.19)
+[tracing]
+default_directives = ["warn", "opentalk_recorder=info"]
+```
+
+If you do not set `default_directives`, no action is necessary.
+
 ## `v0.17` -> `v0.18`
 
 There are no breaking changes between `v0.17` and `v0.18`. No migration is necessary.
