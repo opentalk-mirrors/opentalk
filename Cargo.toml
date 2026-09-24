@@ -396,8 +396,8 @@ typst-pdf = "0.15"
 unified-diff = "0.2"
 url = "2"
 urlencoding = "2"
-utoipa = { version = "5", features = ["yaml"] }
-utoipa-swagger-ui = { version = "9", features = ["vendored"] }
+utoipa = { version = "6", features = ["yaml"] }
+utoipa-swagger-ui = { version = "10", features = ["vendored"] }
 uuid = { version = "1", features = ["v4"] }
 vergen = "10"
 vergen-git2 = "10"
