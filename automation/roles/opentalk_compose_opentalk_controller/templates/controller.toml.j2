@@ -23,6 +23,9 @@ support_email_address = "{{ controller_operator_information_support_email_addres
 {% endif %}
 {% endif %}
 
+[defaults]
+room_alias_appends_token = {{ controller_room_alias_appends_token | to_json }}
+
 [roomserver]
 kind = "{{ controller_roomserver_kind | default('external') }}"
 {% if controller_roomserver_service_url is defined and controller_roomserver_service_url %}
