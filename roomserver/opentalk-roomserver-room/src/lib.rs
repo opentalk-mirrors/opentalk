@@ -56,9 +56,10 @@ mod tests {
 
     use futures::StreamExt as _;
     use opentalk_roomserver_common::application_state::ApplicationState;
+    use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
     use opentalk_roomserver_types::{
         client_parameters::{self, ClientParameters, Role},
-        core::{CoreEvent, JoinBlockedReason},
+        core::{CORE_MODULE_ID, CoreEvent, JoinBlockedReason},
         room_parameters::RoomParameters,
         signaling::websocket::{CloseFrame, SignalingSocketMessage},
         tariff_details::TariffDetails,
@@ -70,6 +71,7 @@ mod tests {
         tariffs::{QuotaType, TariffId},
         utils::ExampleData,
     };
+    use pretty_assertions::assert_matches;
     use tokio::{sync::watch, time::sleep};
 
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
@@ -189,15 +191,13 @@ mod tests {
         let SignalingSocketMessage::Text(msg) = msg else {
             panic!("Expected text message, received {msg:?}");
         };
-        let event: CoreEvent = serde_json::from_str(&msg).unwrap();
-        assert!(
-            matches!(
-                event,
-                CoreEvent::JoinBlocked {
-                    reason: JoinBlockedReason::ParticipantLimitReached
-                },
-            ),
-            "Expected `CoreEvent`, received {event:#?}"
+        let event: SignalingEvent<CoreEvent> = serde_json::from_str(&msg).unwrap();
+        assert_eq!(event.namespace, CORE_MODULE_ID);
+        assert_matches!(
+            event.payload,
+            CoreEvent::JoinBlocked {
+                reason: JoinBlockedReason::ParticipantLimitReached
+            }
         );
 
         // Then Charlie receives a close frame with code 1013 (Try Again Later)
