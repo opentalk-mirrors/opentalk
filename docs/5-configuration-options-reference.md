@@ -534,6 +534,7 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `controller_reports_template_inline` | string | `\|` |
 | `controller_reports_typst_packages_path` | string | `/usr/share/typst/packages` |
 | `controller_reports_url` | string | `http://localhost:6560` |
+| `controller_room_alias_appends_token` | boolean | `true` |
 | `controller_roomserver_api_key_id` | string | `roomserver` |
 | `controller_roomserver_api_key_secret` | string | `{{ ROOMSERVER_API_SECRET }}` |
 | `controller_roomserver_conference_signaling_salt` | string | `random string at least 24 characters long` |

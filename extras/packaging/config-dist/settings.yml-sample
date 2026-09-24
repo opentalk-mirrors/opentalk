@@ -47,6 +47,7 @@ compose_service_mailcrab_enabled: false
 # controller_operator_information_data_protection_url: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }}/data-protection"
 # controller_operator_information_support_phone_number: "+49 123 4567890"
 # controller_operator_information_support_email_address: "support@{{ ot_domain }}"
+# controller_room_alias_appends_token: true
 
 # SIP Settings for the Obelik Service
 # obelisk_sip_username: "username"
