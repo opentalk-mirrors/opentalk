@@ -10982,7 +10982,6 @@ dependencies = [
  "config",
  "directories",
  "earshot",
- "env_logger",
  "ezk",
  "ezk-audio",
  "ezk-audio-nodes",
@@ -10994,6 +10993,7 @@ dependencies = [
  "opentalk-client-signaling",
  "opentalk-orchestrator-client",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-transcription-web-api",
  "opentalk-types-api-common",
  "opentalk-version",
@@ -17248,7 +17248,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2088172d00f936c348d6a72f488dc2660ab3f507263a195df308a3c2383229f6"
 dependencies = [
  "libc",
- "log",
+ "tracing",
  "whisper-rs-sys",
 ]
 

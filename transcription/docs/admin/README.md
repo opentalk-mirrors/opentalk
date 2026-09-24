@@ -15,6 +15,8 @@ resulting transcript segments are sent back to the conference.
 - [Hardware Acceleration](./hardware_acceleration.md)
 - [HTTP](./configuration/http.md)
 - [Monitoring](./configuration/monitoring.md)
+- [Tracing](./configuration/tracing.md)
+- [Migration Guide](./migration.md)
 
 ### Environment
 

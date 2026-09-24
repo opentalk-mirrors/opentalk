@@ -29,23 +29,19 @@ mod audio;
 mod audio_processing;
 mod cli;
 mod commands;
-mod logging;
 mod metrics;
 mod orchestrator;
 mod server;
 mod settings;
 mod signal;
 mod tasks;
+mod trace;
 mod transcription;
 
 pub(crate) use app::{AppState, TranscriptionTasks};
 
 #[tokio::main]
 async fn main() -> Result<ExitCode> {
-    logging::init();
-
-    install_logging_hooks();
-
     let args = cli::parse_args();
     if args.should_print() {
         return Ok(ExitCode::SUCCESS);
@@ -53,6 +49,10 @@ async fn main() -> Result<ExitCode> {
 
     let settings =
         Arc::new(Settings::load(args.config.as_deref()).context("Failed to read config")?);
+
+    let _tracer_provider = trace::init(settings.tracing.as_ref())?;
+
+    install_logging_hooks();
 
     if let Some(Commands::Health { endpoint }) = args.command {
         return commands::run_health_command(endpoint, &settings).await;
