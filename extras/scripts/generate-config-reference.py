@@ -110,7 +110,7 @@ def get_role_variables(role_path: Path) -> Dict[str, Any]:
             except Exception as e:
                 print(f"Warning: Could not parse {yml_file}: {e}", file=sys.stderr)
 
-    if role_path.name == "opentalk_compose.opentalk_controller":
+    if role_path.name == "opentalk_compose_opentalk_controller":
         variables["controller_http_service_api_keys"] = [
             {
                 "id": "controller",
@@ -269,7 +269,7 @@ def generate_markdown(roles_root: Path, settings_sample: Optional[Path] = None) 
         role_sections.append("| Variable | Type | Default / Example Value |")
         role_sections.append("|----------|------|-------------------------|")
         variable_names = sorted(variables)
-        if role_path.name == "opentalk_compose.opentalk_controller":
+        if role_path.name == "opentalk_compose_opentalk_controller":
             livekit_names = {
                 "controller_livekit_api_key",
                 "controller_livekit_api_secret",

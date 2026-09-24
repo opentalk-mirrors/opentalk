@@ -11,7 +11,9 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 
 mkdir -p "$TMP_DIR/artifacts" "$TMP_DIR/bin"
 touch "$TMP_DIR/artifacts/opentalk-compose_26.2.0+gitabcdef12-1_amd64.deb"
-ln -s "$REPO_ROOT/.versions.yml" "$TMP_DIR/.versions.yml"
+cat > "$TMP_DIR/.versions.yml" <<'YAML'
+opentalk_product_version: v9.9.9
+YAML
 
 cat > "$TMP_DIR/bin/curl" <<'SH'
 #!/usr/bin/env bash
@@ -50,7 +52,7 @@ run_upload() {
 }
 
 run_upload bash "$REPO_ROOT/extras/ci/gitlab/upload-release.sh" deb experimental
-grep -q '/packages/generic/opentalk-compose/v26.2.0+gitabcdef12/' "$TMP_DIR/upload.log" \
+grep -q '/packages/generic/opentalk-compose/v9.9.9+gitabcdef12/' "$TMP_DIR/upload.log" \
   || { cat "$TMP_DIR/upload.log" >&2; echo "experimental upload must derive a package version without CI_COMMIT_TAG" >&2; exit 1; }
 grep -q 'https://nexus.example/deb-experimental/' "$TMP_DIR/upload.log" \
   || { cat "$TMP_DIR/upload.log" >&2; echo "experimental upload must use the experimental Nexus repository" >&2; exit 1; }
