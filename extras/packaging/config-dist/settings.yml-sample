@@ -48,6 +48,8 @@ compose_service_mailcrab_enabled: false
 # controller_operator_information_support_phone_number: "+49 123 4567890"
 # controller_operator_information_support_email_address: "support@{{ ot_domain }}"
 # controller_room_alias_appends_token: true
+# controller_defaults_room_alias_disable_suffix: false
+# controller_defaults_room_alias_suffix_length: 16
 
 # SIP Settings for the Obelik Service
 # obelisk_sip_username: "username"

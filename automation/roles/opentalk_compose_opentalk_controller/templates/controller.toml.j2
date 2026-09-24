@@ -23,9 +23,6 @@ support_email_address = "{{ controller_operator_information_support_email_addres
 {% endif %}
 {% endif %}
 
-[defaults]
-room_alias_appends_token = {{ controller_room_alias_appends_token | to_json }}
-
 [roomserver]
 kind = "{{ controller_roomserver_kind | default('external') }}"
 {% if controller_roomserver_service_url is defined and controller_roomserver_service_url %}
@@ -348,8 +345,12 @@ expiry = {{ controller_shared_folder_expiry }}
 
 {% if controller_defaults_user_language is defined or
 	controller_defaults_screen_share_requires_permission is defined or
-	controller_defaults_disabled_features is defined %}
+	controller_defaults_disabled_features is defined or
+	controller_room_alias_appends_token is defined %}
 [defaults]
+{% if controller_room_alias_appends_token is defined %}
+room_alias_appends_token = {{ controller_room_alias_appends_token | to_json }}
+{% endif %}
 {% if controller_defaults_user_language is defined and controller_defaults_user_language %}
 user_language = "{{ controller_defaults_user_language }}"
 {% endif %}
@@ -366,6 +367,17 @@ disabled_features = [
 {% endif %}
 {% endfor %}
 ]
+{% endif %}
+{% endif %}
+
+{% if controller_defaults_room_alias_disable_suffix is defined or
+	controller_defaults_room_alias_suffix_length is defined %}
+[defaults.room_alias]
+{% if controller_defaults_room_alias_disable_suffix is defined %}
+disable_suffix = {{ controller_defaults_room_alias_disable_suffix | to_json }}
+{% endif %}
+{% if controller_defaults_room_alias_suffix_length is defined %}
+suffix_length = {{ controller_defaults_room_alias_suffix_length }}
 {% endif %}
 {% endif %}
 

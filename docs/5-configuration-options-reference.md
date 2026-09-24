@@ -41,6 +41,8 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `compose_service_spacedeck_enabled` | boolean | `true` |
 | `compose_service_traefik_enabled` | boolean | `true` |
 | `config_dir` | string | `/etc/opentalk-compose` |
+| `controller_defaults_room_alias_disable_suffix` | string | `false` |
+| `controller_defaults_room_alias_suffix_length` | string | `16` |
 | `deploy_dir` | string | `/opt/opentalk-compose` |
 | `ot_domain` | string | `` |
 | `ot_ingress_port` | integer | `443` |
