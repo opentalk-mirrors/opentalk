@@ -50,36 +50,5 @@ impl From<settings_file::telemetry::Monitoring> for Monitoring {
     }
 }
 
-/// Configure a logging target.
-#[derive(Debug, Clone)]
-pub struct Tracing {
-    default_directives: Option<Vec<String>>,
-
-    pub otlp_tracing_endpoint: String,
-
-    pub service_name: Option<String>,
-
-    pub service_namespace: Option<String>,
-
-    pub service_instance_id: Option<String>,
-}
-
-impl Tracing {
-    pub fn log_filter(&self) -> Option<String> {
-        self.default_directives
-            .as_ref()
-            .map(|filter| filter.join(","))
-    }
-}
-
-impl From<settings_file::telemetry::Tracing> for Tracing {
-    fn from(value: settings_file::telemetry::Tracing) -> Self {
-        Self {
-            default_directives: value.default_directives,
-            otlp_tracing_endpoint: value.otlp_tracing_endpoint,
-            service_name: value.service_name,
-            service_namespace: value.service_namespace,
-            service_instance_id: value.service_instance_id,
-        }
-    }
-}
+/// Tracing configuration shared across the OpenTalk services.
+pub use opentalk_tracing::TracingSettings as Tracing;

@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[package]
+name = "opentalk-tracing"
+description = "Shared tracing and OpenTelemetry initialization for OpenTalk services."
+publish = false
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+opentelemetry = { workspace = true, features = ["trace"] }
+opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
+opentelemetry_sdk.workspace = true
+serde.workspace = true
+tracing-opentelemetry.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+uuid = { workspace = true, features = ["v4"] }
+
+[lints]
+workspace = true

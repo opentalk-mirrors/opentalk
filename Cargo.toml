@@ -14,6 +14,7 @@ members = [
   "crates/opentalk-report-generation",
   "crates/opentalk-service-auth",
   "crates/opentalk-shared-folder/crates/*",
+  "crates/opentalk-tracing",
   "crates/opentalk-types/crates/*",
   "crates/opentalk-version",
   "crates/opentalk-version/canary",
@@ -124,6 +125,9 @@ opentalk-inventory-database = { path = "controller/crates/opentalk-inventory-dat
 opentalk-jobs = { path = "controller/crates/opentalk-jobs", version = "3.0.0" }
 opentalk-log = { path = "controller/crates/opentalk-log", version = "3.0.0" }
 opentalk-test-util = { path = "controller/crates/opentalk-test-util", version = "3.0.0" }
+
+# crates/opentalk-tracing
+opentalk-tracing = { path = "crates/opentalk-tracing", version = "3.0.0" }
 
 # crates/opentalk-version
 opentalk-version = { path = "crates/opentalk-version", version = "3.0.0" }

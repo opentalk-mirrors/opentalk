@@ -32,12 +32,10 @@ opentalk-roomserver-room.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
+opentalk-tracing.workspace = true
 opentalk-types-api-internal = { workspace = true, features = ["utoipa"] }
 opentalk-types-common.workspace = true
 opentalk-version.workspace = true
-opentelemetry.workspace = true
-opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
-opentelemetry_sdk.workspace = true
 reqwest.workspace = true
 service-probe.workspace = true
 service-probe-client.workspace = true
@@ -45,12 +43,9 @@ tokio = { workspace = true, features = ["rt", "signal"] }
 tower.workspace = true
 tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
-tracing-opentelemetry.workspace = true
-tracing-subscriber.workspace = true
 url.workspace = true
 utoipa.workspace = true
 utoipa-swagger-ui = { workspace = true, features = ["axum"] }
-uuid = { workspace = true, features = ["v4"] }
 yaml-rust2.workspace = true
 
 [dev-dependencies]

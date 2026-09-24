@@ -37,16 +37,5 @@ const fn default_monitor_addr() -> IpAddr {
     IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED)
 }
 
-/// Configure a logging target.
-#[derive(Default, Debug, Clone, Deserialize)]
-pub(crate) struct Tracing {
-    pub(crate) default_directives: Option<Vec<String>>,
-
-    pub(crate) otlp_tracing_endpoint: String,
-
-    pub(crate) service_name: Option<String>,
-
-    pub(crate) service_namespace: Option<String>,
-
-    pub(crate) service_instance_id: Option<String>,
-}
+/// Tracing configuration shared across the OpenTalk services.
+pub(crate) use opentalk_tracing::TracingSettings as Tracing;

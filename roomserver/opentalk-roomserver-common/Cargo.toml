@@ -23,6 +23,7 @@ dirs.workspace = true
 opentalk-orchestrator-client.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum"] }
+opentalk-tracing.workspace = true
 opentalk-types-common.workspace = true
 owo-colors.workspace = true
 rand.workspace = true

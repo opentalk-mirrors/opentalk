@@ -85,7 +85,7 @@ impl TryFrom<SettingsFile> for Settings {
             orchestrator: value.orchestrator,
             monitoring: value.monitoring.map(Into::into),
             metrics: value.metrics.map(Into::into),
-            tracing: value.tracing.map(Into::into),
+            tracing: value.tracing,
             internal: value.internal.map(Into::into).unwrap_or_default(),
             task: Arc::new(value.task.into()),
         })
