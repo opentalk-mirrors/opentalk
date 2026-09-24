@@ -34,6 +34,7 @@ opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-livekit.workspace = true
 opentalk-service-auth = { workspace = true, features = ["actix"] }
+opentalk-tracing.workspace = true
 opentalk-types-common.workspace = true
 owo-colors.workspace = true
 phonenumber.workspace = true
@@ -45,7 +46,6 @@ serde_with.workspace = true
 snafu.workspace = true
 tracing.workspace = true
 url.workspace = true
-uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true, features = [

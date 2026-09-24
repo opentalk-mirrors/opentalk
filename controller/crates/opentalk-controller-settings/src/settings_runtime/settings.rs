@@ -169,7 +169,7 @@ impl TryFrom<SettingsRaw> for Settings {
         let database = database.into();
         let redis = redis.map(Into::into);
         let rabbit_mq = rabbit_mq.map(Into::into);
-        let logging = logging.map(Into::into).unwrap_or_default();
+        let logging = logging.unwrap_or_default();
         let avatar = avatar.map(Into::into).unwrap_or_default();
         let metrics = metrics.map(Into::into).unwrap_or_default();
         let etcd = etcd.map(Into::into);
@@ -291,10 +291,7 @@ pub(crate) fn minimal_example() -> Settings {
         },
         redis: None,
         rabbit_mq: None,
-        logging: Logging {
-            default_directives: None,
-            otlp_tracing: None,
-        },
+        logging: Logging::default(),
         avatar: Avatar {
             libravatar_url: DEFAULT_LIBRAVATAR_URL.to_string(),
         },

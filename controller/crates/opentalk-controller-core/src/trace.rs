@@ -7,25 +7,16 @@ use actix_web::{
     dev::{ServiceRequest, ServiceResponse},
     http::header::USER_AGENT,
 };
-use opentalk_controller_settings::{Logging, LoggingOltpTracing};
-use opentelemetry::{KeyValue, trace::TracerProvider as _};
-use opentelemetry_otlp::{SpanExporter, WithExportConfig as _};
-use opentelemetry_sdk::{
-    Resource,
-    trace::{SdkTracerProvider, Tracer},
-};
-use snafu::ResultExt;
+use opentalk_controller_settings::Logging;
+use opentalk_tracing::{SdkTracerProvider, TracingParams};
+use snafu::ResultExt as _;
 use tracing::Span;
 use tracing_actix_web::{RequestId, RootSpanBuilder};
-use tracing_opentelemetry::OpenTelemetryLayer;
-use tracing_subscriber::{
-    EnvFilter, Registry,
-    fmt::Layer,
-    layer::{Layered, SubscriberExt},
-    util::SubscriberInitExt,
-};
 
 use crate::Result;
+
+/// Environment variable used to configure the log filter, taking precedence over `RUST_LOG`.
+const LOG_ENV: &str = "CONTROLLER_LOG";
 
 // If these default values are adjusted, that change should be synchronized
 // into `example/controller.toml` for transparency towards administrators
@@ -38,103 +29,23 @@ const DEFAULT_LOGGING_DIRECTIVES: &str = "error,\
     lapin=warn,\
     execution_id=trace";
 
-pub fn init(settings: &Logging) -> Result<()> {
-    // Layer which acts as filter of traces and spans.
-    // The filter is created from environment (RUST_LOG) and config file
-    let filter = create_filter(settings)?;
-
-    // FMT layer prints the trace events into stdout
-    let fmt = tracing_subscriber::fmt::Layer::default();
-
-    // If opentelemetry is enabled install that layer
-    let mut tracing_layer = None;
-    if let Some(oltp_tracing) = &settings.otlp_tracing {
-        tracing_layer = Some(init_tracing_layer(oltp_tracing)?);
-    }
-
-    // Create registry which contains all layers
-    Registry::default()
-        .with(filter)
-        .with(fmt)
-        .with(tracing_layer)
-        .init();
-
-    Ok(())
-}
-
-type SubscriberLayer = Layer<Layered<EnvFilter, Registry>>;
-type Subscriber = Layered<EnvFilter, Registry>;
-
-fn init_tracing_layer(
-    LoggingOltpTracing {
-        endpoint,
-        service_name,
-        service_namespace,
-        service_instance_id,
-    }: &LoggingOltpTracing,
-) -> Result<OpenTelemetryLayer<Layered<SubscriberLayer, Subscriber>, Tracer>> {
-    let otlp_exporter = SpanExporter::builder()
-        .with_tonic()
-        .with_endpoint(endpoint)
-        .build()
-        .whatever_context("Failed to build OpenTelemetry (exporter)")?;
-
-    let resource = Resource::builder()
-        .with_service_name(service_name.to_string())
-        .with_attribute(KeyValue::new(
-            "service.namespace",
-            service_namespace.to_string(),
-        ))
-        .with_attribute(KeyValue::new(
-            "service.instance.id",
-            service_instance_id.to_string(),
-        ))
-        .with_attribute(KeyValue::new(
-            "service.version",
-            option_env!("VERGEN_GIT_SEMVER")
-                .or(option_env!("CARGO_PKG_VERSION"))
-                .unwrap_or("unknown"),
-        ))
-        .build();
-
-    let tracer_provider = SdkTracerProvider::builder()
-        .with_batch_exporter(otlp_exporter)
-        .with_resource(resource)
-        .build();
-
-    let tracer = tracer_provider.tracer("tracing-otel-subscriber");
-    Ok(OpenTelemetryLayer::new(tracer))
-}
-/// Create the logging filter
+// Initializes the global tracing subscriber.
 ///
-/// The filter is a combination of the values from the RUST_LOG environment variable, the config
-/// file and the controllers defaults.
-///
-/// The priority of the different config options is RUST_LOG > config file > controller defaults.
-fn create_filter(settings: &Logging) -> Result<EnvFilter> {
-    // Read the config from the RUST_LOG environment variable
-    let env_directives = std::env::var(EnvFilter::DEFAULT_ENV)
-        .ok()
-        .filter(|v| !v.is_empty());
-
-    let config_directives = settings
-        .default_directives
-        .as_ref()
-        .filter(|v| !v.is_empty());
-
-    let mut directives = DEFAULT_LOGGING_DIRECTIVES.to_owned();
-
-    if let Some(config_directives) = config_directives {
-        directives = [directives, config_directives.join(",")].join(",")
-    }
-
-    if let Some(env_directives) = env_directives {
-        directives = [directives, env_directives].join(",")
-    }
-
-    let filter = EnvFilter::new(directives);
-
-    Ok(filter)
+/// The log filter directives are resolved with the following precedence:
+/// `CONTROLLER_LOG` > `RUST_LOG` > `[tracing] default_directives` >
+/// [`DEFAULT_LOGGING_DIRECTIVES`]. When an OTLP endpoint is configured, spans
+/// are additionally exported to it.
+pub fn init(settings: &Logging) -> Result<Option<SdkTracerProvider>> {
+    opentalk_tracing::init(
+        Some(settings),
+        TracingParams {
+            service_name: "controller",
+            service_version: opentalk_tracing::service_version!(),
+            default_directives: DEFAULT_LOGGING_DIRECTIVES,
+            filter_env_vars: &[LOG_ENV],
+        },
+    )
+    .with_whatever_context(|e| format!("Failed to initialize tracing: {e:#}"))
 }
 
 pub struct ReducedSpanBuilder;

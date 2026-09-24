@@ -101,11 +101,12 @@ base_url = "https://example.com"
 #support_email_address = "support@example.com"
 
 [logging]
-# Default tracing directives that will always be applied after RUST_LOG's directives.
-# Each array entry may contain a single directive.
-# Below are some example directives which are used by default to reduce the amount of spamming some crates do by default.
-# The defaults will always apply, but they can be explicitly overwritten with this config or the RUST_LOG environment
-# variable. The priority of the different configuration options is: RUST_LOG > config file > defaults
+# Default tracing directives, used only when neither RUST_LOG nor this config option provide any.
+# Each array entry may contain one or more comma-separated directives.
+# Exactly one source is used, they are not merged. The priority is: CONTROLLER_LOG > RUST_LOG > config file > defaults.
+# When you set this option, CONTROLLER_LOG or RUST_LOG, the built-in defaults below no longer apply and must be
+# repeated explicitly if you want to keep them. The example directives below are the built-in
+# defaults, which reduce the amount of spamming some crates do by default.
 #default_directives = [
 #   "ERROR",
 #   "opentalk=INFO",

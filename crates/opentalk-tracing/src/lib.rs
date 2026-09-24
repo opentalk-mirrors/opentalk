@@ -132,13 +132,17 @@ pub fn init(
     );
     let fmt = tracing_subscriber::fmt::layer();
 
-    let otlp = settings
-        .and_then(|settings| settings.otlp_config(params.service_name, params.service_version));
-    let provider = otlp.map(build_tracer_provider).transpose()?;
-    let otel_layer = provider.as_ref().map(|provider| {
-        let tracer = provider.tracer("tracing-otel-subscriber");
-        tracing_opentelemetry::layer().with_tracer(tracer)
-    });
+    // conditionally add the OpenTelemetry exporter
+    let (otel_layer, provider) = settings
+        .and_then(|settings| settings.otlp_config(params.service_name, params.service_version))
+        .map(build_tracer_provider)
+        .transpose()?
+        .map(|provider| {
+            let tracer = provider.tracer("tracing-otel-subscriber");
+            let layer = tracing_opentelemetry::layer().with_tracer(tracer);
+            (layer, provider)
+        })
+        .unzip();
 
     tracing_subscriber::registry()
         .with(filter)

@@ -9197,11 +9197,11 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-types-api-internal",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentelemetry",
- "opentelemetry-otlp",
  "opentelemetry-prometheus",
  "opentelemetry_sdk",
  "phonenumber",
@@ -9223,8 +9223,6 @@ dependencies = [
  "tracing",
  "tracing-actix-web",
  "tracing-futures",
- "tracing-opentelemetry",
- "tracing-subscriber",
  "utoipa",
  "utoipa-swagger-ui",
  "uuid",
@@ -9331,6 +9329,7 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-livekit",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-types-common",
  "owo-colors",
  "phonenumber",
@@ -9346,7 +9345,6 @@ dependencies = [
  "toml 1.1.6+spec-1.1.0",
  "tracing",
  "url",
- "uuid",
 ]
 
 [[package]]

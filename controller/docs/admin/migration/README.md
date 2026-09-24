@@ -8,6 +8,7 @@ This guide is split into one page per {{ product_name }} Controller version that
 requires manual migration steps. Follow the pages relevant to the version range
 you are upgrading through, newest first.
 
+- [Updating to `v0.36.0`](v0.36.0.md)
 - [Updating to `v0.35.0`](v0.35.0.md)
 - [Updating to `v0.34.0`](v0.34.0.md)
 - [Updating to `v0.33.0`](v0.33.0.md)
