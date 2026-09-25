@@ -7,6 +7,35 @@ title: Migration Guide
 This guide describes breaking changes to the configuration file and how to
 update an existing settings file between releases.
 
+## `v0.23` → `v0.24`
+
+Obelisk now shares its tracing and logging setup with the other
+{{ product_name }} services.
+
+### Log output format changed
+
+Logging switched from `env_logger` to the `tracing` subscriber used by the other
+services. The `RUST_LOG` environment variable keeps working, but the format of
+the emitted log lines changed, and the default filter is now
+`warn,opentalk_obelisk=info` when `RUST_LOG` is unset. Adjust any log parsing or
+alerting that depends on the previous format or default level.
+
+### New optional `[tracing]` section
+
+You can now export spans to an [OTLP](https://opentelemetry.io/docs/specs/otlp/)
+endpoint and set default log directives in the configuration file. The section
+is optional; if you omit it, only the logging change above applies. See
+[Tracing](tracing.md) for details.
+
+```toml
+[tracing]
+otlp_tracing_endpoint = "http://localhost:4317"
+default_directives = ["warn", "opentalk_obelisk=info"]
+```
+
+No action is required unless you want to enable OTLP export or rely on the exact
+previous log line format.
+
 ## `v0.21` → `v0.22`
 
 Release `0.22` switches from OIDC/Keycloak authentication against the controller

@@ -15,6 +15,7 @@ mod media;
 mod settings;
 mod signaling;
 mod sip;
+mod trace;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -32,8 +33,6 @@ async fn main() -> Result<()> {
         _ => {}
     }
 
-    env_logger::init();
-
     let args = Args::parse();
     if args.info.should_print() {
         print_info(&args.info);
@@ -41,6 +40,9 @@ async fn main() -> Result<()> {
     }
 
     let settings = Arc::new(settings::Settings::load(args.config.as_ref())?);
+
+    let _tracer_provider = trace::init(settings.tracing.as_ref())?;
+
     if let Some(Commands::Health { endpoint }) = args.command {
         let Some(monitoring_endpoint) = endpoint.or_else(|| {
             settings.monitoring.as_ref().map(|monitoring_settings| {

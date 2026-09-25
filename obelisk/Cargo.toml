@@ -22,7 +22,6 @@ bytesstr.workspace = true
 clap.workspace = true
 config.workspace = true
 directories.workspace = true
-env_logger.workspace = true
 ezk-audio-nodes = { workspace = true, features = ["nnnoiseless"] }
 ezk-audio.workspace = true
 ezk-g711.workspace = true
@@ -49,6 +48,7 @@ openh264.workspace = true
 opentalk-client-signaling.workspace = true
 opentalk-compositor.workspace = true
 opentalk-service-auth.workspace = true
+opentalk-tracing.workspace = true
 opentalk-version.workspace = true
 owo-colors.workspace = true
 parking_lot.workspace = true

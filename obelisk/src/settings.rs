@@ -27,6 +27,7 @@ pub struct Settings {
     pub monitoring: Option<MonitoringSettings>,
     pub controller: ControllerSettings,
     pub sip: SipSettings,
+    pub tracing: Option<opentalk_tracing::TracingSettings>,
 }
 
 #[derive(Default, Debug, Clone, Copy, Deserialize)]

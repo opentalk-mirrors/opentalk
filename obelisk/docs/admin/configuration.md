@@ -27,6 +27,7 @@ Functionality that can be configured through the configuration file:
 - [Controller](controller.md)
 - [SIP](sip.md)
 - [Monitoring](monitoring.md)
+- [Tracing](tracing.md)
 
 ## General configuration
 
