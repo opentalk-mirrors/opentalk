@@ -14,11 +14,13 @@ set -e
 set -o pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+COMPONENT_DIR=$( cd -- "$SCRIPT_DIR/.." &> /dev/null && pwd )
+REPO_ROOT=$( cd -- "$COMPONENT_DIR/.." &> /dev/null && pwd )
 
-DOCS_TEMP_DIR=target/docs/temporary
+DOCS_TEMP_DIR="$COMPONENT_DIR"/target/docs/temporary/roomserver
 
 OPENTALK_ROOMSERVER_PROJECT=${OPENTALK_ROOMSERVER_PROJECT:-opentalk-roomserver}
-OPENTALK_ROOMSERVER_CMD=${OPENTALK_ROOMSERVER_CMD:-target/release/opentalk-roomserver}
+OPENTALK_ROOMSERVER_CMD=${OPENTALK_ROOMSERVER_CMD:-$REPO_ROOT/target/release/opentalk-roomserver}
 
 CLI_DIR="$DOCS_TEMP_DIR"/cli-usage
 CONFIG_DIR="$DOCS_TEMP_DIR"/example
@@ -40,7 +42,7 @@ fi
 
 mkdir -p "$CLI_DIR" "$CONFIG_DIR"
 
-codify toml < example/roomserver.toml > "$CONFIG_DIR"/roomserver.toml.md
+codify toml < "$COMPONENT_DIR"/example/roomserver.toml > "$CONFIG_DIR"/roomserver.toml.md
 
 $OPENTALK_ROOMSERVER_CMD help | codify text > "$CLI_DIR"/help.md
 $OPENTALK_ROOMSERVER_CMD health --help | codify text > "$CLI_DIR"/health-help.md
@@ -60,4 +62,4 @@ for file in "$CLI_DIR"/*; do
  fi
 done
 
-opentalk-ci-doc-updater generate --raw-files-dir target/docs/temporary/ --documentation-dir docs/
+opentalk-ci-doc-updater generate --raw-files-dir "$DOCS_TEMP_DIR" --documentation-dir "$COMPONENT_DIR"/docs/

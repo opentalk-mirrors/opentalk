@@ -18,8 +18,9 @@ set -xe
 set -o pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+COMPONENT_DIR=$( cd -- "$SCRIPT_DIR/.." &> /dev/null && pwd )
 
-DOCS_TEMP_DIR=target/docs/temporary
+DOCS_TEMP_DIR="$COMPONENT_DIR"/target/docs/temporary/smtp-mailer
 CONFIG_DIR="$DOCS_TEMP_DIR"/config
 
 # shellcheck source=smtp-mailer/ci/include/codify.sh
@@ -32,6 +33,6 @@ fi
 
 mkdir -p "$CONFIG_DIR"
 
-codify toml < example/smtp-mailer.toml > "$CONFIG_DIR"/smtp-mailer.toml.md
+codify toml < "$COMPONENT_DIR"/example/smtp-mailer.toml > "$CONFIG_DIR"/smtp-mailer.toml.md
 
-opentalk-ci-doc-updater generate --raw-files-dir "$DOCS_TEMP_DIR" --documentation-dir docs/
+opentalk-ci-doc-updater generate --raw-files-dir "$DOCS_TEMP_DIR" --documentation-dir "$COMPONENT_DIR"/docs/
