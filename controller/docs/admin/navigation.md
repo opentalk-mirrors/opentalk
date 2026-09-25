@@ -31,6 +31,7 @@
         - [Meeting Minutes (EtherPad)](advanced/additional_services/etherpad.md)
         - [Whiteboard (Spacedeck)](advanced/additional_services/spacedeck.md)
         - [Obelisk Call-In SIP Gateway](advanced/additional_services/obelisk.md)
+        - [Orchestrator](advanced/additional_services/orchestrator.md)
         - [Meeting Recorder](advanced/additional_services/recorder.md)
         - [SMTP Mailer](advanced/additional_services/smtp_mailer.md)
         - [Shared Folders on External Storage Systems](advanced/additional_services/shared_folder.md)
