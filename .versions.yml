@@ -33,7 +33,7 @@ opentalk_smtp_mailer_version: v0.19.0
 # renovate: datasource=docker depName=git.opentalk.dev:5050/opentalk/backend/services/orchestrator
 opentalk_orchestrator_version: v0.12.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/outlook-add-in
-opentalk_outlook_add_in_version: v0.3.6-2
+opentalk_outlook_add_in_version: v0.5.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/spacedeck
 spacedeck_version: v3.0.3
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/etherpad
