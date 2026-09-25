@@ -9692,6 +9692,7 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-transcription-web-api",
  "opentalk-types-api-common",
  "opentalk-types-api-internal",

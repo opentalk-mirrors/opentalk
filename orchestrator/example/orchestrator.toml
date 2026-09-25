@@ -10,6 +10,12 @@
 # The `ORCHESTRATOR_LOG` and `RUST_LOG` environment variables take precedence over this setting,
 # in that order.
 
+# Optional OpenTelemetry tracing configuration. When the endpoint is set, spans are exported to it.
+#otlp_tracing_endpoint = "http://localhost:4317"
+#service_name = "orchestrator"
+#service_namespace = "opentalk"
+#service_instance_id = "627cc493-f310-47de-96bd-71410b7dec09"
+
 [http]
 # HTTP server settings
 

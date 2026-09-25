@@ -120,7 +120,7 @@ async fn main() -> Result<()> {
     let settings = Settings::load(args.config.as_deref())?;
 
     drop(early_logger);
-    logging::init_logging(settings.logging.as_ref());
+    let _tracer_provider = logging::init_logging(settings.logging.as_ref())?;
 
     tracing::trace!("Tracing enabled");
 

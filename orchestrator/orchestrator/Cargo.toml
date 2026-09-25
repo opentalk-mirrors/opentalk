@@ -31,6 +31,7 @@ opentalk-recorder-web-api.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-web-api.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum", "default"] }
+opentalk-tracing.workspace = true
 opentalk-transcription-web-api.workspace = true
 opentalk-types-api-common = { workspace = true, features = ["http", "serde"] }
 opentalk-types-api-internal.workspace = true
