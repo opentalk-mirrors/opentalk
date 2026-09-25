@@ -15,25 +15,25 @@
 # OpenTalk Product Version
 # Not automated: this is the version of this repository itself, and
 # lint:release_tag gates it against the git tag.
-opentalk_product_version: v26.2.1
+opentalk_product_version: v26.3.0-beta.0
 
 # OpenTalk related Container Image Versions
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/web-frontend
-opentalk_web_frontend_version: v2.9.2
+opentalk_web_frontend_version: v2.10.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/controller
-opentalk_controller_version: v0.34.5
+opentalk_controller_version: v0.35.1
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/obelisk
-opentalk_obelisk_version: v0.22.2
+opentalk_obelisk_version: v0.23.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/recorder
-opentalk_recorder_version: v0.17.5
+opentalk_recorder_version: v0.18.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/roomserver
-opentalk_roomserver_version: v0.1.4
+opentalk_roomserver_version: v0.10.1
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/smtp-mailer
-opentalk_smtp_mailer_version: v0.18.0
+opentalk_smtp_mailer_version: v0.19.0
 # renovate: datasource=docker depName=git.opentalk.dev:5050/opentalk/backend/services/orchestrator
-opentalk_orchestrator_version: v0.8.3
+opentalk_orchestrator_version: v0.12.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/outlook-add-in
-opentalk_outlook_add_in_version: v0.3.6-2
+opentalk_outlook_add_in_version: v0.5.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/spacedeck
 spacedeck_version: v3.0.3
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/etherpad
