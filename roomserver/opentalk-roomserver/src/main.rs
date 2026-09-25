@@ -84,7 +84,8 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
             .map_err(decorate_error("Shutdown handler exited with error")),
     );
 
-    trace::init(settings.tracing.as_ref()).context("Failed to initialize tracing")?;
+    let tracer_provider =
+        trace::init(settings.tracing.as_ref()).context("Failed to initialize tracing")?;
 
     if settings.controller.is_none() {
         tracing::warn!("Missing controller config, assets and module resources will not be saved")
@@ -177,6 +178,9 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
         Some(Ok(Err(e))) => tracing::error!("{e:?}"),
     }
     let result = graceful_shutdown(app_state, &mut set).await;
+
+    opentalk_tracing::shutdown(tracer_provider);
+
     if result.is_err() {
         set.abort_all();
         return result.context("Forced Shutdown");

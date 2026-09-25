@@ -161,8 +161,8 @@ pub struct Controller {
     /// All metrics of the Application
     pub metrics: metrics::CombinedMetrics,
 
-    /// OpenTelemetry tracer provider, kept alive to flush pending spans on shutdown.
-    _tracer_provider: Option<SdkTracerProvider>,
+    /// OpenTelemetry tracer provider, flushed explicitly during shutdown.
+    tracer_provider: Option<SdkTracerProvider>,
 }
 
 impl Controller {
@@ -363,7 +363,7 @@ impl Controller {
             shutdown,
             reload,
             metrics,
-            _tracer_provider: tracer_provider,
+            tracer_provider,
         };
 
         Ok(controller)
@@ -552,6 +552,8 @@ impl Controller {
         } else {
             tracing::info!("All tasks stopped, goodbye!");
         }
+
+        opentalk_tracing::shutdown(self.tracer_provider);
 
         Ok(())
     }

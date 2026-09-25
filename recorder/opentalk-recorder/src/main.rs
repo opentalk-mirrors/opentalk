@@ -295,7 +295,7 @@ async fn main_loop() -> Result<()> {
     }
 
     let settings = Arc::new(settings::Settings::load(args.config.as_ref())?);
-    let _tracer_provider = trace::init(settings.tracing.as_ref())?;
+    let tracer_provider = trace::init(settings.tracing.as_ref())?;
     if let Some(Commands::Health { endpoint }) = args.command {
         let Some(monitoring_endpoint) = endpoint.or_else(|| {
             settings.monitoring.as_ref().map(|monitoring_settings| {
@@ -386,6 +386,9 @@ async fn main_loop() -> Result<()> {
             gstreamer_main_loop.quit();
             Ok(())
         }).await??;
+
+    opentalk_tracing::shutdown(tracer_provider);
+
     Ok(())
 }
 

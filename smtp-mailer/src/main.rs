@@ -100,7 +100,7 @@ async fn main() -> anyhow::Result<()> {
         settings::Settings::load_from_standard_paths()?
     };
 
-    let _tracer_provider = trace::init(settings.tracing.as_ref())?;
+    let tracer_provider = trace::init(settings.tracing.as_ref())?;
 
     if let Some(Commands::Health { endpoint }) = args.command {
         let Some(monitoring_endpoint) = endpoint.or_else(|| {
@@ -154,5 +154,8 @@ async fn main() -> anyhow::Result<()> {
     }
 
     run(settings).await?;
+
+    opentalk_tracing::shutdown(tracer_provider);
+
     Ok(())
 }

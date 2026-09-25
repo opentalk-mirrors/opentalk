@@ -41,7 +41,7 @@ async fn main() -> Result<()> {
 
     let settings = Arc::new(settings::Settings::load(args.config.as_ref())?);
 
-    let _tracer_provider = trace::init(settings.tracing.as_ref())?;
+    let tracer_provider = trace::init(settings.tracing.as_ref())?;
 
     if let Some(Commands::Health { endpoint }) = args.command {
         let Some(monitoring_endpoint) = endpoint.or_else(|| {
@@ -82,11 +82,13 @@ async fn main() -> Result<()> {
 
     media::PortPool::init(settings.clone());
 
-    sip::run(settings).await?;
+    let result = sip::run(settings).await;
 
     log::info!("Obelisk exiting, bye!");
 
-    Ok(())
+    opentalk_tracing::shutdown(tracer_provider);
+
+    result
 }
 
 /// `rustls` and `jsonwebtoken` depend on a `CryptoProvider` being configured.

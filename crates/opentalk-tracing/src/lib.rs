@@ -118,8 +118,8 @@ pub struct TracingParams<'a> {
 ///
 /// Installs an [`EnvFilter`], a formatting layer writing to stdout and, when
 /// `settings` provide an OTLP endpoint, an OpenTelemetry OTLP export layer.
-/// Returns the created [`SdkTracerProvider`] so the caller can keep it alive and
-/// flush pending spans on shutdown.
+/// Returns the created [`SdkTracerProvider`], which must be passed to
+/// [`shutdown`] during graceful shutdown to flush pending spans.
 pub fn init(
     settings: Option<&TracingSettings>,
     params: TracingParams<'_>,
@@ -151,6 +151,22 @@ pub fn init(
         .init();
 
     Ok(provider)
+}
+
+/// Flush and shut down the OTLP tracer provider, exporting any spans still
+/// buffered by the batch processor.
+///
+/// This must be called explicitly during graceful shutdown: the global
+/// subscriber installed by [`init`] keeps its own reference to the provider, so
+/// dropping the handle returned by [`init`] does not trigger a flush. Passing
+/// `None` (trace export disabled) is a no-op.
+pub fn shutdown(provider: Option<SdkTracerProvider>) {
+    let Some(provider) = provider else {
+        return;
+    };
+    if let Err(error) = provider.shutdown() {
+        eprintln!("Failed to flush OpenTelemetry spans on shutdown: {error}");
+    }
 }
 
 fn build_tracer_provider(otlp: OtlpConfig) -> anyhow::Result<SdkTracerProvider> {

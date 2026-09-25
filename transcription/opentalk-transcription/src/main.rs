@@ -50,7 +50,7 @@ async fn main() -> Result<ExitCode> {
     let settings =
         Arc::new(Settings::load(args.config.as_deref()).context("Failed to read config")?);
 
-    let _tracer_provider = trace::init(settings.tracing.as_ref())?;
+    let tracer_provider = trace::init(settings.tracing.as_ref())?;
 
     install_logging_hooks();
 
@@ -113,6 +113,8 @@ async fn main() -> Result<ExitCode> {
 
     tasks.wait_for_shutdown().await?;
     stop_probe().await;
+
+    opentalk_tracing::shutdown(tracer_provider);
 
     Ok(ExitCode::SUCCESS)
 }

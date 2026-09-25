@@ -120,7 +120,7 @@ async fn main() -> Result<()> {
     let settings = Settings::load(args.config.as_deref())?;
 
     drop(early_logger);
-    let _tracer_provider = logging::init_logging(settings.logging.as_ref())?;
+    let tracer_provider = logging::init_logging(settings.logging.as_ref())?;
 
     tracing::trace!("Tracing enabled");
 
@@ -152,6 +152,8 @@ async fn main() -> Result<()> {
     }
 
     tasks.wait_for_shutdown().await?;
+
+    opentalk_tracing::shutdown(tracer_provider);
 
     Ok(())
 }
