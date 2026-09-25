@@ -27,7 +27,7 @@ opentalk_obelisk_version: v0.23.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/recorder
 opentalk_recorder_version: v0.18.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/roomserver
-opentalk_roomserver_version: v0.1.4
+opentalk_roomserver_version: v0.10.1
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/smtp-mailer
 opentalk_smtp_mailer_version: v0.18.0
 # renovate: datasource=docker depName=git.opentalk.dev:5050/opentalk/backend/services/orchestrator
