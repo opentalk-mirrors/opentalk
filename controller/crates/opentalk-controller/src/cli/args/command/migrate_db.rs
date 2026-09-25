@@ -17,7 +17,9 @@ pub struct Command {}
 
 impl Command {
     pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
-        let settings = load_settings_provider(optional_config_path)?.get();
+        let (settings_provider, _tracer_provider) = load_settings_provider(optional_config_path)?;
+        let settings = settings_provider.get();
+
         let result = opentalk_db_storage::migrations::migrate_from_url(&settings.database.url)
             .await
             .whatever_context("Failed to migrate database")?;

@@ -29,7 +29,9 @@ pub enum Command {
 
 impl Command {
     pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
-        let settings = load_settings_provider(optional_config_path)?.get();
+        let (settings_provider, _tracer_provider) = load_settings_provider(optional_config_path)?;
+        let settings = settings_provider.get();
+
         match self {
             Command::List => list_all_tenants(&settings).await,
             Command::SetOidcId { id, new_oidc_id } => {

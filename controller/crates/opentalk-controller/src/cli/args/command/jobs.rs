@@ -86,7 +86,7 @@ async fn execute_job(
     timeout: u64,
     hide_duration: bool,
 ) -> Result<()> {
-    let settings_provider = load_settings_provider(optional_config_path)?;
+    let (settings_provider, _tracer_provider) = load_settings_provider(optional_config_path)?;
     let settings = settings_provider.get();
     let db = Arc::new(
         Db::connect(&settings.database).whatever_context("Failed to connect to database")?,
