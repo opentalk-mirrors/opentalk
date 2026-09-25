@@ -5,7 +5,7 @@
 use opentalk_tracing::{SdkTracerProvider, TracingParams, TracingSettings};
 
 /// Default log directives, applied when neither `RUST_LOG` nor the configuration provide any.
-const DEFAULT_LOGGING_DIRECTIVES: &str = "warn,html5ever=warn,selectors=warn";
+const DEFAULT_LOGGING_DIRECTIVES: &str = "info,html5ever=warn,selectors=warn";
 
 /// Initializes the global tracing subscriber.
 ///
