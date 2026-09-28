@@ -523,25 +523,15 @@ impl TranscriptionModule {
     /// Stop the transcription service but do **not** remove the transcription state.
     fn stop_transcription_service(&self, ctx: &ModuleContext<'_, Self>) -> Result<(), FatalError> {
         if let Some((transcription, _)) = find_transcription_service(ctx) {
-            // The participants are notified once the service reports that it has stopped
             ctx.send_ws_message(
                 [*transcription],
                 TranscriptionEvent::ServiceCommand {
                     command: TranscriptionServiceCommand::Stop,
                 },
-            )?;
+            )
         } else {
-            // The service was stopped before it connected and will not report that it stopped.
-            // Notify the participants that the service is now inactive.
-            ctx.send_ws_message(
-                ctx.participants.in_room(ctx.room).connected().ids(),
-                TranscriptionEvent::StateUpdated {
-                    status: TranscriptionStatus::Inactive,
-                },
-            )?;
+            Ok(())
         }
-
-        Ok(())
     }
 
     /// Returns the transcription state for the current room.
@@ -605,7 +595,7 @@ impl TranscriptionModule {
                     return Ok(());
                 }
 
-                state.service = ServiceState::Running;
+                state.service = ServiceState::Running { participant_id };
                 state.language = language;
 
                 self.broadcast_status_updated(ctx)?;
@@ -618,22 +608,36 @@ impl TranscriptionModule {
                     return Ok(());
                 };
 
+                // Only accept updates from the currently running service
+                if state.service.id().is_none_or(|id| id != participant_id) {
+                    return Err(TranscriptionError::InsufficientPermissions.into());
+                }
+
                 state.language = new_language;
 
                 self.broadcast_status_updated(ctx)?;
             }
             TranscriptionServiceEvent::Stopped => {
-                if self
-                    .transcription_states
-                    .get(&ctx.room)
-                    .is_none_or(|state| state.service == ServiceState::Stopped)
-                {
-                    // The service was stopped by us, notify the participants that it is now
-                    // inactive.
-                    self.broadcast_status_updated(ctx)?;
-                } else {
-                    tracing::warn!("Transcription service stopped unexpectedly");
-                    self.handle_service_error(ctx, TranscriptionError::ServiceDisconnected)?;
+                let Some(state) = self.transcription_states.get_mut(&ctx.room) else {
+                    // An untracked service stopped, the participants were already notified
+                    return Ok(());
+                };
+
+                match state.service {
+                    ServiceState::Running { participant_id: id } if id == participant_id => {
+                        tracing::warn!("Transcription service stopped unexpectedly");
+                        self.handle_service_error(ctx, TranscriptionError::ServiceDisconnected)?;
+                    }
+                    ServiceState::Stopping { participant_id: id } if id == participant_id => {
+                        if state.modes.is_empty() {
+                            self.transcription_states.remove(&ctx.room);
+                        } else {
+                            // This can be the case when the meeting protocol was paused
+                            state.service = ServiceState::Stopped;
+                        }
+                        self.broadcast_status_updated(ctx)?;
+                    }
+                    _ => {} // an old service confirming it stopped, e.g. after resuming
                 }
             }
             TranscriptionServiceEvent::Segment(transcription_segment) => {
@@ -641,6 +645,11 @@ impl TranscriptionModule {
                 else {
                     return Ok(());
                 };
+
+                // Only accept segments from the currently running service
+                if state.service.id().is_none_or(|id| id != participant_id) {
+                    return Err(TranscriptionError::InsufficientPermissions.into());
+                }
 
                 if let Some(protocol) = state.modes.meeting_protocol_mut()
                     && !protocol.paused()
@@ -781,14 +790,25 @@ impl TranscriptionModule {
                 self.broadcast_status_updated(ctx)?;
             }
             ServiceAction::Stop => self.stop_transcription_service(ctx)?,
+            ServiceAction::Cancel => {
+                // A service might be connected, but not have sent the `Started` event yet, so tell
+                // it to stop.
+                // Notify the participants immediately instead of waiting for the service's
+                // `Stopped` reply. `reconcile` already  moved the service to `Stopped`, and the
+                // service might not even be connected. The reply is ignored, because it cannot be
+                // told apart from the `Stopped` of an old service after resuming.
+                self.stop_transcription_service(ctx)?;
+                self.broadcast_status_updated(ctx)?;
+            }
             ServiceAction::None => {}
         }
 
-        // Remove the transcription state if there are no active modes left
+        // Remove the transcription state if there are no active modes left and there is no
+        // stopping service to wait for
         if self
             .transcription_states
             .get(&ctx.room)
-            .is_some_and(|state| state.modes.is_empty())
+            .is_some_and(|state| state.modes.is_empty() && state.service == ServiceState::Stopped)
         {
             self.transcription_states.remove(&ctx.room);
         }

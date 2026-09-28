@@ -2295,3 +2295,235 @@ async fn closing_breakout_room_generates_meeting_protocol() {
         .await
         .expect("Meeting protocol PDF must be stored");
 }
+
+/// Stopping the transcription before the requested service connected notifies the participants
+/// immediately and not a second time when the late service stops.
+#[test_log::test(tokio::test)]
+async fn stop_before_service_connected() {
+    let mut transcription_task = MockTranscriptionTask::spawn().await;
+    let mut room = create_room(&transcription_task);
+
+    let mut alice = room.join_alice_moderator(0).await;
+    let room_kind = RoomKind::Main;
+    start_transcription(
+        &mut transcription_task,
+        &mut room,
+        room_kind,
+        &mut alice,
+        &mut [],
+    )
+    .await;
+
+    // Stop the transcription while the service is still requested
+    alice
+        .send_command::<TranscriptionModule>(TranscriptionCommand::Stop, None)
+        .await
+        .unwrap();
+
+    expect_transcription_event!(
+        alice,
+        TranscriptionEvent::ModesUpdated {
+            modes: TranscriptionModes::default()
+        }
+    );
+
+    expect_transcription_event!(
+        alice,
+        TranscriptionEvent::StateUpdated {
+            status: TranscriptionStatus::Inactive
+        }
+    );
+
+    // The late service connects and is told to stop
+    let mut transcription = room.join_transcription(room_kind, 0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    transcription
+        .send_command::<TranscriptionModule>(
+            TranscriptionCommand::TranscriptionServiceEvent {
+                event: TranscriptionServiceEvent::Started {
+                    language: Some("de".into()),
+                },
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    expect_transcription_event!(
+        transcription,
+        TranscriptionEvent::ServiceCommand {
+            command: TranscriptionServiceCommand::Stop
+        }
+    );
+
+    transcription
+        .send_command::<TranscriptionModule>(
+            TranscriptionCommand::TranscriptionServiceEvent {
+                event: TranscriptionServiceEvent::Stopped,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice is not notified a second time that the transcription service stopped
+    assert!(alice.received_nothing());
+}
+
+/// Stopping the transcription after the requested service connected, but before it reported that it
+/// started, must still tell the participants that the transcription service is inactive.
+///
+/// Otherwise the participants are stuck with the `requested` status: the service is told to stop,
+/// but its `Stopped` event arrives when the room has no transcription state or service left to
+/// update, so nothing is broadcast.
+#[test_log::test(tokio::test)]
+async fn stop_after_service_connected_before_started() {
+    let mut transcription_task = MockTranscriptionTask::spawn().await;
+    let mut room = create_room(&transcription_task);
+
+    let mut alice = room.join_alice_moderator(0).await;
+    let room_kind = RoomKind::Main;
+    start_transcription(
+        &mut transcription_task,
+        &mut room,
+        room_kind,
+        &mut alice,
+        &mut [],
+    )
+    .await;
+
+    // The requested service connects, but has not sent `Started` yet
+    let mut transcription = room.join_transcription(room_kind, 0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Stop the transcription while the service is still requested
+    alice
+        .send_command::<TranscriptionModule>(TranscriptionCommand::Stop, None)
+        .await
+        .unwrap();
+
+    for participant in [&mut alice, &mut transcription] {
+        expect_transcription_event!(
+            participant,
+            TranscriptionEvent::ModesUpdated {
+                modes: TranscriptionModes::default()
+            }
+        );
+    }
+
+    // The service is told to stop
+    expect_transcription_event!(
+        transcription,
+        TranscriptionEvent::ServiceCommand {
+            command: TranscriptionServiceCommand::Stop
+        }
+    );
+
+    // The service reports that it stopped, as it was told to
+    transcription
+        .send_command::<TranscriptionModule>(
+            TranscriptionCommand::TranscriptionServiceEvent {
+                event: TranscriptionServiceEvent::Stopped,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // The participants must learn that the service is no longer requested
+    expect_transcription_event!(
+        alice,
+        TranscriptionEvent::StateUpdated {
+            status: TranscriptionStatus::Inactive
+        }
+    );
+
+    // ...but only once
+    assert!(alice.received_nothing());
+}
+
+/// Resuming the meeting protocol before the old service confirmed that it stopped must not treat
+/// the late `Stopped` of the old service as unexpected.
+#[test_log::test(tokio::test)]
+async fn resume_before_service_stopped() {
+    let mut transcription_task = MockTranscriptionTask::spawn().await;
+    let mut room = create_room(&transcription_task);
+
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let language = Some("en".to_owned());
+    let room_kind = RoomKind::Main;
+    start_meeting_protocol(
+        &mut transcription_task,
+        &mut room,
+        room_kind,
+        language.clone(),
+        false,
+        &mut alice,
+        &mut [],
+    )
+    .await;
+
+    let mut transcription =
+        join_transcription_service(&mut room, room_kind, language.clone(), &mut [&mut alice]).await;
+
+    // Pause the meeting protocol, the service is told to stop
+    alice
+        .send_command::<TranscriptionModule>(TranscriptionCommand::PauseMeetingProtocol, None)
+        .await
+        .unwrap();
+
+    for participant in [&mut alice, &mut transcription] {
+        expect_transcription_event!(
+            participant,
+            TranscriptionEvent::ModesUpdated {
+                modes: meeting_protocol_modes(false, true)
+            }
+        );
+    }
+
+    expect_transcription_event!(
+        transcription,
+        TranscriptionEvent::ServiceCommand {
+            command: TranscriptionServiceCommand::Stop
+        }
+    );
+
+    // Resume the meeting protocol before the service reported that it stopped
+    alice
+        .send_command::<TranscriptionModule>(TranscriptionCommand::ResumeMeetingProtocol, None)
+        .await
+        .unwrap();
+
+    for participant in [&mut alice, &mut transcription] {
+        expect_transcription_event!(
+            participant,
+            TranscriptionEvent::ModesUpdated {
+                modes: meeting_protocol_modes(false, false)
+            }
+        );
+
+        expect_transcription_event!(
+            participant,
+            TranscriptionEvent::StateUpdated {
+                status: TranscriptionStatus::Requested {
+                    language: language.clone()
+                }
+            }
+        )
+    }
+
+    // The old service stops as it was told to
+    transcription
+        .send_command::<TranscriptionModule>(
+            TranscriptionCommand::TranscriptionServiceEvent {
+                event: TranscriptionServiceEvent::Stopped,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    assert!(alice.received_nothing());
+}
