@@ -259,7 +259,6 @@ ezk-stun-types = "0.3"
 fern = "0.7"
 fluent-langneg = "0.14"
 fluent-templates = { version = "0.15", features = ["tera"] }
-flume = "0.12"
 futures = "0.3"
 futures-core = "0.3"
 futures-util = { version = "0.3", default-features = false }
@@ -283,7 +282,6 @@ insta = "1"
 itertools = "0.15"
 json-patch = "4"
 jsonwebtoken = { version = "11", default-features = false, features = ["aws_lc_rs"] }
-language-tags = "0.3"
 lapin-pool = "0.1"
 lapin2 = { package = "lapin", version = "2", default-features = false }
 lapin3 = { package = "lapin", version = "3", default-features = false }
@@ -326,7 +324,6 @@ proc-macro2 = "1"
 prometheus = "0.14"
 quote = "1"
 rand = "0.10"
-rand_chacha = "0.10"
 redis = "1.0"
 redis-args = "0.22"
 refinery = "0.9"
@@ -345,7 +342,6 @@ rustc-hash = "2"
 rustls = "0.23"
 rustls-pemfile = "2"
 rustls-pki-types = "1"
-scoped-futures = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_ignored = "0.1"
 serde_json = "1"
@@ -400,14 +396,14 @@ typst-pdf = "0.15"
 unified-diff = "0.2"
 url = "2"
 urlencoding = "2"
-utoipa = { version = "5", features = ["yaml"] }
-utoipa-swagger-ui = { version = "9", features = ["vendored"] }
+utoipa = { version = "6", features = ["yaml"] }
+utoipa-swagger-ui = { version = "10", features = ["vendored"] }
 uuid = { version = "1", features = ["v4"] }
 vergen = "10"
 vergen-git2 = "10"
 webrtc-sys = "0.3"
 whisper-rs = "0.16"
-yaml-rust2 = "0.12"
+yaml-rust2 = "0.13"
 
 [workspace.lints.clippy]
 self_named_module_files = "deny"

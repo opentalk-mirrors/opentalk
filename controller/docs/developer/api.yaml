@@ -159,32 +159,32 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Timestamp"
+              - type: "null"
         - name: time_max
           in: query
           description: Optional maximum time in which the event happens
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Timestamp"
+              - type: "null"
         - name: created_before
           in: query
           description: Only query events created before this timestamp
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Timestamp"
+              - type: "null"
         - name: created_after
           in: query
           description: Only query events created after this timestamp
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Timestamp"
+              - type: "null"
         - name: invitees_max
           in: query
           description: |-
@@ -194,8 +194,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/PageSize"
+              - type: "null"
         - name: favorites
           in: query
           description: Return only favorite events
@@ -216,8 +216,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/PageSize"
+              - type: "null"
         - name: after
           in: query
           description: |-
@@ -227,8 +227,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Cursor_GetEventsCursorData"
+              - type: "null"
         - name: adhoc
           in: query
           description: |-
@@ -329,32 +329,32 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Timestamp"
+              - type: "null"
         - name: time_max
           in: query
           description: Optional maximum time in which the event or instance happens
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Timestamp"
+              - type: "null"
         - name: created_before
           in: query
           description: Only query events created before this timestamp
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Timestamp"
+              - type: "null"
         - name: created_after
           in: query
           description: Only query events created after this timestamp
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Timestamp"
+              - type: "null"
         - name: invitees_max
           in: query
           description: |-
@@ -364,8 +364,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/PageSize"
+              - type: "null"
         - name: instances_max
           in: query
           description: |-
@@ -395,8 +395,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/PageSize"
+              - type: "null"
         - name: after
           in: query
           description: |-
@@ -407,8 +407,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Cursor_GetEventsAndInstancesCursorData"
+              - type: "null"
         - name: adhoc
           in: query
           description: |-
@@ -474,8 +474,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/PageSize"
+              - type: "null"
         - name: event_id
           in: path
           description: The id of the event
@@ -553,8 +553,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/PageSize"
+              - type: "null"
         - name: suppress_email_notification
           in: query
           description: Flag to disable email notification
@@ -612,32 +612,32 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/PageSize"
+              - type: "null"
         - name: time_min
           in: query
           description: Minimum time of the event instances
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Timestamp"
+              - type: "null"
         - name: time_max
           in: query
           description: Maximum time of the event instances
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/Timestamp"
+              - type: "null"
         - name: per_page
           in: query
           description: How many events to return per page
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/PageSize"
+              - type: "null"
         - name: after
           in: query
           required: false
@@ -704,8 +704,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/PageSize"
+              - type: "null"
         - name: suppress_email_notification
           in: query
           description: Flag to suppress email notification
@@ -760,8 +760,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/PageSize"
+              - type: "null"
         - name: suppress_email_notification
           in: query
           description: Flag to suppress email notification
@@ -874,8 +874,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/EventInviteStatus"
+              - type: "null"
         - name: event_id
           in: path
           description: The id of the event
@@ -1363,8 +1363,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/EventTitle"
+              - type: "null"
         - name: file_extension
           in: query
           description: The file extension
@@ -1383,8 +1383,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/ModuleId"
+              - type: "null"
       requestBody:
         description: The contents of the file
         content:
@@ -1886,8 +1886,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/EventTitle"
+              - type: "null"
         - name: file_extension
           in: query
           description: The file extension
@@ -1906,8 +1906,8 @@ paths:
           required: false
           schema:
             oneOf:
-              - type: "null"
               - $ref: "#/components/schemas/ModuleId"
+              - type: "null"
       requestBody:
         description: The contents of the file
         content:
@@ -4348,24 +4348,24 @@ components:
       properties:
         created_by:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/UserId"
               description: Filter by creator of the resource
+            - type: "null"
         id:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/ModuleResourceId"
               description: Filter by id
+            - type: "null"
         namespace:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/ModuleId"
               description: Filter by namespace
+            - type: "null"
         room_id:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/RoomId"
               description: Filter by the associated room id
+            - type: "null"
         tag:
           type:
             - string
@@ -4553,9 +4553,9 @@ components:
           description: Email address of the user to modify the invite for
         role:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/EmailInviteRole"
               description: Invite role of the user
+            - type: "null"
     PatchEventBody:
       allOf:
         - type: object
@@ -4572,7 +4572,6 @@ components:
               description: "Patch the password of the event's room"
             room_name:
               oneOf:
-                - type: "null"
                 - $ref: "#/components/schemas/RoomName"
                   description: |-
                     A custom room name that can be used as part of the URL alias to access the room instead of
@@ -4583,6 +4582,7 @@ components:
                     configuration.
 
                     [`RoomId`]: opentalk_types_common::rooms::RoomId
+                - type: "null"
             waiting_room:
               type: boolean
               description: Patch the presence of a waiting room
@@ -4812,9 +4812,9 @@ components:
     PatchRoomStreamingTargetRequestBody:
       allOf:
         - oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/UpdateStreamingTargetKind"
               description: The kind of the streaming target
+            - type: "null"
         - type: object
           properties:
             name:
@@ -4846,7 +4846,6 @@ components:
           description: Guest access mode
         name:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/RoomName"
               description: |-
                 A custom name that can be used as part of the URL alias to access the room instead of the
@@ -4855,11 +4854,12 @@ components:
                 The name is only one part of the alias. The full alias additionally contains a code that is
                 generated by the controller. Whether such a code is generated depends on the controller
                 configuration.
+            - type: "null"
         password:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/RoomPassword"
               description: The password for the room
+            - type: "null"
         waiting_room:
           type:
             - boolean
@@ -5084,9 +5084,9 @@ components:
             configuration.
         password:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/RoomPassword"
               description: "The password to the room, if any"
+            - type: "null"
         waiting_room:
           type: boolean
           description: |-
@@ -5138,14 +5138,14 @@ components:
           description: "The user's avatar URL"
         conference_theme:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/Theme"
               description: The conference theme
+            - type: "null"
         dashboard_theme:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/Theme"
               description: The dashboard theme
+            - type: "null"
         display_name:
           $ref: "#/components/schemas/DisplayName"
           description: "The user's display name"
@@ -5846,9 +5846,9 @@ components:
               description: The endpoint url of the streaming target
             streaming_key:
               oneOf:
-                - type: "null"
                 - $ref: "#/components/schemas/StreamingKey"
                   description: The streaming key
+                - type: "null"
       description: "Data to update a streaming target kind (only fields with [`Some`] are updated)"
       example:
         kind: custom

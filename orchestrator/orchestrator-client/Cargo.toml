@@ -34,8 +34,5 @@ tokio = { workspace = true, features = [
 tokio-tungstenite = { workspace = true, features = ["connect", "handshake"] }
 url.workspace = true
 
-[build-dependencies]
-anyhow = "1"
-
 [lints]
 workspace = true

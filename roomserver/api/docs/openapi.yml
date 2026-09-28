@@ -697,11 +697,11 @@ components:
           description: Defines who has to wait in the waiting room until admitted by a moderator.
         ws_rate_limit:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/RateLimitSettings"
               description: |-
                 WebSocket rate limit settings of the room. No rate limiting is applied if the field is set
                 to [`None`].
+            - type: "null"
       example:
         alias: personal-room-name_0000000000000000
         allowed_origins:
@@ -770,16 +770,16 @@ components:
       properties:
         password:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/RoomPassword"
+            - type: "null"
         show_meeting_details:
           type:
             - boolean
             - "null"
         title:
           oneOf:
-            - type: "null"
             - $ref: "#/components/schemas/EventTitle"
+            - type: "null"
       example:
         password: v3rys3cr3t
         show_meeting_details: true
