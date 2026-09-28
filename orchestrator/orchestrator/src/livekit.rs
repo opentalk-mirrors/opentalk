@@ -17,6 +17,7 @@ use opentalk_types_api_common::error::ApiError;
 use opentalk_types_common::rooms::RoomId;
 use reqwest::header::AUTHORIZATION;
 use serde::Deserialize;
+use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 
 use crate::{AppState, proxy};
 
@@ -114,7 +115,7 @@ async fn reqwest_response_to_axum(response: reqwest::Response) -> anyhow::Result
 
 async fn signaling(
     ws: WebSocketUpgrade,
-    headers: HeaderMap,
+    mut headers: HeaderMap,
     RawQuery(raw_query): RawQuery,
     Query(livekit_query): Query<LivekitQuery>,
     State(state): State<AppState>,
@@ -156,7 +157,18 @@ async fn signaling(
 
     url.set_query(raw_query.as_deref());
 
-    let (roomserver_livekit_proxy, _) = tokio_tungstenite::connect_async(url.as_str())
+    let mut ws_request = url.as_str().into_client_request().map_err(|e| {
+        tracing::error!("Failed to build livekit request from url {url}: {e}");
+        ApiError::internal().with_message("Failed to build livekit signaling request")
+    })?;
+
+    if let Some(authorization) = headers.remove(AUTHORIZATION) {
+        ws_request
+            .headers_mut()
+            .append(AUTHORIZATION, authorization);
+    }
+
+    let (roomserver_livekit_proxy, _) = tokio_tungstenite::connect_async(ws_request)
         .await
         .map_err(|e| {
             tracing::error!("failed to connect to roomserver livekit proxy at {url}: {e}",);
