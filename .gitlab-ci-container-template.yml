@@ -98,7 +98,7 @@ read-tags:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
   image:
-    name: alpine/git:v2.52.0
+    name: alpine/git:v2.54.0
     entrypoint: ['']
     pull_policy: if-not-present
   artifacts:
