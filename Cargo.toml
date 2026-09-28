@@ -403,7 +403,7 @@ vergen = "10"
 vergen-git2 = "10"
 webrtc-sys = "0.3"
 whisper-rs = "0.16"
-yaml-rust2 = "0.12"
+yaml-rust2 = "0.13"
 
 [workspace.lints.clippy]
 self_named_module_files = "deny"
