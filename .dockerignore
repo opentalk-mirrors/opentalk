@@ -1,18 +1,24 @@
 # SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 # SPDX-License-Identifier: EUPL-1.2
 
-# Compiled files
-target/
-**/target/
+# The container images under container/ are runtime-only: they consume the binaries
+# produced by the `build` job of .gitlab-ci.yml plus a handful of data files. Only
+# include files referenced by `COPY` commands.
 
-# IDE/editor files
-*.rs.bk
-*.swp
-*.swo
-*.idea/
-.vscode/
-*.iml
+# Deny everything by default
+**
 
-# OS generated files
-.DS_Store
-Thumbs.db
+# Include binaries produced by the `build` job in .gitlab-ci.yml
+!target/release/opentalk-controller
+!target/release/opentalk-obelisk
+!target/release/opentalk-orchestrator
+!target/release/opentalk-recorder
+!target/release/opentalk-roomserver
+!target/release/opentalk-smtp-mailer
+!target/release/opentalk-transcription
+
+# Include other files copied into the images
+!controller/example/controller.toml
+!smtp-mailer/resources
+!smtp-mailer/resources/**
+!transcription/extra/example.toml

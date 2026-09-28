@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM ubuntu:resolute
+
+RUN apt-get --update full-upgrade -y && \
+    apt-get install -y --no-install-recommends ca-certificates tzdata && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/smtp-mailer
+
+COPY target/release/opentalk-smtp-mailer .
+COPY smtp-mailer/resources ./resources
+
+ENV USERID=1000
+ENV GROUPID=1000
+USER $USERID:$GROUPID
+
+ENTRYPOINT [ "/opt/smtp-mailer/opentalk-smtp-mailer" ]

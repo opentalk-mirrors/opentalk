@@ -5,7 +5,9 @@
 services:
   roomserver:
     image: roomserver
-    build: ../
+    build:
+      context: ../..
+      dockerfile: container/roomserver/Dockerfile-ubuntu
     container_name: roomserver
     # use network mode host to remove potential performance impacts of port-forwarding
     network_mode: host

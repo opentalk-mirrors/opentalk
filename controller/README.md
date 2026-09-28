@@ -24,24 +24,6 @@ cp ./example/controller.toml ./controller.toml
 
 See the [migration guide](docs/admin/migration.md) for information about upgrading.
 
-## Build the container image
-
-If you just want an image, that can be created with:
-
-```bash
-docker build . --tag <your tag>
-```
-
-If required, the image can be built with one of a small set of different base
-images, a `Dockerfile-<baseimage>` is located in the root directory of this
-project for each of them. `Dockerfile` is a symlink to the latest default image.
-
-To build the image with a specific base image, execute in the root of the repository:
-
-```bash
-docker build -f Dockerfile-<baseimage> . --tag <your tag>
-```
-
 ## Sub-crates
 
 Inside the `crates` folder, the following crates can be found:

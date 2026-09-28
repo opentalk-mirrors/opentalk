@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+FROM git.opentalk.dev:5050/opentalk/backend/containers/gstreamer:1.26-intel
+
+RUN apt-get update && apt-get full-upgrade -y --no-install-recommends && \
+    apt-get install -y --no-install-recommends libssl3 \
+    intel-media-va-driver \
+    libopenh264-8 ca-certificates \
+    tzdata \
+    fonts-terminus ttf-bitstream-vera fonts-liberation fonts-noto \
+    libcap2-bin && \
+    # intel-gpu-tools pulls in fontconfig-config as a transitive dependency which brings a
+    # new configuration file for /etc/fonts/fonts.conf.
+    apt-get -o Dpkg::Options::="--force-confnew" install -y --no-install-recommends intel-gpu-tools && \
+    setcap cap_perfmon=+ep $(which intel_gpu_top) && fc-cache -fv
+
+WORKDIR /recorder
+
+COPY target/release/opentalk-recorder .
+
+ENTRYPOINT [ "/recorder/opentalk-recorder" ]
