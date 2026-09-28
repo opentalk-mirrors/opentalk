@@ -7,6 +7,7 @@ use std::{collections::BTreeSet, pin::Pin};
 use futures_util::Stream;
 use opentalk_types_common::{
     events::{EventId, invites::EventInviteStatus},
+    order::Ordering,
     rooms::{RoomId, RoomIdOrAlias},
     time::Timestamp,
     training_participation_report::TrainingParticipationReportParameterSet,
@@ -135,6 +136,7 @@ pub trait EventInventory {
         adhoc: Option<bool>,
         time_independent: Option<bool>,
         cursor: Option<GetEventsCursor>,
+        ordering: Ordering,
     ) -> Result<EventStream<'a>>;
 
     /// Get all event exceptions to which a user has access.
@@ -276,6 +278,7 @@ mod mock {
                 adhoc: Option<bool>,
                 time_independent: Option<bool>,
                 cursor: Option<GetEventsCursor>,
+                ordering: Ordering,
             ) -> Result<EventStream<'a>>;
 
             async fn get_all_event_exceptions_for_user_paginated_as_stream<'a>(

@@ -6,6 +6,7 @@
 
 use std::{cmp::Ordering, collections::BTreeSet, pin::Pin, sync::Arc};
 
+use async_stream::try_stream;
 use chrono::{DateTime, Datelike, NaiveTime, Utc};
 use chrono_tz::Tz;
 use futures_core::Stream;
@@ -34,16 +35,16 @@ use opentalk_types_api_v1::{
         CallInInfo, DeleteEventsQuery, EmailOnlyUser, EventAndInstanceId, EventDate, EventDateKind,
         EventExceptionResource, EventInvitee, EventInviteeProfile, EventOptionsQuery,
         EventOrException, EventResource, EventResourceDate, EventResourceDateKind, EventRoomInfo,
-        EventStatus, ExceptionMarker, GetEventQuery, GetEventsCursorData, GetEventsQuery,
-        PatchEventBody, PatchEventBodyRoom, PatchEventDateKind, PatchEventQuery, PostEventsBody,
+        EventStatus, ExceptionMarker, GetEventQuery, GetEventsQuery, PatchEventBody,
+        PatchEventBodyRoom, PatchEventDateKind, PatchEventQuery, PostEventsBody,
         PublicInviteUserProfile, TimeDependentMarker,
     },
-    pagination::Cursor,
     users::PublicUserProfile,
 };
 use opentalk_types_common::{
     events::{EventDescription, EventId, EventTitle, invites::EventInviteStatus},
     features::GUESTS_ALLOWED_MODULE_FEATURE_ID,
+    order::Ordering as SortOrdering,
     pagination::{ItemCount, Page, PageSize},
     rooms::{GuestAccess, RoomName, RoomPassword},
     shared_folders::SharedFolder,
@@ -56,6 +57,7 @@ use opentalk_types_common::{
 use rrule::{Frequency, RRuleSet};
 use snafu::Report;
 
+use self::pagination::EventsPage;
 #[cfg(all(test, feature = "mockall"))]
 use crate::MockKeycloakAdminClient as KeycloakAdminClient;
 use crate::{
@@ -78,6 +80,7 @@ use crate::{
 mod favorites;
 pub(crate) mod instances;
 pub(crate) mod invites;
+mod pagination;
 pub(crate) mod shared_folder;
 
 const LOCAL_DT_FORMAT: &str = "%Y%m%dT%H%M%S";
@@ -274,6 +277,8 @@ impl ControllerBackend {
         current_user: RequestUser,
         query: GetEventsQuery,
     ) -> Result<(Vec<EventOrException>, Option<String>, Option<String>), CaptureApiError> {
+        // Pin sort ordering ascending until it's exposed via the API.
+        let ordering = SortOrdering::Ascending;
         let get_events_cursor = query.after.map(|cursor| {
             GetEventsCursor::new(
                 cursor.event_id,
@@ -308,6 +313,7 @@ impl ControllerBackend {
                 query.adhoc,
                 query.time_independent,
                 get_events_cursor,
+                ordering,
             )
             .await?;
         let mut inventory = self.inventory_provider.get_inventory().await?;
@@ -337,51 +343,24 @@ impl ControllerBackend {
         > = vec![events_stream, instances_stream];
         let stream = interweave_result_streams(streams, compare_inventory_events_or_exceptions);
 
-        // Create the resource vector
         let settings = self.settings_provider.get();
-        let vector = self
-            .create_events_or_exceptions_vec_from_stream(
+        let page = self
+            .create_events_or_exceptions_page_from_stream(
                 self.inventory_provider.clone(),
                 &settings,
                 current_user,
                 stream,
                 query.invitees_max,
                 query.per_page,
+                ordering,
             )
             .await?;
 
-        // Build a cursor that can be used to fetch the next page
-        let ret_cursor_data = vector.last().map(|item| {
-            let (event_id, event_created_at, event_starts_at, instance_id) = match item {
-                EventOrException::Event(event) => (
-                    event.id,
-                    event.created_at,
-                    event.date.starts_at().cloned(),
-                    None,
-                ),
-                EventOrException::Exception(exception) => (
-                    exception.recurring_event_id,
-                    exception.created_at,
-                    exception.starts_at,
-                    Some(exception.instance_id),
-                ),
-            };
-
-            GetEventsCursorData {
-                event_id,
-                event_created_at,
-                event_starts_at: event_starts_at.map(Into::into),
-                instance_id,
-            }
-        });
-
-        let before = None;
-        let after = ret_cursor_data.map(|c| Cursor(c).to_base64());
-
-        Ok((vector, before, after))
+        Ok(page.into_parts())
     }
 
-    async fn create_events_or_exceptions_vec_from_stream(
+    #[expect(clippy::too_many_arguments)]
+    async fn create_events_or_exceptions_page_from_stream(
         &self,
         inventory_provider: Arc<dyn InventoryProvider>,
         settings: &Settings,
@@ -389,46 +368,46 @@ impl ControllerBackend {
         stream: impl Stream<Item = opentalk_inventory::Result<InternalEventOrException>>,
         invitees_max: Option<PageSize>,
         per_page: Option<PageSize>,
-    ) -> Result<Vec<EventOrException>, CaptureApiError> {
-        let stream = stream.take(per_page.unwrap_or_default().into());
-        let mut items: Vec<EventOrException> = Vec::new();
+        ordering: SortOrdering,
+    ) -> Result<EventsPage<EventOrException>, CaptureApiError> {
+        let resources = try_stream! {
+            pin_mut!(stream);
+            while let Some(result) = stream.next().await {
+                let mut inventory = inventory_provider.get_inventory().await?;
 
-        pin_mut!(stream);
-        while let Some(result) = stream.next().await {
-            let mut inventory = inventory_provider.get_inventory().await?;
+                let item = match result? {
+                    InternalEventOrException::Event(inventory_item) => {
+                        let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
+                        let resource = self
+                            .build_event_resource(
+                                inventory.as_mut(),
+                                settings,
+                                current_user.clone(),
+                                &current_tenant,
+                                invitees_max,
+                                inventory_item,
+                            )
+                            .await?;
+                        EventOrException::Event(resource)
+                    }
+                    InternalEventOrException::Exception(inventory_item) => {
+                        let resource = self
+                            .build_event_exception_resource(
+                                inventory.as_mut(),
+                                settings,
+                                current_user.clone(),
+                                inventory_item,
+                            )
+                            .await?;
+                        EventOrException::Exception(resource)
+                    }
+                };
 
-            let item = match result? {
-                InternalEventOrException::Event(inventory_item) => {
-                    let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
-                    let resource = self
-                        .build_event_resource(
-                            inventory.as_mut(),
-                            settings,
-                            current_user.clone(),
-                            &current_tenant,
-                            invitees_max,
-                            inventory_item,
-                        )
-                        .await?;
-                    EventOrException::Event(resource)
-                }
-                InternalEventOrException::Exception(inventory_item) => {
-                    let resource = self
-                        .build_event_exception_resource(
-                            inventory.as_mut(),
-                            settings,
-                            current_user.clone(),
-                            inventory_item,
-                        )
-                        .await?;
-                    EventOrException::Exception(resource)
-                }
-            };
+                yield item;
+            }
+        };
 
-            items.push(item);
-        }
-
-        Ok(items)
+        EventsPage::from_events(resources, per_page, ordering).await
     }
 
     #[expect(clippy::type_complexity)]

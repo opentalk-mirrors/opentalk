@@ -32,6 +32,7 @@ use opentalk_types_common::{
         EventId,
         invites::{EventInviteStatus, InviteRole},
     },
+    order::Ordering,
     rooms::{RoomId, RoomIdOrAlias},
     users::UserId,
 };
@@ -311,6 +312,7 @@ pub async fn get_all_events_for_user_paginated_as_stream(
     adhoc: Option<bool>,
     time_independent: Option<bool>,
     cursor: Option<GetEventsCursor>,
+    ordering: Ordering,
 ) -> Result<
     impl Stream<
         Item = Result<(
@@ -367,10 +369,19 @@ pub async fn get_all_events_for_user_paginated_as_stream(
         .filter(events::tenant_id.eq(user.tenant_id))
         .filter(event_related_to_user_id)
         .filter(users::disabled_since.is_null())
-        .order_by(event_dates::starts_at.nullable().asc().nulls_first())
-        .then_order_by(events::created_at.asc())
-        .then_order_by(events::id.asc())
         .into_boxed::<Pg>();
+
+    query = if ordering == Ordering::Descending {
+        query
+            .order_by(event_dates::starts_at.desc())
+            .then_order_by(events::created_at.desc())
+            .then_order_by(events::id.desc())
+    } else {
+        query
+            .order_by(event_dates::starts_at.nullable().asc().nulls_first())
+            .then_order_by(events::created_at.asc())
+            .then_order_by(events::id.asc())
+    };
 
     // Consider the start position as specified by the cursor
     if let Some(cursor) = cursor {
@@ -380,18 +391,25 @@ pub async fn get_all_events_for_user_paginated_as_stream(
                 events::created_at,
                 events::id,
             ));
+            let cursor_value = (from_starts_at, cursor.from_created_at, cursor.from_id);
 
-            // Get all records that are behind the cursor position.
-            // Records with no start date are considered to be less than the cursor specifies
-            // because they don't pass the '>' comparison below (a comparison with NULL
-            // is always NULL).
-            query = query.filter(expr.gt((from_starts_at, cursor.from_created_at, cursor.from_id)));
+            // Get all records behind the cursor position, further from the start of
+            // the ordering. Records with no start date never pass the comparison below
+            // (a comparison with NULL is always NULL), so they count as behind it.
+            query = if ordering == Ordering::Descending {
+                query.filter(expr.lt(cursor_value))
+            } else {
+                query.filter(expr.gt(cursor_value))
+            };
         } else {
             let expr = AsExpression::<Record<(Timestamptz, Uuid)>>::as_expression((
                 events::created_at,
                 events::id,
             ));
 
+            // A time-independent event (no start date) can only be the cursor position
+            // for an ascending query with the current callers.
+            //
             // Get all records that are behind the cursor position.
             // Records with a start date are considered to be greater than the cursor
             // specifies (which has no start date here).

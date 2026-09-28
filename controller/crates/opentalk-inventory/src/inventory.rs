@@ -360,6 +360,7 @@ mod mock {
                 adhoc: Option<bool>,
                 time_independent: Option<bool>,
                 cursor: Option<GetEventsCursor>,
+                ordering: Ordering,
             ) -> Result<EventStream<'a>>;
 
             async fn get_all_event_exceptions_for_user_paginated_as_stream<'a>(
