@@ -285,8 +285,8 @@ lapin2 = { package = "lapin", version = "2", default-features = false }
 lapin3 = { package = "lapin", version = "3", default-features = false }
 lettre = { version = "0.11.0", default-features = false }
 livekit = { version = "0.9", features = ["rustls-tls-native-roots"] }
-livekit-api = { version = "0.7", features = ["rustls-tls-native-roots"] }
-livekit-protocol = "0.7"
+livekit-api = { version = "0.8", features = ["rustls-tls-native-roots"] }
+livekit-protocol = "0.8"
 log = "0.4"
 md5 = "0.8"
 metrics-exporter-prometheus = { version = "0.18", default-features = false }
