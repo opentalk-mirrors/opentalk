@@ -40,6 +40,7 @@ No Docker, no network. Discovered automatically by filename pattern `test_*.sh` 
 | `test_opentalk_compose_templates_yaml.sh` | `---` and `services:` consistency of the templates |
 | `test_opentalk_config_reference_generator.sh` | generated reference equals the committed file |
 | `test_opentalk_coverage_regression.sh` | enforces the shell and Python coverage thresholds |
+| `test_opentalk_dev_settings_routing.sh` | dev settings: containers reach the dev URLs via Traefik aliases, not `host-gateway` |
 | `test_opentalk_import_users.sh` | CSV and JSON import, password policy |
 | `test_opentalk_keycloak_idempotency.sh` | idempotency guards of the realm task chain |
 | `test_opentalk_keycloak_permanent_admin.sh` | permanent admin contract |

@@ -44,15 +44,20 @@ compose_service_traefik_enabled: true
 traefik_api_insecure: true
 traefik_letsencrypt_enable: false
 
-traefik_docker_extra_hosts: 
+traefik_docker_extra_hosts:
   - host.docker.internal:host-gateway
+# Containers reach the public dev URLs through these aliases. Traefik listens
+# on ot_ingress_port inside the container as well, so a URL like
+# http://opentalk.dev.localhost:8081 works unchanged inside and outside Docker
+# without a detour through the host, which host firewalls may drop.
 traefik_docker_network_aliases:
   - opentalk.dev.localhost
   - whiteboard.dev.localhost
   - whiteboard-internal
   - etherpad.dev.localhost
+traefik_entryPoints_web_address: ":{{ ot_ingress_port }}"
 traefik_docker_ports:
-  - target: 80
+  - target: "{{ ot_ingress_port }}"
     published: "{{ ot_ingress_port }}"
   - target: 8080
     published: 7777
@@ -78,12 +83,7 @@ opentalk_web_frontend_environment_change_password_url: "http://opentalk.dev.loca
 
 
 controller_docker_extra_hosts:
-  - "opentalk.dev.localhost:host-gateway"
-  - "etherpad.dev.localhost:host-gateway"
-  - "whiteboard.dev.localhost:host-gateway"
   - "host.docker.internal:host-gateway"
-  - "etherpad.localhost:host-gateway"
-  - "spacedeck.localhost:host-gateway"
 
 recorder_docker_extra_hosts:
   - "host.docker.internal:host-gateway"
@@ -101,11 +101,9 @@ spacedeck_docker_labels_traefik_host: whiteboard.dev.localhost
 spacedeck_docker_labels_traefik_hosts:
   - whiteboard.dev.localhost
   - whiteboard-internal
-spacedeck_docker_environment_sd_endpoint: http://whiteboard-internal/whiteboard
+spacedeck_docker_environment_sd_endpoint: "http://whiteboard-internal:{{ ot_ingress_port }}/whiteboard"
 spacedeck_docker_labels_traefik_enable: true
 
-etherpad_docker_extra_hosts:
-  - "etherpad.localhost:host-gateway"
 etherpad_docker_labels_traefik_host: opentalk.dev.localhost
 etherpad_docker_ports:
   - "9001:9001"
