@@ -106,7 +106,7 @@ use super::{message_router::CloseReason, signaling::module_initializer::Modules}
 use crate::{
     message_router::{MessageEnvelope, MessageRouter, ScopedRouter, SignalingMessage},
     metrics::Metrics,
-    signaling::{DynEvent, dyn_module_context::DynModuleContext},
+    signaling::{DynBroadcastEvent, DynEvent, dyn_module_context::DynModuleContext},
     task::{
         context::RoomTaskContext,
         handle::{Request, RoomTaskHandle, TaskMessage},
@@ -745,10 +745,20 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         origin: EventOrigin,
         participant_id: ParticipantId,
     ) -> Result<(), FatalError> {
+        let Some(room) = self
+            .participants
+            .all_unfiltered
+            .get(&participant_id)
+            .map(|participant| participant.room)
+        else {
+            tracing::error!("Role changed for unknown participant");
+            return Ok(());
+        };
+
         self.broadcast_event_to_modules(
             origin,
-            RoomKind::Main, // Moderation role affects breakout and main room.
-            crate::signaling::DynBroadcastEvent::ModerationRoleChanged { participant_id },
+            room,
+            DynBroadcastEvent::ModerationRoleChanged { participant_id },
         )
         .handle_requested_messages(self)
     }
