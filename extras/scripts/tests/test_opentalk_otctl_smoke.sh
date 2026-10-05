@@ -56,6 +56,9 @@ cat > "$PREFIX/bin/ot-ansible-playbook" <<'STUB'
 #!/usr/bin/env bash
 log="${0%/bin/ot-ansible-playbook}/ot-ansible-playbook.calls"
 printf '%s\n' "$*" >> "$log"
+for arg in "$@"; do
+  [[ -n "$arg" ]] || printf '%s\n' "$*" >> "$log.empty-arg"
+done
 if [ "${OTSMOKE_TAGS_FAIL:-0}" = "1" ]; then
   exit 1
 fi
@@ -593,6 +596,13 @@ grep -q 's3_migration_source=minio' "$CALLS_LOG"
 bash "$OTCTL" migrate garage-to-minio --no-deploy < /dev/null >/dev/null
 grep -q 's3_migration_source=garage' "$CALLS_LOG"
 grep -q 's3_migrate_run_deploy=false' "$CALLS_LOG"
+# Regression: stripping --no-deploy must not leave an empty argument, which
+# ansible-playbook reads as a playbook path. Other arguments must survive.
+bash "$OTCTL" migrate minio-to-garage --no-deploy -v < /dev/null >/dev/null
+tail -n 1 "$CALLS_LOG" | grep -q -- ' -v$'
+[[ ! -e "$CALLS_LOG.empty-arg" ]] || {
+  echo "otctl migrate --no-deploy passed an empty argument to ansible-playbook:" >&2
+  cat "$CALLS_LOG.empty-arg" >&2; exit 1; }
 migrate_help=$(bash "$OTCTL" migrate help 2>&1 < /dev/null)
 grep -q 'migrate minio-to-garage' <<<"$migrate_help"
 set +e

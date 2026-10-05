@@ -749,14 +749,18 @@ MHELP
       *) echo "[otctl] Unknown migration direction: $migrate_direction (use minio-to-garage or garage-to-minio)" >&2; exit 1 ;;
     esac
     _migrate_extra_vars="s3_migration_source=${_migrate_src}"
-    # Allow --no-deploy flag to skip the post-migration deploy
+    # Allow --no-deploy flag to skip the post-migration deploy. Rebuild the
+    # argument list without it; a pattern substitution would leave an empty
+    # argument behind, which ansible-playbook reads as a playbook path.
+    _migrate_args=()
     for _a in "$@"; do
       if [ "$_a" = "--no-deploy" ]; then
         _migrate_extra_vars="${_migrate_extra_vars} s3_migrate_run_deploy=false"
-        set -- "${@/--no-deploy/}"
-        break
+      else
+        _migrate_args+=("$_a")
       fi
     done
+    set -- ${_migrate_args[@]+"${_migrate_args[@]}"}
     PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" \
       "$AUTOMATION/playbooks/s3_migrate.yml" \
       -e "$_migrate_extra_vars" "$@"
