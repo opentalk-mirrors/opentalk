@@ -200,6 +200,19 @@ mod mock {
     );
 }
 
+/// A wrapper around [`SignalingClientContext`] that ensures that
+/// [`SignalingHandler::accept_signaling_connection`] can not be called without calling
+/// [`SignalingHandler::authorize_client`] first.
+#[derive(Debug)]
+#[must_use]
+pub struct AuthorizedClientContext(SignalingClientContext);
+
+impl AuthorizedClientContext {
+    pub fn into_inner(self) -> SignalingClientContext {
+        self.0
+    }
+}
+
 /// A trait for handling signaling connections to the internal roomserver.
 #[async_trait::async_trait]
 pub trait SignalingHandler: Send + Sync {
@@ -212,6 +225,16 @@ pub trait SignalingHandler: Send + Sync {
         token: &Token,
     ) -> Result<SignalingClientContext, ApiError>;
 
+    /// Returns an error if the client is not allowed in the room.
+    ///
+    /// Ensures that the client can only join the room if it is allowed to. We already enforce this
+    /// when a token is requested, but access properties might have changed after the token was
+    /// issued.
+    async fn authorize_client(
+        &self,
+        ctx: SignalingClientContext,
+    ) -> Result<AuthorizedClientContext, ApiError>;
+
     /// Accept a signaling WebSocket connection.
     ///
     /// Builds a websocket adapter from the provided channel halves and
@@ -220,7 +243,7 @@ pub trait SignalingHandler: Send + Sync {
     /// backend returns `404 Not Found`.
     async fn accept_signaling_connection(
         &self,
-        ctx: SignalingClientContext,
+        ctx: AuthorizedClientContext,
         incoming: mpsc::Receiver<Result<Message, ProtocolError>>,
         outgoing: mpsc::Sender<SignalingSocketMessage>,
     ) -> Result<(), ApiError>;

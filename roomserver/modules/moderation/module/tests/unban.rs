@@ -3,11 +3,18 @@
 
 use std::assert_matches;
 
-use http::StatusCode;
 use opentalk_roomserver_module_moderation::ModerationModule;
-use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
+use opentalk_roomserver_room::mocking::{
+    participant::bob_public_user_profile,
+    room::{TestRoom, flush_connected_events},
+};
 use opentalk_roomserver_types::{
-    core::CoreEvent, disconnect_reason::DisconnectReason, signaling::websocket::CloseFrame,
+    client_allowed::{ClientAllowed, ClientNotAllowedReason},
+    client_parameters::ClientKind,
+    core::CoreEvent,
+    disconnect_reason::DisconnectReason,
+    public_user_profile::PublicUserProfile,
+    signaling::websocket::CloseFrame,
 };
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
@@ -134,12 +141,22 @@ async fn unban_participant() {
     let frank_event = frank.receive::<ModerationEvent>().await.unwrap();
     assert_eq!(event.payload, frank_event.payload);
 
-    let error = room
+    let allowed = room
         .room_handle
-        .reject_if_banned(UserId::from(Uuid::from(bob.id())))
+        .is_client_allowed(&ClientKind::Registered {
+            profile: PublicUserProfile {
+                id: UserId::from(Uuid::from(bob.id())),
+                ..bob_public_user_profile()
+            },
+        })
         .await
-        .unwrap_err();
-    assert_eq!(error.status, StatusCode::FORBIDDEN);
+        .unwrap();
+    assert_eq!(
+        allowed,
+        ClientAllowed::No {
+            reason: ClientNotAllowedReason::Banned
+        }
+    );
 
     alice
         .send_command::<ModerationModule>(ModerationCommand::Unban { target: bob.id() }, None)
@@ -159,8 +176,16 @@ async fn unban_participant() {
     let frank_event = frank.receive::<ModerationEvent>().await.unwrap();
     assert_eq!(event.payload, frank_event.payload);
 
-    room.room_handle
-        .reject_if_banned(UserId::from(Uuid::from(bob.id())))
+    let allowed = room
+        .room_handle
+        .is_client_allowed(&ClientKind::Registered {
+            profile: PublicUserProfile {
+                id: UserId::from(Uuid::from(bob.id())),
+                ..bob_public_user_profile()
+            },
+        })
         .await
-        .expect("Bob must not be banned");
+        .unwrap();
+
+    assert_eq!(allowed, ClientAllowed::Yes);
 }

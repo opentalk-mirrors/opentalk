@@ -3,12 +3,17 @@
 
 use std::{assert_matches, collections::HashSet};
 
-use http::StatusCode;
 use opentalk_roomserver_module_moderation::ModerationModule;
-use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
+use opentalk_roomserver_room::mocking::{
+    participant::bob_public_user_profile,
+    room::{TestRoom, flush_connected_events},
+};
 use opentalk_roomserver_types::{
+    client_allowed::{ClientAllowed, ClientNotAllowedReason},
+    client_parameters::ClientKind,
     core::{CoreEvent, LeftWaitingRoom},
     disconnect_reason::DisconnectReason,
+    public_user_profile::PublicUserProfile,
     room_parameters::WaitingRoom,
     signaling::websocket::CloseFrame,
 };
@@ -249,13 +254,23 @@ async fn ban_participant() {
         }) if participant_id == bob.id() && &banned_participant.display_name == bob.display_name()
     );
 
-    let error = room
+    let allowed = room
         .room_handle
-        .reject_if_banned(UserId::from(Uuid::from(bob.id())))
+        .is_client_allowed(&ClientKind::Registered {
+            profile: PublicUserProfile {
+                id: UserId::from(Uuid::from(bob.id())),
+                ..bob_public_user_profile()
+            },
+        })
         .await
-        .unwrap_err();
+        .unwrap();
 
-    assert_eq!(error.status, StatusCode::FORBIDDEN);
+    assert_eq!(
+        allowed,
+        ClientAllowed::No {
+            reason: ClientNotAllowedReason::Banned
+        }
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -307,12 +322,23 @@ async fn ban_waiting_participant() {
         && banned_participant.display_name == DisplayName::from_str_lossy("Bob the bold")
     );
 
-    let error = room
+    let allowed = room
         .room_handle
-        .reject_if_banned(UserId::from(Uuid::from(bob.id())))
+        .is_client_allowed(&ClientKind::Registered {
+            profile: PublicUserProfile {
+                id: UserId::from(Uuid::from(bob.id())),
+                ..bob_public_user_profile()
+            },
+        })
         .await
-        .unwrap_err();
-    assert_eq!(error.status, StatusCode::FORBIDDEN);
+        .unwrap();
+
+    assert_eq!(
+        allowed,
+        ClientAllowed::No {
+            reason: ClientNotAllowedReason::Banned
+        }
+    );
 }
 
 #[test_log::test(tokio::test)]
@@ -354,12 +380,22 @@ async fn ban_lobby_participant() {
         && banned_participant.display_name == DisplayName::from_str_lossy("Bob the bold")
     );
 
-    let error = room
+    let allowed = room
         .room_handle
-        .reject_if_banned(UserId::from(Uuid::from(bob.id())))
+        .is_client_allowed(&ClientKind::Registered {
+            profile: PublicUserProfile {
+                id: UserId::from(Uuid::from(bob.id())),
+                ..bob_public_user_profile()
+            },
+        })
         .await
-        .unwrap_err();
-    assert_eq!(error.status, StatusCode::FORBIDDEN);
+        .unwrap();
+    assert_eq!(
+        allowed,
+        ClientAllowed::No {
+            reason: ClientNotAllowedReason::Banned
+        }
+    );
 
     // Alice does not receive a disconnect event for bob because he was only was in the lobby
     assert!(alice.received_nothing())
@@ -446,10 +482,20 @@ async fn ban_affects_lobby_and_conference() {
 
     assert!(alice.received_nothing());
 
-    let error = room
+    let allowed = room
         .room_handle
-        .reject_if_banned(UserId::from(Uuid::from(bob_conference.id())))
+        .is_client_allowed(&ClientKind::Registered {
+            profile: PublicUserProfile {
+                id: UserId::from(Uuid::from(bob_conference.id())),
+                ..bob_public_user_profile()
+            },
+        })
         .await
-        .unwrap_err();
-    assert_eq!(error.status, StatusCode::FORBIDDEN);
+        .unwrap();
+    assert_eq!(
+        allowed,
+        ClientAllowed::No {
+            reason: ClientNotAllowedReason::Banned
+        }
+    );
 }

@@ -5,7 +5,8 @@ use async_trait::async_trait;
 use axum::extract::ws::{CloseFrame, WebSocket, close_code};
 use opentalk_roomserver_room::Request;
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters, signaling::signaling_context::SignalingClientContext,
+    client_parameters::{ClientKind, ClientParameters},
+    signaling::signaling_context::SignalingClientContext,
 };
 use opentalk_roomserver_web_api::v1::signaling::SignalingBackend;
 use opentalk_types_api_internal::error::ApiError;
@@ -34,14 +35,13 @@ impl SignalingBackend for Context {
             .ok_or_else(|| ApiError::unauthorized().with_code("invalid_token"))
     }
 
-    async fn reject_if_guest_access_not_allowed(&self, room_id: RoomId) -> Result<(), Self::Error> {
-        match self.room_tasks.is_guest_access_allowed(room_id).await {
-            Some(true) => Ok(()),
-            Some(false) => Err(ApiError::forbidden()
-                .with_code("guest_access_disabled")
-                .with_message("Guest access disabled")),
-            None => Err(ApiError::not_found()),
-        }
+    async fn reject_if_client_not_allowed(
+        &self,
+        kind: &ClientKind,
+        room_id: RoomId,
+    ) -> Result<(), Self::Error> {
+        let allowed = self.room_tasks.is_client_allowed(kind, room_id).await?;
+        super::reject_if_client_not_allowed(allowed)
     }
 
     async fn room_id(&self, token: Token) -> Option<RoomId> {

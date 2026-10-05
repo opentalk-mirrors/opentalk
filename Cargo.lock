@@ -10252,7 +10252,6 @@ name = "opentalk-roomserver-module-moderation"
 version = "3.0.0"
 dependencies = [
  "anyhow",
- "http 1.5.0",
  "insta",
  "itertools 0.15.0",
  "livekit",

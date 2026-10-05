@@ -61,6 +61,9 @@ pub struct RoomResource {
 
     /// If waiting room is enabled
     pub waiting_room: bool,
+
+    /// A flag indicating that e2e encryption is enabled for this room.
+    pub e2e_encryption: bool,
 }
 
 impl ExampleData for RoomResource {
@@ -73,6 +76,7 @@ impl ExampleData for RoomResource {
             password: Some(RoomPassword::example_data()),
             waiting_room: false,
             guest_access: GuestAccess::example_data(),
+            e2e_encryption: false,
         }
     }
 }
@@ -94,6 +98,7 @@ mod serde_tests {
             password: None,
             waiting_room: false,
             guest_access: GuestAccess::example_data(),
+            e2e_encryption: false,
         };
         let json = json!({
             "id": RoomId::nil(),
@@ -101,6 +106,7 @@ mod serde_tests {
             "created_at": serde_json::to_value(Timestamp::unix_epoch()).unwrap(),
             "waiting_room": false,
             "guest_access": "waiting_room",
+            "e2e_encryption": false,
         });
 
         let serialized = serde_json::to_value(&room).unwrap();
@@ -121,6 +127,7 @@ mod serde_tests {
             "password": RoomPassword::example_data(),
             "waiting_room": false,
             "guest_access": "waiting_room",
+            "e2e_encryption": false,
         });
 
         let serialized = serde_json::to_value(&room).unwrap();

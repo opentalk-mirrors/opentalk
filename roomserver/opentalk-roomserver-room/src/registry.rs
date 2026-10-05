@@ -5,9 +5,11 @@ use std::{collections::HashSet, sync::Arc};
 
 use opentalk_orchestrator_client::{RoomserverEvent, client::OrchestratorHandle};
 use opentalk_roomserver_types::{
-    core::RoomCloseReason, room_action::RoomAction, room_parameters::RoomParameters,
+    client_allowed::ClientAllowed, client_parameters::ClientKind, core::RoomCloseReason,
+    room_action::RoomAction, room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch, signaling::websocket::SignalingSocket,
 };
+use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::{rooms::RoomId, users::UserId};
 use tokio::sync::{Notify, RwLock};
 
@@ -166,13 +168,18 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
         }
     }
 
-    pub async fn is_guest_access_allowed(&self, room_id: RoomId) -> Option<bool> {
+    pub async fn is_client_allowed(
+        &self,
+        kind: &ClientKind,
+        room_id: RoomId,
+    ) -> Result<ClientAllowed, ApiError> {
         self.rooms
             .read()
             .await
             .map()
-            .get(&room_id)?
-            .is_guest_access_allowed()
+            .get(&room_id)
+            .ok_or_else(ApiError::not_found)?
+            .is_client_allowed(kind)
             .await
     }
 

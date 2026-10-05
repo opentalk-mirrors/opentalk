@@ -96,6 +96,10 @@ impl SignalingModule for RecordingModule {
     type Error = RecordingError;
 
     fn init(init_data: SignalingModuleInitData) -> Option<Self> {
+        if init_data.room_parameters.e2e_encryption {
+            return None;
+        }
+
         let settings = (init_data
             .room_parameters
             .module_settings

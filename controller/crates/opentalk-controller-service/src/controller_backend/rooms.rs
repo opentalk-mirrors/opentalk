@@ -61,6 +61,7 @@ impl ControllerBackend {
                 password: room.password,
                 waiting_room: room.waiting_room,
                 guest_access: room.guest_access,
+                e2e_encryption: room.e2e_encryption,
             })
             .collect::<Vec<RoomResource>>();
 
@@ -119,6 +120,7 @@ impl ControllerBackend {
             password: room.password,
             waiting_room: room.waiting_room,
             guest_access: room.guest_access,
+            e2e_encryption: room.e2e_encryption,
         };
 
         let is_guest_feature_enabled = tariff.has_feature_enabled(
@@ -177,6 +179,7 @@ impl ControllerBackend {
             password: room.password,
             waiting_room: room.waiting_room,
             guest_access: room.guest_access,
+            e2e_encryption: room.e2e_encryption,
         };
 
         Ok(room_resource)
@@ -298,6 +301,7 @@ impl ControllerBackend {
             password: room.password,
             waiting_room: room.waiting_room,
             guest_access: room.guest_access,
+            e2e_encryption: room.e2e_encryption,
         };
 
         Ok(room_resource)

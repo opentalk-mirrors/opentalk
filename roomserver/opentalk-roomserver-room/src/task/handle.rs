@@ -7,7 +7,8 @@ use opentalk_roomserver_signaling::storage::{
     assets::provider::AssetStorageProvider, module_resources::provider::ModuleResourceProvider,
 };
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters,
+    client_allowed::ClientAllowed,
+    client_parameters::{ClientKind, ClientParameters, ParticipationKind},
     core::RoomCloseReason,
     livekit_proxy::{LiveKitProxyRequest, PreparedSocket, websocket::LiveKitSocket},
     room_parameters::RoomParameters,
@@ -223,33 +224,6 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Self::receive_response(rx).await
     }
 
-    pub async fn reject_if_banned(&self, user_id: UserId) -> Result<(), ApiError> {
-        let (tx, rx) = oneshot::channel();
-
-        self.send_request(Request::IsBanned {
-            response: tx,
-            user_id,
-        })
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to check ban status of participant {user_id}: {e}");
-            ApiError::internal().with_message("Failed to check the users ban status")
-        })?;
-
-        let is_banned = Self::receive_response(rx).await.map_err(|e| {
-            tracing::error!("Failed to check ban status of participant {user_id}: {e}");
-            ApiError::internal().with_message("Failed to check the users ban status")
-        })?;
-
-        if is_banned {
-            Err(ApiError::forbidden()
-                .with_code("banned")
-                .with_message("User is banned from this room"))
-        } else {
-            Ok(())
-        }
-    }
-
     pub async fn allowed_origins(&self) -> Option<Vec<String>> {
         let (tx, rx) = oneshot::channel();
 
@@ -264,15 +238,24 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Self::receive_response(rx).await.ok()
     }
 
-    pub async fn is_guest_access_allowed(&self) -> Option<bool> {
+    pub async fn is_client_allowed(&self, kind: &ClientKind) -> Result<ClientAllowed, ApiError> {
         let (tx, rx) = oneshot::channel();
 
-        self.send_request(Request::GuestAccess { response: tx })
-            .await
-            .inspect_err(|err| tracing::error!("Failed to check guest access: {err}"))
-            .ok()?;
+        self.send_request(Request::IsClientAllowed {
+            response: tx,
+            user_id: kind.user_id(),
+            participation_kind: kind.into(),
+        })
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to check if the client is allowed: {e}");
+            ApiError::internal().with_message("Failed to check if the client is allowed")
+        })?;
 
-        Self::receive_response(rx).await.ok()
+        Self::receive_response(rx).await.map_err(|e| {
+            tracing::error!("Failed to check if the client is allowed: {e}");
+            ApiError::internal().with_message("Failed to check if the client is allowed")
+        })
     }
 
     pub fn assets(&self) -> Arc<dyn AssetStorageProvider> {
@@ -395,19 +378,15 @@ pub enum Request<Socket: SignalingSocket> {
         quota: Quota,
     },
 
-    /// Check if a user with the given [`UserId`] is banned
-    IsBanned {
-        response: ResponseSender<bool>,
-        user_id: UserId,
+    /// Check if a client is allowed in the room
+    IsClientAllowed {
+        response: ResponseSender<ClientAllowed>,
+        user_id: Option<UserId>,
+        participation_kind: ParticipationKind,
     },
 
     AllowedOrigins {
         response: ResponseSender<Vec<String>>,
-    },
-
-    /// Check if guests are allowed to participate in the meeting
-    GuestAccess {
-        response: ResponseSender<bool>,
     },
 
     /// Join the room with a given websocket stream and sink
@@ -455,7 +434,7 @@ impl<Socket: SignalingSocket> Request<Socket> {
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
 
-            Request::IsBanned { response, .. } | Request::GuestAccess { response } => response
+            Request::IsClientAllowed { response, .. } => response
                 .send(Err(error))
                 .map_err(|_| anyhow::anyhow!("Failed to send response to client")),
 

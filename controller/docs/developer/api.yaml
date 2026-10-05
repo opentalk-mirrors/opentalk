@@ -2542,6 +2542,8 @@ paths:
       responses:
         "101":
           description: WebSocket connection successfully established
+        "403":
+          description: "The client is not allowed to join the room, e.g. when banned or guest access is disabled"
         "404":
           description: "The signaling token is invalid, expired, or the internal roomserver is not enabled"
         "500":
@@ -5350,6 +5352,7 @@ components:
         - created_by
         - created_at
         - waiting_room
+        - e2e_encryption
       properties:
         alias:
           $ref: "#/components/schemas/RoomAlias"
@@ -5360,6 +5363,9 @@ components:
         created_by:
           $ref: "#/components/schemas/PublicUserProfile"
           description: "The public user profile of the room's owner"
+        e2e_encryption:
+          type: boolean
+          description: A flag indicating that e2e encryption is enabled for this room.
         guest_access:
           $ref: "#/components/schemas/GuestAccess"
           description: Guest access mode
@@ -5383,6 +5389,7 @@ components:
           id: 00000000-0000-0000-0000-0000000a11c3
           lastname: Adams
           title: ""
+        e2e_encryption: false
         guest_access: waiting_room
         id: 00000000-0000-0000-0000-000000000000
         password: v3rys3cr3t

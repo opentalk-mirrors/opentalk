@@ -46,7 +46,6 @@ impl RoomServerBackend for ExternalRoomServer {
         _host: Url,
     ) -> Result<RoomServerAccess, ApiError> {
         let room_id = room.id;
-
         match self
             .client
             .request_token(room_id, client_parameters.clone(), None)
@@ -66,45 +65,11 @@ impl RoomServerBackend for ExternalRoomServer {
                     .client
                     .request_token(room_id, client_parameters, Some(room_parameters))
                     .await
-                    .map_err(|e| {
-                        log::error!("failed to request token from roomserver: {e:?}");
-
-                        ApiError::internal().with_message("failed to request token from roomserver")
-                    })?;
+                    .map_err(map_request_token_error)?;
 
                 Ok(access)
             }
-            Err(Error::ApiError(opentalk_roomserver_client::ApiError {
-                code: RequestTokenError::Banned,
-                ..
-            })) => {
-                log::debug!("attempted to request a token for a banned user");
-                Err(ApiError::forbidden().with_message("you are banned from this room"))
-            }
-            Err(Error::ApiError(opentalk_roomserver_client::ApiError {
-                code: RequestTokenError::GuestAccessDisabled,
-                ..
-            })) => {
-                log::debug!(
-                    "guest attempted to request a token for a room with guest access disabled"
-                );
-                // Do not leak the existence of the room when guest access is disabled
-                Err(ApiError::not_found())
-            }
-            Err(
-                err @ (Error::TokenError(_)
-                | Error::UrlParse(_)
-                | Error::Reqwest(_)
-                | Error::Unexpected { .. }
-                | Error::ApiError(opentalk_roomserver_client::ApiError {
-                    code:
-                        RequestTokenError::InternalServerError | RequestTokenError::InvalidApiToken,
-                    ..
-                })),
-            ) => {
-                log::error!("failed to request token from roomserver: {err}");
-                Err(ApiError::internal().with_message("failed to request token from roomserver"))
-            }
+            Err(err) => Err(map_request_token_error(err)),
         }
     }
 
@@ -148,5 +113,46 @@ impl StopRoomBackend for ExternalRoomServer {
             .delete_room(room_id)
             .await
             .map_err(|err| StopRoomError(Box::new(err)))
+    }
+}
+
+fn map_request_token_error(err: Error<RequestTokenError>) -> ApiError {
+    match err {
+        Error::ApiError(opentalk_roomserver_client::ApiError {
+            code: RequestTokenError::Banned,
+            ..
+        }) => {
+            log::debug!("attempted to request a token for a banned user");
+            ApiError::banned()
+        }
+        Error::ApiError(opentalk_roomserver_client::ApiError {
+            code: RequestTokenError::E2eeEnabled,
+            ..
+        }) => {
+            log::debug!("service attempted to request a token for a room with e2ee enabled");
+            ApiError::e2ee_enabled()
+        }
+        Error::ApiError(opentalk_roomserver_client::ApiError {
+            code: RequestTokenError::GuestAccessDisabled,
+            ..
+        }) => {
+            log::debug!("guest attempted to request a token for a room with guest access disabled");
+            // Do not leak the existence of the room when guest access is disabled
+            ApiError::not_found()
+        }
+        err @ (Error::TokenError(_)
+        | Error::UrlParse(_)
+        | Error::Reqwest(_)
+        | Error::Unexpected { .. }
+        | Error::ApiError(opentalk_roomserver_client::ApiError {
+            code:
+                RequestTokenError::InternalServerError
+                | RequestTokenError::InvalidApiToken
+                | RequestTokenError::RoomParametersMissing,
+            ..
+        })) => {
+            log::error!("failed to request token from roomserver: {err}");
+            ApiError::internal().with_message("failed to request token from roomserver")
+        }
     }
 }
