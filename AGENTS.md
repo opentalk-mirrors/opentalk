@@ -43,7 +43,7 @@ Destructive. Run only when the user explicitly asks: `just compose-clean`, `just
   - `.sh`, `.py`, `.yml`, `.j2`: a `#` comment block. In YAML it goes before the `---`.
   - `.md`: an HTML comment block with a blank line between the two tags. Never use `#` — that adds a second H1 and fails `mdl`.
   - Formats without comments, such as JSON: add the path to `REUSE.toml` instead.
-- Never hand-edit `docs/5-configuration-options-reference.md`. It is generated. Edit the role's `defaults/main.yml`, then regenerate and commit the result.
+- Never hand-edit `docs/6-configuration-options-reference.md`. It is generated. Edit the role's `defaults/main.yml`, then regenerate and commit the result.
 - Never commit: `build/`, `artifacts/`, `site/`, `.ansible/`, `config/`, `*.deb`, `*.rpm`, `extras/packaging/requirements-ansible.txt`.
 - Commit messages follow Conventional Commits: lowercase subject, no trailing period, at most 100 characters. CI rejects violations.
 - Every bugfix that can be covered by a test gets a regression test in the same change.
