@@ -631,6 +631,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             Instruction::MoveToWaitingRoom { participant } => {
                 self.move_to_waiting_room(participant)
             }
+            Instruction::BroadcastModerationRoleChange { participant } => {
+                self.broadcast_moderation_role_change(origin, participant)
+            }
         }
     }
 
@@ -728,6 +731,20 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         Ok(())
+    }
+
+    #[tracing::instrument(skip(self), level = "debug")]
+    pub fn broadcast_moderation_role_change(
+        &mut self,
+        origin: EventOrigin,
+        participant_id: ParticipantId,
+    ) -> Result<(), FatalError> {
+        self.broadcast_event_to_modules(
+            origin,
+            RoomKind::Main, // Moderation role affects breakout and main room.
+            crate::signaling::DynBroadcastEvent::ModerationRoleChanged { participant_id },
+        )
+        .handle_requested_messages(self)
     }
 
     #[tracing::instrument(level = "info", skip_all)]

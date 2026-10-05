@@ -16,11 +16,10 @@
 
 use std::convert::Infallible;
 
-pub use internal::UpdateSharedFolder;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, NoSettings, PeerDataMap, SignalingModule, SignalingModuleDescription,
+        ModuleJoinData, NoOp, NoSettings, PeerDataMap, SignalingModule, SignalingModuleDescription,
         SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
 };
@@ -29,7 +28,7 @@ use opentalk_roomserver_types::{
     signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_shared_folder::{
-    SHARED_FOLDER_MODULE_ID, command::SharedFolderCommand, event::SharedFolderEvent, internal,
+    SHARED_FOLDER_MODULE_ID, command::SharedFolderCommand, event::SharedFolderEvent,
 };
 use opentalk_types_common::{modules::ModuleId, shared_folders::SharedFolder};
 use opentalk_types_signaling::ParticipantId;
@@ -57,7 +56,7 @@ impl SignalingModule for SharedFolderModule {
 
     type Outgoing = SharedFolderEvent;
 
-    type Internal = internal::UpdateSharedFolder;
+    type Internal = NoOp;
 
     type Loopback = ();
 
@@ -126,12 +125,12 @@ impl SignalingModule for SharedFolderModule {
         Ok(())
     }
 
-    fn on_internal_command(
+    fn on_moderation_role_change(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
-        command: Self::Internal,
+        participant_id: ParticipantId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        let Some(participant) = ctx.participants.connected().get(&command.participant_id) else {
+        let Some(participant) = ctx.participants.connected().get(&participant_id) else {
             // Participant disconnected, nothing to do
             return Ok(());
         };
@@ -142,10 +141,7 @@ impl SignalingModule for SharedFolderModule {
             self.state.clone().without_write_access()
         };
 
-        ctx.send_ws_message(
-            [command.participant_id],
-            SharedFolderEvent::Updated(shared_folder),
-        )?;
+        ctx.send_ws_message([participant_id], SharedFolderEvent::Updated(shared_folder))?;
 
         Ok(())
     }

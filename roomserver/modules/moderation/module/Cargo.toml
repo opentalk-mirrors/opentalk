@@ -19,7 +19,6 @@ workspace = true
 anyhow.workspace = true
 itertools.workspace = true
 opentalk-roomserver-module-livekit.workspace = true
-opentalk-roomserver-module-shared-folder.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-livekit.workspace = true
@@ -34,6 +33,7 @@ tracing.workspace = true
 http.workspace = true
 insta.workspace = true
 livekit.workspace = true
+opentalk-roomserver-module-shared-folder.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 opentalk-roomserver-test-util-livekit.workspace = true
 opentalk-roomserver-types-shared-folder.workspace = true
