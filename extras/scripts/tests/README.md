@@ -74,9 +74,10 @@ Need Docker.
 | `integration/test_smtp_mailer_rabbitmq.sh` | mailer and RabbitMQ, CI runs it in experimental pipelines only |
 | `integration/test_compose_e2e.sh` | destructive full-stack run, requires `OPENTALK_E2E=1`, entry point `just test-e2e` |
 | `integration/test_backup_restore_config.sh` | backup and restore lifecycle, requires `OPENTALK_E2E=1` and an existing dev stack |
-| `integration/test_postgres_migration.sh` | `otctl migrate postgres` against real containers, including rollback after a failure; requires `OPENTALK_E2E=1`, isolates itself with its own project name |
+| `integration/test_postgres_migration.sh` | `otctl migrate postgres` against real containers, including rollback after a failure; requires `OPENTALK_E2E=1` and root (password files as the package writes them), isolates itself with its own project name; with `OT_PREFIX` it tests the installed package, CI job `int:postgres-migration` |
+| `integration/test_upgrade_e2e.sh` | upgrade from the current stable package to the package under test, deploy guard, `otctl migrate postgres`, data survives; destructive, root on a disposable Debian host, requires `OPENTALK_E2E=1`, CI job `int:upgrade` |
 
-Both destructive tests exit 2 without `OPENTALK_E2E=1`. The E2E test isolates itself from the local dev stack with its own project name, directory and ports.
+The destructive tests exit 2 without `OPENTALK_E2E=1`. The E2E test isolates itself from the local dev stack with its own project name, directory and ports.
 
 ## Fast test skeleton
 
@@ -143,7 +144,10 @@ Every script that touches the filesystem takes an override so a test can redirec
 | `OPENTALK_DEV_DIR` | `justfile`, backup and restore test | local dev deployment directory |
 | `SOURCE_DATE_EPOCH` | `lib/common.sh` and the packaging stages | reproducible timestamps |
 | `FORCE_REFRESH` | the fetch, lock and vendor stages | bypasses all hash and version caches |
-| `OPENTALK_E2E` | both destructive integration tests | mandatory guard, exit 2 without it |
+| `OPENTALK_E2E` | the destructive integration tests | mandatory guard, exit 2 without it |
+| `OT_UPGRADE_PACKAGE` | `test_upgrade_e2e.sh` | the `.deb` under test; defaults to the newest in `artifacts/` |
+| `OT_UPGRADE_FROM_VERSION` | `test_upgrade_e2e.sh` | package version to upgrade from; defaults to the newest stable release |
+| `OT_UPGRADE_EXTRA_SETTINGS` | `test_upgrade_e2e.sh` | YAML file appended to the CI settings, for host-specific overrides |
 | `OPENTALK_E2E_PROJECT_NAME` | `test_compose_e2e.sh` | isolated Compose project name |
 | `OPENTALK_E2E_DEV_DIR` | `test_compose_e2e.sh` | isolated deployment directory |
 | `OPENTALK_E2E_INGRESS_PORT` | `test_compose_e2e.sh` | isolated ingress port |

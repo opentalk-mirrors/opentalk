@@ -7,6 +7,10 @@
 # PostgreSQL volumes are migrated to the major in .versions.yml, a failed run
 # rolls back completely, and status and guard agree before and after.
 # Uses its own compose project name and removes everything it creates.
+#
+# By default it runs the playbooks of this checkout with ansible-playbook from
+# PATH. With OT_PREFIX set, it runs the installed package instead, through its
+# ot-ansible-playbook wrapper, as CI does after installing the .deb or .rpm.
 
 set -euo pipefail
 
@@ -14,12 +18,24 @@ if [[ ${OPENTALK_E2E:-} != 1 ]]; then
   echo "Set OPENTALK_E2E=1 to run the PostgreSQL migration test (needs Docker and registry access)." >&2
   exit 2
 fi
+# The password files must be root:root 0600 as the package writes them;
+# readable copies hid an image that does not start as root.
+if [[ $(id -u) -ne 0 ]]; then
+  echo "The PostgreSQL migration test needs root to create the password files like the package does." >&2
+  exit 1
+fi
 
 REPO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
 # shellcheck source=extras/packaging/lib/common.sh
 source "$REPO_ROOT/extras/packaging/lib/common.sh"
 # shellcheck source=extras/packaging/lib/versions.sh
-VERSIONS_FILE="$REPO_ROOT/.versions.yml"
+if [[ -n ${OT_PREFIX:-} ]]; then
+  PLAYBOOK_DIR="$OT_PREFIX/automation/playbooks"
+  VERSIONS_FILE="$OT_PREFIX/.versions.yml"
+else
+  PLAYBOOK_DIR="$REPO_ROOT/automation/playbooks"
+  VERSIONS_FILE="$REPO_ROOT/.versions.yml"
+fi
 source "$REPO_ROOT/extras/packaging/lib/versions.sh"
 
 PROJECT="otpgmig$$"
@@ -42,7 +58,7 @@ trap cleanup EXIT
 mkdir -p "$TMP_DIR/secrets" "$TMP_DIR/backups"
 printf 'controller-secret-%s' "$$" > "$TMP_DIR/secrets/.db_controller.secret"
 printf 'keycloak-secret-%s' "$$" > "$TMP_DIR/secrets/.db_keycloak.secret"
-chmod 0644 "$TMP_DIR/secrets/".db_*.secret
+chmod 0600 "$TMP_DIR/secrets/".db_*.secret
 SETTINGS="$TMP_DIR/settings.yml"
 cat > "$SETTINGS" <<YAML
 compose_project_name: $PROJECT
@@ -52,10 +68,15 @@ s3_storage_provider: garage
 YAML
 
 run_playbook() {
-  OT_SETTINGS_FILE="$SETTINGS" \
-  ANSIBLE_ROLES_PATH="$REPO_ROOT/automation/roles" \
-  ANSIBLE_CALLBACK_RESULT_FORMAT=yaml \
-  ansible-playbook -i localhost, -c local "$REPO_ROOT/automation/playbooks/$1" "${@:2}"
+  if [[ -n ${OT_PREFIX:-} ]]; then
+    OT_SETTINGS_FILE="$SETTINGS" \
+    "$OT_PREFIX/bin/ot-ansible-playbook" -i localhost, -c local "$PLAYBOOK_DIR/$1" "${@:2}"
+  else
+    OT_SETTINGS_FILE="$SETTINGS" \
+    ANSIBLE_ROLES_PATH="$REPO_ROOT/automation/roles" \
+    ANSIBLE_CALLBACK_RESULT_FORMAT=yaml \
+    ansible-playbook -i localhost, -c local "$PLAYBOOK_DIR/$1" "${@:2}"
+  fi
 }
 
 wait_ready() {
@@ -147,8 +168,14 @@ ls "$TMP_DIR/backups/dumps/"pg-migrate-controller-*.sql >/dev/null
 [[ -z $(docker ps -aq --filter "name=^${PROJECT}-pgmigrate-") ]] || {
   echo "temporary containers must be removed after the migration." >&2; exit 1; }
 
+# The migration makes the password files readable for group root.
+[[ $(stat -c '%a %U %G' "$TMP_DIR/secrets/.db_controller.secret") == "640 root root" ]] || {
+  echo "the migration must leave the password file root:root 0640." >&2; exit 1; }
+
 # --- the new volume works the way the compose template mounts it ---
-docker run -d --name "${PROJECT}-verify" \
+docker run -d --name "${PROJECT}-verify" --group-add 0 \
+  -e POSTGRES_PASSWORD_FILE=/run/secrets/db \
+  -v "$TMP_DIR/secrets/.db_controller.secret:/run/secrets/db:ro" \
   -v "${PROJECT}_controller-db-pg${TARGET_MAJOR}:/var/lib/postgresql" "$TARGET_IMAGE" >/dev/null
 wait_ready "${PROJECT}-verify"
 [[ $(psql_in "${PROJECT}-verify" controller -c 'SHOW server_version_num' | cut -c1-2) == "$TARGET_MAJOR" ]]
