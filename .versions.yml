@@ -45,7 +45,7 @@ keycloak_version: 26.8.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/postgres
 postgres_version: 17.11-alpine
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/rabbitmq
-rabbitmq_version: v4.3.4-management-alpine
+rabbitmq_version: v4.3.6-management-alpine
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/minio versioning=loose
 minio_version: RELEASE.2025-10-15T17-29-55Z
 # Not automated: no consumer in this repository references this pin.
