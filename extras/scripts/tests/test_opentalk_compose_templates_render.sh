@@ -147,4 +147,16 @@ fi
 grep -q '"9080:9000"' "$KEYCLOAK_RENDERED" \
   || { echo "Keycloak management port must remain published." >&2; exit 1; }
 
+# Regression: the database containers read their root:root 0640 password file
+# through group 0 when the image starts as the postgres user (USER 70:70).
+for pair in opentalk_compose_opentalk_controller:controller-db opentalk_compose_keycloak:keycloak-db; do
+  python3 - "$TMP_DIR/${pair%%:*}.yml" "${pair#*:}" <<'PY' || { echo "${pair#*:} must join group 0 to read its password file." >&2; exit 1; }
+import sys
+import yaml
+with open(sys.argv[1], encoding="utf-8") as f:
+    service = yaml.safe_load(f)["services"][sys.argv[2]]
+sys.exit(0 if [str(g) for g in service.get("group_add", [])] == ["0"] else 1)
+PY
+done
+
 echo "Compose template rendering tests passed (${#template_files[@]} templates)."

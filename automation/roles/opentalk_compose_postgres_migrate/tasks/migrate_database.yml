@@ -123,6 +123,10 @@
       - "{{ _pg_tgt_container }}"
       - --network
       - none
+      # Same as the compose templates: reads the password file through group 0
+      # when the image does not start as root.
+      - --group-add
+      - "0"
       - -e
       - "POSTGRES_USER={{ _pg_user }}"
       - -e

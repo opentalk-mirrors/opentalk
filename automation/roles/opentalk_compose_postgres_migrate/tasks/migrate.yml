@@ -15,6 +15,16 @@
       PostgreSQL migration requested without confirmation.
       Use 'otctl migrate postgres', which shows the plan and asks first.
 
+# The migration runs before the first deploy of the new release, which would
+# otherwise set this mode. See opentalk_compose_secrets.
+- name: Make the database password files readable for group root
+  ansible.builtin.file:
+    path: "{{ postgres_migrate_secrets_dir }}/{{ item.database.secret_file }}"
+    mode: "0640"
+  loop: "{{ _pg_pending }}"
+  loop_control:
+    label: "{{ item.database.secret_file }}"
+
 - name: Ensure the dump directory
   ansible.builtin.file:
     path: "{{ postgres_migrate_dump_dir }}"

@@ -74,6 +74,10 @@ services:
     restart: always
     secrets:
       - db_controller_secret
+    # The secret file is root:root 0640. An image that starts its entrypoint
+    # as the postgres user instead of root reads it through group 0.
+    group_add:
+      - "0"
     networks:
       - {{ docker_network_name }}
     environment:
