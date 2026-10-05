@@ -9,7 +9,6 @@ use std::{
 use anyhow::{Context as _, anyhow};
 use itertools::Itertools as _;
 use opentalk_roomserver_module_livekit::LiveKitModule;
-use opentalk_roomserver_module_shared_folder::{SharedFolderModule, UpdateSharedFolder};
 use opentalk_roomserver_signaling::{
     banned_participant::BannedParticipant,
     lobby_participant::LobbyParticipant,
@@ -464,9 +463,7 @@ impl ModerationModule {
             )?;
         }
 
-        ctx.send_internal_command::<SharedFolderModule>(UpdateSharedFolder {
-            participant_id: target,
-        });
+        ctx.broadcast_moderation_role_change(target);
 
         Ok(())
     }

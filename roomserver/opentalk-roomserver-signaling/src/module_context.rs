@@ -368,6 +368,12 @@ where
         self.messages.get_mut().push(command);
     }
 
+    pub fn broadcast_moderation_role_change(&mut self, participant: ParticipantId) {
+        let command =
+            ModuleMessage::Instruction(Instruction::BroadcastModerationRoleChange { participant });
+        self.messages.get_mut().push(command);
+    }
+
     /// Move the specified participant to the waiting room
     pub fn move_to_waiting_room(&mut self, participant: ParticipantId) {
         let command = ModuleMessage::Instruction(Instruction::MoveToWaitingRoom { participant });

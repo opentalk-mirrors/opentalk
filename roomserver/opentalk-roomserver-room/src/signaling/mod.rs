@@ -130,6 +130,11 @@ pub enum DynBroadcastEvent<'evt> {
         /// participant.
         peer_data: &'evt mut BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     },
+
+    /// The moderator role was granted or revoked for a participant.
+    ModerationRoleChanged {
+        participant_id: ParticipantId,
+    },
 }
 
 impl Display for DynBroadcastEvent<'_> {
@@ -142,6 +147,7 @@ impl Display for DynBroadcastEvent<'_> {
             DynBroadcastEvent::BreakoutClosed => write!(f, "BreakoutClosed"),
             DynBroadcastEvent::Closing => write!(f, "Closing"),
             DynBroadcastEvent::SwitchRoom { .. } => write!(f, "SwitchRoom"),
+            DynBroadcastEvent::ModerationRoleChanged { .. } => write!(f, "ModerationRoleChanged"),
         }
     }
 }
@@ -306,6 +312,11 @@ where
             DynBroadcastEvent::Closing => {
                 span.record("opentalk.event_type", "Closing");
                 self.module.on_closing(ctx)?;
+            }
+            DynBroadcastEvent::ModerationRoleChanged { participant_id } => {
+                span.record("opentalk.event_type", "ModerationRoleChanged");
+                self.module
+                    .on_moderation_role_change(ctx, *participant_id)?;
             }
         }
         Ok(())

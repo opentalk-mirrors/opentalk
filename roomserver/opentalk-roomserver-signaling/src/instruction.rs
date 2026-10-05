@@ -16,4 +16,7 @@ pub enum Instruction {
     MoveToWaitingRoom {
         participant: ParticipantId,
     },
+    BroadcastModerationRoleChange {
+        participant: ParticipantId,
+    },
 }

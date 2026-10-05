@@ -166,6 +166,15 @@ pub trait SignalingModule: Send + Sync + Sized + SignalingModuleDescription {
         .into())
     }
 
+    #[allow(unused_variables)]
+    fn on_moderation_role_change(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        participant_id: ParticipantId,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        Ok(())
+    }
+
     /// Destroy the module and remove all associated resources
     ///
     /// Loopback tasks are awaited before the room fully closes.
