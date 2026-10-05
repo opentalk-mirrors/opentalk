@@ -136,10 +136,11 @@ impl LiveKitSubroom {
 
         let identity = build_livekit_participant_id(participant, connection);
 
-        let hidden = !ctx
+        let participant_state = ctx
             .participant_state(participant)
-            .with_context(|| format!("Participant '{participant}' has no state"))?
-            .is_visible();
+            .with_context(|| format!("Participant '{participant}' has no state"))?;
+
+        let hidden = !participant_state.is_visible();
 
         let token = AccessToken::with_api_key(&self.settings.api_key, &self.settings.api_secret)
             .with_name(&identity)
@@ -169,11 +170,17 @@ impl LiveKitSubroom {
             .or_default()
             .insert(identity);
 
+        let service_url = if participant_state.kind.is_service() {
+            Some(self.settings.service_url.clone().to_string())
+        } else {
+            None
+        };
+
         Ok(Credentials {
             room: self.identifier().to_string(),
             token,
             public_url: self.settings.public_url.clone(),
-            service_url: None,
+            service_url,
         })
     }
 
