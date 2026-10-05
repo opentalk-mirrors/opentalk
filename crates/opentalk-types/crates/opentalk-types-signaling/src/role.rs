@@ -36,6 +36,7 @@ use strum::{AsRefStr, Display, EnumCount, EnumIter, EnumString, IntoStaticStr, V
     derive(ts_rs::TS),
     ts(export_to = "signaling/", repr(enum = name))
 )]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum Role {
     /// Guest participant without a registered user account
     Guest,

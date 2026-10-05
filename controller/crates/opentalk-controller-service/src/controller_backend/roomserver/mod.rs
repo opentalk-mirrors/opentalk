@@ -22,7 +22,7 @@ use opentalk_roomserver_client::Client;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry, settings::Internal};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
-    client_parameters::{ClientKind, ClientParameters, Role},
+    client_parameters::{ClientKind, ClientParameters},
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
     room_parameters::{EventContext, RoomParameters, WaitingRoom},
@@ -50,6 +50,7 @@ use opentalk_types_common::{
     tariffs::{QuotaType, TariffResource},
     users::{UserId, UserInfo},
 };
+use opentalk_types_signaling::Role;
 use tokio::sync::{broadcast::Receiver, mpsc};
 use url::Url;
 

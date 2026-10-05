@@ -19,7 +19,7 @@ use opentalk_roomserver_signaling::{
     signaling_event::SignalingEvent,
 };
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, Role as RoomserverClientRole},
+    client_parameters::ClientKind,
     connection_id::ConnectionId,
     core::{
         CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, JoinBlockedReason, LeftWaitingRoom,
@@ -471,7 +471,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         client_kind: ClientKind,
-        role: RoomserverClientRole,
+        role: Role,
     ) -> Result<(), FatalError> {
         let mut own_data = ModuleData::new();
         let mut peer_events = BTreeMap::new();
@@ -745,7 +745,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         client_kind: ClientKind,
-        role: RoomserverClientRole,
+        role: Role,
         module_data: ModuleData,
         mut participants_module_data: BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     ) -> Result<JoinSuccess, FatalError> {
@@ -784,7 +784,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .ok_or_else(|| FatalError(anyhow!("Participant state not found")))?;
         let (role, avatar_url, is_room_owner) = match client_kind {
             ClientKind::Registered { profile } => (
-                role.to_opentalk_types_signaling_role(),
+                role,
                 Some(profile.user_info.avatar_url),
                 self.info.room.created_by.id == profile.id,
             ),
@@ -1031,7 +1031,7 @@ mod tests {
         signaling_event::SignalingEvent,
     };
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, Role as ClientRole},
+        client_parameters::ClientKind,
         connection_id::ConnectionId,
         core::{CORE_MODULE_ID, CoreError},
         device_id::DeviceId,
@@ -1242,7 +1242,7 @@ mod tests {
     fn lobby_participant(kind: ClientKind, waiting_room_name: Option<&str>) -> LobbyParticipant {
         LobbyParticipant::new(
             kind,
-            ClientRole::User,
+            Role::User,
             HashMap::new(),
             false,
             waiting_room_name.map(|name| WaitingRoomState {
@@ -1257,7 +1257,7 @@ mod tests {
         ParticipantState::new(
             kind,
             DisplayName::from_str_lossy(name),
-            ClientRole::User,
+            Role::User,
             DateTime::UNIX_EPOCH,
             false,
         )

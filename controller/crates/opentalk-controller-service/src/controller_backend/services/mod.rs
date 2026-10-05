@@ -10,7 +10,7 @@ use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::Inventory;
 use opentalk_roomserver_types::{
     breakout::breakout_id::BreakoutId,
-    client_parameters::{ClientKind, ClientParameters, Role},
+    client_parameters::{ClientKind, ClientParameters},
     room_kind::RoomKind,
 };
 use opentalk_types_api_v1::{error::ApiError, rooms::RoomResource};
@@ -18,6 +18,7 @@ use opentalk_types_common::{
     rooms::RoomId,
     roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret},
 };
+use opentalk_types_signaling::Role;
 use rand::RngExt;
 
 use crate::ToUserProfile;

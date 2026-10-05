@@ -52,6 +52,7 @@ yaml-rust2.workspace = true
 icu_locid.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 opentalk-service-auth.workspace = true
+opentalk-types-signaling.workspace = true
 pretty_assertions.workspace = true
 reqwest.workspace = true
 test-log.workspace = true

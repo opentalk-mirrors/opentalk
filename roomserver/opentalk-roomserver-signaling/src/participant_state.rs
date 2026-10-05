@@ -5,13 +5,11 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use chrono::{DateTime, Utc};
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, Role},
-    connection_id::ConnectionId,
-    device_id::DeviceId,
+    client_parameters::ClientKind, connection_id::ConnectionId, device_id::DeviceId,
     room_kind::RoomKind,
 };
 use opentalk_types_common::users::DisplayName;
-use opentalk_types_signaling::{ParticipantId, ParticipationVisibility};
+use opentalk_types_signaling::{ParticipantId, ParticipationVisibility, Role};
 
 use crate::participant_filter::{ParticipantsFiltered, ParticipantsFilteredMut};
 

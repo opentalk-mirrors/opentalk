@@ -9,7 +9,7 @@ use opentalk_inventory::{
     Room, User,
     utils::{self, CallInUnavailable},
 };
-use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters, Role};
+use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters};
 use opentalk_types_api_internal::call_in::PostCallInStartRoomServerRequestBody;
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -21,6 +21,7 @@ use opentalk_types_common::{
     roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret},
     tariffs::TariffResource,
 };
+use opentalk_types_signaling::Role;
 use rand::RngExt;
 use url::Url;
 

@@ -8,12 +8,12 @@
 
 use icu_locid::LanguageIdentifier;
 use opentalk_report_generation::ReportDateTime;
-use opentalk_roomserver_types::client_parameters::{ClientKind, Role};
+use opentalk_roomserver_types::client_parameters::ClientKind;
 use opentalk_types_common::{
     events::{EventDescription, EventTitle},
     time::TimeZone,
 };
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -56,9 +56,16 @@ pub enum ReportRole {
 impl From<(Role, &ClientKind)> for ReportRole {
     fn from(value: (Role, &ClientKind)) -> Self {
         match value {
-            (.., ClientKind::Guest) => ReportRole::Guest,
-            (Role::User, ..) => ReportRole::User,
-            (Role::Moderator, ..) => ReportRole::Moderator,
+            (
+                ..,
+                ClientKind::Guest
+                | ClientKind::CallIn
+                | ClientKind::Recorder { .. }
+                | ClientKind::Transcription { .. },
+            ) => ReportRole::Guest,
+            (Role::Guest, ClientKind::Registered { .. }) => ReportRole::Guest,
+            (Role::User, ClientKind::Registered { .. }) => ReportRole::User,
+            (Role::Moderator, ClientKind::Registered { .. }) => ReportRole::Moderator,
         }
     }
 }

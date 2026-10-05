@@ -12,7 +12,7 @@ use opentalk_roomserver_client::{
 };
 use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, ClientParameters, Role},
+    client_parameters::{ClientKind, ClientParameters},
     public_user_profile::PublicUserProfile,
     room_kind::RoomKind,
     room_parameters::RoomParameters,
@@ -27,6 +27,7 @@ use opentalk_types_common::{
     users::UserId,
     utils::ExampleData,
 };
+use opentalk_types_signaling::Role;
 use testcontainers::{
     ContainerAsync, GenericImage, ImageExt,
     core::{IntoContainerPort, Mount, WaitFor, logs::consumer::logging_consumer::LoggingConsumer},

@@ -2,10 +2,8 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, Role},
-    room_parameters::WaitingRoom,
-};
+use opentalk_roomserver_types::{client_parameters::ClientKind, room_parameters::WaitingRoom};
+use opentalk_types_signaling::Role;
 use serde::{Deserialize, Serialize};
 
 /// The scope of users to be kicked from the room
@@ -47,10 +45,10 @@ impl From<KickScope> for WaitingRoom {
 #[cfg(test)]
 mod tests {
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, Role},
-        public_user_profile::PublicUserProfile,
+        client_parameters::ClientKind, public_user_profile::PublicUserProfile,
     };
     use opentalk_types_common::utils::ExampleData;
+    use opentalk_types_signaling::Role;
 
     use super::KickScope;
 

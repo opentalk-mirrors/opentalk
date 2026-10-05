@@ -18,7 +18,7 @@ use opentalk_roomserver_room::mocking::{
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, ClientParameters, Role},
+    client_parameters::{ClientKind, ClientParameters},
     core::{CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, RoomCloseReason, state::CoreState},
     error::SignalingError,
     rate_limit::RateLimitSettings,
@@ -35,6 +35,7 @@ use opentalk_types_common::{
     users::DisplayName,
     utils::ExampleData,
 };
+use opentalk_types_signaling::Role;
 use serde_json::json;
 
 const ROOM_IDLE_TIMEOUT: Duration = Duration::from_secs(60);

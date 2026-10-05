@@ -16,7 +16,7 @@ use opentalk_roomserver_types::{
         BREAKOUT_MODULE_ID, breakout_config::BreakoutConfig, command::BreakoutCommand,
         event::BreakoutEvent,
     },
-    client_parameters::{ClientKind, ClientParameters, Role},
+    client_parameters::{ClientKind, ClientParameters},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreCommand, CoreEvent},
     join::join_success::JoinSuccess,
@@ -34,7 +34,7 @@ use opentalk_types_common::{
     users::{DisplayName, UserId, UserInfo},
     utils::ExampleData as _,
 };
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{json, value::to_raw_value};
 use tokio::{

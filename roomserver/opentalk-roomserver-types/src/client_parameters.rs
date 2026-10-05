@@ -7,7 +7,7 @@ use opentalk_types_common::{
     users::{UserId, UserInfo},
     utils::ExampleData,
 };
-use opentalk_types_signaling::ParticipationVisibility;
+use opentalk_types_signaling::{ParticipationVisibility, Role};
 use serde::{Deserialize, Serialize};
 
 use crate::{public_user_profile::PublicUserProfile, room_kind::RoomKind};
@@ -178,31 +178,6 @@ impl ExampleData for ClientParameters {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "snake_case")]
-pub enum Role {
-    User,
-    Moderator,
-}
-
-impl Role {
-    /// Returns `true` if the role is [`Moderator`].
-    ///
-    /// [`Moderator`]: Role::Moderator
-    #[must_use]
-    pub fn is_moderator(&self) -> bool {
-        matches!(self, Self::Moderator)
-    }
-
-    pub fn to_opentalk_types_signaling_role(self) -> opentalk_types_signaling::Role {
-        match self {
-            Self::User => opentalk_types_signaling::Role::User,
-            Self::Moderator => opentalk_types_signaling::Role::Moderator,
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum ParticipationKind {
@@ -263,12 +238,13 @@ impl From<&ClientKind> for ParticipationKind {
 #[cfg(test)]
 mod tests {
     use opentalk_types_common::{roomserver::DeviceSecret, utils::ExampleData};
+    use opentalk_types_signaling::Role;
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::ClientKind;
     use crate::{
-        client_parameters::{ClientParameters, ParticipationKind, Role},
+        client_parameters::{ClientParameters, ParticipationKind},
         public_user_profile::PublicUserProfile,
         room_kind::RoomKind,
     };

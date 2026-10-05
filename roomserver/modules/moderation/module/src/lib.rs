@@ -20,7 +20,6 @@ use opentalk_roomserver_signaling::{
     },
 };
 use opentalk_roomserver_types::{
-    client_parameters::Role,
     connection_id::ConnectionId,
     kick_reason::KickReason,
     room_parameters::WaitingRoom,
@@ -39,7 +38,7 @@ use opentalk_roomserver_types_moderation::{
     },
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use tokio::sync::oneshot;
 
 struct EntryChange {
@@ -1054,12 +1053,11 @@ mod tests {
         signaling_module::SignalingModuleDescription as _,
     };
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, Role},
-        public_user_profile::PublicUserProfile,
+        client_parameters::ClientKind, public_user_profile::PublicUserProfile,
         room_parameters::WaitingRoom,
     };
     use opentalk_types_common::{time::Timestamp, users::DisplayName, utils::ExampleData};
-    use opentalk_types_signaling::ParticipantId;
+    use opentalk_types_signaling::{ParticipantId, Role};
 
     use super::ModerationModule;
     use crate::EntryChange;

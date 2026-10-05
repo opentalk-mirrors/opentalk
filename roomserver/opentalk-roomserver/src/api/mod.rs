@@ -518,11 +518,8 @@ mod test {
     use icu_locid::langid;
     use opentalk_roomserver_common::settings::{ControllerConfig, Http};
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, Role},
-        module_settings::ModuleSettings,
-        public_user_profile::PublicUserProfile,
-        room_kind::RoomKind,
-        room_parameters::WaitingRoom,
+        client_parameters::ClientKind, module_settings::ModuleSettings,
+        public_user_profile::PublicUserProfile, room_kind::RoomKind, room_parameters::WaitingRoom,
         tariff_details::TariffDetails,
     };
     use opentalk_roomserver_web_api::v1::signaling::SignalingBackend;
@@ -534,6 +531,7 @@ mod test {
         users::{DisplayName, UserId, UserInfo, UserTitle},
         utils::ExampleData,
     };
+    use opentalk_types_signaling::Role;
     use pretty_assertions::assert_eq;
     use url::Url;
 

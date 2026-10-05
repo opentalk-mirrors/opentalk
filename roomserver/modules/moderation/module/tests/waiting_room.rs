@@ -15,7 +15,6 @@ use opentalk_roomserver_room::mocking::{
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
-    client_parameters::Role as ClientRole,
     connection_id::ConnectionId,
     core::{CoreCommand, CoreError, CoreEvent, LeftWaitingRoom},
     disconnect_reason::DisconnectReason,
@@ -1416,7 +1415,7 @@ async fn participant_promoted_to_moderator_in_waiting_room_can_enter() {
         .send_command::<ModerationModule>(
             ModerationCommand::UpdateRole {
                 participant_id: frank.id(),
-                new_role: ClientRole::Moderator,
+                new_role: Role::Moderator,
             },
             None,
         )

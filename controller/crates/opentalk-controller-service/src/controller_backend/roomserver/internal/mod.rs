@@ -413,12 +413,11 @@ mod test {
     use opentalk_controller_settings::test_util::settings_provider_from_example_raw_settings;
     use opentalk_inventory::{MockInventory, MockInventoryProvider};
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, Role},
-        public_user_profile::PublicUserProfile,
-        room_kind::RoomKind,
+        client_parameters::ClientKind, public_user_profile::PublicUserProfile, room_kind::RoomKind,
         room_parameters::RoomParameters,
     };
     use opentalk_types_common::{roomserver::DeviceSecret, utils::ExampleData};
+    use opentalk_types_signaling::Role;
     use pretty_assertions::assert_eq;
 
     use super::*;

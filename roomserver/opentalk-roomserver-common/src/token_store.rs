@@ -116,7 +116,7 @@ mod tests {
     };
 
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, ClientParameters, Role},
+        client_parameters::{ClientKind, ClientParameters},
         public_user_profile::PublicUserProfile,
         signaling::signaling_context::SignalingClientContext,
     };
@@ -127,6 +127,7 @@ mod tests {
         users::{UserId, UserInfo},
         utils::ExampleData,
     };
+    use opentalk_types_signaling::Role;
     use pretty_assertions::assert_eq;
 
     use super::{TokenExpiry, TokenStore};

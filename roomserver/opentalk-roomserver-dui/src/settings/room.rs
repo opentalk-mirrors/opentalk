@@ -16,7 +16,7 @@ use opentalk_roomserver_client::api::{
     event::{E2EE_MODULE_ID, SHARED_FOLDER_MODULE_ID, WHITEBOARD_MODULE_ID},
 };
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, ClientParameters, Role},
+    client_parameters::{ClientKind, ClientParameters},
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
     room_parameters::{EventContext, RoomParameters, WaitingRoom},
@@ -32,6 +32,7 @@ use opentalk_types_common::{
     users::{UserId, UserInfo},
     utils::ExampleData,
 };
+use opentalk_types_signaling::Role;
 
 pub fn alice_profile() -> PublicUserProfile {
     PublicUserProfile {

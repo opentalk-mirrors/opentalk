@@ -59,7 +59,7 @@ mod tests {
     use opentalk_roomserver_common::application_state::ApplicationState;
     use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
     use opentalk_roomserver_types::{
-        client_parameters::{self, ClientParameters, Role},
+        client_parameters::{self, ClientParameters},
         core::{CORE_MODULE_ID, CoreEvent, JoinBlockedReason},
         room_parameters::RoomParameters,
         signaling::websocket::{CloseFrame, SignalingSocketMessage},
@@ -72,6 +72,7 @@ mod tests {
         tariffs::{QuotaType, TariffId},
         utils::ExampleData,
     };
+    use opentalk_types_signaling::Role;
     use tokio::{sync::watch, time::sleep};
 
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
@@ -127,7 +128,7 @@ mod tests {
         let client_parameters = ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: client_parameters::ClientKind::Guest,
-            role: client_parameters::Role::Moderator,
+            role: Role::Moderator,
         };
 
         handle

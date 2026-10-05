@@ -14,14 +14,14 @@ use opentalk_roomserver_signaling::{
     },
 };
 use opentalk_roomserver_types::{
-    client_parameters::{ClientParameters, Role},
+    client_parameters::ClientParameters,
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreEvent, LeftWaitingRoom},
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
     signaling::{module_error::FatalError, websocket::SignalingSocket},
 };
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 
 use crate::{signaling::DynBroadcastEvent, task::RoomTask};
 

@@ -5,13 +5,11 @@ use std::collections::{HashMap, hash_map::Entry};
 
 use chrono::{DateTime, Utc};
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, Role},
-    connection_id::ConnectionId,
-    device_id::DeviceId,
+    client_parameters::ClientKind, connection_id::ConnectionId, device_id::DeviceId,
     room_parameters::WaitingRoom,
 };
 use opentalk_types_common::users::DisplayName;
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 
 use crate::participant_state::ParticipantState;
 
@@ -218,13 +216,11 @@ mod tests {
 
     use chrono::DateTime;
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, Role},
-        public_user_profile::PublicUserProfile,
-        room_kind::RoomKind,
+        client_parameters::ClientKind, public_user_profile::PublicUserProfile, room_kind::RoomKind,
         room_parameters::WaitingRoom,
     };
     use opentalk_types_common::{users::DisplayName, utils::ExampleData};
-    use opentalk_types_signaling::ParticipantId;
+    use opentalk_types_signaling::{ParticipantId, Role};
 
     use super::*;
     use crate::participant_state::ParticipantState;

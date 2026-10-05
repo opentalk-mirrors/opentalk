@@ -7,7 +7,6 @@ use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_module_shared_folder::SharedFolderModule;
 use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
 use opentalk_roomserver_types::{
-    client_parameters::Role,
     core::CoreEvent,
     disconnect_reason::DisconnectReason,
     kick_reason::KickReason,
@@ -23,7 +22,7 @@ use opentalk_types_common::{
     events::EventId,
     shared_folders::{SharedFolder, SharedFolderAccess},
 };
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 
 #[test_log::test(tokio::test)]
 async fn insufficient_permissions() {

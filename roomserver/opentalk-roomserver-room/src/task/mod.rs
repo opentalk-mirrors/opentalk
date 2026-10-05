@@ -78,7 +78,7 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
     client_allowed::{ClientAllowed, ClientNotAllowedReason},
-    client_parameters::{ClientKind, ClientParameters, ParticipationKind, Role},
+    client_parameters::{ClientKind, ClientParameters, ParticipationKind},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, RoomCloseReason},
     device_id::DeviceId,
@@ -97,7 +97,7 @@ use opentalk_types_common::{
     time::Timestamp,
     users::{DisplayName, UserId},
 };
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use tokio::sync::{mpsc, oneshot};
 use tracing::Instrument;
 use uuid::Uuid;
@@ -646,6 +646,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     fn calculate_new_role(role: Role, reason: &KickReason) -> Role {
         match role {
+            Role::Guest => Role::Guest,
             Role::User => Role::User,
             // In case of debriefing, moderators must keep their roles
             // Otherwise degrade them to users
