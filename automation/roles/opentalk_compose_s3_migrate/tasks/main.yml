@@ -13,20 +13,57 @@
 - name: Include install_rclone.yml
   ansible.builtin.include_tasks:
     file: install_rclone.yml
-  tags: [s3_migrate_integration]
+  tags: [s3_migrate_integration, s3_migrate_preflight]
 
-- name: Include run_migration.yml
-  ansible.builtin.include_tasks:
-    file: run_migration.yml
-  tags: [s3_migrate_integration]
+- name: Copy objects while the controller is stopped
+  block:
+    - name: Include stop_writers.yml
+      ansible.builtin.include_tasks:
+        file: stop_writers.yml
+      tags: [s3_migrate_integration, s3_migrate_sync]
 
-- name: Include update_settings.yml
-  ansible.builtin.include_tasks:
-    file: update_settings.yml
-  tags: [s3_migrate_logic]
+    - name: Include run_migration.yml
+      ansible.builtin.include_tasks:
+        file: run_migration.yml
+      tags: [s3_migrate_integration, s3_migrate_sync]
+
+    - name: Include update_settings.yml
+      ansible.builtin.include_tasks:
+        file: update_settings.yml
+      tags: [s3_migrate_logic]
+
+  rescue:
+    # settings.yml still points at the source, so the controller can safely
+    # resume on it.
+    - name: Restart the controller after a failed migration
+      ansible.builtin.command:
+        cmd: "docker start {{ s3_migrate_controller_container | quote }}"
+      when: _s3_migrate_controller_stopped | default(false) | bool
+      changed_when: true
+      tags: [s3_migrate_integration, s3_migrate_sync]
+
+    - name: Abort after a failed migration
+      ansible.builtin.fail:
+        msg: >-
+          S3 migration failed in task '{{ ansible_failed_task.name }}':
+          {{ ansible_failed_result.msg | default('see the output above') }}.
+          The source is unchanged and remains active. Fix the cause and re-run 'otctl migrate'.
+      tags: [s3_migrate_logic, s3_migrate_integration, s3_migrate_sync]
 
 - name: Include post_deploy.yml
   ansible.builtin.include_tasks:
     file: post_deploy.yml
   when: s3_migrate_run_deploy | bool
   tags: [s3_migrate_integration]
+
+# Without the deploy the controller would come back with the old endpoint and
+# write to the source again, so it stays stopped until the user deploys.
+- name: Explain that the controller stays stopped
+  ansible.builtin.debug:
+    msg: >-
+      Migration finished. The controller stays stopped until you run 'otctl deploy',
+      which starts it against '{{ s3_migration_destination }}'.
+  when:
+    - not (s3_migrate_run_deploy | bool)
+    - _s3_migrate_controller_stopped | default(false) | bool
+  tags: [s3_migrate_integration, s3_migrate_sync]

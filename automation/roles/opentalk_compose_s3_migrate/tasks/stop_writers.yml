@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Stop the controller before copying, so that no object is written to the
+# source after rclone has listed it. The controller is the only service that
+# talks to S3; recorders upload through it.
+
+- name: Check whether the controller is running
+  tags: [s3_migrate_integration, s3_migrate_sync]
+  ansible.builtin.command:
+    cmd: "docker ps --quiet --filter status=running --filter name=^{{ s3_migrate_controller_container }}$"
+  register: _s3_migrate_controller_state
+  changed_when: false
+
+- name: Remember whether the controller has to be restarted
+  tags: [s3_migrate_integration, s3_migrate_sync]
+  ansible.builtin.set_fact:
+    _s3_migrate_controller_stopped: "{{ _s3_migrate_controller_state.stdout | trim | length > 0 }}"
+
+- name: Stop the controller for the duration of the copy
+  tags: [s3_migrate_integration, s3_migrate_sync]
+  ansible.builtin.command:
+    cmd: "docker stop {{ s3_migrate_controller_container | quote }}"
+  when: _s3_migrate_controller_stopped | bool
+  changed_when: true

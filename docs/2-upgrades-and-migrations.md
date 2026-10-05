@@ -178,18 +178,25 @@ otctl migrate garage-to-minio
 
 The command will:
 
-1. Install `rclone` on the host if not already present (via `apt` or `dnf`).
+1. Install `rclone` on the host if not already present (via `apt`, `dnf` or `zypper`).
 2. Verify that both containers are running and healthy.
-3. Copy all objects from the source bucket to the destination bucket.
-4. Verify that the object counts match.
-5. Update `settings.yml`: set `s3_storage_provider` to the destination and set `compose_service_<source>_enabled: false`.
-6. Run `otctl deploy` automatically to stop the source service and reconfigure the controller.
+3. Stop the controller, so that no file is uploaded while the objects are copied.
+4. Copy all objects from the source bucket to the destination bucket.
+5. Verify that the object counts match.
+6. Update `settings.yml`: set `s3_storage_provider` to the destination and set `compose_service_<source>_enabled: false`.
+7. Run `otctl deploy` automatically to stop the source service and start the controller against the new backend.
+
+> **Downtime:** OpenTalk is unavailable from step 3 until the deploy in step 7 has finished. Running meetings are interrupted, so plan the migration for a maintenance window.
+
+If a step fails, the command restarts the controller on the unchanged source and leaves `settings.yml` untouched. Fix the cause and run the command again.
 
 To skip the automatic deploy after migration (e.g. to verify manually first):
 
 ```bash
 otctl migrate minio-to-garage --no-deploy
 ```
+
+The controller then stays stopped until you run `otctl deploy`. Starting it earlier would make it write to the old backend again.
 
 ### 3.3 Verify
 
