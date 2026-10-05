@@ -79,12 +79,14 @@ Subcommands (most used first):
   down        Shortcut for compose down
   ps          Shortcut for compose ps
   volumes     List or remove compose project volumes (rm <v...> | prune --force)
-  migrate     Migrate S3 data between MinIO and Garage
+  migrate     Run or review data migrations that a release or a provider change needs
               Sub-commands:
+                status           -> list migrations that block 'otctl deploy'
                 minio-to-garage  -> copy all objects from MinIO to Garage, update settings.yml
                 garage-to-minio  -> copy all objects from Garage to MinIO, update settings.yml
               Options:
-                --no-deploy      -> skip automatic deploy after migration
+                --yes            -> skip interactive confirmation
+                --no-deploy      -> S3 only: skip automatic deploy after migration
   import      Import data into OpenTalk / Keycloak
               Sub-commands:
                 users          -> bulk-import users from a CSV or JSON file
@@ -379,6 +381,37 @@ list_tags() {
   else
     echo "[otctl] failed to obtain tags" >&2
     return 1
+  fi
+}
+
+migrate_usage() {
+  cat <<'MHELP'
+otctl migrate USAGE:
+  otctl migrate status                    # list migrations that block 'otctl deploy'
+  otctl migrate minio-to-garage           # copy MinIO -> Garage, update settings.yml, deploy
+  otctl migrate garage-to-minio           # copy Garage -> MinIO, update settings.yml, deploy
+Options:
+  --yes                                   # skip the confirmation (required in non-interactive sessions)
+  --no-deploy                             # S3 only: skip the deploy after the copy
+MHELP
+}
+
+confirm_migration() {
+  # Ask before a migration starts; $1 is 1 when --yes was given.
+  if [ "$1" -eq 1 ]; then
+    echo "[otctl] Confirmation skipped (--yes)." >&2
+    return 0
+  fi
+  if [ ! -t 0 ] || [ ! -t 1 ]; then
+    echo "[otctl] Non-interactive session: re-run with --yes to start the migration." >&2
+    exit 1
+  fi
+  local answer
+  printf 'Type "migrate" to start: '
+  IFS= read -r answer || answer=""
+  if [ "$answer" != "migrate" ]; then
+    echo "[otctl] Aborted - confirmation did not match." >&2
+    exit 1
   fi
 }
 
@@ -734,36 +767,50 @@ RHELP
   compose) compose_exec "$@" ;;
   playbook) PLAYBOOK_WRAPPER "$@" ;;
   migrate)
-    migrate_direction="${1:-}"; if [ $# -gt 0 ]; then shift; fi
-    case "$migrate_direction" in
-      minio-to-garage) _migrate_src=minio ;;
-      garage-to-minio) _migrate_src=garage ;;
-      ''|-h|--help|help)
-        cat <<'MHELP'
-otctl migrate USAGE:
-  otctl migrate minio-to-garage           # copy MinIO → Garage, update settings.yml
-  otctl migrate garage-to-minio           # copy Garage → MinIO, update settings.yml
-  otctl migrate minio-to-garage --no-deploy  # skip automatic deploy after migration
-MHELP
-        exit 0 ;;
-      *) echo "[otctl] Unknown migration direction: $migrate_direction (use minio-to-garage or garage-to-minio)" >&2; exit 1 ;;
+    migrate_what="${1:-}"; if [ $# -gt 0 ]; then shift; fi
+    case "$migrate_what" in
+      status)
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/migrate_status.yml" "$@"
+        ;;
+      minio-to-garage|garage-to-minio)
+        _migrate_src="${migrate_what%%-to-*}"
+        _migrate_dst="${migrate_what##*-to-}"
+        _migrate_extra_vars="s3_migration_source=${_migrate_src}"
+        _migrate_deploy=1
+        _migrate_yes=0
+        # Rebuild the argument list without our own flags; a pattern
+        # substitution would leave an empty argument behind, which
+        # ansible-playbook reads as a playbook path.
+        _migrate_args=()
+        for _a in "$@"; do
+          case "$_a" in
+            --no-deploy) _migrate_deploy=0; _migrate_extra_vars="${_migrate_extra_vars} s3_migrate_run_deploy=false" ;;
+            --yes) _migrate_yes=1 ;;
+            *) _migrate_args+=("$_a") ;;
+          esac
+        done
+        set -- ${_migrate_args[@]+"${_migrate_args[@]}"}
+        echo "[otctl] MIGRATION PLAN: copy all S3 objects from ${_migrate_src} to ${_migrate_dst}." >&2
+        echo "[otctl] - The controller is stopped while the objects are copied; running meetings are interrupted." >&2
+        echo "[otctl] - settings.yml is switched to ${_migrate_dst}. The ${_migrate_src} data stays until you remove its volume." >&2
+        if [ "$_migrate_deploy" -eq 1 ]; then
+          echo "[otctl] - 'otctl deploy' runs afterwards and starts the controller against ${_migrate_dst}." >&2
+        else
+          echo "[otctl] - No deploy afterwards (--no-deploy): the controller stays stopped until you run 'otctl deploy'." >&2
+        fi
+        echo "[otctl] Tip: run 'otctl backup all' first to keep a rollback point." >&2
+        confirm_migration "$_migrate_yes"
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" \
+          "$AUTOMATION/playbooks/s3_migrate.yml" \
+          -e "$_migrate_extra_vars" "$@"
+        ;;
+      ''|-h|--help|help) migrate_usage ;;
+      *)
+        echo "[otctl] Unknown migration: $migrate_what" >&2
+        migrate_usage >&2
+        exit 1
+        ;;
     esac
-    _migrate_extra_vars="s3_migration_source=${_migrate_src}"
-    # Allow --no-deploy flag to skip the post-migration deploy. Rebuild the
-    # argument list without it; a pattern substitution would leave an empty
-    # argument behind, which ansible-playbook reads as a playbook path.
-    _migrate_args=()
-    for _a in "$@"; do
-      if [ "$_a" = "--no-deploy" ]; then
-        _migrate_extra_vars="${_migrate_extra_vars} s3_migrate_run_deploy=false"
-      else
-        _migrate_args+=("$_a")
-      fi
-    done
-    set -- ${_migrate_args[@]+"${_migrate_args[@]}"}
-    PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" \
-      "$AUTOMATION/playbooks/s3_migrate.yml" \
-      -e "$_migrate_extra_vars" "$@"
     ;;
   import)
     import_what="${1:-}"; if [ $# -gt 0 ]; then shift; fi

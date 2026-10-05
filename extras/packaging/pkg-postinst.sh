@@ -74,3 +74,9 @@ if [ -f "$VENV_DIR/pyvenv.cfg" ]; then
 fi
 
 log "Embedded Python runtime verified; no target-side package installation required."
+
+# secrets.yml only exists after a first deploy, so this is an upgrade. A new
+# release may need a data migration that 'otctl deploy' refuses to skip.
+if [ -f "$CFG_DIR/secrets/secrets.yml" ]; then
+  log "Existing deployment found. Run 'otctl migrate status' before 'otctl deploy' to see whether this release needs a migration."
+fi

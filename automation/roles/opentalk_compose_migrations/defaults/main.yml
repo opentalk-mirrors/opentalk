@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose_migrations
+
+# Stop 'otctl deploy' while a migration is pending. Disable only to deploy a
+# state you have checked yourself; the deploy may then create empty services.
+migration_check_enabled: true
+
+# Compose project whose volumes are inspected.
+migrations_compose_project: "{{ compose_project_name | default('opentalk') }}"

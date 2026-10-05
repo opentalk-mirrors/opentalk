@@ -10,7 +10,7 @@ This chapter describes how to keep an OpenTalk Compose installation up to date a
 
 ## 1. Updating OpenTalk Compose
 
-Keeping your OpenTalk Compose installation current ensures you receive security fixes, performance improvements, and new features. Updates are designed to be safe and idempotent. The recommended workflow mirrors the initial installation and consists of three main steps: create a full backup, update the package from the repository, and redeploy the stack.
+Keeping your OpenTalk Compose installation current ensures you receive security fixes, performance improvements, and new features. Updates are designed to be safe and idempotent. The recommended workflow mirrors the initial installation and consists of these main steps: create a full backup, update the package from the repository, run any migration the release requires, and redeploy the stack.
 
 > **Maintenance Window:** Perform updates during a low-usage window to avoid interrupting active meetings. A typical update (package + redeploy) usually completes within a few minutes.
 
@@ -21,7 +21,8 @@ High-level process:
 1. Create a full backup (databases, config, volumes)
 2. Refresh repository metadata and upgrade the `opentalk-compose` package
 3. Check for package-provided config update files and merge new options
-4. Run `otctl deploy` to render any updated templates and restart services if needed
+4. Check with `otctl migrate status` whether the release needs a migration, and run it
+5. Run `otctl deploy` to render any updated templates and restart services if needed
 
 ### 1.2 Step 1: Create a Full Backup
 
@@ -83,7 +84,17 @@ If one of these files exists, compare it with your active configuration and merg
 
 Pay special attention to newly introduced storage options. If you are moving between S3 backends (MinIO/Garage), follow the [migration workflow](#3-migrating-between-minio-and-garage) before or during the upgrade window.
 
-### 1.5 Step 4: Redeploy Services
+### 1.5 Step 4: Run Required Migrations
+
+Some releases change how data is stored, for example a new PostgreSQL major version. Check whether the installed release needs a migration:
+
+```bash
+otctl migrate status
+```
+
+If a migration is listed, run the command it names before you deploy. [Migrations](#2-migrations) explains how they work. The package upgrade also prints a reminder to run `otctl migrate status`.
+
+### 1.6 Step 5: Redeploy Services
 
 After upgrading the package, redeploy to apply any new templates, configuration changes, or image updates:
 
@@ -93,7 +104,7 @@ otctl deploy
 
 The deploy is idempotent: unchanged services remain running; changed components are recreated or restarted automatically.
 
-### 1.6 Verification & Rollback Notes
+### 1.7 Verification & Rollback Notes
 
 Verify versions and health:
 
@@ -122,11 +133,26 @@ If problems occur:
 
 Some changes cannot be applied by `otctl deploy` alone because existing data has to be moved or converted. Each of these is handled by a dedicated `otctl migrate` command. The command checks the preconditions, copies the data, verifies the result and keeps the source data until you remove it yourself.
 
-Show the available migrations:
+You do not have to remember when a migration is needed:
+
+- `otctl migrate status` inspects the deployment (Docker volumes and `settings.yml`) and lists every migration that is still pending, with the reason and the command to run.
+- `otctl deploy` performs the same check first. While a migration is pending it stops before it changes anything and prints the same list. This prevents a deploy from starting a service on empty storage next to your existing data.
+
+Every migration follows the same pattern:
+
+1. It shows a plan: what is copied, which services are stopped, and what happens afterwards.
+2. It asks for confirmation. Type `migrate` to start, or pass `--yes` in scripts and other non-interactive sessions.
+3. It copies and verifies the data while the services that write to it are stopped.
+4. It switches the deployment to the new data and runs `otctl deploy`.
+5. It keeps the old data, so you can roll back. Remove it yourself once you have verified the result.
+
+Show all migration commands:
 
 ```bash
 otctl migrate --help
 ```
+
+> **Note:** If you have checked the state yourself and must deploy anyway, `otctl deploy -e migration_check_enabled=false` skips the check. The deploy may then start services on empty storage.
 
 | Migration | Command | When it is needed |
 | --- | --- | --- |

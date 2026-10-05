@@ -424,6 +424,13 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `mailcrab_docker_label_http_routers_minio_console_middlewares` | string | `default-auth@file` |
 | `mailcrab_webui_prefix` | string | `/adm/mailcrab` |
 
+## opentalk_compose_migrations
+
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
+| `migration_check_enabled` | boolean | `true` |
+| `migrations_compose_project` | string | `{{ compose_project_name \| default('opentalk') }}` |
+
 ## opentalk_compose_minio
 
 | Variable | Type | Default / Example Value |

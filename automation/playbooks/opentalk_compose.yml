@@ -31,6 +31,11 @@
           ansible.builtin.debug:
             msg: "WARNING: secrets file '{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml' not found."
           when: not secrets_file.stat.exists
+
+    - name: Stop if a migration is pending
+      ansible.builtin.include_role:
+        name: opentalk_compose_migrations
+      tags: ["always"]
   roles:
     - role: opentalk_compose_docker_env
       tags: [docker]

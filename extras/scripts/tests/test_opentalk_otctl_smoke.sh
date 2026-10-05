@@ -590,26 +590,48 @@ grep -q 'compose file not found' <<<"$no_compose_up"
 
 # migrate forwards to the S3 migration playbook.
 : > "$CALLS_LOG"
-bash "$OTCTL" migrate minio-to-garage < /dev/null >/dev/null
+bash "$OTCTL" migrate minio-to-garage --yes < /dev/null >/dev/null 2>&1
 grep -q 's3_migrate.yml' "$CALLS_LOG"
 grep -q 's3_migration_source=minio' "$CALLS_LOG"
-bash "$OTCTL" migrate garage-to-minio --no-deploy < /dev/null >/dev/null
+bash "$OTCTL" migrate garage-to-minio --no-deploy --yes < /dev/null >/dev/null 2>&1
 grep -q 's3_migration_source=garage' "$CALLS_LOG"
 grep -q 's3_migrate_run_deploy=false' "$CALLS_LOG"
 # Regression: stripping --no-deploy must not leave an empty argument, which
 # ansible-playbook reads as a playbook path. Other arguments must survive.
-bash "$OTCTL" migrate minio-to-garage --no-deploy -v < /dev/null >/dev/null
+bash "$OTCTL" migrate minio-to-garage --no-deploy --yes -v < /dev/null >/dev/null 2>&1
 tail -n 1 "$CALLS_LOG" | grep -q -- ' -v$'
 [[ ! -e "$CALLS_LOG.empty-arg" ]] || {
   echo "otctl migrate --no-deploy passed an empty argument to ansible-playbook:" >&2
   cat "$CALLS_LOG.empty-arg" >&2; exit 1; }
+! tail -n 1 "$CALLS_LOG" | grep -q -- '--yes' || {
+  echo "otctl migrate must not forward --yes to ansible-playbook." >&2; exit 1; }
+# The plan names the downtime and what happens afterwards.
+migrate_plan=$(bash "$OTCTL" migrate garage-to-minio --no-deploy --yes 2>&1 < /dev/null)
+grep -q 'MIGRATION PLAN: copy all S3 objects from garage to minio' <<<"$migrate_plan"
+grep -q 'running meetings are interrupted' <<<"$migrate_plan"
+grep -q 'controller stays stopped' <<<"$migrate_plan"
+# Without --yes a non-interactive session must refuse and run nothing.
+: > "$CALLS_LOG"
+set +e
+migrate_noyes=$(bash "$OTCTL" migrate minio-to-garage 2>&1 < /dev/null)
+migrate_noyes_rc=$?
+set -e
+[[ $migrate_noyes_rc -eq 1 ]] || { echo "otctl migrate without --yes must exit 1 (got $migrate_noyes_rc)." >&2; exit 1; }
+grep -q 're-run with --yes' <<<"$migrate_noyes"
+[[ ! -s "$CALLS_LOG" ]] || { echo "otctl migrate without confirmation must not run a playbook." >&2; exit 1; }
+# status is read-only and needs no confirmation.
+bash "$OTCTL" migrate status < /dev/null >/dev/null 2>&1
+grep -q 'migrate_status.yml' "$CALLS_LOG"
 migrate_help=$(bash "$OTCTL" migrate help 2>&1 < /dev/null)
 grep -q 'migrate minio-to-garage' <<<"$migrate_help"
+grep -q 'migrate status' <<<"$migrate_help"
 set +e
 migrate_bogus=$(bash "$OTCTL" migrate bogus-depth 2>&1 < /dev/null)
+migrate_bogus_rc=$?
 set -e
-grep -q 'Unknown migration direction' <<<"$migrate_bogus" || {
-  echo "otctl migrate with unknown direction must report an error." >&2; exit 1; }
+[[ $migrate_bogus_rc -eq 1 ]] || { echo "otctl migrate with an unknown migration must exit 1." >&2; exit 1; }
+grep -q 'Unknown migration: bogus-depth' <<<"$migrate_bogus" || {
+  echo "otctl migrate with unknown migration must report an error." >&2; exit 1; }
 
 # import users builds extra vars and forwards to the import playbook.
 printf 'first,last\nAlice,User\n' > "$TMP_DIR/users.csv"
