@@ -76,14 +76,14 @@ repos:
     hooks:
       - id: reuse-lint-file
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.23.2
+    rev: v0.23.3
     hooks:
       - id: markdownlint-cli2-docker
         args:
           - --warnings
   # No official hooks for commitlint available, this one seems actively maintained
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.26.0
+    rev: v9.27.0
     hooks:
       - id: commitlint
         stages: [commit-msg]
