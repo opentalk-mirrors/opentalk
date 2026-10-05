@@ -1,0 +1,120 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Read-only checks and the plan shown before the user confirms.
+
+- name: Assert that the target major uses versioned volumes
+  ansible.builtin.assert:
+    that:
+      - _pg_target_major | int >= 18
+    fail_msg: >-
+      'otctl migrate postgres' migrates to PostgreSQL 18 or newer, but postgres_version is {{ postgres_version }}.
+
+- name: Read version and size of each source volume
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - --network
+      - none
+      - --entrypoint
+      - sh
+      - -v
+      - "{{ item.source_volume }}:/src:ro"
+      - "{{ postgres_migrate_source_image }}"
+      - -c
+      - "cat /src/PG_VERSION 2>/dev/null || cat /src/*/docker/PG_VERSION; du -sk /src | cut -f1"
+  register: _pg_source_info
+  changed_when: false
+  loop: "{{ _pg_pending }}"
+  loop_control:
+    label: "{{ item.source_volume }}"
+
+- name: Assert that the source image matches the data
+  ansible.builtin.assert:
+    that:
+      - (item.stdout_lines | first | int) == (_pg_source_major | int)
+    fail_msg: >-
+      The volume {{ item.item.source_volume }} was written by PostgreSQL {{ item.stdout_lines | first }},
+      but this release migrates from PostgreSQL {{ _pg_source_major }} only.
+      Upgrade through a release that ships PostgreSQL {{ (item.stdout_lines | first | int) + 1 }} first.
+  loop: "{{ _pg_source_info.results }}"
+  loop_control:
+    label: "{{ item.item.source_volume }}"
+
+- name: Check the database password files
+  ansible.builtin.stat:
+    path: "{{ postgres_migrate_secrets_dir }}/{{ item.database.secret_file }}"
+  register: _pg_secret_stat
+  loop: "{{ _pg_pending }}"
+  loop_control:
+    label: "{{ item.database.secret_file }}"
+
+- name: Assert that the database password files exist
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+    fail_msg: "Password file {{ postgres_migrate_secrets_dir }}/{{ item.item.database.secret_file }} not found. The new database is initialised with it."
+  loop: "{{ _pg_secret_stat.results }}"
+  loop_control:
+    label: "{{ item.item.database.secret_file }}"
+
+- name: Read the docker data directory
+  ansible.builtin.command:
+    cmd: !unsafe "docker info --format '{{.DockerRootDir}}'"  # noqa: jinja[invalid]
+  register: _pg_docker_root
+  changed_when: false
+
+# Prints "<filesystem> <free KiB>" for the nearest existing directory.
+- name: Read free disk space for new volumes and dumps
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      d={{ item | quote }}
+      while [ ! -d "$d" ]; do d=$(dirname "$d"); done
+      df -Pk "$d" | awk 'NR == 2 { print $1, $4 }'
+    executable: /bin/bash
+  register: _pg_free
+  changed_when: false
+  loop:
+    - "{{ _pg_docker_root.stdout | trim }}"
+    - "{{ postgres_migrate_dump_dir }}"
+
+- name: Compute the space needed
+  ansible.builtin.set_fact:
+    _pg_total_kib: "{{ _pg_source_info.results | map(attribute='stdout_lines') | map('last') | map('int') | sum }}"
+    _pg_root_fs: "{{ _pg_free.results[0].stdout.split() | first }}"
+    _pg_root_free_kib: "{{ _pg_free.results[0].stdout.split() | last | int }}"
+    _pg_dump_fs: "{{ _pg_free.results[1].stdout.split() | first }}"
+    _pg_dump_free_kib: "{{ _pg_free.results[1].stdout.split() | last | int }}"
+
+# The new volumes and the dumps each need about the size of the old data;
+# twice that when both live on the same filesystem.
+- name: Assert that there is enough free disk space
+  ansible.builtin.assert:
+    that:
+      - _pg_root_free_kib | int >= _pg_total_kib | int * (2 if _pg_root_fs == _pg_dump_fs else 1)
+      - _pg_dump_free_kib | int >= _pg_total_kib | int * (2 if _pg_root_fs == _pg_dump_fs else 1)
+    fail_msg: >-
+      Not enough free disk space: the old data takes {{ (_pg_total_kib | int / 1024) | round(1) }} MiB and needs
+      {{ ((_pg_total_kib | int * (2 if _pg_root_fs == _pg_dump_fs else 1)) / 1024) | round(1) }} MiB free;
+      {{ (_pg_root_free_kib | int / 1024) | round(1) }} MiB are free for docker volumes
+      and {{ (_pg_dump_free_kib | int / 1024) | round(1) }} MiB in {{ postgres_migrate_dump_dir }}.
+
+- name: Show the migration plan
+  ansible.builtin.debug:
+    msg: |-
+      PostgreSQL migration plan: {{ _pg_source_major }} -> {{ _pg_target_major }}
+      {% for r in _pg_source_info.results %}
+        - {{ r.item.database.name }}: {{ r.item.source_volume }} -> {{ r.item.target_volume }} ({{ (r.stdout_lines | last | int / 1024) | round(1) }} MiB)
+      {% endfor %}
+      Steps: stop {{ _pg_pending | map(attribute='database.service') | join(' and ') }} and their databases,
+      dump each database with {{ postgres_migrate_source_image }},
+      restore it into a new volume with {{ postgres_migrate_target_image }},
+      and compare the row count of every table.
+      SQL dumps are kept in {{ postgres_migrate_dump_dir }}.
+      The old volumes are kept for rollback.
+      OpenTalk is unavailable until the deploy afterwards has finished.

@@ -9,10 +9,12 @@ REPO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-if ! command -v ansible-playbook >/dev/null 2>&1; then
-  echo "ansible-playbook is required to run the migrations test." >&2
-  exit 1
-fi
+for cmd in ansible-playbook jq; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "$cmd is required to run the migrations test." >&2
+    exit 1
+  fi
+done
 
 INVENTORY="$TMP_DIR/inventory"
 printf 'localhost ansible_connection=local ansible_python_interpreter=%s\n' "$(command -v python3)" > "$INVENTORY"
@@ -98,5 +100,67 @@ unset OT_TEST_VOLUMES
 run_playbook "$STATUS_PLAYBOOK" > "$TMP_DIR/status-clean.log" 2>&1 || {
   cat "$TMP_DIR/status-clean.log" >&2; exit 1; }
 grep -q "No migration pending" "$TMP_DIR/status-clean.log"
+
+# --- PostgreSQL: detection and templates agree on the volume names ---
+NAMING_PLAYBOOK="$REPO_ROOT/extras/scripts/tests/fixtures/migrations_naming_playbook.yml"
+naming() {
+  local version=$1 result=$2
+  shift 2
+  PATH="$STUB_BIN:$PATH" \
+  ANSIBLE_ROLES_PATH="$REPO_ROOT/automation/roles" \
+  OT_TEST_RESULT_FILE="$result" \
+  ansible-playbook -i "$INVENTORY" "$NAMING_PLAYBOOK" -e "postgres_version=$version" "$@" \
+    > "$result.log" 2>&1 || { cat "$result.log" >&2; exit 1; }
+}
+jq_is() {
+  local file=$1 filter=$2 expected=$3 actual
+  actual=$(jq -c "$filter" "$file")
+  [[ "$actual" == "$expected" ]] || { echo "$file: $filter is $actual, expected $expected." >&2; exit 1; }
+}
+
+# Upgrade from the legacy layout: both databases pending, sources are the
+# unversioned volumes, targets are what the templates mount.
+export OT_TEST_VOLUMES="opentalk_controller-db opentalk_keycloak-db opentalk_rabbitmq"
+naming 18.6-alpine "$TMP_DIR/pg18.json"
+jq_is "$TMP_DIR/pg18.json" .pending '["postgres-controller","postgres-keycloak"]'
+jq_is "$TMP_DIR/pg18.json" .sources '["opentalk_controller-db","opentalk_keycloak-db"]'
+jq_is "$TMP_DIR/pg18.json" .controller_volume '"controller-db-pg18"'
+jq_is "$TMP_DIR/pg18.json" .controller_mount '"/var/lib/postgresql"'
+jq_is "$TMP_DIR/pg18.json" .keycloak_volume '"keycloak-db-pg18"'
+
+# Reverting the pin to 17 finds the old volumes again: nothing pending.
+naming 17.11-alpine "$TMP_DIR/pg17.json"
+jq_is "$TMP_DIR/pg17.json" .pending '[]'
+jq_is "$TMP_DIR/pg17.json" .controller_volume '"controller-db"'
+jq_is "$TMP_DIR/pg17.json" .controller_mount '"/var/lib/postgresql/data"'
+
+# A later major picks the newest older volume and ignores newer ones.
+export OT_TEST_VOLUMES="opentalk_controller-db opentalk_controller-db-pg18 opentalk_controller-db-pg20 opentalk_keycloak-db-pg18"
+naming 19.2-alpine "$TMP_DIR/pg19.json"
+jq_is "$TMP_DIR/pg19.json" .sources '["opentalk_controller-db-pg18","opentalk_keycloak-db-pg18"]'
+
+# After the migration the old volumes are reported for removal.
+export OT_TEST_VOLUMES="opentalk_controller-db opentalk_controller-db-pg18 opentalk_keycloak-db opentalk_keycloak-db-pg18"
+naming 18.6-alpine "$TMP_DIR/pg18-done.json"
+jq_is "$TMP_DIR/pg18-done.json" .pending '[]'
+jq_is "$TMP_DIR/pg18-done.json" .retained '["opentalk_controller-db","opentalk_keycloak-db"]'
+
+# Only one database migrated: the other one is still pending.
+export OT_TEST_VOLUMES="opentalk_controller-db opentalk_controller-db-pg18 opentalk_keycloak-db"
+naming 18.6-alpine "$TMP_DIR/pg18-half.json"
+jq_is "$TMP_DIR/pg18-half.json" .pending '["postgres-keycloak"]'
+
+# An external Keycloak has no database here, even if an old volume is left.
+export OT_TEST_VOLUMES="opentalk_controller-db opentalk_keycloak-db"
+naming 18.6-alpine "$TMP_DIR/pg18-extkc.json" -e compose_service_keycloak_enabled=false
+jq_is "$TMP_DIR/pg18-extkc.json" .pending '["postgres-controller"]'
+
+# The deploy guard blocks on a pending PostgreSQL migration and names the command.
+printf 'compose_project_name: opentalk\ns3_storage_provider: garage\npostgres_version: 18.6-alpine\n' > "$SETTINGS"
+export OT_TEST_VOLUMES="opentalk_controller-db opentalk_keycloak-db"
+expect_guard block "$TMP_DIR/pg-guard.log"
+grep -q 'Deployment stopped before any change: 2 migration(s) required' "$TMP_DIR/pg-guard.log"
+grep -q "Run 'otctl migrate postgres'" "$TMP_DIR/pg-guard.log"
+unset OT_TEST_VOLUMES
 
 echo "Migration detection, guard and status tests passed."

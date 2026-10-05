@@ -90,7 +90,7 @@ services:
     ports:
       - {{ keycloak_db_bind_interface }}:{{ keycloak_db_host_port }}:5432
     volumes:
-      - keycloak-db:/var/lib/postgresql/data
+      - {{ keycloak_db_volume_name }}:{{ keycloak_db_data_mount }}
     restart: always
     secrets:
       - db_keycloak_secret
@@ -112,4 +112,4 @@ secrets:
     file: ${CONTAINER_SECRETS_PATH:-{{ config_dir }}/secrets}/.db_keycloak.secret
 
 volumes:
-  keycloak-db:
+  {{ keycloak_db_volume_name }}:

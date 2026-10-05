@@ -43,7 +43,12 @@ livekit_version: v1.13.7
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/keycloak
 keycloak_version: 26.8.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/postgres
-postgres_version: 17.11-alpine
+postgres_version: 18.6-alpine
+# Not automated: the previous PostgreSQL major, only used by
+# 'otctl migrate postgres' to dump data from the volumes it left behind.
+# Raise it by hand to the last release of the old major when postgres_version
+# moves to a new major.
+postgres_migration_source_version: 17.11-alpine
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/rabbitmq
 rabbitmq_version: v4.3.6-management-alpine
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/minio versioning=loose

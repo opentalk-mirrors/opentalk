@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose_postgres_migrate
+
+postgres_migrate_image_src: "{{ postgres_docker_image_src | default('registry.heinlein.group/opentalk/postgres') }}"
+# Dumps the old volumes; must match the major that wrote them.
+postgres_migrate_source_image: "{{ postgres_migrate_image_src }}:{{ postgres_migration_source_version }}"
+postgres_migrate_target_image: "{{ postgres_migrate_image_src }}:{{ postgres_version }}"
+
+postgres_migrate_compose_project: "{{ compose_project_name | default('opentalk') }}"
+# The SQL dumps stay here as an extra rollback point.
+postgres_migrate_dump_dir: "{{ backup_dir | default('/var/opt/opentalk-compose/backups') }}/dumps"
+postgres_migrate_secrets_dir: "{{ config_dir | default('/etc/opentalk-compose') }}/secrets"
+
+# Set by 'otctl migrate postgres': first a read-only plan, then the run.
+postgres_migrate_plan_only: false
+postgres_migrate_plan_file: ""
+postgres_migrate_confirmation: ""
+
+# How long to wait for a temporary PostgreSQL container to accept connections.
+postgres_migrate_ready_retries: 90
+postgres_migrate_ready_delay: 2

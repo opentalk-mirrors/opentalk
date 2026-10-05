@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Volumes follow the naming of controller_db_volume_name: up to PostgreSQL 17
+# the unversioned <db_service>, from 18 on <db_service>-pg<major>. A database
+# needs a migration when the volume of the current major is missing while one
+# of an older major exists. The newest older volume is the source.
+
+- name: Assess the PostgreSQL volumes of each database
+  ansible.builtin.set_fact:
+    _migrations_postgres_state: >-
+      {%- set ns = namespace(source='', source_major=-1, older=[]) -%}
+      {%- for v in _migrations_volumes -%}
+        {%- if v == _prefix -%}
+          {%- set m = 17 -%}
+        {%- elif v is match('^' ~ (_prefix | regex_escape) ~ '-pg[0-9]+$') -%}
+          {%- set m = v | regex_replace('^.*-pg', '') | int -%}
+        {%- else -%}
+          {%- set m = -1 -%}
+        {%- endif -%}
+        {%- if m >= 0 and m < migrations_postgres_major | int -%}
+          {%- set ns.older = ns.older + [v] -%}
+          {%- if m > ns.source_major -%}
+            {%- set ns.source = v -%}
+            {%- set ns.source_major = m -%}
+          {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {{ _migrations_postgres_state | default([]) + [{
+           'db': item,
+           'target': _target,
+           'target_exists': _target in _migrations_volumes,
+           'source': ns.source,
+           'source_major': ns.source_major,
+           'older': ns.older
+         }] }}
+  vars:
+    _prefix: "{{ migrations_compose_project }}_{{ item.db_service }}"
+    _target: "{{ _prefix if migrations_postgres_major | int <= 17 else _prefix ~ '-pg' ~ migrations_postgres_major }}"
+  loop: "{{ migrations_postgres_databases }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.enabled | bool
+
+- name: Record pending PostgreSQL migrations
+  ansible.builtin.set_fact:
+    migrations_pending: >-
+      {{ migrations_pending + [{
+           'id': 'postgres-' ~ item.db.name,
+           'kind': 'postgres',
+           'database': item.db,
+           'source_volume': item.source,
+           'source_major': item.source_major,
+           'target_volume': item.target,
+           'title': 'PostgreSQL ' ~ migrations_postgres_major ~ ' upgrade of the ' ~ item.db.name ~ ' database',
+           'reason': 'Its data is still in the volume ' ~ item.source ~ ', written by an older PostgreSQL major. PostgreSQL ' ~ migrations_postgres_major ~ ' cannot start on it.',
+           'action': "Run 'otctl migrate postgres'."
+         }] }}
+  loop: "{{ _migrations_postgres_state | default([]) }}"
+  loop_control:
+    label: "{{ item.db.name }}"
+  when:
+    - not item.target_exists
+    - item.source | length > 0
+
+- name: Record PostgreSQL volumes kept for rollback
+  ansible.builtin.set_fact:
+    migrations_retained_volumes: "{{ migrations_retained_volumes + item.older }}"
+  loop: "{{ _migrations_postgres_state | default([]) }}"
+  loop_control:
+    label: "{{ item.db.name }}"
+  when: item.target_exists
+
+- name: Forget the per-database PostgreSQL volume state
+  ansible.builtin.set_fact:
+    _migrations_postgres_state: []

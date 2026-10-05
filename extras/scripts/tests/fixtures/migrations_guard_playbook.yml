@@ -4,11 +4,12 @@
 
 ---
 # Runs the deploy guard of opentalk_compose_migrations the way the main
-# playbook does, against settings from OT_TEST_SETTINGS_FILE.
+# playbook does, with .versions.yml and the settings from OT_TEST_SETTINGS_FILE.
 - name: Migration guard fixture
   hosts: localhost
   gather_facts: false
   vars_files:
+    - ../../../../.versions.yml
     - "{{ lookup('ansible.builtin.env', 'OT_TEST_SETTINGS_FILE') }}"
   tasks:
     - name: Stop if a migration is pending

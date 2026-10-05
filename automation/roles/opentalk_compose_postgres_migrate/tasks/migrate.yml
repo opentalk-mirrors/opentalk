@@ -1,0 +1,109 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Move every pending database to a new volume. Either all databases end up
+# migrated, or the new volumes are removed and the previous containers run
+# again, so that a failure never leaves a half-migrated deployment behind.
+
+- name: Assert migration confirmation
+  ansible.builtin.assert:
+    that:
+      - postgres_migrate_confirmation | string | lower == 'yes'
+    fail_msg: >-
+      PostgreSQL migration requested without confirmation.
+      Use 'otctl migrate postgres', which shows the plan and asks first.
+
+- name: Ensure the dump directory
+  ansible.builtin.file:
+    path: "{{ postgres_migrate_dump_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Prepare the migration run
+  ansible.builtin.set_fact:
+    _pg_stamp: "{{ lookup('ansible.builtin.pipe', 'date +%Y%m%d-%H%M%S') }}"
+    _pg_app_containers: "{{ _pg_pending | map(attribute='database.service') | map('regex_replace', '^', postgres_migrate_compose_project ~ '-') | map('regex_replace', '$', '-1') | list }}"
+    _pg_db_containers: "{{ _pg_pending | map(attribute='database.db_service') | map('regex_replace', '^', postgres_migrate_compose_project ~ '-') | map('regex_replace', '$', '-1') | list }}"
+    _pg_stopped: []
+
+- name: Migrate the databases
+  block:
+    - name: Find the running application and database containers
+      ansible.builtin.command:
+        cmd: "docker ps --quiet --filter status=running --filter name=^{{ item }}$"
+      register: _pg_running
+      changed_when: false
+      loop: "{{ _pg_app_containers + _pg_db_containers }}"
+
+    # Applications first, so that nothing writes while a database stops.
+    - name: Stop the applications, then their databases
+      ansible.builtin.command:
+        cmd: "docker stop {{ item.item | quote }}"
+      loop: "{{ _pg_running.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.stdout | trim | length > 0
+      changed_when: true
+      register: _pg_stop
+
+    - name: Remember the stopped containers
+      ansible.builtin.set_fact:
+        _pg_stopped: "{{ _pg_stop.results | selectattr('changed', 'defined') | selectattr('changed') | map(attribute='item.item') | list }}"
+
+    - name: Include migrate_database.yml
+      ansible.builtin.include_tasks:
+        file: migrate_database.yml
+      loop: "{{ _pg_pending }}"
+      loop_control:
+        loop_var: _pg_entry
+        label: "{{ _pg_entry.database.name }}"
+
+  rescue:
+    - name: Remove the temporary PostgreSQL containers
+      ansible.builtin.command:
+        cmd: "docker rm -f {{ postgres_migrate_compose_project }}-pgmigrate-{{ item.database.name }}-source {{ postgres_migrate_compose_project }}-pgmigrate-{{ item.database.name }}-target"
+      loop: "{{ _pg_pending }}"
+      loop_control:
+        label: "{{ item.database.name }}"
+      changed_when: true
+      failed_when: false
+
+    # Only volumes this run created: a pending migration has no target volume.
+    - name: Remove the new volumes of this run
+      ansible.builtin.command:
+        cmd: "docker volume rm {{ item.target_volume | quote }}"
+      loop: "{{ _pg_pending }}"
+      loop_control:
+        label: "{{ item.target_volume }}"
+      changed_when: true
+      failed_when: false
+
+    # Databases before applications, the reverse of the stop order.
+    - name: Start the previous containers again
+      ansible.builtin.command:
+        cmd: "docker start {{ item | quote }}"
+      loop: "{{ _pg_stopped | reverse | list }}"
+      changed_when: true
+      failed_when: false
+
+    - name: Abort after a failed migration
+      ansible.builtin.fail:
+        msg: |-
+          PostgreSQL migration failed in task '{{ ansible_failed_task.name }}':
+          {{ ansible_failed_result.msg | default('see the output above') }}
+          {{ ansible_failed_result.stderr | default('') }}
+          The new volumes were removed and the previous containers started again,
+          so OpenTalk runs as before on the old data. Dumps written so far are in
+          {{ postgres_migrate_dump_dir }}. Fix the cause and run 'otctl migrate postgres' again.
+
+- name: Report the finished migration
+  ansible.builtin.debug:
+    msg: |-
+      PostgreSQL migration finished:
+      {% for e in _pg_pending %}
+        - {{ e.database.name }}: {{ e.source_volume }} -> {{ e.target_volume }}
+      {% endfor %}
+      The old volumes and the SQL dumps in {{ postgres_migrate_dump_dir }} are kept for rollback.
+      'otctl deploy' starts the databases on the new volumes.

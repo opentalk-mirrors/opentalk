@@ -35,14 +35,7 @@ otctl backup ls   # (optional) verify backup presence
 
 Backups are stored under `/var/opt/opentalk-compose/backups`. Keep sufficient disk space free. For more granular commands see [Backups](1-quickstart-installation.md#26-backups-optional-but-recommended).
 
-If the release includes a PostgreSQL major upgrade (for example controller-db/keycloak-db image major bump), create dedicated database dumps before deploying:
-
-```bash
-otctl backup dump controller
-otctl backup dump keycloak
-```
-
-Use the [restore workflow](1-quickstart-installation.md#27-restoring-backups) for rollback planning.
+`otctl backup all` includes SQL dumps of the controller and Keycloak databases. Use the [restore workflow](1-quickstart-installation.md#27-restoring-backups) for rollback planning.
 
 ### 1.3 Step 2: Update Repository & Package
 
@@ -156,6 +149,7 @@ otctl migrate --help
 
 | Migration | Command | When it is needed |
 | --- | --- | --- |
+| [PostgreSQL major upgrade](#4-upgrading-postgresql-to-a-new-major-version) | `otctl migrate postgres` | A release ships a new PostgreSQL major version, for example 26.3 with PostgreSQL 18 |
 | [MinIO ↔ Garage](#3-migrating-between-minio-and-garage) | `otctl migrate minio-to-garage`, `otctl migrate garage-to-minio` | You switch the S3 storage provider |
 
 > **Important:** Create a full backup before every migration, as described in [Create a Full Backup](#12-step-1-create-a-full-backup).
@@ -247,3 +241,79 @@ otctl volumes rm opentalk_minio
 # After migrating away from Garage:
 otctl volumes rm opentalk_garage_data opentalk_garage_meta
 ```
+
+## 4. Upgrading PostgreSQL to a new major version
+
+The controller and Keycloak each keep their data in a PostgreSQL database. A new PostgreSQL major version cannot read the data files of the previous one, so a release that moves to a new major needs a migration. OpenTalk Compose 26.3 moves from PostgreSQL 17 to 18.
+
+From PostgreSQL 18 on, each major version gets its own Docker volume, for example `opentalk_controller-db-pg18`. The migration copies the data into the new volume and leaves the old one untouched. Up to PostgreSQL 17 the volumes are called `opentalk_controller-db` and `opentalk_keycloak-db`.
+
+> **Downtime:** The controller and Keycloak are stopped during the migration, so OpenTalk is unavailable. How long it takes depends on the size of the databases. Plan it for a maintenance window.
+
+### 4.1 Detect the migration
+
+After the package upgrade, `otctl migrate status` lists the databases that still need the migration:
+
+```text
+2 migration(s) pending. 'otctl deploy' stays blocked until they are done.
+
+* PostgreSQL 18 upgrade of the controller database
+  Its data is still in the volume opentalk_controller-db, written by an older PostgreSQL major. PostgreSQL 18 cannot start on it.
+  Next step: Run 'otctl migrate postgres'.
+```
+
+Until the migration is done, `otctl deploy` stops with the same message. Your installation keeps running on the old version in the meantime.
+
+### 4.2 Run the migration
+
+```bash
+otctl backup all
+otctl migrate postgres
+```
+
+The command first checks and shows a plan, then asks you to type `migrate`. The checks confirm that each old volume was written by the PostgreSQL version this release migrates from, that the database password files exist, and that there is enough free disk space. The new volumes and the SQL dumps each need about as much space as the old data, twice that if both are on the same filesystem.
+
+After the confirmation, for each database the command:
+
+1. Stops the application, then its database.
+2. Starts the old PostgreSQL version on the old volume, without network access, counts the rows of every table and writes an SQL dump to `/var/opt/opentalk-compose/backups/dumps/pg-migrate-<database>-17-to-18-<timestamp>.sql`.
+3. Initialises the new PostgreSQL version on a new volume with the existing user, database name and password, and restores the dump.
+4. Compares the row count of every table with the old database and refreshes the planner statistics.
+
+Finally it runs `otctl deploy`, which starts both databases on the new volumes and the services on top of them.
+
+If any step fails, the command removes the new volumes, starts the previous containers again and stops with the reason. OpenTalk then runs as before on the old data, and you can run the command again once the cause is fixed.
+
+Options:
+
+- `--yes` skips the confirmation, for scripts and other non-interactive sessions.
+- `--no-deploy` skips the final deploy. The services then stay stopped until you run `otctl deploy`.
+
+### 4.3 Verify
+
+```bash
+otctl status
+otctl migrate status
+```
+
+Log in to OpenTalk and open an existing meeting room to confirm that the data is there. `otctl migrate status` reports no pending migration and lists the old volumes it kept.
+
+### 4.4 Roll back
+
+The old volumes stay untouched, so you can go back to the previous release:
+
+1. Reinstall the previous `opentalk-compose` package.
+2. Run `otctl deploy`. It uses the old volumes again.
+
+> **Note:** A rollback returns to the data as it was at the moment of the migration. Anything changed after that, such as new meetings or users, exists only in the new volumes. To keep it, restore a database dump made after the migration (see the [restore workflow](1-quickstart-installation.md#27-restoring-backups)).
+
+### 4.5 Clean up
+
+Once you are sure you will not roll back, remove the old volumes to free disk space:
+
+```bash
+otctl volumes rm opentalk_controller-db opentalk_keycloak-db
+```
+
+The SQL dumps of the migration stay in `/var/opt/opentalk-compose/backups/dumps` until you delete them.
+

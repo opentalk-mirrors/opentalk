@@ -23,3 +23,11 @@
         Next step: {{ m.action }}
       {% endfor %}
       {% endif %}
+      {% if migrations_retained_volumes | length > 0 %}
+
+      Old data kept for rollback after a finished migration:
+      {% for v in migrations_retained_volumes %}
+        - volume {{ v }}
+      {% endfor %}
+      Remove it with 'otctl volumes rm <name>' once the deployment works as expected.
+      {% endif %}

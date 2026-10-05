@@ -5,11 +5,14 @@
 ---
 # Collect pending migrations into migrations_pending. Each entry has an id, a
 # title, the reason it is needed and the action the user has to take.
+# migrations_retained_volumes lists old data a finished migration kept for
+# rollback.
 # Detection reads the real state from docker, not only settings.yml.
 
-- name: Reset the list of pending migrations
+- name: Reset the lists of pending migrations and retained volumes
   ansible.builtin.set_fact:
     migrations_pending: []
+    migrations_retained_volumes: []
 
 # A failing docker CLI means nothing can be inspected; the deploy itself then
 # fails in opentalk_compose_docker_env with a clearer message.
@@ -28,3 +31,7 @@
 - name: Include detect_s3.yml
   ansible.builtin.include_tasks:
     file: detect_s3.yml
+
+- name: Include detect_postgres.yml
+  ansible.builtin.include_tasks:
+    file: detect_postgres.yml

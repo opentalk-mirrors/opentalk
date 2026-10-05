@@ -20,6 +20,14 @@ keycloak_db_bind_interface: "127.0.0.1"
 
 keycloak_docker_image_src: registry.heinlein.group/opentalk/keycloak
 postgres_docker_image_src: registry.heinlein.group/opentalk/postgres
+# From PostgreSQL 18 on, every major gets its own volume, mounted one level
+# higher as the image expects. This way a major upgrade starts on a new volume and
+# keeps the old one for rollback; 'otctl migrate postgres' moves the data.
+# Up to 17 the historical name and path stay, so that reverting the pin finds
+# the old data again. opentalk_compose_migrations derives the same names.
+keycloak_db_postgres_major: "{{ (postgres_version | string).split('.') | first | int }}"
+keycloak_db_volume_name: "{{ 'keycloak-db' if keycloak_db_postgres_major | int <= 17 else 'keycloak-db-pg' ~ keycloak_db_postgres_major }}"
+keycloak_db_data_mount: "{{ '/var/lib/postgresql/data' if keycloak_db_postgres_major | int <= 17 else '/var/lib/postgresql' }}"
 
 keycloak_docker_compose_state: present
 

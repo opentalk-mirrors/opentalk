@@ -74,6 +74,7 @@ Need Docker.
 | `integration/test_smtp_mailer_rabbitmq.sh` | mailer and RabbitMQ, CI runs it in experimental pipelines only |
 | `integration/test_compose_e2e.sh` | destructive full-stack run, requires `OPENTALK_E2E=1`, entry point `just test-e2e` |
 | `integration/test_backup_restore_config.sh` | backup and restore lifecycle, requires `OPENTALK_E2E=1` and an existing dev stack |
+| `integration/test_postgres_migration.sh` | `otctl migrate postgres` against real containers, including rollback after a failure; requires `OPENTALK_E2E=1`, isolates itself with its own project name |
 
 Both destructive tests exit 2 without `OPENTALK_E2E=1`. The E2E test isolates itself from the local dev stack with its own project name, directory and ports.
 

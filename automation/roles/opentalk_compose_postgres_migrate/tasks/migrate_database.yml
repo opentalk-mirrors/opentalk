@@ -1,0 +1,187 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Dump one database from its old volume and restore it into a new one, using
+# temporary containers without network. Connections use the local socket,
+# which the image trusts, so no password is needed.
+
+- name: Derive the names for {{ _pg_entry.database.name }}
+  ansible.builtin.set_fact:
+    _pg_src_container: "{{ postgres_migrate_compose_project }}-pgmigrate-{{ _pg_entry.database.name }}-source"
+    _pg_tgt_container: "{{ postgres_migrate_compose_project }}-pgmigrate-{{ _pg_entry.database.name }}-target"
+    # The unversioned volume is the pre-18 layout, mounted at the data dir.
+    _pg_src_mount: >-
+      {{ '/var/lib/postgresql/data'
+         if _pg_entry.source_volume == postgres_migrate_compose_project ~ '_' ~ _pg_entry.database.db_service
+         else '/var/lib/postgresql' }}
+    _pg_dump_file: "{{ postgres_migrate_dump_dir }}/pg-migrate-{{ _pg_entry.database.name }}-{{ _pg_source_major }}-to-{{ _pg_target_major }}-{{ _pg_stamp }}.sql"
+    _pg_old_container: "{{ postgres_migrate_compose_project }}-{{ _pg_entry.database.db_service }}-1"
+
+# The deployed database container knows user and database name; fall back to
+# the defaults of the compose templates when it no longer exists.
+- name: Read user and database name of {{ _pg_entry.database.name }}
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - --format
+      - !unsafe "{{range .Config.Env}}{{println .}}{{end}}"  # noqa: jinja[invalid]
+      - "{{ _pg_old_container }}"
+  register: _pg_old_env
+  changed_when: false
+  failed_when: false
+
+- name: Remember user and database name of {{ _pg_entry.database.name }}
+  ansible.builtin.set_fact:
+    _pg_user: "{{ _env | select('match', '^POSTGRES_USER=') | map('regex_replace', '^POSTGRES_USER=', '') | first | default(_pg_entry.database.default_user, true) }}"
+    _pg_database: "{{ _env | select('match', '^POSTGRES_DB=') | map('regex_replace', '^POSTGRES_DB=', '') | first | default(_pg_entry.database.default_database, true) }}"
+  vars:
+    _env: "{{ _pg_old_env.stdout_lines | default([]) if _pg_old_env.rc == 0 else [] }}"
+
+- name: Remove leftovers of an aborted run for {{ _pg_entry.database.name }}
+  ansible.builtin.command:
+    cmd: "docker rm -f {{ _pg_src_container }} {{ _pg_tgt_container }}"
+  changed_when: false
+  failed_when: false
+
+- name: Start the old PostgreSQL major on the old volume
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --detach
+      - --name
+      - "{{ _pg_src_container }}"
+      - --network
+      - none
+      - -v
+      - "{{ _pg_entry.source_volume }}:{{ _pg_src_mount | trim }}"
+      - "{{ postgres_migrate_source_image }}"
+  changed_when: true
+
+- name: Wait for the old database
+  ansible.builtin.command:
+    cmd: "docker exec {{ _pg_src_container }} pg_isready -h 127.0.0.1 -U {{ _pg_user | quote }} -d {{ _pg_database | quote }}"
+  register: _pg_ready
+  until: _pg_ready.rc == 0
+  retries: "{{ postgres_migrate_ready_retries }}"
+  delay: "{{ postgres_migrate_ready_delay }}"
+  changed_when: false
+
+- name: Count the rows of every table in the old database
+  ansible.builtin.include_tasks:
+    file: count_rows.yml
+  vars:
+    _pg_count_container: "{{ _pg_src_container }}"
+
+- name: Remember the row counts of the old database
+  ansible.builtin.set_fact:
+    _pg_rows_before: "{{ _pg_rows.stdout_lines }}"
+
+- name: Dump the old database
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail;
+      docker exec {{ _pg_src_container }} pg_dump --no-password
+      -U {{ _pg_user | quote }} -d {{ _pg_database | quote }}
+      > {{ _pg_dump_file | quote }}
+    executable: /bin/bash
+  changed_when: true
+
+- name: Restrict access to the dump
+  ansible.builtin.file:
+    path: "{{ _pg_dump_file }}"
+    mode: "0600"
+
+- name: Stop the old PostgreSQL major
+  ansible.builtin.command:
+    cmd: "docker rm --force {{ _pg_src_container }}"
+  changed_when: true
+
+- name: Create the new volume
+  ansible.builtin.command:
+    argv:
+      - docker
+      - volume
+      - create
+      - --label
+      - "com.docker.compose.project={{ postgres_migrate_compose_project }}"
+      - --label
+      - "com.docker.compose.volume={{ _pg_entry.target_volume | regex_replace('^' ~ (postgres_migrate_compose_project | regex_escape) ~ '_', '') }}"
+      - "{{ _pg_entry.target_volume }}"
+  changed_when: true
+
+- name: Initialise the new PostgreSQL major on the new volume
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --detach
+      - --name
+      - "{{ _pg_tgt_container }}"
+      - --network
+      - none
+      - -e
+      - "POSTGRES_USER={{ _pg_user }}"
+      - -e
+      - "POSTGRES_DB={{ _pg_database }}"
+      - -e
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db
+      - -v
+      - "{{ postgres_migrate_secrets_dir }}/{{ _pg_entry.database.secret_file }}:/run/secrets/db:ro"
+      - -v
+      - "{{ _pg_entry.target_volume }}:/var/lib/postgresql"
+      - "{{ postgres_migrate_target_image }}"
+  changed_when: true
+
+# The image listens on TCP only after its initialisation has finished.
+- name: Wait for the new database
+  ansible.builtin.command:
+    cmd: "docker exec {{ _pg_tgt_container }} pg_isready -h 127.0.0.1 -U {{ _pg_user | quote }} -d {{ _pg_database | quote }}"
+  register: _pg_ready
+  until: _pg_ready.rc == 0
+  retries: "{{ postgres_migrate_ready_retries }}"
+  delay: "{{ postgres_migrate_ready_delay }}"
+  changed_when: false
+
+- name: Restore the dump into the new database
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail;
+      docker exec -i {{ _pg_tgt_container }} psql -X --quiet -v ON_ERROR_STOP=1 --single-transaction
+      -U {{ _pg_user | quote }} -d {{ _pg_database | quote }}
+      < {{ _pg_dump_file | quote }}
+    executable: /bin/bash
+  changed_when: true
+
+- name: Count the rows of every table in the new database
+  ansible.builtin.include_tasks:
+    file: count_rows.yml
+  vars:
+    _pg_count_container: "{{ _pg_tgt_container }}"
+
+- name: Assert that every table has the same number of rows
+  ansible.builtin.assert:
+    that:
+      - _pg_rows.stdout_lines == _pg_rows_before
+    fail_msg: >-
+      Row counts differ after the restore of {{ _pg_entry.database.name }}.
+      Before: {{ _pg_rows_before | join(', ') }}. After: {{ _pg_rows.stdout_lines | join(', ') }}.
+
+# A restore carries no planner statistics; collect them before the first use.
+- name: Analyse the new database
+  ansible.builtin.command:
+    cmd: "docker exec {{ _pg_tgt_container }} vacuumdb --analyze-only --quiet -U {{ _pg_user | quote }} -d {{ _pg_database | quote }}"
+  changed_when: true
+
+- name: Stop the new PostgreSQL major
+  ansible.builtin.command:
+    cmd: "docker stop {{ _pg_tgt_container }}"
+  changed_when: true
+
+- name: Remove the temporary container
+  ansible.builtin.command:
+    cmd: "docker rm {{ _pg_tgt_container }}"
+  changed_when: true
