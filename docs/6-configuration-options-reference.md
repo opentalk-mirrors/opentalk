@@ -891,10 +891,11 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
 | `s3_migrate_bucket_name` | string | `opentalk` |
+| `s3_migrate_caller_deploys` | boolean | `false` |
 | `s3_migrate_garage_endpoint` | string | `http://127.0.0.1:3900` |
 | `s3_migrate_minio_endpoint` | string | `http://127.0.0.1:9000` |
 | `s3_migrate_run_deploy` | boolean | `true` |
-| `s3_migrate_settings_file` | string | `{{ config_dir \| default('/etc/opentalk-compose') }}/settings.yml` |
+| `s3_migrate_settings_file` | string | `{{ lookup('env', 'OT_SETTINGS_FILE') \| default((config_dir \| default('/etc/opentalk-compose')) ~ '/settings.yml', true) }}` |
 
 ## opentalk_compose_secrets
 

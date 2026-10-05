@@ -156,7 +156,7 @@ otctl migrate --help
 
 ## 3. Migrating between MinIO and Garage
 
-You can migrate S3 data in either direction — MinIO → Garage or Garage → MinIO — using the `otctl migrate` command. The command automates the full procedure: it installs `rclone` if needed, copies all objects between the two backends, updates `settings.yml`, and optionally runs a deployment to stop the source service.
+You can migrate S3 data in either direction — MinIO → Garage or Garage → MinIO — using the `otctl migrate` command. The command automates the full procedure: it starts the destination, installs `rclone` if needed, copies all objects between the two backends, updates `settings.yml`, and runs a deployment to stop the source service.
 
 > **Important:** Back up your data before starting the migration.
 >
@@ -164,29 +164,7 @@ You can migrate S3 data in either direction — MinIO → Garage or Garage → M
 > otctl backup all
 > ```
 
-### 3.1 Enable both providers in parallel
-
-For a successful migration, both S3 providers must be running at the same time. Add the following to `/etc/opentalk-compose/settings.yml` and deploy:
-
-**MinIO → Garage** (Garage is not yet running):
-
-```yaml
-compose_service_minio_enabled: true
-compose_service_garage_enabled: true
-```
-
-**Garage → MinIO** (MinIO is not yet running):
-
-```yaml
-compose_service_garage_enabled: true
-compose_service_minio_enabled: true
-```
-
-Then run `otctl deploy` to start both services. A warning will appear at the end of the deployment indicating that both providers are active and a migration should be performed.
-
-> **Note:** `s3_storage_provider` controls which S3 endpoint the controller uses. Leave it pointing at the current active provider until the migration is complete.
-
-### 3.2 Run the migration
+### 3.1 Run the migration
 
 ```bash
 # Migrate from MinIO to Garage:
@@ -198,15 +176,16 @@ otctl migrate garage-to-minio
 
 The command will:
 
-1. Install `rclone` on the host if not already present (via `apt`, `dnf` or `zypper`).
-2. Verify that both containers are running and healthy.
-3. Stop the controller, so that no file is uploaded while the objects are copied.
-4. Copy all objects from the source bucket to the destination bucket.
-5. Verify that the object counts match.
-6. Update `settings.yml`: set `s3_storage_provider` to the destination and set `compose_service_<source>_enabled: false`.
-7. Run `otctl deploy` automatically to stop the source service and start the controller against the new backend.
+1. Show the plan and ask for confirmation.
+2. Run a deploy that starts the destination next to the source. You do not have to enable it in `settings.yml` first.
+3. Install `rclone` on the host if not already present (via `apt`, `dnf` or `zypper`).
+4. Verify that both containers are running.
+5. Stop the controller, so that no file is uploaded while the objects are copied.
+6. Copy all objects from the source bucket to the destination bucket and verify that the object counts match.
+7. Update `settings.yml`: set `s3_storage_provider` and `compose_service_<destination>_enabled: true` for the destination, and `compose_service_<source>_enabled: false`.
+8. Run `otctl deploy` to stop the source service and start the controller against the new backend.
 
-> **Downtime:** OpenTalk is unavailable from step 3 until the deploy in step 7 has finished. Running meetings are interrupted, so plan the migration for a maintenance window.
+> **Downtime:** OpenTalk is unavailable from step 5 until the deploy in step 8 has finished. Running meetings are interrupted, so plan the migration for a maintenance window.
 
 If a step fails, the command restarts the controller on the unchanged source and leaves `settings.yml` untouched. Fix the cause and run the command again.
 
@@ -218,7 +197,7 @@ otctl migrate minio-to-garage --no-deploy
 
 The controller then stays stopped until you run `otctl deploy`. Starting it earlier would make it write to the old backend again.
 
-### 3.3 Verify
+### 3.2 Verify
 
 After migration, confirm the destination service is healthy and the controller is using the new backend:
 
@@ -230,7 +209,7 @@ otctl compose exec garage /garage bucket info opentalk
 otctl compose exec minio mc ls local/opentalk
 ```
 
-### 3.4 Clean up (optional)
+### 3.3 Clean up (optional)
 
 Once you have verified the migration, remove the old docker volumes to free disk space:
 

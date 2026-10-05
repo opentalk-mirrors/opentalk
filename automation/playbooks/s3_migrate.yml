@@ -9,15 +9,16 @@
 #   s3_migration_source: minio   # migrate minio → garage
 #   s3_migration_source: garage  # migrate garage → minio
 #
-# Optional parameter:
-#   s3_migrate_run_deploy: false  # skip the automatic post-migration deploy
+# Optional parameters:
+#   s3_migrate_run_deploy: false     # skip the automatic post-migration deploy
+#   s3_migrate_caller_deploys: true  # the caller deploys afterwards (otctl does)
 
 - name: S3 Migration
   hosts: localhost
   gather_facts: true
   vars_files:
     - ../../.versions.yml
-    - /etc/opentalk-compose/settings.yml
+    - "{{ lookup('env', 'OT_SETTINGS_FILE') | default('/etc/opentalk-compose/settings.yml', true) }}"
 
   pre_tasks:
     - name: Abort if s3_migration_source not set

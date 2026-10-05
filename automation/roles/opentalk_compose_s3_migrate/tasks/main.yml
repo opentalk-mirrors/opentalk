@@ -65,5 +65,6 @@
       which starts it against '{{ s3_migration_destination }}'.
   when:
     - not (s3_migrate_run_deploy | bool)
+    - not (s3_migrate_caller_deploys | bool)
     - _s3_migrate_controller_stopped | default(false) | bool
   tags: [s3_migrate_integration, s3_migrate_sync]

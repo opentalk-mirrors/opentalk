@@ -84,7 +84,7 @@ run_logic "$RESULT" -e "s3_migration_source=garage" -e "config_dir=$TMP_DIR"
 [[ $(jq -r '.destination' "$RESULT") == "minio" ]] || { echo "wrong destination (garage->minio)." >&2; exit 1; }
 grep -q "^s3_storage_provider: minio" "$SETTINGS" || { echo "settings s3_storage_provider not switched to minio." >&2; exit 1; }
 grep -q "^compose_service_garage_enabled: false" "$SETTINGS" || { echo "garage service not disabled." >&2; exit 1; }
-grep -q "compose_service_minio_enabled: false" "$SETTINGS" || { echo "minio must remain disabled." >&2; exit 1; }
+grep -q "^compose_service_minio_enabled: true" "$SETTINGS" || { echo "minio must be enabled as the new destination." >&2; exit 1; }
 
 # --- append-if-absent: disabling source line missing from settings ---
 cat > "$SETTINGS" <<'YAML'
@@ -93,6 +93,23 @@ compose_service_garage_enabled: true
 YAML
 run_logic "$TMP_DIR/append.json" -e "s3_migration_source=minio" -e "config_dir=$TMP_DIR"
 grep -q "^compose_service_minio_enabled: false" "$SETTINGS" || { echo "missing minio enable line not appended." >&2; exit 1; }
+
+# --- an explicitly disabled destination is enabled, or the next deploy stops it ---
+cat > "$SETTINGS" <<'YAML'
+s3_storage_provider: minio
+compose_service_minio_enabled: true
+compose_service_garage_enabled: false
+YAML
+run_logic "$TMP_DIR/dest-disabled.json" -e "s3_migration_source=minio" -e "config_dir=$TMP_DIR"
+grep -q "^compose_service_garage_enabled: true" "$SETTINGS" || { echo "destination not enabled in settings." >&2; exit 1; }
+! grep -q "^compose_service_garage_enabled: false" "$SETTINGS" || { echo "stale destination line left behind." >&2; exit 1; }
+
+# --- a missing destination line is appended ---
+cat > "$SETTINGS" <<'YAML'
+compose_service_minio_enabled: true
+YAML
+run_logic "$TMP_DIR/dest-missing.json" -e "s3_migration_source=minio" -e "config_dir=$TMP_DIR"
+grep -q "^compose_service_garage_enabled: true" "$SETTINGS" || { echo "destination line not appended." >&2; exit 1; }
 
 # --- invalid source rejected ---
 cat > "$SETTINGS" <<'YAML'
@@ -173,6 +190,14 @@ expect_fail "$TMP_DIR/sync-fail.log" "The source is unchanged and remains active
 unset OT_TEST_RCLONE_FAIL
 grep -q '^docker start opentalk-controller-1' "$CALLS" || { echo "controller not restarted after a failed copy." >&2; cat "$CALLS" >&2; exit 1; }
 grep -q "^s3_storage_provider: minio" "$SETTINGS" || { echo "settings must stay on the source after a failed copy." >&2; exit 1; }
+
+# When otctl deploys afterwards, the notice about the stopped controller is
+# not shown.
+write_minio_settings
+run_sync "$TMP_DIR/sync-caller.json" -e s3_migrate_caller_deploys=true > "$TMP_DIR/sync-caller.log" 2>&1 || {
+  cat "$TMP_DIR/sync-caller.log" >&2; exit 1; }
+! grep -q "controller stays stopped until you run 'otctl deploy'" "$TMP_DIR/sync-caller.log" || {
+  echo "notice must be skipped when the caller deploys." >&2; exit 1; }
 
 # A controller that was not running is neither stopped nor started.
 write_minio_settings

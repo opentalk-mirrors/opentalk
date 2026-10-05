@@ -777,7 +777,6 @@ RHELP
       minio-to-garage|garage-to-minio)
         _migrate_src="${migrate_what%%-to-*}"
         _migrate_dst="${migrate_what##*-to-}"
-        _migrate_extra_vars="s3_migration_source=${_migrate_src}"
         _migrate_deploy=1
         _migrate_yes=0
         # Rebuild the argument list without our own flags; a pattern
@@ -786,13 +785,17 @@ RHELP
         _migrate_args=()
         for _a in "$@"; do
           case "$_a" in
-            --no-deploy) _migrate_deploy=0; _migrate_extra_vars="${_migrate_extra_vars} s3_migrate_run_deploy=false" ;;
+            --no-deploy) _migrate_deploy=0 ;;
             --yes) _migrate_yes=1 ;;
             *) _migrate_args+=("$_a") ;;
           esac
         done
         set -- ${_migrate_args[@]+"${_migrate_args[@]}"}
+        # otctl runs both deploys itself, so the user's extra arguments reach them.
+        _migrate_caller_deploys=$([ "$_migrate_deploy" -eq 1 ] && echo true || echo false)
+        _migrate_extra_vars="s3_migration_source=${_migrate_src} s3_migrate_run_deploy=false s3_migrate_caller_deploys=${_migrate_caller_deploys}"
         echo "[otctl] MIGRATION PLAN: copy all S3 objects from ${_migrate_src} to ${_migrate_dst}." >&2
+        echo "[otctl] - A deploy starts ${_migrate_dst} next to ${_migrate_src}, unless both already run." >&2
         echo "[otctl] - The controller is stopped while the objects are copied; running meetings are interrupted." >&2
         echo "[otctl] - settings.yml is switched to ${_migrate_dst}. The ${_migrate_src} data stays until you remove its volume." >&2
         if [ "$_migrate_deploy" -eq 1 ]; then
@@ -802,9 +805,15 @@ RHELP
         fi
         echo "[otctl] Tip: run 'otctl backup all' first to keep a rollback point." >&2
         confirm_migration "$_migrate_yes"
+        echo "[otctl] Starting ${_migrate_src} and ${_migrate_dst} side by side." >&2
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --diff \
+          -e "compose_service_minio_enabled=true compose_service_garage_enabled=true s3_migrate_in_progress=true" "$@"
         PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" \
           "$AUTOMATION/playbooks/s3_migrate.yml" \
           -e "$_migrate_extra_vars" "$@"
+        if [ "$_migrate_deploy" -eq 1 ]; then
+          PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --diff "$@"
+        fi
         ;;
       postgres)
         _pg_deploy=1

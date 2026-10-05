@@ -610,10 +610,23 @@ tail -n 1 "$CALLS_LOG" | grep -q -- ' -v$'
   cat "$CALLS_LOG.empty-arg" >&2; exit 1; }
 ! tail -n 1 "$CALLS_LOG" | grep -q -- '--yes' || {
   echo "otctl migrate must not forward --yes to ansible-playbook." >&2; exit 1; }
+# otctl starts both providers first and deploys itself afterwards, so the
+# user's extra arguments reach every playbook and the role never nests one.
+: > "$CALLS_LOG"
+bash "$OTCTL" migrate minio-to-garage --yes -v < /dev/null >/dev/null 2>&1
+[[ $(wc -l < "$CALLS_LOG") -eq 3 ]] || { echo "otctl migrate must start, migrate and deploy." >&2; cat "$CALLS_LOG" >&2; exit 1; }
+sed -n 1p "$CALLS_LOG" | grep -q 'opentalk_compose.yml --diff -e compose_service_minio_enabled=true compose_service_garage_enabled=true s3_migrate_in_progress=true -v'
+sed -n 2p "$CALLS_LOG" | grep -q 's3_migrate.yml -e s3_migration_source=minio s3_migrate_run_deploy=false s3_migrate_caller_deploys=true -v'
+sed -n 3p "$CALLS_LOG" | grep -q 'opentalk_compose.yml --diff -v'
+: > "$CALLS_LOG"
+bash "$OTCTL" migrate garage-to-minio --yes --no-deploy < /dev/null >/dev/null 2>&1
+[[ $(wc -l < "$CALLS_LOG") -eq 2 ]] || { echo "--no-deploy must skip the final deploy." >&2; cat "$CALLS_LOG" >&2; exit 1; }
+grep -q 's3_migrate_caller_deploys=false' "$CALLS_LOG"
 # The plan names the downtime and what happens afterwards.
 migrate_plan=$(bash "$OTCTL" migrate garage-to-minio --no-deploy --yes 2>&1 < /dev/null)
 grep -q 'MIGRATION PLAN: copy all S3 objects from garage to minio' <<<"$migrate_plan"
 grep -q 'running meetings are interrupted' <<<"$migrate_plan"
+grep -q 'A deploy starts minio next to garage' <<<"$migrate_plan"
 grep -q 'controller stays stopped' <<<"$migrate_plan"
 # Without --yes a non-interactive session must refuse and run nothing.
 : > "$CALLS_LOG"
