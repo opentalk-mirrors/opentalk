@@ -21,6 +21,7 @@ spec:
 image: $RUST_IMAGE
 
 stages:
+  - analyze
   - build
   - lint
   - test
@@ -96,6 +97,33 @@ include:
   - project: opentalk/ci/templates/changelog
     ref: v2
     file: .gitlab-ci-template.yml
+
+code-review-agent:
+  stage: analyze
+  image:
+    name: pragent/pr-agent:0.42.0
+    entrypoint: ['']
+  needs: []
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: manual
+  script:
+    - echo "Running PR Agent..."
+    - export MR_URL="$CI_MERGE_REQUEST_PROJECT_URL/-/merge_requests/$CI_MERGE_REQUEST_IID"
+    - echo "MR_URL=$MR_URL"
+    - export GITLAB__URL="$CI_SERVER_URL"
+    - export CONFIG__GIT_PROVIDER="gitlab"
+    - export GITLAB__AUTH_TYPE="private_token"
+
+    - test -n "$PR_AGENT_ACCESS_TOKEN" || { echo "PR_AGENT_ACCESS_TOKEN is not set"; exit 1; }
+    - export GITLAB__PERSONAL_ACCESS_TOKEN="$PR_AGENT_ACCESS_TOKEN"
+
+    - test -n "$PR_AGENT_ANTHROPIC_KEY" || { echo "PR_AGENT_ANTHROPIC_KEY is not set"; exit 1; }
+    - export ANTHROPIC__KEY="$PR_AGENT_ANTHROPIC_KEY"
+
+    - python -m pr_agent.cli --extra_config_url=.pr_agent.toml --pr_url="$MR_URL" review
+    - python -m pr_agent.cli --extra_config_url=.pr_agent.toml --pr_url="$MR_URL" improve
 
 lint:fmt_load_tests:
   stage: lint
