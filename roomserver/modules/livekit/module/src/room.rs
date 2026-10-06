@@ -171,7 +171,7 @@ impl LiveKitSubroom {
             .or_default()
             .insert(identity);
 
-        let service_url = if participant_state.kind.is_service() {
+        let service_url = if participant_state.kind.is_service_or_callin() {
             Some(self.settings.service_url.clone().to_string())
         } else {
             None
