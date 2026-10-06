@@ -48,6 +48,16 @@ _check_glab:
         exit 1
     fi
 
+# Update the version in the OpenAPI spec
+update-openapi:
+    # Update OpenAPI specification (which contains the version number)
+    cargo run -p opentalk-roomserver -- openapi dump > roomserver/api/docs/openapi.yml
+    # Trim whitespace
+    sed -i 's/[[:space:]]*$//' roomserver/api/docs/openapi.yml
+    # Add trailing new line (removed by previous command)
+    echo '' >> roomserver/api/docs/openapi.yml
+    cargo run -p opentalk-controller -- openapi dump > controller/docs/developer/api.yaml
+
 # Prepare a release
 prepare-release VERSION: (set-version VERSION) (update-changelog VERSION)
 
