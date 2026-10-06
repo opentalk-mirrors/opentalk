@@ -1,66 +1,46 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::Arc,
-};
+//! This module implements an excalidraw based whiteboard backend.
+//! It is based on [excalidraw-room](https://github.com/excalidraw/excalidraw-room).
+
+use std::collections::{BTreeMap, HashMap, HashSet, hash_map::Entry};
 
 use anyhow::anyhow;
-use futures::{StreamExt, stream};
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
-        ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
+        ModuleJoinData, ModuleSwitchData, NoOp, NoSettings, PeerDataMap, SignalingModule,
         SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
     },
-    storage::assets::ModuleAssetStorage,
 };
 use opentalk_roomserver_types::{
+    breakout::BreakoutRoom,
     connection_id::ConnectionId,
     room_kind::RoomKind,
     signaling::module_error::{FatalError, SignalingModuleError},
 };
 use opentalk_roomserver_types_whiteboard::{
-    WHITEBOARD_MODULE_ID, WhiteboardCommand, WhiteboardError, WhiteboardEvent, WhiteboardSettings,
-    WhiteboardState, state::SpaceInfo,
+    WHITEBOARD_MODULE_ID, WhiteboardCommand, WhiteboardError, WhiteboardEvent,
+    edit_restrictions::EditRestrictions,
 };
-use opentalk_types_common::{modules::ModuleId, time::Timestamp};
+use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
-use tracing::{Instrument, Span};
 
-use crate::{client::SpacedeckClient, loopback::WhiteboardLoopback};
+use crate::state::WhiteboardState;
 
-const PARALLEL_UPDATES: usize = 25;
-
-pub mod client;
-mod loopback;
-
-enum InitState {
-    Initializing,
-    Initialized(SpaceInfo),
-}
-
-impl From<&InitState> for WhiteboardState {
-    fn from(value: &InitState) -> Self {
-        match value {
-            InitState::Initializing => Self::Initializing,
-            InitState::Initialized(SpaceInfo { url, .. }) => Self::Initialized(url.clone()),
-        }
-    }
-}
+pub mod state;
 
 pub struct WhiteboardModule {
-    state: HashMap<RoomKind, InitState>,
-    client: Arc<SpacedeckClient>,
+    state: HashMap<RoomKind, WhiteboardState>,
 }
 
 impl SignalingModuleDescription for WhiteboardModule {
     const MODULE_ID: ModuleId = WHITEBOARD_MODULE_ID;
-    const DESCRIPTION: &'static str = "Handles whiteboard integration. The whiteboard is a collaborative drawing board that can be used during the meeting.";
+    const DESCRIPTION: &'static str = "Handles excalidraw based whiteboard integration. Excalidraw is a collaborative drawing board.";
     const FEATURES: &[SignalingModuleFeatureDescription] = &[];
 
-    type Settings = WhiteboardSettings;
+    type Settings = NoSettings;
 }
 
 impl SignalingModule for WhiteboardModule {
@@ -72,7 +52,7 @@ impl SignalingModule for WhiteboardModule {
 
     type Internal = NoOp;
 
-    type Loopback = Result<WhiteboardLoopback, SignalingModuleError<WhiteboardError>>;
+    type Loopback = ();
 
     type JoinInfo = WhiteboardState;
 
@@ -80,20 +60,9 @@ impl SignalingModule for WhiteboardModule {
 
     type Error = WhiteboardError;
 
-    fn init(init_data: SignalingModuleInitData) -> Option<Self> {
-        let settings = init_data
-            .room_parameters
-            .module_settings
-            .get::<WhiteboardSettings>()
-            .inspect_err(|err| {
-                tracing::error!("Failed to deserialize whiteboard settings: {err:?}")
-            })
-            .ok()??;
-        let spacedeck = SpacedeckClient::new(settings.base_url, settings.api_key);
-
+    fn init(_init_data: SignalingModuleInitData) -> Option<Self> {
         Some(Self {
             state: HashMap::new(),
-            client: Arc::new(spacedeck),
         })
     }
 
@@ -104,23 +73,19 @@ impl SignalingModule for WhiteboardModule {
         _connection_id: ConnectionId,
         _is_first_connection: bool,
     ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
-        if let Some(state) = self.state.get(&ctx.room) {
-            Ok(ModuleJoinData {
-                join_success: Some(state.into()),
-                peer_events: PeerDataMap::default(),
-                peer_data: PeerDataMap::default(),
-            })
-        } else {
-            Ok(ModuleJoinData::default())
-        }
+        let join_success = self.state.get(&ctx.room).cloned();
+        Ok(ModuleJoinData {
+            join_success,
+            peer_events: PeerDataMap::default(),
+            peer_data: PeerDataMap::default(),
+        })
     }
 
-    #[allow(unused_variables)]
     fn on_participant_disconnected(
         &mut self,
-        ctx: &mut ModuleContext<'_, Self>,
-        participant_id: ParticipantId,
-        connection_id: ConnectionId,
+        _ctx: &mut ModuleContext<'_, Self>,
+        _participant_id: ParticipantId,
+        _connection_id: ConnectionId,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         Ok(())
     }
@@ -133,49 +98,52 @@ impl SignalingModule for WhiteboardModule {
         payload: Self::Incoming,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
         match payload {
-            WhiteboardCommand::Initialize => self.initialize(ctx, sender),
-            WhiteboardCommand::GeneratePdf => self.generate_pdf(ctx, sender),
+            WhiteboardCommand::Start {
+                initial_scene,
+                edit_restrictions,
+            } => self.start(ctx, sender, initial_scene, edit_restrictions),
+            WhiteboardCommand::Stop => self.stop(ctx, sender),
+            WhiteboardCommand::BroadcastVolatile { data } => {
+                self.broadcast_volatile(ctx, sender, data)
+            }
+            WhiteboardCommand::Broadcast { data } => self.broadcast(ctx, sender, data),
+            WhiteboardCommand::Follow { participant_id } => {
+                self.follow(ctx, sender, participant_id)
+            }
+            WhiteboardCommand::Unfollow { participant_id } => {
+                self.unfollow(ctx, sender, participant_id)
+            }
+            WhiteboardCommand::StoreScene { scene } => self.store_scene(ctx, sender, scene),
+            WhiteboardCommand::EnableEditRestrictions {
+                unrestricted_participants,
+            } => self.enable_edit_restrictions(ctx, sender, unrestricted_participants),
+            WhiteboardCommand::DisableEditRestrictions => {
+                self.disable_edit_restrictions(ctx, sender)
+            }
         }
     }
 
-    fn on_loopback_event(
+    fn on_breakout_start(
         &mut self,
-        ctx: &mut ModuleContext<'_, Self>,
-        event: Self::Loopback,
+        _ctx: &mut ModuleContext<'_, Self>,
+        rooms: &[BreakoutRoom],
+        _duration: Option<std::time::Duration>,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        match event {
-            Ok(WhiteboardLoopback::SpaceCreated { info }) => {
-                tracing::debug!(
-                    "Spacedeck space for room {:?} created: {:?}",
-                    ctx.room,
-                    info.id
-                );
-                let url = info.url.clone();
-                let previous = self.state.insert(ctx.room, InitState::Initialized(info));
-                if let Some(previous) = previous
-                    && matches!(previous, InitState::Initialized(..))
-                {
-                    tracing::warn!("Spacedeck created, but a previous one already existed");
-                }
-                ctx.send_ws_message(
-                    ctx.participants.in_room(ctx.room).connected().ids(),
-                    WhiteboardEvent::Initialized { url },
-                )?;
-            }
-            Ok(WhiteboardLoopback::PdfCreated { asset }) => ctx.send_ws_message(
-                ctx.participants.in_room(ctx.room).connected().ids(),
-                WhiteboardEvent::PdfCreated {
-                    filename: asset.filename,
-                    asset_id: asset.id,
-                },
-            )?,
-            Err(SignalingModuleError::Module(WhiteboardError::InitializationFailed)) => {
-                self.state.remove(&ctx.room);
-                return Err(WhiteboardError::InitializationFailed.into());
-            }
-            Err(err) => return Err(err),
-        };
-
+        // Autostart the whiteboard with a fresh board in the breakout rooms when it is already
+        // running in the main room.
+        if self.state.contains_key(&RoomKind::Main) {
+            self.state.extend(rooms.iter().map(|room| {
+                (
+                    RoomKind::Breakout(room.id),
+                    WhiteboardState {
+                        // Initializing whiteboard with empty scene; required by the frontend to be
+                        // set correctly.
+                        scene: serde_json::json!({"elements": []}),
+                        edit_restrictions: EditRestrictions::default(),
+                    },
+                )
+            }));
+        }
         Ok(())
     }
 
@@ -187,7 +155,6 @@ impl SignalingModule for WhiteboardModule {
         new_room: RoomKind,
     ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Self::Error>> {
         let Some(state) = self.state.get(&new_room) else {
-            // There is no whiteboard in the new room, nothing to do.
             return Ok(ModuleSwitchData::default());
         };
 
@@ -197,7 +164,7 @@ impl SignalingModule for WhiteboardModule {
                 "Participant {participant_id:?} switched without participant state"
             )))?
             .connections()
-            .map(|connection_id| (connection_id, Some(state.into())))
+            .map(|id| (id, Some(state.clone())))
             .collect();
 
         Ok(ModuleSwitchData {
@@ -209,83 +176,49 @@ impl SignalingModule for WhiteboardModule {
 
     fn on_breakout_closed(
         &mut self,
-        ctx: &mut ModuleContext<'_, Self>,
+        _ctx: &mut ModuleContext<'_, Self>,
     ) -> Result<(), SignalingModuleError<Self::Error>> {
-        let breakout_rooms: Vec<String> = self
-            .state
-            .extract_if(|&room, _| room != RoomKind::Main)
-            .filter_map(|(.., state)| match state {
-                InitState::Initializing => None,
-                InitState::Initialized(SpaceInfo { id, .. }) => Some(id),
-            })
-            .collect();
-        Self::delete_spaces(
-            Arc::clone(&self.client),
-            ctx.assets(),
-            breakout_rooms,
-            ctx.timestamp,
-        );
-
-        Ok(())
-    }
-
-    fn on_closing(&mut self, ctx: &mut ModuleContext<'_, Self>) -> anyhow::Result<()> {
-        let spaces: Vec<String> = self
-            .state
-            .drain()
-            .filter_map(|(.., state)| match state {
-                InitState::Initializing => None,
-                InitState::Initialized(SpaceInfo { id, .. }) => Some(id),
-            })
-            .collect();
-        Self::delete_spaces(
-            Arc::clone(&self.client),
-            ctx.assets(),
-            spaces,
-            Timestamp::now(),
-        );
+        self.state.retain(|room, _| *room == RoomKind::Main);
 
         Ok(())
     }
 }
 
 impl WhiteboardModule {
-    fn initialize(
+    #[tracing::instrument(skip(self, ctx, initial_scene), level = "debug")]
+    fn start(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
+        initial_scene: serde_json::Value,
+        edit_restrictions: EditRestrictions,
     ) -> Result<(), SignalingModuleError<WhiteboardError>> {
         if !ctx.is_moderator(sender) {
             return Err(WhiteboardError::InsufficientPermissions.into());
         }
 
-        if let Some(state) = self.state.get(&ctx.room) {
-            match state {
-                InitState::Initializing => {
-                    return Err(WhiteboardError::CurrentlyInitializing.into());
-                }
-                InitState::Initialized(..) => {
-                    return Err(WhiteboardError::AlreadyInitialized.into());
-                }
-            }
-        }
+        let Entry::Vacant(vacant_entry) = self.state.entry(ctx.room) else {
+            return Err(WhiteboardError::AlreadyStarted.into());
+        };
 
-        self.state.insert(ctx.room, InitState::Initializing);
-        ctx.spawn(loopback::create_space(
-            Arc::clone(&self.client),
-            ctx.room_id,
-            ctx.room,
-        ));
+        vacant_entry.insert(WhiteboardState {
+            scene: initial_scene.clone(),
+            edit_restrictions: edit_restrictions.clone(),
+        });
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
-            WhiteboardEvent::InitializationStarted,
+            WhiteboardEvent::Started {
+                initial_scene,
+                edit_restrictions,
+            },
         )?;
 
         Ok(())
     }
 
-    fn generate_pdf(
+    #[tracing::instrument(skip(self, ctx), level = "debug")]
+    fn stop(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
@@ -294,46 +227,252 @@ impl WhiteboardModule {
             return Err(WhiteboardError::InsufficientPermissions.into());
         }
 
-        let id = match self.state.get(&ctx.room) {
-            Some(InitState::Initialized(SpaceInfo { id, .. })) => id.to_owned(),
-            Some(InitState::Initializing) => {
-                return Err(WhiteboardError::CurrentlyInitializing.into());
-            }
-            None => return Err(WhiteboardError::NotInitialized.into()),
-        };
-        ctx.spawn(loopback::generate_pdf(
-            Arc::clone(&self.client),
-            ctx.assets(),
-            id,
-            ctx.timestamp,
-        ));
+        self.state.remove(&ctx.room);
+
+        ctx.send_ws_message(
+            ctx.participants.in_room(ctx.room).connected().ids(),
+            WhiteboardEvent::Stopped,
+        )?;
+
+        Ok(())
+    }
+    /// Broadcasts a volatile update to all participants in the room
+    ///
+    /// Implements the `server-volatile-broadcast` commands from excalidraw-room.
+    #[tracing::instrument(skip(self, ctx, data), level = "debug")]
+    fn broadcast_volatile(
+        &self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        data: serde_json::Value,
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
+        if !self.state.contains_key(&ctx.room) {
+            return Err(WhiteboardError::NotStarted.into());
+        }
+
+        // The volatile broadcast cannot modify the whiteboard state, so all participants are
+        // allowed to use it.
+        ctx.send_ws_message(
+            ctx.participants.in_room(ctx.room).connected().ids(),
+            WhiteboardEvent::VolatileBroadcast { sender, data },
+        )?;
 
         Ok(())
     }
 
-    #[tracing::instrument(skip_all, fields(spaces), level = "debug")]
-    fn delete_spaces(
-        client: Arc<SpacedeckClient>,
-        storage: ModuleAssetStorage,
-        spaces: Vec<String>,
-        timestamp: Timestamp,
-    ) {
-        let span = Span::current();
-        let future = stream::iter(spaces)
-            .map(move |id| {
-                let client = Arc::clone(&client);
-                let storage_client = storage.clone();
-                let span = span.clone();
+    /// Broadcasts a non-volatile update to all participants in the room. This update can modify the
+    /// whiteboard state and is restricted to participants that are allowed to edit whiteboard.
+    ///
+    /// Implements the `server-broadcast` commands from excalidraw-room.
+    #[tracing::instrument(skip(self, ctx, data), level = "debug")]
+    fn broadcast(
+        &self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        data: serde_json::Value,
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
+        let Some(restrictions) = self
+            .state
+            .get(&ctx.room)
+            .map(|state| &state.edit_restrictions)
+        else {
+            return Err(WhiteboardError::NotStarted.into());
+        };
 
-                async move {
-                    loopback::delete_space(client, storage_client, id, timestamp).await;
-                }
-                .instrument(span)
-            })
-            .buffer_unordered(PARALLEL_UPDATES)
-            .collect::<Vec<()>>()
-            .in_current_span();
-        tokio::spawn(future);
+        // The broadcast can modify the whiteboard state, so only participants that are allowed to
+        // edit are allowed to use it.
+        if !Self::is_allowed_to_edit(ctx, sender, restrictions) {
+            return Err(WhiteboardError::InsufficientPermissions.into());
+        }
+
+        ctx.send_ws_message(
+            ctx.participants.in_room(ctx.room).connected().ids(),
+            WhiteboardEvent::Broadcast { sender, data },
+        )?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self, ctx, scene), level = "debug")]
+    fn store_scene(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        scene: serde_json::Value,
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
+        let Some(state) = self.state.get_mut(&ctx.room) else {
+            return Err(WhiteboardError::NotStarted.into());
+        };
+
+        if !Self::is_allowed_to_edit(ctx, sender, &state.edit_restrictions) {
+            return Err(WhiteboardError::InsufficientPermissions.into());
+        }
+
+        state.scene = scene.clone();
+
+        ctx.send_ws_message(
+            ctx.participants.in_room(ctx.room).connected().ids(),
+            WhiteboardEvent::SceneStored { scene },
+        )?;
+
+        Ok(())
+    }
+
+    /// One participant starts following another participant, i.e. their whiteboard view will be
+    /// synced to the followed participant's view.
+    ///
+    /// Implements the `user-follow` command with the `FOLLOW` action from excalidraw-room.
+    #[tracing::instrument(skip(self, ctx), level = "debug")]
+    fn follow(
+        &self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        target: ParticipantId,
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
+        if !self.state.contains_key(&ctx.room) {
+            return Err(WhiteboardError::NotStarted.into());
+        }
+
+        if !ctx
+            .participants
+            .in_room(ctx.room)
+            .connected()
+            .contains(&target)
+        {
+            return Err(WhiteboardError::UnknownParticipant.into());
+        }
+
+        // Notify the target participant that they are being followed
+        ctx.send_ws_message(
+            [target],
+            WhiteboardEvent::FollowerGained {
+                participant_id: sender,
+            },
+        )?;
+
+        // Notify the sender that following the target participant was successful
+        ctx.send_ws_message(
+            [sender],
+            WhiteboardEvent::Followed {
+                participant_id: target,
+            },
+        )?;
+
+        Ok(())
+    }
+
+    /// One participant stops following another participant.
+    ///
+    /// Implements the `user-follow` command with the `UNFOLLOW` action from excalidraw-room.
+    #[tracing::instrument(skip(self, ctx), level = "debug")]
+    fn unfollow(
+        &self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        target: ParticipantId,
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
+        if !self.state.contains_key(&ctx.room) {
+            return Err(WhiteboardError::NotStarted.into());
+        }
+
+        if !ctx
+            .participants
+            .in_room(ctx.room)
+            .connected()
+            .contains(&target)
+        {
+            return Err(WhiteboardError::UnknownParticipant.into());
+        }
+
+        // We do not handle the case that the sender wasn't following the target participant in the
+        // first place. In this case the target participant still receives an unfollow event, but
+        // the client should be able to handle this. It is not worth tracking the following state
+        // server side.
+        // Notify the target participant that they are being unfollowed
+        ctx.send_ws_message(
+            [target],
+            WhiteboardEvent::FollowerLost {
+                participant_id: sender,
+            },
+        )?;
+
+        // Notify the sender that unfollowing the target participant was successful
+        ctx.send_ws_message(
+            [sender],
+            WhiteboardEvent::Unfollowed {
+                participant_id: target,
+            },
+        )?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self, ctx), level = "debug")]
+    fn enable_edit_restrictions(
+        &mut self,
+        ctx: &ModuleContext<'_, Self>,
+        sender: ParticipantId,
+        unrestricted_participants: HashSet<ParticipantId>,
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(WhiteboardError::InsufficientPermissions.into());
+        }
+
+        let Some(state) = self.state.get_mut(&ctx.room) else {
+            return Err(WhiteboardError::NotStarted.into());
+        };
+
+        state.edit_restrictions = EditRestrictions::Enabled {
+            unrestricted_participants: unrestricted_participants.clone(),
+        };
+
+        ctx.send_ws_message(
+            ctx.participants.in_room(ctx.room).connected().ids(),
+            WhiteboardEvent::EditRestrictionsEnabled {
+                unrestricted_participants,
+            },
+        )?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self, ctx), level = "debug")]
+    fn disable_edit_restrictions(
+        &mut self,
+        ctx: &ModuleContext<'_, Self>,
+        sender: ParticipantId,
+    ) -> Result<(), SignalingModuleError<WhiteboardError>> {
+        if !ctx.is_moderator(sender) {
+            return Err(WhiteboardError::InsufficientPermissions.into());
+        }
+
+        let Some(state) = self.state.get_mut(&ctx.room) else {
+            return Err(WhiteboardError::NotStarted.into());
+        };
+
+        state.edit_restrictions = EditRestrictions::Disabled;
+
+        ctx.send_ws_message(
+            ctx.participants.in_room(ctx.room).connected().ids(),
+            WhiteboardEvent::EditRestrictionsDisabled,
+        )?;
+
+        Ok(())
+    }
+
+    fn is_allowed_to_edit(
+        ctx: &ModuleContext<'_, Self>,
+        participant_id: ParticipantId,
+        restrictions: &EditRestrictions,
+    ) -> bool {
+        ctx.is_moderator(participant_id)
+            || restrictions == &EditRestrictions::Disabled
+            || matches!(
+                restrictions,
+                EditRestrictions::Enabled {
+                    unrestricted_participants
+                } if unrestricted_participants.contains(&participant_id)
+            )
     }
 }
 
@@ -348,10 +487,6 @@ mod tests {
     fn serialize_example_config() {
         let produced = toml::to_string_pretty(&WhiteboardModule::example_config()).unwrap();
 
-        assert_snapshot!(produced, @r#"
-        [whiteboard]
-        api_key = "secret"
-        base_url = "http://localhost:9666/"
-        "#);
+        assert_snapshot!(produced, @"[whiteboard]");
     }
 }

@@ -91,20 +91,6 @@ This module does not provide any configurable features.
 [echo]
 ```
 
-## Module `excalidraw`
-
-Handles excalidraw whiteboard integration. Excalidraw is a collaborative drawing board.
-
-### Features
-
-This module does not provide any configurable features.
-
-### Example
-
-```toml
-[excalidraw]
-```
-
 ## Module `legal_vote`
 
 Handles the legal-vote functionality
@@ -337,7 +323,7 @@ secret = "secret"
 
 ## Module `whiteboard`
 
-Handles whiteboard integration. The whiteboard is a collaborative drawing board that can be used during the meeting.
+Handles excalidraw based whiteboard integration. Excalidraw is a collaborative drawing board.
 
 ### Features
 
@@ -347,8 +333,6 @@ This module does not provide any configurable features.
 
 ```toml
 [whiteboard]
-api_key = "secret"
-base_url = "http://localhost:9666/"
 ```
 
 <!-- end:fromfile:modules/module-features-documentation.md -->
@@ -373,7 +357,6 @@ chat: []
 core: ["call_in", "guests_allowed", "storage_upgradable"]
 e2ee: []
 echo: []
-excalidraw: []
 legal_vote: []
 livekit: []
 meeting_notes: []

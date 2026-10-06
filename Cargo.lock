@@ -9927,7 +9927,6 @@ dependencies = [
  "opentalk-roomserver-types-chat",
  "opentalk-roomserver-types-e2ee",
  "opentalk-roomserver-types-echo",
- "opentalk-roomserver-types-excalidraw",
  "opentalk-roomserver-types-legal-vote",
  "opentalk-roomserver-types-livekit",
  "opentalk-roomserver-types-meeting-notes",
@@ -10117,27 +10116,6 @@ dependencies = [
  "test-log",
  "tokio",
  "toml 1.1.6+spec-1.1.0",
-]
-
-[[package]]
-name = "opentalk-roomserver-module-excalidraw"
-version = "3.0.0"
-dependencies = [
- "anyhow",
- "insta",
- "opentalk-roomserver-room",
- "opentalk-roomserver-signaling",
- "opentalk-roomserver-types",
- "opentalk-roomserver-types-excalidraw",
- "opentalk-types-common",
- "opentalk-types-signaling",
- "pretty_assertions",
- "serde",
- "serde_json",
- "test-log",
- "tokio",
- "toml 1.1.6+spec-1.1.0",
- "tracing",
 ]
 
 [[package]]
@@ -10469,8 +10447,6 @@ name = "opentalk-roomserver-module-whiteboard"
 version = "3.0.0"
 dependencies = [
  "anyhow",
- "bytes 1.12.1",
- "futures",
  "insta",
  "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
@@ -10479,10 +10455,9 @@ dependencies = [
  "opentalk-types-common",
  "opentalk-types-signaling",
  "pretty_assertions",
- "reqwest 0.13.5",
  "serde",
+ "serde_json",
  "test-log",
- "testcontainers",
  "tokio",
  "toml 1.1.6+spec-1.1.0",
  "tracing",
@@ -10497,7 +10472,6 @@ dependencies = [
  "opentalk-roomserver-module-chat",
  "opentalk-roomserver-module-e2ee",
  "opentalk-roomserver-module-echo",
- "opentalk-roomserver-module-excalidraw",
  "opentalk-roomserver-module-legal-vote",
  "opentalk-roomserver-module-livekit",
  "opentalk-roomserver-module-meeting-notes",
@@ -10533,7 +10507,6 @@ dependencies = [
  "opentalk-roomserver-types-timer",
  "opentalk-roomserver-types-training-participation-report",
  "opentalk-roomserver-types-transcription",
- "opentalk-roomserver-types-whiteboard",
  "opentalk-types-common",
 ]
 
@@ -10698,20 +10671,6 @@ dependencies = [
  "opentalk-roomserver-signaling",
  "opentalk-types-common",
  "serde",
-]
-
-[[package]]
-name = "opentalk-roomserver-types-excalidraw"
-version = "3.0.0"
-dependencies = [
- "insta",
- "opentalk-roomserver-signaling",
- "opentalk-roomserver-types",
- "opentalk-types-common",
- "opentalk-types-signaling",
- "pretty_assertions",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -10931,7 +10890,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_json",
- "url",
 ]
 
 [[package]]

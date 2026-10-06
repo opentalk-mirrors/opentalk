@@ -24,7 +24,6 @@ opentalk-roomserver-types-automod.workspace = true
 opentalk-roomserver-types-chat.workspace = true
 opentalk-roomserver-types-e2ee.workspace = true
 opentalk-roomserver-types-echo.workspace = true
-opentalk-roomserver-types-excalidraw.workspace = true
 opentalk-roomserver-types-legal-vote.workspace = true
 opentalk-roomserver-types-livekit.workspace = true
 opentalk-roomserver-types-meeting-notes.workspace = true

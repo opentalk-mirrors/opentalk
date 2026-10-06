@@ -1,37 +1,72 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-//! Signaling events for the `whiteboard` namespace
+//! Signaling events for the `whiteboard` namespace.
 
-use opentalk_roomserver_signaling::storage::assets::StorageError;
-use opentalk_roomserver_types::signaling::module_error::ModuleError;
-use opentalk_types_common::assets::AssetId;
+use std::collections::HashSet;
+
+use opentalk_types_signaling::ParticipantId;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
-/// Events sent out by the `whiteboard` module.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case", tag = "message")]
+use crate::{EditRestrictions, WhiteboardError};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "message", rename_all = "snake_case")]
 pub enum WhiteboardEvent {
-    /// Initialization of spacedeck has started.
-    InitializationStarted,
-
-    /// Spacedeck has been initialized.
-    Initialized {
-        /// URL to the space.
-        url: Url,
+    /// A whiteboard session has been started
+    Started {
+        /// The initial scene of the whiteboard
+        initial_scene: serde_json::Value,
+        edit_restrictions: EditRestrictions,
     },
-
-    /// The whiteboard was exported as PDF and stored in the asset store.
-    PdfCreated {
-        /// The file name of the PDF asset.
-        filename: String,
-
-        /// The asset id for the PDF asset.
-        asset_id: AssetId,
+    /// The whiteboard session ended
+    Stopped,
+    /// A volatile update has been broadcasted
+    VolatileBroadcast {
+        /// The id of the participant that sent the update
+        sender: ParticipantId,
+        /// Arbitrary whiteboard data
+        data: serde_json::Value,
     },
-
-    /// An error happened when executing a `whiteboard` command.
+    /// A whiteboard update has been broadcasted
+    Broadcast {
+        /// The id of the participant that sent the update
+        sender: ParticipantId,
+        /// Arbitrary whiteboard data
+        data: serde_json::Value,
+    },
+    /// The scene has been updated and persisted server-side.
+    SceneStored { scene: serde_json::Value },
+    /// Another participant has started following this participant
+    FollowerGained {
+        /// The id of the participant that started following
+        participant_id: ParticipantId,
+    },
+    /// The participant has started following another participant
+    Followed {
+        /// The id of the participant that is being followed
+        participant_id: ParticipantId,
+    },
+    /// Another participant has stopped following this participant
+    FollowerLost {
+        /// The id of the participant that stopped following
+        participant_id: ParticipantId,
+    },
+    /// The participant has stopped following another participant
+    Unfollowed {
+        /// The id of the participant that is being unfollowed
+        participant_id: ParticipantId,
+    },
+    /// The edit restrictions have been enabled, only a subset of participants are allowed to edit
+    /// the whiteboard. Moderators are are always allowed to edit the whiteboard.
+    EditRestrictionsEnabled {
+        /// The list of participants that are still allowed to edit
+        unrestricted_participants: HashSet<ParticipantId>,
+    },
+    /// The edit restrictions have been disabled, all participants are allowed to edit the
+    /// whiteboard.
+    EditRestrictionsDisabled,
+    /// An error happened when executing a `whiteboard` command
     Error(WhiteboardError),
 }
 
@@ -41,142 +76,360 @@ impl From<WhiteboardError> for WhiteboardEvent {
     }
 }
 
-/// Error from the `whiteboard` module namespace
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "error", rename_all = "snake_case")]
-pub enum WhiteboardError {
-    /// The requesting user has insufficient permissions for the operation.
-    InsufficientPermissions,
-    /// Spacedeck has not been initialized yet.
-    NotInitialized,
-    /// Spacedeck is already initializing.
-    CurrentlyInitializing,
-    /// The spacedeck initialization failed.
-    InitializationFailed,
-    /// Spacedeck is already initialized.
-    AlreadyInitialized,
-    /// The requesting user has exceeded their storage.
-    StorageExceeded,
-    /// An internal error occurred while saving the whiteboard pdf.
-    InternalStorage,
-}
-
-impl ModuleError for WhiteboardError {}
-
-impl From<StorageError> for WhiteboardError {
-    fn from(err: StorageError) -> Self {
-        match err {
-            StorageError::QuotaExceeded => Self::StorageExceeded,
-            StorageError::Internal(..) | StorageError::ReadAsset(..) => Self::InternalStorage,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use insta::assert_snapshot;
-    use opentalk_types_common::assets::AssetId;
+    use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
     use serde_json::json;
-    use url::Url;
 
     use super::WhiteboardEvent;
-    use crate::event::WhiteboardError;
+    use crate::{EditRestrictions, WhiteboardError};
 
     #[test]
-    fn serialize_initialization_started() {
-        let event = WhiteboardEvent::InitializationStarted;
-        let produced = serde_json::to_string_pretty(&event).unwrap();
-
-        assert_snapshot!(produced, @r#"
-        {
-          "message": "initialization_started"
-        }
-        "#);
-    }
-
-    #[test]
-    fn deserialize_initialization_started() {
-        let json = json!({
-            "message": "initialization_started"
-        });
-        let produced: WhiteboardEvent = serde_json::from_value(json).unwrap();
-
-        assert_eq!(produced, WhiteboardEvent::InitializationStarted);
-    }
-
-    #[test]
-    fn serialize_initialized() {
-        let event = WhiteboardEvent::Initialized {
-            url: Url::parse("https://example.com").unwrap(),
+    fn serialize_started() {
+        let event = WhiteboardEvent::Started {
+            initial_scene: json!({"some": "scene"}),
+            edit_restrictions: EditRestrictions::Disabled,
         };
-        let produced = serde_json::to_string_pretty(&event).unwrap();
+        let raw = serde_json::to_string_pretty(&event).unwrap();
 
-        assert_snapshot!(produced, @r#"
+        assert_snapshot!(raw, @r#"
         {
-          "message": "initialized",
-          "url": "https://example.com/"
+          "message": "started",
+          "initial_scene": {
+            "some": "scene"
+          },
+          "edit_restrictions": {
+            "type": "disabled"
+          }
         }
         "#);
     }
 
     #[test]
-    fn deserialize_initialized() {
+    fn deserialize_started() {
         let json = json!({
-            "message": "initialized",
-            "url": "https://example.com/"
+            "message": "started",
+            "initial_scene": {
+                "some": "scene",
+            },
+            "edit_restrictions": {
+                "type": "disabled",
+            },
         });
-        let produced: WhiteboardEvent = serde_json::from_value(json).unwrap();
 
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
-            produced,
-            WhiteboardEvent::Initialized {
-                url: Url::parse("https://example.com").unwrap(),
+            event,
+            WhiteboardEvent::Started {
+                initial_scene: json!({"some": "scene"}),
+                edit_restrictions: EditRestrictions::Disabled,
             }
         );
     }
 
     #[test]
-    fn serialize_pdf_asset() {
-        let event = WhiteboardEvent::PdfCreated {
-            filename: "asset.pdf".into(),
-            asset_id: AssetId::from_u128(0x1),
+    fn serialize_volatile_broadcast() {
+        let event = WhiteboardEvent::VolatileBroadcast {
+            sender: ParticipantId::nil(),
+            data: json!({"some": "data"}),
         };
-        let produced = serde_json::to_string_pretty(&event).unwrap();
+        let raw = serde_json::to_string_pretty(&event).unwrap();
 
-        assert_snapshot!(produced, @r#"
+        assert_snapshot!(raw, @r#"
         {
-          "message": "pdf_created",
-          "filename": "asset.pdf",
-          "asset_id": "00000000-0000-0000-0000-000000000001"
+          "message": "volatile_broadcast",
+          "sender": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "some": "data"
+          }
         }
         "#);
     }
 
     #[test]
-    fn deserialize_pdf_asset() {
+    fn deserialize_volatile_broadcast() {
         let json = json!({
-            "message": "pdf_created",
-            "filename": "asset.pdf",
-            "asset_id": "00000000-0000-0000-0000-000000000001",
+            "message": "volatile_broadcast",
+            "sender": "00000000-0000-0000-0000-000000000000",
+            "data": {"some": "data"},
         });
-        let produced: WhiteboardEvent = serde_json::from_value(json).unwrap();
 
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
-            produced,
-            WhiteboardEvent::PdfCreated {
-                filename: "asset.pdf".into(),
-                asset_id: AssetId::from_u128(0x1),
+            event,
+            WhiteboardEvent::VolatileBroadcast {
+                sender: ParticipantId::nil(),
+                data: json!({"some": "data"}),
             }
         );
     }
 
     #[test]
-    fn serialize_insufficient_permissions_error() {
+    fn serialize_broadcast() {
+        let event = WhiteboardEvent::Broadcast {
+            sender: ParticipantId::nil(),
+            data: json!({"some": "data"}),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "message": "broadcast",
+          "sender": "00000000-0000-0000-0000-000000000000",
+          "data": {
+            "some": "data"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_broadcast() {
+        let json = json!({
+            "message": "broadcast",
+            "sender": "00000000-0000-0000-0000-000000000000",
+            "data": {"some": "data"},
+        });
+
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
+        assert_eq!(
+            event,
+            WhiteboardEvent::Broadcast {
+                sender: ParticipantId::nil(),
+                data: json!({"some": "data"}),
+            }
+        );
+    }
+
+    #[test]
+    fn serialize_scene_stored() {
+        let event = WhiteboardEvent::SceneStored {
+            scene: json!({"some": "scene"}),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "message": "scene_stored",
+          "scene": {
+            "some": "scene"
+          }
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_scene_stored() {
+        let json = json!({
+            "message": "scene_stored",
+            "scene": {"some": "scene"},
+        });
+
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
+        assert_eq!(
+            event,
+            WhiteboardEvent::SceneStored {
+                scene: json!({"some": "scene"}),
+            }
+        );
+    }
+
+    #[test]
+    fn serialize_follower_gained() {
+        let event = WhiteboardEvent::FollowerGained {
+            participant_id: ParticipantId::nil(),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "message": "follower_gained",
+          "participant_id": "00000000-0000-0000-0000-000000000000"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_follower_gained() {
+        let json = json!({
+            "message": "follower_gained",
+            "participant_id": "00000000-0000-0000-0000-000000000000",
+        });
+
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
+        assert_eq!(
+            event,
+            WhiteboardEvent::FollowerGained {
+                participant_id: ParticipantId::nil(),
+            }
+        );
+    }
+
+    #[test]
+    fn serialize_followed() {
+        let event = WhiteboardEvent::Followed {
+            participant_id: ParticipantId::nil(),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "message": "followed",
+          "participant_id": "00000000-0000-0000-0000-000000000000"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_followed() {
+        let json = json!({
+            "message": "followed",
+            "participant_id": "00000000-0000-0000-0000-000000000000",
+        });
+
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
+        assert_eq!(
+            event,
+            WhiteboardEvent::Followed {
+                participant_id: ParticipantId::nil(),
+            }
+        );
+    }
+
+    #[test]
+    fn serialize_follower_lost() {
+        let event = WhiteboardEvent::FollowerLost {
+            participant_id: ParticipantId::nil(),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "message": "follower_lost",
+          "participant_id": "00000000-0000-0000-0000-000000000000"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_follower_lost() {
+        let json = json!({
+            "message": "follower_lost",
+            "participant_id": "00000000-0000-0000-0000-000000000000",
+        });
+
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
+        assert_eq!(
+            event,
+            WhiteboardEvent::FollowerLost {
+                participant_id: ParticipantId::nil(),
+            }
+        );
+    }
+
+    #[test]
+    fn serialize_unfollowed() {
+        let event = WhiteboardEvent::Unfollowed {
+            participant_id: ParticipantId::nil(),
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "message": "unfollowed",
+          "participant_id": "00000000-0000-0000-0000-000000000000"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_unfollowed() {
+        let json = json!({
+            "message": "unfollowed",
+            "participant_id": "00000000-0000-0000-0000-000000000000",
+        });
+
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
+        assert_eq!(
+            event,
+            WhiteboardEvent::Unfollowed {
+                participant_id: ParticipantId::nil(),
+            }
+        );
+    }
+
+    #[test]
+    fn serialize_edit_restrictions_enabled() {
+        let mut unrestricted_participants = HashSet::new();
+        unrestricted_participants.insert(ParticipantId::from_u128(1));
+
+        let event = WhiteboardEvent::EditRestrictionsEnabled {
+            unrestricted_participants,
+        };
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "message": "edit_restrictions_enabled",
+          "unrestricted_participants": [
+            "00000000-0000-0000-0000-000000000001"
+          ]
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_edit_restrictions_enabled() {
+        let json = json!({
+            "message": "edit_restrictions_enabled",
+            "unrestricted_participants": [
+                "00000000-0000-0000-0000-000000000001",
+            ],
+        });
+
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
+        let mut unrestricted_participants = HashSet::new();
+        unrestricted_participants.insert(ParticipantId::from_u128(1));
+        assert_eq!(
+            event,
+            WhiteboardEvent::EditRestrictionsEnabled {
+                unrestricted_participants,
+            }
+        );
+    }
+
+    #[test]
+    fn serialize_edit_restrictions_disabled() {
+        let event = WhiteboardEvent::EditRestrictionsDisabled;
+        let raw = serde_json::to_string_pretty(&event).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "message": "edit_restrictions_disabled"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_edit_restrictions_disabled() {
+        let json = json!({
+            "message": "edit_restrictions_disabled",
+        });
+
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
+        assert_eq!(event, WhiteboardEvent::EditRestrictionsDisabled);
+    }
+
+    #[test]
+    fn serialize_error() {
         let event = WhiteboardEvent::Error(WhiteboardError::InsufficientPermissions);
-        let produced = serde_json::to_string_pretty(&event).unwrap();
+        let raw = serde_json::to_string_pretty(&event).unwrap();
 
-        assert_snapshot!(produced, @r#"
+        assert_snapshot!(raw, @r#"
         {
           "message": "error",
           "error": "insufficient_permissions"
@@ -185,119 +438,16 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_insufficient_permissions_error() {
+    fn deserialize_error() {
         let json = json!({
             "message": "error",
-            "error": "insufficient_permissions"
+            "error": "insufficient_permissions",
         });
-        let produced: WhiteboardEvent = serde_json::from_value(json).unwrap();
+
+        let event: WhiteboardEvent = serde_json::from_str(&json.to_string()).unwrap();
         assert_eq!(
-            produced,
+            event,
             WhiteboardEvent::Error(WhiteboardError::InsufficientPermissions)
-        );
-    }
-
-    #[test]
-    fn serialize_currently_initializing_error() {
-        let event = WhiteboardEvent::Error(WhiteboardError::CurrentlyInitializing);
-        let produced = serde_json::to_string_pretty(&event).unwrap();
-
-        assert_snapshot!(produced, @r#"
-        {
-          "message": "error",
-          "error": "currently_initializing"
-        }
-        "#);
-    }
-
-    #[test]
-    fn deserialize_currently_initializing_error() {
-        let json = json!({
-            "message": "error",
-            "error": "currently_initializing"
-        });
-        let produced: WhiteboardEvent = serde_json::from_value(json).unwrap();
-        assert_eq!(
-            produced,
-            WhiteboardEvent::Error(WhiteboardError::CurrentlyInitializing)
-        );
-    }
-
-    #[test]
-    fn serialize_initialization_failed_error() {
-        let event = WhiteboardEvent::Error(WhiteboardError::InitializationFailed);
-        let produced = serde_json::to_string_pretty(&event).unwrap();
-
-        assert_snapshot!(produced, @r#"
-        {
-          "message": "error",
-          "error": "initialization_failed"
-        }
-        "#);
-    }
-
-    #[test]
-    fn deserialize_initialization_failed_error() {
-        let json = json!({
-            "message": "error",
-            "error": "initialization_failed"
-        });
-        let produced: WhiteboardEvent = serde_json::from_value(json).unwrap();
-        assert_eq!(
-            produced,
-            WhiteboardEvent::Error(WhiteboardError::InitializationFailed)
-        );
-    }
-
-    #[test]
-    fn serialize_already_initialized_error() {
-        let event = WhiteboardEvent::Error(WhiteboardError::AlreadyInitialized);
-        let produced = serde_json::to_string_pretty(&event).unwrap();
-
-        assert_snapshot!(produced, @r#"
-        {
-          "message": "error",
-          "error": "already_initialized"
-        }
-        "#);
-    }
-
-    #[test]
-    fn deserialize_already_initialized_error() {
-        let json = json!({
-            "message": "error",
-            "error": "already_initialized"
-        });
-        let produced: WhiteboardEvent = serde_json::from_value(json).unwrap();
-        assert_eq!(
-            produced,
-            WhiteboardEvent::Error(WhiteboardError::AlreadyInitialized)
-        );
-    }
-
-    #[test]
-    fn serialize_storage_exceeded_error() {
-        let event = WhiteboardEvent::Error(WhiteboardError::StorageExceeded);
-        let produced = serde_json::to_string_pretty(&event).unwrap();
-
-        assert_snapshot!(produced, @r#"
-        {
-          "message": "error",
-          "error": "storage_exceeded"
-        }
-        "#);
-    }
-
-    #[test]
-    fn deserialize_storage_exceeded_error() {
-        let json = json!({
-            "message": "error",
-            "error": "storage_exceeded"
-        });
-        let produced: WhiteboardEvent = serde_json::from_value(json).unwrap();
-        assert_eq!(
-            produced,
-            WhiteboardEvent::Error(WhiteboardError::StorageExceeded)
         );
     }
 }

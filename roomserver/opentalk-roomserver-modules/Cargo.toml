@@ -18,7 +18,6 @@ opentalk-roomserver-module-automod.workspace = true
 opentalk-roomserver-module-chat.workspace = true
 opentalk-roomserver-module-e2ee.workspace = true
 opentalk-roomserver-module-echo.workspace = true
-opentalk-roomserver-module-excalidraw.workspace = true
 opentalk-roomserver-module-legal-vote.workspace = true
 opentalk-roomserver-module-livekit.workspace = true
 opentalk-roomserver-module-meeting-notes.workspace = true
@@ -54,7 +53,6 @@ opentalk-roomserver-types-subroom-audio.workspace = true
 opentalk-roomserver-types-timer.workspace = true
 opentalk-roomserver-types-training-participation-report.workspace = true
 opentalk-roomserver-types-transcription.workspace = true
-opentalk-roomserver-types-whiteboard.workspace = true
 opentalk-types-common.workspace = true
 
 [lints]

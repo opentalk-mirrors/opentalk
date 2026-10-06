@@ -9,11 +9,11 @@ use std::{
 use icu_locid::langid;
 use opentalk_roomserver_client::api::{
     command::{
-        AUTOMOD_MODULE_ID, ECHO_MODULE_ID, EXCALIDRAW_MODULE_ID, LEGAL_VOTE_MODULE_ID,
-        MEETING_NOTES_MODULE_ID, MEETING_REPORT_MODULE_ID, RAISE_HANDS_MODULE_ID,
-        REACTION_MODULE_ID, SUBROOM_AUDIO_MODULE_ID, WHITEBOARD_MODULE_ID,
+        AUTOMOD_MODULE_ID, ECHO_MODULE_ID, LEGAL_VOTE_MODULE_ID, MEETING_NOTES_MODULE_ID,
+        MEETING_REPORT_MODULE_ID, RAISE_HANDS_MODULE_ID, REACTION_MODULE_ID,
+        SUBROOM_AUDIO_MODULE_ID,
     },
-    event::{E2EE_MODULE_ID, SHARED_FOLDER_MODULE_ID},
+    event::{E2EE_MODULE_ID, SHARED_FOLDER_MODULE_ID, WHITEBOARD_MODULE_ID},
 };
 use opentalk_roomserver_types::{
     client_parameters::{ClientKind, ClientParameters, Role},
@@ -78,9 +78,8 @@ pub fn default_room_parameters() -> RoomParameters {
     module_settings.insert_empty(RAISE_HANDS_MODULE_ID);
     module_settings.insert_empty(SUBROOM_AUDIO_MODULE_ID);
     module_settings.insert_empty(MEETING_NOTES_MODULE_ID);
-    module_settings.insert_empty(WHITEBOARD_MODULE_ID);
-    module_settings.insert_empty(EXCALIDRAW_MODULE_ID);
     module_settings.insert_empty(REACTION_MODULE_ID);
+    module_settings.insert_empty(WHITEBOARD_MODULE_ID);
 
     RoomParameters {
         created_by: alice_profile(),

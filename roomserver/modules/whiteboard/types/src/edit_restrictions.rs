@@ -9,11 +9,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum EditRestrictions {
-    /// The edit restrictions are disabled, all participants are allowed to edit excalidraw.
+    /// The edit restrictions are disabled, all participants are allowed to edit the whiteboard.
     #[default]
     Disabled,
     /// The edit restrictions are enabled, only the participants part of `unrestricted_participants`
-    /// are allowed to edit excalidraw.
+    /// are allowed to edit the whiteboard.
     Enabled {
         /// The list of participants that are still allowed to edit
         unrestricted_participants: HashSet<ParticipantId>,

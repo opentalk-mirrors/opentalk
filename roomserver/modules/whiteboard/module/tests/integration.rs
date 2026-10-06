@@ -1,10 +1,13 @@
 // SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{assert_matches, time::Duration};
+use std::collections::HashSet;
 
-use opentalk_roomserver_module_whiteboard::WhiteboardModule;
-use opentalk_roomserver_room::mocking::room::flush_connected_events;
+use opentalk_roomserver_module_whiteboard::{WhiteboardModule, state::WhiteboardState};
+use opentalk_roomserver_room::mocking::{
+    participant::MockParticipantJoined,
+    room::{TestRoom, flush_connected_events},
+};
 use opentalk_roomserver_types::{
     breakout::{
         breakout_config::{BreakoutConfig, BreakoutRoomConfig},
@@ -13,428 +16,942 @@ use opentalk_roomserver_types::{
     room_kind::RoomKind,
 };
 use opentalk_roomserver_types_whiteboard::{
-    WhiteboardCommand, WhiteboardError, WhiteboardEvent, WhiteboardState,
+    EditRestrictions, WhiteboardCommand, WhiteboardError, WhiteboardEvent,
 };
+use opentalk_types_signaling::ParticipantId;
 use pretty_assertions::assert_eq;
+use serde_json::json;
 
-mod common;
+async fn start_whiteboard(
+    sender: &mut MockParticipantJoined,
+    others: &mut [&mut MockParticipantJoined],
+) {
+    let initial_scene = json!({
+        "some": "scene",
+    });
+    let edit_restrictions = EditRestrictions::Disabled;
 
-#[test_log::test(tokio::test)]
-async fn whiteboard_join_success() {
-    let (_container, mut room) = common::build_whiteboard_room().await;
-    let mut alice = room.join_alice_moderator(0).await;
-
-    // Alice does not receive any state from the whiteboard module, because the initialize command
-    // has not been sent
-    assert!(
-        alice
-            .join_success()
-            .get_module::<WhiteboardState>()
-            .expect("WhiteboardState must be serializable")
-            .is_none()
-    );
-
-    alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::Initialize, None)
+    sender
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Start {
+                initial_scene: initial_scene.clone(),
+                edit_restrictions: edit_restrictions.clone(),
+            },
+            None,
+        )
         .await
         .unwrap();
 
-    let event = alice
+    let event = sender
         .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, WhiteboardEvent::InitializationStarted);
+    assert_eq!(
+        event,
+        WhiteboardEvent::Started {
+            initial_scene: initial_scene.clone(),
+            edit_restrictions: edit_restrictions.clone(),
+        }
+    );
 
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_matches!(event, WhiteboardEvent::Initialized { .. });
-
-    let bob = room.join_bob(0).await;
-    let state = bob
-        .join_success()
-        .get_module::<WhiteboardState>()
-        .expect("Whiteboard state must be serializable")
-        .expect("Whiteboard state must be present");
-    assert_matches!(state, WhiteboardState::Initialized(..));
+    for participant in others {
+        let event = participant
+            .receive_event::<WhiteboardModule>()
+            .await
+            .unwrap()
+            .payload;
+        assert_eq!(
+            event,
+            WhiteboardEvent::Started {
+                initial_scene: initial_scene.clone(),
+                edit_restrictions: edit_restrictions.clone(),
+            }
+        );
+    }
 }
 
 #[test_log::test(tokio::test)]
-async fn initialize_insufficient_permissions() {
-    let (_container, mut room) = common::build_whiteboard_room().await;
-    let mut bob = room.join_bob(0).await;
+async fn already_started() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
 
-    bob.send_command::<WhiteboardModule>(WhiteboardCommand::Initialize, None)
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut []).await;
+
+    // Alice tries to start the whiteboard again
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Start {
+                initial_scene: json!({
+                    "some": "scene",
+                }),
+                edit_restrictions: EditRestrictions::Disabled,
+            },
+            None,
+        )
         .await
         .unwrap();
 
+    // Alice receives the AlreadyStarted error
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Error(WhiteboardError::AlreadyStarted)
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn start_insufficient_permissions() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut bob = room.join_bob(0).await;
+
+    // Bob tries to start the whiteboard
+    bob.send_command::<WhiteboardModule>(
+        WhiteboardCommand::Start {
+            initial_scene: json!({
+                "some": "scene",
+            }),
+            edit_restrictions: EditRestrictions::Disabled,
+        },
+        None,
+    )
+    .await
+    .unwrap();
+
+    // Bob receives the InsufficientPermissions error
     let event = bob
         .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    // Bob is not allowed to initialize the whiteboard because he isn't a moderator
     assert_eq!(
         event,
         WhiteboardEvent::Error(WhiteboardError::InsufficientPermissions)
-    )
+    );
 }
 
 #[test_log::test(tokio::test)]
-async fn generate_pdf_insufficient_permissions() {
-    let (_container, mut room) = common::build_whiteboard_room().await;
+async fn stop_whiteboard() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut []).await;
+
+    // Alice stops the whiteboard
+    alice
+        .send_command::<WhiteboardModule>(WhiteboardCommand::Stop, None)
+        .await
+        .unwrap();
+
+    // Alice receives the Stopped event
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, WhiteboardEvent::Stopped);
+}
+
+#[test_log::test(tokio::test)]
+async fn stop_insufficient_permissions() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut bob = room.join_bob(0).await;
+
+    // Bob tries to start the whiteboard
+    bob.send_command::<WhiteboardModule>(WhiteboardCommand::Stop, None)
+        .await
+        .unwrap();
+
+    // Bob receives the InsufficientPermissions error
+    let event = bob
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Error(WhiteboardError::InsufficientPermissions)
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn join_success() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut []).await;
+
+    // Bob joins the room. His JoinSuccess message contains the current whiteboard state
+    let state = room
+        .join_bob(0)
+        .await
+        .join_success()
+        .get_module::<WhiteboardState>()
+        .expect("Whiteboard state must be deserializable")
+        .expect("Whiteboard state must be present");
+    assert_eq!(
+        state,
+        WhiteboardState {
+            scene: json!({"some":"scene"}),
+            edit_restrictions: EditRestrictions::Disabled,
+        }
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn broadcast() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
     // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut [&mut bob]).await;
+
+    // Alice sends a broadcast command
     alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::Initialize, None)
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Broadcast {
+                data: json!({
+                    "some": "data",
+                }),
+            },
+            None,
+        )
         .await
         .unwrap();
 
-    // Both receive the initialization started event
+    // Alice receives the broadcast event
     let event = alice
         .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, WhiteboardEvent::InitializationStarted);
+    assert_eq!(
+        event,
+        WhiteboardEvent::Broadcast {
+            sender: alice.id(),
+            data: json!({"some": "data"})
+        }
+    );
 
+    // Bob receives the broadcast event
     let event = bob
         .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, WhiteboardEvent::InitializationStarted);
-
-    // Both receive the initialized event
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_matches!(event, WhiteboardEvent::Initialized { .. });
-
-    let event = bob
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_matches!(event, WhiteboardEvent::Initialized { .. });
-
-    // Bob tries to generate a PDF
-    bob.send_command::<WhiteboardModule>(WhiteboardCommand::GeneratePdf, None)
-        .await
-        .unwrap();
-
-    let event = bob
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    // Bob is not allowed to generate a PDF because he isn't a moderator
     assert_eq!(
         event,
-        WhiteboardEvent::Error(WhiteboardError::InsufficientPermissions)
+        WhiteboardEvent::Broadcast {
+            sender: alice.id(),
+            data: json!({"some": "data"})
+        }
     );
 }
 
 #[test_log::test(tokio::test)]
-async fn currently_initializing() {
-    let (_container, mut room) = common::build_whiteboard_room().await;
-    let mut alice = room.join_alice_moderator(0).await;
-    // Alice tries to initialize the whiteboard twice
-    alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::Initialize, None)
-        .await
-        .unwrap();
-    alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::Initialize, None)
-        .await
-        .unwrap();
-
-    // Alice receives the initialization started event
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(event, WhiteboardEvent::InitializationStarted);
-
-    // Alice receives the error response immediately...
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        WhiteboardEvent::Error(WhiteboardError::CurrentlyInitializing)
-    );
-
-    // ...and the initialization event when initialization completed
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_matches!(event, WhiteboardEvent::Initialized { .. });
-}
-
-#[test_log::test(tokio::test)]
-async fn already_initialized() {
-    let (_container, mut room) = common::build_whiteboard_room().await;
+async fn broadcast_not_started() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
     let mut alice = room.join_alice_moderator(0).await;
 
-    // Alice initializes the whiteboard
+    // Alice sends a broadcast command without starting the whiteboard first
     alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::Initialize, None)
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Broadcast {
+                data: json!({
+                    "some": "data",
+                }),
+            },
+            None,
+        )
         .await
         .unwrap();
 
+    // Alice receives the NotStarted error
     let event = alice
         .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, WhiteboardEvent::InitializationStarted);
-
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_matches!(event, WhiteboardEvent::Initialized { .. });
-
-    // Alice tries to initialize the whiteboard again
-    alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::Initialize, None)
-        .await
-        .unwrap();
-
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    // The whiteboard was already initialized
-    assert_eq!(
-        event,
-        WhiteboardEvent::Error(WhiteboardError::AlreadyInitialized)
-    );
+    assert_eq!(event, WhiteboardEvent::Error(WhiteboardError::NotStarted));
 }
 
 #[test_log::test(tokio::test)]
-async fn generate_pdf_not_initialized() {
-    let (_container, mut room) = common::build_whiteboard_room().await;
-    let mut alice = room.join_alice_moderator(0).await;
-
-    // Alice tries to generate a PDF without initializing the whiteboard
-    alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::GeneratePdf, None)
-        .await
-        .unwrap();
-
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    // The whiteboard was not initialized yet
-    assert_eq!(
-        event,
-        WhiteboardEvent::Error(WhiteboardError::NotInitialized)
-    );
-}
-
-#[test_log::test(tokio::test)]
-async fn generate_pdf_while_initializing() {
-    let (_container, mut room) = common::build_whiteboard_room().await;
-    let mut alice = room.join_alice_moderator(0).await;
-    // Alice initializes the whiteboard
-    alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::Initialize, None)
-        .await
-        .unwrap();
-
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(event, WhiteboardEvent::InitializationStarted);
-
-    // Alice tries to generate a PDF while the whiteboard is still initializing
-    alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::GeneratePdf, None)
-        .await
-        .unwrap();
-
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    // Alice receives the error response immediately...
-    assert_eq!(
-        event,
-        WhiteboardEvent::Error(WhiteboardError::CurrentlyInitializing)
-    );
-    // ...and the initialization event when initialization completed
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_matches!(event, WhiteboardEvent::Initialized { .. });
-}
-
-#[test_log::test(tokio::test)]
-async fn generate_pdf() {
-    let (_container, mut room) = common::build_whiteboard_room().await;
+async fn broadcast_volatile() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
-    // Alice initializes the whiteboard
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut [&mut bob]).await;
+
+    // Alice sends a volatile broadcast command
     alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::Initialize, None)
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::BroadcastVolatile {
+                data: json!({
+                    "some": "data",
+                }),
+            },
+            None,
+        )
         .await
         .unwrap();
 
-    // Both receive the initialization started and initialized event
+    // Alice receives the volatile broadcast event
     let event = alice
         .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, WhiteboardEvent::InitializationStarted);
+    assert_eq!(
+        event,
+        WhiteboardEvent::VolatileBroadcast {
+            sender: alice.id(),
+            data: json!({"some": "data"})
+        }
+    );
 
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_matches!(event, WhiteboardEvent::Initialized { .. });
-
+    // Bob receives the volatile broadcast event
     let event = bob
         .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, WhiteboardEvent::InitializationStarted);
-
-    let event = bob
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_matches!(event, WhiteboardEvent::Initialized { .. });
-
-    // Alice generates a PDF
-    alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::GeneratePdf, None)
-        .await
-        .unwrap();
-
-    // Both receive the PDF generated event
-    let event = alice
-        .receive_event_with_timeout::<WhiteboardModule>(Duration::from_secs(10))
-        .await
-        .unwrap()
-        .payload;
-    assert_matches!(event, WhiteboardEvent::PdfCreated { .. });
-
-    let event = bob
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_matches!(event, WhiteboardEvent::PdfCreated { .. });
-
-    assert_eq!(room.file_count().await, 1);
+    assert_eq!(
+        event,
+        WhiteboardEvent::VolatileBroadcast {
+            sender: alice.id(),
+            data: json!({"some": "data"})
+        }
+    );
 }
 
 #[test_log::test(tokio::test)]
-async fn alice_in_breakout_bob_in_main() {
-    let (_container, mut room) = common::build_whiteboard_room().await;
+async fn broadcast_volatile_not_started() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // Alice sends a volatile broadcast command without starting the whiteboard first
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::BroadcastVolatile {
+                data: json!({
+                    "some": "data",
+                }),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the NotStarted error
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, WhiteboardEvent::Error(WhiteboardError::NotStarted));
+}
+
+#[test_log::test(tokio::test)]
+async fn follow_not_started() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // Alice tries to follow Bob without starting the whiteboard first
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Follow {
+                participant_id: ParticipantId::from_u128(0x12345678),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the NotStarted error
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, WhiteboardEvent::Error(WhiteboardError::NotStarted));
+}
+
+#[test_log::test(tokio::test)]
+async fn follow_unknown() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut []).await;
+
+    // Alice tries to follow an unknown participant
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Follow {
+                participant_id: ParticipantId::from_u128(0xdeadbeef),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the UnknownParticipant error
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Error(WhiteboardError::UnknownParticipant)
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn follow_unfollow_across_room_boundaries() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
     let mut alice = room.join_alice_moderator(0).await;
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice]).await;
 
+    // Alice starts breakout room
     alice
         .start_breakout_rooms(
             &mut [&mut bob],
             BreakoutConfig {
                 rooms: vec![BreakoutRoomConfig {
-                    name: "Breakout Room 1".to_string(),
-                    assignments: Vec::new(),
+                    name: "Room 0".to_string(),
+                    assignments: vec![alice.id()],
                 }],
                 duration: None,
             },
         )
         .await;
 
+    // Alice switches to the breakout room
     alice
         .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(0.into()))
         .await;
 
-    // Alice initializes the whiteboard in the breakout room
+    // Alice starts the whiteboard in the breakout room
+    start_whiteboard(&mut alice, &mut []).await;
+
+    // Bob stays in the main room, so Alice must not be allowed to follow him
     alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::Initialize, None)
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Follow {
+                participant_id: bob.id(),
+            },
+            None,
+        )
         .await
         .unwrap();
 
-    // Alice receives the initialization started and initialized event
     let event = alice
         .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_eq!(event, WhiteboardEvent::InitializationStarted);
+    assert_eq!(
+        event,
+        WhiteboardEvent::Error(WhiteboardError::UnknownParticipant)
+    );
+
+    // Alice also must not be allowed to unfollow a participant in a different room
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Unfollow {
+                participant_id: bob.id(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
 
     let event = alice
         .receive_event::<WhiteboardModule>()
         .await
         .unwrap()
         .payload;
-    assert_matches!(event, WhiteboardEvent::Initialized { .. });
+    assert_eq!(
+        event,
+        WhiteboardEvent::Error(WhiteboardError::UnknownParticipant)
+    );
 
-    // Bob does not receive any state from the whiteboard module, because he is in the main room
+    // Bob should not receive any follow related events from another room
     assert!(bob.received_nothing());
+}
 
-    // Alice generates a PDF in the breakout room
+#[test_log::test(tokio::test)]
+async fn autostart_in_breakout_room() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // Alice starts the whiteboard in the main room
+    start_whiteboard(&mut alice, &mut []).await;
+
+    // Alice starts a breakout room
     alice
-        .send_command::<WhiteboardModule>(WhiteboardCommand::GeneratePdf, None)
-        .await
-        .unwrap();
+        .start_breakout_rooms(
+            &mut [],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "Room 0".to_string(),
+                    assignments: vec![alice.id()],
+                }],
+                duration: None,
+            },
+        )
+        .await;
 
-    // Alice receives the PDF generated event
+    // Alice switches to the breakout room without starting the whiteboard there herself
     let event = alice
-        .receive_event_with_timeout::<WhiteboardModule>(Duration::from_secs(5))
-        .await
-        .unwrap()
-        .payload;
-    assert_matches!(event, WhiteboardEvent::PdfCreated { .. });
-
-    // Bob does not receive any event from the whiteboard module, because he is in the main room
-    assert!(bob.received_nothing());
-
-    // Bob switches to the breakout room
-    let event = bob
-        .switch_breakout_room(&mut [&mut alice], RoomKind::Breakout(0.into()))
+        .switch_breakout_room(&mut [], RoomKind::Breakout(0.into()))
         .await;
 
     let BreakoutEvent::SwitchedRoom { own_data, .. } = event else {
-        panic!("Expected SwitchedRoom event, got {event:#?}");
+        panic!("Expected BreakoutEvent::SwitchedRoom, got: {event:?}");
     };
+
+    // The whiteboard was autostarted in the breakout room with a fresh, empty board
     let state = own_data
         .get::<WhiteboardState>()
-        .expect("Whiteboard data must be serializable")
-        .expect("Whiteboard data must be present");
-    assert_matches!(state, WhiteboardState::Initialized { .. });
+        .expect("Module data must be present")
+        .expect("Whiteboard must have been autostarted in the breakout room");
+    assert_eq!(
+        state,
+        WhiteboardState {
+            scene: serde_json::json!({"elements": []}),
+            edit_restrictions: EditRestrictions::Disabled,
+        }
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn unfollow_not_started() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // Alice tries to unfollow a participant without starting the whiteboard first
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Unfollow {
+                participant_id: ParticipantId::from_u128(0x12345678),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the NotStarted error
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, WhiteboardEvent::Error(WhiteboardError::NotStarted));
+}
+
+#[test_log::test(tokio::test)]
+async fn unfollow_unknown() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut []).await;
+
+    // Alice tries to unfollow an unknown participant
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Unfollow {
+                participant_id: ParticipantId::from_u128(0xdeadbeef),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the UnknownParticipant error
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Error(WhiteboardError::UnknownParticipant)
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn follow() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut [&mut bob]).await;
+
+    // Alice follows Bob
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Follow {
+                participant_id: bob.id(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the Followed event
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Followed {
+            participant_id: bob.id()
+        }
+    );
+
+    // Bob receives the FollowerGained event
+    let event = bob
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::FollowerGained {
+            participant_id: alice.id()
+        }
+    );
+
+    // Alice unfollows Bob
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Unfollow {
+                participant_id: bob.id(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the Unfollowed event
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Unfollowed {
+            participant_id: bob.id()
+        }
+    );
+
+    // Bob receives the FollowerLost event
+    let event = bob
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::FollowerLost {
+            participant_id: alice.id()
+        }
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn edit_restrictions() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Alice starts the whiteboard
+    start_whiteboard(&mut alice, &mut [&mut bob]).await;
+
+    // Alice enables edit restrictions
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::EnableEditRestrictions {
+                unrestricted_participants: HashSet::new(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the EditRestrictionsEnabled event
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::EditRestrictionsEnabled {
+            unrestricted_participants: HashSet::new()
+        }
+    );
+
+    // Bob receives the EditRestrictionsEnabled event
+    let event = bob
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::EditRestrictionsEnabled {
+            unrestricted_participants: HashSet::new()
+        }
+    );
+
+    // Bob tries to send a broadcast command, but is not allowed to edit
+    bob.send_command::<WhiteboardModule>(
+        WhiteboardCommand::Broadcast {
+            data: json!({
+                "some": "data",
+            }),
+        },
+        None,
+    )
+    .await
+    .unwrap();
+
+    // Bob receives the InsufficientPermissions error
+    let event = bob
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Error(WhiteboardError::InsufficientPermissions)
+    );
+
+    // Alice receives nothing
+    assert!(alice.received_nothing());
+
+    // Alice is still allowed to send a broadcast command because she is a moderator
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Broadcast {
+                data: json!({
+                    "some": "data",
+                }),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the broadcast event
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Broadcast {
+            sender: alice.id(),
+            data: json!({"some": "data"})
+        }
+    );
+
+    // Bob receives the broadcast event
+    let event = bob
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Broadcast {
+            sender: alice.id(),
+            data: json!({"some": "data"})
+        }
+    );
+
+    // Alice disables edit restrictions
+    alice
+        .send_command::<WhiteboardModule>(WhiteboardCommand::DisableEditRestrictions, None)
+        .await
+        .unwrap();
+
+    // Alice receives the EditRestrictionsDisabled event
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, WhiteboardEvent::EditRestrictionsDisabled);
+
+    // Bob receives the EditRestrictionsDisabled event
+    let event = bob
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, WhiteboardEvent::EditRestrictionsDisabled);
+
+    // Bob is allowed to send a broadcast command again
+    bob.send_command::<WhiteboardModule>(
+        WhiteboardCommand::Broadcast {
+            data: json!({
+                "some": "data",
+            }),
+        },
+        None,
+    )
+    .await
+    .unwrap();
+
+    // Bob receives the broadcast event
+    let event = bob
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Broadcast {
+            sender: bob.id(),
+            data: json!({"some": "data"})
+        }
+    );
+
+    // Alice receives the broadcast event
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Broadcast {
+            sender: bob.id(),
+            data: json!({"some": "data"})
+        }
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn alice_in_breakout_bob_in_main() {
+    let mut room = TestRoom::builder()
+        .register_module::<WhiteboardModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Alice starts breakout room
+    alice
+        .start_breakout_rooms(
+            &mut [&mut bob],
+            BreakoutConfig {
+                rooms: vec![BreakoutRoomConfig {
+                    name: "Room 0".to_string(),
+                    assignments: vec![alice.id()],
+                }],
+                duration: None,
+            },
+        )
+        .await;
+
+    // Alice switches to the breakout room
+    alice
+        .switch_breakout_room(&mut [&mut bob], RoomKind::Breakout(0.into()))
+        .await;
+
+    // Alice starts the whiteboard in the breakout room
+    start_whiteboard(&mut alice, &mut []).await;
+
+    // Bob receives nothing
+    assert!(bob.received_nothing());
+
+    // Alice sends a broadcast command
+    alice
+        .send_command::<WhiteboardModule>(
+            WhiteboardCommand::Broadcast {
+                data: json!({
+                    "some": "data",
+                }),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the broadcast event
+    let event = alice
+        .receive_event::<WhiteboardModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        WhiteboardEvent::Broadcast {
+            sender: alice.id(),
+            data: json!({"some": "data"})
+        }
+    );
+
+    // Bob receives nothing
+    assert!(bob.received_nothing());
 }

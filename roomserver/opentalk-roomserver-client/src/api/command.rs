@@ -17,7 +17,6 @@ pub use {
     opentalk_roomserver_types_chat::{CHAT_MODULE_ID, command::ChatCommand},
     opentalk_roomserver_types_e2ee::{E2EE_MODULE_ID, E2eeCommand},
     opentalk_roomserver_types_echo::{ECHO_MODULE_ID, command::EchoCommand},
-    opentalk_roomserver_types_excalidraw::{EXCALIDRAW_MODULE_ID, ExcalidrawCommand},
     opentalk_roomserver_types_legal_vote::{LEGAL_VOTE_MODULE_ID, LegalVoteCommand},
     opentalk_roomserver_types_livekit::{
         LIVEKIT_MODULE_ID, LiveKitCommand, MicrophoneRestrictionState,
@@ -89,7 +88,6 @@ pub enum SignalingModuleCommand {
     SubroomAudio(SubroomAudioCommand),
     MeetingNotes(MeetingNotesCommand),
     Whiteboard(WhiteboardCommand),
-    Excalidraw(ExcalidrawCommand),
     LegalVote(LegalVoteCommand),
     TrainingParticipationReport(TrainingParticipationReportCommand),
     Recording(RecordingCommand),
@@ -116,7 +114,6 @@ impl SignalingModuleCommand {
             Self::SubroomAudio(..) => SUBROOM_AUDIO_MODULE_ID,
             Self::MeetingNotes(..) => MEETING_NOTES_MODULE_ID,
             Self::Whiteboard(..) => WHITEBOARD_MODULE_ID,
-            Self::Excalidraw(..) => EXCALIDRAW_MODULE_ID,
             Self::LegalVote(..) => LEGAL_VOTE_MODULE_ID,
             Self::TrainingParticipationReport(..) => TRAINING_PARTICIPATION_REPORT_MODULE_ID,
             Self::Recording(..) => RECORDING_MODULE_ID,
@@ -135,7 +132,6 @@ mod tests {
     use opentalk_roomserver_types_automod::command::AutomodCommand;
     use opentalk_roomserver_types_chat::command::ChatCommand;
     use opentalk_roomserver_types_echo::command::EchoCommand;
-    use opentalk_roomserver_types_excalidraw::ExcalidrawCommand;
     use opentalk_roomserver_types_legal_vote::{
         LegalVoteCommand, cancel::CustomCancelReason, vote::LegalVoteId,
     };
@@ -436,25 +432,7 @@ mod tests {
     fn serialize_command_whiteboard() {
         let command = SignalingCommand {
             transaction_id: None,
-            payload: SignalingModuleCommand::Whiteboard(WhiteboardCommand::Initialize),
-        };
-        let raw = serde_json::to_string_pretty(&command).unwrap();
-
-        assert_snapshot!(raw, @r#"
-        {
-          "namespace": "whiteboard",
-          "payload": {
-            "action": "initialize"
-          }
-        }
-        "#);
-    }
-
-    #[test]
-    fn serialize_command_excalidraw() {
-        let command = SignalingCommand {
-            transaction_id: None,
-            payload: SignalingModuleCommand::Excalidraw(ExcalidrawCommand::Follow {
+            payload: SignalingModuleCommand::Whiteboard(WhiteboardCommand::Follow {
                 participant_id: ParticipantId::nil(),
             }),
         };
@@ -462,7 +440,7 @@ mod tests {
 
         assert_snapshot!(raw, @r#"
         {
-          "namespace": "excalidraw",
+          "namespace": "whiteboard",
           "payload": {
             "action": "follow",
             "participant_id": "00000000-0000-0000-0000-000000000000"
