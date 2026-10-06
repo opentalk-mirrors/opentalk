@@ -58,6 +58,15 @@ _check_ci_doc_updater:
         exit 1
     fi
 
+[no-exit-message]
+_check_k6:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v k6 > /dev/null; then
+        echo 'k6 is not available, see https://grafana.com/docs/k6/latest/set-up/install-k6/' >&2
+        exit 1
+    fi
+
 # Update generated or derived parts of the documentation
 update-docs: _check_ci_doc_updater
     #!/usr/bin/env bash
@@ -81,6 +90,40 @@ update-openapi:
     # Add trailing new line (removed by previous command)
     echo '' >> roomserver/api/docs/openapi.yml
     cargo run -p opentalk-controller -- openapi dump > controller/docs/developer/api.yaml
+
+install-latest-typst-packages:
+    #!/usr/bin/env bash
+    # pull the image with the typst packages
+    docker pull git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:scratch-dev
+    # create a new container
+    # sh is necessary because creating containers without entry point is not possible
+    CONTAINER_NAME=typst-plugins
+    docker create --name "$CONTAINER_NAME" git.opentalk.dev:5050/opentalk/backend/containers/typst-plugins:scratch-dev sh >/dev/null 2>&1 || true
+    # create the typst package directory
+    TYPST_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/typst/packages/preview/
+    mkdir -p "$TYPST_DIR"
+    # remove existing package
+    rm -r "$TYPST_DIR/linguify" >/dev/null 2>&1 || true
+    # copy the typst packages from the container
+    docker cp typst-plugins:/usr/share/typst/packages/preview/linguify/ "$TYPST_DIR"
+    # delete the container
+    docker container rm "$CONTAINER_NAME"
+
+test-coverage:
+    cargo llvm-cov nextest --lcov --output-path lcov.info
+
+test-load TEST: _check_k6
+    #!/usr/bin/env bash
+
+    export OPENTALK_ROOM_HTTP__PUBLIC_URL=http://localhost:11333
+    export OPENTALK_ROOM_MONITORING__ADDR=127.0.0.1
+    export LOAD_TEST_BASE_URL=http://localhost:11333
+
+    pushd roomserver/load-test
+    ../ci/run-load-test.sh src/tests/"{{ TEST }}".js
+
+run-dui *ARGS:
+    RUST_LOG=opentalk=debug cargo run -p opentalk-roomserver-dui -- {{ ARGS }}
 
 # Prepare a release
 prepare-release VERSION: (set-version VERSION) (update-changelog VERSION)

@@ -24,7 +24,7 @@ ROOMSERVER_PID=""
 
 # Keep ROOMSERVER_BIN as a single env var. Word splitting is intentional when
 # invoking the command, so it must not be quoted. Default to "cargo run --".
-ROOMSERVER_BIN="${ROOMSERVER_BIN:-cargo run --}"
+ROOMSERVER_BIN="${ROOMSERVER_BIN:-cargo run -p opentalk-roomserver --}"
 
 cleanup() {
     exit_code=$?
