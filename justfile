@@ -48,6 +48,30 @@ _check_glab:
         exit 1
     fi
 
+[no-exit-message]
+_check_ci_doc_updater:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v opentalk-ci-doc-updater > /dev/null; then
+        echo 'opentalk-ci-doc-updater is not available, you can install it with' >&2
+        echo '`cargo install --git https://git.opentalk.dev/opentalk/tools/opentalk-ci-doc-updater.git`' >&2
+        exit 1
+    fi
+
+# Update generated or derived parts of the documentation
+update-docs: _check_ci_doc_updater
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    cargo build --release
+
+    for service in {{ services }}; do
+        script="${service,,}/ci/docs-update-generated-parts.sh"
+        if [[ -x $script ]]; then
+            "$script"
+        fi
+    done
+
 # Update the version in the OpenAPI spec
 update-openapi:
     # Update OpenAPI specification (which contains the version number)

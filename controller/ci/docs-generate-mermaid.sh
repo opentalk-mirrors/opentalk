@@ -13,15 +13,9 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 COMPONENT_DIR=$( cd -- "$SCRIPT_DIR/.." &> /dev/null && pwd )
 REPO_ROOT=$( cd -- "$COMPONENT_DIR/.." &> /dev/null && pwd )
 
-if [ ! -v OPENTALK_CTRL_DATABASE__URL ]; then
-  echo "Variable 'OPENTALK_CTRL_DATABASE__URL' wasn't set. Make sure to set this \
-variable to the database URL."
-  exit 1
-fi
-
-
 DOCS_TEMP_DIR="$COMPONENT_DIR"/target/docs/temporary/controller
 
+OPENTALK_CTRL_DATABASE__URL=${OPENTALK_CTRL_DATABASE__URL:-postgres://postgres:password123@localhost:5432/opentalk}
 OPENTALK_CONTROLLER_PROJECT=${OPENTALK_CONTROLLER_PROJECT:-opentalk-controller}
 OPENTALK_CONTROLLER_CMD=${OPENTALK_CONTROLLER_CMD:-$REPO_ROOT/target/release/opentalk-controller}
 
