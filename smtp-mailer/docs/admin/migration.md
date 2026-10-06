@@ -12,9 +12,9 @@ The SMTP Mailer now shares its tracing and logging setup with the other
 ### Log output format changed
 
 Log formatting switched from `env_logger` to the `tracing` subscriber used by
-the other services. The directives you set via `RUST_LOG` keep working, but the
-format of the emitted log lines changed. Adjust any log parsing or alerting that
-depends on the previous format.
+the other services. The directives you set via `RUST_LOG` keeps working (but the
+new `SMTP_MAILER_LOG` takes precedence), but the format of the emitted log lines
+changed. Adjust any log parsing or alerting that depends on the previous format.
 
 ### `html5ever` and `selectors` are no longer capped automatically
 

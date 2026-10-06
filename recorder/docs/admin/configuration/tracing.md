@@ -2,7 +2,8 @@
 
 The {{ product_name }} Recorder can export spans to an
 [OTLP](https://opentelemetry.io/docs/specs/otlp/) endpoint. When tracing is not
-configured, log output continues to use the existing `RUST_LOG` directives.
+configured, log output continues to use the existing `RECORDER_LOG` and
+`RUST_LOG` directives.
 
 ## Configuration
 
@@ -14,7 +15,11 @@ The section in the [configuration file](README.md) is called `tracing`.
 | `service_name` | `string` | no | `recorder` | OpenTelemetry service name |
 | `service_namespace` | `string` | no | `opentalk` | OpenTelemetry service namespace |
 | `service_instance_id` | `string` | no | random UUID | OpenTelemetry service instance ID |
-| `default_directives` | `array` | no | `["warn", "opentalk_recorder=info"]` | Log and span filter used when `RUST_LOG` is unset |
+| `default_directives` | `array` | no | `["warn", "opentalk_recorder=info"]` | Log and span filter used when neither `RECORDER_LOG` nor `RUST_LOG` is set |
+
+The log filter directives are resolved with the following precedence:
+`RECORDER_LOG` > `RUST_LOG` > `default_directives` > the built-in defaults. Only
+the first source that is set is used; the sources are not merged.
 
 ```toml
 [tracing]

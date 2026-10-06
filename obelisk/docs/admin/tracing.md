@@ -7,7 +7,7 @@ title: Tracing
 The {{ product_name }} Obelisk can export spans to an
 [OTLP](https://opentelemetry.io/docs/specs/otlp/) endpoint. When no endpoint is
 configured, the service only writes formatted log output and applies the
-`RUST_LOG` directives.
+`OBELISK_LOG` and `RUST_LOG` directives.
 
 ## Configuration
 
@@ -20,11 +20,11 @@ The whole section is optional.
 | `service_name` | `string` | no | `obelisk` | OpenTelemetry service name |
 | `service_namespace` | `string` | no | `opentalk` | OpenTelemetry service namespace |
 | `service_instance_id` | `string` | no | random UUID | OpenTelemetry service instance ID |
-| `default_directives` | `array` | no | `["warn", "opentalk_obelisk=info"]` | Log and span filter used when `RUST_LOG` is unset |
+| `default_directives` | `array` | no | `["warn", "opentalk_obelisk=info"]` | Log and span filter used when neither `OBELISK_LOG` nor `RUST_LOG` is set |
 
 The log filter directives are resolved with the following precedence:
-`RUST_LOG` > `default_directives` > the built-in defaults. Only the first source
-that is set is used; the sources are not merged.
+`OBELISK_LOG` > `RUST_LOG` > `default_directives` > the built-in defaults. Only
+the first source that is set is used; the sources are not merged.
 
 ```toml
 [tracing]

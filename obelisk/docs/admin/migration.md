@@ -15,10 +15,12 @@ Obelisk now shares its tracing and logging setup with the other
 ### Log output format changed
 
 Logging switched from `env_logger` to the `tracing` subscriber used by the other
-services. The `RUST_LOG` environment variable keeps working, but the format of
-the emitted log lines changed, and the default filter is now
-`warn,opentalk_obelisk=info` when `RUST_LOG` is unset. Adjust any log parsing or
-alerting that depends on the previous format or default level.
+services. The `RUST_LOG` environment variable keeps working, and a new
+`OBELISK_LOG` environment variable takes precedence over it. The format of the
+emitted log lines changed, and the default filter is now
+`warn,opentalk_obelisk=info` when neither `OBELISK_LOG` nor `RUST_LOG` is set.
+Adjust any log parsing or alerting that depends on the previous format or default
+level.
 
 ### New optional `[tracing]` section
 

@@ -12,7 +12,7 @@ on these log levels see the [documentation of the log crate](https://docs.rs/log
 
 ## Setting the log level
 
-The log level of the {{ product_name }} SMTP Mailer can be configured with the `RUST_LOG` environment variable. So for example, if you
+The log level of the {{ product_name }} SMTP Mailer can be configured with the `SMTP_MAILER_LOG` or `RUST_LOG` environment variable, where `SMTP_MAILER_LOG` takes precedence. So for example, if you
 want to set the global log level to "debug" you could start the {{ product_name }} SMTP Mailer with this command:
 
 ```sh
@@ -53,9 +53,10 @@ RUST_LOG=debug,html5ever=warn,selectors=warn opentalk-smtp-mailer
 The log filter directives are resolved from the first source that is set, in
 this order:
 
-1. The `RUST_LOG` environment variable.
-2. The `default_directives` option in the `[tracing]` configuration section.
-3. The built-in defaults (`warn`, with `html5ever` and `selectors` capped at
+1. The `SMTP_MAILER_LOG` environment variable.
+2. The `RUST_LOG` environment variable.
+3. The `default_directives` option in the `[tracing]` configuration section.
+4. The built-in defaults (`warn`, with `html5ever` and `selectors` capped at
    `warn`).
 
 Only one source is used; they are not merged.
@@ -72,7 +73,7 @@ optional `[tracing]` section of the configuration file:
 | `service_name` | `string` | no | `smtp-mailer` | OpenTelemetry service name |
 | `service_namespace` | `string` | no | `opentalk` | OpenTelemetry service namespace |
 | `service_instance_id` | `string` | no | random UUID | OpenTelemetry service instance ID |
-| `default_directives` | `array` | no | `["warn", "html5ever=warn", "selectors=warn"]` | Log and span filter used when `RUST_LOG` is unset |
+| `default_directives` | `array` | no | `["warn", "html5ever=warn", "selectors=warn"]` | Log and span filter used when neither `SMTP_MAILER_LOG` nor `RUST_LOG` is set |
 
 ```toml
 [tracing]
