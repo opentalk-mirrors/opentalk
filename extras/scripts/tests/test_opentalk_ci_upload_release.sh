@@ -36,6 +36,7 @@ run_upload() {
   : > "$TMP_DIR/upload.log"
   (
     cd "$TMP_DIR"
+    env -u CI_COMMIT_TAG \
     PATH="$TMP_DIR/bin:$PATH" \
     UPLOAD_TEST_LOG="$TMP_DIR/upload.log" \
     CI_JOB_TOKEN=fake-token \
