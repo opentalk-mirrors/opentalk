@@ -148,7 +148,7 @@ lint:openapi:
     matrix:
       - FILE: [roomserver/api/docs/openapi.yml, controller/docs/developer/api.yaml]
   image:
-    name: redocly/cli:2.54.2
+    name: redocly/cli:2.58.2
     entrypoint: ['']
   script:
     - /usr/local/bin/openapi lint "$FILE"
