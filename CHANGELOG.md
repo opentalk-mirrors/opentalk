@@ -5,6 +5,129 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.3.0-beta.0] - 2026-10-05
+
+[26.3.0-beta.0]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/commits/v26.3.0-beta.0
+
+### 🚀 New features
+
+- (dev) Add local compose development workflow ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Add ansible playbook syntax check to lint stage ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (otctl) Add restore with safe DB, config and volume restore tasks ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Add shell test lint job and integration tests to all int pipelines ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Add manual E2E Compose test job ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (coverage) Add python coverage measurement for config-reference generator ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (packaging) Read pins from .versions.yml ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Add rocky10 with-optional-services integration slot ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Expose separate coverage metrics ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Add local pkgbuild image ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Derive product version from git tag ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Trigger downstream docs build ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (controller) Append tokens to room aliases by default ([!225](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/225))
+- (controller) Configure room alias suffixes ([!227](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/227))
+- (migrate) Detect pending migrations and guide the user to them ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+- (postgres) Upgrade to postgresql 18 with a guided migration ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+- (s3-migrate) Start the destination and deploy from otctl ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+
+### 🐛 Bug fixes
+
+- (backup) Quote database backup command arguments ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (keycloak) Keep openid out of default client scopes ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (keycloak) Make client scopes idempotent ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (smtp-mailer) Remove process limit ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (keycloak) Accept 400 and make E2E test port-configurable ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (coverage) Exclude here-doc bodies from shell coverage denominator ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (otctl) Keep rows through inspect fallback loop; test status fallbacks and dpkg path ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (coverage) Simplify control-flow exclusion, drop function defs and bare case patterns ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (packaging) Grep/find exit-code bugs in 13/31/80 ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (packaging) Make --auto-revision work ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (docs) Fix broken configuration-reference anchors ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (pkg) Include staged payload in fpm builds ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (pkg) Validate embedded runtime in deb payload ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (pkg) Normalize embedded venv python links ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (pkg) Rebase embedded venv script shebangs ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (compose) Avoid keycloak ingress port with traefik ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Use reachable integration test hostname ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Route integration OIDC discovery through a resolvable test domain ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Retry mkdocs asset fetch and ansible-galaxy collection download ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (obelisk) Remove deprecated Keycloak OIDC client and secret ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Drop removed obelisk OIDC client from keycloak idempotency test ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Sync config reference after rebase ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (orchestrator) Render public url in config ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Support experimental uploads without tag ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Support installed yq version ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (e2e) Stabilize compose setup and keycloak ingress ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (dev) Route keycloak through traefik instead of unreachable direct port ([!223](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/223))
+- Add missing roomserver path to traefik and fix livekit turn config closes #157 ([!213](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/213))
+- (docs) Align config reference generator with merged defaults ([!224](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/224))
+- (ci) Lint merge request commits individually ([!224](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/224))
+- (ci) Repair post-merge role-name check and stale test expectation ([!226](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/226))
+- (otctl) Stop migrate --no-deploy from passing an empty argument ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+- (s3-migrate) Stop the controller while objects are copied ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+- (postgres) Let images without root read the password file ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+- (packaging) Extract rpm payloads without a pipe in verify-packages ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+
+### 📚 Documentation
+
+- Update local development guidance ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- Add backup restore section with test procedure ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- Escape macro like strings `{{ .. }}` ([!214](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/214))
+- (changelog) Update v26.2.1 release notes ([!224](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/224))
+- Add upgrades and migrations chapter as chapter 2 ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+
+### 🔨 Refactor
+
+- (packaging) Rework embedded runtime packaging ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ansible) Normalize role names ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Use descriptive matrix value for optional-services slot ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Use debian13 instead of EOL debian12 for optional-services slot ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Build and use commit-pinned local pkgbuild image ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Cache local pkgbuild image and avoid duplicate pipelines ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Reuse pkgbuild image between pipeline runs ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Extract lint jobs ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Run docs and package builds through just ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Extract package jobs ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Extract deployment jobs ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Extract integration jobs ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Extract shared package template and fix CI contract test ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Extract shared base templates for upload and integration jobs ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Extract shared scripts and finalize optimizations ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Extract integration test runner ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Reuse release package and tag checks ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Move integration settings to file ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ci) Separate manual deployment stage ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+
+### 📦 Dependencies
+
+- (deps) Update dependency community.crypto to v3.4.0 ([!209](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/209))
+- (deps) Update dependency community.docker to v5.3.0 ([!210](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/210))
+- (deps) Update dependency community.general to v13.4.0 ([!211](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/211))
+- (deps) Update dependency ansible-core to v2.21.4 ([!212](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/212))
+- (deps) Update OpenTalk product version v26.3.0-beta.0 ([!228](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/228))
+- (deps) Update OpenTalk web frontend version v2.10.0 ([!228](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/228))
+- (deps) Update OpenTalk controller version v0.35.1 ([!228](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/228))
+- (deps) Update OpenTalk obelisk version v0.23.0 ([!228](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/228))
+- (deps) Update OpenTalk recorder version v0.18.0 ([!228](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/228))
+- (deps) Update OpenTalk roomserver version v0.10.1 ([!228](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/228))
+- (deps) Update OpenTalk smtp-mailer version v0.19.0 ([!228](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/228))
+- (deps) Update OpenTalk orchestrator version v0.12.0 ([!228](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/228))
+- (deps) Update OpenTalk outlook add-In version v0.5.0 ([!228](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/228))
+- (deps) Update livekit-server version v1.13.7 ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+- (deps) Update keycloak version v26.8.0 ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+- (deps) Update rabbitmq version v4.3.6 ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+- (deps) Update traefik version v3.7.13 ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+- (deps) Update garage version v2.4.1 ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+- (deps) Update postgres version v18.6.0 ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+
+### ⚙ Miscellaneous
+
+- (versions) Bump uv to 0.12.3 ([!201](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/201))
+- (ansible) Print task results as yaml ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+
+### Test
+
+- (ci) Run the postgres migration and the upgrade from stable in ci ([!237](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/237))
+
 ## [26.2.1] - 2026-09-22
 
 [26.2.1]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.2.1-beta.0...v26.2.1
