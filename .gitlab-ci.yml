@@ -101,7 +101,7 @@ include:
 code-review-agent:
   stage: analyze
   image:
-    name: pragent/pr-agent:0.42.0
+    name: pragent/pr-agent:0.47.0
     entrypoint: ['']
   needs: []
   allow_failure: true
