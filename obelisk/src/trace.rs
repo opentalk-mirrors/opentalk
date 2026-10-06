@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_tracing::{SdkTracerProvider, TracingParams, TracingSettings};
+use opentalk_tracing::{Bootstrap, SdkTracerProvider, TracingParams, TracingSettings};
 
 /// Default log directives, applied when neither `RUST_LOG` nor the configuration provide any.
 const DEFAULT_LOGGING_DIRECTIVES: &str = "warn,opentalk_obelisk=info";
@@ -13,9 +13,11 @@ const DEFAULT_LOGGING_DIRECTIVES: &str = "warn,opentalk_obelisk=info";
 /// `RUST_LOG` > `[tracing] default_directives` > [`DEFAULT_LOGGING_DIRECTIVES`].
 /// When an OTLP endpoint is configured, spans are additionally exported to it.
 pub(crate) fn init(
+    bootstrap: Bootstrap,
     settings: Option<&TracingSettings>,
 ) -> anyhow::Result<Option<SdkTracerProvider>> {
     opentalk_tracing::init(
+        bootstrap,
         settings,
         TracingParams {
             service_name: "obelisk",
@@ -24,4 +26,11 @@ pub(crate) fn init(
             filter_env_vars: &[],
         },
     )
+}
+
+/// Installs a temporary subscriber used until [`init`] can run, capturing log
+/// events emitted while the configuration is still being read. Pass the
+/// returned guard to [`init`].
+pub(crate) fn bootstrap() -> Bootstrap {
+    opentalk_tracing::bootstrap(&[], DEFAULT_LOGGING_DIRECTIVES)
 }

@@ -121,6 +121,7 @@ pub struct TracingParams<'a> {
 /// Returns the created [`SdkTracerProvider`], which must be passed to
 /// [`shutdown`] during graceful shutdown to flush pending spans.
 pub fn init(
+    bootstrap: Bootstrap,
     settings: Option<&TracingSettings>,
     params: TracingParams<'_>,
 ) -> anyhow::Result<Option<SdkTracerProvider>> {
@@ -144,6 +145,9 @@ pub fn init(
         })
         .unzip();
 
+    // Tear down the bootstrap subscriber right before installing the global one.
+    drop(bootstrap);
+
     tracing_subscriber::registry()
         .with(filter)
         .with(fmt)
@@ -151,6 +155,41 @@ pub fn init(
         .init();
 
     Ok(provider)
+}
+
+/// Guard for the temporary bootstrap subscriber installed by [`bootstrap`].
+///
+/// It must be passed to [`init`], which drops it before installing the global
+/// subscriber. Requiring it as an argument makes it impossible to install the
+/// global subscriber without first tearing down the bootstrap one.
+#[must_use = "the bootstrap guard must be passed to `init`"]
+pub struct Bootstrap {
+    _guard: tracing::subscriber::DefaultGuard,
+}
+
+/// Install a temporary subscriber as the current thread's default, bridging the
+/// window before [`init`] can run.
+///
+/// [`init`] needs the loaded configuration to resolve its directives and OTLP
+/// endpoint, so it can only run after the config has been read. Events emitted
+/// during that early window would otherwise be dropped, because no subscriber is
+/// set yet. This bootstrap subscriber captures them, resolving directives from
+/// `filter_env_vars` and `default_directives` only, since the configuration is
+/// not available yet (and therefore without OTLP export).
+///
+/// The returned [`Bootstrap`] guard must be passed to [`init`], which tears the
+/// bootstrap subscriber down before installing the global one.
+pub fn bootstrap(filter_env_vars: &[&str], default_directives: &str) -> Bootstrap {
+    let filter = create_filter(filter_env_vars, None, default_directives);
+    let fmt = tracing_subscriber::fmt::layer();
+
+    let subscriber = tracing_subscriber::registry().with(filter).with(fmt);
+
+    // Install only the thread-local dispatcher, not the `log` bridge: `init`
+    // installs that once, and `log::set_logger` would panic if called twice.
+    let guard = tracing::dispatcher::set_default(&subscriber.into());
+
+    Bootstrap { _guard: guard }
 }
 
 /// Flush and shut down the OTLP tracer provider, exporting any spans still

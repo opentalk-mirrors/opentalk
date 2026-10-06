@@ -70,19 +70,23 @@ pub enum Command {
 }
 
 impl Command {
-    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+    pub async fn exec(
+        self,
+        optional_config_path: Option<&Path>,
+        interim_logger: opentalk_controller_core::Bootstrap,
+    ) -> Result<()> {
         match self {
             Command::MigrateDb(command) => {
-                command.exec(optional_config_path).await?;
+                command.exec(optional_config_path, interim_logger).await?;
             }
             Command::Tenants(command) => {
-                command.exec(optional_config_path).await?;
+                command.exec(optional_config_path, interim_logger).await?;
             }
             Command::Tariffs(command) => {
-                command.exec(optional_config_path).await?;
+                command.exec(optional_config_path, interim_logger).await?;
             }
             Command::Jobs(command) => {
-                command.exec(optional_config_path).await?;
+                command.exec(optional_config_path, interim_logger).await?;
             }
             Command::Modules(command) => {
                 command.exec()?;
@@ -91,7 +95,7 @@ impl Command {
                 command.exec()?;
             }
             Command::Health(command) => {
-                command.exec(optional_config_path).await?;
+                command.exec(optional_config_path, interim_logger).await?;
             }
             Command::Reload(command) => {
                 command.exec()?;
@@ -103,7 +107,7 @@ impl Command {
                 command.exec();
             }
             Command::Dev(command) => {
-                command.exec(optional_config_path).await?;
+                command.exec(optional_config_path, interim_logger).await?;
             }
         }
         Ok(())

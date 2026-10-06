@@ -19,6 +19,9 @@ mod trace;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Capture logs emitted before initializing the logger from the settings.
+    let interim_logger = crate::trace::bootstrap();
+
     ensure_crypto_provider();
     match std::env::args().next() {
         Some(s) if s.contains("k3k-obelisk") => {
@@ -41,7 +44,7 @@ async fn main() -> Result<()> {
 
     let settings = Arc::new(settings::Settings::load(args.config.as_ref())?);
 
-    let tracer_provider = trace::init(settings.tracing.as_ref())?;
+    let tracer_provider = trace::init(interim_logger, settings.tracing.as_ref())?;
 
     if let Some(Commands::Health { endpoint }) = args.command {
         let Some(monitoring_endpoint) = endpoint.or_else(|| {

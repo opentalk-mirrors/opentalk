@@ -5,7 +5,7 @@
 use std::{collections::HashMap, path::Path};
 
 use clap::Subcommand;
-use opentalk_controller_core::load_settings_provider;
+use opentalk_controller_core::{Bootstrap, load_settings_provider};
 use opentalk_controller_settings::Settings;
 use opentalk_database::{DatabaseError, Db};
 use opentalk_db_storage as db;
@@ -24,8 +24,13 @@ pub enum Command {
 }
 
 impl Command {
-    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
-        let (settings_provider, _tracer_provider) = load_settings_provider(optional_config_path)?;
+    pub async fn exec(
+        self,
+        optional_config_path: Option<&Path>,
+        bootstrap: Bootstrap,
+    ) -> Result<()> {
+        let (settings_provider, _tracer_provider) =
+            load_settings_provider(optional_config_path, bootstrap)?;
         let settings = settings_provider.get();
 
         match self {

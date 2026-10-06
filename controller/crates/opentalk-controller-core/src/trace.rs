@@ -8,7 +8,7 @@ use actix_web::{
     http::header::USER_AGENT,
 };
 use opentalk_controller_settings::Logging;
-use opentalk_tracing::{SdkTracerProvider, TracingParams};
+use opentalk_tracing::{Bootstrap, SdkTracerProvider, TracingParams};
 use snafu::ResultExt as _;
 use tracing::Span;
 use tracing_actix_web::{RequestId, RootSpanBuilder};
@@ -29,14 +29,22 @@ const DEFAULT_LOGGING_DIRECTIVES: &str = "error,\
     lapin=warn,\
     execution_id=trace";
 
+/// Installs a temporary subscriber used until [`init`] can run, capturing log
+/// events emitted while the settings are still being loaded. Pass the returned
+/// guard to [`init`].
+pub fn bootstrap() -> Bootstrap {
+    opentalk_tracing::bootstrap(&[LOG_ENV], DEFAULT_LOGGING_DIRECTIVES)
+}
+
 // Initializes the global tracing subscriber.
 ///
 /// The log filter directives are resolved with the following precedence:
 /// `CONTROLLER_LOG` > `RUST_LOG` > `[tracing] default_directives` >
 /// [`DEFAULT_LOGGING_DIRECTIVES`]. When an OTLP endpoint is configured, spans
 /// are additionally exported to it.
-pub fn init(settings: &Logging) -> Result<Option<SdkTracerProvider>> {
+pub fn init(bootstrap: Bootstrap, settings: &Logging) -> Result<Option<SdkTracerProvider>> {
     opentalk_tracing::init(
+        bootstrap,
         Some(settings),
         TracingParams {
             service_name: "controller",

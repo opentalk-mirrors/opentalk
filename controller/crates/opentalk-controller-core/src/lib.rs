@@ -41,6 +41,7 @@ use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_jobs::job_runner::JobRunner;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
 use opentalk_service_auth::service::ApiKeyAuthorization;
+pub use opentalk_tracing::Bootstrap;
 use opentalk_tracing::SdkTracerProvider;
 use opentalk_types_api_v1::{auth::OidcProvider, error::ApiError};
 use rustls_pki_types::{CertificateDer, PrivatePkcs8KeyDer};
@@ -167,9 +168,12 @@ pub struct Controller {
 
 impl Controller {
     /// Creates a controller instance based on the optional config path command-line argument.
-    pub async fn create(optional_config_path: Option<PathBuf>) -> Result<Self> {
+    pub async fn create(
+        optional_config_path: Option<PathBuf>,
+        interim_logger: Bootstrap,
+    ) -> Result<Self> {
         let (settings_provider, tracer_provider) =
-            load_settings_provider(optional_config_path.as_deref())?;
+            load_settings_provider(optional_config_path.as_deref(), interim_logger)?;
 
         tracing::info!("Starting OpenTalk Controller");
 
@@ -982,8 +986,19 @@ fn determine_socket_address(
     Ok(to_socket_addrs)
 }
 
+/// Installs a temporary subscriber that captures logs emitted before
+/// [`load_settings_provider`] initializes the configured tracing subscriber.
+///
+/// Call this as early as possible (e.g. in `main`) and pass the returned guard
+/// to [`load_settings_provider`], which tears it down once the real subscriber
+/// is installed.
+pub fn bootstrap() -> Bootstrap {
+    trace::bootstrap()
+}
+
 pub fn load_settings_provider(
     optional_config_path: Option<&Path>,
+    interim_logger: Bootstrap,
 ) -> Result<(SettingsProvider, Option<SdkTracerProvider>)> {
     let settings_provider =
         SettingsProvider::load_from_path_or_standard_paths(optional_config_path)
@@ -991,7 +1006,7 @@ pub fn load_settings_provider(
 
     let settings = settings_provider.get();
 
-    let tracer_provider = trace::init(&settings.logging).unwrap_or_else(|e| {
+    let tracer_provider = trace::init(interim_logger, &settings.logging).unwrap_or_else(|e| {
         let report = Report::from_error(e);
         eprintln!("Could not initialize log output: {report}");
         None

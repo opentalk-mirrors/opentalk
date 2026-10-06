@@ -42,6 +42,9 @@ pub(crate) use app::{AppState, TranscriptionTasks};
 
 #[tokio::main]
 async fn main() -> Result<ExitCode> {
+    // Capture logs emitted before initializing the logger from the settings.
+    let interim_logger = trace::bootstrap();
+
     let args = cli::parse_args();
     if args.should_print() {
         return Ok(ExitCode::SUCCESS);
@@ -50,7 +53,7 @@ async fn main() -> Result<ExitCode> {
     let settings =
         Arc::new(Settings::load(args.config.as_deref()).context("Failed to read config")?);
 
-    let tracer_provider = trace::init(settings.tracing.as_ref())?;
+    let tracer_provider = trace::init(interim_logger, settings.tracing.as_ref())?;
 
     install_logging_hooks();
 

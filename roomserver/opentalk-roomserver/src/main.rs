@@ -20,6 +20,7 @@ use opentalk_roomserver_common::{
 };
 use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_room::{RoomTaskRegistry, orchestrator::OrchestratorStateProvider};
+use opentalk_tracing::Bootstrap;
 use service_probe::{ServiceState, start_probe, stop_probe};
 use tokio::{
     signal,
@@ -74,7 +75,7 @@ async fn bind_metrics_listener(address: &str, port: u16) -> anyhow::Result<Multi
         })
 }
 
-async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
+async fn run_app(config_file_path: Option<&Path>, interim_logger: Bootstrap) -> anyhow::Result<()> {
     let (app_state, _) = watch::channel(ApplicationState::Running);
     let settings: Arc<Settings> = Arc::new(SettingsFile::load(config_file_path)?.try_into()?);
     let mut set = JoinSet::new();
@@ -84,8 +85,8 @@ async fn run_app(config_file_path: Option<&Path>) -> anyhow::Result<()> {
             .map_err(decorate_error("Shutdown handler exited with error")),
     );
 
-    let tracer_provider =
-        trace::init(settings.tracing.as_ref()).context("Failed to initialize tracing")?;
+    let tracer_provider = trace::init(interim_logger, settings.tracing.as_ref())
+        .context("Failed to initialize tracing")?;
 
     if settings.controller.is_none() {
         tracing::warn!("Missing controller config, assets and module resources will not be saved")
@@ -264,6 +265,9 @@ async fn start_service_probe(
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Capture logs emitted before initializing the logger from the settings.
+    let interim_logger = trace::bootstrap();
+
     ensure_crypto_provider();
 
     let args = Args::parse();
@@ -282,7 +286,7 @@ async fn main() -> anyhow::Result<()> {
         Some(SubCommand::Modules(command)) => {
             cli::modules::handle_command(command);
         }
-        None => run_app(args.config.as_deref()).await?,
+        None => run_app(args.config.as_deref(), interim_logger).await?,
     }
 
     Ok(())

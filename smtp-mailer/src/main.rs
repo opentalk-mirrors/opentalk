@@ -83,6 +83,9 @@ opentalk_version::build_info!();
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Capture logs emitted before initializing the logger from the settings.
+    let interim_logger = trace::bootstrap();
+
     let args = Args::parse();
 
     if args.info.should_print() {
@@ -100,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
         settings::Settings::load_from_standard_paths()?
     };
 
-    let tracer_provider = trace::init(settings.tracing.as_ref())?;
+    let tracer_provider = trace::init(interim_logger, settings.tracing.as_ref())?;
 
     if let Some(Commands::Health { endpoint }) = args.command {
         let Some(monitoring_endpoint) = endpoint.or_else(|| {

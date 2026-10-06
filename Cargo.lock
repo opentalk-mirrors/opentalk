@@ -9713,7 +9713,6 @@ dependencies = [
  "tokio",
  "tokio-tungstenite 0.30.0",
  "tracing",
- "tracing-subscriber",
  "url",
  "uuid",
 ]
@@ -10966,6 +10965,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "serde",
+ "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",
  "uuid",

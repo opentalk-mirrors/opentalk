@@ -5,7 +5,7 @@
 use std::{path::Path, process::exit};
 
 use clap::Parser;
-use opentalk_controller_core::load_settings_provider;
+use opentalk_controller_core::{Bootstrap, load_settings_provider};
 use service_probe_client::is_ready;
 use url::Url;
 
@@ -17,8 +17,13 @@ pub struct Command {
 }
 
 impl Command {
-    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
-        let (settings_provider, _tracer_provider) = load_settings_provider(optional_config_path)?;
+    pub async fn exec(
+        self,
+        optional_config_path: Option<&Path>,
+        bootstrap: Bootstrap,
+    ) -> Result<()> {
+        let (settings_provider, _tracer_provider) =
+            load_settings_provider(optional_config_path, bootstrap)?;
         let settings = settings_provider.get();
 
         let Some(monitoring_endpoint) = self.endpoint.or_else(|| {
