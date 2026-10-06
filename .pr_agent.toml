@@ -1,0 +1,64 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+
+# The config for the PR Agent. For more information see https://github.com/The-PR-Agent/pr-agent/blob/main/pr_agent/settings/configuration.toml
+[config]
+# For all available models see https://github.com/The-PR-Agent/pr-agent/blob/main/pr_agent/algo/__init__.py
+model = "anthropic/claude-sonnet-5"
+fallback_models = ["anthropic/claude-opus-5"]
+model_weak = "anthropic/claude-haiku-4-5-20251001"
+
+# Allow to fetch additional source code for better context
+allow_dynamic_context = true
+max_extra_lines_before_dynamic_context = 15
+patch_extra_lines_before = 8
+patch_extra_lines_after = 3
+
+git_provider = "gitlab"
+
+# try to not repeat inline suggestion threads across re-runs (doesn't work half the time)
+persistent_inline_comments = true
+
+# Don't comment with 'Work in progress ...'
+publish_output_progress = false
+
+# Config for the /review command
+[pr_reviewer]
+# Remove intro text
+enable_intro_text = false
+# Check for unresolved todos in the code
+require_todo_scan = true
+# Maximum number of findings to report per PR (default 3), this might conflict with the max_model_tokens setting if set too high
+num_max_findings = 5
+# The gitlab `Reporter` role does not have permissions to add labels
+enable_review_labels_effort = false
+enable_review_labels_security = false
+
+# monorepo specific review instructions
+extra_instructions = """
+Prioritise:
+- Panics on untrusted input (in roomserver, a panic in a spawned task kills the room).
+- Blocking or heavy work on async/shared tasks (roomserver module handlers: use ctx.spawn/spawn_blocking).
+- Missing permission checks (is_moderator, Authorizer grant/revoke when resources change).
+- State not cleaned up on disconnect, close or cancellation.
+- Non-atomic multi-step writes (use `transaction(...)`); non-backwards-compatible migrations.
+- Breaking changes to wire/config types; missing de/en .ftl keys; secrets or PII in logs.
+
+Do NOT report anything rustfmt, clippy or other CI checks enforce. No comment/doc suggestions.
+Only report issues tied to a concrete line.
+"""
+
+# Config for the /improve command
+[pr_code_suggestions]
+
+# Create threads instead of one big comment
+commitable_code_suggestions = true
+
+# monorepo specific review instructions
+extra_instructions = """
+Same priorities as review. Use the crate's existing error style (snafu or anyhow/thiserror).
+Do NOT suggest anything rustfmt, clippy or other CI checks enforce. No comment/doc suggestions.
+Every suggestion must be a committable change to a specific line.
+"""
