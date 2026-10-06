@@ -100,9 +100,9 @@ _dev-ansible args="":
 _dev-compose args="":
     dev_root="$(realpath -m "{{dev_dir}}")"; docker compose --project-directory "$dev_root" -f "$dev_root/compose.yml" {{args}}
 
-# Deploy and start the complete local OpenTalk Compose environment.
-compose-deploy: compose-setup
-    dev_root="$(realpath -m "{{dev_dir}}")"; ingress_port="$(awk '/^ot_ingress_port:/ {print $2; exit}' "$dev_root/config/settings.yml")"; just _dev-ansible "-e ansible_become=false"; printf '\nLocal OpenTalk services:\n  Web UI:      http://opentalk.dev.localhost:%s/\n  Keycloak:   http://opentalk.dev.localhost:%s/auth/\n  Traefik:    http://localhost:7777/\n  Etherpad:   http://opentalk.dev.localhost:%s/etherpad/\n  Whiteboard: http://whiteboard.dev.localhost:%s/whiteboard/\n\n' "$ingress_port" "$ingress_port" "$ingress_port" "$ingress_port"
+# Deploy and start the local OpenTalk Compose environment, optionally limited to Ansible tags.
+compose-deploy tags="": compose-setup
+    dev_root="$(realpath -m "{{dev_dir}}")"; ingress_port="$(awk '/^ot_ingress_port:/ {print $2; exit}' "$dev_root/config/settings.yml")"; if test -n "{{tags}}"; then just _dev-ansible "--tags {{tags}} -e ansible_become=false"; else just _dev-ansible "-e ansible_become=false"; just compose-demo-user; demo_password="$(yq -r '.DEMO_USER_PASSWORD' "$dev_root/config/secrets/secrets.yml")"; printf '\nLocal demo user:\n  User:     demo\n  Password: %s\n' "$demo_password"; fi; printf '\nLocal OpenTalk services:\n  Web UI:      http://opentalk.dev.localhost:%s/\n  Keycloak:   http://opentalk.dev.localhost:%s/auth/\n  Traefik:    http://localhost:7777/\n  Etherpad:   http://opentalk.dev.localhost:%s/etherpad/\n  Whiteboard: http://whiteboard.dev.localhost:%s/whiteboard/\n\n' "$ingress_port" "$ingress_port" "$ingress_port" "$ingress_port"
 
 # Create or update the local demo user in Keycloak.
 compose-demo-user:
@@ -125,7 +125,9 @@ compose-down:
     dev_root="$(realpath -m "{{dev_dir}}")"; if test -f "$dev_root/compose.yml"; then docker compose --project-directory "$dev_root" -f "$dev_root/compose.yml" down; else echo "No local development stack found at $dev_root."; fi
 
 # Stop and remove the local OpenTalk Compose environment and its generated files.
-compose-clean: compose-down
+compose-clean project="opentalk":
+    dev_root="$(realpath -m "{{dev_dir}}")"; if test -f "$dev_root/compose.yml"; then docker compose --project-directory "$dev_root" -f "$dev_root/compose.yml" down --volumes; else echo "No local development stack found at $dev_root."; fi
+    docker volume ls --filter "label=com.docker.compose.project={{project}}" --quiet | xargs --no-run-if-empty docker volume rm
     rm -rf "$(realpath -m "{{dev_dir}}")"
 
 # Verify the contents and metadata of a Debian package.
