@@ -22,6 +22,13 @@ for container in "${containers[@]}"; do
     state=$(docker inspect --format '{{.State.Status}}' "$container")
     health=$(docker inspect --format '{{if .Config.Healthcheck}}{{.State.Health.Status}}{{end}}' "$container")
 
+    # A container in a restart loop may still recover, e.g. the controller
+    # while Keycloak is being recreated, so it gets the same deadline.
+    if [[ $state == restarting ]] && (( SECONDS < deadline )); then
+      sleep 2
+      continue
+    fi
+
     if [[ $state != running ]]; then
       echo "$name is not running (state: $state)." >&2
       docker logs --tail 100 "$container" >&2 || true
