@@ -6,6 +6,7 @@
 # Update /etc/opentalk-compose/settings.yml after a successful migration:
 #   - Set s3_storage_provider to the destination
 #   - Set compose_service_<source>_enabled: false
+#   - Set compose_service_<destination>_enabled: true
 
 - name: Set s3_storage_provider to migration destination
   tags: [s3_migrate_logic]
@@ -33,6 +34,16 @@
     state: present
   when: not _disable_src_line.changed
 
+# otctl starts the destination with an extra variable only, so settings.yml
+# may still disable it explicitly. Enable it, or the next deploy stops it.
+- name: Enable destination service in settings.yml
+  tags: [s3_migrate_logic]
+  ansible.builtin.lineinfile:
+    path: "{{ s3_migrate_settings_file }}"
+    regexp: '^(\s*)compose_service_{{ s3_migration_destination }}_enabled\s*:'
+    line: "compose_service_{{ s3_migration_destination }}_enabled: true"
+    state: present
+
 - name: Confirm settings update
   tags: [s3_migrate_logic]
   ansible.builtin.debug:
@@ -40,3 +51,4 @@
       settings.yml updated:
         s3_storage_provider: {{ s3_migration_destination }}
         compose_service_{{ s3_migration_source }}_enabled: false
+        compose_service_{{ s3_migration_destination }}_enabled: true

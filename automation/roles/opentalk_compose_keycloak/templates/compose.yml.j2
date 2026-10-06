@@ -90,10 +90,14 @@ services:
     ports:
       - {{ keycloak_db_bind_interface }}:{{ keycloak_db_host_port }}:5432
     volumes:
-      - keycloak-db:/var/lib/postgresql/data
+      - {{ keycloak_db_volume_name }}:{{ keycloak_db_data_mount }}
     restart: always
     secrets:
       - db_keycloak_secret
+    # The secret file is root:root 0640. An image that starts its entrypoint
+    # as the postgres user instead of root reads it through group 0.
+    group_add:
+      - "0"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-keycloak}
       POSTGRES_USER: ${POSTGRES_USER:-ot}
@@ -112,4 +116,4 @@ secrets:
     file: ${CONTAINER_SECRETS_PATH:-{{ config_dir }}/secrets}/.db_keycloak.secret
 
 volumes:
-  keycloak-db:
+  {{ keycloak_db_volume_name }}:

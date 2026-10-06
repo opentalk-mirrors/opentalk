@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-09-24
+Last updated: 2026-10-05
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -220,17 +220,20 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `keycloak_bootstrap_admin_remove` | boolean | `true` |
 | `keycloak_bootstrap_admin_username` | string | `bootstrap_admin` |
 | `keycloak_db_bind_interface` | string | `127.0.0.1` |
+| `keycloak_db_data_mount` | string | `{{ '/var/lib/postgresql/data' if keycloak_db_postgres_major \| int <= 17 else '/var/lib/postgresql' }}` |
 | `keycloak_db_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `keycloak_db_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `keycloak_db_docker_compose_ulimits_nproc` | integer | `8192` |
 | `keycloak_db_host_port` | integer | `5433` |
 | `keycloak_db_password` | string | `{{ KEYCLOAK_DB_PASSWORD }}` |
+| `keycloak_db_postgres_major` | string | `{{ (postgres_version \| string).split('.') \| first \| int }}` |
 | `keycloak_db_schema` | string | `public` |
 | `keycloak_db_url_database` | string | `keycloak` |
 | `keycloak_db_url_host` | string | `keycloak-db` |
 | `keycloak_db_url_port` | integer | `5432` |
 | `keycloak_db_username` | string | `ot` |
 | `keycloak_db_vendor` | string | `postgres` |
+| `keycloak_db_volume_name` | string | `{{ 'keycloak-db' if keycloak_db_postgres_major \| int <= 17 else 'keycloak-db-pg' ~ keycloak_db_postgres_major }}` |
 | `keycloak_demo_user_email` | string | `demo.user@example.com` |
 | `keycloak_demo_user_enabled` | boolean | `true` |
 | `keycloak_demo_user_firstName` | string | `Test` |
@@ -424,6 +427,15 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `mailcrab_docker_label_http_routers_minio_console_middlewares` | string | `default-auth@file` |
 | `mailcrab_webui_prefix` | string | `/adm/mailcrab` |
 
+## opentalk_compose_migrations
+
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
+| `migration_check_enabled` | boolean | `true` |
+| `migrations_compose_project` | string | `{{ compose_project_name \| default('opentalk') }}` |
+| `migrations_postgres_databases` | list | `[{name: controller, service: controller, db_service: controller-db, secret_file: .db_controller.secret, default_user: ot, default_database: controller, enabled: {{ compose_service_opentalk_controller_enabled \| default(true) }}}, {name: keycloak, service: keycloak, db_service: keycloak-db, secret_file: .db_keycloak.secret, default_user: ot, default_database: keycloak, enabled: {{ compose_service_keycloak_enabled \| default(true) }}}]` |
+| `migrations_postgres_major` | string | `{{ (postgres_version \| string).split('.') \| first }}` |
+
 ## opentalk_compose_minio
 
 | Variable | Type | Default / Example Value |
@@ -470,10 +482,13 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `controller_database_port` | integer | `5432` |
 | `controller_database_user` | string | `ot` |
 | `controller_db_bind_interface` | string | `127.0.0.1` |
+| `controller_db_data_mount` | string | `{{ '/var/lib/postgresql/data' if controller_db_postgres_major \| int <= 17 else '/var/lib/postgresql' }}` |
 | `controller_db_docker_compose_ulimits_nofile_hard` | integer | `65536` |
 | `controller_db_docker_compose_ulimits_nofile_soft` | integer | `65536` |
 | `controller_db_docker_compose_ulimits_nproc` | integer | `8192` |
 | `controller_db_host_port` | integer | `5432` |
+| `controller_db_postgres_major` | string | `{{ (postgres_version \| string).split('.') \| first \| int }}` |
+| `controller_db_volume_name` | string | `{{ 'controller-db' if controller_db_postgres_major \| int <= 17 else 'controller-db-pg' ~ controller_db_postgres_major }}` |
 | `controller_defaults_disabled_features` | list | `[core::call_in, integration::outlook]` |
 | `controller_defaults_screen_share_requires_permission` | string | `true` |
 | `controller_defaults_timezone` | string | `Etc/UTC` |
@@ -837,6 +852,22 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `opentalk_web_frontend_labels_traefik_enable` | boolean | `true` |
 | `opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
 
+## opentalk_compose_postgres_migrate
+
+| Variable | Type | Default / Example Value |
+|----------|------|-------------------------|
+| `postgres_migrate_compose_project` | string | `{{ compose_project_name \| default('opentalk') }}` |
+| `postgres_migrate_confirmation` | string | `` |
+| `postgres_migrate_dump_dir` | string | `{{ backup_dir \| default('/var/opt/opentalk-compose/backups') }}/dumps` |
+| `postgres_migrate_image_src` | string | `{{ postgres_docker_image_src \| default('registry.heinlein.group/opentalk/postgres') }}` |
+| `postgres_migrate_plan_file` | string | `` |
+| `postgres_migrate_plan_only` | boolean | `false` |
+| `postgres_migrate_ready_delay` | integer | `2` |
+| `postgres_migrate_ready_retries` | integer | `90` |
+| `postgres_migrate_secrets_dir` | string | `{{ config_dir \| default('/etc/opentalk-compose') }}/secrets` |
+| `postgres_migrate_source_image` | string | `{{ postgres_migrate_image_src }}:{{ postgres_migration_source_version }}` |
+| `postgres_migrate_target_image` | string | `{{ postgres_migrate_image_src }}:{{ postgres_version }}` |
+
 ## opentalk_compose_rabbitmq
 
 | Variable | Type | Default / Example Value |
@@ -860,10 +891,11 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | Variable | Type | Default / Example Value |
 |----------|------|-------------------------|
 | `s3_migrate_bucket_name` | string | `opentalk` |
+| `s3_migrate_caller_deploys` | boolean | `false` |
 | `s3_migrate_garage_endpoint` | string | `http://127.0.0.1:3900` |
 | `s3_migrate_minio_endpoint` | string | `http://127.0.0.1:9000` |
 | `s3_migrate_run_deploy` | boolean | `true` |
-| `s3_migrate_settings_file` | string | `{{ config_dir \| default('/etc/opentalk-compose') }}/settings.yml` |
+| `s3_migrate_settings_file` | string | `{{ lookup('env', 'OT_SETTINGS_FILE') \| default((config_dir \| default('/etc/opentalk-compose')) ~ '/settings.yml', true) }}` |
 
 ## opentalk_compose_secrets
 

@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# tasks file for opentalk_compose_migrations
+
+- name: Include guard.yml
+  ansible.builtin.include_tasks:
+    file: guard.yml

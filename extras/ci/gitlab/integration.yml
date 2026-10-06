@@ -94,6 +94,41 @@ int:stable:
   script:
     - bash extras/ci/gitlab/run-integration-test.sh
 
+# Migration and upgrade tests run on one distribution against the package of
+# the pipeline: on merge requests and for every release tag.
+.int_migration_base:
+  extends: .int_base
+  variables:
+    DIST: debian12
+    OPENTALK_E2E: "1"
+  needs:
+    - job: package:experimental
+      artifacts: true
+      optional: true
+    - job: package:pre-release
+      artifacts: true
+      optional: true
+    - job: package:stable
+      artifacts: true
+      optional: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)?(-\d+)?$/'
+    - when: never
+
+# 'otctl migrate postgres' of the installed package against real containers.
+int:postgres-migration:
+  extends: .int_migration_base
+  script:
+    - dpkg -i artifacts/*.deb || apt-get install -f -y
+    - OT_PREFIX=/opt/opentalk-compose bash extras/scripts/tests/integration/test_postgres_migration.sh
+
+# Upgrade from the current stable release to the package of the pipeline.
+int:upgrade:
+  extends: .int_migration_base
+  script:
+    - OT_UPGRADE_PACKAGE="$(ls artifacts/*.deb)" bash extras/scripts/tests/integration/test_upgrade_e2e.sh
+
 # Manual, destructive end-to-end Compose test. Requires a dinD runner with
 # Docker, `just`, `uv`, Ansible, and network access to the container registry.
 int:e2e:

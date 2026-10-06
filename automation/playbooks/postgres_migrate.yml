@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Move the controller and Keycloak databases to the PostgreSQL major in
+# .versions.yml. Run it through 'otctl migrate postgres', which shows the
+# plan (postgres_migrate_plan_only=true) and asks before it starts.
+
+- name: PostgreSQL migration
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../../.versions.yml
+    - "{{ lookup('env', 'OT_SETTINGS_FILE') | default('/etc/opentalk-compose/settings.yml', true) }}"
+  roles:
+    - role: opentalk_compose_postgres_migrate

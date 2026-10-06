@@ -7,7 +7,7 @@ set -euo pipefail
 
 REPO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
 GENERATOR="$REPO_ROOT/extras/scripts/generate-config-reference.py"
-REFERENCE="$REPO_ROOT/docs/5-configuration-options-reference.md"
+REFERENCE="$REPO_ROOT/docs/6-configuration-options-reference.md"
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 

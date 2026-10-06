@@ -26,7 +26,7 @@ Accessible with default settings at: `/auth/`
 
 When default settings are kept the username is `admin`. The password is randomly generated during the initialization phase and can be found in `config/secrets/secrets.yaml` as the value for the key `KC_PERMANENT_ADMIN_PASSWORD`.
 
-Here you can create users for using OpenTalk. A step-by-step guide can be found in the documentation ["Managing OpenTalk Users in Keycloak"](3-managing-opentalk-users-in-keycloak.md). Extensive configurations can also be made regarding user authentication. Further information on using the Keycloak Admin Console can be found in the official [Keycloak documentation](https://www.keycloak.org/docs/latest/server_admin/index.html#using-the-admin-console).
+Here you can create users for using OpenTalk. A step-by-step guide can be found in the documentation ["Managing OpenTalk Users in Keycloak"](4-managing-opentalk-users-in-keycloak.md). Extensive configurations can also be made regarding user authentication. Further information on using the Keycloak Admin Console can be found in the official [Keycloak documentation](https://www.keycloak.org/docs/latest/server_admin/index.html#using-the-admin-console).
 
 ### 2.2 Authentication for Endpoints Behind `/adm/`
 
@@ -59,7 +59,7 @@ Accessible with default settings at: `/adm/minio/`
 
 - e.g. `http://example.com/adm/minio/`
 
-> **Note:** The MinIO Web Console is only available when using MinIO as the S3 storage provider (`s3_storage_provider: minio`). The default provider Garage does not include a web UI; use the Garage CLI instead (see [S3 Storage Provider](4-advanced-installation-scenarios.md#6-s3-storage-provider)).
+> **Note:** The MinIO Web Console is only available when using MinIO as the S3 storage provider (`s3_storage_provider: minio`). The default provider Garage does not include a web UI; use the Garage CLI instead (see [S3 Storage Provider](5-advanced-installation-scenarios.md#6-s3-storage-provider)).
 
 MinIO Console to manage buckets, objects, policies and access keys used by OpenTalk (e.g., recordings, PDF documents).
 

@@ -31,6 +31,11 @@
           ansible.builtin.debug:
             msg: "WARNING: secrets file '{{ config_dir | default('/etc/opentalk') }}/secrets/secrets.yml' not found."
           when: not secrets_file.stat.exists
+
+    - name: Stop if a migration is pending
+      ansible.builtin.include_role:
+        name: opentalk_compose_migrations
+      tags: ["always"]
   roles:
     - role: opentalk_compose_docker_env
       tags: [docker]
@@ -151,5 +156,8 @@
           This is a temporary state intended for S3 data migration.
           Run 'otctl migrate minio-to-garage' or 'otctl migrate garage-to-minio'
           to transfer data and deactivate the old provider.
-      when: (compose_service_minio_enabled | default(false) | bool) and (compose_service_garage_enabled | default(false) | bool)
+      when:
+        - (compose_service_minio_enabled | default(false) | bool) and (compose_service_garage_enabled | default(false) | bool)
+        # 'otctl migrate' starts both on purpose and needs no reminder.
+        - not (s3_migrate_in_progress | default(false) | bool)
       tags: [always]

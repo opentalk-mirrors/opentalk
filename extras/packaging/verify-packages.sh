@@ -43,7 +43,11 @@ for package in "${PACKAGES[@]}"; do
     dpkg-deb -x "$package" "$tree"
   elif [[ "$package" == *.rpm ]]; then
     rpm -qip "$package" >/dev/null
-    (cd "$tree" && rpm2cpio "$package" | cpio -idm --quiet)
+    # No pipe: cpio stops reading at the archive trailer, and rpm2cpio from
+    # RPM 6 still writes after it, so under pipefail the SIGPIPE fails the run.
+    rpm2cpio "$package" > "$tree.cpio"
+    (cd "$tree" && cpio -idm --quiet < "$tree.cpio")
+    rm -f "$tree.cpio"
   else
     echo "Unsupported package type: $package" >&2
     rm -rf "$tree"

@@ -31,7 +31,8 @@
   ansible.builtin.set_fact:
     s3_migrate_source_container: "{{ s3_migrate_source_project }}-{{ s3_migration_source }}-1"
     s3_migrate_dest_container: "{{ s3_migrate_source_project }}-{{ s3_migration_destination }}-1"
-  tags: [s3_migrate_integration]
+    s3_migrate_controller_container: "{{ s3_migrate_source_project }}-controller-1"
+  tags: [s3_migrate_logic, s3_migrate_integration]
 
 - name: Check source container is running
   community.docker.docker_container_info:
@@ -40,7 +41,7 @@
   failed_when: >-
     not _source_container_info.exists or
     _source_container_info.container.State.Status != 'running'
-  tags: [s3_migrate_integration]
+  tags: [s3_migrate_integration, s3_migrate_preflight]
 
 - name: Check destination container is running
   community.docker.docker_container_info:
@@ -49,7 +50,7 @@
   failed_when: >-
     not _dest_container_info.exists or
     _dest_container_info.container.State.Status != 'running'
-  tags: [s3_migrate_integration]
+  tags: [s3_migrate_integration, s3_migrate_preflight]
 
 - name: Show migration plan
   ansible.builtin.debug:
@@ -57,5 +58,6 @@
       Migrating S3 data: {{ s3_migration_source }} → {{ s3_migration_destination }}
       (bucket: {{ s3_migrate_bucket_name }},
        source endpoint: {{ s3_migrate_source_endpoint }},
-       dest endpoint: {{ s3_migrate_dest_endpoint }})
+       dest endpoint: {{ s3_migrate_dest_endpoint }}).
+      The controller is stopped while the objects are copied, which interrupts running meetings.
   tags: [s3_migrate_integration]

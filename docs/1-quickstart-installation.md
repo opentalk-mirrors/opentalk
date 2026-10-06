@@ -211,7 +211,7 @@ Remove:
 otctl deploy --tags demo-user -e keycloak_demo_user_state=absent
 ```
 
-Regular user management is done via Keycloak. Refer the docs [Managing OpenTalk Users](./3-managing-opentalk-users-in-keycloak.md).
+Regular user management is done via Keycloak. Refer the docs [Managing OpenTalk Users](./4-managing-opentalk-users-in-keycloak.md).
 
 ### 2.4 Optional: Adjust Configuration & Redeploy
 
@@ -391,7 +391,7 @@ Health column semantics (`otctl status`):
 
 The SMTP Mailer service sends transactional emails for OpenTalk (meeting invitations, notifications). It connects to a configured SMTP server and derives sender addresses and links from your `ot_domain` setting. The mailer requires valid credentials for your SMTP server; therefore it is disabled by default until configured.
 
-For a full list of available SMTP Mailer configuration variables see the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_compose_opentalk_smtp_mailer).
+For a full list of available SMTP Mailer configuration variables see the [Configuration Options Reference](6-configuration-options-reference.md#opentalk_compose_opentalk_smtp_mailer).
 
 ### 3.2 Enable & Configure SMTP Mailer
 
@@ -464,7 +464,7 @@ Obelisk is a SIP (Session Initiation Protocol) telephony bridge service that ena
 - Connect from SIP-enabled desk phones
 - Provide dial-in access for participants without internet or video capabilities
 
-For all Obelisk-related configuration variables refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_compose_opentalk_obelisk).
+For all Obelisk-related configuration variables refer to the [Configuration Options Reference](6-configuration-options-reference.md#opentalk_compose_opentalk_obelisk).
 
 Obelisk requires credentials for your SIP provider or PBX system, so it is disabled by default.
 
@@ -595,11 +595,11 @@ Look for successful SIP registration messages. If there are connection issues, v
 3. Network connectivity to SIP server
 4. DNS resolution of SIP server hostname
 
-For detailed configuration options, refer to the [Configuration Options Reference](5-configuration-options-reference.md#opentalk_compose_opentalk_obelisk).
+For detailed configuration options, refer to the [Configuration Options Reference](6-configuration-options-reference.md#opentalk_compose_opentalk_obelisk).
 
 ## 5. Optional: TURN over TLS with Embedded TURN Server (LiveKit)
 
-Reliable WebRTC connectivity sometimes requires TURN relaying when direct peer-to-peer connections are blocked by NAT or restrictive firewalls. OpenTalk ships with an embedded TURN server provided by LiveKit. This section explains the default behavior, how to enable TURN over TLS, required DNS changes, configuration options, verification, troubleshooting, scaling considerations, and security recommendations. For deploying a separate (dedicated) TURN service with coturn, see the advanced guide: [Dedicated TURN Server (coturn)](./4-advanced-installation-scenarios.md#5-external-turn-and-stun-server-integration-coturn).
+Reliable WebRTC connectivity sometimes requires TURN relaying when direct peer-to-peer connections are blocked by NAT or restrictive firewalls. OpenTalk ships with an embedded TURN server provided by LiveKit. This section explains the default behavior, how to enable TURN over TLS, required DNS changes, configuration options, verification, troubleshooting, scaling considerations, and security recommendations. For deploying a separate (dedicated) TURN service with coturn, see the advanced guide: [Dedicated TURN Server (coturn)](./5-advanced-installation-scenarios.md#5-external-turn-and-stun-server-integration-coturn).
 
 ### 5.1 Default Embedded TURN Behavior
 
@@ -698,110 +698,4 @@ When creating a new calendar event, open the three-dot menu and choose OpenTalk.
 
 ## 7. Updating OpenTalk Compose
 
-Keeping your OpenTalk Compose installation current ensures you receive security fixes, performance improvements, and new features. Updates are designed to be safe and idempotent. The recommended workflow mirrors the initial installation and consists of three main steps: create a full backup, update the package from the repository, and redeploy the stack.
-
-> **Maintenance Window:** Perform updates during a low-usage window to avoid interrupting active meetings. A typical update (package + redeploy) usually completes within a few minutes.
-
-### 7.1 Overview
-
-High-level process:
-
-1. Create a full backup (databases, config, volumes)
-2. Refresh repository metadata and upgrade the `opentalk-compose` package
-3. Check for package-provided config update files and merge new options
-4. Run `otctl deploy` to render any updated templates and restart services if needed
-
-### 7.2 Step 1: Create a Full Backup
-
-Use the bundled backup facility before every update:
-
-```bash
-otctl backup all
-otctl backup ls   # (optional) verify backup presence
-```
-
-Backups are stored under `/var/opt/opentalk-compose/backups`. Keep sufficient disk space free. For more granular commands see section 2.6.
-
-If the release includes a PostgreSQL major upgrade (for example controller-db/keycloak-db image major bump), create dedicated database dumps before deploying:
-
-```bash
-otctl backup dump controller
-otctl backup dump keycloak
-```
-
-Use the restore workflow from section 2.7 for rollback planning.
-
-### 7.3 Step 2: Update Repository & Package
-
-Ensure your repository configuration is still present (see section 2.1). Then update according to your distribution family.
-
-#### 7.3.1 Debian / Ubuntu
-
-```bash
-apt update
-apt install --only-upgrade opentalk-compose
-```
-
-#### 7.3.2 RHEL-based
-
-```bash
-dnf makecache
-dnf upgrade -y opentalk-compose
-```
-
-#### 7.3.3 SUSE-based
-
-```bash
-zypper refresh
-zypper update -y opentalk-compose
-```
-
-### 7.4 Step 3: Merge new configuration options from package updates
-
-After package upgrade, check whether the package manager kept your existing settings file and wrote an updated template alongside it:
-
-```bash
-ls -l /etc/opentalk-compose/settings.yml.dpkg-dist /etc/opentalk-compose/settings.yml.rpmnew
-```
-
-If one of these files exists, compare it with your active configuration and merge relevant new options into `/etc/opentalk-compose/settings.yml`.
-
-- Debian/Ubuntu commonly uses `/etc/opentalk-compose/settings.yml.dpkg-dist`
-- RPM-based systems commonly use `/etc/opentalk-compose/settings.yml.rpmnew`
-
-Pay special attention to newly introduced storage options. If you are moving between S3 backends (MinIO/Garage), follow the dedicated migration workflow in section 6.3 before or during the upgrade window.
-
-### 7.5 Step 4: Redeploy Services
-
-After upgrading the package, redeploy to apply any new templates, configuration changes, or image updates:
-
-```bash
-otctl deploy
-```
-
-The deploy is idempotent: unchanged services remain running; changed components are recreated or restarted automatically.
-
-### 7.6 Verification & Rollback Notes
-
-Verify versions and health:
-
-```bash
-otctl version
-otctl status
-```
-
-Check logs of critical services (e.g. controller, keycloak, livekit-server) for startup issues:
-
-```bash
-otctl logs controller
-otctl logs livekit-server
-otctl logs keycloak
-```
-
-If problems occur:
-
-- Re-run deploy: `otctl deploy`
-- Compare configs: use previous config backup snapshot
-- Restore from backup using the artifacts created in Step 1
-
-> **Tip:** Maintain at least the last two successful full backups to facilitate rollback in rare edge cases.
+Package updates, version upgrades and data migrations are described in the chapter [Upgrades and Migrations](2-upgrades-and-migrations.md).

@@ -79,11 +79,14 @@ Subcommands (most used first):
   down        Shortcut for compose down
   ps          Shortcut for compose ps
   volumes     List or remove compose project volumes (rm <v...> | prune --force)
-  migrate     Migrate S3 data between MinIO and Garage
+  migrate     Run or review data migrations that a release or a provider change needs
               Sub-commands:
+                status           -> list migrations that block 'otctl deploy'
+                postgres         -> move the databases to the PostgreSQL major of this release
                 minio-to-garage  -> copy all objects from MinIO to Garage, update settings.yml
                 garage-to-minio  -> copy all objects from Garage to MinIO, update settings.yml
               Options:
+                --yes            -> skip interactive confirmation
                 --no-deploy      -> skip automatic deploy after migration
   import      Import data into OpenTalk / Keycloak
               Sub-commands:
@@ -379,6 +382,38 @@ list_tags() {
   else
     echo "[otctl] failed to obtain tags" >&2
     return 1
+  fi
+}
+
+migrate_usage() {
+  cat <<'MHELP'
+otctl migrate USAGE:
+  otctl migrate status                    # list migrations that block 'otctl deploy'
+  otctl migrate postgres                  # move the databases to the PostgreSQL major of this release, deploy
+  otctl migrate minio-to-garage           # copy MinIO -> Garage, update settings.yml, deploy
+  otctl migrate garage-to-minio           # copy Garage -> MinIO, update settings.yml, deploy
+Options:
+  --yes                                   # skip the confirmation (required in non-interactive sessions)
+  --no-deploy                             # skip the deploy after the migration
+MHELP
+}
+
+confirm_migration() {
+  # Ask before a migration starts; $1 is 1 when --yes was given.
+  if [ "$1" -eq 1 ]; then
+    echo "[otctl] Confirmation skipped (--yes)." >&2
+    return 0
+  fi
+  if [ ! -t 0 ] || [ ! -t 1 ]; then
+    echo "[otctl] Non-interactive session: re-run with --yes to start the migration." >&2
+    exit 1
+  fi
+  local answer
+  printf 'Type "migrate" to start: '
+  IFS= read -r answer || answer=""
+  if [ "$answer" != "migrate" ]; then
+    echo "[otctl] Aborted - confirmation did not match." >&2
+    exit 1
   fi
 }
 
@@ -734,32 +769,104 @@ RHELP
   compose) compose_exec "$@" ;;
   playbook) PLAYBOOK_WRAPPER "$@" ;;
   migrate)
-    migrate_direction="${1:-}"; if [ $# -gt 0 ]; then shift; fi
-    case "$migrate_direction" in
-      minio-to-garage) _migrate_src=minio ;;
-      garage-to-minio) _migrate_src=garage ;;
-      ''|-h|--help|help)
-        cat <<'MHELP'
-otctl migrate USAGE:
-  otctl migrate minio-to-garage           # copy MinIO → Garage, update settings.yml
-  otctl migrate garage-to-minio           # copy Garage → MinIO, update settings.yml
-  otctl migrate minio-to-garage --no-deploy  # skip automatic deploy after migration
-MHELP
-        exit 0 ;;
-      *) echo "[otctl] Unknown migration direction: $migrate_direction (use minio-to-garage or garage-to-minio)" >&2; exit 1 ;;
+    migrate_what="${1:-}"; if [ $# -gt 0 ]; then shift; fi
+    case "$migrate_what" in
+      status)
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/migrate_status.yml" "$@"
+        ;;
+      minio-to-garage|garage-to-minio)
+        _migrate_src="${migrate_what%%-to-*}"
+        _migrate_dst="${migrate_what##*-to-}"
+        _migrate_deploy=1
+        _migrate_yes=0
+        # Rebuild the argument list without our own flags; a pattern
+        # substitution would leave an empty argument behind, which
+        # ansible-playbook reads as a playbook path.
+        _migrate_args=()
+        for _a in "$@"; do
+          case "$_a" in
+            --no-deploy) _migrate_deploy=0 ;;
+            --yes) _migrate_yes=1 ;;
+            *) _migrate_args+=("$_a") ;;
+          esac
+        done
+        set -- ${_migrate_args[@]+"${_migrate_args[@]}"}
+        # otctl runs both deploys itself, so the user's extra arguments reach them.
+        _migrate_caller_deploys=$([ "$_migrate_deploy" -eq 1 ] && echo true || echo false)
+        _migrate_extra_vars="s3_migration_source=${_migrate_src} s3_migrate_run_deploy=false s3_migrate_caller_deploys=${_migrate_caller_deploys}"
+        echo "[otctl] MIGRATION PLAN: copy all S3 objects from ${_migrate_src} to ${_migrate_dst}." >&2
+        echo "[otctl] - A deploy starts ${_migrate_dst} next to ${_migrate_src}, unless both already run." >&2
+        echo "[otctl] - The controller is stopped while the objects are copied; running meetings are interrupted." >&2
+        echo "[otctl] - settings.yml is switched to ${_migrate_dst}. The ${_migrate_src} data stays until you remove its volume." >&2
+        if [ "$_migrate_deploy" -eq 1 ]; then
+          echo "[otctl] - 'otctl deploy' runs afterwards and starts the controller against ${_migrate_dst}." >&2
+        else
+          echo "[otctl] - No deploy afterwards (--no-deploy): the controller stays stopped until you run 'otctl deploy'." >&2
+        fi
+        echo "[otctl] Tip: run 'otctl backup all' first to keep a rollback point." >&2
+        confirm_migration "$_migrate_yes"
+        echo "[otctl] Starting ${_migrate_src} and ${_migrate_dst} side by side." >&2
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --diff \
+          -e "compose_service_minio_enabled=true compose_service_garage_enabled=true s3_migrate_in_progress=true" "$@"
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" \
+          "$AUTOMATION/playbooks/s3_migrate.yml" \
+          -e "$_migrate_extra_vars" "$@"
+        if [ "$_migrate_deploy" -eq 1 ]; then
+          PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --diff "$@"
+        fi
+        ;;
+      postgres)
+        _pg_deploy=1
+        _pg_yes=0
+        _pg_args=()
+        for _a in "$@"; do
+          case "$_a" in
+            --no-deploy) _pg_deploy=0 ;;
+            --yes) _pg_yes=1 ;;
+            *) _pg_args+=("$_a") ;;
+          esac
+        done
+        set -- ${_pg_args[@]+"${_pg_args[@]}"}
+        # Read-only first pass: checks the volumes and disk space, prints the
+        # plan and reports how many databases are pending.
+        _pg_plan_file=$(mktemp)
+        if ! PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/postgres_migrate.yml" \
+          -e "postgres_migrate_plan_only=true postgres_migrate_plan_file=$_pg_plan_file" "$@"; then
+          rm -f "$_pg_plan_file"
+          echo "[otctl] PostgreSQL migration plan failed; nothing was changed." >&2
+          exit 1
+        fi
+        _pg_pending=$(cat "$_pg_plan_file" 2>/dev/null || echo "")
+        rm -f "$_pg_plan_file"
+        if [ "$_pg_pending" = "0" ]; then
+          echo "[otctl] No PostgreSQL migration pending." >&2
+          exit 0
+        fi
+        echo "[otctl] MIGRATION PLAN: move the PostgreSQL databases listed above to new volumes." >&2
+        echo "[otctl] - The affected services are stopped; OpenTalk is unavailable until the deploy has finished." >&2
+        echo "[otctl] - The old volumes and the SQL dumps are kept for rollback." >&2
+        if [ "$_pg_deploy" -eq 1 ]; then
+          echo "[otctl] - 'otctl deploy' runs afterwards and starts the databases on the new volumes." >&2
+        else
+          echo "[otctl] - No deploy afterwards (--no-deploy): the services stay stopped until you run 'otctl deploy'." >&2
+        fi
+        echo "[otctl] Tip: run 'otctl backup all' first to keep a rollback point." >&2
+        confirm_migration "$_pg_yes"
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/postgres_migrate.yml" \
+          -e "postgres_migrate_confirmation=yes" "$@"
+        if [ "$_pg_deploy" -eq 1 ]; then
+          PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --diff "$@"
+        else
+          echo "[otctl] Migration finished. Run 'otctl deploy' to start the services on the new volumes." >&2
+        fi
+        ;;
+      ''|-h|--help|help) migrate_usage ;;
+      *)
+        echo "[otctl] Unknown migration: $migrate_what" >&2
+        migrate_usage >&2
+        exit 1
+        ;;
     esac
-    _migrate_extra_vars="s3_migration_source=${_migrate_src}"
-    # Allow --no-deploy flag to skip the post-migration deploy
-    for _a in "$@"; do
-      if [ "$_a" = "--no-deploy" ]; then
-        _migrate_extra_vars="${_migrate_extra_vars} s3_migrate_run_deploy=false"
-        set -- "${@/--no-deploy/}"
-        break
-      fi
-    done
-    PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" \
-      "$AUTOMATION/playbooks/s3_migrate.yml" \
-      -e "$_migrate_extra_vars" "$@"
     ;;
   import)
     import_what="${1:-}"; if [ $# -gt 0 ]; then shift; fi

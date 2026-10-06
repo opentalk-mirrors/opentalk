@@ -331,7 +331,7 @@ otctl deploy
 
 ## 3 External OpenTalk Recorder-only nodes
 
-Recording meetings can be resource intensive. Offloading the Recorder service to a dedicated host is appropriate if recordings are frequent or occur in parallel. Ideally that host provides compatible GPUs to enable hardware acceleration (see <https://docs.opentalk.eu/admin/recorder/hardware_acceleration/>). Some security precautions are required: the external Recorder host must reach RabbitMQ on port `5672/tcp`, which is currently only possible unencrypted. Ensure the RabbitMQ port is not publicly exposed (bind to a private interface or restrict via firewall). The Recorder should communicate with RabbitMQ over a private, trusted network. Confirm the necessary network infrastructure and firewall rules are in place before proceeding. See also the configuration reference for relevant variables: [Recorder service options](./5-configuration-options-reference.md#opentalk_compose_opentalk_recorder) and [RabbitMQ options](./5-configuration-options-reference.md#opentalk_compose_rabbitmq).
+Recording meetings can be resource intensive. Offloading the Recorder service to a dedicated host is appropriate if recordings are frequent or occur in parallel. Ideally that host provides compatible GPUs to enable hardware acceleration (see <https://docs.opentalk.eu/admin/recorder/hardware_acceleration/>). Some security precautions are required: the external Recorder host must reach RabbitMQ on port `5672/tcp`, which is currently only possible unencrypted. Ensure the RabbitMQ port is not publicly exposed (bind to a private interface or restrict via firewall). The Recorder should communicate with RabbitMQ over a private, trusted network. Confirm the necessary network infrastructure and firewall rules are in place before proceeding. See also the configuration reference for relevant variables: [Recorder service options](./6-configuration-options-reference.md#opentalk_compose_opentalk_recorder) and [RabbitMQ options](./6-configuration-options-reference.md#opentalk_compose_rabbitmq).
 
 ### 3.1 Prepare the OpenTalk server configuration
 
@@ -657,84 +657,7 @@ For more information, refer to the [Garage documentation](https://garagehq.deuxf
 
 ### 6.3 Migrating between MinIO and Garage
 
-You can migrate S3 data in either direction — MinIO → Garage or Garage → MinIO — using the `otctl migrate` command. The command automates the full procedure: it installs `rclone` if needed, copies all objects between the two backends, updates `settings.yml`, and optionally runs a deployment to stop the source service.
-
-> **Important:** Back up your data before starting the migration.
->
-> ```bash
-> otctl backup
-> ```
-
-#### 6.3.1 Enable both providers in parallel
-
-For a successful migration, both S3 providers must be running at the same time. Add the following to `/etc/opentalk-compose/settings.yml` and deploy:
-
-**MinIO → Garage** (Garage is not yet running):
-
-```yaml
-compose_service_minio_enabled: true
-compose_service_garage_enabled: true
-```
-
-**Garage → MinIO** (MinIO is not yet running):
-
-```yaml
-compose_service_garage_enabled: true
-compose_service_minio_enabled: true
-```
-
-Then run `otctl deploy` to start both services. A warning will appear at the end of the deployment indicating that both providers are active and a migration should be performed.
-
-> **Note:** `s3_storage_provider` controls which S3 endpoint the controller uses. Leave it pointing at the current active provider until the migration is complete.
-
-#### 6.3.2 Run the migration
-
-```bash
-# Migrate from MinIO to Garage:
-otctl migrate minio-to-garage
-
-# Migrate from Garage to MinIO:
-otctl migrate garage-to-minio
-```
-
-The command will:
-
-1. Install `rclone` on the host if not already present (via `apt` or `dnf`).
-2. Verify that both containers are running and healthy.
-3. Copy all objects from the source bucket to the destination bucket.
-4. Verify that the object counts match.
-5. Update `settings.yml`: set `s3_storage_provider` to the destination and set `compose_service_<source>_enabled: false`.
-6. Run `otctl deploy` automatically to stop the source service and reconfigure the controller.
-
-To skip the automatic deploy after migration (e.g. to verify manually first):
-
-```bash
-otctl migrate minio-to-garage --no-deploy
-```
-
-#### 6.3.3 Verify
-
-After migration, confirm the destination service is healthy and the controller is using the new backend:
-
-```bash
-# For Garage as destination:
-otctl compose exec garage /garage bucket info opentalk
-
-# For MinIO as destination:
-otctl compose exec minio mc ls local/opentalk
-```
-
-#### 6.3.4 Clean up (optional)
-
-Once you have verified the migration, remove the old docker volumes to free disk space:
-
-```bash
-# After migrating away from MinIO:
-otctl volumes rm opentalk_minio
-
-# After migrating away from Garage:
-otctl volumes rm opentalk_garage_data opentalk_garage_meta
-```
+Moving S3 data from one provider to the other is described in [Upgrades and Migrations](2-upgrades-and-migrations.md#3-migrating-between-minio-and-garage).
 
 ## 7 Customizing the web frontend
 
@@ -800,7 +723,7 @@ Before enabling it, ensure:
 
 Configuration reference:
 
-- [RoomServer configuration options](5-configuration-options-reference.md#opentalk_compose_opentalk_roomserver)
+- [RoomServer configuration options](6-configuration-options-reference.md#opentalk_compose_opentalk_roomserver)
 
 ### 8.1 Enable RoomServer
 
@@ -860,7 +783,7 @@ Orchestrator is optional, disabled by default, and currently in preview.
 
 Configuration reference:
 
-- [Orchestrator configuration options](5-configuration-options-reference.md#opentalk_compose_opentalk_orchestrator)
+- [Orchestrator configuration options](6-configuration-options-reference.md#opentalk_compose_opentalk_orchestrator)
 
 ### 9.1 Enable Orchestrator (preview/testing)
 

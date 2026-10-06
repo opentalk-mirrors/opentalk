@@ -56,6 +56,14 @@ cat > "$PREFIX/bin/ot-ansible-playbook" <<'STUB'
 #!/usr/bin/env bash
 log="${0%/bin/ot-ansible-playbook}/ot-ansible-playbook.calls"
 printf '%s\n' "$*" >> "$log"
+for arg in "$@"; do
+  [[ -n "$arg" ]] || printf '%s\n' "$*" >> "$log.empty-arg"
+  # The PostgreSQL plan reports the number of pending databases in a file.
+  if [[ "$arg" =~ postgres_migrate_plan_file=([^ ]+) ]]; then
+    [ "${OTSMOKE_PG_PLAN_FAIL:-0}" = "1" ] && exit 1
+    printf '%s\n' "${OTSMOKE_PG_PENDING:-2}" > "${BASH_REMATCH[1]}"
+  fi
+done
 if [ "${OTSMOKE_TAGS_FAIL:-0}" = "1" ]; then
   exit 1
 fi
@@ -587,19 +595,102 @@ grep -q 'compose file not found' <<<"$no_compose_up"
 
 # migrate forwards to the S3 migration playbook.
 : > "$CALLS_LOG"
-bash "$OTCTL" migrate minio-to-garage < /dev/null >/dev/null
+bash "$OTCTL" migrate minio-to-garage --yes < /dev/null >/dev/null 2>&1
 grep -q 's3_migrate.yml' "$CALLS_LOG"
 grep -q 's3_migration_source=minio' "$CALLS_LOG"
-bash "$OTCTL" migrate garage-to-minio --no-deploy < /dev/null >/dev/null
+bash "$OTCTL" migrate garage-to-minio --no-deploy --yes < /dev/null >/dev/null 2>&1
 grep -q 's3_migration_source=garage' "$CALLS_LOG"
 grep -q 's3_migrate_run_deploy=false' "$CALLS_LOG"
+# Regression: stripping --no-deploy must not leave an empty argument, which
+# ansible-playbook reads as a playbook path. Other arguments must survive.
+bash "$OTCTL" migrate minio-to-garage --no-deploy --yes -v < /dev/null >/dev/null 2>&1
+tail -n 1 "$CALLS_LOG" | grep -q -- ' -v$'
+[[ ! -e "$CALLS_LOG.empty-arg" ]] || {
+  echo "otctl migrate --no-deploy passed an empty argument to ansible-playbook:" >&2
+  cat "$CALLS_LOG.empty-arg" >&2; exit 1; }
+! tail -n 1 "$CALLS_LOG" | grep -q -- '--yes' || {
+  echo "otctl migrate must not forward --yes to ansible-playbook." >&2; exit 1; }
+# otctl starts both providers first and deploys itself afterwards, so the
+# user's extra arguments reach every playbook and the role never nests one.
+: > "$CALLS_LOG"
+bash "$OTCTL" migrate minio-to-garage --yes -v < /dev/null >/dev/null 2>&1
+[[ $(wc -l < "$CALLS_LOG") -eq 3 ]] || { echo "otctl migrate must start, migrate and deploy." >&2; cat "$CALLS_LOG" >&2; exit 1; }
+sed -n 1p "$CALLS_LOG" | grep -q 'opentalk_compose.yml --diff -e compose_service_minio_enabled=true compose_service_garage_enabled=true s3_migrate_in_progress=true -v'
+sed -n 2p "$CALLS_LOG" | grep -q 's3_migrate.yml -e s3_migration_source=minio s3_migrate_run_deploy=false s3_migrate_caller_deploys=true -v'
+sed -n 3p "$CALLS_LOG" | grep -q 'opentalk_compose.yml --diff -v'
+: > "$CALLS_LOG"
+bash "$OTCTL" migrate garage-to-minio --yes --no-deploy < /dev/null >/dev/null 2>&1
+[[ $(wc -l < "$CALLS_LOG") -eq 2 ]] || { echo "--no-deploy must skip the final deploy." >&2; cat "$CALLS_LOG" >&2; exit 1; }
+grep -q 's3_migrate_caller_deploys=false' "$CALLS_LOG"
+# The plan names the downtime and what happens afterwards.
+migrate_plan=$(bash "$OTCTL" migrate garage-to-minio --no-deploy --yes 2>&1 < /dev/null)
+grep -q 'MIGRATION PLAN: copy all S3 objects from garage to minio' <<<"$migrate_plan"
+grep -q 'running meetings are interrupted' <<<"$migrate_plan"
+grep -q 'A deploy starts minio next to garage' <<<"$migrate_plan"
+grep -q 'controller stays stopped' <<<"$migrate_plan"
+# Without --yes a non-interactive session must refuse and run nothing.
+: > "$CALLS_LOG"
+set +e
+migrate_noyes=$(bash "$OTCTL" migrate minio-to-garage 2>&1 < /dev/null)
+migrate_noyes_rc=$?
+set -e
+[[ $migrate_noyes_rc -eq 1 ]] || { echo "otctl migrate without --yes must exit 1 (got $migrate_noyes_rc)." >&2; exit 1; }
+grep -q 're-run with --yes' <<<"$migrate_noyes"
+[[ ! -s "$CALLS_LOG" ]] || { echo "otctl migrate without confirmation must not run a playbook." >&2; exit 1; }
+# status is read-only and needs no confirmation.
+bash "$OTCTL" migrate status < /dev/null >/dev/null 2>&1
+grep -q 'migrate_status.yml' "$CALLS_LOG"
 migrate_help=$(bash "$OTCTL" migrate help 2>&1 < /dev/null)
 grep -q 'migrate minio-to-garage' <<<"$migrate_help"
+grep -q 'migrate status' <<<"$migrate_help"
 set +e
 migrate_bogus=$(bash "$OTCTL" migrate bogus-depth 2>&1 < /dev/null)
+migrate_bogus_rc=$?
 set -e
-grep -q 'Unknown migration direction' <<<"$migrate_bogus" || {
-  echo "otctl migrate with unknown direction must report an error." >&2; exit 1; }
+[[ $migrate_bogus_rc -eq 1 ]] || { echo "otctl migrate with an unknown migration must exit 1." >&2; exit 1; }
+grep -q 'Unknown migration: bogus-depth' <<<"$migrate_bogus" || {
+  echo "otctl migrate with unknown migration must report an error." >&2; exit 1; }
+
+# migrate postgres: plan first, then confirmation, migration and deploy.
+: > "$CALLS_LOG"
+pg_out=$(bash "$OTCTL" migrate postgres --yes -v 2>&1 < /dev/null)
+[[ $(grep -c 'postgres_migrate.yml' "$CALLS_LOG") -eq 2 ]] || {
+  echo "otctl migrate postgres must run the plan and the migration." >&2; cat "$CALLS_LOG" >&2; exit 1; }
+sed -n 1p "$CALLS_LOG" | grep -q 'postgres_migrate_plan_only=true'
+sed -n 2p "$CALLS_LOG" | grep -q 'postgres_migrate_confirmation=yes'
+sed -n 3p "$CALLS_LOG" | grep -q 'opentalk_compose.yml --diff -v' || {
+  echo "otctl migrate postgres must deploy afterwards and pass on extra arguments." >&2; cat "$CALLS_LOG" >&2; exit 1; }
+! grep -q -- '--yes' "$CALLS_LOG" || { echo "otctl must not forward --yes." >&2; exit 1; }
+grep -q 'MIGRATION PLAN: move the PostgreSQL databases' <<<"$pg_out"
+# --no-deploy leaves the deploy to the user.
+: > "$CALLS_LOG"
+pg_nodeploy=$(bash "$OTCTL" migrate postgres --yes --no-deploy 2>&1 < /dev/null)
+! grep -q 'opentalk_compose.yml' "$CALLS_LOG" || { echo "--no-deploy must skip the deploy." >&2; exit 1; }
+grep -q "Run 'otctl deploy' to start the services" <<<"$pg_nodeploy"
+# Nothing pending: no confirmation, no migration.
+: > "$CALLS_LOG"
+pg_none=$(OTSMOKE_PG_PENDING=0 bash "$OTCTL" migrate postgres 2>&1 < /dev/null)
+grep -q 'No PostgreSQL migration pending' <<<"$pg_none"
+[[ $(wc -l < "$CALLS_LOG") -eq 1 ]] || { echo "nothing pending must stop after the plan." >&2; exit 1; }
+# Pending, but non-interactive without --yes: refuse after the plan.
+: > "$CALLS_LOG"
+set +e
+pg_noyes=$(bash "$OTCTL" migrate postgres 2>&1 < /dev/null)
+pg_noyes_rc=$?
+set -e
+[[ $pg_noyes_rc -eq 1 ]] || { echo "otctl migrate postgres without --yes must exit 1 (got $pg_noyes_rc)." >&2; exit 1; }
+grep -q 're-run with --yes' <<<"$pg_noyes"
+[[ $(wc -l < "$CALLS_LOG") -eq 1 ]] || { echo "without confirmation only the plan may run." >&2; exit 1; }
+# A failing plan changes nothing.
+: > "$CALLS_LOG"
+set +e
+pg_planfail=$(OTSMOKE_PG_PLAN_FAIL=1 bash "$OTCTL" migrate postgres --yes 2>&1 < /dev/null)
+pg_planfail_rc=$?
+set -e
+[[ $pg_planfail_rc -eq 1 ]] || { echo "a failing plan must exit 1 (got $pg_planfail_rc)." >&2; exit 1; }
+grep -q 'plan failed; nothing was changed' <<<"$pg_planfail"
+[[ $(wc -l < "$CALLS_LOG") -eq 1 ]] || { echo "a failing plan must not start the migration." >&2; exit 1; }
+grep -q 'migrate postgres' <<<"$(bash "$OTCTL" migrate help 2>&1 < /dev/null)"
 
 # import users builds extra vars and forwards to the import playbook.
 printf 'first,last\nAlice,User\n' > "$TMP_DIR/users.csv"

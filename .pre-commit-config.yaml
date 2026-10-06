@@ -55,7 +55,7 @@ repos:
           bash -c '
           echo "🔍 Linting Markdown files (ignoring [[_TOC_]])...";
           git ls-files "*.md" |
-          grep -v "docs/5-configuration-options-reference.md" |
+          grep -v "docs/6-configuration-options-reference.md" |
           xargs -P4 -n1 sh -c "
             f=\"\$1\";
             sed \"/\\[\\[_TOC_\\]\\]/Id\" \"\$f\" |

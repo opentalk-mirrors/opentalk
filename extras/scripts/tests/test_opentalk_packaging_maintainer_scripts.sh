@@ -214,6 +214,14 @@ cmp -s "$CFG_DIR/settings.yml" <(printf 'settings: true\n') \
   || { echo "happy path must not overwrite settings.yml." >&2; exit 1; }
 [[ $(stat -c '%a' "$CFG_DIR/secrets") == "700" ]] || { echo "secrets dir must be 0700." >&2; exit 1; }
 [[ $(stat -c '%a' "$CFG_DIR/ssl") == "700" ]] || { echo "ssl dir must be 0700." >&2; exit 1; }
+! grep -q 'otctl migrate status' "$TMP_DIR/log" \
+  || { echo "a fresh install must not point at migrations." >&2; exit 1; }
+
+# An upgrade of a deployed host points at 'otctl migrate status'.
+printf 'X: y\n' > "$CFG_DIR/secrets/secrets.yml"
+run_postinst 0
+log_has "Run 'otctl migrate status' before 'otctl deploy'"
+rm -f "$CFG_DIR/secrets/secrets.yml"
 
 # Build-time shebangs in embedded venv console scripts are rebased at install time.
 printf '#!/builds/opentalk/opentalk-devops/opentalk-compose/build/pkgroot/opt/opentalk-compose/runtime/venv/bin/python\nprint("stub")\n' \

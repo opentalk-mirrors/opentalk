@@ -70,10 +70,14 @@ services:
     ports:
       - {{ controller_db_bind_interface }}:{{ controller_db_host_port }}:5432
     volumes:
-      - controller-db:/var/lib/postgresql/data
+      - {{ controller_db_volume_name }}:{{ controller_db_data_mount }}
     restart: always
     secrets:
       - db_controller_secret
+    # The secret file is root:root 0640. An image that starts its entrypoint
+    # as the postgres user instead of root reads it through group 0.
+    group_add:
+      - "0"
     networks:
       - {{ docker_network_name }}
     environment:
@@ -92,5 +96,5 @@ secrets:
     file: ${CONTAINER_SECRETS_PATH:-{{ config_dir }}/secrets}/.db_controller.secret
  
 volumes:
-  controller-db:
+  {{ controller_db_volume_name }}:
 

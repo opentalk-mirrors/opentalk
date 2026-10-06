@@ -19,11 +19,13 @@ For more detailed information, including advanced installation scenarios and con
 The full table of contents for the documentation is:
 
 1. [Quickstart Installation](docs/1-quickstart-installation.md)
-2. [Accessing Web Interfaces](docs/2-access-web-interfaces.md)
-3. [Managing OpenTalk Users](docs/3-managing-opentalk-users-in-keycloak.md)
-4. [Advanced Installation Scenarios](docs/4-advanced-installation-scenarios.md)
-5. [Configuration Option Reference](docs/5-configuration-options-reference.md)
-6. [Development related docs](docs/6-development-related-docs.md)
+2. [Upgrades and Migrations](docs/2-upgrades-and-migrations.md)
+3. [Accessing Web Interfaces](docs/3-access-web-interfaces.md)
+4. [Managing OpenTalk Users](docs/4-managing-opentalk-users-in-keycloak.md)
+5. [Advanced Installation Scenarios](docs/5-advanced-installation-scenarios.md)
+6. [Configuration Option Reference](docs/6-configuration-options-reference.md)
+7. [Development related docs](docs/7-development-related-docs.md)
+8. [Tools](docs/8-tools.md)
 
 ## License
 

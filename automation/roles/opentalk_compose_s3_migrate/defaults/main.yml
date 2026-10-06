@@ -8,6 +8,10 @@
 # Run 'otctl deploy' automatically after migration to stop the source service.
 s3_migrate_run_deploy: true
 
+# Set by otctl, which runs the deploy itself after the migration. Silences the
+# notice that the controller stays stopped until the next deploy.
+s3_migrate_caller_deploys: false
+
 # S3 endpoints reachable from the host (exposed via 127.0.0.1 port binding).
 s3_migrate_minio_endpoint: "http://127.0.0.1:9000"
 s3_migrate_garage_endpoint: "http://127.0.0.1:3900"
@@ -16,4 +20,4 @@ s3_migrate_garage_endpoint: "http://127.0.0.1:3900"
 s3_migrate_bucket_name: "opentalk"
 
 # Path to the settings file that will be updated after migration.
-s3_migrate_settings_file: "{{ config_dir | default('/etc/opentalk-compose') }}/settings.yml"
+s3_migrate_settings_file: "{{ lookup('env', 'OT_SETTINGS_FILE') | default((config_dir | default('/etc/opentalk-compose')) ~ '/settings.yml', true) }}"

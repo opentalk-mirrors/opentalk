@@ -100,7 +100,10 @@ for entry in "db_controller CONTROLLER_DB_PASSWORD" "garage_rpc GARAGE_RPC_SECRE
   name=${entry%% *}; key=${entry##* }
   f="$CONFIG_DIR/secrets/.$name.secret"
   [[ -f "$f" ]] || { echo "container secret file .$name.secret missing." >&2; exit 1; }
-  [[ $(stat -c '%a' "$f") == "600" ]] || { echo ".$name.secret mode must be 0600." >&2; exit 1; }
+  # Database secrets are group-readable for images that do not start as root.
+  expected_mode=600
+  [[ $name == db_controller || $name == db_keycloak ]] && expected_mode=640
+  [[ $(stat -c '%a' "$f") == "$expected_mode" ]] || { echo ".$name.secret mode must be 0$expected_mode." >&2; exit 1; }
   expected=$(python3 -c "import yaml;print(yaml.safe_load(open('$SECRETS_FILE'))['$key'])")
   actual=$(cat "$f")
   [[ "$actual" == "$expected" ]] || { echo ".$name.secret content mismatch." >&2; exit 1; }

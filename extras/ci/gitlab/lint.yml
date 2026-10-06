@@ -30,7 +30,7 @@ lint:markdown:
   script:
     - echo "Linting Markdown files..."
     - |
-      git ls-files '*.md' | grep -v 'docs/5-configuration-options-reference.md' | \
+      git ls-files '*.md' | grep -v 'docs/6-configuration-options-reference.md' | \
         xargs -P4 -n1 sh -c '
           f="$1"
           sed "/\[\[_TOC_\]\]/Id" "$f" | mdl --style .markdown_style.rb - 2>&1 | \

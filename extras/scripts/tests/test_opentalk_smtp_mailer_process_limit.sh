@@ -8,7 +8,7 @@ set -euo pipefail
 REPO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
 COMPOSE_TEMPLATE="$REPO_ROOT/automation/roles/opentalk_compose_opentalk_smtp_mailer/templates/compose.yml.j2"
 DEFAULTS="$REPO_ROOT/automation/roles/opentalk_compose_opentalk_smtp_mailer/defaults/main.yml"
-REFERENCE="$REPO_ROOT/docs/5-configuration-options-reference.md"
+REFERENCE="$REPO_ROOT/docs/6-configuration-options-reference.md"
 
 if grep -q 'nproc:' "$COMPOSE_TEMPLATE"; then
 	echo "SMTP mailer compose template must not set nproc." >&2

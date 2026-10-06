@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Print "<schema>.<table>|<rows>" for every user table, sorted, into _pg_rows.
+
+- name: Count the rows of every table
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      docker exec -i {{ _pg_count_container }} psql -X -At -v ON_ERROR_STOP=1 \
+        -U {{ _pg_user | quote }} -d {{ _pg_database | quote }} <<'SQL' | sort
+      SELECT format('SELECT %L || ''|'' || count(*) FROM %I.%I', schemaname || '.' || tablename, schemaname, tablename)
+        FROM pg_tables
+       WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+      \gexec
+      SQL
+    executable: /bin/bash
+  register: _pg_rows
+  changed_when: false

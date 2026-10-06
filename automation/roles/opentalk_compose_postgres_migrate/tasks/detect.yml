@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Reuse the detection behind 'otctl migrate status' and the deploy guard, so
+# that all three agree on what is pending.
+
+- name: Detect pending migrations
+  ansible.builtin.include_role:
+    name: opentalk_compose_migrations
+    tasks_from: detect.yml
+
+- name: Select the pending PostgreSQL migrations
+  ansible.builtin.set_fact:
+    _pg_pending: "{{ migrations_pending | selectattr('kind', 'defined') | selectattr('kind', 'equalto', 'postgres') | list }}"
+    _pg_target_major: "{{ (postgres_version | string).split('.') | first | int }}"
+    _pg_source_major: "{{ (postgres_migration_source_version | string).split('.') | first | int }}"
+
+- name: Write the number of pending PostgreSQL migrations for otctl
+  ansible.builtin.copy:
+    content: "{{ _pg_pending | length }}\n"
+    dest: "{{ postgres_migrate_plan_file }}"
+    mode: "0600"
+  when: postgres_migrate_plan_file | length > 0
+
+- name: Stop when no PostgreSQL migration is pending
+  when: _pg_pending | length == 0
+  block:
+    - name: Report that nothing is pending
+      ansible.builtin.debug:
+        msg: "No PostgreSQL migration pending: every database already runs on PostgreSQL {{ _pg_target_major }}."
+
+    - name: End the play
+      ansible.builtin.meta: end_play
