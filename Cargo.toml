@@ -225,7 +225,7 @@ chrono-tz = "0.10"
 cidr = { version = "0.3", features = ["no_unsafe", "serde"] }
 clap = { version = "4", features = ["derive", "env"] }
 config = { version = "0.15", default-features = false, features = ["toml"] }
-css-inline = "0.21"
+css-inline = "0.22"
 deadpool-runtime = "0.3"
 derive_more = { version = "2", features = ["as_ref", "display", "from", "from_str", "into"] }
 devx-cmd = "0.5"
