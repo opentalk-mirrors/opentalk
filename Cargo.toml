@@ -365,7 +365,6 @@ tera = { version = "2.0.0" }
 tera-contrib = { version = "0.3.0", default-features = false, features = ["date"] }
 test-log = { version = "0.2", default-features = false, features = ["trace"] }
 testcontainers = "=0.27"
-testcontainers-modules = { version = "0.15", default-features = false }
 textplots = "0.8"
 textwrap = "0.16"
 thiserror = "2"

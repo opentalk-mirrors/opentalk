@@ -36,7 +36,6 @@ opentalk-inventory-database.workspace = true
 opentalk-types-common = { workspace = true, features = ["backend"] }
 opentalk-types-signaling = { workspace = true, features = ["backend"] }
 testcontainers = { workspace = true, optional = true }
-testcontainers-modules = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde.workspace = true
@@ -46,8 +45,7 @@ controller = ["database"]
 database = [
   "dep:opentalk-database",
   "dep:opentalk-db-storage",
-  "dep:testcontainers-modules",
-  "testcontainers-modules/postgres",
+  "dep:testcontainers",
 ]
 object-storage = ["dep:testcontainers"]
 
