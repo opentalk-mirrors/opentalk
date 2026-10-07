@@ -1241,6 +1241,68 @@ async fn send_to_waiting_room() {
     );
 }
 
+/// A guest that is sent to the waiting room keeps the guest role.
+///
+/// 1. Spawn room with deactivated waiting room
+/// 2. Alice joins as a moderator, Gustav joins as a guest
+/// 3. Alice sends Gustav to the waiting room, which enables the waiting room for guests
+/// 4. Alice accepts Gustav, who enters the room as a guest again
+#[test_log::test(tokio::test)]
+async fn guest_sent_to_waiting_room_keeps_guest_role() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .waiting_room(WaitingRoom::Disabled)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut gustav = room.join_gustav_guest().await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::SendToWaitingRoom {
+                target: gustav.id(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    for participant in [&mut alice, &mut gustav] {
+        let event = participant
+            .receive_event::<ModerationModule>()
+            .await
+            .unwrap()
+            .payload;
+        assert_eq!(
+            event,
+            ModerationEvent::WaitingRoomUpdated {
+                new_state: WaitingRoom::ForGuests
+            }
+        );
+    }
+
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert_matches!(
+        event,
+        CoreEvent::ParticipantDisconnected { participant_id, .. } if participant_id == gustav.id()
+    );
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert_matches!(
+        event,
+        CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == gustav.id()
+    );
+
+    let event = gustav
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, ModerationEvent::SentToWaitingRoom);
+
+    let gustav = accept_participant(&mut alice, gustav.in_waiting_room()).await;
+    assert_eq!(gustav.join_success().role, Role::Guest);
+}
+
 /// A moderator that is sent to the waiting room has their moderator role revoked and can no longer
 /// enter the room without being accepted first.
 ///

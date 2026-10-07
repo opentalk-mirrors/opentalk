@@ -237,6 +237,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     /// Removes moderator rights from a participant, assigning them the [`Role::User`], sets their
     /// `in_waiting_room` flag to `true` and their `accepted` flag to `false`.
+    ///
+    /// Participants with the [`Role::Guest`] keep their role.
     #[tracing::instrument(skip(self), level = "debug")]
     fn revoke_waiting_room_bypass(
         &mut self,
@@ -248,7 +250,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             did_change |= state.accepted;
 
             state.accepted = false;
-            state.role = Role::User;
+            state.role = demote_moderator(state.role);
         }
 
         let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
@@ -257,7 +259,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         state.in_waiting_room = true;
         did_change |= state.role.is_moderator();
-        state.role = Role::User;
+        state.role = demote_moderator(state.role);
 
         if did_change {
             let room = state.room;
@@ -270,5 +272,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         Ok(())
+    }
+}
+
+fn demote_moderator(role: Role) -> Role {
+    match role {
+        Role::Moderator => Role::User,
+        Role::User | Role::Guest => role,
     }
 }
