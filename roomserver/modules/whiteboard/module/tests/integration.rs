@@ -240,19 +240,8 @@ async fn broadcast() {
         .await
         .unwrap();
 
-    // Alice receives the broadcast event
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        WhiteboardEvent::Broadcast {
-            sender: alice.id(),
-            data: json!({"some": "data"})
-        }
-    );
+    // Alice does not receive her own broadcast event
+    assert!(alice.received_nothing());
 
     // Bob receives the broadcast event
     let event = bob
@@ -323,19 +312,8 @@ async fn broadcast_volatile() {
         .await
         .unwrap();
 
-    // Alice receives the volatile broadcast event
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        WhiteboardEvent::VolatileBroadcast {
-            sender: alice.id(),
-            data: json!({"some": "data"})
-        }
-    );
+    // Alice does not receive her own broadcast event
+    assert!(alice.received_nothing());
 
     // Bob receives the volatile broadcast event
     let event = bob
@@ -800,19 +778,8 @@ async fn edit_restrictions() {
         .await
         .unwrap();
 
-    // Alice receives the broadcast event
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        WhiteboardEvent::Broadcast {
-            sender: alice.id(),
-            data: json!({"some": "data"})
-        }
-    );
+    // Alice does not receive a broadcast event because she is the sender, but also no error message
+    assert!(alice.received_nothing());
 
     // Bob receives the broadcast event
     let event = bob
@@ -861,20 +828,6 @@ async fn edit_restrictions() {
     )
     .await
     .unwrap();
-
-    // Bob receives the broadcast event
-    let event = bob
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        WhiteboardEvent::Broadcast {
-            sender: bob.id(),
-            data: json!({"some": "data"})
-        }
-    );
 
     // Alice receives the broadcast event
     let event = alice
@@ -937,20 +890,6 @@ async fn alice_in_breakout_bob_in_main() {
         )
         .await
         .unwrap();
-
-    // Alice receives the broadcast event
-    let event = alice
-        .receive_event::<WhiteboardModule>()
-        .await
-        .unwrap()
-        .payload;
-    assert_eq!(
-        event,
-        WhiteboardEvent::Broadcast {
-            sender: alice.id(),
-            data: json!({"some": "data"})
-        }
-    );
 
     // Bob receives nothing
     assert!(bob.received_nothing());
