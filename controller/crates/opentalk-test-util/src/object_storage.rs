@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_controller_settings::MinIO;
-use testcontainers_modules::testcontainers::{
+use testcontainers::{
     ContainerAsync, GenericImage, ImageExt as _,
     core::{IntoContainerPort as _, WaitFor},
     runners::AsyncRunner as _,

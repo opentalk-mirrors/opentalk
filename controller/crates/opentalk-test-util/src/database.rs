@@ -16,19 +16,23 @@ use opentalk_types_common::{
     users::{GroupId, GroupName, UserId, UserTitle},
 };
 use snafu::{ResultExt, Whatever};
-use testcontainers_modules::{
-    postgres::Postgres,
-    testcontainers::{ContainerAsync, ImageExt as _, runners::AsyncRunner as _},
+use testcontainers::{
+    ContainerAsync, GenericImage, ImageExt as _,
+    core::{IntoContainerPort, WaitFor},
+    runners::AsyncRunner as _,
 };
 
 /// User configured on the postgres testcontainer.
 const POSTGRES_USER: &str = "postgres";
 /// Password configured on the postgres testcontainer.
 const POSTGRES_PASSWORD: &str = "postgres";
+/// Image name for the Postgres container.
+const POSTGRES_IMAGE: &str = "postgres";
 /// Image tag for the postgres testcontainer.
 const POSTGRES_TAG: &str = "18-alpine";
 /// Name of the database created for the test inside the dedicated container.
 const TEST_DB_NAME: &str = "opentalk_test";
+/// Port the postgres server is exposed on inside the container.
 const POSTGRES_PORT: u16 = 5432;
 
 /// Contains the [`Db`] as well as information about the test database
@@ -41,7 +45,7 @@ pub struct DatabaseContext {
     ///
     /// Dropping the [`DatabaseContext`] stops and removes the container (and with it the test
     /// database).
-    _container: ContainerAsync<Postgres>,
+    _container: ContainerAsync<GenericImage>,
 }
 
 impl DatabaseContext {
@@ -58,8 +62,13 @@ impl DatabaseContext {
     ///
     /// [testcontainer]: https://testcontainers.com/
     pub async fn new() -> Self {
-        let container = Postgres::default()
-            .with_tag(POSTGRES_TAG)
+        let container = GenericImage::new(POSTGRES_IMAGE, POSTGRES_TAG)
+            .with_exposed_port(POSTGRES_PORT.tcp())
+            .with_wait_for(WaitFor::message_on_stderr(
+                "database system is ready to accept connections",
+            ))
+            .with_env_var("POSTGRES_USER", POSTGRES_USER)
+            .with_env_var("POSTGRES_PASSWORD", POSTGRES_PASSWORD)
             .start()
             .await
             .expect("Failed to start postgres testcontainer");
