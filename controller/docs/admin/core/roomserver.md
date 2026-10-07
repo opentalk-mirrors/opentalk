@@ -197,12 +197,7 @@ Enables training participation report support. This module has no additional set
 
 #### `whiteboard`
 
-Enables the whiteboard integration (Spacedeck).
-
-| Field      | Type     | Required | Default value | Description         |
-| ---------- | -------- | -------- | ------------- | ------------------- |
-| `base_url` | `string` | yes      | -             | Spacedeck base URL. |
-| `api_key`  | `string` | yes      | -             | Spacedeck API key.  |
+Enables the whiteboard integration.
 
 ## Examples
 
