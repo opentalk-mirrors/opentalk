@@ -252,8 +252,16 @@ impl WhiteboardModule {
 
         // The volatile broadcast cannot modify the whiteboard state, so all participants are
         // allowed to use it.
+
+        // Broadcast to everyone but the sender to reduce the load on the frontend
+        let other_participants = ctx
+            .participants
+            .in_room(ctx.room)
+            .connected()
+            .ids()
+            .filter(|id| *id != sender);
         ctx.send_ws_message(
-            ctx.participants.in_room(ctx.room).connected().ids(),
+            other_participants,
             WhiteboardEvent::VolatileBroadcast { sender, data },
         )?;
 
@@ -285,8 +293,15 @@ impl WhiteboardModule {
             return Err(WhiteboardError::InsufficientPermissions.into());
         }
 
+        // Broadcast to everyone but the sender to reduce the load on the frontend
+        let other_participants = ctx
+            .participants
+            .in_room(ctx.room)
+            .connected()
+            .ids()
+            .filter(|id| *id != sender);
         ctx.send_ws_message(
-            ctx.participants.in_room(ctx.room).connected().ids(),
+            other_participants,
             WhiteboardEvent::Broadcast { sender, data },
         )?;
 
