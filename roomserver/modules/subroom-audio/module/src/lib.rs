@@ -682,14 +682,15 @@ impl SubroomAudioModule {
                     room_join: true,
                     room: build_livekit_whisper_room_id(room_id, whisper_id),
                     destination_room: String::new(),
-                    can_publish: true,
-                    can_subscribe: true,
-                    can_publish_data: false,
+                    can_publish: Some(true),
+                    can_subscribe: Some(true),
+                    can_publish_data: Some(false),
                     can_publish_sources: vec![TrackSource::Microphone.as_str_name().to_lowercase()],
-                    can_update_own_metadata: false,
+                    can_update_own_metadata: Some(false),
                     ingress_admin: false,
                     hidden: false,
                     recorder: false,
+                    agent: false,
                 })
                 .with_ttl(ACCESS_TOKEN_TTL)
                 .to_jwt()

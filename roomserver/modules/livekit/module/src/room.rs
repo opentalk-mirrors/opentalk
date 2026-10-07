@@ -152,15 +152,16 @@ impl LiveKitSubroom {
                 room_admin: false,
                 room_join: true,
                 room: self.identifier().to_string(),
-                can_publish: true,
-                can_subscribe: true,
-                can_publish_data: false,
+                can_publish: Some(true),
+                can_subscribe: Some(true),
+                can_publish_data: Some(false),
                 can_publish_sources,
-                can_update_own_metadata: false,
+                can_update_own_metadata: Some(false),
                 ingress_admin: false,
                 hidden,
                 recorder: false,
                 destination_room: String::new(),
+                agent: false,
             })
             .with_ttl(ACCESS_TOKEN_TTL)
             .to_jwt()
@@ -230,15 +231,16 @@ impl LiveKitSubroom {
                 room_admin: false,
                 room_join: true,
                 room: self.identifier().to_string(),
-                can_publish: false,
-                can_subscribe: true,
-                can_publish_data: false,
+                can_publish: Some(false),
+                can_subscribe: Some(true),
+                can_publish_data: Some(false),
                 can_publish_sources: vec![],
-                can_update_own_metadata: false,
+                can_update_own_metadata: Some(false),
                 ingress_admin: false,
                 hidden: true,
                 recorder: false,
                 destination_room: String::new(),
+                agent: false,
             })
             .with_ttl(ACCESS_TOKEN_TTL)
             .to_jwt()
