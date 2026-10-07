@@ -34,7 +34,6 @@ Functionality that can be configured through the configuration file:
 - [Redis](./redis.md)
 - [RoomServer](./roomserver.md)
 - [Shared folders on external storage systems](../advanced/additional_services/shared_folder.md)
-- [SpaceDeck](../advanced/additional_services/spacedeck.md)
 - [Subroom Audio](./subroom_audio.md)
 - [Tariffs](../advanced/tariffs.md)
 - [Tenants](../advanced/tenants.md)
@@ -468,14 +467,6 @@ service_url = "http://localhost:7880"
 
 # Handles the raising hand functionality.
 [roomserver.modules.raise_hands]
-
-# Handles whiteboard integration. The whiteboard is a collaborative drawing board that can be used
-# during the meeting.
-#[roomserver.modules.whiteboard]
-# The base URL of the Spacedeck instance.
-#base_url = "http://localhost:9666"
-# The API key for accessing the Spacedeck instance.
-#api_key = "secret"
 
 # Handles excalidraw whiteboard integration. Excalidraw is a collaborative drawing board.
 #[roomserver.modules.whiteboard]

@@ -29,7 +29,6 @@
     - [Access Control](advanced/acl.md)
     - Additional Services
         - [Meeting Minutes (EtherPad)](advanced/additional_services/etherpad.md)
-        - [Whiteboard (Spacedeck)](advanced/additional_services/spacedeck.md)
         - [Obelisk Call-In SIP Gateway](advanced/additional_services/obelisk.md)
         - [Orchestrator](advanced/additional_services/orchestrator.md)
         - [Meeting Recorder](advanced/additional_services/recorder.md)

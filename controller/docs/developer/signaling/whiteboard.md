@@ -2,152 +2,523 @@
 
 ## Terminology
 
-- __Space__ The actual whiteboard. Terminology inherited from spacedeck.
+- **Scene** The content of the whiteboard.
 
 ## Overview
 
-The whiteboard module allows participants to collaboratively edit a whiteboard (space).
+The whiteboard module allows participants to collaboratively edit an [Excalidraw](https://excalidraw.com) based whiteboard.
 
-A moderator has to initialize the space for a room with the [`initialize`](#initialize) action.
-Once initialized, every participant in a room will get an access URL to the created space via the [`space_url`](#spaceurl) message.
-
-A moderator can snapshot the current state of the space as a PDF document with the [`generate_pdf`](#generatepdf) action.
-The access URL to the PDF is sent to every participant in the room.
+When breakout rooms are started while a whiteboard session is running in the main room, each breakout room gets its own session with an empty scene.
+These sessions are discarded when the breakout rooms are closed.
 
 ## Joining the room
 
-When joining a room, the `join_success` message contains the current status of the whiteboard module.
-
+When joining a room with a running whiteboard session, the `join_success` message contains the current state of the session.
 The module data has the following structure:
 
-| Field    | Type     | Required                         | Description                                                   |
-| -------- | -------- | -------------------------------- | ------------------------------------------------------------- |
-| `status` | `enum`   | yes                              | Either `"not_initialized"`, `"initializing"`, `"initialized"` |
-| `url`    | `string` | when `status` is `"initialized"` | The access url to the space of the room                       |
+| Field               | Type     | Required | Description                                                              |
+| ------------------- | -------- | -------- | ------------------------------------------------------------------------ |
+| `scene`             | `object` | yes      | The last stored scene of the whiteboard                                  |
+| `edit_restrictions` | `object` | yes      | The current edit restrictions, see [EditRestrictions](#editrestrictions) |
 
 ```json
 {
-    "status": "initialized",
-    "url": "https://whiteboard.opentalk.eu/s/0c5a6c7-00000000-0000-0000-0000-000000000000"
+  "scene": {
+    "elements": []
+  },
+  "edit_restrictions": {
+    "type": "enabled",
+    "unrestricted_participants": ["00000000-0000-0000-0000-000000000001"]
+  }
 }
 ```
 
-### Joined
+### EditRestrictions
 
-When joining a room, the `joined` control event sent to all other participants does not contain module-specific data.
+| Field                       | Type       | Required                   | Description                                                          |
+| --------------------------- | ---------- | -------------------------- | -------------------------------------------------------------------- |
+| `type`                      | `enum`     | yes                        | Either `"disabled"` (everyone may edit) or `"enabled"`               |
+| `unrestricted_participants` | `string[]` | when `type` is `"enabled"` | Ids of the non-moderator participants that are still allowed to edit |
 
 ## Commands
 
-### Overview
+### Start
 
-- [`initialize`](#initialize)
-- [`generate_pdf`](#generatepdf)
-
-### Initialize
-
-The `Initialize` message can be sent by a moderator to initialize a new space for the room.
-
-Once initialized, joining participants will receive the access URL via the `join_success` message.
+Allows a moderator to start a whiteboard session in the room.
 
 #### Response
 
-A [`SpaceUrl`](#spaceurl) message with the access URL to the space is sent to every participant in the room.
+A [`Started`](#started) message is sent to every participant in the room.
+
+If a session is already running, an [`Error`](#error) with `already_started` is returned.
 
 #### Fields
 
-| Field    | Type   | Required | Description             |
-| -------- | ------ | -------- | ----------------------- |
-| `action` | `enum` | yes      | Must be `"initialize"`. |
+| Field               | Type     | Required | Description                                                              |
+| ------------------- | -------- | -------- | ------------------------------------------------------------------------ |
+| `action`            | `enum`   | yes      | Must be `"start"`                                                        |
+| `initial_scene`     | `object` | yes      | The initial scene of the whiteboard                                      |
+| `edit_restrictions` | `object` | yes      | The initial edit restrictions, see [EditRestrictions](#editrestrictions) |
 
 #### Example
 
 ```json
 {
-    "action": "initialize",
+  "action": "start",
+  "initial_scene": {
+    "elements": []
+  },
+  "edit_restrictions": {
+    "type": "disabled"
+  }
 }
 ```
 
-### GeneratePdf
+### Stop
 
-Allows a moderator to generate a PDF from the current state of the space.
-
-Access to the PDF is given to all participants in the room via the `PdfUrl` event.
+Allows a moderator to stop the whiteboard session in the room. The stored scene is discarded.
 
 #### Response
 
-A [`PdfUrl`](#pdfurl)message with the access URL to the PDF document is sent to every participant in the room.
+A [`Stopped`](#stopped) message is sent to every participant in the room.
 
 #### Fields
 
-| Field    | Type   | Required | Description               |
-| -------- | ------ | -------- | ------------------------- |
-| `action` | `enum` | yes      | Must be `"generate_pdf"`. |
+| Field    | Type   | Required | Description      |
+| -------- | ------ | -------- | ---------------- |
+| `action` | `enum` | yes      | Must be `"stop"` |
 
 #### Example
 
 ```json
 {
-    "action": "generate_pdf",
+  "action": "stop"
 }
 ```
 
----
+### BroadcastVolatile
+
+Relays arbitrary whiteboard data to all participants in the room. The data can not modify the scene, e.g. the pointer position of the sender.
+
+Every participant is always allowed to send this command, regardless of the edit restrictions.
+
+#### Response
+
+A [`VolatileBroadcast`](#volatilebroadcast) message is sent to every participant in the room, except the sender.
+
+#### Fields
+
+| Field    | Type     | Required | Description                    |
+| -------- | -------- | -------- | ------------------------------ |
+| `action` | `enum`   | yes      | Must be `"broadcast_volatile"` |
+| `data`   | `object` | yes      | Arbitrary whiteboard data      |
+
+#### Example
+
+```json
+{
+  "action": "broadcast_volatile",
+  "data": {
+    "pointer": { "x": 100, "y": 200 }
+  }
+}
+```
+
+### Broadcast
+
+Relays arbitrary whiteboard data to all participants in the room. The data modifies the scene, but is not persisted on the server. Use [`store_scene`](#storescene) to persist the scene.
+
+Only participants that are allowed to edit the whiteboard may send this command, otherwise an [`Error`](#error) with `insufficient_permissions` is returned.
+
+#### Response
+
+A [`Broadcast`](#broadcast-1) message is sent to every participant in the room, except the sender.
+
+#### Fields
+
+| Field    | Type     | Required | Description               |
+| -------- | -------- | -------- | ------------------------- |
+| `action` | `enum`   | yes      | Must be `"broadcast"`     |
+| `data`   | `object` | yes      | Arbitrary whiteboard data |
+
+#### Example
+
+```json
+{
+  "action": "broadcast",
+  "data": {
+    "elements": []
+  }
+}
+```
+
+### StoreScene
+
+Persists the scene on the server. Participants joining the room afterwards receive this scene in the `join_success` message.
+
+Only participants that are allowed to edit the whiteboard may send this command, otherwise an [`Error`](#error) with `insufficient_permissions` is returned.
+
+#### Response
+
+A [`SceneStored`](#scenestored) message is sent to every participant in the room, including the sender.
+
+#### Fields
+
+| Field    | Type     | Required | Description             |
+| -------- | -------- | -------- | ----------------------- |
+| `action` | `enum`   | yes      | Must be `"store_scene"` |
+| `scene`  | `object` | yes      | The scene to be stored  |
+
+#### Example
+
+```json
+{
+  "action": "store_scene",
+  "scene": {
+    "elements": []
+  }
+}
+```
+
+### Follow
+
+Starts following another participant, i.e. the whiteboard view of the sender is synced to the view of the followed participant.
+
+If the participant is not connected to the room, an [`Error`](#error) with `unknown_participant` is returned.
+
+#### Response
+
+The followed participant receives a [`FollowerGained`](#followergained) message, the sender receives a [`Followed`](#followed) message.
+
+#### Fields
+
+| Field            | Type     | Required | Description                         |
+| ---------------- | -------- | -------- | ----------------------------------- |
+| `action`         | `enum`   | yes      | Must be `"follow"`                  |
+| `participant_id` | `string` | yes      | The id of the participant to follow |
+
+#### Example
+
+```json
+{
+  "action": "follow",
+  "participant_id": "00000000-0000-0000-0000-000000000001"
+}
+```
+
+### Unfollow
+
+Stops following another participant.
+
+If the participant is not connected to the room, an [`Error`](#error) with `unknown_participant` is returned.
+The server does not track who follows whom, so the messages are sent even if the sender was not following the participant.
+
+#### Response
+
+The unfollowed participant receives a [`FollowerLost`](#followerlost) message, the sender receives an [`Unfollowed`](#unfollowed) message.
+
+#### Fields
+
+| Field            | Type     | Required | Description                           |
+| ---------------- | -------- | -------- | ------------------------------------- |
+| `action`         | `enum`   | yes      | Must be `"unfollow"`                  |
+| `participant_id` | `string` | yes      | The id of the participant to unfollow |
+
+#### Example
+
+```json
+{
+  "action": "unfollow",
+  "participant_id": "00000000-0000-0000-0000-000000000001"
+}
+```
+
+### EnableEditRestrictions
+
+Allows a moderator to restrict editing the whiteboard to moderators and the given participants.
+Replaces any previously set list of unrestricted participants.
+
+#### Response
+
+An [`EditRestrictionsEnabled`](#editrestrictionsenabled) message is sent to every participant in the room.
+
+#### Fields
+
+| Field                       | Type       | Required | Description                                                    |
+| --------------------------- | ---------- | -------- | -------------------------------------------------------------- |
+| `action`                    | `enum`     | yes      | Must be `"enable_edit_restrictions"`                           |
+| `unrestricted_participants` | `string[]` | yes      | Ids of the non-moderator participants that are allowed to edit |
+
+#### Example
+
+```json
+{
+  "action": "enable_edit_restrictions",
+  "unrestricted_participants": ["00000000-0000-0000-0000-000000000001"]
+}
+```
+
+### DisableEditRestrictions
+
+Allows a moderator to lift the edit restrictions, so that all participants are allowed to edit the whiteboard.
+
+#### Response
+
+An [`EditRestrictionsDisabled`](#editrestrictionsdisabled) message is sent to every participant in the room.
+
+#### Fields
+
+| Field    | Type   | Required | Description                           |
+| -------- | ------ | -------- | ------------------------------------- |
+| `action` | `enum` | yes      | Must be `"disable_edit_restrictions"` |
+
+#### Example
+
+```json
+{
+  "action": "disable_edit_restrictions"
+}
+```
 
 ## Events
 
-### Overview
+### Started
 
-- [`space_url`](#spaceurl)
-- [`pdf_url`](#pdfurl)
-- [`error`](#error)
-
-### SpaceUrl
-
-Contains the URL to the space of the room.
-
-Is received by every participant when a moderator initialized the space.
+Is received by every participant when a moderator started a whiteboard session.
 
 #### Fields
 
-| Field     | Type     | Required | Description                      |
-| --------- | -------- | -------- | -------------------------------- |
-| `message` | `enum`   | yes      | Is `"space_url"`.                |
-| `url`     | `string` | yes      | The URL to the space of the room |
+| Field               | Type     | Required | Description                                                              |
+| ------------------- | -------- | -------- | ------------------------------------------------------------------------ |
+| `message`           | `enum`   | yes      | Is `"started"`                                                           |
+| `initial_scene`     | `object` | yes      | The initial scene of the whiteboard                                      |
+| `edit_restrictions` | `object` | yes      | The current edit restrictions, see [EditRestrictions](#editrestrictions) |
 
 #### Example
 
 ```json
 {
-    "message": "space_url",
-    "url": "https://whiteboard.opentalk.eu/s/0c5a6c7-00000000-0000-0000-0000-000000000000"
+  "message": "started",
+  "initial_scene": {
+    "elements": []
+  },
+  "edit_restrictions": {
+    "type": "disabled"
+  }
 }
 ```
 
----
+### Stopped
 
-### PdfUrl
-
-Contains the URL to the PDF document of the space.
-
-Is received by every participant when a moderator generates a PDF document for the space.
+Is received by every participant when a moderator stopped the whiteboard session.
 
 #### Fields
 
-| Field     | Type     | Required | Description                              |
-| --------- | -------- | -------- | ---------------------------------------- |
-| `message` | `enum`   | yes      | Is `"pdf_url"`.                          |
-| `url`     | `string` | yes      | The URL to the PDF document of the space |
+| Field     | Type   | Required | Description    |
+| --------- | ------ | -------- | -------------- |
+| `message` | `enum` | yes      | Is `"stopped"` |
 
 #### Example
 
 ```json
 {
-    "message": "generate_pdf",
-    "url": "https://whiteboard.opentalk.eu/<path-to-pdf>"
+  "message": "stopped"
 }
 ```
 
----
+### VolatileBroadcast
+
+Is received by every participant when a participant sent a [`broadcast_volatile`](#broadcastvolatile) command.
+
+Volatile broadcasts must not modify the scene. Clients must not accept volatile broadcasts that modify the scene.
+
+#### Fields
+
+| Field     | Type     | Required | Description                                  |
+| --------- | -------- | -------- | -------------------------------------------- |
+| `message` | `enum`   | yes      | Is `"volatile_broadcast"`                    |
+| `sender`  | `string` | yes      | The id of the participant that sent the data |
+| `data`    | `object` | yes      | Arbitrary data                               |
+
+#### Example
+
+```json
+{
+  "message": "volatile_broadcast",
+  "sender": "00000000-0000-0000-0000-000000000001",
+  "data": {
+    "pointer": { "x": 100, "y": 200 }
+  }
+}
+```
+
+### Broadcast
+
+Is received by every participant when a participant sent a [`broadcast`](#broadcast) command.
+
+Non-volatile broadcasts are allowed to modify the scene.
+
+#### Fields
+
+| Field     | Type     | Required | Description                                  |
+| --------- | -------- | -------- | -------------------------------------------- |
+| `message` | `enum`   | yes      | Is `"broadcast"`                             |
+| `sender`  | `string` | yes      | The id of the participant that sent the data |
+| `data`    | `object` | yes      | Arbitrary data                               |
+
+#### Example
+
+```json
+{
+  "message": "broadcast",
+  "sender": "00000000-0000-0000-0000-000000000001",
+  "data": {
+    "elements": []
+  }
+}
+```
+
+### SceneStored
+
+Is received by every participant when a participant persisted the scene with the [`store_scene`](#storescene) command.
+This event contains the full scene as stored on the server and should be used to update the local scene of the clients,
+so they can sync their local scene in case it drifted apart.
+
+#### Fields
+
+| Field     | Type     | Required | Description         |
+| --------- | -------- | -------- | ------------------- |
+| `message` | `enum`   | yes      | Is `"scene_stored"` |
+| `scene`   | `object` | yes      | The stored scene    |
+
+#### Example
+
+```json
+{
+  "message": "scene_stored",
+  "scene": {
+    "elements": []
+  }
+}
+```
+
+### FollowerGained
+
+Is received by a participant when another participant started following them.
+
+#### Fields
+
+| Field            | Type     | Required | Description                                      |
+| ---------------- | -------- | -------- | ------------------------------------------------ |
+| `message`        | `enum`   | yes      | Is `"follower_gained"`                           |
+| `participant_id` | `string` | yes      | The id of the participant that started following |
+
+#### Example
+
+```json
+{
+  "message": "follower_gained",
+  "participant_id": "00000000-0000-0000-0000-000000000002"
+}
+```
+
+### Followed
+
+Is received by the sender of a [`follow`](#follow) command when following the participant was successful.
+
+#### Fields
+
+| Field            | Type     | Required | Description                              |
+| ---------------- | -------- | -------- | ---------------------------------------- |
+| `message`        | `enum`   | yes      | Is `"followed"`                          |
+| `participant_id` | `string` | yes      | The id of the participant being followed |
+
+#### Example
+
+```json
+{
+  "message": "followed",
+  "participant_id": "00000000-0000-0000-0000-000000000001"
+}
+```
+
+### FollowerLost
+
+Is received by a participant when another participant stopped following them.
+
+#### Fields
+
+| Field            | Type     | Required | Description                                      |
+| ---------------- | -------- | -------- | ------------------------------------------------ |
+| `message`        | `enum`   | yes      | Is `"follower_lost"`                             |
+| `participant_id` | `string` | yes      | The id of the participant that stopped following |
+
+#### Example
+
+```json
+{
+  "message": "follower_lost",
+  "participant_id": "00000000-0000-0000-0000-000000000002"
+}
+```
+
+### Unfollowed
+
+Is received by the sender of an [`unfollow`](#unfollow) command.
+
+#### Fields
+
+| Field            | Type     | Required | Description                                |
+| ---------------- | -------- | -------- | ------------------------------------------ |
+| `message`        | `enum`   | yes      | Is `"unfollowed"`                          |
+| `participant_id` | `string` | yes      | The id of the participant being unfollowed |
+
+#### Example
+
+```json
+{
+  "message": "unfollowed",
+  "participant_id": "00000000-0000-0000-0000-000000000001"
+}
+```
+
+### EditRestrictionsEnabled
+
+Is received by every participant when a moderator enabled the edit restrictions.
+
+#### Fields
+
+| Field                       | Type       | Required | Description                                                          |
+| --------------------------- | ---------- | -------- | -------------------------------------------------------------------- |
+| `message`                   | `enum`     | yes      | Is `"edit_restrictions_enabled"`                                     |
+| `unrestricted_participants` | `string[]` | yes      | Ids of the non-moderator participants that are still allowed to edit |
+
+#### Example
+
+```json
+{
+  "message": "edit_restrictions_enabled",
+  "unrestricted_participants": ["00000000-0000-0000-0000-000000000001"]
+}
+```
+
+### EditRestrictionsDisabled
+
+Is received by every participant when a moderator disabled the edit restrictions.
+
+#### Fields
+
+| Field     | Type   | Required | Description                       |
+| --------- | ------ | -------- | --------------------------------- |
+| `message` | `enum` | yes      | Is `"edit_restrictions_disabled"` |
+
+#### Example
+
+```json
+{
+  "message": "edit_restrictions_disabled"
+}
+```
 
 ### Error
 
@@ -160,19 +531,18 @@ Received when something went wrong processing messages sent to the server.
 | `message` | `enum` | yes    | Is `"error"`                                      |
 | `error`   | `enum` | yes    | Exhaustive list of error strings, see table below |
 
-| Error                      | Description                                                                               |
-| -------------------------- | ----------------------------------------------------------------------------------------- |
-| `insufficient_permissions` | The requesting user has insufficient permissions for the operation                        |
-| `currently_initializing`   | The whiteboard initialization was already issued and whiteboard is currently initializing |
-| `initialization_failed`    | The whiteboard initialization failed                                                      |
-| `already_initialized`      | The whiteboard is already initialized and accessible                                      |
-| `storage_exceeded`         | The requesting user has exceeded their storage                                            |
+| Error                      | Description                                                        |
+| -------------------------- | ------------------------------------------------------------------ |
+| `insufficient_permissions` | The requesting user has insufficient permissions for the operation |
+| `already_started`          | A whiteboard session is already running in the room                |
+| `not_started`              | No whiteboard session is running in the room                       |
+| `unknown_participant`      | The target participant is not connected to the room                |
 
 #### Example
 
 ```json
 {
-    "message": "error",
-    "error": "insufficient_permissions"
+  "message": "error",
+  "error": "insufficient_permissions"
 }
 ```

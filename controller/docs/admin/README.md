@@ -40,7 +40,6 @@ title: Controller
 - [Shared Folders on External Systems](./advanced/additional_services/shared_folder.md)
 - [Tracing](./core/logging/tracing.md)
 - [Etherpad](./advanced/additional_services/etherpad.md)
-- [SpaceDeck](./advanced/additional_services/spacedeck.md)
 
 ### Services that can interact with the Controller
 
