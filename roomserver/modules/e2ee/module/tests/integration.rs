@@ -10,17 +10,8 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId,
     room_kind::RoomKind,
 };
-use opentalk_roomserver_types_e2ee::{
-    E2eeCommand, E2eeError, E2eeEvent, MlsMessages, WelcomeMessage,
-};
+use opentalk_roomserver_types_e2ee::{E2eeCommand, E2eeError, E2eeEvent, MlsMessages};
 use pretty_assertions::assert_eq;
-
-fn sample_welcome_message() -> WelcomeMessage {
-    WelcomeMessage {
-        welcome: Bytes::from_static(b"welcome-bytes"),
-        ratchet_tree: Bytes::from_static(b"ratchet-tree-bytes"),
-    }
-}
 
 fn sample_mls_messages() -> MlsMessages {
     MlsMessages {
@@ -72,7 +63,7 @@ async fn invite() {
 
     // Alice sends an invite to Bob
     let invitee = bob.connection_id();
-    let welcome_message = sample_welcome_message();
+    let welcome_message = Bytes::from_static(b"welcome");
     let mls_messages = sample_mls_messages();
     alice1
         .send_command::<E2eeModule>(
@@ -92,7 +83,12 @@ async fn invite() {
 
     // Bob should receive the welcome message
     let bob_event = bob.receive_event::<E2eeModule>().await.unwrap().payload;
-    assert_eq!(bob_event, E2eeEvent::Welcome(welcome_message.clone()));
+    assert_eq!(
+        bob_event,
+        E2eeEvent::MlsMessages(MlsMessages {
+            payload: vec![welcome_message.clone()]
+        })
+    );
 
     // Charlie should receive the MLS message
     let charlie_event = charlie.receive_event::<E2eeModule>().await.unwrap().payload;
@@ -124,7 +120,7 @@ async fn invite_self() {
 
     // alice-1 sends invite to alice-2
     let invitee = alice2.connection_id();
-    let welcome_message = sample_welcome_message();
+    let welcome_message = Bytes::from_static(b"welcome");
     let mls_messages = sample_mls_messages();
     alice1
         .send_command::<E2eeModule>(
@@ -138,9 +134,14 @@ async fn invite_self() {
         .await
         .unwrap();
 
-    // Alice2 should receive the invite event
+    // Alice2 should receive the welcome message
     let invite_event = alice2.receive_event::<E2eeModule>().await.unwrap().payload;
-    assert_eq!(invite_event, E2eeEvent::Welcome(welcome_message.clone()));
+    assert_eq!(
+        invite_event,
+        E2eeEvent::MlsMessages(MlsMessages {
+            payload: vec![welcome_message]
+        })
+    );
 
     // Bob should receive a MLS message
     let bob_event = bob.receive_event::<E2eeModule>().await.unwrap().payload;
@@ -166,7 +167,7 @@ async fn invitee_unknown() {
         .send_command::<E2eeModule>(
             E2eeCommand::Invite {
                 invitee: ConnectionId::from_u128(0xdeadbeef),
-                welcome_message: sample_welcome_message(),
+                welcome_message: Bytes::from_static(b"welcome"),
                 mls_messages: sample_mls_messages(),
             },
             None,

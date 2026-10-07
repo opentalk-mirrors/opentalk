@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use bytes::Bytes;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
     signaling_module::{
@@ -13,7 +14,7 @@ use opentalk_roomserver_types::{
     connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_e2ee::{
-    E2EE_MODULE_ID, E2eeCommand, E2eeError, E2eeEvent, MlsMessages, WelcomeMessage,
+    E2EE_MODULE_ID, E2eeCommand, E2eeError, E2eeEvent, MlsMessages,
 };
 use opentalk_types_common::modules::ModuleId;
 use opentalk_types_signaling::ParticipantId;
@@ -93,7 +94,7 @@ impl E2eeModule {
         ctx: &mut ModuleContext<'_, Self>,
         sender: ConnectionId,
         invitee: ConnectionId,
-        welcome_message: WelcomeMessage,
+        welcome_message: Bytes,
         mls_messages: MlsMessages,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
         Self::ensure_valid_invite(ctx, invitee, &welcome_message, &mls_messages)?;
@@ -108,7 +109,12 @@ impl E2eeModule {
             E2eeEvent::MlsMessages(mls_messages),
         )?;
 
-        ctx.send_ws_message_to_connections([invitee], E2eeEvent::Welcome(welcome_message))?;
+        ctx.send_ws_message_to_connections(
+            [invitee],
+            E2eeEvent::MlsMessages(MlsMessages {
+                payload: vec![welcome_message],
+            }),
+        )?;
 
         Ok(())
     }
@@ -116,10 +122,10 @@ impl E2eeModule {
     fn ensure_valid_invite(
         ctx: &mut ModuleContext<'_, Self>,
         invitee: ConnectionId,
-        welcome_message: &WelcomeMessage,
+        welcome_message: &Bytes,
         mls_messages: &MlsMessages,
     ) -> Result<(), SignalingModuleError<<Self as SignalingModule>::Error>> {
-        if !welcome_message.is_valid() || !mls_messages.is_valid() {
+        if welcome_message.is_empty() || !mls_messages.is_valid() {
             return Err(E2eeError::InvalidInvite.into());
         }
         Self::ensure_valid_connection(ctx, invitee)
