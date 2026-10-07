@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::sync::Arc;
+use std::{sync::Arc, thread};
 
 use anyhow::{Context, Result};
+use tokio::sync::{mpsc, oneshot};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperState};
 
 use super::voice_activity_detection::SpeechSegment;
@@ -57,30 +58,84 @@ impl Default for TranscriptionConfig {
     }
 }
 
-#[derive(Debug, Clone)]
 pub struct Transcript {
+    pub segment: SpeechSegment,
     pub text: String,
 }
 
 pub struct TranscriptionStage {
+    job_tx: mpsc::Sender<TranscribeJob>,
+}
+
+struct TranscribeJob {
+    segment: SpeechSegment,
+    result_tx: oneshot::Sender<Result<Transcript>>,
+}
+
+impl TranscriptionStage {
+    pub async fn new(context: Arc<WhisperContext>, language: Option<String>) -> Result<Self> {
+        let (create_tx, create_rx) = oneshot::channel();
+
+        let (job_tx, mut job_rx) = mpsc::channel::<TranscribeJob>(1);
+
+        // Create and run transcription state on a new dedicated thread, since WhisperState is not
+        // actually thread safe
+        thread::spawn(move || {
+            let mut transcriber = match Transcriber::new(context, language) {
+                Ok(transcriber) => {
+                    let _ = create_tx.send(Ok(()));
+                    transcriber
+                }
+                Err(err) => {
+                    let _ = create_tx.send(Err(err));
+                    return;
+                }
+            };
+
+            while let Some(job) = job_rx.blocking_recv() {
+                let _ = job.result_tx.send(transcriber.transcribe(job.segment));
+            }
+        });
+
+        create_rx.await.context("Failed to get create result")??;
+
+        Ok(TranscriptionStage { job_tx })
+    }
+
+    pub async fn transcribe(&mut self, segment: SpeechSegment) -> Result<Transcript> {
+        let (result_tx, result_rx) = oneshot::channel();
+
+        self.job_tx
+            .send(TranscribeJob { segment, result_tx })
+            .await
+            .ok()
+            .context("Failed to send job to transcribe thread")?;
+
+        result_rx
+            .await
+            .context("Failed to receive transcribe result from transcribe thread")?
+    }
+}
+
+struct Transcriber {
     config: TranscriptionConfig,
     state: WhisperState,
     language: Option<String>,
 }
 
-impl TranscriptionStage {
-    pub fn new(context: Arc<WhisperContext>, language: Option<String>) -> Result<Self> {
+impl Transcriber {
+    fn new(context: Arc<WhisperContext>, language: Option<String>) -> Result<Self> {
         let config = TranscriptionConfig::default();
         let state = context.create_state()?;
 
-        Ok(TranscriptionStage {
+        Ok(Transcriber {
             config,
             state,
             language,
         })
     }
 
-    pub fn transcribe(&mut self, segment: &mut SpeechSegment) -> Result<Transcript> {
+    fn transcribe(&mut self, mut segment: SpeechSegment) -> Result<Transcript> {
         let sample_duration = segment.samples.len() as f32 / SAMPLE_RATE as f32 / CHANNELS as f32;
 
         if sample_duration < 1.0 {
@@ -131,6 +186,7 @@ impl TranscriptionStage {
         }
 
         Ok(Transcript {
+            segment,
             text: parts.join("").trim().to_owned(),
         })
     }

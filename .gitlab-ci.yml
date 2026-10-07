@@ -85,7 +85,7 @@ include:
   - local: .gitlab-ci-container-template.yml
     inputs:
       service: transcription
-      flavors: [vulkan]
+      flavors: [vulkan, cuda]
       default_flavor: vulkan
 
   - project: opentalk/ci/templates/rust-lint

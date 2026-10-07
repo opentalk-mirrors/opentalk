@@ -43,6 +43,7 @@ opentalk-version.workspace = true
 owo-colors.workspace = true
 prometheus.workspace = true
 reqwest = { workspace = true, features = ["json"] }
+rustls.workspace = true
 serde = { workspace = true, features = ["derive"] }
 service-probe.workspace = true
 service-probe-client.workspace = true
