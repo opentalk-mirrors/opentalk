@@ -45,6 +45,8 @@ async fn main() -> Result<ExitCode> {
     // Capture logs emitted before initializing the logger from the settings.
     let interim_logger = trace::bootstrap();
 
+    ensure_crypto_provider();
+
     let args = cli::parse_args();
     if args.should_print() {
         return Ok(ExitCode::SUCCESS);
@@ -120,4 +122,9 @@ async fn main() -> Result<ExitCode> {
     opentalk_tracing::shutdown(tracer_provider);
 
     Ok(ExitCode::SUCCESS)
+}
+
+fn ensure_crypto_provider() {
+    rustls::crypto::CryptoProvider::install_default(rustls::crypto::aws_lc_rs::default_provider())
+        .expect("valid default crypto provider expected");
 }
