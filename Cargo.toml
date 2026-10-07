@@ -324,8 +324,8 @@ quote = "1"
 rand = "0.10"
 redis = "1.0"
 redis-args = "0.22"
-refinery = "0.9"
-refinery-core = "0.9"
+refinery = "0.10"
+refinery-core = "0.10"
 regex = "1"
 reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
 reqwest12 = { package = "reqwest", version = "0.12", default-features = false, features = ["rustls-tls"] }

@@ -85,6 +85,13 @@
       "groupSlug": "testcontainers"
     },
     {
+      "matchPackageNames": [
+        "/^refinery/"
+      ],
+      "groupName": "refinery",
+      "groupSlug": "refinery"
+    },
+    {
       "matchDatasources": ["docker"],
       "matchPackageNames": ["redocly/cli"],
       "extends": ["schedule:monthly"]
