@@ -609,8 +609,9 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `obelisk_clock_format` | string | `%d.%m.%y %X %Z` |
 | `obelisk_controller_api_key_id` | string | `controller` |
 | `obelisk_controller_api_key_secret` | string | `{{ CONTROLLER_API_SECRET }}` |
-| `obelisk_controller_domain` | string | `{{ ot_domain }}/controller` |
+| `obelisk_controller_domain` | string | `localhost:11311` |
 | `obelisk_controller_insecure` | boolean | `false` |
+| `obelisk_controller_url` | string | `http://{{ 'localhost' if obelisk_docker_network_mode \| default('') == 'host' else 'host.docker.internal' }}:11311/` |
 | `obelisk_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `obelisk_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `obelisk_docker_compose_services_dir` | string | `{{ services_dir }}` |
