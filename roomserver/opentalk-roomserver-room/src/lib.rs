@@ -127,7 +127,7 @@ mod tests {
         let (socket, _) = create_participant_connection();
         let client_parameters = ClientParameters {
             device_secret: DeviceSecret::example_data(),
-            kind: client_parameters::ClientKind::Guest,
+            kind: client_parameters::ClientKind::Unregistered,
             role: Role::Moderator,
         };
 
@@ -180,7 +180,7 @@ mod tests {
                 socket,
                 ClientParameters {
                     device_secret: "Device Secret Charlie".parse().unwrap(),
-                    kind: client_parameters::ClientKind::Guest,
+                    kind: client_parameters::ClientKind::Unregistered,
                     role: Role::User,
                 },
             )

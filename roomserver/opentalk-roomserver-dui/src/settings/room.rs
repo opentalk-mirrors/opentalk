@@ -167,7 +167,7 @@ pub fn gustav_client_parameters(connection: usize) -> ClientParameters {
         device_secret: format!("v3rys3cr3tD3v1ce5tr1ng-gustav-{connection}")
             .parse()
             .expect("secret must be valid"),
-        kind: ClientKind::Guest,
+        kind: ClientKind::Unregistered,
         role: Role::User,
     }
 }

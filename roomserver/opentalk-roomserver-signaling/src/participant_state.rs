@@ -187,7 +187,7 @@ mod tests {
             connected_participant_1,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 display_name: DisplayName::from_str_lossy("Guest"),
                 role: Role::User,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
@@ -257,7 +257,7 @@ mod tests {
             disconnected_breakout,
             ParticipantState {
                 room: RoomKind::Breakout(BreakoutId::from(0)),
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 display_name: DisplayName::from_str_lossy("Guest"),
                 role: Role::User,
                 connections: HashMap::from([]),
@@ -375,7 +375,7 @@ mod tests {
             guest,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 display_name: DisplayName::from_str_lossy("Guest"),
                 role: Role::User,
                 connections: HashMap::new(),
@@ -447,7 +447,7 @@ mod tests {
             guest,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 display_name: DisplayName::from_str_lossy("Guest"),
                 role: Role::User,
                 connections: HashMap::new(),
@@ -510,7 +510,7 @@ mod tests {
             guest,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 display_name: DisplayName::from_str_lossy("Guest"),
                 role: Role::User,
                 connections: HashMap::new(),

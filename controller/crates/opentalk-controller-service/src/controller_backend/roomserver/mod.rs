@@ -389,7 +389,7 @@ impl ControllerBackend {
 
         Ok(ClientParameters {
             device_secret: request.device_secret,
-            kind: ClientKind::Guest,
+            kind: ClientKind::Unregistered,
             role: Role::Guest,
         })
     }

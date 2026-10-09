@@ -58,7 +58,7 @@ impl From<(Role, &ClientKind)> for ReportRole {
         match value {
             (
                 ..,
-                ClientKind::Guest
+                ClientKind::Unregistered
                 | ClientKind::CallIn
                 | ClientKind::Recorder { .. }
                 | ClientKind::Transcription { .. },

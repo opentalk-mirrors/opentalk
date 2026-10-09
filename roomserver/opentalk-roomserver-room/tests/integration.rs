@@ -455,7 +455,8 @@ async fn enter_room_with_display_name(
 #[test_log::test(tokio::test)]
 async fn guest_must_provide_display_name_to_enter_room() {
     let mut room = TestRoom::builder().spawn();
-    let event = enter_room_with_display_name(&mut room, ClientKind::Guest, Role::User, None).await;
+    let event =
+        enter_room_with_display_name(&mut room, ClientKind::Unregistered, Role::User, None).await;
     assert_matches!(event, CoreEvent::Error(CoreError::DisplayNameRequired));
 }
 
@@ -464,7 +465,7 @@ async fn guest_can_provide_display_name() {
     let mut room = TestRoom::builder().spawn();
     let event = enter_room_with_display_name(
         &mut room,
-        ClientKind::Guest,
+        ClientKind::Unregistered,
         Role::User,
         Some(DisplayName::from_str_lossy("Gustav")),
     )

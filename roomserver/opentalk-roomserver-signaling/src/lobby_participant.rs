@@ -228,7 +228,7 @@ mod tests {
     /// Builds an empty participant that the individual tests populate with connections.
     fn participant() -> LobbyParticipant {
         LobbyParticipant {
-            kind: ClientKind::Guest,
+            kind: ClientKind::Unregistered,
             role: Role::User,
             connections: HashMap::new(),
             accepted: false,
@@ -335,7 +335,7 @@ mod tests {
             ParticipantId::nil(),
             &HashMap::new(),
             WaitingRoom::ForEveryone,
-            &ClientKind::Guest,
+            &ClientKind::Unregistered,
             Role::User,
         ));
     }
@@ -349,7 +349,7 @@ mod tests {
         let participants = HashMap::from_iter([(
             id,
             ParticipantState::new(
-                ClientKind::Guest,
+                ClientKind::Unregistered,
                 DisplayName::from_str_lossy("Guest"),
                 Role::User,
                 DateTime::UNIX_EPOCH,
@@ -360,7 +360,7 @@ mod tests {
             id,
             &participants,
             WaitingRoom::ForEveryone,
-            &ClientKind::Guest,
+            &ClientKind::Unregistered,
             Role::User
         ));
 
@@ -368,7 +368,7 @@ mod tests {
         let participants = HashMap::from_iter([(
             id,
             ParticipantState::new(
-                ClientKind::Guest,
+                ClientKind::Unregistered,
                 DisplayName::from_str_lossy("Guest"),
                 Role::User,
                 DateTime::UNIX_EPOCH,
@@ -379,7 +379,7 @@ mod tests {
             id,
             &participants,
             WaitingRoom::ForEveryone,
-            &ClientKind::Guest,
+            &ClientKind::Unregistered,
             Role::User,
         ));
     }

@@ -34,8 +34,8 @@ pub enum ClientKind {
     /// A registered user
     Registered { profile: PublicUserProfile },
 
-    /// A guest participant
-    Guest,
+    /// A pseudonymous user without a registered account
+    Unregistered,
 
     /// Invisible recording participant
     Recorder {
@@ -59,7 +59,7 @@ impl ClientKind {
     pub fn user_id(&self) -> Option<UserId> {
         match self {
             ClientKind::Registered { profile } => Some(profile.id),
-            ClientKind::Guest
+            ClientKind::Unregistered
             | ClientKind::Recorder { .. }
             | ClientKind::CallIn
             | ClientKind::Transcription { .. } => None,
@@ -69,7 +69,7 @@ impl ClientKind {
     pub fn email(&self) -> Option<&str> {
         match self {
             ClientKind::Registered { profile } => Some(&profile.email),
-            ClientKind::Guest
+            ClientKind::Unregistered
             | ClientKind::Recorder { .. }
             | ClientKind::CallIn
             | ClientKind::Transcription { .. } => None,
@@ -80,7 +80,7 @@ impl ClientKind {
         match self {
             ClientKind::Registered { profile } => Some(&profile.user_info.avatar_url),
             ClientKind::CallIn
-            | ClientKind::Guest
+            | ClientKind::Unregistered
             | ClientKind::Recorder { .. }
             | ClientKind::Transcription { .. } => None,
         }
@@ -90,7 +90,7 @@ impl ClientKind {
         match self {
             ClientKind::Registered { profile } => Some(&profile.user_info),
             ClientKind::CallIn
-            | ClientKind::Guest
+            | ClientKind::Unregistered
             | ClientKind::Recorder { .. }
             | ClientKind::Transcription { .. } => None,
         }
@@ -99,7 +99,7 @@ impl ClientKind {
     pub fn participant_kind(&self) -> ParticipationKind {
         match &self {
             ClientKind::Registered { .. } => ParticipationKind::Registered,
-            ClientKind::Guest => ParticipationKind::Guest,
+            ClientKind::Unregistered => ParticipationKind::Unregistered,
             ClientKind::Recorder { .. } => ParticipationKind::Recorder,
             ClientKind::Transcription { .. } => ParticipationKind::Transcription,
             ClientKind::CallIn => ParticipationKind::CallIn,
@@ -127,7 +127,7 @@ impl ClientKind {
     pub fn is_call_in(&self) -> bool {
         match self {
             ClientKind::Registered { .. }
-            | ClientKind::Guest
+            | ClientKind::Unregistered
             | ClientKind::Recorder { .. }
             | ClientKind::Transcription { .. } => false,
             ClientKind::CallIn => true,
@@ -139,7 +139,7 @@ impl ClientKind {
             ClientKind::Registered { profile } => Some(profile.timezone),
             ClientKind::Recorder { .. }
             | ClientKind::CallIn
-            | ClientKind::Guest
+            | ClientKind::Unregistered
             | ClientKind::Transcription { .. } => None,
         }
     }
@@ -156,7 +156,7 @@ impl ClientKind {
 impl ClientKind {
     pub fn visibility(&self) -> ParticipationVisibility {
         match self {
-            ClientKind::Registered { .. } | ClientKind::Guest | ClientKind::CallIn => {
+            ClientKind::Registered { .. } | ClientKind::Unregistered | ClientKind::CallIn => {
                 ParticipationVisibility::Visible
             }
             ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => {
@@ -182,7 +182,7 @@ impl ExampleData for ClientParameters {
 #[serde(rename_all = "snake_case")]
 pub enum ParticipationKind {
     Registered,
-    Guest,
+    Unregistered,
     Recorder,
     Transcription,
     CallIn,
@@ -196,7 +196,7 @@ impl ParticipationKind {
     pub fn is_service(&self) -> bool {
         match self {
             ParticipationKind::Registered
-            | ParticipationKind::Guest
+            | ParticipationKind::Unregistered
             | ParticipationKind::CallIn => false,
             ParticipationKind::Recorder | ParticipationKind::Transcription => true,
         }
@@ -205,7 +205,7 @@ impl ParticipationKind {
     /// Returns `true` if the participant is a service or call-in user, otherwise return `false`.
     pub fn is_service_or_callin(&self) -> bool {
         match self {
-            ParticipationKind::Registered | ParticipationKind::Guest => false,
+            ParticipationKind::Registered | ParticipationKind::Unregistered => false,
             ParticipationKind::Recorder
             | ParticipationKind::Transcription
             | ParticipationKind::CallIn => true,
@@ -218,7 +218,7 @@ impl ParticipationKind {
             ParticipationKind::Registered
             | ParticipationKind::Recorder
             | ParticipationKind::Transcription => false,
-            ParticipationKind::Guest | ParticipationKind::CallIn => true,
+            ParticipationKind::Unregistered | ParticipationKind::CallIn => true,
         }
     }
 }
@@ -227,7 +227,7 @@ impl From<&ClientKind> for ParticipationKind {
     fn from(value: &ClientKind) -> Self {
         match value {
             ClientKind::Registered { .. } => Self::Registered,
-            ClientKind::Guest => Self::Guest,
+            ClientKind::Unregistered => Self::Unregistered,
             ClientKind::Recorder { .. } => Self::Recorder,
             ClientKind::Transcription { .. } => Self::Transcription,
             ClientKind::CallIn => Self::CallIn,
@@ -253,12 +253,12 @@ mod tests {
     fn guest() {
         let client_parameter = ClientParameters {
             device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Guest,
+            kind: ClientKind::Unregistered,
             role: Role::User,
         };
         assert_eq!(
             client_parameter.kind.participant_kind(),
-            ParticipationKind::Guest
+            ParticipationKind::Unregistered
         );
 
         let value = serde_json::to_value(client_parameter).unwrap();
@@ -269,7 +269,7 @@ mod tests {
                 {
                     "role": "user",
                     "device_secret": "v3rys3cr3tD3v1ce5tr1ng",
-                    "kind": "guest",
+                    "kind": "unregistered",
                 }
             )
         );

@@ -315,14 +315,14 @@ components:
             profile:
               $ref: "#/components/schemas/PublicUserProfile"
         - type: object
-          description: A guest participant
+          description: A pseudonymous user without a registered account
           required:
             - kind
           properties:
             kind:
               type: string
               enum:
-                - guest
+                - unregistered
         - type: object
           description: Invisible recording participant
           required:

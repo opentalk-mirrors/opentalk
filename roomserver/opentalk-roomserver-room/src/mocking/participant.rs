@@ -968,7 +968,7 @@ impl MockParticipantBuilder<DisplayName> {
         room.join_participant(
             ClientParameters {
                 device_secret: self.secret,
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 role: self.role,
             },
             Some(self.profile),
@@ -982,7 +982,7 @@ impl MockParticipantBuilder<DisplayName> {
     ) -> Result<MockParticipantLobby, room::Error> {
         room.enter_lobby(ClientParameters {
             device_secret: self.secret,
-            kind: ClientKind::Guest,
+            kind: ClientKind::Unregistered,
             role: self.role,
         })
         .await
@@ -995,7 +995,7 @@ impl MockParticipantBuilder<DisplayName> {
         room.enter_waiting_room(
             ClientParameters {
                 device_secret: self.secret,
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 role: self.role,
             },
             Some(self.profile),

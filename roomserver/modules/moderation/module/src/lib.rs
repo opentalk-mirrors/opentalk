@@ -1101,7 +1101,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, true, Some(waiting_room_state())),
+            lobby_participant(ClientKind::Unregistered, true, Some(waiting_room_state())),
         )]);
 
         let EntryChange {
@@ -1155,7 +1155,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, false, None),
+            lobby_participant(ClientKind::Unregistered, false, None),
         )]);
 
         let EntryChange {
@@ -1179,7 +1179,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, true, None),
+            lobby_participant(ClientKind::Unregistered, true, None),
         )]);
 
         let EntryChange {
@@ -1205,7 +1205,7 @@ mod tests {
         // Already blocked; a stricter waiting room keeps them blocked.
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, false, None),
+            lobby_participant(ClientKind::Unregistered, false, None),
         )]);
         let EntryChange {
             now_allowed,
@@ -1227,7 +1227,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, false, Some(waiting_room_state())),
+            lobby_participant(ClientKind::Unregistered, false, Some(waiting_room_state())),
         )]);
 
         let EntryChange {
@@ -1251,7 +1251,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, false, Some(waiting_room_state())),
+            lobby_participant(ClientKind::Unregistered, false, Some(waiting_room_state())),
         )]);
 
         let EntryChange {
@@ -1284,7 +1284,7 @@ mod tests {
             ),
             (
                 guest_in_lobby,
-                lobby_participant(ClientKind::Guest, true, None),
+                lobby_participant(ClientKind::Unregistered, true, None),
             ),
             (
                 registered_in_waiting_room,
@@ -1292,7 +1292,7 @@ mod tests {
             ),
             (
                 guest_in_wating_room,
-                lobby_participant(ClientKind::Guest, false, Some(waiting_room_state())),
+                lobby_participant(ClientKind::Unregistered, false, Some(waiting_room_state())),
             ),
         ]);
 
@@ -1321,7 +1321,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, true, None),
+            lobby_participant(ClientKind::Unregistered, true, None),
         )]);
 
         // The guest already has a conference presence (e.g. reconnecting with another device),
@@ -1329,7 +1329,7 @@ mod tests {
         let conference_participants = HashMap::from_iter([(
             participant_id,
             ParticipantState::new(
-                ClientKind::Guest,
+                ClientKind::Unregistered,
                 DisplayName::from_str_lossy("Alice"),
                 Role::User,
                 Timestamp::unix_epoch().into(),

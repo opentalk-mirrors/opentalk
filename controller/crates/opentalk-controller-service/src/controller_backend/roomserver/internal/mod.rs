@@ -480,7 +480,7 @@ mod test {
     fn guest_client_parameters() -> ClientParameters {
         ClientParameters {
             device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Guest,
+            kind: ClientKind::Unregistered,
             role: Role::User,
         }
     }

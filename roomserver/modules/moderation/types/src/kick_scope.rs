@@ -25,7 +25,7 @@ impl KickScope {
     pub fn kicks(&self, role: Role, kind: &ClientKind) -> bool {
         match self {
             KickScope::Guests => {
-                matches!(kind, ClientKind::Guest | ClientKind::CallIn)
+                matches!(kind, ClientKind::Unregistered | ClientKind::CallIn)
             }
             KickScope::UsersAndGuests => !matches!(role, Role::Moderator),
             KickScope::All => true,
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn guests_scope_kicks_guest() {
-        let kind = ClientKind::Guest;
+        let kind = ClientKind::Unregistered;
 
         assert!(KickScope::Guests.kicks(Role::User, &kind));
     }

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{client_parameters::ParticipationKind, core::CORE_MODULE_ID};
 
-/// The state of a participant in the `control` module.
+/// The state of a participant in the `core` module.
 ///
 /// This struct is sent to the participant in the `join_success` message
 /// when they join successfully to the meeting.

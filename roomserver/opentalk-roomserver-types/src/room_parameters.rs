@@ -229,7 +229,7 @@ impl WaitingRoom {
     fn min_strictness(kind: &ClientKind) -> Option<WaitingRoom> {
         match kind {
             ClientKind::Registered { .. } => Some(WaitingRoom::ForEveryone),
-            ClientKind::Guest | ClientKind::CallIn => Some(WaitingRoom::ForGuests),
+            ClientKind::Unregistered | ClientKind::CallIn => Some(WaitingRoom::ForGuests),
             ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => None,
         }
     }
@@ -428,7 +428,7 @@ mod tests {
         let waiting_room = WaitingRoom::Disabled;
 
         assert!(!waiting_room.applies_to(&registered()));
-        assert!(!waiting_room.applies_to(&ClientKind::Guest));
+        assert!(!waiting_room.applies_to(&ClientKind::Unregistered));
         assert!(!waiting_room.applies_to(&ClientKind::CallIn));
         assert!(!waiting_room.applies_to(&recorder()));
         assert!(!waiting_room.applies_to(&transcription()));
@@ -439,7 +439,7 @@ mod tests {
         let waiting_room = WaitingRoom::ForGuests;
 
         assert!(!waiting_room.applies_to(&registered()));
-        assert!(waiting_room.applies_to(&ClientKind::Guest));
+        assert!(waiting_room.applies_to(&ClientKind::Unregistered));
         assert!(waiting_room.applies_to(&ClientKind::CallIn));
         assert!(!waiting_room.applies_to(&recorder()));
         assert!(!waiting_room.applies_to(&transcription()));
@@ -450,7 +450,7 @@ mod tests {
         let waiting_room = WaitingRoom::ForEveryone;
 
         assert!(waiting_room.applies_to(&registered()));
-        assert!(waiting_room.applies_to(&ClientKind::Guest));
+        assert!(waiting_room.applies_to(&ClientKind::Unregistered));
         assert!(waiting_room.applies_to(&ClientKind::CallIn));
         assert!(!waiting_room.applies_to(&recorder()));
         assert!(!waiting_room.applies_to(&transcription()));
@@ -463,7 +463,7 @@ mod tests {
             WaitingRoom::ForEveryone
         );
         assert_eq!(
-            WaitingRoom::Disabled.raise_to_include(&ClientKind::Guest),
+            WaitingRoom::Disabled.raise_to_include(&ClientKind::Unregistered),
             WaitingRoom::ForGuests
         );
         assert_eq!(

@@ -270,7 +270,7 @@ async fn request_token_guest_access_disabled() {
     let guest_client_params = ClientParameters {
         device_secret: DeviceSecret::from_str("guest device secret")
             .expect("Device secret must be valid"),
-        kind: ClientKind::Guest,
+        kind: ClientKind::Unregistered,
         role: Role::User,
     };
     let room_parameters = RoomParameters {
