@@ -159,4 +159,48 @@ sys.exit(0 if [str(g) for g in service.get("group_add", [])] == ["0"] else 1)
 PY
 done
 
+# Regression: obelisk calls the controller's /internal API, which Traefik does
+# not route, so the default must reach the controller directly.
+OBELISK_TEMPLATE="$ROLES_DIR/opentalk_compose_opentalk_obelisk/templates/obelisk.toml.j2"
+OBELISK_PLAYBOOK="$TMP_DIR/render-obelisk.yml"
+cat > "$OBELISK_PLAYBOOK" <<YAML
+---
+- name: Render obelisk config
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Load obelisk defaults
+      ansible.builtin.include_vars:
+        file: "$ROLES_DIR/opentalk_compose_opentalk_obelisk/defaults/main.yml"
+    - name: Render obelisk.toml
+      ansible.builtin.template:
+        src: "$OBELISK_TEMPLATE"
+        dest: "{{ obelisk_dest }}"
+        mode: "0644"
+YAML
+
+render_obelisk() {
+  local dest=$1
+  shift
+  ANSIBLE_COLLECTIONS_PATH="$COLLECTIONS" \
+  ansible-playbook -i "$INVENTORY" -e "@$SETTINGS" -e "@$SECRETS" -e "obelisk_dest=$dest" "$@" "$OBELISK_PLAYBOOK" >"$TMP_DIR/render-obelisk.log" 2>&1 \
+    || { cat "$TMP_DIR/render-obelisk.log" >&2; echo "Ansible failed to render obelisk.toml." >&2; exit 1; }
+}
+
+assert_obelisk_url() {
+  local file=$1 expected=$2
+  grep -qxF "url = \"$expected\"" "$file" \
+    || { echo "obelisk.toml: expected controller url $expected, got:" >&2; grep '^url' "$file" >&2; exit 1; }
+}
+
+render_obelisk "$TMP_DIR/obelisk-default.toml"
+assert_obelisk_url "$TMP_DIR/obelisk-default.toml" "http://localhost:11311/"
+
+render_obelisk "$TMP_DIR/obelisk-bridge.toml" -e obelisk_docker_network_mode=bridge
+assert_obelisk_url "$TMP_DIR/obelisk-bridge.toml" "http://host.docker.internal:11311/"
+
+render_obelisk "$TMP_DIR/obelisk-legacy.toml" -e '{"obelisk_controller_domain": "controller.example.com", "obelisk_controller_insecure": false}'
+assert_obelisk_url "$TMP_DIR/obelisk-legacy.toml" "https://controller.example.com/"
+
 echo "Compose template rendering tests passed (${#template_files[@]} templates)."
