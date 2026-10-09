@@ -29,3 +29,12 @@ service_name = "transcription"
 service_namespace = "opentalk"
 default_directives = ["warn", "opentalk_transcription=info"]
 ```
+
+## Trace context propagation
+
+When OTLP tracing export is enabled, Transcription service attaches its current
+[W3C Trace Context](https://www.w3.org/TR/trace-context-1)
+(`traceparent` and `tracestate`) to the signaling requests it sends to
+the controller when a dial-in participant joins. This lets the controller
+continue Transcription service's trace, so a call appears as a single distributed trace across
+both services. When tracing is disabled (the default), no trace headers are sent.

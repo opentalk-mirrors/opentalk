@@ -9024,6 +9024,7 @@ dependencies = [
  "opentalk-roomserver-types-recording",
  "opentalk-roomserver-types-transcription",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-types",
  "opentalk-types-api-internal",
  "rand 0.10.3",

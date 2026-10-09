@@ -32,6 +32,7 @@ opentalk-roomserver-types-raise-hands.workspace = true
 opentalk-roomserver-types-recording.workspace = true
 opentalk-roomserver-types-transcription.workspace = true
 opentalk-service-auth.workspace = true
+opentalk-tracing.workspace = true
 opentalk-types = { workspace = true, features = ["api", "serde", "signaling"] }
 opentalk-types-api-internal.workspace = true
 rand.workspace = true
