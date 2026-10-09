@@ -15,22 +15,25 @@ segments are sent back to the OpenTalk conference.
 ## Compute backends
 
 Whisper inference is hardware accelerated. The backend is selected at compile
-time through a Cargo feature. Exactly one backend should be enabled.
+time, exactly one backend should be enabled.
 
-| Backend         | Cargo feature      | Default |
-| --------------- | ------------------ | ------- |
-| Vulkan          | `vulkan`           | yes     |
-| NVIDIA CUDA     | `cuda`             | no      |
-| Intel oneAPI    | `sycl`             | no      |
+| Backend     | Cargo feature     | Default |
+| ----------- | ----------------- | ------- |
+| Vulkan      | `vulkan`          | yes     |
+| NVIDIA CUDA | `whisper-rs/cuda` | no      |
 
-The default build uses the Vulkan backend, which runs on a wide range of GPUs.
+Enabling a non-default backend requires disabling the default features, see
+[Building](#building).
+
+Pre-built container images are available for both backends, see the
+[hardware acceleration guide](docs/admin/hardware_acceleration.md).
 
 ## Installation dependencies
 
 ### Common build dependencies
 
 Building `whisper-rs` compiles the bundled whisper.cpp C++ sources, so a C/C++
-toolchain and CMake are always required. On Debian/Ubuntu:
+toolchain and CMake are always required.
 
 On Debian/Ubuntu:
 
@@ -61,7 +64,7 @@ On Fedora:
 dnf install vulkan-loader-devel vulkan-headers glslc
 ```
 
-At runtime a Vulkan loader and a driver for your GPU are required, for example.
+At runtime a Vulkan loader and a driver for your GPU are required.
 
 On Debian/Ubuntu:
 
@@ -78,39 +81,17 @@ dnf install vulkan-loader mesa-vulkan-drivers
 ### NVIDIA CUDA
 
 The CUDA backend requires a working [CUDA toolkit](https://developer.nvidia.com/cuda-downloads)
-including `nvcc` and a compatible host compiler. The
-[`run-cuda`](run-cuda) helper script shows the environment expected by the
-build, most importantly:
+including `nvcc` and a compatible host compiler:
 
 - `nvcc` must be on the `PATH` (e.g. `/usr/local/cuda/bin`).
-- `CMAKE_CUDA_ARCHITECTURES` must match your GPU's compute capability.
-- `NVCC_CCBIN` must point to a host compiler supported by your CUDA version.
+- `NVCC_CCBIN` can point to a different host compiler, if the default one is not
+  supported by your CUDA version.
+- `CMAKE_CUDA_ARCHITECTURES` can be set to build for other GPUs than the ones
+  present on the build machine.
 
-### Intel oneAPI (SYCL)
-
-The SYCL backend builds against the
-[Intel oneAPI Base Toolkit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit.html)
-(providing the `icx`/`icpx` compilers and MKL). On Debian/Ubuntu the build
-additionally needs:
-
-```sh
-apt-get install libomp-dev intel-oneapi-mkl-devel intel-oneapi-mkl clinfo \
-    intel-media-va-driver intel-gpu-tools
-```
-
-On Fedora:
-
-```sh
-dnf install libomp-devel intel-oneapi-mkl-devel intel-oneapi-mkl clinfo \
-    intel-media-driver intel-gpu-tools
-```
-
-The oneAPI environment must be sourced before building or running, see the
-[`run-intel`](run-intel) helper script:
-
-```sh
-source /opt/intel/oneapi/setvars.sh
-```
+At runtime the NVIDIA driver must be installed. The
+[CUDA container build](../container/transcription/Dockerfile-cuda) shows a
+complete build environment.
 
 ### Whisper model
 
@@ -129,15 +110,11 @@ Build with the default (Vulkan) backend:
 cargo build --release
 ```
 
-Build with a specific backend instead:
+Build with the CUDA backend instead:
 
 ```sh
-cargo build --release --no-default-features --features cuda
-cargo build --release --no-default-features --features sycl
+cargo build --release --no-default-features --features whisper-rs/cuda
 ```
-
-The [`run-cuda`](run-cuda) and [`run-intel`](run-intel) scripts wrap
-`cargo run` with the environment required by the respective backend.
 
 ## Configuration
 
