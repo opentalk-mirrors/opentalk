@@ -47,7 +47,7 @@ pub struct Args {
 }
 
 impl Args {
-    pub async fn exec(self) -> Result<()> {
+    pub async fn exec(self, interim_logger: opentalk_controller_core::Bootstrap) -> Result<()> {
         if self.info.should_print() {
             print_info(&self.info);
             return Ok(());
@@ -65,9 +65,9 @@ impl Args {
         }
 
         if let Some(command) = self.cmd {
-            command.exec(self.config.as_deref()).await?;
+            command.exec(self.config.as_deref(), interim_logger).await?;
         } else {
-            let controller = Controller::create(self.config).await?;
+            let controller = Controller::create(self.config, interim_logger).await?;
             controller.run().await?;
         }
 

@@ -2,51 +2,42 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use tracing::subscriber::DefaultGuard;
-use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
+use opentalk_tracing::{Bootstrap, SdkTracerProvider, TracingParams};
 
 use crate::settings::logging::Logging;
 
+/// Environment variable used to configure the log filter, taking precedence over `RUST_LOG`.
+const LOG_ENV: &str = "ORCHESTRATOR_LOG";
+
+/// Default log directives, applied when neither `RUST_LOG` nor the configuration provide any.
 const DEFAULT_LOGGING_DIRECTIVES: &str = "warn,opentalk_orchestrator=info";
 
-/// Initializes a primitive logging that can be used before the full tracing configuration is
-/// loaded.
+/// Initializes the global tracing subscriber.
 ///
-/// The returned guard must be dropped before the actual logging configuration is loaded.
-pub fn early_logging() -> DefaultGuard {
-    let fmt = tracing_subscriber::fmt::Layer::default();
-    tracing_subscriber::registry()
-        .with(fmt)
-        .with(create_filter(None))
-        .set_default()
+/// The log filter directives are resolved with the following precedence:
+/// `ORCHESTRATOR_LOG` > `RUST_LOG` > `[tracing] default_directives` >
+/// [`DEFAULT_LOGGING_DIRECTIVES`]. When an OTLP endpoint is configured, spans
+/// are additionally exported to it.
+pub fn init_logging(
+    bootstrap: Bootstrap,
+    settings: Option<&Logging>,
+) -> anyhow::Result<Option<SdkTracerProvider>> {
+    let tracing_settings = settings.map(Logging::to_tracing_settings);
+    opentalk_tracing::init(
+        bootstrap,
+        tracing_settings.as_ref(),
+        TracingParams {
+            service_name: "orchestrator",
+            service_version: opentalk_tracing::service_version!(),
+            default_directives: DEFAULT_LOGGING_DIRECTIVES,
+            filter_env_vars: &[LOG_ENV],
+        },
+    )
 }
 
-/// Initializes logging based on the provided settings and environment variables.
-pub fn init_logging(settings: Option<&Logging>) {
-    let filter = create_filter(settings.and_then(Logging::directives));
-
-    let subscriber = tracing_subscriber::fmt::Subscriber::builder()
-        .with_env_filter(filter)
-        .finish();
-
-    tracing::dispatcher::set_global_default(subscriber.into())
-        .expect("Failed to set global default logger");
-}
-
-/// Create the logging filter
-///
-/// The priority of the different config options is:
-///
-/// `ORCHESTRATOR_LOG` > `RUST_LOG` > settings > [`DEFAULT_LOGGING_DIRECTIVES`]
-fn create_filter(log_filter_settings: Option<String>) -> EnvFilter {
-    fn read_env_var(var: &str) -> Option<String> {
-        std::env::var(var).ok().filter(|v| !v.is_empty())
-    }
-
-    let directives = read_env_var("ORCHESTRATOR_LOG")
-        .or_else(|| read_env_var(EnvFilter::DEFAULT_ENV))
-        .or(log_filter_settings)
-        .unwrap_or(DEFAULT_LOGGING_DIRECTIVES.to_owned());
-
-    EnvFilter::new(directives)
+/// Installs a temporary subscriber used until [`init_logging`] can run, capturing log
+/// events emitted while the configuration is still being read. Pass the
+/// returned guard to [`init_logging`].
+pub fn bootstrap() -> Bootstrap {
+    opentalk_tracing::bootstrap(&[LOG_ENV], DEFAULT_LOGGING_DIRECTIVES)
 }

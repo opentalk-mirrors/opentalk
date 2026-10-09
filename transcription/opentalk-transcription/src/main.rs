@@ -29,22 +29,21 @@ mod audio;
 mod audio_processing;
 mod cli;
 mod commands;
-mod logging;
 mod metrics;
 mod orchestrator;
 mod server;
 mod settings;
 mod signal;
 mod tasks;
+mod trace;
 mod transcription;
 
 pub(crate) use app::{AppState, TranscriptionTasks};
 
 #[tokio::main]
 async fn main() -> Result<ExitCode> {
-    logging::init();
-
-    install_logging_hooks();
+    // Capture logs emitted before initializing the logger from the settings.
+    let interim_logger = trace::bootstrap();
 
     let args = cli::parse_args();
     if args.should_print() {
@@ -53,6 +52,10 @@ async fn main() -> Result<ExitCode> {
 
     let settings =
         Arc::new(Settings::load(args.config.as_deref()).context("Failed to read config")?);
+
+    let tracer_provider = trace::init(interim_logger, settings.tracing.as_ref())?;
+
+    install_logging_hooks();
 
     if let Some(Commands::Health { endpoint }) = args.command {
         return commands::run_health_command(endpoint, &settings).await;
@@ -113,6 +116,8 @@ async fn main() -> Result<ExitCode> {
 
     tasks.wait_for_shutdown().await?;
     stop_probe().await;
+
+    opentalk_tracing::shutdown(tracer_provider);
 
     Ok(ExitCode::SUCCESS)
 }

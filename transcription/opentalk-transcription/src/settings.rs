@@ -26,6 +26,8 @@ pub(crate) struct Settings {
     pub(crate) transcription: TranscriptionSettings,
     /// Optional orchestrator client configuration. The orchestrator is disabled when absent.
     pub(crate) orchestrator: Option<OrchestratorConfig>,
+    /// Optional tracing and OTLP export configuration.
+    pub(crate) tracing: Option<opentalk_tracing::TracingSettings>,
 }
 
 impl Settings {

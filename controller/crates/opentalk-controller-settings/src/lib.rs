@@ -51,10 +51,10 @@ pub use settings_provider::SettingsProvider;
 pub use settings_runtime::{
     Avatar, CallIn, DEFAULT_EXTERNAL_TENANT_ID_USER_ATTRIBUTE_NAME, DEFAULT_LIBRAVATAR_URL,
     DEFAULT_STATIC_TARIFF_NAME, DEFAULT_STATIC_TENANT_ID, Database, Defaults, Endpoints, Etcd,
-    Frontend, Http, HttpTls, Logging, LoggingOltpTracing, Metrics, MinIO, Monitoring, Oidc,
-    OidcController, OidcFrontend, OperatorInformation, ReportsTypst, RoomServer, RoomServerKind,
-    Settings, SharedFolder, TariffAssignment, TariffStatusMapping, Tariffs, TenantAssignment,
-    Tenants, UserSearchBackend, UserSearchBackendKeycloak, reports_typst_default_packages_path,
+    Frontend, Http, HttpTls, Logging, Metrics, MinIO, Monitoring, Oidc, OidcController,
+    OidcFrontend, OperatorInformation, ReportsTypst, RoomServer, RoomServerKind, Settings,
+    SharedFolder, TariffAssignment, TariffStatusMapping, Tariffs, TenantAssignment, Tenants,
+    UserSearchBackend, UserSearchBackendKeycloak, reports_typst_default_packages_path,
 };
 
 type Result<T, E = SettingsError> = std::result::Result<T, E>;

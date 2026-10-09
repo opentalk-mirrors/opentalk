@@ -105,11 +105,11 @@ impl AppState {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Capture logs emitted before initializing the logger from the settings.
+    let interim_logger = logging::bootstrap();
+
     ensure_crypto_provider();
     let args = cli::Args::parse();
-
-    // Initialize an early primitive logger until the settings are loaded
-    let early_logger = logging::early_logging();
 
     if let Some(cmd) = args.cmd {
         cli::handle_subcommand(cmd, args.config).await?;
@@ -119,8 +119,7 @@ async fn main() -> Result<()> {
 
     let settings = Settings::load(args.config.as_deref())?;
 
-    drop(early_logger);
-    logging::init_logging(settings.logging.as_ref());
+    let tracer_provider = logging::init_logging(interim_logger, settings.logging.as_ref())?;
 
     tracing::trace!("Tracing enabled");
 
@@ -152,6 +151,8 @@ async fn main() -> Result<()> {
     }
 
     tasks.wait_for_shutdown().await?;
+
+    opentalk_tracing::shutdown(tracer_provider);
 
     Ok(())
 }

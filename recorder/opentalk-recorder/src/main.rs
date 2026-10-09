@@ -52,6 +52,7 @@ mod orchestrator_metrics;
 mod recorder;
 mod settings;
 mod system_info;
+mod trace;
 
 type RecorderTasks = Arc<Mutex<HashMap<RecordingTarget, RecordingSessionHandle>>>;
 
@@ -287,8 +288,7 @@ fn main() {
 }
 
 async fn main_loop() -> Result<()> {
-    env_logger::init();
-
+    let bootstrap = trace::bootstrap();
     let args = Args::parse();
     if args.info.should_print() {
         print_info(&args.info);
@@ -296,6 +296,7 @@ async fn main_loop() -> Result<()> {
     }
 
     let settings = Arc::new(settings::Settings::load(args.config.as_ref())?);
+    let tracer_provider = trace::init(bootstrap, settings.tracing.as_ref())?;
     if let Some(Commands::Health { endpoint }) = args.command {
         let Some(monitoring_endpoint) = endpoint.or_else(|| {
             settings.monitoring.as_ref().map(|monitoring_settings| {
@@ -386,6 +387,9 @@ async fn main_loop() -> Result<()> {
             gstreamer_main_loop.quit();
             Ok(())
         }).await??;
+
+    opentalk_tracing::shutdown(tracer_provider);
+
     Ok(())
 }
 

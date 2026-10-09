@@ -12,7 +12,7 @@ use std::{
 use clap::Subcommand;
 use humansize::{DECIMAL, FormatSizeOptions, format_size};
 use itertools::Itertools;
-use opentalk_controller_core::load_settings_provider;
+use opentalk_controller_core::{Bootstrap, load_settings_provider};
 use opentalk_controller_settings::Settings;
 use opentalk_database::{DatabaseError, Db};
 use opentalk_inventory::{
@@ -100,8 +100,15 @@ pub enum Command {
 }
 
 impl Command {
-    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
-        let settings = load_settings_provider(optional_config_path)?.get();
+    pub async fn exec(
+        self,
+        optional_config_path: Option<&Path>,
+        bootstrap: Bootstrap,
+    ) -> Result<()> {
+        let (settings_provider, _tracer_provider) =
+            load_settings_provider(optional_config_path, bootstrap)?;
+        let settings = settings_provider.get();
+
         match self {
             Command::List => list_all_tariffs(&settings).await,
             Command::Create {

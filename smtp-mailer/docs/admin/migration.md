@@ -4,6 +4,45 @@ title: Migration guide
 
 # Migration guide
 
+## Migrating from v0.19 to v0.20
+
+The SMTP Mailer now shares its tracing and logging setup with the other
+{{ product_name }} services.
+
+### Log output format changed
+
+Log formatting switched from `env_logger` to the `tracing` subscriber used by
+the other services. The directives you set via `RUST_LOG` keeps working (but the
+new `SMTP_MAILER_LOG` takes precedence), but the format of the emitted log lines
+changed. Adjust any log parsing or alerting that depends on the previous format.
+
+### `html5ever` and `selectors` are no longer capped automatically
+
+The log filter is now taken from a single source; the sources are no longer
+merged. The built-in defaults still cap `html5ever` and `selectors` at `warn`,
+but when you set `RUST_LOG` it replaces the defaults entirely. If you raise the
+global level and want to keep those crates quiet, add the caps explicitly:
+
+```sh
+RUST_LOG=debug,html5ever=warn,selectors=warn opentalk-smtp-mailer
+```
+
+### New optional `[tracing]` section
+
+You can now export spans to an [OTLP](https://opentelemetry.io/docs/specs/otlp/)
+endpoint and set default log directives in the configuration file. The section
+is optional; if you omit it, logging behaves as before. See
+[Log Output](log_output.md) for details.
+
+```toml
+[tracing]
+otlp_tracing_endpoint = "http://localhost:4317"
+default_directives = ["warn", "html5ever=warn", "selectors=warn"]
+```
+
+No action is required unless you want to enable OTLP export or rely on the exact
+previous log line format or crate-capping behavior.
+
 ## Migrating from v0.18 to v0.19
 
 ### `guest_link_builder` configuration option removed

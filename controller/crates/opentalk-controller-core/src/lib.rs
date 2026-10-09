@@ -41,6 +41,8 @@ use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_jobs::job_runner::JobRunner;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
 use opentalk_service_auth::service::ApiKeyAuthorization;
+pub use opentalk_tracing::Bootstrap;
+use opentalk_tracing::SdkTracerProvider;
 use opentalk_types_api_v1::{auth::OidcProvider, error::ApiError};
 use rustls_pki_types::{CertificateDer, PrivatePkcs8KeyDer};
 use service_probe::{ServiceState, set_service_state, start_probe};
@@ -159,12 +161,19 @@ pub struct Controller {
 
     /// All metrics of the Application
     pub metrics: metrics::CombinedMetrics,
+
+    /// OpenTelemetry tracer provider, flushed explicitly during shutdown.
+    tracer_provider: Option<SdkTracerProvider>,
 }
 
 impl Controller {
     /// Creates a controller instance based on the optional config path command-line argument.
-    pub async fn create(optional_config_path: Option<PathBuf>) -> Result<Self> {
-        let settings_provider = load_settings_provider(optional_config_path.as_deref())?;
+    pub async fn create(
+        optional_config_path: Option<PathBuf>,
+        interim_logger: Bootstrap,
+    ) -> Result<Self> {
+        let (settings_provider, tracer_provider) =
+            load_settings_provider(optional_config_path.as_deref(), interim_logger)?;
 
         tracing::info!("Starting OpenTalk Controller");
 
@@ -173,17 +182,18 @@ impl Controller {
             settings_provider.get().defaults.timezone
         );
 
-        let controller = Self::init(settings_provider, optional_config_path)
+        let controller = Self::init(settings_provider, optional_config_path, tracer_provider)
             .await
             .whatever_context("Failed to init controller")?;
 
         Ok(controller)
     }
 
-    #[tracing::instrument(err(level = "debug"), skip(settings_provider))]
+    #[tracing::instrument(err(level = "debug"), skip(settings_provider, tracer_provider))]
     async fn init(
         settings_provider: SettingsProvider,
         optional_config_path: Option<PathBuf>,
+        tracer_provider: Option<SdkTracerProvider>,
     ) -> Result<Self> {
         let settings = settings_provider.get();
         let metrics = metrics::CombinedMetrics::try_init(&settings.roomserver.kind)
@@ -357,6 +367,7 @@ impl Controller {
             shutdown,
             reload,
             metrics,
+            tracer_provider,
         };
 
         Ok(controller)
@@ -545,6 +556,8 @@ impl Controller {
         } else {
             tracing::info!("All tasks stopped, goodbye!");
         }
+
+        opentalk_tracing::shutdown(self.tracer_provider);
 
         Ok(())
     }
@@ -973,17 +986,31 @@ fn determine_socket_address(
     Ok(to_socket_addrs)
 }
 
-pub fn load_settings_provider(optional_config_path: Option<&Path>) -> Result<SettingsProvider> {
+/// Installs a temporary subscriber that captures logs emitted before
+/// [`load_settings_provider`] initializes the configured tracing subscriber.
+///
+/// Call this as early as possible (e.g. in `main`) and pass the returned guard
+/// to [`load_settings_provider`], which tears it down once the real subscriber
+/// is installed.
+pub fn bootstrap() -> Bootstrap {
+    trace::bootstrap()
+}
+
+pub fn load_settings_provider(
+    optional_config_path: Option<&Path>,
+    interim_logger: Bootstrap,
+) -> Result<(SettingsProvider, Option<SdkTracerProvider>)> {
     let settings_provider =
         SettingsProvider::load_from_path_or_standard_paths(optional_config_path)
             .whatever_context("Failed to load settings")?;
 
     let settings = settings_provider.get();
 
-    if let Err(e) = trace::init(&settings.logging) {
+    let tracer_provider = trace::init(interim_logger, &settings.logging).unwrap_or_else(|e| {
         let report = Report::from_error(e);
         eprintln!("Could not initialize log output: {report}");
-    }
+        None
+    });
 
-    Ok(settings_provider)
+    Ok((settings_provider, tracer_provider))
 }

@@ -30,6 +30,7 @@ pub(crate) struct Settings {
     pub(crate) http: HttpSettings,
     pub(crate) orchestrator: Option<OrchestratorConfig>,
     pub(crate) recorder: Option<RecorderSettings>,
+    pub(crate) tracing: Option<opentalk_tracing::TracingSettings>,
 }
 
 impl Settings {

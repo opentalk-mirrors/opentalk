@@ -9197,11 +9197,11 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-types-api-internal",
  "opentalk-types-api-v1",
  "opentalk-types-common",
  "opentelemetry",
- "opentelemetry-otlp",
  "opentelemetry-prometheus",
  "opentelemetry_sdk",
  "phonenumber",
@@ -9223,8 +9223,6 @@ dependencies = [
  "tracing",
  "tracing-actix-web",
  "tracing-futures",
- "tracing-opentelemetry",
- "tracing-subscriber",
  "utoipa",
  "utoipa-swagger-ui",
  "uuid",
@@ -9331,6 +9329,7 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-livekit",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-types-common",
  "owo-colors",
  "phonenumber",
@@ -9346,7 +9345,6 @@ dependencies = [
  "toml 1.1.6+spec-1.1.0",
  "tracing",
  "url",
- "uuid",
 ]
 
 [[package]]
@@ -9604,7 +9602,6 @@ dependencies = [
  "clap",
  "config",
  "directories",
- "env_logger",
  "ezk",
  "ezk-audio",
  "ezk-audio-nodes",
@@ -9631,6 +9628,7 @@ dependencies = [
  "opentalk-client-signaling",
  "opentalk-compositor",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-version",
  "owo-colors",
  "parking_lot",
@@ -9694,6 +9692,7 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-transcription-web-api",
  "opentalk-types-api-common",
  "opentalk-types-api-internal",
@@ -9714,7 +9713,6 @@ dependencies = [
  "tokio",
  "tokio-tungstenite 0.30.0",
  "tracing",
- "tracing-subscriber",
  "url",
  "uuid",
 ]
@@ -9761,7 +9759,6 @@ dependencies = [
  "clap",
  "config",
  "directories",
- "env_logger",
  "futures",
  "gstreamer",
  "itertools 0.15.0",
@@ -9775,6 +9772,7 @@ dependencies = [
  "opentalk-orchestrator-client",
  "opentalk-recorder-web-api",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-types-api-internal",
  "opentalk-version",
  "owo-colors",
@@ -9845,12 +9843,10 @@ dependencies = [
  "opentalk-roomserver-types",
  "opentalk-roomserver-web-api",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-types-api-internal",
  "opentalk-types-common",
  "opentalk-version",
- "opentelemetry",
- "opentelemetry-otlp",
- "opentelemetry_sdk",
  "pretty_assertions",
  "reqwest 0.13.5",
  "service-probe",
@@ -9860,12 +9856,9 @@ dependencies = [
  "tower",
  "tower-http 0.7.1",
  "tracing",
- "tracing-opentelemetry",
- "tracing-subscriber",
  "url",
  "utoipa",
  "utoipa-swagger-ui",
- "uuid",
  "yaml-rust2",
 ]
 
@@ -9928,6 +9921,7 @@ dependencies = [
  "opentalk-orchestrator-client",
  "opentalk-roomserver-types",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-types-common",
  "owo-colors",
  "pretty_assertions",
@@ -10898,7 +10892,6 @@ dependencies = [
  "config",
  "css-inline",
  "dirs",
- "env_logger",
  "fluent-langneg 0.14.2",
  "fluent-templates",
  "futures",
@@ -10912,6 +10905,7 @@ dependencies = [
  "log",
  "mime",
  "opentalk-mail-worker-protocol",
+ "opentalk-tracing",
  "opentalk-types-common",
  "opentalk-version",
  "percent-encoding",
@@ -10963,6 +10957,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentalk-tracing"
+version = "3.0.0"
+dependencies = [
+ "anyhow",
+ "opentelemetry",
+ "opentelemetry-otlp",
+ "opentelemetry_sdk",
+ "serde",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "opentalk-transcription"
 version = "3.0.0"
 dependencies = [
@@ -10974,7 +10983,6 @@ dependencies = [
  "config",
  "directories",
  "earshot",
- "env_logger",
  "ezk",
  "ezk-audio",
  "ezk-audio-nodes",
@@ -10986,6 +10994,7 @@ dependencies = [
  "opentalk-client-signaling",
  "opentalk-orchestrator-client",
  "opentalk-service-auth",
+ "opentalk-tracing",
  "opentalk-transcription-web-api",
  "opentalk-types-api-common",
  "opentalk-version",
@@ -17240,7 +17249,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2088172d00f936c348d6a72f488dc2660ab3f507263a195df308a3c2383229f6"
 dependencies = [
  "libc",
- "log",
+ "tracing",
  "whisper-rs-sys",
 ]
 

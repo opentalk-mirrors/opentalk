@@ -15,9 +15,13 @@ mod media;
 mod settings;
 mod signaling;
 mod sip;
+mod trace;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Capture logs emitted before initializing the logger from the settings.
+    let interim_logger = crate::trace::bootstrap();
+
     ensure_crypto_provider();
     match std::env::args().next() {
         Some(s) if s.contains("k3k-obelisk") => {
@@ -32,8 +36,6 @@ async fn main() -> Result<()> {
         _ => {}
     }
 
-    env_logger::init();
-
     let args = Args::parse();
     if args.info.should_print() {
         print_info(&args.info);
@@ -41,6 +43,9 @@ async fn main() -> Result<()> {
     }
 
     let settings = Arc::new(settings::Settings::load(args.config.as_ref())?);
+
+    let tracer_provider = trace::init(interim_logger, settings.tracing.as_ref())?;
+
     if let Some(Commands::Health { endpoint }) = args.command {
         let Some(monitoring_endpoint) = endpoint.or_else(|| {
             settings.monitoring.as_ref().map(|monitoring_settings| {
@@ -80,11 +85,13 @@ async fn main() -> Result<()> {
 
     media::PortPool::init(settings.clone());
 
-    sip::run(settings).await?;
+    let result = sip::run(settings).await;
 
     log::info!("Obelisk exiting, bye!");
 
-    Ok(())
+    opentalk_tracing::shutdown(tracer_provider);
+
+    result
 }
 
 /// `rustls` and `jsonwebtoken` depend on a `CryptoProvider` being configured.

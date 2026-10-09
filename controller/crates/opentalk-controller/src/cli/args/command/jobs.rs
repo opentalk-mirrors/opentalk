@@ -8,7 +8,7 @@ use clap::Subcommand;
 use log::Log;
 use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
-use opentalk_controller_core::load_settings_provider;
+use opentalk_controller_core::{Bootstrap, load_settings_provider};
 use opentalk_controller_settings::Settings;
 use opentalk_database::Db;
 use opentalk_inventory::{InventoryProvider, JobType};
@@ -56,7 +56,11 @@ pub enum Command {
 }
 
 impl Command {
-    pub async fn exec(self, optional_config_path: Option<&Path>) -> Result<()> {
+    pub async fn exec(
+        self,
+        optional_config_path: Option<&Path>,
+        bootstrap: Bootstrap,
+    ) -> Result<()> {
         match self {
             Command::Execute {
                 job_type,
@@ -66,6 +70,7 @@ impl Command {
             } => {
                 execute_job(
                     optional_config_path,
+                    bootstrap,
                     job_type,
                     parameters,
                     timeout,
@@ -81,12 +86,14 @@ impl Command {
 
 async fn execute_job(
     optional_config_path: Option<&Path>,
+    bootstrap: Bootstrap,
     job_type: JobType,
     parameters: String,
     timeout: u64,
     hide_duration: bool,
 ) -> Result<()> {
-    let settings_provider = load_settings_provider(optional_config_path)?;
+    let (settings_provider, _tracer_provider) =
+        load_settings_provider(optional_config_path, bootstrap)?;
     let settings = settings_provider.get();
     let db = Arc::new(
         Db::connect(&settings.database).whatever_context("Failed to connect to database")?,

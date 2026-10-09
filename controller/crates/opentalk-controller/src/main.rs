@@ -12,6 +12,9 @@ type Result<T, E = Whatever> = std::result::Result<T, E>;
 
 #[actix_web::main]
 async fn main() {
+    // Capture logs emitted before initializing the logger from the settings.
+    let interim_logger = opentalk_controller_core::bootstrap();
+
     // We explicitly opt in to using 'aws-lc-rs', otherwise a conflict
     // between the 'aws-lc-rs' crypto provider and other available crypto
     // providers (activated by non-changeable features of transitive
@@ -31,7 +34,7 @@ async fn main() {
 
     let args = cli::Args::parse();
 
-    if let Err(err) = args.exec().await {
+    if let Err(err) = args.exec(interim_logger).await {
         dump_err(err);
         std::process::exit(-1);
     }

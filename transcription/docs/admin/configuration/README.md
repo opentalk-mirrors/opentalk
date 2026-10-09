@@ -25,6 +25,7 @@ Functionality that can be configured through the configuration file:
 - [HTTP](http.md)
 - [Monitoring](monitoring.md)
 - [Orchestrator](orchestrator.md)
+- [Tracing](tracing.md)
 - [Transcription](transcription.md)
 
 ## Environment variables

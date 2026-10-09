@@ -21,6 +21,7 @@ title: Recorder
 
 - `RUST_BACKTRACE: full` to get detailed stack traces
 - `RUST_LOG: info,opentalk_recorder=debug,rustls=info,opentalk_recorder::signaling=debug` for more verbose logging
+- `RECORDER_LOG` takes precedence over `RUST_LOG` and accepts the same syntax, e.g. `RECORDER_LOG: info,opentalk_recorder=debug`
 - `GST_DEBUG: 2` to increase GStreamer logging maximum is 6 but 3 is already very noisy
 - `GST_DEBUG_FILE: /var/recording_logs/recorder_debug.log` dedicated log file. Necessary for `GST_DEBUG > 3` in combination with a dedicated docker volume
 - `GST_DEBUG_DUMP_DOT_DIR: /var/recording_pipelines` dedicated directory to store pipeline snapshots.  Active when `GST_DEBUG > 2` -- we recommend to a dedicated docker volume.

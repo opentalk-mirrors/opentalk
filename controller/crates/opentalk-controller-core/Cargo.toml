@@ -55,6 +55,7 @@ opentalk-roomserver-room.workspace = true
 opentalk-roomserver-types = { workspace = true, features = ["actix"] }
 opentalk-roomserver-web-api.workspace = true
 opentalk-service-auth = { workspace = true, features = ["actix"] }
+opentalk-tracing.workspace = true
 opentalk-types-api-internal = { workspace = true, features = ["utoipa"] }
 opentalk-types-api-v1 = { workspace = true, features = ["backend"] }
 opentalk-types-common = { workspace = true, features = [
@@ -63,7 +64,6 @@ opentalk-types-common = { workspace = true, features = [
   "clap",
 ] }
 opentelemetry = { workspace = true, features = ["metrics", "trace"] }
-opentelemetry-otlp = { workspace = true, features = ["grpc-tonic"] }
 opentelemetry-prometheus.workspace = true
 opentelemetry_sdk.workspace = true
 phonenumber.workspace = true
@@ -84,11 +84,6 @@ tokio-stream.workspace = true
 tracing.workspace = true
 tracing-actix-web.workspace = true
 tracing-futures.workspace = true
-tracing-opentelemetry.workspace = true
-tracing-subscriber = { workspace = true, features = [
-  "env-filter",
-  "parking_lot",
-] }
 utoipa = { workspace = true, features = ["actix_extras"] }
 utoipa-swagger-ui = { workspace = true, features = [
   "actix-web",

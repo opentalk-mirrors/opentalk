@@ -25,7 +25,6 @@ clap = { workspace = true, features = ["derive"] }
 config = { workspace = true, features = ["toml"] }
 directories.workspace = true
 earshot.workspace = true
-env_logger.workspace = true
 ezk.workspace = true
 ezk-audio.workspace = true
 ezk-audio-nodes = { workspace = true, features = ["nnnoiseless"] }
@@ -37,6 +36,7 @@ log.workspace = true
 opentalk-client-signaling.workspace = true
 opentalk-orchestrator-client.workspace = true
 opentalk-service-auth = { workspace = true, features = ["axum"] }
+opentalk-tracing.workspace = true
 opentalk-transcription-web-api.workspace = true
 opentalk-types-api-common.workspace = true
 opentalk-version.workspace = true
@@ -48,7 +48,7 @@ service-probe.workspace = true
 service-probe-client.workspace = true
 sysinfo.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
-whisper-rs = { workspace = true, features = ["log_backend"] }
+whisper-rs = { workspace = true, features = ["tracing_backend"] }
 
 [dev-dependencies]
 temp-env.workspace = true
