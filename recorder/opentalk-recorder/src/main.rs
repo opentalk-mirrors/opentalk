@@ -13,7 +13,11 @@ use std::{
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use axum::Router;
+use axum::{
+    Router,
+    extract::MatchedPath,
+    http::{Request, Response},
+};
 use clap::Parser;
 use gstreamer::glib;
 use log::warn;
@@ -39,6 +43,8 @@ use tokio::{
     },
     sync::{Mutex, broadcast},
 };
+use tower_http::trace::TraceLayer;
+use tracing::{Span, info_span};
 
 use crate::{
     cli::{Args, Commands, print_info},
@@ -476,7 +482,35 @@ async fn run_axum_server(
 ) -> Result<()> {
     let app = Router::new()
         .merge(v1::routes().layer(auth_middleware))
-        .with_state(recorder);
+        .with_state(recorder)
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(|request: &Request<_>| {
+                    let matched_path = request
+                        .extensions()
+                        .get::<MatchedPath>()
+                        .map(MatchedPath::as_str);
+
+                    let span = info_span!(
+                        "http_request",
+                        http.request.method = ?request.method(),
+                        http.route = matched_path,
+                        http.status_code = tracing::field::Empty,
+                        otel.kind = "server",
+                    );
+                    opentalk_tracing::propagation::set_parent_from_headers(
+                        &span,
+                        request.headers(),
+                    );
+                    span
+                })
+                .on_response(|response: &Response<_>, _duration, span: &Span| {
+                    span.record(
+                        "http.status_code",
+                        tracing::field::display(response.status()),
+                    );
+                }),
+        );
 
     let listener = TcpListener::bind((address, port)).await?;
 
