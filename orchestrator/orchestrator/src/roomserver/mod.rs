@@ -55,6 +55,7 @@ impl RoomBackend for AppState {
             .client
             .put(format!("{address}v1/rooms/{room_id}"))
             .header(AUTHORIZATION, auth_header)
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .json(&room_parameters)
             .send()
             .await;
@@ -121,6 +122,7 @@ impl RoomBackend for AppState {
             .client
             .patch(format!("{address}v1/rooms/{room_id}"))
             .header(AUTHORIZATION, auth_header)
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .json(&patch)
             .send()
             .await;
@@ -174,6 +176,7 @@ impl RoomBackend for AppState {
             .client
             .delete(format!("{address}v1/rooms/{room_id}"))
             .header(AUTHORIZATION, auth_header)
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .send()
             .await
         {
@@ -208,6 +211,7 @@ impl RoomBackend for AppState {
             .client
             .post(format!("{address}v1/rooms/{room_id}/token"))
             .header(AUTHORIZATION, auth_header)
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .json(&token_request)
             .send()
             .await;

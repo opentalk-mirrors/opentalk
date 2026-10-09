@@ -31,6 +31,7 @@ impl TranscriptionBackend for AppState {
             .client
             .post(url)
             .header(AUTHORIZATION, auth_header)
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .json(&room_info)
             .send()
             .await
