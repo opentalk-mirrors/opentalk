@@ -68,6 +68,15 @@ feature-depth = 1
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
+  # unsafe-libyaml is unmaintained
+  #
+  # unsafe-libyaml v0.2.11
+  # └── serde_yaml v0.9.34+deprecated
+  #     ├── hayagriva v0.10.1
+  #     │   └── typst-library v0.15.1
+  #     │       ├── typst v0.15.1
+  #     │       │   └── opentalk-report-generation v3.0.0
+  "RUSTSEC-2024-0449",
   # bincode unmaintained
   "RUSTSEC-2025-0141",
   # h2 unmaintained
