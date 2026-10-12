@@ -1,0 +1,70 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+ARG WHISPER_MODEL=ggml-large-v3-turbo.bin
+
+# Separate stage for model download
+FROM docker.io/library/ubuntu:resolute AS model
+
+ARG WHISPER_MODEL
+ARG WHISPER_MODEL_BASE_URL=https://repo.heinlein.group/repository/whisper-ggml-models
+ARG WHISPER_MODEL_SHA256=1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69
+
+WORKDIR /models
+
+RUN apt-get --update install -y --no-install-recommends ca-certificates curl && \
+    curl -fsSLO "${WHISPER_MODEL_BASE_URL}/${WHISPER_MODEL}" && \
+    echo "${WHISPER_MODEL_SHA256}  ${WHISPER_MODEL}" | sha256sum -c -;
+
+FROM docker.io/nvidia/cuda:13.4.2-devel-ubuntu26.04 AS build
+
+WORKDIR /transcription
+
+ARG RUST_VERSION=1.99.0
+
+COPY . .
+
+RUN set -eux; \
+    apt-get --update install -y --no-install-recommends \
+        build-essential \
+        cmake \
+        libclang-dev \
+        clang-21 \
+        wget \
+        pkg-config \
+        glib-2.0-dev \
+        ; \
+    wget "https://static.rust-lang.org/rustup/archive/1.29.1/x86_64-unknown-linux-gnu/rustup-init"; \
+    echo "dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71 *rustup-init" | sha256sum -c -; \
+    chmod +x rustup-init; \
+    ./rustup-init -y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION --default-host x86_64-unknown-linux-gnu; \
+    rm rustup-init; \
+    # livekit's libwebrtc requires clang 21+ \
+    CXX=clang++-21  \
+        ~/.cargo/bin/cargo build --locked --package opentalk-transcription \
+            --release \
+            --features whisper-rs/cuda \
+            --no-default-features
+
+FROM docker.io/nvidia/cuda:13.4.2-runtime-ubuntu26.04
+
+ARG WHISPER_MODEL
+
+ENV USERID=1000
+ENV GROUPID=1000
+
+RUN apt-get --update full-upgrade -y && \
+    apt-get install --no-install-recommends -y ca-certificates  && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /transcription
+
+COPY --from=model /models/${WHISPER_MODEL} models/${WHISPER_MODEL}
+COPY --from=build /transcription/target/release/opentalk-transcription .
+
+USER $USERID:$GROUPID
+
+EXPOSE 11413
+EXPOSE 11411
+ENTRYPOINT [ "/transcription/opentalk-transcription" ]

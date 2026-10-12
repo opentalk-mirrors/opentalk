@@ -5,8 +5,9 @@
 # produced by the `build` job of .gitlab-ci.yml plus a handful of data files. Only
 # include files referenced by `COPY` commands.
 
-# Deny everything by default
-**
+/target
+/container
+/LICENSES
 
 # Include binaries produced by the `build` job in .gitlab-ci.yml
 !target/release/opentalk-controller

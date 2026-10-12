@@ -448,14 +448,17 @@ async fn transcribe_audio_track_task(
             return;
         }
     };
-    let mut transcription =
-        match TranscriptionStage::new(whisper_context.clone(), language.borrow().clone()) {
+
+    let mut transcription = {
+        let language = language.borrow().clone();
+        match TranscriptionStage::new(whisper_context.clone(), language).await {
             Ok(transcription) => transcription,
             Err(err) => {
                 log::error!("Failed to create Transcription stage: {err:?}");
                 return;
             }
-        };
+        }
+    };
 
     loop {
         enum Event {
@@ -470,7 +473,7 @@ async fn transcribe_audio_track_task(
 
         match event {
             Event::LanguageChanged(language) => {
-                match TranscriptionStage::new(whisper_context.clone(), language.clone()) {
+                match TranscriptionStage::new(whisper_context.clone(), language.clone()).await {
                     Ok(t) => transcription = t,
                     Err(err) => log::warn!(
                         "Failed to re-create transcription stage with new language {language:?}, {err:?}"
@@ -479,10 +482,10 @@ async fn transcribe_audio_track_task(
             }
             Event::SamplesReceived(samples) => {
                 let Some(samples) = samples else {
-                    break;
+                    return;
                 };
 
-                let Some(mut speech_segment) = vad.process(samples) else {
+                let Some(speech_segment) = vad.process(samples) else {
                     continue;
                 };
 
@@ -491,11 +494,11 @@ async fn transcribe_audio_track_task(
                 let system_now = SystemTime::now();
                 let starts_at = (system_now - (instant_now - speech_segment.started_at)).into();
 
-                match transcription.transcribe(&mut speech_segment) {
+                match transcription.transcribe(speech_segment).await {
                     Ok(transcript) => {
                         if let Some(dump_dir) = &settings.transcription.dump_dir {
                             audio_processing::dump::dump(
-                                &speech_segment,
+                                &transcript.segment,
                                 &transcript.text,
                                 dump_dir,
                             );
@@ -515,10 +518,13 @@ async fn transcribe_audio_track_task(
 
                         if segments_tx.send(segment).await.is_err() {
                             log::debug!("Segment channel closed, stopping audio pipeline");
-                            break;
+                            return;
                         }
                     }
-                    Err(e) => log::error!("Transcription failed: {e:?}"),
+                    Err(e) => {
+                        log::error!("Transcription failed: {e:?}");
+                        return;
+                    }
                 }
             }
         }
