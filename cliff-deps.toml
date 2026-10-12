@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+# git-cliff config for DEPS_CHANGELOG.md.
+
+[changelog]
+header = """
+# Dependency Changelog
+
+All dependency updates are documented in this file.
+
+"""
+
+body = """
+{% set section_name = version | trim_start_matches(pat="v") -%}
+
+## [{{ section_name }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+
+[{{ section_name }}]: \
+{% if previous.version %}\
+    https://git.opentalk.dev/{{ remote.gitlab.owner }}/{{ remote.gitlab.repo }}/-/compare/{{ previous.version }}...{{ version }}\
+{% else %}\
+    https://git.opentalk.dev/{{ remote.gitlab.owner }}/{{ remote.gitlab.repo }}/-/commits/{{ version }}\
+{% endif %}
+{% for commit in commits %}
+    - {{ commit.message | upper_first }} (\
+        {% if commit.remote.pr_number %}[!{{ commit.remote.pr_number }}](https://git.opentalk.dev/{{ remote.gitlab.owner }}/{{ remote.gitlab.repo }}/-/merge_requests/{{ commit.remote.pr_number }}){% endif -%}\
+    )
+{%- endfor %}
+
+"""
+
+trim = true
+
+[git]
+conventional_commits = true
+# Only keep dependency updates
+filter_commits = true
+commit_parsers = [
+  # Skip processing the commit if the commit footer contains "changelog: ignore".
+  { footer = "^changelog: ?ignore", skip = true },
+  { message = "^(chore|fix)\\(deps\\)" },
+]
+
+tag_pattern = "v.*"
+ignore_tags = "v.*-(?:rc|alpha|beta).*"
