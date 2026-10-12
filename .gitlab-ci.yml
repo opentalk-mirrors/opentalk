@@ -22,13 +22,20 @@ image: $RUST_IMAGE
 
 stages:
   - analyze
+  - image
   - build
   - lint
+  - docs
   - test
   - read-tags
   - package
+  - integration
+  - upload
+  - trigger
   - push
   - push-harbor
+  - deploy
+  - deploy-manual
   # - release
 
 variables:
@@ -97,6 +104,11 @@ include:
   - project: opentalk/ci/templates/changelog
     ref: v2
     file: .gitlab-ci-template.yml
+
+  # Deployment automation pipeline (deb/rpm packaging, ansible, docs). Its jobs
+  # are gated with `changes: compose/**/*` so unrelated Rust changes don't
+  # trigger it; see compose/.gitlab-ci.yml.
+  - local: compose/.gitlab-ci.yml
 
 code-review-agent:
   stage: analyze
@@ -319,7 +331,7 @@ build:
     - if: $CI_PIPELINE_SOURCE == 'schedule'
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
-    - if: $CI_COMMIT_TAG != null
+    - if: $CI_COMMIT_TAG =~ /^release-v\d+\.\d+\.\d+.*$/
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   variables:
     VERGEN_GIT_SHA: $CI_COMMIT_SHA
@@ -379,13 +391,3 @@ build:dui:
 #   before_script: []
 #   script:
 #     - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
-
-# trigger-docs:
-#   stage: trigger
-#   needs: []
-#   rules:
-#     - if: $CI_PIPELINE_SOURCE == "pipeline"
-#       when: never
-#     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAME !~ /^.*canary$/
-#   trigger:
-#     project: opentalk/backend/docs

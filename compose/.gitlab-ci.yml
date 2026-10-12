@@ -3,33 +3,18 @@
 # SPDX-License-Identifier: EUPL-1.2
 
 ---
-image: $CI_REGISTRY_IMAGE/pkgbuild:latest
+# This file is included from the root `.gitlab-ci.yml` (single merged pipeline).
+# It no longer declares its own `image`, `workflow`, or `stages` - those are
+# owned by the root config since GitLab only honours one of each per pipeline.
+# Every job below operates relative to this `compose/` directory, so anything
+# that touches repo-relative paths carries an explicit `cd` into it.
 
 include:
-  - local: extras/ci/gitlab/lint.yml
-  - local: extras/ci/gitlab/package.yml
-  - local: extras/ci/gitlab/deploy.yml
-  - local: extras/ci/gitlab/integration.yml
-  - local: extras/ci/gitlab/triggers.yml
-
-workflow:
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
-      when: never
-    - if: '$CI_COMMIT_BRANCH'
-    - if: '$CI_COMMIT_TAG'
-
-stages:
-  - image
-  - lint
-  - docs
-  - package
-  - integration
-  - upload
-  - trigger
-  - deploy
-  - deploy-manual
+  - local: compose/extras/ci/gitlab/lint.yml
+  - local: compose/extras/ci/gitlab/package.yml
+  - local: compose/extras/ci/gitlab/deploy.yml
+  - local: compose/extras/ci/gitlab/integration.yml
+  - local: compose/extras/ci/gitlab/triggers.yml
 
 .template_pkg_vars:
   FLAVORS_PKG: ['deb', 'rpm']
@@ -38,20 +23,31 @@ stages:
   FLAVORS_DIST: ['debian12', 'debian13', 'opensuse15', 'opensuse16', 'rocky9', 'ubuntu2404']
 
 .default_conditions: &default_conditions
+  image: $CI_REGISTRY_IMAGE/pkgbuild:latest
   needs:
     - job: build:pkgbuild
       optional: true
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - compose/**/*
     - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - compose/**/*
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
-    - if: '$CI_COMMIT_TAG'
+      changes:
+        - compose/**/*
+    - if: '$CI_COMMIT_TAG =~ /^compose-v\d+\.\d+\.\d+/'
+  before_script:
+    - cd "$CI_PROJECT_DIR/compose"
 
 trigger_changelog_preview:
   stage: trigger
   needs: []
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        - compose/**/*
   variables:
     PIPELINE_PROJECT_PATH: $CI_PROJECT_PATH
     PIPELINE_MERGE_REQUEST_PROJECT_PATH: $CI_MERGE_REQUEST_SOURCE_PROJECT_PATH
@@ -72,8 +68,8 @@ build:pkgbuild:
     DOCKER_TLS_CERTDIR: ""
   rules:
     - changes:
-        - extras/ci/pkgbuild/**/*
-        - .gitlab-ci.yml
+        - compose/extras/ci/pkgbuild/**/*
+        - compose/.gitlab-ci.yml
     - when: never
   script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
@@ -84,7 +80,7 @@ build:pkgbuild:
       --cache-to type=registry,ref=$CI_REGISTRY_IMAGE/pkgbuild:cache,mode=max
       --tag $CI_REGISTRY_IMAGE/pkgbuild:latest
       --push
-      extras/ci/pkgbuild
+      compose/extras/ci/pkgbuild
 
 docs:mkdocs:
   stage: docs
@@ -101,6 +97,6 @@ docs:mkdocs:
       exit 1
   artifacts:
     paths:
-      - site/
+      - compose/site/
   pages:
-    publish: site
+    publish: compose/site

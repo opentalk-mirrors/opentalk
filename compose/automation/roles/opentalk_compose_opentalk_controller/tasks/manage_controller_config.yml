@@ -32,12 +32,12 @@
       - controller_roomserver_service_url | string | length > 0
       - controller_roomserver_public_url is defined
       - controller_roomserver_public_url | string | length > 0
-      - "'localhost' not in (controller_roomserver_service_url | lower)"
-      - "'localhost' not in (controller_roomserver_public_url | lower)"
+      - (controller_roomserver_service_url | urlsplit('hostname') | lower) != 'localhost'
+      - (controller_roomserver_public_url | urlsplit('hostname') | lower) != 'localhost'
     fail_msg: >-
       When controller_roomserver_kind is "external",
       controller_roomserver_service_url/controller_roomserver_public_url must be set,
-      and neither URL may point to localhost.
+      and neither URL's host may be "localhost".
   when: (controller_roomserver_kind | default('external')) == 'external'
 
 - name: Warn about deprecated controller_spacedeck_* variables

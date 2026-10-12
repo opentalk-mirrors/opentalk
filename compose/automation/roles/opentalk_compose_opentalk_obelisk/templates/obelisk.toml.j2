@@ -11,11 +11,7 @@ language = "{{ obelisk_language }}"
 {% endif %}
 
 [controller]
-{% if obelisk_controller_domain is defined and obelisk_controller_domain %}
 url = "{{ 'http' if obelisk_controller_insecure else 'https' }}://{{ obelisk_controller_domain }}/"
-{% else %}
-url = "{{ obelisk_controller_url }}"
-{% endif %}
 api_key = { id = "{{ obelisk_controller_api_key_id }}", secret = "{{ obelisk_controller_api_key_secret }}" }
 
 [sip]

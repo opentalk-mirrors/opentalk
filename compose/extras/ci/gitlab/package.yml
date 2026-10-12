@@ -6,24 +6,28 @@
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
+    - if: '$CI_COMMIT_TAG =~ /^compose-v\d+\.\d+\.\d+(-\d+)?$/'
     - when: never
 
 .rules_pre_release:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
+    - if: '$CI_COMMIT_TAG =~ /^compose-v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
     - when: never
 
 .rules_experimental:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - compose/**/*
     - when: never
 
 .package:
   stage: package
+  image: $CI_REGISTRY_IMAGE/pkgbuild:latest
   before_script:
+    - cd "$CI_PROJECT_DIR/compose"
     - bash extras/ci/gitlab/update-product-version.sh
   needs:
     - job: build:pkgbuild
@@ -33,25 +37,34 @@
     - lint:markdown
     - lint:ansible-lint
     - lint:licensing
-    - lint:commitlint
   parallel:
     matrix:
       - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
   after_script:
+    - cd "$CI_PROJECT_DIR/compose"
     - bash extras/ci/gitlab/sign-rpm-packages.sh
 
 .package_release:
   extends: .package
   script:
-    - just "build-${FLAVOR}-version" "$CI_COMMIT_TAG"
+    # The package build expects a bare `vX.Y.Z`, so strip the `compose-` prefix.
+    - just "build-${FLAVOR}-version" "${CI_COMMIT_TAG#compose-}"
   artifacts:
     paths:
-      - artifacts/*
+      - compose/artifacts/*
     expire_in: 1 day
 
 package:stable:
   extends: .package_release
-  rules: !reference [.rules_stable, rules]
+  # Manual: the component images for this tag may not be in Harbor yet (push-harbor
+  # runs in a later stage), so a human confirms that before starting the compose
+  # release. int:stable and upload:stable then run automatically via `needs`.
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^compose-v\d+\.\d+\.\d+(-\d+)?$/'
+      when: manual
+    - when: never
 
 package:pre-release:
   extends: .package_release
@@ -65,17 +78,20 @@ package:experimental:
       if [ -z "$CI_COMMIT_TAG" ]; then
         VERSION="$(yq -r '.opentalk_product_version' .versions.yml)+git${CI_COMMIT_SHORT_SHA}"
       else
-        VERSION="${CI_COMMIT_TAG}+git${CI_COMMIT_SHORT_SHA}"
+        VERSION="${CI_COMMIT_TAG#compose-}+git${CI_COMMIT_SHORT_SHA}"
       fi
       echo "VERSION=$VERSION"
     - just "build-${FLAVOR}-version" "$VERSION"
   artifacts:
     paths:
-      - artifacts/*
+      - compose/artifacts/*
     expire_in: 2 hours
 
 .upload_base:
   stage: upload
+  image: $CI_REGISTRY_IMAGE/pkgbuild:latest
+  before_script:
+    - cd "$CI_PROJECT_DIR/compose"
   parallel:
     matrix:
       - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]

@@ -25,13 +25,7 @@ obelisk_environment_gst_debug_level: 2
 obelisk_clock_format: "%d.%m.%y %X %Z"
 # obelisk_language: "de"
 
-# Obelisk calls the controller's internal API (/internal/...), which Traefik
-# does not route. It therefore talks to the controller directly: via the port
-# published on the host in host network mode, via host.docker.internal otherwise.
-obelisk_controller_url: "http://{{ 'localhost' if obelisk_docker_network_mode | default('') == 'host' else 'host.docker.internal' }}:11311/"
-# Deprecated. If set, it takes precedence over obelisk_controller_url and renders
-# "http(s)://<obelisk_controller_domain>/". A path such as "/controller" breaks call-in.
-# obelisk_controller_domain: "localhost:11311"
+obelisk_controller_domain: "{{ ot_domain }}/controller"
 obelisk_controller_insecure: false
 obelisk_controller_api_key_id: "controller"
 obelisk_controller_api_key_secret: "{{ CONTROLLER_API_SECRET }}"

@@ -17,7 +17,7 @@ CHANNEL="${2:?Missing CHANNEL (stable|testing|experimental)}"
 [[ "$CHANNEL" =~ ^(stable|testing|experimental)$ ]] || { echo "Invalid CHANNEL: $CHANNEL" >&2; exit 1; }
 
 if [ -n "${CI_COMMIT_TAG:-}" ]; then
-    PACKAGE_VERSION="$CI_COMMIT_TAG"
+    PACKAGE_VERSION="${CI_COMMIT_TAG#compose-}"
 else
     PACKAGE_VERSION="$(yq -r '.opentalk_product_version' .versions.yml)+git${CI_COMMIT_SHORT_SHA}"
 fi

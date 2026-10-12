@@ -13,7 +13,7 @@ printf 'opentalk_product_version: v0.0.0\nother_version: v1.2.3\n' > "$TMP_DIR/.
 
 (
   cd "$TMP_DIR"
-  CI_COMMIT_TAG=v26.2.0 bash "$REPO_ROOT/extras/ci/gitlab/update-product-version.sh"
+  CI_COMMIT_TAG=compose-v26.2.0 bash "$REPO_ROOT/extras/ci/gitlab/update-product-version.sh"
 )
 grep -q '^opentalk_product_version: v26.2.0$' "$TMP_DIR/.versions.yml"
 grep -q '^other_version: v1.2.3$' "$TMP_DIR/.versions.yml"
@@ -27,9 +27,17 @@ before=$(cat "$TMP_DIR/.versions.yml")
 
 if (
   cd "$TMP_DIR"
-  CI_COMMIT_TAG=v26.2 bash "$REPO_ROOT/extras/ci/gitlab/update-product-version.sh"
+  CI_COMMIT_TAG=compose-v26.2 bash "$REPO_ROOT/extras/ci/gitlab/update-product-version.sh"
 ); then
   echo "Invalid product version tag was accepted." >&2
+  exit 1
+fi
+
+if (
+  cd "$TMP_DIR"
+  CI_COMMIT_TAG=v26.2.0 bash "$REPO_ROOT/extras/ci/gitlab/update-product-version.sh"
+); then
+  echo "A tag without the compose- prefix was accepted." >&2
   exit 1
 fi
 

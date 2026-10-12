@@ -146,9 +146,12 @@ docs:
 docs-serve:
     printf '\nDocumentation: http://127.0.0.1:{{docs_port}}/\n\n'; DISABLE_MKDOCS_2_WARNING=true mkdocs serve --config-file mkdocs.yml --dev-addr 127.0.0.1:{{docs_port}}
 
-# Run all configured pre-commit checks.
+# Run all configured pre-commit checks scoped to this directory.
+# `pre-commit` always resolves its config from the repository root, so from
+# here that's the monorepo root; scope the file set to `compose/` to avoid
+# also running unrelated checks (e.g. the Rust workspace's cargo hooks).
 lint:
-    pre-commit run --all-files
+    pre-commit run --files $(git ls-files .)
 
 # Run fast, Docker-free regression and contract tests.
 test-fast: lint test-fast-no-lint

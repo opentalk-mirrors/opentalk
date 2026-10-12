@@ -4,6 +4,7 @@
 
 deploy:experimental:testing:
   stage: deploy-manual
+  image: $CI_REGISTRY_IMAGE/pkgbuild:latest
   allow_failure: true
   # Fetch artifacts from experimental packaging; mark optional so the job exists even if one flavor is missing
   needs:
@@ -15,7 +16,7 @@ deploy:experimental:testing:
       optional: true
   # Show manual button on typical branch/MR experimental pipelines; hide on tag pipelines
   rules:
-    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_TAG =~ /^compose-v\d+\.\d+\.\d+/'
       when: manual
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: manual

@@ -67,7 +67,7 @@ container-$[[ inputs.service ]]:
   rules:
     - if: $CI_PIPELINE_SOURCE == "pipeline"
       when: never
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_COMMIT_TAG =~ /^release-v\d+\.\d+\.\d+.*$/
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
   image:
@@ -94,7 +94,7 @@ read-tags:
   rules:
     - if: $CI_PIPELINE_SOURCE == "pipeline"
       when: never
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_COMMIT_TAG =~ /^release-v\d+\.\d+\.\d+.*$/
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
   image:
@@ -107,8 +107,11 @@ read-tags:
   script:
     - git fetch --tags
     - |
-      TAGS=$(git tag --list --sort=v:refname \
-              | sed -n '/^v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$/p' \
+      # Tags predating the `release-v` prefix are plain `vX.Y.Z`; strip the prefix from
+      # newer tags so the whole history sorts and compares as bare semver.
+      TAGS=$(git tag --list \
+              | sed -nE 's/^release-(v[0-9]+\.[0-9]+\.[0-9]+)$/\1/p; /^v[0-9]+\.[0-9]+\.[0-9]+$/p' \
+              | sort -V \
               | head -n -1 \
               | tr '\n' ' ')
     - echo "TAGS=$TAGS" > package.env
@@ -138,7 +141,7 @@ container-create-and-push-tags-$[[ inputs.service ]]:
     # Prevent forks from triggering the downstream pipeline
     - if: $CI_PROJECT_ROOT_NAMESPACE != "opentalk"
       when: never
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_COMMIT_TAG =~ /^release-v\d+\.\d+\.\d+.*$/
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
   image:
@@ -148,9 +151,12 @@ container-create-and-push-tags-$[[ inputs.service ]]:
   variables:
     DEFAULT_FLAVOR: $[[ inputs.default_flavor ]]
   script:
+    # create-container-tags expects a bare `vX.Y.Z`, so strip the `release-` prefix.
+    - VERSION_REF="${CI_COMMIT_TAG:-$CI_COMMIT_REF_NAME}"
+    - VERSION_REF="${VERSION_REF#release-}"
     - >
       TAGS_TO_PUSH=$(create-container-tags
-      "${CI_COMMIT_TAG:-$CI_COMMIT_REF_NAME}"
+      "$VERSION_REF"
       "$TAGS" "$FLAVOR" "$DEFAULT_FLAVOR" "$CI_DEFAULT_BRANCH")
     - |
       for tag in $TAGS_TO_PUSH; do
@@ -185,7 +191,7 @@ push-and-sign-images-to-harbor-$[[ inputs.service ]]:
     # Prevent forks from triggering the downstream pipeline
     - if: $CI_PROJECT_ROOT_NAMESPACE != "opentalk"
       when: never
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+.*$/
+    - if: $CI_COMMIT_TAG =~ /^release-v\d+\.\d+\.\d+.*$/
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_BRANCH =~ /^release\/v\d+\.\d+\.x$/
   stage: push-harbor

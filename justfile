@@ -208,8 +208,8 @@ commit-release: _check_yq
 tag-release: _check_yq
     #!/usr/bin/env bash
     current_version=$(yq .workspace.package.version Cargo.toml)
-    git tag -s -m "v$current_version" "v$current_version"
-    git show --no-patch "v$current_version"
+    git tag -s -m "v$current_version" "release-v$current_version"
+    git show --no-patch "release-v$current_version"
 
 # Create a GitLab release assembling notes from each service's CHANGELOG.md
 create-release PRODUCT_VERSION COMPONENT_VERSION: _check_glab
@@ -281,5 +281,5 @@ create-release PRODUCT_VERSION COMPONENT_VERSION: _check_glab
 
     read -e -p "Publish? [y/N] " choice
     if [[ "$choice" =~ ^[Yy](es)?$ ]]; then
-        glab release create "v{{ COMPONENT_VERSION }}" --notes "$notes"
+        glab release create "release-v{{ COMPONENT_VERSION }}" --name "v{{ COMPONENT_VERSION }}" --notes "$notes"
     fi

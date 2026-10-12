@@ -18,6 +18,6 @@ path = [
   "extras/packaging/config-dist/**",
   "extras/packaging/man/**",
   "docs/navigation.md",
-  "renovate.json"
+  "renovate.json",
 ]
 precedence = "aggregate"

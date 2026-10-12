@@ -14,6 +14,7 @@ yaml-files:
 ignore: |
   **/api.yaml
   **/api/docs/openapi.yml
+  compose/
   roomserver/load-test/node_modules/
   roomserver/load-test/pnpm-lock.yaml
   target

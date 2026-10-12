@@ -66,11 +66,12 @@ lint:release_tag:
   stage: lint
   extends: .default_conditions
   before_script:
+    - cd "$CI_PROJECT_DIR/compose"
     - bash extras/ci/gitlab/update-product-version.sh
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
+    - if: '$CI_COMMIT_TAG =~ /^compose-v\d+\.\d+\.\d+(-\d+)?$/'
     - when: never
   script:
     - bash extras/ci/gitlab/check-release-tag.sh '(-[0-9]+)?'
@@ -79,43 +80,12 @@ lint:pre-release_tag:
   stage: lint
   extends: .default_conditions
   before_script:
+    - cd "$CI_PROJECT_DIR/compose"
     - bash extras/ci/gitlab/update-product-version.sh
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
+    - if: '$CI_COMMIT_TAG =~ /^compose-v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
     - when: never
   script:
     - bash extras/ci/gitlab/check-release-tag.sh '(-(alpha|beta)(\.[0-9]+)?)?'
-
-lint:commitlint:
-  cache: {}
-  stage: lint
-  allow_failure: false
-  extends: .default_conditions
-  variables:
-    GIT_DEPTH: 0
-  script:
-    - set -euo pipefail
-    - |
-      if [ -n "${CI_MERGE_REQUEST_DIFF_BASE_SHA:-}" ]; then
-        BASE="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
-        echo "Checking commits from $BASE to HEAD"
-        git log --first-parent --oneline "$BASE..HEAD"
-        while read -r COMMIT; do
-          echo "Linting commit $COMMIT"
-          MESSAGE=$(git log -1 --pretty=%B "$COMMIT")
-          if ! printf '%s\n' "$MESSAGE" | npx commitlint --verbose; then
-            echo "Commitlint found problems - blocking pipeline!"
-            exit 1
-          fi
-        done < <(git rev-list --first-parent --reverse "$BASE..HEAD")
-      else
-        echo "Push pipeline detected - linting only the HEAD commit message"
-        echo "(individual commits were already checked in their source MR pipelines)"
-        git log -1 --pretty=%B HEAD
-        if ! git log -1 --pretty=%B HEAD | npx commitlint --verbose; then
-          echo "Commitlint found problems - blocking pipeline!"
-          exit 1
-        fi
-      fi

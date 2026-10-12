@@ -103,7 +103,7 @@ The `int:e2e` CI job uses the `pkgtest-dind` Debian 12 image, installs `just` an
 
 ## Pre-Commit Hooks
 
-This repository uses [`pre-commit`](https://github.com/pre-commit/pre-commit) to automatically run linters and consistency checks before code is committed.  
+This directory is part of the `backend` monorepo, which uses [`pre-commit`](https://github.com/pre-commit/pre-commit) to automatically run linters and consistency checks before code is committed. `pre-commit` always reads `.pre-commit-config.yaml` from the repository root; the hooks below are the ones scoped to `compose/` within that shared config.
 By running these checks locally, we ensure consistent formatting, licensing, and documentation quality across all contributions.
 
 ### What It Does
@@ -142,12 +142,16 @@ pre-commit install
 #### (Optional) Run all checks manually
 
 ```bash
-pre-commit run --all-files
+just lint
 ```
+
+This scopes `pre-commit run` to the files tracked under `compose/`. Running
+`pre-commit run --all-files` directly from the repository root instead runs
+every component's hooks, including the Rust workspace's.
 
 #### pre-commit autoupdate
 
-To update hook versions defined in .pre-commit-config.yaml:
+To update hook versions defined in the repository root's `.pre-commit-config.yaml`:
 
 ```bash
 pre-commit autoupdate
@@ -155,7 +159,7 @@ pre-commit autoupdate
 
 ## Versioning of DEB or RPM Packages
 
-Because the OpenTalk product version cannot be mapped 1:1 to DEB or RPM package versions without breaking update mechanics, product versions are converted accordingly. Nothing changes for authoring: keep using the product version schema when createing releases or git tags. The conversion happens when running the build scripts.
+Because the OpenTalk product version cannot be mapped 1:1 to DEB or RPM package versions without breaking update mechanics, product versions are converted accordingly. Nothing changes for authoring: keep using the product version schema below, prefixed with `compose-` for the git tag that triggers the release pipeline (e.g. `compose-v25.3.2`). The conversion happens when running the build scripts.
 
 ## DEB-Pakages
 

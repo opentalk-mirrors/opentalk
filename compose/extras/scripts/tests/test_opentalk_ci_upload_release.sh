@@ -58,9 +58,9 @@ grep -q '/packages/generic/opentalk-compose/v9.9.9+gitabcdef12/' "$TMP_DIR/uploa
 grep -q 'https://nexus.example/deb-experimental/' "$TMP_DIR/upload.log" \
   || { cat "$TMP_DIR/upload.log" >&2; echo "experimental upload must use the experimental Nexus repository" >&2; exit 1; }
 
-run_upload env CI_COMMIT_TAG=v26.2.0 bash "$REPO_ROOT/extras/ci/gitlab/upload-release.sh" deb stable
+run_upload env CI_COMMIT_TAG=compose-v26.2.0 bash "$REPO_ROOT/extras/ci/gitlab/upload-release.sh" deb stable
 grep -q '/packages/generic/opentalk-compose/v26.2.0/' "$TMP_DIR/upload.log" \
-  || { cat "$TMP_DIR/upload.log" >&2; echo "stable upload must use CI_COMMIT_TAG as package version" >&2; exit 1; }
+  || { cat "$TMP_DIR/upload.log" >&2; echo "stable upload must strip the compose- prefix from CI_COMMIT_TAG" >&2; exit 1; }
 grep -q 'https://nexus.example/deb-stable/' "$TMP_DIR/upload.log" \
   || { cat "$TMP_DIR/upload.log" >&2; echo "stable upload must use the stable Nexus repository" >&2; exit 1; }
 
