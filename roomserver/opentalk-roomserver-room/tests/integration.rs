@@ -31,6 +31,8 @@ use opentalk_types_common::{
 };
 use serde_json::json;
 
+const ROOM_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
+
 #[test_log::test(tokio::test)]
 async fn response_contains_transaction_id() {
     let mut room = TestRoom::builder().register_module::<MockModule>().spawn();
@@ -144,6 +146,37 @@ async fn room_task_time_limit() {
             reason: "closed by server".to_string()
         })
     );
+}
+
+#[test_log::test(tokio::test)]
+async fn room_closes_when_last_lobby_participant_leaves() {
+    let mut room = TestRoom::builder()
+        .room_idle_timeout(ROOM_IDLE_TIMEOUT)
+        .spawn();
+
+    // The participant never enters the conference, it only connects to the lobby.
+    let participant = room.alice_moderator_lobby(0).await;
+    participant.disconnect().await.unwrap();
+
+    tokio::time::timeout(ROOM_IDLE_TIMEOUT * 4, room.join_handle)
+        .await
+        .expect("room should close after the last lobby participant left")
+        .unwrap();
+}
+
+#[test_log::test(tokio::test)]
+async fn room_closes_when_last_conference_participant_leaves() {
+    let mut room = TestRoom::builder()
+        .room_idle_timeout(ROOM_IDLE_TIMEOUT)
+        .spawn();
+
+    let participant = room.join_alice_moderator(0).await;
+    participant.disconnect().await.unwrap();
+
+    tokio::time::timeout(ROOM_IDLE_TIMEOUT * 4, room.join_handle)
+        .await
+        .expect("room should close after the last participant left")
+        .unwrap();
 }
 
 #[test_log::test(tokio::test)]

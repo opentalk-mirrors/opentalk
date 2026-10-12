@@ -768,6 +768,25 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.idle_timeout.reset();
     }
 
+    /// Starts the idle timeout when nobody occupies the room anymore, stops it otherwise
+    fn update_idle_timeout(&mut self) {
+        let occupied = self
+            .participants
+            .all_unfiltered
+            .values()
+            .any(ParticipantState::is_connected)
+            || self
+                .lobby_participants
+                .values()
+                .any(LobbyParticipant::is_connected);
+
+        if occupied {
+            self.idle_timeout.stop();
+        } else {
+            self.idle_timeout.restart();
+        }
+    }
+
     #[tracing::instrument(level = "info", skip(self))]
     fn set_parameters(&mut self, room_parameters: RoomParameters) {
         self.info.room = room_parameters
@@ -825,7 +844,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         client_parameters: ClientParameters,
     ) -> Result<(), FatalError> {
         self.connect_participant(socket, client_parameters)?;
-        self.idle_timeout.stop();
+        // `connect_participant` may reject the connection, so the room is not necessarily occupied
+        // afterwards.
+        self.update_idle_timeout();
         Ok(())
     }
 
@@ -1183,15 +1204,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         let room = state.room;
         self.participant_disconnected(origin, participant_id, connection_id, room, reason.into())?;
 
-        // start idle timeout when no one is connected
-        if !self
-            .participants
-            .all_unfiltered
-            .values()
-            .any(ParticipantState::is_connected)
-        {
-            self.idle_timeout.restart();
-        }
+        self.update_idle_timeout();
 
         Ok(())
     }
