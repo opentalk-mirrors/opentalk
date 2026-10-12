@@ -4,7 +4,7 @@
 
 use std::{cmp, mem::MaybeUninit, str::FromStr};
 
-use ezk_sdp_types::{ImageAttrSets, ImageAttrXyRange, MediaDescription, RtpMap};
+use ezk_sdp_types::{Fmtp, ImageAttrSets, ImageAttrXyRange, MediaDescription, RtpMap};
 use h264_profile_level_id::{Level, Profile};
 use openh264::{
     OpenH264API,
@@ -22,7 +22,16 @@ use crate::{
 pub struct SdpRecvCodec {
     pub payload: u8,
     pub codec: Codec,
-    pub fmtp: Option<String>,
+    pub params: SdpRecvCodecParams,
+}
+
+/// Format parameters of a codec used to receive audio/video
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SdpRecvCodecParams {
+    None,
+    H264 {
+        packetization_mode: H264PacketizationMode,
+    },
 }
 
 impl SdpRecvCodec {
@@ -33,6 +42,21 @@ impl SdpRecvCodec {
             clock_rate: self.codec.clock_rate(),
             params: None,
         }
+    }
+
+    pub fn make_fmtp(&self) -> Option<Fmtp> {
+        match self.params {
+            SdpRecvCodecParams::None => None,
+            SdpRecvCodecParams::H264 { packetization_mode } => Some(Fmtp {
+                format: self.payload,
+                params: openh264_decoder_fmtp(packetization_mode).into(),
+            }),
+        }
+    }
+
+    /// Returns whether both describe the same media format, regardless of the pt value
+    pub fn is_same_format(&self, other: &SdpRecvCodec) -> bool {
+        self.codec == other.codec && self.params == other.params
     }
 }
 
@@ -60,19 +84,26 @@ pub enum SdpSendCodecParams {
     },
 }
 
-pub fn choose_audio_codec(offer: &MediaDescription) -> Option<SdpSendCodec> {
+pub fn choose_audio_codec(offer: &MediaDescription) -> Option<(SdpSendCodec, SdpRecvCodec)> {
     let codecs = [(9, Codec::G722), (8, Codec::G711PCMA), (0, Codec::G711PCMU)];
 
     for (pt, codec) in codecs {
         // first check all payload numbers in the m= line
         for &payload in &offer.media.fmts {
             if pt == payload {
-                return Some(SdpSendCodec {
-                    payload: pt,
-                    codec,
-                    codec_params: SdpSendCodecParams::None,
-                    bitrate: None,
-                });
+                return Some((
+                    SdpSendCodec {
+                        payload: pt,
+                        codec,
+                        codec_params: SdpSendCodecParams::None,
+                        bitrate: None,
+                    },
+                    SdpRecvCodec {
+                        payload: pt,
+                        codec,
+                        params: SdpRecvCodecParams::None,
+                    },
+                ));
             }
         }
     }
@@ -85,17 +116,17 @@ pub fn offer_all_audio_codecs() -> Vec<SdpRecvCodec> {
         SdpRecvCodec {
             payload: 9,
             codec: Codec::G722,
-            fmtp: None,
+            params: SdpRecvCodecParams::None,
         },
         SdpRecvCodec {
             payload: 8,
             codec: Codec::G711PCMA,
-            fmtp: None,
+            params: SdpRecvCodecParams::None,
         },
         SdpRecvCodec {
             payload: 0,
             codec: Codec::G711PCMU,
-            fmtp: None,
+            params: SdpRecvCodecParams::None,
         },
     ]
 }
@@ -105,14 +136,16 @@ pub fn offer_all_video_codecs() -> Vec<SdpRecvCodec> {
         SdpRecvCodec {
             payload: 96,
             codec: Codec::H264,
-            fmtp: Some(openh264_decoder_fmtp(H264PacketizationMode::SingleNal)),
+            params: SdpRecvCodecParams::H264 {
+                packetization_mode: H264PacketizationMode::SingleNal,
+            },
         },
         SdpRecvCodec {
             payload: 97,
             codec: Codec::H264,
-            fmtp: Some(openh264_decoder_fmtp(
-                H264PacketizationMode::NonInterleavedMode,
-            )),
+            params: SdpRecvCodecParams::H264 {
+                packetization_mode: H264PacketizationMode::NonInterleavedMode,
+            },
         },
     ]
 }
@@ -121,7 +154,7 @@ pub fn available_video_codec() -> &'static str {
     "H264"
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum H264PacketizationMode {
     // https://www.rfc-editor.org/rfc/rfc6184#section-6.2
     SingleNal,
@@ -266,7 +299,7 @@ pub fn choose_video_codec(
             SdpRecvCodec {
                 payload: rtpmap.payload,
                 codec: Codec::H264,
-                fmtp: Some(openh264_decoder_fmtp(packetization_mode)),
+                params: SdpRecvCodecParams::H264 { packetization_mode },
             },
         ));
     }

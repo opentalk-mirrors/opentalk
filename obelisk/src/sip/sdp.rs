@@ -273,7 +273,7 @@ impl SessionState {
                 changes.push(MediaChange::AddReceiver(media_session.id));
             }
 
-            let send_codec = match answer_media.media.media_type {
+            let (send_codec, answered_format) = match answer_media.media.media_type {
                 SdpMediaType::Audio => {
                     choose_audio_codec(&answer_media)
                         .context("No compatible audio codec in offer")?
@@ -281,7 +281,7 @@ impl SessionState {
                 SdpMediaType::Video => {
                     choose_video_codec(&self.settings, &answer_media).with_context(|| {
                         format!("No compatible video codec found (supported is: {}), continuing without video", available_video_codec())
-                    })?.0
+                    })?
                 }
                 ty =>{
                     log::warn!("Skipping unexpected offered media {ty}");
@@ -292,8 +292,8 @@ impl SessionState {
             let recv_codec = offered
                 .codec
                 .iter()
-                .find(|c| c.codec == send_codec.codec)
-                .context("SDP response didn't contain matching codec in media description")?
+                .find(|c| c.is_same_format(&answered_format))
+                .context("SDP answer selected a codec format that wasn't offered")?
                 .clone();
 
             let dtmf_events = answer_media
@@ -452,14 +452,8 @@ impl SessionState {
     ) -> Result<(MediaSessionId, Direction)> {
         let (media_type, send_codec, recv_codec) = match offer_media.media.media_type {
             SdpMediaType::Audio => {
-                let send_codec = choose_audio_codec(offer_media)
+                let (send_codec, recv_codec) = choose_audio_codec(offer_media)
                     .context("No compatible audio codec in offer")?;
-
-                let recv_codec = SdpRecvCodec {
-                    payload: send_codec.payload,
-                    codec: send_codec.codec,
-                    fmtp: None,
-                };
 
                 (MediaType::Audio, send_codec, recv_codec)
             }
@@ -582,13 +576,7 @@ fn determine_media_description(media_session: &MediaSession) -> MediaDescription
             for codec in &offered.codec {
                 rtpmaps.push(codec.make_rtpmap());
                 fmts.push(codec.payload);
-
-                if let Some(fmtp) = &codec.fmtp {
-                    fmtps.push(Fmtp {
-                        format: codec.payload,
-                        params: fmtp.as_str().into(),
-                    });
-                }
+                fmtps.extend(codec.make_fmtp());
             }
 
             for srtp in &offered.srtp {
@@ -604,13 +592,7 @@ fn determine_media_description(media_session: &MediaSession) -> MediaDescription
         MediaSessionState::Established(established) => {
             rtpmaps.push(established.recv_codec.make_rtpmap());
             fmts.push(established.recv_codec.payload);
-
-            if let Some(fmtp) = &established.recv_codec.fmtp {
-                fmtps.push(Fmtp {
-                    format: established.recv_codec.payload,
-                    params: fmtp.as_str().into(),
-                });
-            }
+            fmtps.extend(established.recv_codec.make_fmtp());
 
             if let Some(srtp) = &established.srtp {
                 populate_crypto_attributes(srtp, &mut crypto);
