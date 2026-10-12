@@ -204,7 +204,7 @@ pub fn can_enter_conference(
 ) -> bool {
     role.is_moderator()
         || kind.is_service()
-        || !waiting_room.applies_to(kind)
+        || !waiting_room.applies_to(kind, role)
         || all_participants
             .get(&participant_id)
             .is_some_and(|state| !state.in_waiting_room)
@@ -229,7 +229,7 @@ mod tests {
     fn participant() -> LobbyParticipant {
         LobbyParticipant {
             kind: ClientKind::Unregistered,
-            role: Role::User,
+            role: Role::Guest,
             connections: HashMap::new(),
             accepted: false,
             waiting_room_state: None,
@@ -336,7 +336,7 @@ mod tests {
             &HashMap::new(),
             WaitingRoom::ForEveryone,
             &ClientKind::Unregistered,
-            Role::User,
+            Role::Guest,
         ));
     }
 
@@ -351,7 +351,7 @@ mod tests {
             ParticipantState::new(
                 ClientKind::Unregistered,
                 DisplayName::from_str_lossy("Guest"),
-                Role::User,
+                Role::Guest,
                 DateTime::UNIX_EPOCH,
                 false,
             ),
@@ -361,7 +361,7 @@ mod tests {
             &participants,
             WaitingRoom::ForEveryone,
             &ClientKind::Unregistered,
-            Role::User
+            Role::Guest
         ));
 
         // A participant that is currently in the waiting room is not allowed to skip it.
@@ -370,7 +370,7 @@ mod tests {
             ParticipantState::new(
                 ClientKind::Unregistered,
                 DisplayName::from_str_lossy("Guest"),
-                Role::User,
+                Role::Guest,
                 DateTime::UNIX_EPOCH,
                 true,
             ),
@@ -380,7 +380,7 @@ mod tests {
             &participants,
             WaitingRoom::ForEveryone,
             &ClientKind::Unregistered,
-            Role::User,
+            Role::Guest,
         ));
     }
 }

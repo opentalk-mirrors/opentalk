@@ -17,6 +17,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_types_api_internal::{error::ApiError, module_assets::Quota};
 use opentalk_types_common::users::UserId;
+use opentalk_types_signaling::Role;
 use tokio::sync::{
     mpsc,
     oneshot::{self, Receiver},
@@ -238,13 +239,18 @@ impl<Socket: SignalingSocket> RoomTaskHandle<Socket> {
         Self::receive_response(rx).await.ok()
     }
 
-    pub async fn is_client_allowed(&self, kind: &ClientKind) -> Result<ClientAllowed, ApiError> {
+    pub async fn is_client_allowed(
+        &self,
+        kind: &ClientKind,
+        role: Role,
+    ) -> Result<ClientAllowed, ApiError> {
         let (tx, rx) = oneshot::channel();
 
         self.send_request(Request::IsClientAllowed {
             response: tx,
             user_id: kind.user_id(),
             participation_kind: kind.into(),
+            role,
         })
         .await
         .map_err(|e| {
@@ -383,6 +389,7 @@ pub enum Request<Socket: SignalingSocket> {
         response: ResponseSender<ClientAllowed>,
         user_id: Option<UserId>,
         participation_kind: ParticipationKind,
+        role: Role,
     },
 
     AllowedOrigins {

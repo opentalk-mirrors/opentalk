@@ -267,24 +267,32 @@ impl ControllerBackend {
 
         let room = self.get_room(room_id_or_alias).await?;
 
-        let invite_role = match &user {
-            Some(user) => Self::get_invite_role(inventory.as_mut(), user.id, &room).await?,
-            None => None,
-        };
-
-        let client_parameters = match invite_role {
-            Some(role) => {
+        let client_parameters = match user {
+            Some(user) => {
+                let invite_role = Self::get_invite_role(inventory.as_mut(), user.id, &room).await?;
+                if invite_role.is_none() {
+                    self.authenticate_guest(room.id, request.password.as_ref())
+                        .await?;
+                }
                 Self::build_registered_user(
                     inventory.as_mut(),
                     &settings,
                     request,
                     &room,
-                    user.unwrap(),
-                    role,
+                    user,
+                    invite_role,
                 )
                 .await
             }
-            None => self.build_guest_user(request, &room).await?,
+            None => {
+                self.authenticate_guest(room.id, request.password.as_ref())
+                    .await?;
+                ClientParameters {
+                    device_secret: request.device_secret,
+                    kind: ClientKind::Unregistered,
+                    role: Role::Guest,
+                }
+            }
         };
 
         let access = self
@@ -344,15 +352,16 @@ impl ControllerBackend {
         request: PostRoomsRoomserverStartRequestBody,
         room: &RoomResource,
         user: RequestUser,
-        invite_role: InviteRole,
+        invite_role: Option<InviteRole>,
     ) -> ClientParameters {
         let timezone = get_user_timezone(room.created_by.id, inventory, settings).await;
         let avatar_url = user.avatar_url.unwrap_or_else(|| {
             email_to_libravatar_url(&settings.avatar.libravatar_url, &user.email)
         });
         let role = match invite_role {
-            InviteRole::Moderator => Role::Moderator,
-            InviteRole::User => Role::User,
+            Some(InviteRole::Moderator) => Role::Moderator,
+            Some(InviteRole::User) => Role::User,
+            None => Role::Guest,
         };
         ClientParameters {
             device_secret: request.device_secret,
@@ -372,26 +381,6 @@ impl ControllerBackend {
             },
             role,
         }
-    }
-
-    /// Build a guest user
-    /// Registered but not invited user are treated as guests
-    ///
-    /// A guest must provide:
-    /// - a password, in case of a password-protected room
-    /// - a display name
-    async fn build_guest_user(
-        &self,
-        request: PostRoomsRoomserverStartRequestBody,
-        room: &RoomResource,
-    ) -> Result<ClientParameters, CaptureApiError> {
-        let _ = self.authenticate_guest(room.id, request.password).await?;
-
-        Ok(ClientParameters {
-            device_secret: request.device_secret,
-            kind: ClientKind::Unregistered,
-            role: Role::Guest,
-        })
     }
 }
 

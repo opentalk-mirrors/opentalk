@@ -23,7 +23,7 @@ use opentalk_roomserver_types_moderation::{
     state::ModerationState,
 };
 use opentalk_types_common::users::{DisplayName, UserId};
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use uuid::Uuid;
 
 #[test_log::test(tokio::test)]
@@ -256,12 +256,15 @@ async fn ban_participant() {
 
     let allowed = room
         .room_handle
-        .is_client_allowed(&ClientKind::Registered {
-            profile: PublicUserProfile {
-                id: UserId::from(Uuid::from(bob.id())),
-                ..bob_public_user_profile()
+        .is_client_allowed(
+            &ClientKind::Registered {
+                profile: PublicUserProfile {
+                    id: UserId::from(Uuid::from(bob.id())),
+                    ..bob_public_user_profile()
+                },
             },
-        })
+            Role::User,
+        )
         .await
         .unwrap();
 
@@ -324,12 +327,15 @@ async fn ban_waiting_participant() {
 
     let allowed = room
         .room_handle
-        .is_client_allowed(&ClientKind::Registered {
-            profile: PublicUserProfile {
-                id: UserId::from(Uuid::from(bob.id())),
-                ..bob_public_user_profile()
+        .is_client_allowed(
+            &ClientKind::Registered {
+                profile: PublicUserProfile {
+                    id: UserId::from(Uuid::from(bob.id())),
+                    ..bob_public_user_profile()
+                },
             },
-        })
+            Role::User,
+        )
         .await
         .unwrap();
 
@@ -382,12 +388,15 @@ async fn ban_lobby_participant() {
 
     let allowed = room
         .room_handle
-        .is_client_allowed(&ClientKind::Registered {
-            profile: PublicUserProfile {
-                id: UserId::from(Uuid::from(bob.id())),
-                ..bob_public_user_profile()
+        .is_client_allowed(
+            &ClientKind::Registered {
+                profile: PublicUserProfile {
+                    id: UserId::from(Uuid::from(bob.id())),
+                    ..bob_public_user_profile()
+                },
             },
-        })
+            Role::User,
+        )
         .await
         .unwrap();
     assert_eq!(
@@ -484,12 +493,15 @@ async fn ban_affects_lobby_and_conference() {
 
     let allowed = room
         .room_handle
-        .is_client_allowed(&ClientKind::Registered {
-            profile: PublicUserProfile {
-                id: UserId::from(Uuid::from(bob_conference.id())),
-                ..bob_public_user_profile()
+        .is_client_allowed(
+            &ClientKind::Registered {
+                profile: PublicUserProfile {
+                    id: UserId::from(Uuid::from(bob_conference.id())),
+                    ..bob_public_user_profile()
+                },
             },
-        })
+            Role::User,
+        )
         .await
         .unwrap();
     assert_eq!(

@@ -114,11 +114,6 @@ impl ClientKind {
         self.participant_kind().is_service()
     }
 
-    /// Returns `true` if the participant is a guest or call-in user, otherwise return `false`.
-    pub fn is_guest_or_callin(&self) -> bool {
-        self.participant_kind().is_guest_or_callin()
-    }
-
     pub fn is_service_or_callin(&self) -> bool {
         self.participant_kind().is_service_or_callin()
     }
@@ -209,16 +204,6 @@ impl ParticipationKind {
             ParticipationKind::Recorder
             | ParticipationKind::Transcription
             | ParticipationKind::CallIn => true,
-        }
-    }
-
-    /// Returns `true` if the participant is a guest or call-in user, otherwise return `false`.
-    pub fn is_guest_or_callin(&self) -> bool {
-        match self {
-            ParticipationKind::Registered
-            | ParticipationKind::Recorder
-            | ParticipationKind::Transcription => false,
-            ParticipationKind::Unregistered | ParticipationKind::CallIn => true,
         }
     }
 }

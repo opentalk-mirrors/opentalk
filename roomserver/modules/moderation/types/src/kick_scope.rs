@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use opentalk_roomserver_types::{client_parameters::ClientKind, room_parameters::WaitingRoom};
+use opentalk_roomserver_types::room_parameters::WaitingRoom;
 use opentalk_types_signaling::Role;
 use serde::{Deserialize, Serialize};
 
@@ -22,12 +22,10 @@ pub enum KickScope {
 
 impl KickScope {
     /// Query whether a specific role is kicked by the scope
-    pub fn kicks(&self, role: Role, kind: &ClientKind) -> bool {
+    pub fn kicks(&self, role: Role) -> bool {
         match self {
-            KickScope::Guests => {
-                matches!(kind, ClientKind::Unregistered | ClientKind::CallIn)
-            }
-            KickScope::UsersAndGuests => !matches!(role, Role::Moderator),
+            KickScope::Guests => role.is_guest(),
+            KickScope::UsersAndGuests => !role.is_moderator(),
             KickScope::All => true,
         }
     }
@@ -44,35 +42,18 @@ impl From<KickScope> for WaitingRoom {
 
 #[cfg(test)]
 mod tests {
-    use opentalk_roomserver_types::{
-        client_parameters::ClientKind, public_user_profile::PublicUserProfile,
-    };
-    use opentalk_types_common::utils::ExampleData;
     use opentalk_types_signaling::Role;
 
     use super::KickScope;
 
     #[test]
-    fn guests_scope_kicks_call_in() {
-        let kind = ClientKind::CallIn;
-
-        assert!(KickScope::Guests.kicks(Role::User, &kind));
-    }
-
-    #[test]
     fn guests_scope_kicks_guest() {
-        let kind = ClientKind::Unregistered;
-
-        assert!(KickScope::Guests.kicks(Role::User, &kind));
+        assert!(KickScope::Guests.kicks(Role::Guest));
     }
 
     #[test]
     fn guests_scope_does_not_kick_registered() {
-        let kind = ClientKind::Registered {
-            profile: PublicUserProfile::example_data(),
-        };
-
-        assert!(!KickScope::Guests.kicks(Role::User, &kind));
-        assert!(!KickScope::Guests.kicks(Role::Moderator, &kind));
+        assert!(!KickScope::Guests.kicks(Role::User));
+        assert!(!KickScope::Guests.kicks(Role::Moderator));
     }
 }

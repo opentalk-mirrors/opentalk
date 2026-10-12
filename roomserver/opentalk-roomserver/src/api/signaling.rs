@@ -11,6 +11,7 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_web_api::v1::signaling::SignalingBackend;
 use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use opentalk_types_signaling::Role;
 
 use super::Context;
 use crate::api::websocket::WebSocketAdapter;
@@ -38,9 +39,13 @@ impl SignalingBackend for Context {
     async fn reject_if_client_not_allowed(
         &self,
         kind: &ClientKind,
+        role: Role,
         room_id: RoomId,
     ) -> Result<(), Self::Error> {
-        let allowed = self.room_tasks.is_client_allowed(kind, room_id).await?;
+        let allowed = self
+            .room_tasks
+            .is_client_allowed(kind, role, room_id)
+            .await?;
         super::reject_if_client_not_allowed(allowed)
     }
 

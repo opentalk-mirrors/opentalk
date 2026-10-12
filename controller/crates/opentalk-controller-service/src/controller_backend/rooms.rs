@@ -356,8 +356,8 @@ impl ControllerBackend {
     pub(crate) async fn authenticate_guest(
         &self,
         room_id: RoomId,
-        password: Option<RoomPassword>,
-    ) -> Result<Room, CaptureApiError> {
+        password: Option<&RoomPassword>,
+    ) -> Result<(), CaptureApiError> {
         let mut inventory = self.inventory_provider.get_inventory().await?;
         let (room, created_by) = inventory.get_room_with_creator(&room_id.into()).await?;
         let tariff = self.get_tariff_for_user(created_by.id).await?;
@@ -369,12 +369,12 @@ impl ControllerBackend {
 
         drop(inventory);
 
-        match (&room.password, &password) {
+        match (&room.password, password) {
             (Some(_), None) => Err(StartRoomError::WrongRoomPassword.into()),
             (Some(room_password), Some(password)) if password != room_password => {
                 Err(StartRoomError::WrongRoomPassword.into())
             }
-            _ => Ok(room),
+            _ => Ok(()),
         }
     }
 }

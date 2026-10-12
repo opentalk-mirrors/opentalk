@@ -412,8 +412,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 response: response_tx,
                 user_id,
                 participation_kind,
+                role,
             } => {
-                let client_allowed = self.is_client_allowed(user_id, participation_kind);
+                let client_allowed = self.is_client_allowed(user_id, participation_kind, role);
 
                 response_tx
                     .send(Ok(client_allowed))
@@ -795,7 +796,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    fn is_client_allowed(&self, user_id: Option<UserId>, kind: ParticipationKind) -> ClientAllowed {
+    fn is_client_allowed(
+        &self,
+        user_id: Option<UserId>,
+        kind: ParticipationKind,
+        role: Role,
+    ) -> ClientAllowed {
         // Check if the user is banned
         if let Some(user_id) = user_id {
             let participant_id = ParticipantId::from(Uuid::from(user_id));
@@ -815,7 +821,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         // Check guest access
-        if !self.info.room.guest_access && kind.is_guest_or_callin() {
+        if !self.info.room.guest_access && role.is_guest() {
             ClientAllowed::No {
                 reason: ClientNotAllowedReason::GuestAccessDisabled,
             }

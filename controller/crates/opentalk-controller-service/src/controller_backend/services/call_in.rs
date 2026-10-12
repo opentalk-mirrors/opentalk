@@ -117,7 +117,7 @@ impl ControllerBackend {
         let client_parameters = ClientParameters {
             device_secret,
             kind: ClientKind::CallIn,
-            role: Role::User,
+            role: Role::Guest,
         };
 
         let mut inventory = self.inventory_provider.get_inventory().await?;

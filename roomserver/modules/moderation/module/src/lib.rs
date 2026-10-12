@@ -435,8 +435,12 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         };
 
-        if !target_state.kind.is_registered() {
+        if target_state.role.is_guest() || target_state.kind.is_service() {
             return Err(ModerationError::UserCannotBeModerator.into());
+        }
+
+        if new_role.is_guest() {
+            return Err(ModerationError::UserCannotBeGuest.into());
         }
 
         if target_state.role == new_role {
@@ -565,7 +569,7 @@ impl ModerationModule {
         let mut non_guests = Vec::new();
         let mut guests = Vec::new();
         for (&id, state) in ctx.participants.connected().iter() {
-            if state.kind.is_guest_or_callin() {
+            if state.role.is_guest() {
                 guests.push(id);
             } else {
                 non_guests.push(id);
@@ -584,7 +588,7 @@ impl ModerationModule {
         let lobby_guests = ctx
             .lobby_participants
             .iter()
-            .filter_map(|(id, state)| state.kind.is_guest_or_callin().then_some(*id));
+            .filter_map(|(id, state)| state.role.is_guest().then_some(*id));
 
         // Notify guests in the lobby that they will be kicked
         ctx.send_ws_message_to_lobby(
@@ -703,7 +707,7 @@ impl ModerationModule {
         let mut not_kicked = Vec::new();
 
         for (id, state) in participants {
-            if scope.kicks(state.role, &state.kind) {
+            if scope.kicks(state.role) {
                 kicked.push(*id);
             } else {
                 not_kicked.push(*id);
@@ -816,7 +820,8 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         };
 
-        if !participant.kind.is_guest_or_callin() {
+        // Only guests can be renamed, this includes call-in participants
+        if !participant.role.is_guest() {
             return Err(ModerationError::CannotChangeNameOfRegisteredUsers.into());
         };
 
@@ -1005,7 +1010,7 @@ impl ModerationModule {
         };
 
         let current_waiting_room = ctx.room_task_info.room.waiting_room;
-        let required_waiting_room = current_waiting_room.raise_to_include(&state.kind);
+        let required_waiting_room = current_waiting_room.raise_to_include(&state.kind, state.role);
         if required_waiting_room > current_waiting_room {
             Self::update_waiting_room(ctx, required_waiting_room)?;
         }
@@ -1067,13 +1072,11 @@ mod tests {
         accepted: bool,
         waiting_room_state: Option<WaitingRoomState>,
     ) -> LobbyParticipant {
-        LobbyParticipant::new(
-            kind,
-            Role::User,
-            HashMap::new(),
-            accepted,
-            waiting_room_state,
-        )
+        let role = match kind {
+            ClientKind::Unregistered | ClientKind::CallIn => Role::Guest,
+            _ => Role::User,
+        };
+        LobbyParticipant::new(kind, role, HashMap::new(), accepted, waiting_room_state)
     }
 
     fn registered() -> ClientKind {
@@ -1331,7 +1334,7 @@ mod tests {
             ParticipantState::new(
                 ClientKind::Unregistered,
                 DisplayName::from_str_lossy("Alice"),
-                Role::User,
+                Role::Guest,
                 Timestamp::unix_epoch().into(),
                 false,
             ),

@@ -317,7 +317,7 @@ impl RoomBackend for Context {
                     return Err(ApiError::e2ee_enabled());
                 }
 
-                if client_parameters.kind.is_guest_or_callin() && !parameters.guest_access {
+                if client_parameters.role.is_guest() && !parameters.guest_access {
                     return Err(ApiError::guest_access_disabled());
                 }
 
@@ -336,7 +336,7 @@ impl RoomBackend for Context {
                 }
 
                 let allowed = task_handle
-                    .is_client_allowed(&client_parameters.kind)
+                    .is_client_allowed(&client_parameters.kind, client_parameters.role)
                     .await?;
                 reject_if_client_not_allowed(allowed)?;
             }
@@ -593,7 +593,7 @@ mod test {
         ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: ClientKind::CallIn,
-            role: Role::User,
+            role: Role::Guest,
         }
     }
 
@@ -601,7 +601,7 @@ mod test {
         ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: ClientKind::Unregistered,
-            role: Role::User,
+            role: Role::Guest,
         }
     }
 
@@ -832,9 +832,13 @@ mod test {
             .await;
         assert!(token.is_ok());
 
-        ctx.reject_if_client_not_allowed(&guest_client_parameters().kind, room_id)
-            .await
-            .expect("Guest must be allowed while guest access is enabled");
+        ctx.reject_if_client_not_allowed(
+            &guest_client_parameters().kind,
+            guest_client_parameters().role,
+            room_id,
+        )
+        .await
+        .expect("Guest must be allowed while guest access is enabled");
 
         // Guest access is disabled after the token was issued
         let room_action = ctx
@@ -850,7 +854,11 @@ mod test {
 
         // Opening a signaling connection with the previously issued token must be rejected
         let error = ctx
-            .reject_if_client_not_allowed(&guest_client_parameters().kind, room_id)
+            .reject_if_client_not_allowed(
+                &guest_client_parameters().kind,
+                guest_client_parameters().role,
+                room_id,
+            )
             .await
             .unwrap_err();
 

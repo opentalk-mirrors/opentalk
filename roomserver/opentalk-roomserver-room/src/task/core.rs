@@ -782,16 +782,15 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .get(&participant_id)
             .map(|state| state.display_name.clone())
             .ok_or_else(|| FatalError(anyhow!("Participant state not found")))?;
-        let (role, avatar_url, is_room_owner) = match client_kind {
+        let (avatar_url, is_room_owner) = match client_kind {
             ClientKind::Registered { profile } => (
-                role,
                 Some(profile.user_info.avatar_url),
                 self.info.room.created_by.id == profile.id,
             ),
             ClientKind::Unregistered
             | ClientKind::Transcription { .. }
             | ClientKind::Recorder { .. }
-            | ClientKind::CallIn => (Role::Guest, None, false),
+            | ClientKind::CallIn => (None, false),
         };
 
         let event_info = self

@@ -2,7 +2,10 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_roomserver_module_moderation::ModerationModule;
-use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
+use opentalk_roomserver_room::mocking::{
+    participant::MockParticipantJoining,
+    room::{TestRoom, flush_connected_events},
+};
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
     event::{ModerationError, ModerationEvent},
@@ -248,6 +251,52 @@ async fn change_display_name_of_call_in_participant() {
     assert_eq!(event, expected.clone());
 
     let event = richard
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, expected);
+}
+
+#[test_log::test(tokio::test)]
+async fn change_display_name_of_registered_guest() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = MockParticipantJoining::bob(0)
+        .guest()
+        .join(&mut room)
+        .await
+        .unwrap();
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Alice can change the display name of Bob, a registered user with the guest role
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::ChangeDisplayName {
+                new_name: DisplayName::from_str_lossy("Charlie"),
+                target: bob.id(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    let expected = ModerationEvent::DisplayNameChanged {
+        target: bob.id(),
+        issued_by: alice.id(),
+        old_name: bob.display_name().clone(),
+        new_name: DisplayName::from_str_lossy("Charlie"),
+    };
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, expected.clone());
+
+    let event = bob
         .receive_event::<ModerationModule>()
         .await
         .unwrap()

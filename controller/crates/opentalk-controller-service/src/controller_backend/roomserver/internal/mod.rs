@@ -163,7 +163,7 @@ impl RoomServerBackend for InternalRoomServer {
             }
 
             match task_handle
-                .is_client_allowed(&client_parameters.kind)
+                .is_client_allowed(&client_parameters.kind, client_parameters.role)
                 .await?
             {
                 ClientAllowed::Yes => {}
@@ -199,7 +199,7 @@ impl RoomServerBackend for InternalRoomServer {
                 return Err(ApiError::e2ee_enabled());
             }
 
-            if client_parameters.kind.is_guest_or_callin() && room.guest_access.is_disabled() {
+            if client_parameters.role.is_guest() && room.guest_access.is_disabled() {
                 log::debug!(
                     "Guest attempted to request a token for a room with guest access disabled, rejecting access"
                 );
@@ -360,7 +360,11 @@ impl SignalingHandler for InternalRoomServer {
         // proof that the room exists and that access was granted when the token was issued.
         match self
             .room_tasks
-            .is_client_allowed(&ctx.client_parameters.kind, ctx.room_id)
+            .is_client_allowed(
+                &ctx.client_parameters.kind,
+                ctx.client_parameters.role,
+                ctx.room_id,
+            )
             .await?
         {
             ClientAllowed::Yes => Ok(AuthorizedClientContext(ctx)),
@@ -481,7 +485,7 @@ mod test {
         ClientParameters {
             device_secret: DeviceSecret::example_data(),
             kind: ClientKind::Unregistered,
-            role: Role::User,
+            role: Role::Guest,
         }
     }
 

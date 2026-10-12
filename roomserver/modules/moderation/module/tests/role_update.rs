@@ -5,11 +5,15 @@ use std::assert_matches;
 
 use opentalk_roomserver_module_moderation::ModerationModule;
 use opentalk_roomserver_module_shared_folder::SharedFolderModule;
-use opentalk_roomserver_room::mocking::room::{TestRoom, flush_connected_events};
+use opentalk_roomserver_room::mocking::{
+    participant::MockParticipantJoining,
+    room::{TestRoom, flush_connected_events},
+};
 use opentalk_roomserver_types::{
     core::CoreEvent,
     disconnect_reason::DisconnectReason,
     kick_reason::KickReason,
+    room_kind::RoomKind,
     room_parameters::{EventContext, WaitingRoom},
 };
 use opentalk_roomserver_types_moderation::{
@@ -181,6 +185,110 @@ async fn user_cannot_be_moderator() {
     assert_eq!(
         event,
         ModerationEvent::Error(ModerationError::UserCannotBeModerator)
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn registered_guest_cannot_be_moderator() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let bob = MockParticipantJoining::bob(0)
+        .guest()
+        .join(&mut room)
+        .await
+        .unwrap();
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Alice tries to change the role of Bob, a registered user with the guest role, to a moderator
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: bob.id(),
+                new_role: Role::Moderator,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives an error because guests cannot be moderators, regardless of their kind
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::Error(ModerationError::UserCannotBeModerator)
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn service_cannot_be_moderator() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let recorder = room.join_recorder(RoomKind::Main, 0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Alice tries to change the role of the recorder to a moderator
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: recorder.id(),
+                new_role: Role::Moderator,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives an error because services cannot be moderators, even though they have the
+    // user role
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::Error(ModerationError::UserCannotBeModerator)
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn user_cannot_be_guest() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Alice tries to change the role of Bob, a regular user, to a guest
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: bob.id(),
+                new_role: Role::Guest,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives an error because the guest role cannot be assigned
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::Error(ModerationError::UserCannotBeGuest)
     );
 }
 

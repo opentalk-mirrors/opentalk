@@ -21,6 +21,7 @@ use opentalk_roomserver_types::{
     signaling::signaling_context::SignalingClientContext,
 };
 use opentalk_types_common::{rooms::RoomId, roomserver::Token};
+use opentalk_types_signaling::Role;
 use tracing::{Instrument as _, Span};
 
 use super::Router;
@@ -68,8 +69,12 @@ async fn open_signaling_socket<B: SignalingBackend + 'static>(
     // Ensure the client can only join the room if it is allowed to
     // We already enforce this when a token is requested, but access properties might have changed
     // after the token was issued.
-    ctx.reject_if_client_not_allowed(&signaling_context.client_parameters.kind, room_id)
-        .await?;
+    ctx.reject_if_client_not_allowed(
+        &signaling_context.client_parameters.kind,
+        signaling_context.client_parameters.role,
+        room_id,
+    )
+    .await?;
 
     let span = Span::current();
     span.record("opentalk.room_id", room_id.to_string());
@@ -117,6 +122,7 @@ pub trait SignalingBackend: Clone + Send + Sync + std::fmt::Debug {
     async fn reject_if_client_not_allowed(
         &self,
         kind: &ClientKind,
+        role: Role,
         room_id: RoomId,
     ) -> Result<(), Self::Error>;
 

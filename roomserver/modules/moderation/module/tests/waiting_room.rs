@@ -371,6 +371,36 @@ async fn guest_users_once_accepted_always_skip() {
     assert_matches!(event.payload, CoreEvent::ParticipantConnected { .. });
 }
 
+/// Registered users that are not invited have the guest role and must wait in a waiting room that
+/// is enabled for guests.
+///
+/// 1. Spawn room with a waiting room for guests
+/// 2. Alice joins as a moderator
+/// 3. Bob joins as a registered user with the guest role and has to enter the waiting room
+/// 4. Alice accepts Bob, who enters the room as a guest
+#[test_log::test(tokio::test)]
+async fn registered_guests_wait_in_waiting_room_for_guests() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .waiting_room(WaitingRoom::ForGuests)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let bob = MockParticipantJoining::bob(0)
+        .guest()
+        .enter_waiting_room(&mut room)
+        .await
+        .unwrap();
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert_matches!(
+        event.payload,
+        CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == bob.id()
+    );
+
+    let bob = accept_participant(&mut alice, bob).await;
+    assert_eq!(bob.join_success().role, Role::Guest);
+}
+
 /// 1. Spawn room with activated waiting room
 /// 2. Alice joins the room as a moderator
 /// 3. Bob enters the waiting room (Alice receives notification)

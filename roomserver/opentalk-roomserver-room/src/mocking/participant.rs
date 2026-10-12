@@ -504,7 +504,7 @@ impl<S> MockParticipant<S> {
     pub fn gustav() -> MockParticipantBuilder<DisplayName> {
         MockParticipantBuilder {
             profile: "Gustav the great".parse().expect("Valid DisplayName"),
-            role: Role::User,
+            role: Role::Guest,
             secret: DeviceSecret::from_str("Gustav Device Secret A").expect("Valid device secret"),
         }
     }
@@ -512,7 +512,7 @@ impl<S> MockParticipant<S> {
     pub fn richard_call_in(device_number: usize) -> MockParticipantBuilder<CallIn> {
         MockParticipantBuilder {
             profile: CallIn("+49 30 12345678".parse().expect("Valid DisplayName")),
-            role: Role::User,
+            role: Role::Guest,
             secret: DeviceSecret::from_str(&format!("Richard Device Secret {device_number}"))
                 .expect("Valid device secret"),
         }
@@ -868,6 +868,11 @@ impl<P> MockParticipantBuilder<P> {
 
     pub fn user(mut self) -> Self {
         self.role = Role::User;
+        self
+    }
+
+    pub fn guest(mut self) -> Self {
+        self.role = Role::Guest;
         self
     }
 }
