@@ -34,7 +34,9 @@ use opentalk_roomserver_types_transcription::{
     status::{TranscriptionModes, TranscriptionStatus},
 };
 use opentalk_transcription_web_api::v1::TranscriptionTarget;
-use opentalk_types_common::{features::ModuleFeatureId, modules::ModuleId, time::TimeZone};
+use opentalk_types_common::{
+    features::ModuleFeatureId, modules::ModuleId, time::TimeZone, transcription::RequestId,
+};
 use opentalk_types_signaling::ParticipantId;
 
 use crate::{
@@ -138,7 +140,7 @@ impl SignalingModule for TranscriptionModule {
         if self
             .transcription_states
             .get(&ctx.room)
-            .is_none_or(|state| state.service == ServiceState::Stopped)
+            .is_none_or(|state| state.service.id() != Some(participant_id))
         {
             return Ok(());
         }
@@ -360,6 +362,7 @@ impl TranscriptionModule {
     fn request_transcription(
         &mut self,
         ctx: &ModuleContext<'_, TranscriptionModule>,
+        request_id: RequestId,
         language: Option<String>,
     ) -> Result<(), SignalingModuleError<TranscriptionError>> {
         let transcription_settings = self.settings.clone();
@@ -374,6 +377,7 @@ impl TranscriptionModule {
 
         let body = TranscriptionTarget {
             room_id: ctx.room_id,
+            request_id,
             breakout_room: match ctx.room {
                 RoomKind::Main => None,
                 RoomKind::Breakout(breakout_id) => Some(breakout_id.into()),
@@ -577,15 +581,19 @@ impl TranscriptionModule {
         tracing::debug!("Received transcription service event: {service_event:?}");
 
         match service_event {
-            TranscriptionServiceEvent::Started { language } => {
+            TranscriptionServiceEvent::Started {
+                request_id,
+                language,
+            } => {
                 let Some(state) = self.state_or_stop_service(ctx, participant_id, "Started")?
                 else {
                     return Ok(());
                 };
 
-                if state.service == ServiceState::Stopped {
-                    // The service is no longer needed, e.g. because the meeting protocol was paused
-                    // while the service was starting.
+                if state.service != (ServiceState::Requested { request_id }) {
+                    // The service belongs to an earlier request, e.g. the transcription was stopped
+                    // and started again, or the meeting protocol was paused, before the service
+                    // started.
                     ctx.send_ws_message(
                         [participant_id],
                         TranscriptionEvent::ServiceCommand {
@@ -715,10 +723,14 @@ impl TranscriptionModule {
             return Err(TranscriptionError::InsufficientPermissions.into());
         }
 
-        if let Some((transcription, _)) = find_transcription_service(ctx) {
+        let Some(state) = self.transcription_states.get_mut(&ctx.room) else {
+            return Err(TranscriptionError::NotActive.into());
+        };
+
+        if let ServiceState::Running { participant_id } = state.service {
             // The language is updated once the service confirms the change
             ctx.send_ws_message(
-                [*transcription],
+                [participant_id],
                 TranscriptionEvent::ServiceCommand {
                     command: TranscriptionServiceCommand::ChangeLanguage { language },
                 },
@@ -785,8 +797,11 @@ impl TranscriptionModule {
         tracing::debug!("Updating transcription service: {action:?}");
 
         match action {
-            ServiceAction::Start { language } => {
-                self.request_transcription(ctx, language)?;
+            ServiceAction::Start {
+                request_id,
+                language,
+            } => {
+                self.request_transcription(ctx, request_id, language)?;
                 self.broadcast_status_updated(ctx)?;
             }
             ServiceAction::Stop => self.stop_transcription_service(ctx)?,

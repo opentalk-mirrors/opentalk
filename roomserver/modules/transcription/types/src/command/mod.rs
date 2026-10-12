@@ -78,7 +78,7 @@ impl CreateReplica<TranscriptionEvent> for TranscriptionCommand {
 #[cfg(test)]
 mod tests {
     use insta::assert_json_snapshot;
-    use opentalk_types_common::time::Timestamp;
+    use opentalk_types_common::{time::Timestamp, transcription::RequestId};
     use opentalk_types_signaling::ParticipantId;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -247,6 +247,7 @@ mod tests {
     fn serialize_service_event_started() {
         let command = TranscriptionCommand::TranscriptionServiceEvent {
             event: TranscriptionServiceEvent::Started {
+                request_id: RequestId::nil(),
                 language: Some("de".into()),
             },
         };
@@ -256,6 +257,7 @@ mod tests {
           "action": "transcription_service_event",
           "event": {
             "kind": "started",
+            "request_id": "00000000-0000-0000-0000-000000000000",
             "language": "de"
           }
         }

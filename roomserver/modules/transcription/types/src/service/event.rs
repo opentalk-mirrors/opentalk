@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
+use opentalk_types_common::transcription::RequestId;
 use serde::{Deserialize, Serialize};
 
 use crate::segment::TranscriptionSegment;
@@ -11,7 +12,10 @@ use crate::segment::TranscriptionSegment;
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum TranscriptionServiceEvent {
     /// Transcription service has been started
-    Started { language: Option<String> },
+    Started {
+        request_id: RequestId,
+        language: Option<String>,
+    },
 
     /// Transcription service state has been updated
     Updated { language: Option<String> },
@@ -34,12 +38,14 @@ mod tests {
     #[test]
     fn serialize_started_event() {
         let event = TranscriptionServiceEvent::Started {
+            request_id: RequestId::nil(),
             language: Some("de".into()),
         };
 
         assert_json_snapshot!(event, @ r#"
         {
           "kind": "started",
+          "request_id": "00000000-0000-0000-0000-000000000000",
           "language": "de"
         }
         "#);

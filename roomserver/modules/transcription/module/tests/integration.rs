@@ -33,7 +33,10 @@ use opentalk_roomserver_types_transcription::{
 };
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use opentalk_transcription_web_api::v1::TranscriptionTarget;
-use opentalk_types_common::time::{TimeZone, Timestamp};
+use opentalk_types_common::{
+    time::{TimeZone, Timestamp},
+    transcription::RequestId,
+};
 use pretty_assertions::assert_eq;
 use reqwest::Url;
 use tokio::{net::TcpListener, sync::mpsc, task::JoinHandle};
@@ -116,7 +119,7 @@ async fn start_transcription(
     room_kind: RoomKind,
     issuer: &mut MockParticipantJoined,
     others: &mut [&mut MockParticipantJoined],
-) {
+) -> RequestId {
     issuer
         .send_command::<TranscriptionModule>(
             TranscriptionCommand::Start {
@@ -154,6 +157,8 @@ async fn start_transcription(
             assert_eq!(transcription_target.breakout_room, Some(breakout_id.into()))
         }
     }
+
+    transcription_target.request_id
 }
 
 async fn start_meeting_protocol(
@@ -164,7 +169,7 @@ async fn start_meeting_protocol(
     pseudonymous: bool,
     issuer: &mut MockParticipantJoined,
     others: &mut [&mut MockParticipantJoined],
-) {
+) -> RequestId {
     issuer
         .send_command::<TranscriptionModule>(
             TranscriptionCommand::StartMeetingProtocol {
@@ -204,6 +209,8 @@ async fn start_meeting_protocol(
             assert_eq!(transcription_target.breakout_room, Some(breakout_id.into()))
         }
     }
+
+    transcription_target.request_id
 }
 
 /// Stops the meeting protocol as the last active mode and returns the generated PDF.
@@ -260,6 +267,73 @@ async fn stop_meeting_protocol(
         .expect("Meeting protocol PDF must be stored")
 }
 
+/// Starts the live transcription, stops it and starts it again before the first service stopped.
+///
+/// Returns the old service, which was told to stop but is still connected, and the new service,
+/// which was requested by the second start and is running.
+async fn restart_before_service_stopped(
+    transcription_task: &mut MockTranscriptionTask,
+    room: &mut TestRoom,
+    room_kind: RoomKind,
+    alice: &mut MockParticipantJoined,
+) -> (MockParticipantJoined, MockParticipantJoined) {
+    let request_id = start_transcription(transcription_task, room, room_kind, alice, &mut []).await;
+
+    let mut old_service = join_transcription_service(
+        room,
+        room_kind,
+        0,
+        request_id,
+        Some("de".into()),
+        &mut [alice],
+    )
+    .await;
+
+    // Stop the transcription, the old service is told to stop
+    alice
+        .send_command::<TranscriptionModule>(TranscriptionCommand::Stop, None)
+        .await
+        .unwrap();
+
+    for participant in [&mut *alice, &mut old_service] {
+        expect_transcription_event!(
+            participant,
+            TranscriptionEvent::ModesUpdated {
+                modes: TranscriptionModes::default()
+            }
+        );
+    }
+
+    expect_transcription_event!(
+        old_service,
+        TranscriptionEvent::ServiceCommand {
+            command: TranscriptionServiceCommand::Stop
+        }
+    );
+
+    // Start again before the old service stopped, a new service is requested
+    let request_id = start_transcription(
+        transcription_task,
+        room,
+        room_kind,
+        alice,
+        &mut [&mut old_service],
+    )
+    .await;
+
+    let new_service = join_transcription_service(
+        room,
+        room_kind,
+        1,
+        request_id,
+        Some("de".into()),
+        &mut [alice, &mut old_service],
+    )
+    .await;
+
+    (old_service, new_service)
+}
+
 /// Sets the meeting protocol consent of `participant`, the participant and all `others` are
 /// notified about it.
 async fn set_consent(
@@ -288,20 +362,26 @@ async fn set_consent(
     }
 }
 
+/// Joins a transcription service that starts the transcription for `request_id`.
+///
+/// Services of the same room need different devices, the device determines the participant id.
 async fn join_transcription_service(
     room: &mut TestRoom,
     room_kind: RoomKind,
+    device_number: usize,
+    request_id: RequestId,
     language: Option<String>,
     participants: &mut [&mut MockParticipantJoined],
 ) -> MockParticipantJoined {
     // Join with transcription participant
-    let mut transcription = room.join_transcription(room_kind, 0).await;
+    let mut transcription = room.join_transcription(room_kind, device_number).await;
     flush_connected_events(participants).await;
 
     transcription
         .send_command::<TranscriptionModule>(
             TranscriptionCommand::TranscriptionServiceEvent {
                 event: TranscriptionServiceEvent::Started {
+                    request_id,
                     language: language.clone(),
                 },
             },
@@ -366,7 +446,7 @@ async fn start_and_stop_transcription() {
     let mut alice = room.join_alice_moderator(0).await;
     let room_kind = RoomKind::Main;
 
-    start_transcription(
+    let request_id = start_transcription(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -375,9 +455,15 @@ async fn start_and_stop_transcription() {
     )
     .await;
 
-    let mut transcription =
-        join_transcription_service(&mut room, room_kind, Some("de".into()), &mut [&mut alice])
-            .await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        Some("de".into()),
+        &mut [&mut alice],
+    )
+    .await;
 
     // Stop the transcription
     alice
@@ -437,7 +523,7 @@ async fn transcription_segment() {
     let mut alice = room.join_alice_moderator(0).await;
     let room_kind = RoomKind::Main;
 
-    start_transcription(
+    let request_id = start_transcription(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -446,9 +532,15 @@ async fn transcription_segment() {
     )
     .await;
 
-    let transcription =
-        join_transcription_service(&mut room, room_kind, Some("de".into()), &mut [&mut alice])
-            .await;
+    let transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        Some("de".into()),
+        &mut [&mut alice],
+    )
+    .await;
 
     let segment = TranscriptionSegment {
         participant_id: alice.id(),
@@ -502,7 +594,7 @@ async fn breakout_room_transcription() {
         panic!("Received wrong breakout event");
     };
 
-    start_transcription(
+    let request_id = start_transcription(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -524,6 +616,7 @@ async fn breakout_room_transcription() {
         .send_command::<TranscriptionModule>(
             TranscriptionCommand::TranscriptionServiceEvent {
                 event: TranscriptionServiceEvent::Started {
+                    request_id,
                     language: Some("de".into()),
                 },
             },
@@ -631,7 +724,7 @@ async fn transcription_segment_insufficient_permission() {
     let mut alice = room.join_alice_moderator(0).await;
     let room_kind = RoomKind::Main;
 
-    start_transcription(
+    let request_id = start_transcription(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -640,9 +733,15 @@ async fn transcription_segment_insufficient_permission() {
     )
     .await;
 
-    let _transcription =
-        join_transcription_service(&mut room, room_kind, Some("de".into()), &mut [&mut alice])
-            .await;
+    let _transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        Some("de".into()),
+        &mut [&mut alice],
+    )
+    .await;
 
     let segment = TranscriptionSegment {
         participant_id: alice.id(),
@@ -722,7 +821,7 @@ async fn unexpected_service_disconnect() {
     let mut alice = room.join_alice_moderator(0).await;
     let room_kind = RoomKind::Main;
 
-    start_transcription(
+    let request_id = start_transcription(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -731,9 +830,15 @@ async fn unexpected_service_disconnect() {
     )
     .await;
 
-    let transcription =
-        join_transcription_service(&mut room, room_kind, Some("de".into()), &mut [&mut alice])
-            .await;
+    let transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        Some("de".into()),
+        &mut [&mut alice],
+    )
+    .await;
     let transcription_participant_id = transcription.id();
 
     transcription.disconnect().await.unwrap();
@@ -774,7 +879,7 @@ async fn unexpected_service_stop() {
 
     let mut alice = room.join_alice_moderator(0).await;
     let room_kind = RoomKind::Main;
-    start_transcription(
+    let request_id = start_transcription(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -783,9 +888,15 @@ async fn unexpected_service_stop() {
     )
     .await;
 
-    let mut transcription =
-        join_transcription_service(&mut room, room_kind, Some("de".into()), &mut [&mut alice])
-            .await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        Some("de".into()),
+        &mut [&mut alice],
+    )
+    .await;
 
     // The service reports that it stopped without being told to stop
     transcription
@@ -846,7 +957,7 @@ async fn meeting_protocol_join_success() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    start_meeting_protocol(
+    let request_id = start_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -880,8 +991,15 @@ async fn meeting_protocol_join_success() {
         }
     );
 
-    let _transcription =
-        join_transcription_service(&mut room, room_kind, language.clone(), &mut [&mut alice]).await;
+    let _transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        language.clone(),
+        &mut [&mut alice],
+    )
+    .await;
 
     let charlie = room.join_charlie(0).await;
     let state = charlie
@@ -939,7 +1057,7 @@ async fn late_joining_participant_is_counted_as_present() {
     let mut alice = room.join_alice_moderator(0).await;
 
     let language = Some("en".to_owned());
-    start_meeting_protocol(
+    let request_id = start_meeting_protocol(
         &mut transcription_task,
         &mut room,
         RoomKind::Main,
@@ -949,8 +1067,15 @@ async fn late_joining_participant_is_counted_as_present() {
         &mut [],
     )
     .await;
-    let mut transcription =
-        join_transcription_service(&mut room, RoomKind::Main, language, &mut [&mut alice]).await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        RoomKind::Main,
+        0,
+        request_id,
+        language,
+        &mut [&mut alice],
+    )
+    .await;
 
     let mut bob = room.join_bob(0).await;
     flush_connected_events(&mut [&mut alice, &mut transcription]).await;
@@ -975,7 +1100,7 @@ async fn record_meeting_protocol(pseudonymous: bool) -> String {
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
 
-    start_meeting_protocol(
+    let request_id = start_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -989,6 +1114,8 @@ async fn record_meeting_protocol(pseudonymous: bool) -> String {
     let mut transcription = join_transcription_service(
         &mut room,
         room_kind,
+        0,
+        request_id,
         language.clone(),
         &mut [&mut alice, &mut bob],
     )
@@ -1123,9 +1250,15 @@ async fn record_meeting_protocol(pseudonymous: bool) -> String {
     assert_eq!(transcription_target.language, language);
 
     // Participants are notified that the service is running again
-    let mut transcription =
-        join_transcription_service(&mut room, room_kind, language, &mut [&mut alice, &mut bob])
-            .await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        transcription_target.request_id,
+        language,
+        &mut [&mut alice, &mut bob],
+    )
+    .await;
 
     transcription
         .send_command::<TranscriptionModule>(
@@ -1159,7 +1292,7 @@ async fn pause_and_resume_meeting_protocol_with_live_transcription() {
 
     let room_kind = RoomKind::Main;
 
-    start_transcription(
+    let request_id = start_transcription(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1168,9 +1301,15 @@ async fn pause_and_resume_meeting_protocol_with_live_transcription() {
     )
     .await;
 
-    let mut transcription =
-        join_transcription_service(&mut room, room_kind, Some("de".into()), &mut [&mut alice])
-            .await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        Some("de".into()),
+        &mut [&mut alice],
+    )
+    .await;
 
     // Start the meeting protocol, the running service is used for it
     alice
@@ -1315,7 +1454,7 @@ async fn unexpected_disconnect_meeting_protocol() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    start_meeting_protocol(
+    let request_id = start_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1326,8 +1465,15 @@ async fn unexpected_disconnect_meeting_protocol() {
     )
     .await;
 
-    let transcription =
-        join_transcription_service(&mut room, room_kind, language, &mut [&mut alice]).await;
+    let transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        language,
+        &mut [&mut alice],
+    )
+    .await;
     let transcription_id = transcription.id();
 
     // The service disconnects without being told to stop
@@ -1381,7 +1527,7 @@ async fn consent_meeting_protocol() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    start_meeting_protocol(
+    let request_id = start_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1392,9 +1538,15 @@ async fn consent_meeting_protocol() {
     )
     .await;
 
-    let mut transcription =
-        join_transcription_service(&mut room, room_kind, language, &mut [&mut alice, &mut bob])
-            .await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        language,
+        &mut [&mut alice, &mut bob],
+    )
+    .await;
 
     // Bob consents, Alice does not
     set_consent(true, &mut bob, &mut [&mut alice, &mut transcription]).await;
@@ -1553,7 +1705,7 @@ async fn stopping_meeting_protocol_clears_consent() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    start_meeting_protocol(
+    let request_id = start_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1564,8 +1716,15 @@ async fn stopping_meeting_protocol_clears_consent() {
     )
     .await;
 
-    let mut transcription =
-        join_transcription_service(&mut room, room_kind, language.clone(), &mut [&mut alice]).await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        language.clone(),
+        &mut [&mut alice],
+    )
+    .await;
 
     set_consent(true, &mut alice, &mut [&mut transcription]).await;
     stop_meeting_protocol(&room, &mut transcription, &mut alice, &mut []).await;
@@ -1606,7 +1765,7 @@ async fn start_live_transcription_while_meeting_protocol_running() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    start_meeting_protocol(
+    let request_id = start_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1617,8 +1776,15 @@ async fn start_live_transcription_while_meeting_protocol_running() {
     )
     .await;
 
-    let mut transcription =
-        join_transcription_service(&mut room, room_kind, language, &mut [&mut alice]).await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        language,
+        &mut [&mut alice],
+    )
+    .await;
 
     alice
         .send_command::<TranscriptionModule>(
@@ -1678,7 +1844,7 @@ async fn stop_live_transcription_keeps_meeting_protocol() {
     let mut alice = room.join_alice_moderator(0).await;
 
     let room_kind = RoomKind::Main;
-    start_transcription(
+    let request_id = start_transcription(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1687,9 +1853,15 @@ async fn stop_live_transcription_keeps_meeting_protocol() {
     )
     .await;
 
-    let mut transcription =
-        join_transcription_service(&mut room, room_kind, Some("de".into()), &mut [&mut alice])
-            .await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        Some("de".into()),
+        &mut [&mut alice],
+    )
+    .await;
 
     alice
         .send_command::<TranscriptionModule>(
@@ -1771,7 +1943,7 @@ async fn start_when_already_active() {
 
     let room_kind = RoomKind::Main;
 
-    start_transcription(
+    let request_id = start_transcription(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1783,6 +1955,8 @@ async fn start_when_already_active() {
     let mut transcription = join_transcription_service(
         &mut room,
         room_kind,
+        0,
+        request_id,
         Some("de".into()),
         &mut [&mut alice, &mut bob],
     )
@@ -1986,7 +2160,7 @@ async fn pause_twice_and_resume_unpaused() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    start_meeting_protocol(
+    let request_id = start_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1997,9 +2171,15 @@ async fn pause_twice_and_resume_unpaused() {
     )
     .await;
 
-    let mut transcription =
-        join_transcription_service(&mut room, room_kind, language, &mut [&mut alice, &mut bob])
-            .await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        language,
+        &mut [&mut alice, &mut bob],
+    )
+    .await;
 
     // Resuming a running meeting protocol only notifies the sender
     alice
@@ -2090,7 +2270,7 @@ async fn change_language() {
     let mut alice = room.join_alice_moderator(0).await;
 
     let room_kind = RoomKind::Main;
-    start_transcription(
+    let request_id = start_transcription(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -2099,9 +2279,15 @@ async fn change_language() {
     )
     .await;
 
-    let mut transcription =
-        join_transcription_service(&mut room, room_kind, Some("de".into()), &mut [&mut alice])
-            .await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        Some("de".into()),
+        &mut [&mut alice],
+    )
+    .await;
 
     alice
         .send_command::<TranscriptionModule>(
@@ -2305,7 +2491,7 @@ async fn stop_before_service_connected() {
 
     let mut alice = room.join_alice_moderator(0).await;
     let room_kind = RoomKind::Main;
-    start_transcription(
+    let request_id = start_transcription(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -2342,6 +2528,7 @@ async fn stop_before_service_connected() {
         .send_command::<TranscriptionModule>(
             TranscriptionCommand::TranscriptionServiceEvent {
                 event: TranscriptionServiceEvent::Started {
+                    request_id,
                     language: Some("de".into()),
                 },
             },
@@ -2454,7 +2641,7 @@ async fn resume_before_service_stopped() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    start_meeting_protocol(
+    let request_id = start_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -2465,8 +2652,15 @@ async fn resume_before_service_stopped() {
     )
     .await;
 
-    let mut transcription =
-        join_transcription_service(&mut room, room_kind, language.clone(), &mut [&mut alice]).await;
+    let mut transcription = join_transcription_service(
+        &mut room,
+        room_kind,
+        0,
+        request_id,
+        language.clone(),
+        &mut [&mut alice],
+    )
+    .await;
 
     // Pause the meeting protocol, the service is told to stop
     alice
@@ -2526,4 +2720,174 @@ async fn resume_before_service_stopped() {
         .unwrap();
 
     assert!(alice.received_nothing());
+}
+
+/// A service that was told to stop before it reported that it started must not take over the
+/// transcription that was started again in the meantime.
+///
+/// The service can send `Started` before it handles the `Stop`, so its `Started` arrives after the
+/// next service was requested.
+#[test_log::test(tokio::test)]
+async fn late_start_of_cancelled_service() {
+    let mut transcription_task = MockTranscriptionTask::spawn().await;
+    let mut room = create_room(&transcription_task);
+
+    let mut alice = room.join_alice_moderator(0).await;
+    let room_kind = RoomKind::Main;
+    let canceled_request_id = start_transcription(
+        &mut transcription_task,
+        &mut room,
+        room_kind,
+        &mut alice,
+        &mut [],
+    )
+    .await;
+
+    // The requested service connects, but has not sent `Started` yet
+    let mut cancelled_service = room.join_transcription(room_kind, 0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Stop the transcription while the service is still requested, the service is told to stop
+    alice
+        .send_command::<TranscriptionModule>(TranscriptionCommand::Stop, None)
+        .await
+        .unwrap();
+
+    for participant in [&mut alice, &mut cancelled_service] {
+        expect_transcription_event!(
+            participant,
+            TranscriptionEvent::ModesUpdated {
+                modes: TranscriptionModes::default()
+            }
+        );
+    }
+
+    expect_transcription_event!(
+        cancelled_service,
+        TranscriptionEvent::ServiceCommand {
+            command: TranscriptionServiceCommand::Stop
+        }
+    );
+
+    for participant in [&mut alice, &mut cancelled_service] {
+        expect_transcription_event!(
+            participant,
+            TranscriptionEvent::StateUpdated {
+                status: TranscriptionStatus::Inactive
+            }
+        );
+    }
+
+    // Start the transcription again, a new service is requested
+    start_transcription(
+        &mut transcription_task,
+        &mut room,
+        room_kind,
+        &mut alice,
+        &mut [&mut cancelled_service],
+    )
+    .await;
+
+    // The cancelled service reports that it started, because it did so before it handled the
+    // `Stop`
+    cancelled_service
+        .send_command::<TranscriptionModule>(
+            TranscriptionCommand::TranscriptionServiceEvent {
+                event: TranscriptionServiceEvent::Started {
+                    request_id: canceled_request_id,
+                    language: Some("de".into()),
+                },
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // The cancelled service is told to stop
+    expect_transcription_event!(
+        cancelled_service,
+        TranscriptionEvent::ServiceCommand {
+            command: TranscriptionServiceCommand::Stop
+        }
+    );
+
+    assert!(alice.received_nothing());
+}
+
+/// A service that reports `Started` for another request is told to stop and does not take over the
+/// requested transcription.
+#[test_log::test(tokio::test)]
+async fn started_with_unknown_request_id() {
+    let mut transcription_task = MockTranscriptionTask::spawn().await;
+    let mut room = create_room(&transcription_task);
+
+    let mut alice = room.join_alice_moderator(0).await;
+    let room_kind = RoomKind::Main;
+    start_transcription(
+        &mut transcription_task,
+        &mut room,
+        room_kind,
+        &mut alice,
+        &mut [],
+    )
+    .await;
+
+    let mut unknown_service = room.join_transcription(room_kind, 0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    unknown_service
+        .send_command::<TranscriptionModule>(
+            TranscriptionCommand::TranscriptionServiceEvent {
+                event: TranscriptionServiceEvent::Started {
+                    request_id: RequestId::nil(),
+                    language: Some("de".into()),
+                },
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    expect_transcription_event!(
+        unknown_service,
+        TranscriptionEvent::ServiceCommand {
+            command: TranscriptionServiceCommand::Stop
+        }
+    );
+
+    assert!(alice.received_nothing());
+}
+
+/// The disconnect of a replaced service must not end the transcription of the new service.
+#[test_log::test(tokio::test)]
+async fn old_service_disconnects_after_restart() {
+    let mut transcription_task = MockTranscriptionTask::spawn().await;
+    let mut room = create_room(&transcription_task);
+
+    let mut alice = room.join_alice_moderator(0).await;
+    let (old_service, mut new_service) = restart_before_service_stopped(
+        &mut transcription_task,
+        &mut room,
+        RoomKind::Main,
+        &mut alice,
+    )
+    .await;
+
+    // The old service stops and leaves, as it was told to
+    old_service
+        .send_command::<TranscriptionModule>(
+            TranscriptionCommand::TranscriptionServiceEvent {
+                event: TranscriptionServiceEvent::Stopped,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    old_service.disconnect().await.unwrap();
+    flush_disconnected_events(&mut [&mut alice, &mut new_service]).await;
+
+    // The transcription keeps running
+    assert!(alice.received_nothing());
+    assert!(new_service.received_nothing());
 }

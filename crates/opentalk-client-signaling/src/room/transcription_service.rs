@@ -8,6 +8,7 @@ use opentalk_roomserver_types_transcription::{
     command::TranscriptionCommand, segment::TranscriptionSegment,
     service::event::TranscriptionServiceEvent,
 };
+use opentalk_types::common::transcription::RequestId;
 
 use crate::Room;
 
@@ -16,13 +17,20 @@ pub struct TranscriptionServiceApi<'a> {
 }
 
 impl TranscriptionServiceApi<'_> {
-    pub async fn send_transcription_started(&mut self, language: Option<String>) -> Result<()> {
+    pub async fn send_transcription_started(
+        &mut self,
+        request_id: RequestId,
+        language: Option<String>,
+    ) -> Result<()> {
         self.room
             .signaling
             .send(
                 &SignalingModuleCommand::Transcription(
                     TranscriptionCommand::TranscriptionServiceEvent {
-                        event: TranscriptionServiceEvent::Started { language },
+                        event: TranscriptionServiceEvent::Started {
+                            request_id,
+                            language,
+                        },
                     },
                 )
                 .into(),

@@ -8,7 +8,7 @@ use opentalk_roomserver_types_transcription::{
     event::TranscriptionError,
     status::{TranscriptionModes, TranscriptionStatus},
 };
-use opentalk_types_common::time::TimeZone;
+use opentalk_types_common::{time::TimeZone, transcription::RequestId};
 use opentalk_types_signaling::ParticipantId;
 use protocol::MeetingProtocol;
 
@@ -20,6 +20,7 @@ pub mod protocol;
 #[must_use]
 pub enum ServiceAction {
     Start {
+        request_id: RequestId,
         language: Option<String>,
     },
     /// Ask the running service to stop. Participants are notified once it reports `Stopped`.
@@ -44,15 +45,19 @@ impl TranscriptionRoomState {
     pub fn reconcile(&mut self) -> ServiceAction {
         match (self.modes.needs_service(), self.service) {
             (true, ServiceState::Stopped | ServiceState::Stopping { participant_id: _ }) => {
-                self.service = ServiceState::Requested;
+                let request_id = RequestId::generate();
+                self.service = ServiceState::Requested { request_id };
 
                 ServiceAction::Start {
+                    request_id,
                     language: self.language.clone(),
                 }
             }
-            (true, ServiceState::Requested | ServiceState::Running { participant_id: _ }) => {
-                ServiceAction::None
-            }
+            (
+                true,
+                ServiceState::Requested { request_id: _ }
+                | ServiceState::Running { participant_id: _ },
+            ) => ServiceAction::None,
             (false, ServiceState::Stopped | ServiceState::Stopping { participant_id: _ }) => {
                 ServiceAction::None
             }
@@ -60,7 +65,7 @@ impl TranscriptionRoomState {
                 self.service = ServiceState::Stopping { participant_id };
                 ServiceAction::Stop
             }
-            (false, ServiceState::Requested) => {
+            (false, ServiceState::Requested { request_id: _ }) => {
                 self.service = ServiceState::Stopped;
                 ServiceAction::Cancel
             }
@@ -73,7 +78,7 @@ impl TranscriptionRoomState {
             ServiceState::Stopped | ServiceState::Stopping { participant_id: _ } => {
                 TranscriptionStatus::Inactive
             }
-            ServiceState::Requested => TranscriptionStatus::Requested {
+            ServiceState::Requested { request_id: _ } => TranscriptionStatus::Requested {
                 language: self.language.clone(),
             },
             ServiceState::Running { participant_id: _ } => TranscriptionStatus::Running {
@@ -88,7 +93,9 @@ pub enum ServiceState {
     /// The transcription service is not running
     Stopped,
     /// The transcription service has been requested but is not yet running.
-    Requested,
+    Requested {
+        request_id: RequestId,
+    },
     /// The transcription service is running.
     Running {
         participant_id: ParticipantId,
@@ -101,7 +108,7 @@ pub enum ServiceState {
 impl ServiceState {
     pub fn id(self) -> Option<ParticipantId> {
         match self {
-            ServiceState::Stopped | ServiceState::Requested => None,
+            ServiceState::Stopped | ServiceState::Requested { request_id: _ } => None,
             ServiceState::Running { participant_id }
             | ServiceState::Stopping { participant_id } => Some(participant_id),
         }
