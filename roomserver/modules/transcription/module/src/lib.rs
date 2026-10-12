@@ -10,7 +10,6 @@ use icu_locid::{LanguageIdentifier, langid};
 use opentalk_roomserver_room::storage::assets::AssetUploaded;
 use opentalk_roomserver_signaling::{
     module_context::ModuleContext,
-    participant_state::ParticipantState,
     signaling_module::{
         ModuleJoinData, ModuleSwitchData, NoOp, PeerDataMap, SignalingModule,
         SignalingModuleDescription, SignalingModuleFeatureDescription, SignalingModuleInitData,
@@ -524,11 +523,42 @@ impl TranscriptionModule {
         Ok(())
     }
 
+    /// Cancel a transcription service that is possibly connected to the room, but has not yet sent
+    /// the `Started` event.
+    fn cancel_transcription_services(
+        &self,
+        ctx: &ModuleContext<'_, Self>,
+    ) -> Result<(), FatalError> {
+        let services = ctx
+            .participants
+            .in_room(ctx.room)
+            .connected()
+            .iter()
+            .filter_map(|(id, state)| {
+                if matches!(state.kind, ClientKind::Transcription { room } if room == ctx.room) {
+                    Some(*id)
+                } else {
+                    None
+                }
+            });
+
+        ctx.send_ws_message(
+            services,
+            TranscriptionEvent::ServiceCommand {
+                command: TranscriptionServiceCommand::Stop,
+            },
+        )
+    }
+
     /// Stop the transcription service but do **not** remove the transcription state.
     fn stop_transcription_service(&self, ctx: &ModuleContext<'_, Self>) -> Result<(), FatalError> {
-        if let Some((transcription, _)) = find_transcription_service(ctx) {
+        if let Some(participant_id) = self
+            .transcription_states
+            .get(&ctx.room)
+            .and_then(|state| state.service.id())
+        {
             ctx.send_ws_message(
-                [*transcription],
+                [participant_id],
                 TranscriptionEvent::ServiceCommand {
                     command: TranscriptionServiceCommand::Stop,
                 },
@@ -812,7 +842,7 @@ impl TranscriptionModule {
                 // `Stopped` reply. `reconcile` already  moved the service to `Stopped`, and the
                 // service might not even be connected. The reply is ignored, because it cannot be
                 // told apart from the `Stopped` of an old service after resuming.
-                self.stop_transcription_service(ctx)?;
+                self.cancel_transcription_services(ctx)?;
                 self.broadcast_status_updated(ctx)?;
             }
             ServiceAction::None => {}
@@ -979,15 +1009,6 @@ fn is_transcription_service_for_current_room(
         .context("Failed to get state for disconnected participant")?;
 
     Ok(participant_state.kind == ClientKind::Transcription { room: ctx.room })
-}
-
-/// Find the connected transcription service participant for the current room
-fn find_transcription_service<'a>(
-    ctx: &'a ModuleContext<'a, TranscriptionModule>,
-) -> Option<(&'a ParticipantId, &'a ParticipantState)> {
-    ctx.participants.in_room(ctx.room).iter().find(|(_, p)| {
-        p.is_connected() && matches!(p.kind, ClientKind::Transcription { room } if room == ctx.room)
-    })
 }
 
 fn negotiate_languages<M: SignalingModule>(

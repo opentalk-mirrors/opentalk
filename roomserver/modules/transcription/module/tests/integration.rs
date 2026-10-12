@@ -2891,3 +2891,43 @@ async fn old_service_disconnects_after_restart() {
     assert!(alice.received_nothing());
     assert!(new_service.received_nothing());
 }
+
+/// Stopping the transcription tells the running service to stop, not a replaced service that is
+/// still connected.
+#[test_log::test(tokio::test)]
+async fn stop_reaches_running_service() {
+    let mut transcription_task = MockTranscriptionTask::spawn().await;
+    let mut room = create_room(&transcription_task);
+
+    let mut alice = room.join_alice_moderator(0).await;
+    let (mut old_service, mut new_service) = restart_before_service_stopped(
+        &mut transcription_task,
+        &mut room,
+        RoomKind::Main,
+        &mut alice,
+    )
+    .await;
+
+    alice
+        .send_command::<TranscriptionModule>(TranscriptionCommand::Stop, None)
+        .await
+        .unwrap();
+
+    for participant in [&mut alice, &mut old_service, &mut new_service] {
+        expect_transcription_event!(
+            participant,
+            TranscriptionEvent::ModesUpdated {
+                modes: TranscriptionModes::default()
+            }
+        );
+    }
+
+    expect_transcription_event!(
+        new_service,
+        TranscriptionEvent::ServiceCommand {
+            command: TranscriptionServiceCommand::Stop
+        }
+    );
+
+    assert!(old_service.received_nothing());
+}
