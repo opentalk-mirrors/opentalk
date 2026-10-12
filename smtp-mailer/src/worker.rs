@@ -54,7 +54,7 @@ where
             log::trace!("Received new RabbitMQ message delivery");
 
             let Ok(delivery) = delivery.inspect_err(|e| {
-                log::warn!("Error reading RabbitMQ message delivery: {e}");
+                log::error!("Error reading RabbitMQ message delivery: {e}");
             }) else {
                 return;
             };
