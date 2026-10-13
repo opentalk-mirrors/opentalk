@@ -13948,37 +13948,31 @@ dependencies = [
 
 [[package]]
 name = "service-probe"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46172462949283cc0aab8d1aae416389ad0f0a7acc0d6ad0598f60db1de1ec3a"
+version = "3.0.0"
 dependencies = [
  "http-body-util",
  "hyper 1.12.0",
  "hyper-util",
  "log",
  "service-probe-common",
- "snafu 0.8.9",
+ "snafu 0.9.2",
  "tokio",
 ]
 
 [[package]]
 name = "service-probe-client"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acbc6080b62987a9e6e33fced3a22597fc8b3bddb5b1d9127c306b6b28097dd4"
+version = "3.0.0"
 dependencies = [
  "log",
  "reqwest 0.13.5",
  "service-probe-common",
- "snafu 0.8.9",
+ "snafu 0.9.2",
  "url",
 ]
 
 [[package]]
 name = "service-probe-common"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af07d653897909c5956fbbe73919dbfc2f6d642a91d0d415149ad64b726b6e1d"
+version = "3.0.0"
 
 [[package]]
 name = "servo_arc"

@@ -105,7 +105,8 @@ pub fn get_service_state() -> ServiceState {
 
 /// Start the probe HTTP service.
 ///
-/// This opens a HTTP v1 server on the selected address and port which will serve the state in `GET` requests to `/health`.
+/// This opens a HTTP v1 server on the selected address and port which will serve the state in `GET`
+/// requests to `/health`.
 pub async fn start_probe<A>(
     address: A,
     port: u16,
@@ -131,7 +132,8 @@ where
         "Service readiness probe listening on http://{ip_address}:{port}/ with initial state {initial_state}"
     );
 
-    // We set the state after the last possible error. If this function errors, it should have no side effects.
+    // We set the state after the last possible error. If this function errors, it should have no
+    // side effects.
     set_service_state(initial_state);
     let join_handle = tokio::task::spawn(run_probe_server(listener, shutdown_receiver));
 

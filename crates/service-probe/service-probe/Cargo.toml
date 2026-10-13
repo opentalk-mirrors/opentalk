@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 [package]
-description.workspace = true
 edition.workspace = true
-license.workspace = true
-name = "service-probe"
-publish.workspace = true
 repository.workspace = true
 version.workspace = true
+name = "service-probe"
+description = "Probe for querying service state through a minimal HTTP service"
+publish = true
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 http-body-util.workspace = true

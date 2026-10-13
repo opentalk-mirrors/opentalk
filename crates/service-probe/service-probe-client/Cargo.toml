@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 [package]
-description = "Client for the service probe HTTP server"
 edition.workspace = true
-license.workspace = true
-name = "service-probe-client"
-publish.workspace = true
 repository.workspace = true
 version.workspace = true
+name = "service-probe-client"
+description = "Client for the service probe HTTP server"
+publish = true
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 log.workspace = true
