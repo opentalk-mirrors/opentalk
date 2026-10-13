@@ -25,7 +25,7 @@ use opentalk_client_signaling::{
         segment::TranscriptionSegment, service::command::TranscriptionServiceCommand,
     },
     opentalk_types::{
-        common::{rooms::RoomId, time::Timestamp, users::DisplayName},
+        common::{rooms::RoomId, time::Timestamp, transcription::RequestId, users::DisplayName},
         signaling::ParticipantId,
     },
 };
@@ -140,6 +140,7 @@ pub(crate) struct TranscriptionSession {
     room: Room,
     room_id: RoomId,
     livekit_room: LivekitRoom,
+    request_id: RequestId,
 
     language: watch::Sender<Option<String>>,
 
@@ -195,6 +196,7 @@ impl TranscriptionSession {
                 room,
                 livekit_room,
                 room_id: room_info.room_id,
+                request_id: room_info.request_id,
                 language: watch::channel(room_info.language).0,
                 segments_rx,
                 segments_tx,
@@ -211,7 +213,7 @@ impl TranscriptionSession {
         self.room
             .transcription_service_api()
             .context("transcription service api not available")?
-            .send_transcription_started(language)
+            .send_transcription_started(self.request_id, language)
             .await?;
 
         let mut shutdown_rx = self.app_state.shutdown.resubscribe();

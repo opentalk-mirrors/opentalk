@@ -5,7 +5,8 @@
 use anyhow::Result;
 use opentalk_roomserver_types_transcription::{
     event::TranscriptionEvent,
-    state::{TranscriptionState, TranscriptionStatus},
+    state::TranscriptionState,
+    status::{TranscriptionModes, TranscriptionStatus},
 };
 
 use crate::{OpenTalkEvent, Room};
@@ -13,12 +14,23 @@ use crate::{OpenTalkEvent, Room};
 #[derive(Debug)]
 pub(super) struct RoomTranscriptionState {
     pub(super) transcription_status: TranscriptionStatus,
+    pub(super) transcription_modes: TranscriptionModes,
 }
 
 impl RoomTranscriptionState {
     pub(super) fn new(transcription_state: TranscriptionState) -> Self {
+        let TranscriptionState {
+            status,
+            live_transcription,
+            meeting_protocol,
+        } = transcription_state;
+
         Self {
-            transcription_status: transcription_state.status,
+            transcription_status: status,
+            transcription_modes: TranscriptionModes {
+                live_transcription,
+                meeting_protocol: meeting_protocol.map(Into::into),
+            },
         }
     }
 
@@ -27,9 +39,14 @@ impl RoomTranscriptionState {
         event: TranscriptionEvent,
     ) -> Result<Option<OpenTalkEvent>> {
         match &event {
-            TranscriptionEvent::Segment(..) => {}
+            TranscriptionEvent::Segment(..)
+            | TranscriptionEvent::PdfCreated { .. }
+            | TranscriptionEvent::MeetingProtocolConsentUpdated { .. } => {}
             TranscriptionEvent::StateUpdated { status } => {
                 self.transcription_status = status.clone();
+            }
+            TranscriptionEvent::ModesUpdated { modes } => {
+                self.transcription_modes = *modes;
             }
             TranscriptionEvent::ServiceCommand { .. } => { /* unreachable */ }
             TranscriptionEvent::Error(transcription_error) => {
@@ -46,7 +63,7 @@ pub struct TranscriptionApi<'a> {
 }
 
 impl TranscriptionApi<'_> {
-    /// Returns the active Transcription status
+    /// Returns the status of the transcription service
     #[must_use]
     pub fn transcription_status(&mut self) -> TranscriptionStatus {
         self.room

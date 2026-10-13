@@ -43,6 +43,7 @@ pub mod tariffs;
 pub mod tenants;
 pub mod time;
 pub mod training_participation_report;
+pub mod transcription;
 pub mod users;
 pub mod utils;
 

@@ -14,7 +14,7 @@ use opentalk_client_signaling::{AuthConfig, OpenTalkClient, config::ClientConfig
 use opentalk_orchestrator_client::{
     TranscriptionEvent, TranscriptionResource, client::OrchestratorHandle,
 };
-use opentalk_transcription_web_api::v1::{TranscriptionBackend, TranscriptionTarget};
+use opentalk_transcription_web_api::v1::{TargetRoom, TranscriptionBackend, TranscriptionTarget};
 use opentalk_types_api_common::error::ApiError;
 use tokio::sync::Mutex;
 use whisper_rs::{WhisperContext, WhisperContextParameters};
@@ -27,8 +27,7 @@ use crate::{
 };
 
 /// The set of currently running transcription sessions, keyed by their target room.
-pub(crate) type TranscriptionTasks =
-    Arc<Mutex<HashMap<TranscriptionTarget, TranscriptionSessionHandle>>>;
+pub(crate) type TranscriptionTasks = Arc<Mutex<HashMap<TargetRoom, TranscriptionSessionHandle>>>;
 
 #[derive(Clone)]
 pub(crate) struct AppState {
@@ -116,28 +115,28 @@ impl TranscriptionBackend for AppState {
 
         let tasks = Arc::clone(&self.tasks);
         let orchestrator_handle = self.orchestrator_handle.clone();
-        let transcription_target = target.clone();
+        let target_room: TargetRoom = target.into();
 
         tokio::spawn(async move {
             match session.run().await {
                 Ok(()) => {
                     log::debug!(
                         "Transcription session for room {} finished",
-                        transcription_target.room_id
+                        target_room.room_id
                     );
                 }
                 Err(e) => {
                     log::error!(
                         "Transcription session for room {} exited with error: {e:?}",
-                        transcription_target.room_id
+                        target_room.room_id
                     );
                 }
             }
 
-            if tasks.lock().await.remove(&transcription_target).is_none() {
+            if tasks.lock().await.remove(&target_room).is_none() {
                 log::error!(
                     "Transcription session for room {:?} was not found in the task list",
-                    transcription_target.room_id
+                    target_room.room_id
                 );
             }
 
@@ -145,8 +144,8 @@ impl TranscriptionBackend for AppState {
                 && let Err(e) = orchestrator_handle
                     .send_event(TranscriptionEvent::RemoveTranscription(
                         TranscriptionResource {
-                            room_id: transcription_target.room_id,
-                            breakout_id: transcription_target.breakout_room,
+                            room_id: target_room.room_id,
+                            breakout_id: target_room.breakout_room,
                         },
                     ))
                     .await
@@ -158,7 +157,7 @@ impl TranscriptionBackend for AppState {
         });
 
         let mut tasks = self.tasks.lock().await;
-        match tasks.entry(target) {
+        match tasks.entry(target_room) {
             Entry::Occupied(occupied_entry) => {
                 log::error!(
                     "Received request to start transcription for room {:?} but a session is already running",

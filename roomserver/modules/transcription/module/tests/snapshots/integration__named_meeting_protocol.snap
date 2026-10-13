@@ -1,0 +1,41 @@
+---
+source: roomserver/modules/transcription/module/tests/integration.rs
+expression: text
+---
+
+
+Automatic Transcript
+ Date [date]
+
+Time [time_minutes] - [time_minutes]
+
+Language English
+
+Participants 2
+
+Pseudonymization Disabled
+
+Moderated by Alice the angry
+
+This transcript was generated automatically and may contain errors.
+
+[time_seconds]   Transcription was started
+
+[time_seconds]   Alice the angry
+
+Hello everyone. Let's get started.
+[time_seconds]   Bob the bold
+
+Hi Alice.
+[time_seconds]   Alice the angry
+
+First topic.
+[time_seconds]   Transcription was paused
+
+[time_seconds]   Transcription was resumed
+
+[time_seconds]   Bob the bold
+
+Welcome back.
+[time_seconds]   Transcription was stopped
+ Page   1   of   1

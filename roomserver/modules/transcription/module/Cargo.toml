@@ -15,6 +15,10 @@ version.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+fluent-langneg.workspace = true
+icu_locid.workspace = true
+opentalk-report-generation.workspace = true
+opentalk-roomserver-room.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-transcription.workspace = true
@@ -22,15 +26,19 @@ opentalk-transcription-web-api.workspace = true
 opentalk-types-common.workspace = true
 opentalk-types-signaling.workspace = true
 reqwest = { workspace = true, features = ["json"] }
+serde.workspace = true
+serde_json.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
 axum.workspace = true
-insta.workspace = true
+insta = { workspace = true, features = ["filters"] }
 opentalk-roomserver-crypto-provider.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 opentalk-roomserver-types-transcription.workspace = true
 opentalk-service-auth.workspace = true
+pdf-extract.workspace = true
+pretty_assertions.workspace = true
 test-log.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
 toml.workspace = true
