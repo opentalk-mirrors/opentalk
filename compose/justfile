@@ -84,8 +84,10 @@ compose-settings:
     dev_root="$(realpath -m "{{dev_dir}}")"; settings_file="$dev_root/config/settings.yml"; mkdir -p "$(dirname "$settings_file")"; if test -e "$settings_file"; then echo "Using existing local settings: $settings_file"; else cp "{{dev_settings_sample}}" "$settings_file"; echo "Created local settings: $settings_file"; fi
 
 # Create or update the local Python and Ansible virtual environment.
+# The venv uses the minor release of the pinned package Python: left to itself,
+# uv picks the newest Python it finds, which Ansible may not support yet.
 compose-python:
-    dev_root="$(realpath -m "{{dev_dir}}")"; requirements_in="extras/packaging/requirements-ansible.in"; requirements_lock="extras/packaging/requirements-ansible.txt"; mkdir -p "$dev_root"; uv venv --allow-existing "$dev_root/.venv"; if test ! -f "$requirements_lock"; then uv pip compile --python "$dev_root/.venv/bin/python" --generate-hashes --output-file "$requirements_lock" "$requirements_in"; fi; uv pip install --python "$dev_root/.venv/bin/python" --requirement "$requirements_lock"
+    dev_root="$(realpath -m "{{dev_dir}}")"; requirements_in="extras/packaging/requirements-ansible.in"; requirements_lock="extras/packaging/requirements-ansible.txt"; python_version="$(source extras/packaging/lib/common.sh && source extras/packaging/lib/versions.sh && versions_get python_version)"; mkdir -p "$dev_root"; uv venv --allow-existing --python "${python_version%.*}" "$dev_root/.venv"; if test ! -f "$requirements_lock"; then uv pip compile --python "$dev_root/.venv/bin/python" --generate-hashes --output-file "$requirements_lock" "$requirements_in"; fi; uv pip install --python "$dev_root/.venv/bin/python" --requirement "$requirements_lock"
 
 # Install the pinned Ansible Collections used by the local Compose deployment.
 compose-collections: compose-python
