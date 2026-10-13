@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use bytes::Bytes;
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
 use opentalk_roomserver_types::connection_id::ConnectionId;
 use serde::{Deserialize, Serialize};
 
-use crate::{E2eeEvent, MlsMessages, WelcomeMessage};
+use crate::{E2eeEvent, MlsMessages};
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub enum E2eeCommand {
     Invite {
         invitee: ConnectionId,
-        welcome_message: WelcomeMessage,
+        /// Welcome message sent to the invitee
+        welcome_message: Bytes,
         /// Proposal and commit sent to the existing members of the group
         mls_messages: MlsMessages,
     },
@@ -37,17 +39,14 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::WelcomeMessage;
 
     const SAMPLE_UUID: &str = "6650b3e2-5f1c-4073-951e-cc4bcd6ddfef";
 
     fn sample_invite_command() -> E2eeCommand {
         E2eeCommand::Invite {
             invitee: ConnectionId::from_str(SAMPLE_UUID).expect("SAMPLE_UUID must be a valid UUID"),
-            welcome_message: WelcomeMessage {
-                welcome: Bytes::from_static(b"welcome-bytes"),
-                ratchet_tree: Bytes::from_static(b"ratchet-tree-bytes"),
-            },
+            welcome_message: Bytes::from_static(b"welcome"),
+
             mls_messages: MlsMessages {
                 payload: vec![Bytes::from_static(b"mls1"), Bytes::from_static(b"mls2")],
             },
@@ -68,10 +67,7 @@ mod tests {
         let expected = json!({
             "action": "invite",
             "invitee": SAMPLE_UUID,
-            "welcome_message": {
-                "welcome": b"welcome-bytes",
-                "ratchet_tree": b"ratchet-tree-bytes",
-            },
+            "welcome_message": b"welcome",
             "mls_messages": {
                 "payload": [
                     b"mls1",
@@ -112,10 +108,7 @@ mod tests {
         let value = json!({
             "action": "invite",
             "invitee": SAMPLE_UUID,
-            "welcome_message": {
-                "welcome": b"welcome-bytes",
-                "ratchet_tree": b"ratchet-tree-bytes",
-            },
+            "welcome_message": b"welcome",
             "mls_messages": {
                 "payload": [
                     b"mls1",

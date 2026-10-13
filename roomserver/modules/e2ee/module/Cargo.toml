@@ -16,6 +16,7 @@ version.workspace = true
 workspace = true
 
 [dependencies]
+bytes.workspace = true
 opentalk-roomserver-signaling.workspace = true
 opentalk-roomserver-types.workspace = true
 opentalk-roomserver-types-e2ee.workspace = true

@@ -15,19 +15,6 @@ pub use event::E2eeEvent;
 
 pub const E2EE_MODULE_ID: ModuleId = module_id!("e2ee");
 
-/// Welcome and ratchet tree sent to the invitee
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct WelcomeMessage {
-    pub welcome: Bytes,
-    pub ratchet_tree: Bytes,
-}
-
-impl WelcomeMessage {
-    pub fn is_valid(&self) -> bool {
-        !self.welcome.is_empty() && !self.ratchet_tree.is_empty()
-    }
-}
-
 /// Arbitrary encrypted message. This can be any kind of MLS or application message
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MlsMessages {
