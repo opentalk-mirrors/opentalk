@@ -22,7 +22,7 @@ use opentalk_roomserver_client::Client;
 use opentalk_roomserver_room::{ModuleRegistry, RoomTaskRegistry, settings::Internal};
 use opentalk_roomserver_types::{
     api::RoomServerAccess,
-    client_parameters::{ClientKind, ClientParameters},
+    client_parameters::ClientParameters,
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
     room_parameters::{EventContext, RoomParameters, WaitingRoom},
@@ -287,11 +287,7 @@ impl ControllerBackend {
             None => {
                 self.authenticate_guest(room.id, request.password.as_ref())
                     .await?;
-                ClientParameters {
-                    device_secret: request.device_secret,
-                    kind: ClientKind::Unregistered,
-                    role: Role::Guest,
-                }
+                ClientParameters::unregistered(request.device_secret)
             }
         };
 
@@ -363,24 +359,22 @@ impl ControllerBackend {
             Some(InviteRole::User) => Role::User,
             None => Role::Guest,
         };
-        ClientParameters {
-            device_secret: request.device_secret,
-            kind: ClientKind::Registered {
-                profile: PublicUserProfile {
-                    id: user.id,
-                    email: user.email,
-                    user_info: UserInfo {
-                        title: user.title,
-                        firstname: user.firstname,
-                        lastname: user.lastname,
-                        display_name: user.display_name,
-                        avatar_url,
-                    },
-                    timezone,
+        ClientParameters::registered(
+            request.device_secret,
+            PublicUserProfile {
+                id: user.id,
+                email: user.email,
+                user_info: UserInfo {
+                    title: user.title,
+                    firstname: user.firstname,
+                    lastname: user.lastname,
+                    display_name: user.display_name,
+                    avatar_url,
                 },
+                timezone,
             },
             role,
-        }
+        )
     }
 }
 

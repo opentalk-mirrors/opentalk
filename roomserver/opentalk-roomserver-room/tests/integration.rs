@@ -432,13 +432,19 @@ async fn enter_room_with_display_name(
     role: Role,
     display_name: Option<DisplayName>,
 ) -> CoreEvent {
+    let device_secret = DeviceSecret::from_str("Display Name Test Device Secret")
+        .expect("Hardcoded device secret must be valid");
+    let client_parameters = match kind {
+        ClientKind::Registered { profile } => {
+            ClientParameters::registered(device_secret, profile, role)
+        }
+        ClientKind::Unregistered => ClientParameters::unregistered(device_secret),
+        ClientKind::Recorder { room } => ClientParameters::recorder(device_secret, room),
+        ClientKind::Transcription { room } => ClientParameters::transcription(device_secret, room),
+        ClientKind::CallIn => ClientParameters::call_in(device_secret),
+    };
     let mut participant = room
-        .enter_lobby(ClientParameters {
-            device_secret: DeviceSecret::from_str("Display Name Test Device Secret")
-                .expect("Hardcoded device secret must be valid"),
-            kind,
-            role,
-        })
+        .enter_lobby(client_parameters)
         .await
         .expect("Failed to join lobby");
     participant

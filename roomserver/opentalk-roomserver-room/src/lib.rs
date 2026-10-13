@@ -59,7 +59,7 @@ mod tests {
     use opentalk_roomserver_common::application_state::ApplicationState;
     use opentalk_roomserver_signaling::signaling_event::SignalingEvent;
     use opentalk_roomserver_types::{
-        client_parameters::{self, ClientParameters},
+        client_parameters::ClientParameters,
         core::{CORE_MODULE_ID, CoreEvent, JoinBlockedReason},
         room_parameters::RoomParameters,
         signaling::websocket::{CloseFrame, SignalingSocketMessage},
@@ -72,7 +72,6 @@ mod tests {
         tariffs::{QuotaType, TariffId},
         utils::ExampleData,
     };
-    use opentalk_types_signaling::Role;
     use tokio::{sync::watch, time::sleep};
 
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};
@@ -125,11 +124,7 @@ mod tests {
     async fn accept_signaling_socket() {
         let (handle, _sender) = create_room_task();
         let (socket, _) = create_participant_connection();
-        let client_parameters = ClientParameters {
-            device_secret: DeviceSecret::example_data(),
-            kind: client_parameters::ClientKind::Unregistered,
-            role: Role::Moderator,
-        };
+        let client_parameters = ClientParameters::unregistered(DeviceSecret::example_data());
 
         handle
             .accept_signaling_socket(socket, client_parameters)
@@ -178,11 +173,7 @@ mod tests {
         room.room_handle
             .accept_signaling_socket(
                 socket,
-                ClientParameters {
-                    device_secret: "Device Secret Charlie".parse().unwrap(),
-                    kind: client_parameters::ClientKind::Unregistered,
-                    role: Role::User,
-                },
+                ClientParameters::unregistered("Device Secret Charlie".parse().unwrap()),
             )
             .await
             .unwrap();

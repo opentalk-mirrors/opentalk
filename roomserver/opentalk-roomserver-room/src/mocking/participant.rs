@@ -16,7 +16,7 @@ use opentalk_roomserver_types::{
         BREAKOUT_MODULE_ID, breakout_config::BreakoutConfig, command::BreakoutCommand,
         event::BreakoutEvent,
     },
-    client_parameters::{ClientKind, ClientParameters},
+    client_parameters::ClientParameters,
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreCommand, CoreEvent},
     join::join_success::JoinSuccess,
@@ -917,13 +917,7 @@ impl MockParticipantBuilder<PublicUserProfile> {
 
     pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
         room.join_participant(
-            ClientParameters {
-                device_secret: self.secret,
-                kind: ClientKind::Registered {
-                    profile: self.profile,
-                },
-                role: self.role,
-            },
+            ClientParameters::registered(self.secret, self.profile, self.role),
             None,
         )
         .await
@@ -934,13 +928,7 @@ impl MockParticipantBuilder<PublicUserProfile> {
         room: &mut TestRoom,
     ) -> Result<MockParticipantWaiting, room::Error> {
         room.enter_waiting_room(
-            ClientParameters {
-                device_secret: self.secret,
-                kind: ClientKind::Registered {
-                    profile: self.profile,
-                },
-                role: self.role,
-            },
+            ClientParameters::registered(self.secret, self.profile, self.role),
             None,
         )
         .await
@@ -950,13 +938,11 @@ impl MockParticipantBuilder<PublicUserProfile> {
         self,
         room: &mut TestRoom,
     ) -> Result<MockParticipantLobby, room::Error> {
-        room.enter_lobby(ClientParameters {
-            device_secret: self.secret,
-            kind: ClientKind::Registered {
-                profile: self.profile,
-            },
-            role: self.role,
-        })
+        room.enter_lobby(ClientParameters::registered(
+            self.secret,
+            self.profile,
+            self.role,
+        ))
         .await
     }
 }
@@ -971,11 +957,7 @@ impl MockParticipantBuilder<DisplayName> {
 
     pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
         room.join_participant(
-            ClientParameters {
-                device_secret: self.secret,
-                kind: ClientKind::Unregistered,
-                role: self.role,
-            },
+            ClientParameters::unregistered(self.secret),
             Some(self.profile),
         )
         .await
@@ -985,12 +967,8 @@ impl MockParticipantBuilder<DisplayName> {
         self,
         room: &mut TestRoom,
     ) -> Result<MockParticipantLobby, room::Error> {
-        room.enter_lobby(ClientParameters {
-            device_secret: self.secret,
-            kind: ClientKind::Unregistered,
-            role: self.role,
-        })
-        .await
+        room.enter_lobby(ClientParameters::unregistered(self.secret))
+            .await
     }
 
     pub async fn enter_waiting_room(
@@ -998,11 +976,7 @@ impl MockParticipantBuilder<DisplayName> {
         room: &mut TestRoom,
     ) -> Result<MockParticipantWaiting, room::Error> {
         room.enter_waiting_room(
-            ClientParameters {
-                device_secret: self.secret,
-                kind: ClientKind::Unregistered,
-                role: self.role,
-            },
+            ClientParameters::unregistered(self.secret),
             Some(self.profile),
         )
         .await
@@ -1014,15 +988,8 @@ pub struct CallIn(DisplayName);
 
 impl MockParticipantBuilder<CallIn> {
     pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
-        room.join_participant(
-            ClientParameters {
-                device_secret: self.secret,
-                kind: ClientKind::CallIn,
-                role: self.role,
-            },
-            Some(self.profile.0),
-        )
-        .await
+        room.join_participant(ClientParameters::call_in(self.secret), Some(self.profile.0))
+            .await
     }
 }
 
@@ -1035,15 +1002,8 @@ impl MockRecorderBuilder {
         room: &mut TestRoom,
         room_kind: RoomKind,
     ) -> Result<MockParticipantJoined, room::Error> {
-        room.join_participant(
-            ClientParameters {
-                device_secret: self.secret,
-                kind: ClientKind::Recorder { room: room_kind },
-                role: Role::User,
-            },
-            None,
-        )
-        .await
+        room.join_participant(ClientParameters::recorder(self.secret, room_kind), None)
+            .await
     }
 }
 
@@ -1057,11 +1017,7 @@ impl MockTranscriptionBuilder {
         room_kind: RoomKind,
     ) -> Result<MockParticipantJoined, room::Error> {
         room.join_participant(
-            ClientParameters {
-                device_secret: self.secret,
-                kind: ClientKind::Transcription { room: room_kind },
-                role: Role::User,
-            },
+            ClientParameters::transcription(self.secret, room_kind),
             None,
         )
         .await

@@ -9,7 +9,7 @@ use opentalk_inventory::{
     Room, User,
     utils::{self, CallInUnavailable},
 };
-use opentalk_roomserver_types::client_parameters::{ClientKind, ClientParameters};
+use opentalk_roomserver_types::client_parameters::ClientParameters;
 use opentalk_types_api_internal::call_in::PostCallInStartRoomServerRequestBody;
 use opentalk_types_api_v1::{
     error::ApiError,
@@ -21,7 +21,6 @@ use opentalk_types_common::{
     roomserver::{DEVICE_SECRET_MIN_LENGTH, DeviceSecret},
     tariffs::TariffResource,
 };
-use opentalk_types_signaling::Role;
 use rand::RngExt;
 use url::Url;
 
@@ -114,11 +113,7 @@ impl ControllerBackend {
         let device_secret = DeviceSecret::from_str(&device_secret)
             .expect("String is at least DEVICE_SECRET_MIN_LENGTH long");
 
-        let client_parameters = ClientParameters {
-            device_secret,
-            kind: ClientKind::CallIn,
-            role: Role::Guest,
-        };
+        let client_parameters = ClientParameters::call_in(device_secret);
 
         let mut inventory = self.inventory_provider.get_inventory().await?;
         let access = self

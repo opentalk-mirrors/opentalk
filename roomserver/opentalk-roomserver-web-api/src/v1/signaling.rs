@@ -70,8 +70,8 @@ async fn open_signaling_socket<B: SignalingBackend + 'static>(
     // We already enforce this when a token is requested, but access properties might have changed
     // after the token was issued.
     ctx.reject_if_client_not_allowed(
-        &signaling_context.client_parameters.kind,
-        signaling_context.client_parameters.role,
+        signaling_context.client_parameters.kind(),
+        signaling_context.client_parameters.role(),
         room_id,
     )
     .await?;

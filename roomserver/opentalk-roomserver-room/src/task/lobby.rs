@@ -87,13 +87,13 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .get(&participant_id)
                     .map(|state| state.role)
             })
-            .unwrap_or(client_parameters.role);
+            .unwrap_or(client_parameters.role());
 
         let can_enter = can_enter_conference(
             participant_id,
             &self.participants.all_unfiltered,
             self.info.room.waiting_room,
-            &client_parameters.kind,
+            client_parameters.kind(),
             role,
         );
 
@@ -119,7 +119,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .all_unfiltered
                     .get(&participant_id)
                     .map(|state| state.kind.clone())
-                    .unwrap_or(client_parameters.kind);
+                    .unwrap_or(client_parameters.kind().clone());
                 vacant_entry.insert(LobbyParticipant::new(
                     kind,
                     role,

@@ -1052,8 +1052,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         socket: Socket,
         client_parameters: ClientParameters,
     ) -> Result<(), FatalError> {
-        let device_id = self.derive_device_id(&client_parameters.device_secret);
-        let participant_id = build_participant_id(&client_parameters.kind, device_id);
+        let device_id = self.derive_device_id(client_parameters.device_secret());
+        let participant_id = build_participant_id(client_parameters.kind(), device_id);
 
         // Enforce room participant limit
         if self.exceeds_room_participant_limit(participant_id) {
@@ -1069,7 +1069,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         // known, but the participant kinds differ.
         if let Some(existing_participant) = self.participants.all_unfiltered.get(&participant_id)
             && mem::discriminant(&existing_participant.kind)
-                != mem::discriminant(&client_parameters.kind)
+                != mem::discriminant(client_parameters.kind())
         {
             tracing::error!("ParticipantId collision, dropping new participant ({participant_id})");
             return Ok(());
