@@ -26,9 +26,9 @@ if [[ $(id -u) -ne 0 ]]; then
 fi
 
 REPO_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../.." && pwd)
-# shellcheck source=extras/packaging/lib/common.sh
+# shellcheck disable=SC1091
 source "$REPO_ROOT/extras/packaging/lib/common.sh"
-# shellcheck source=extras/packaging/lib/versions.sh
+# shellcheck disable=SC2034 # VERSIONS_FILE is read by lib/versions.sh below.
 if [[ -n ${OT_PREFIX:-} ]]; then
   PLAYBOOK_DIR="$OT_PREFIX/automation/playbooks"
   VERSIONS_FILE="$OT_PREFIX/.versions.yml"
@@ -36,6 +36,7 @@ else
   PLAYBOOK_DIR="$REPO_ROOT/automation/playbooks"
   VERSIONS_FILE="$REPO_ROOT/.versions.yml"
 fi
+# shellcheck disable=SC1091
 source "$REPO_ROOT/extras/packaging/lib/versions.sh"
 
 PROJECT="otpgmig$$"

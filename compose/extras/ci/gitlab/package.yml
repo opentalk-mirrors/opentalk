@@ -49,11 +49,10 @@
   needs:
     - job: build:pkgbuild
       optional: true
-    - lint:shellcheck
-    - lint:yamllint
+    - lint:compose-shellcheck
+    - lint:compose-yamllint
     - lint:markdown
-    - lint:ansible-lint
-    - lint:licensing
+    - lint:compose-ansible-lint
   parallel:
     matrix:
       - FLAVOR: !reference [.template_pkg_vars, FLAVORS_PKG]
@@ -71,6 +70,9 @@
       - compose/artifacts/*
     expire_in: 1 day
 
+# The component images pinned in .versions.yml must be released before this tag
+# is set. If one is missing, int:stable fails on the image pull, so upload:stable
+# never runs.
 package:stable:
   extends: .package_release
   # Manual: the component images for this tag may not be in Harbor yet (push-harbor
@@ -138,7 +140,9 @@ upload:stable:
     - job: package:stable
       artifacts: true
     - job: int:stable
-  rules: !reference [.rules_stable, rules]
+  rules:
+    - !reference [.rules_upstream_only, rules]
+    - !reference [.rules_stable, rules]
   script:
     - bash extras/ci/gitlab/upload-release.sh "${FLAVOR}" "stable"
 
@@ -148,7 +152,9 @@ upload:pre-release:
     - job: package:pre-release
       artifacts: true
     - job: int:pre-release
-  rules: !reference [.rules_pre_release, rules]
+  rules:
+    - !reference [.rules_upstream_only, rules]
+    - !reference [.rules_pre_release, rules]
   script:
     - bash extras/ci/gitlab/upload-release.sh "${FLAVOR}" "testing"
 
@@ -158,6 +164,8 @@ upload:experimental:
     - job: package:experimental
       artifacts: true
     - job: int:experimental
-  rules: !reference [.rules_experimental, rules]
+  rules:
+    - !reference [.rules_upstream_only, rules]
+    - !reference [.rules_experimental, rules]
   script:
     - bash extras/ci/gitlab/upload-release.sh "${FLAVOR}" "experimental"

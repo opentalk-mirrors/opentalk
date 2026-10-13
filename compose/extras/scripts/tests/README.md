@@ -23,7 +23,7 @@ To skip the `just lint` dependency of `test-fast` and only run the tests, invoke
 find extras/scripts/tests -maxdepth 1 -type f -name 'test_*.sh' -print0 | xargs -0r -n1 bash
 ```
 
-CI runs the same command in the `lint:shell-tests` job.
+CI runs the same command in the `lint:compose-shell-tests` job.
 
 ## Fast tests
 
@@ -35,6 +35,9 @@ No Docker, no network. Discovered automatically by filename pattern `test_*.sh` 
 | `test_opentalk_build_deps.sh` | `install-build-deps.sh` check and install dispatch |
 | `test_opentalk_check_packaging.sh` | `check-packaging.sh` under a strict fake `PATH` |
 | `test_opentalk_ci_e2e_contract.sh` | grep contract for the `int:e2e` job and E2E isolation |
+| `test_opentalk_ci_product_version.sh` | `update-product-version.sh`: `compose-v*` tag to product version, foreign tags rejected |
+| `test_opentalk_ci_release_tag.sh` | `check-release-tag.sh`: only the matching `compose-v*` tag passes |
+| `test_opentalk_ci_upload_release.sh` | `upload-release.sh` package version and repository per channel |
 | `test_opentalk_cleanup.sh` | `90-cleanup.sh`, all modes, via `CLEANUP_ROOT` |
 | `test_opentalk_compose_deploy_demo_password.sh` | regression: `compose-deploy` reads the demo password without `yq` |
 | `test_opentalk_compose_python_version.sh` | regression: `compose-python` creates its venv with the pinned Python minor release |

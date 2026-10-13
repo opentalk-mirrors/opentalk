@@ -25,13 +25,15 @@ before=$(cat "$TMP_DIR/.versions.yml")
 )
 [[ "$(cat "$TMP_DIR/.versions.yml")" == "$before" ]]
 
-if (
-  cd "$TMP_DIR"
-  CI_COMMIT_TAG=compose-v26.2 bash "$REPO_ROOT/extras/ci/gitlab/update-product-version.sh"
-); then
-  echo "Invalid product version tag was accepted." >&2
-  exit 1
-fi
+for tag in compose-v26.2 v26.2.0 release-v26.2.0; do
+  if (
+    cd "$TMP_DIR"
+    CI_COMMIT_TAG="$tag" bash "$REPO_ROOT/extras/ci/gitlab/update-product-version.sh"
+  ); then
+    echo "Invalid product version tag was accepted: $tag" >&2
+    exit 1
+  fi
+done
 
 if (
   cd "$TMP_DIR"
