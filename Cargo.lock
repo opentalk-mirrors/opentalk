@@ -10498,6 +10498,7 @@ dependencies = [
  "opentalk-orchestrator-shared",
  "opentalk-roomserver-common",
  "opentalk-roomserver-crypto-provider",
+ "opentalk-roomserver-room",
  "opentalk-roomserver-signaling",
  "opentalk-roomserver-types",
  "opentalk-roomserver-types-livekit",

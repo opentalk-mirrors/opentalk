@@ -204,8 +204,10 @@ impl OidcAndUserSearchBuilder {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use openidconnect::{ClientId, ClientSecret};
-    use pretty_assertions::{assert_eq, assert_matches};
+    use pretty_assertions::assert_eq;
 
     use super::OidcAndUserSearchBuilder;
     use crate::{

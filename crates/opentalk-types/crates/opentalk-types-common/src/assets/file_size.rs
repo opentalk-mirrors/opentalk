@@ -132,7 +132,9 @@ impl ExampleData for FileSize {
 
 #[cfg(test)]
 mod tests {
-    use pretty_assertions::{assert_eq, assert_matches};
+    use std::assert_matches;
+
+    use pretty_assertions::assert_eq;
 
     use super::{FileSize, MAX_VALUE, TryFromFileSizeError};
 
