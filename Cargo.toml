@@ -18,6 +18,9 @@ members = [
   "crates/opentalk-types/crates/*",
   "crates/opentalk-version",
   "crates/opentalk-version/canary",
+  "crates/service-probe/service-probe/",
+  "crates/service-probe/service-probe-client/",
+  "crates/service-probe/service-probe-common/",
 
   # Controller
   "controller/crates/*",
@@ -90,6 +93,11 @@ opentalk-report-generation = { path = "crates/opentalk-report-generation", versi
 
 # crates/opentalk-service-auth
 opentalk-service-auth = { path = "crates/opentalk-service-auth", version = "3.0.0" }
+
+# crates/service-probe
+service-probe = { path = "crates/service-probe/service-probe", version = "3.0.0" }
+service-probe-client = { path = "crates/service-probe/service-probe-client", version = "3.0.0" }
+service-probe-common = { path = "crates/service-probe/service-probe-common", version = "3.0.0" }
 
 # crates/opentalk-shared-folder
 opentalk-nextcloud-client = { path = "crates/opentalk-shared-folder/crates/opentalk-nextcloud-client", version = "3.0.0" }
@@ -273,8 +281,11 @@ h264-profile-level-id = "0.2"
 heck = "0.5"
 hound = "3"
 http = "1"
+http-body-util = "0.1"
 http0 = { version = "0", package = "http" }
 humansize = "2"
+hyper = "1.5"
+hyper-util = "0.1"
 iana-time-zone = "0.1"
 ics = "0.5"
 ics-chrono-tz = "0.5"
@@ -352,8 +363,6 @@ serde_repr = "0.1"
 serde_urlencoded = "0.7"
 serde_with = "3"
 serial_test = "4"
-service-probe = "0.4"
-service-probe-client = "0.4"
 siphasher = "1.0"
 slotmap = "1"
 snafu = "0.9"

@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+edition.workspace = true
+repository.workspace = true
+version.workspace = true
+name = "service-probe-common"
+description = "Types for the Service probe HTTP server"
+publish = true
+license = "MIT OR Apache-2.0"
+
+[dependencies]

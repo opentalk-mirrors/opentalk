@@ -109,6 +109,14 @@ ignore = [
   # rustls-webpki cve
   # Reachable panic in certificate revocation list parsing
   "RUSTSEC-2026-0104",
+  # rustls@0.21
+  # `Debug` impls for client session values expose TLS secrets
+  # This is a transitive dependency of aws-sdk-s3
+  "RUSTSEC-2026-0346",
+  # rustls@0.21
+  # Unauthenticated ServerHello can downgrade later connections to classical key exchange
+  # This is a transitive dependency of aws-sdk-s3
+  "RUSTSEC-2026-0349",
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
