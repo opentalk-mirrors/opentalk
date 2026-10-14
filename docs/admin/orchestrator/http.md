@@ -36,8 +36,9 @@ When the orchestrator is served under a sub path behind a reverse proxy, the sub
 
 ### API Keys
 
-The API keys authorize requests towards the `/register` and `/metrics` endpoints. At least one API key must be
-configured and every key id must be unique, otherwise the orchestrator fails to start.
+The API keys authorize requests towards the `/register` and `/metrics` endpoints. See [Metrics](metrics.md) for other
+authorization options of the `/metrics` endpoint. At least one API key must be configured and every key id must be
+unique, otherwise the orchestrator fails to start.
 
 An API key can be configured as string (`"<key_id>:<key_secret>"`) or as key/value pair
 (`{ id = "<key_id>", secret = "<key_secret>" }`). Services that register with the orchestrator must use one of these

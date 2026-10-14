@@ -20,6 +20,7 @@ async-trait.workspace = true
 axum = { workspace = true, features = ["original-uri"] }
 base64.workspace = true
 bytes.workspace = true
+cidr.workspace = true
 clap.workspace = true
 config.workspace = true
 dirs.workspace = true

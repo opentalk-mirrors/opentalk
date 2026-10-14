@@ -9,13 +9,19 @@ use axum::{
     Json, Router,
     extract::{ConnectInfo, MatchedPath, OriginalUri, Request, State, WebSocketUpgrade},
     http::StatusCode,
+    middleware::{Next, from_fn_with_state},
     response::{IntoResponse, Response},
     routing::{any, get},
 };
+use cidr::IpInet;
 use clap::Parser;
 use opentalk_roomserver_web_api::v1::rooms;
-use opentalk_service_auth::{ApiKey, ApiKeyId, service::ApiKeys};
-use reqwest::Client;
+use opentalk_service_auth::{
+    ApiKey, ApiKeyId,
+    service::{ApiKeyAuthorization, ApiKeys},
+};
+use opentalk_types_api_common::error::ApiError;
+use reqwest::{Client, header::AUTHORIZATION};
 use service_probe::{ServiceState, start_probe, stop_probe};
 use tokio::{
     select,
@@ -164,10 +170,12 @@ async fn run_webserver(
     storage: Arc<dyn OrchestratorStorage>,
     mut shutdown: ShutdownReceiver,
 ) -> Result<()> {
+    let auth_middleware = settings.http.api_keys.auth_middleware()?;
+    let metrics_router = metrics_router(&settings, &auth_middleware).await;
+
     let state = AppState::new(storage, settings.services.keys, settings.http.public_url);
 
     let protected = Router::new()
-        .route("/metrics", get(metrics))
         .route("/register", any(register))
         .nest("/roomserver/v1", rooms::routes())
         .nest("/recording", opentalk_recorder_web_api::v1::routes())
@@ -175,7 +183,8 @@ async fn run_webserver(
             "/transcription",
             opentalk_transcription_web_api::v1::routes(),
         )
-        .layer(settings.http.api_keys.auth_middleware()?);
+        .layer(auth_middleware)
+        .merge(metrics_router);
 
     let public = Router::new()
         .nest("/roomserver/v1", roomserver::signaling::routes())
@@ -225,6 +234,93 @@ async fn run_webserver(
         .await?;
 
     Ok(())
+}
+
+/// Build the router for the `/metrics` endpoint based on the provided settings
+async fn metrics_router(
+    settings: &Settings,
+    auth_middleware: &ApiKeyAuthorization,
+) -> Router<AppState> {
+    let router = Router::new().route("/metrics", get(metrics));
+
+    let router = if settings.metrics.disable_token_auth {
+        tracing::info!("Disabled token authorization for the /metrics endpoint");
+        router
+    } else {
+        if let Some(token) = &settings.metrics.bearer_token {
+            tracing::info!("Using plain bearer token authorization for the /metrics endpoint");
+            router.layer(from_fn_with_state(
+                Arc::new(token.clone()),
+                bearer_middleware,
+            ))
+        } else {
+            tracing::info!(
+                "Using JWT orchestrator API key authorization for the /metrics endpoint"
+            );
+            router.layer(auth_middleware.clone())
+        }
+    };
+
+    if let Some(allowlist) = &settings.metrics.allowlist {
+        if allowlist.is_empty() {
+            tracing::warn!(
+                "Using empty IP allowlist for the /metrics endpoint, every request will be denied"
+            )
+        } else {
+            tracing::info!("Using IP allowlist for the /metrics endpoint: [{allowlist:?}]");
+        }
+
+        router.layer(from_fn_with_state(
+            Arc::new(allowlist.clone()),
+            allowlist_middleware,
+        ))
+    } else {
+        router
+    }
+}
+
+/// Middleware that checks that the requesting client IP matches an entry in the allowlist
+async fn allowlist_middleware(
+    State(allowlist): State<Arc<Vec<IpInet>>>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    request: Request,
+    next: Next,
+) -> Response {
+    let ip = peer.ip().to_canonical();
+
+    if allowlist.iter().any(|net| net.contains(&ip)) {
+        next.run(request).await
+    } else {
+        tracing::debug!(
+            "Access to the metrics endpoint from IP address {ip} was denied. Access allowed from: [{allowlist:?}]."
+        );
+
+        ApiError::forbidden()
+            .with_code("ip_not_allowed")
+            .into_response()
+    }
+}
+
+/// Middleware that checks for `Bearer <token>` in the AUTHORIZATION header
+async fn bearer_middleware(
+    State(expected_token): State<Arc<String>>,
+    request: Request,
+    next: Next,
+) -> Response {
+    let presented = request
+        .headers()
+        .get(AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.trim().strip_prefix("Bearer "));
+
+    if presented.is_some_and(|token| token == *expected_token) {
+        next.run(request).await
+    } else {
+        ApiError::unauthorized()
+            .with_code("invalid_api_token")
+            .with_message("invalid or missing bearer token")
+            .into_response()
+    }
 }
 
 /// Sets up the storage backend based on the provided settings
