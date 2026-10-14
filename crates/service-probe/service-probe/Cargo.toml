@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+description.workspace = true
+edition.workspace = true
+license.workspace = true
+name = "service-probe"
+publish.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+http-body-util.workspace = true
+hyper = { workspace = true, features = ["http1", "server"] }
+hyper-util = { workspace = true, features = ["tokio"] }
+log.workspace = true
+service-probe-common.workspace = true
+snafu.workspace = true
+tokio = { workspace = true, features = ["macros", "net", "rt", "sync"] }
