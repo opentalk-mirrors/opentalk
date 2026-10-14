@@ -4,8 +4,9 @@
 
 use std::{process::exit, sync::Arc};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
+use opentalk_tracing::Bootstrap;
 use service_probe_client::is_ready;
 
 use crate::cli::{Args, Commands, print_info};
@@ -17,12 +18,19 @@ mod signaling;
 mod sip;
 mod trace;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+/// In some environments tokio only spawns a single or a low amount of worker threads
+/// due to `std::thread::available_parallelism` being constrained by os resource limits.
+///
+/// Obelisk does a lot of latency sensitive work explicitly spread across many tokio tasks,
+/// so require at least 8 worker threads.
+const MIN_WORKER_THREADS: usize = 8;
+
+fn main() -> Result<()> {
     // Capture logs emitted before initializing the logger from the settings.
     let interim_logger = crate::trace::bootstrap();
 
     ensure_crypto_provider();
+
     match std::env::args().next() {
         Some(s) if s.contains("k3k-obelisk") => {
             use owo_colors::OwoColorize as _;
@@ -36,6 +44,25 @@ async fn main() -> Result<()> {
         _ => {}
     }
 
+    let num_worker_threads = match std::thread::available_parallelism() {
+        Ok(num) => num.get().max(MIN_WORKER_THREADS),
+        Err(err) => {
+            log::warn!(
+                "Failed to fetch number of available threads, falling back to {MIN_WORKER_THREADS}, {err}"
+            );
+            MIN_WORKER_THREADS
+        }
+    };
+
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .worker_threads(num_worker_threads)
+        .build()
+        .context("Failed to build tokio runtime")?
+        .block_on(async_main(interim_logger))
+}
+
+async fn async_main(interim_logger: Bootstrap) -> Result<()> {
     let args = Args::parse();
     if args.info.should_print() {
         print_info(&args.info);
