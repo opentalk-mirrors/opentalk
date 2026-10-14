@@ -138,14 +138,6 @@ verify-deb package:
 verify-rpm package:
     extras/packaging/verify-packages.sh {{package}}
 
-# Build the documentation site with strict validation.
-docs:
-    DISABLE_MKDOCS_2_WARNING=true mkdocs build --config-file mkdocs.yml --strict
-
-# Serve the documentation site locally for interactive development.
-docs-serve:
-    printf '\nDocumentation: http://127.0.0.1:{{docs_port}}/\n\n'; DISABLE_MKDOCS_2_WARNING=true mkdocs serve --config-file mkdocs.yml --dev-addr 127.0.0.1:{{docs_port}}
-
 # Run all configured pre-commit checks scoped to this directory.
 # `pre-commit` always resolves its config from the repository root, so from
 # here that's the monorepo root; scope the file set to `compose/` to avoid

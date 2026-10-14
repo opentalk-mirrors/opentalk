@@ -4,7 +4,7 @@
 
 ---
 
-site_name: OpenTalk Obelisk Documentation
+site_name: OpenTalk Documentation
 docs_dir: docs
 use_directory_urls: true
 theme:
@@ -13,8 +13,8 @@ theme:
   palette:
     # palette toggle for automatic mode
     - media: (prefers-color-scheme)
-      primary: blue
-      accent: blue
+      primary: teal
+      accent: teal
       toggle:
         icon: material/brightness-auto
         name: Switch to bright mode
@@ -22,8 +22,8 @@ theme:
     # palette toggle for light mode
     - media: '(prefers-color-scheme: light)'
       scheme: default
-      primary: blue
-      accent: blue
+      primary: teal
+      accent: teal
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
@@ -31,8 +31,8 @@ theme:
     # palette toggle for dark mode
     - media: '(prefers-color-scheme: dark)'
       scheme: slate
-      primary: blue
-      accent: blue
+      primary: teal
+      accent: teal
       toggle:
         icon: material/brightness-4
         name: Switch to auto mode
@@ -68,6 +68,7 @@ plugins:
       implicit_index: true
   - search
   - macros
+  - swagger-ui-tag
 exclude_docs: |
   navigation.md
 validation:

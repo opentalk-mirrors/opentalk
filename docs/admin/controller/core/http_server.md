@@ -5,8 +5,8 @@ server.
 
 Services provided:
 
-- [`v1` REST API](../../developer/api.md) under `/v1`
-- [Signaling](../../developer/signaling/README.md) for meetings under `/signaling`
+- [`v1` REST API](../../../developer/controller/api.md) under `/v1`
+- [Signaling](../../../developer/controller/signaling/README.md) for meetings under `/signaling`
 - [Metrics](./logging/metrics.md) under `/metrics`
 
 ## Configuration

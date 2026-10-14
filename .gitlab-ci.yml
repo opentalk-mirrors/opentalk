@@ -158,7 +158,7 @@ lint:openapi:
   <<: *default_job_condition
   parallel:
     matrix:
-      - FILE: [roomserver/api/docs/openapi.yml, controller/docs/developer/api.yaml]
+      - FILE: [roomserver/api/docs/openapi.yml, docs/developer/controller/api.yaml]
   image:
     name: redocly/cli:2.58.2
     entrypoint: ['']
@@ -172,7 +172,7 @@ lint:openapi-spectral:
     name: stoplight/spectral
     entrypoint: ['']
   script:
-    - spectral lint --ruleset controller/ci/spectral/openapi.yml lint controller/docs/developer/api.yaml
+    - spectral lint --ruleset controller/ci/spectral/openapi.yml lint docs/developer/controller/api.yaml
     - spectral lint --ruleset roomserver/ci/spectral/openapi.yml lint roomserver/api/docs/openapi.yml
 
 lint:openapi-up-to-date:
@@ -180,12 +180,12 @@ lint:openapi-up-to-date:
   <<: *default_job_condition
   needs: [build]
   script:
-    - target/release/opentalk-controller openapi dump > controller/docs/developer/api.yaml
+    - target/release/opentalk-controller openapi dump > docs/developer/controller/api.yaml
     - target/release/opentalk-roomserver openapi dump > roomserver/api/docs/openapi.yml
     - |
-      if ! git diff -w --exit-code -- controller/ roomserver/ ; then
+      if ! git diff -w --exit-code -- docs/ roomserver/ ; then
         echo "openapi specification outdated, run:"
-        echo "opentalk-controller openapi dump > controller/docs/developer/api.yaml"
+        echo "opentalk-controller openapi dump > docs/developer/controller/api.yaml"
         echo "opentalk-roomserver openapi dump > roomserver/api/docs/openapi.yml"
         exit 1
       fi

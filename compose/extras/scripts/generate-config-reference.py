@@ -335,7 +335,7 @@ def main():
     )
     parser.add_argument(
         "--output",
-        default="docs/6-configuration-options-reference.md",
+        default="../docs/admin/deployment/opentalk-compose/6-configuration-options-reference.md",
         help="Path to the output markdown file."
     )
     parser.add_argument(

@@ -89,7 +89,7 @@ update-openapi:
     sed -i 's/[[:space:]]*$//' roomserver/api/docs/openapi.yml
     # Add trailing new line (removed by previous command)
     echo '' >> roomserver/api/docs/openapi.yml
-    cargo run -p opentalk-controller -- openapi dump > controller/docs/developer/api.yaml
+    cargo run -p opentalk-controller -- openapi dump > docs/developer/controller/api.yaml
 
 install-latest-typst-packages:
     #!/usr/bin/env bash

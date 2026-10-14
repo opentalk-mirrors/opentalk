@@ -6,9 +6,9 @@ to generate reports in meetings.
 Each module can define its own set of reports that it can generate. Modules that
 make use of the report functionality are for example:
 
-- [Meeting Report](../../developer/signaling/meeting_report.md)
-- [Legal Vote](../../developer/signaling/legalvote.md)
-- [Training Participation Report](../../developer/signaling/training_participation_report.md)
+- [Meeting Report](../../../developer/controller/signaling/meeting_report.md)
+- [Legal Vote](../../../developer/controller/signaling/legalvote.md)
+- [Training Participation Report](../../../developer/controller/signaling/training_participation_report.md)
 
 The section in the [configuration file](configuration.md) is called `reports`.
 
