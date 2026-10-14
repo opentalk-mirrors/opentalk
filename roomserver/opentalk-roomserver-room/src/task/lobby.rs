@@ -63,6 +63,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 tracing::warn!("Failed to send disconnect message to moderator: {e:?}");
             }
         }
+
+        self.update_idle_timeout();
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
