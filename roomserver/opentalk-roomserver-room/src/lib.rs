@@ -49,6 +49,7 @@ pub use crate::{
 #[cfg(test)]
 mod tests {
     use std::{
+        assert_matches,
         collections::{BTreeMap, BTreeSet},
         sync::Arc,
         time::Duration,
@@ -71,7 +72,6 @@ mod tests {
         tariffs::{QuotaType, TariffId},
         utils::ExampleData,
     };
-    use pretty_assertions::assert_matches;
     use tokio::{sync::watch, time::sleep};
 
     use super::{signaling::module_initializer::ModuleRegistry, task::handle::RoomTaskHandle};

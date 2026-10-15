@@ -57,6 +57,7 @@ insta = { workspace = true, features = ["json", "redactions"] }
 mockito.workspace = true
 opentalk-orchestrator-shared.workspace = true
 opentalk-roomserver-crypto-provider.workspace = true
+opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 pretty_assertions.workspace = true
 test-log.workspace = true
 tokio = { workspace = true, features = ["macros", "rt", "test-util"] }

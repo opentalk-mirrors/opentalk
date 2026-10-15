@@ -195,9 +195,9 @@ impl ConfigSearchPath {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::BTreeMap, env, fs::File, io::Write as _, path::Path};
+    use std::{assert_matches, collections::BTreeMap, env, fs::File, io::Write as _, path::Path};
 
-    use pretty_assertions::{assert_eq, assert_matches, assert_ne};
+    use pretty_assertions::{assert_eq, assert_ne};
     use serial_test::serial;
     use tempfile::tempdir;
 

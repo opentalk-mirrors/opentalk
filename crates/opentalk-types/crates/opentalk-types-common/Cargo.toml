@@ -102,14 +102,7 @@ ignored = [
 ]
 
 [dev-dependencies]
+pretty_assertions.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 trybuild.workspace = true
-
-[dev-dependencies.pretty_assertions]
-features = [
-  # This enables the assert_matches! macro, its equivalent in std is unstable as well.
-  # If anything changes in that regard, it should be rather easy to addust.
-  "unstable",
-]
-workspace = true
