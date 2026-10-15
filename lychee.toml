@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: EUPL-1.2
+# SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
+
+# Exclude all private IPs, e.g. localhost or 127.0.0.1
+exclude_all_private = true
