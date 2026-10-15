@@ -77,7 +77,7 @@ Provided by the roomserver. Only present on the controller's `/metrics` endpoint
 | `signaling_destroyed_rooms_count`          | counter   |                      | Number of destroyed rooms                                                                              |
 | `signaling_created_breakout_rooms_count`   | counter   |                      | Number of breakout rooms that have been opened                                                         |
 | `signaling_destroyed_breakout_rooms_count` | counter   |                      | Number of breakout rooms that have been closed                                                         |
-| `signaling_connection_count`               | gauge     | `participation_kind` | Number of connections by kind (user, guest, recorder, transcription, call_in, registered_call_in)      |
+| `signaling_connection_count`               | gauge     | `participation_kind` | Number of connections by kind (user, guest, recorder, transcription, call_in)                          |
 | `signaling_connections_per_room`           | gauge     | `bucket`             | Connections per room by bucket (2, 10, 25, 50, 100, 200, 300)                                          |
 | `signaling_room_life_time`                 | histogram |                      | Time rooms were active                                                                                 |
 | `signaling_connection_meeting_time`        | histogram |                      | Time a connection was connected to a meeting room                                                      |

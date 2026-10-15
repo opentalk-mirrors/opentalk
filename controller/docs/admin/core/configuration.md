@@ -476,9 +476,6 @@ service_url = "http://localhost:7880"
 # Set a phone number which will be displayed to the user
 # for the call-in service
 #tel="+493012345678"
-# Enable the mapping of user names to their phone number. This requires
-# the OIDC provider to have a phone number field configured for their users.
-#enable_phone_mapping=false
 # Mask unmapped phone numbers to protect privacy.
 #mask_unmapped_numbers=true
 # The default country code for call in numbers. Notated in Alpha-2 code (ISO 3166)

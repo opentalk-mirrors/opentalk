@@ -53,18 +53,12 @@ pub enum ClientKind {
 
     /// Telephone call-In participant which identifies via a meeting id & pin
     CallIn,
-
-    /// Same as `ClientKind::CallIn` but the controller may associate a user to the call-in
-    /// participant if phonenumber matching is enabled
-    RegisteredCallIn { profile: PublicUserProfile },
 }
 
 impl ClientKind {
     pub fn user_id(&self) -> Option<UserId> {
         match self {
-            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
-                Some(profile.id)
-            }
+            ClientKind::Registered { profile } => Some(profile.id),
             ClientKind::Guest
             | ClientKind::Recorder { .. }
             | ClientKind::CallIn
@@ -74,9 +68,7 @@ impl ClientKind {
 
     pub fn email(&self) -> Option<&str> {
         match self {
-            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
-                Some(&profile.email)
-            }
+            ClientKind::Registered { profile } => Some(&profile.email),
             ClientKind::Guest
             | ClientKind::Recorder { .. }
             | ClientKind::CallIn
@@ -86,9 +78,7 @@ impl ClientKind {
 
     pub fn avatar_url(&self) -> Option<&str> {
         match self {
-            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
-                Some(&profile.user_info.avatar_url)
-            }
+            ClientKind::Registered { profile } => Some(&profile.user_info.avatar_url),
             ClientKind::CallIn
             | ClientKind::Guest
             | ClientKind::Recorder { .. }
@@ -98,9 +88,7 @@ impl ClientKind {
 
     pub fn user_info(&self) -> Option<&UserInfo> {
         match self {
-            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
-                Some(&profile.user_info)
-            }
+            ClientKind::Registered { profile } => Some(&profile.user_info),
             ClientKind::CallIn
             | ClientKind::Guest
             | ClientKind::Recorder { .. }
@@ -115,7 +103,6 @@ impl ClientKind {
             ClientKind::Recorder { .. } => ParticipationKind::Recorder,
             ClientKind::Transcription { .. } => ParticipationKind::Transcription,
             ClientKind::CallIn => ParticipationKind::CallIn,
-            ClientKind::RegisteredCallIn { .. } => ParticipationKind::RegisteredCallIn,
         }
     }
 
@@ -125,11 +112,6 @@ impl ClientKind {
     /// service.
     pub fn is_service(&self) -> bool {
         self.participant_kind().is_service()
-    }
-
-    /// Returns `true` if the participant is a registered, non call-in user, `false` otherwise.
-    pub fn is_registered_non_callin_user(&self) -> bool {
-        self.participant_kind().is_registered_non_callin_user()
     }
 
     /// Returns `true` if the participant is a guest or call-in user, otherwise return `false`.
@@ -148,30 +130,35 @@ impl ClientKind {
             | ClientKind::Guest
             | ClientKind::Recorder { .. }
             | ClientKind::Transcription { .. } => false,
-            ClientKind::CallIn | ClientKind::RegisteredCallIn { .. } => true,
+            ClientKind::CallIn => true,
         }
     }
 
     pub fn time_zone(&self) -> Option<TimeZone> {
         match self {
-            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
-                Some(profile.timezone)
-            }
+            ClientKind::Registered { profile } => Some(profile.timezone),
             ClientKind::Recorder { .. }
             | ClientKind::CallIn
             | ClientKind::Guest
             | ClientKind::Transcription { .. } => None,
         }
     }
+
+    /// Returns `true` if the client kind is [`Registered`].
+    ///
+    /// [`Registered`]: ClientKind::Registered
+    #[must_use]
+    pub fn is_registered(&self) -> bool {
+        matches!(self, Self::Registered { .. })
+    }
 }
 
 impl ClientKind {
     pub fn visibility(&self) -> ParticipationVisibility {
         match self {
-            ClientKind::Registered { .. }
-            | ClientKind::Guest
-            | ClientKind::CallIn
-            | ClientKind::RegisteredCallIn { .. } => ParticipationVisibility::Visible,
+            ClientKind::Registered { .. } | ClientKind::Guest | ClientKind::CallIn => {
+                ParticipationVisibility::Visible
+            }
             ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => {
                 ParticipationVisibility::Hidden
             }
@@ -224,7 +211,6 @@ pub enum ParticipationKind {
     Recorder,
     Transcription,
     CallIn,
-    RegisteredCallIn,
 }
 
 impl ParticipationKind {
@@ -236,8 +222,7 @@ impl ParticipationKind {
         match self {
             ParticipationKind::Registered
             | ParticipationKind::Guest
-            | ParticipationKind::CallIn
-            | ParticipationKind::RegisteredCallIn => false,
+            | ParticipationKind::CallIn => false,
             ParticipationKind::Recorder | ParticipationKind::Transcription => true,
         }
     }
@@ -248,20 +233,7 @@ impl ParticipationKind {
             ParticipationKind::Registered | ParticipationKind::Guest => false,
             ParticipationKind::Recorder
             | ParticipationKind::Transcription
-            | ParticipationKind::CallIn
-            | ParticipationKind::RegisteredCallIn => true,
-        }
-    }
-
-    /// Returns `true` if the participant is a registered, non call-in user, `false` otherwise.
-    pub fn is_registered_non_callin_user(&self) -> bool {
-        match self {
-            ParticipationKind::Registered => true,
-            ParticipationKind::Guest
-            | ParticipationKind::Recorder
-            | ParticipationKind::Transcription
-            | ParticipationKind::CallIn
-            | ParticipationKind::RegisteredCallIn => false,
+            | ParticipationKind::CallIn => true,
         }
     }
 
@@ -271,9 +243,7 @@ impl ParticipationKind {
             ParticipationKind::Registered
             | ParticipationKind::Recorder
             | ParticipationKind::Transcription => false,
-            ParticipationKind::Guest
-            | ParticipationKind::CallIn
-            | ParticipationKind::RegisteredCallIn => true,
+            ParticipationKind::Guest | ParticipationKind::CallIn => true,
         }
     }
 }
@@ -286,7 +256,6 @@ impl From<&ClientKind> for ParticipationKind {
             ClientKind::Recorder { .. } => Self::Recorder,
             ClientKind::Transcription { .. } => Self::Transcription,
             ClientKind::CallIn => Self::CallIn,
-            ClientKind::RegisteredCallIn { .. } => Self::RegisteredCallIn,
         }
     }
 }
@@ -419,52 +388,5 @@ mod tests {
                 "kind": "call_in",
             })
         );
-    }
-
-    #[test]
-    fn registered_call_in() {
-        let client_parameter = ClientParameters {
-            device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::RegisteredCallIn {
-                profile: PublicUserProfile::example_data(),
-            },
-            role: Role::User,
-        };
-        assert_eq!(
-            client_parameter.kind.participant_kind(),
-            ParticipationKind::RegisteredCallIn
-        );
-
-        let value = serde_json::to_value(client_parameter).unwrap();
-
-        assert_eq!(
-            value,
-            json!({
-                "role": "user",
-                "device_secret": "v3rys3cr3tD3v1ce5tr1ng",
-                "kind": "registered_call_in",
-                "profile": {
-                    "avatar_url": "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060",
-                    "display_name": "Alice Adams",
-                    "email": "alice@example.com",
-                    "firstname": "Alice",
-                    "lastname": "Adams",
-                    "id": "00000000-0000-0000-0000-0000000a11c3",
-                    "title": "",
-                    "timezone": "Europe/Berlin",
-                }
-            })
-        );
-    }
-
-    #[test]
-    fn is_call_in_affects_all_call_in_kinds() {
-        let call_in = ClientKind::CallIn;
-        assert!(call_in.is_call_in());
-
-        let registered_call_in = ClientKind::RegisteredCallIn {
-            profile: PublicUserProfile::example_data(),
-        };
-        assert!(registered_call_in.is_call_in());
     }
 }

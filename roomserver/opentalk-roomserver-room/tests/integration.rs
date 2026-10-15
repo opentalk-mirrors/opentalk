@@ -428,34 +428,6 @@ async fn call_in_phone_number_is_masked_by_default() {
 }
 
 #[test_log::test(tokio::test)]
-async fn registered_call_in_phone_number_is_masked_by_default() {
-    let mut room = TestRoom::builder().spawn();
-    let mut alice = room.join_alice_moderator(0).await;
-
-    let event = enter_room_with_display_name(
-        &mut room,
-        ClientKind::RegisteredCallIn {
-            profile: bob_public_user_profile(),
-        },
-        Role::User,
-        Some(DisplayName::from_str_lossy("+491234567890")),
-    )
-    .await;
-
-    assert_matches!(
-        event,
-        CoreEvent::JoinSuccess(success)
-            if success.display_name == DisplayName::from_str_lossy("+491***890")
-    );
-
-    let core_state = receive_participant_connected_core_state(&mut alice).await;
-    assert_eq!(
-        core_state.display_name,
-        DisplayName::from_str_lossy("+491***890")
-    );
-}
-
-#[test_log::test(tokio::test)]
 async fn call_in_phone_number_is_not_masked_when_disabled() {
     let mut room = TestRoom::builder()
         .call_in(CallInInfo {
@@ -471,42 +443,6 @@ async fn call_in_phone_number_is_not_masked_when_disabled() {
     let event = enter_room_with_display_name(
         &mut room,
         ClientKind::CallIn,
-        Role::User,
-        Some(DisplayName::from_str_lossy("+491234567890")),
-    )
-    .await;
-
-    assert_matches!(
-        event,
-        CoreEvent::JoinSuccess(success)
-            if success.display_name == DisplayName::from_str_lossy("+491234567890")
-    );
-
-    let core_state = receive_participant_connected_core_state(&mut alice).await;
-    assert_eq!(
-        core_state.display_name,
-        DisplayName::from_str_lossy("+491234567890")
-    );
-}
-
-#[test_log::test(tokio::test)]
-async fn registered_call_in_phone_number_is_not_masked_when_disabled() {
-    let mut room = TestRoom::builder()
-        .call_in(CallInInfo {
-            tel: String::new(),
-            id: CallInId::example_data(),
-            password: CallInPassword::example_data(),
-            mask_unmapped_phone_numbers: false,
-            default_country_code: "DE".to_string(),
-        })
-        .spawn();
-    let mut alice = room.join_alice_moderator(0).await;
-
-    let event = enter_room_with_display_name(
-        &mut room,
-        ClientKind::RegisteredCallIn {
-            profile: bob_public_user_profile(),
-        },
         Role::User,
         Some(DisplayName::from_str_lossy("+491234567890")),
     )

@@ -361,20 +361,6 @@ components:
               type: string
               enum:
                 - call_in
-        - type: object
-          description: |-
-            Same as `ClientKind::CallIn` but the controller may associate a user to the call-in
-            participant if phonenumber matching is enabled
-          required:
-            - profile
-            - kind
-          properties:
-            kind:
-              type: string
-              enum:
-                - registered_call_in
-            profile:
-              $ref: "#/components/schemas/PublicUserProfile"
     ClientParameters:
       allOf:
         - $ref: "#/components/schemas/ClientKind"

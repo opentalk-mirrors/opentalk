@@ -297,7 +297,6 @@ mod tests {
 
                 [call_in]
                 tel = "+55667788"
-                enable_phone_mapping = true
                 default_country_code = "DE"
                 "#
             )

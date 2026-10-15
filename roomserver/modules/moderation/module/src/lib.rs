@@ -415,7 +415,7 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         };
 
-        if !target_state.kind.is_registered_non_callin_user() {
+        if !target_state.kind.is_registered() {
             return Err(ModerationError::UserCannotBeModerator.into());
         }
 

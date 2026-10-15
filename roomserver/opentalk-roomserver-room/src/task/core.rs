@@ -425,9 +425,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             // - If the participant is a service return the default service name
             // - If the participant is a guest return display name required error
             return match client_kind {
-                ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
-                    Ok(profile.user_info.display_name.clone())
-                }
+                ClientKind::Registered { profile } => Ok(profile.user_info.display_name.clone()),
                 ClientKind::Recorder { .. } => {
                     let display_name = DisplayName::from_str_lossy(DEFAULT_RECORDER_NAME);
                     Ok(display_name)
@@ -776,7 +774,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .map(|state| state.display_name.clone())
             .ok_or_else(|| FatalError(anyhow!("Participant state not found")))?;
         let (role, avatar_url, is_room_owner) = match client_kind {
-            ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => (
+            ClientKind::Registered { profile } => (
                 role.to_opentalk_types_signaling_role(),
                 Some(profile.user_info.avatar_url),
                 self.info.room.created_by.id == profile.id,
@@ -1416,18 +1414,6 @@ mod tests {
         .unwrap();
 
         assert_eq!(name, DisplayName::from_str_lossy("Custom Name"));
-    }
-
-    #[test]
-    fn require_display_name_falls_back_to_the_profile_name_for_registered_call_in_participants() {
-        let profile = PublicUserProfile::example_data();
-        let expected = profile.user_info.display_name.clone();
-        let lobby = lobby_participant(ClientKind::RegisteredCallIn { profile }, None);
-
-        let name =
-            RoomTask::<MockSocket>::require_display_name(None, &lobby, None, None, None).unwrap();
-
-        assert_eq!(name, expected);
     }
 
     #[test]

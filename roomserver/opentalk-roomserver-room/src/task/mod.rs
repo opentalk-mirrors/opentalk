@@ -1266,9 +1266,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
 fn build_participant_id(kind: &ClientKind, device_id: DeviceId) -> ParticipantId {
     match kind {
-        ClientKind::Registered { profile } | ClientKind::RegisteredCallIn { profile } => {
-            participant_id_from_uuid(profile.id)
-        }
+        ClientKind::Registered { profile } => participant_id_from_uuid(profile.id),
         ClientKind::Guest
         | ClientKind::Recorder { .. }
         | ClientKind::Transcription { .. }
