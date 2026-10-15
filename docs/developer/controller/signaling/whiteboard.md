@@ -124,7 +124,7 @@ A [`VolatileBroadcast`](#volatilebroadcast) message is sent to every participant
 }
 ```
 
-### Broadcast
+### Broadcast { #broadcast-command }
 
 Relays arbitrary whiteboard data to all participants in the room. The data modifies the scene, but is not persisted on the server. Use [`store_scene`](#storescene) to persist the scene.
 
@@ -132,7 +132,9 @@ Only participants that are allowed to edit the whiteboard may send this command,
 
 #### Response
 
-A [`Broadcast`](#broadcast-1) message is sent to every participant in the room, except the sender.
+<!-- MD051 markdownlint does not understand the `{ #id }` syntax mkdocs uses -->
+<!-- markdownlint-disable-next-line MD051 -->
+A [`Broadcast`](#broadcast-event) message is sent to every participant in the room, except the sender.
 
 #### Fields
 
@@ -352,9 +354,11 @@ Volatile broadcasts must not modify the scene. Clients must not accept volatile 
 }
 ```
 
-### Broadcast
+### Broadcast { #broadcast-event }
 
-Is received by every participant when a participant sent a [`broadcast`](#broadcast) command.
+<!-- MD051 markdownlint does not understand the `{ #id }` syntax mkdocs uses -->
+<!-- markdownlint-disable-next-line MD051 -->
+Is received by every participant when a participant sent a [`broadcast`](#broadcast-command) command.
 
 Non-volatile broadcasts are allowed to modify the scene.
 

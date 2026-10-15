@@ -45,6 +45,8 @@
     - [Exporting the OpenAPI specification](cli/openapi.md)
     - [Health command](cli/health.md)
 - [Update Migration Guide](migration/README.md)
+    - [Updating to v3.0.0](migration/v3.0.0.md)
+    - [Updating to v0.36.0](migration/v0.36.0.md)
     - [Updating to v0.35.0](migration/v0.35.0.md)
     - [Updating to v0.34.0](migration/v0.34.0.md)
     - [Updating to v0.33.0](migration/v0.33.0.md)

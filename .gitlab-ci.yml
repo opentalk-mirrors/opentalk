@@ -36,6 +36,7 @@ stages:
   - push-harbor
   - deploy
   - deploy-manual
+  - trigger
   # - release
 
 variables:
@@ -373,30 +374,40 @@ build:dui:
   script:
     - cargo auditable build --release --locked -p opentalk-roomserver-dui
 
-# build:docs:
-#   stage: build
-#   image:
-#     name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
-#     entrypoint: ['']
-#   needs: []
-#   rules:
-#     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-#   artifacts:
-#     paths:
-#       - site/
-#   script:
-#     - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+build:docs:
+  stage: build
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  artifacts:
+    paths:
+      - site/
+  script:
+    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
 
-# build:pages:
-#   stage: build
-#   image:
-#     name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
-#     entrypoint: ['']
-#   pages:
-#     publish: site
-#   needs: []
-#   rules:
-#     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
-#   before_script: []
-#   script:
-#     - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+build:pages:
+  stage: build
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
+  pages:
+    publish: site
+  needs: []
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  before_script: []
+  script:
+    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+
+trigger-docs:
+  stage: trigger
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAME !~ /^.*canary$/
+  trigger:
+    project: opentalk/backend/docs
