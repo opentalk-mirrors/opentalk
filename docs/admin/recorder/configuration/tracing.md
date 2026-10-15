@@ -30,7 +30,7 @@ service_namespace = "opentalk"
 
 ## Trace context propagation
 
-The Recorder uses the [W3C Trace Context](https://www.w3.org/TR/trace-context-1)
+The Recorder uses the [W3C Trace Context](https://www.w3.org/TR/trace-context-1/)
 `traceparent` and `tracestate` HTTP headers. When OTLP tracing export is
 enabled, valid context received on an HTTP request becomes the parent of the
 Recorder request span, and internal HTTP requests to other services carry the

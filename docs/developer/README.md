@@ -19,12 +19,12 @@ present in these channels purely on their own initiative.
 ## Source Code
 
 OpenTalk is an Open Source project published under the
-[`EUPL-1.2`](https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12) license.
+[`EUPL-1.2`](https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12) license.
 The source code is publicly available in `git` repositories under the
-[OpenTalks GitLab instance](https://git.opentalk.dev) and
+[OpenTalks GitLab instance](https://git.opentalk.dev/opentalk/) and
 [OpenTalk organization on OpenCoDE](https://gitlab.opencode.de/opentalk).
 
-Development of the project happens on our [public OpenTalk GitLab instance](https://git.opentalk.dev).
+Development of the project happens on our [public OpenTalk GitLab instance](https://git.opentalk.dev/opentalk/).
 The source code on OpenCoDE is just a mirror of that code which gets
 synchronized for every commit that gets merged into the `main` or release
 branches of the internal repositories. It has yet to be decided how
@@ -36,7 +36,7 @@ requests on GitLab or OpenCoDE is currently not possible.
 #### crates.io
 
 OpenTalk works towards publishing all open source code written in
-[Rust](https://www.rust-lang.org/) on the crates.io community crate registry.
+[Rust](https://rust-lang.org/) on the crates.io community crate registry.
 The code is published by the
 [OpenTalk-Bot](https://crates.io/users/OpenTalk-Bot) crates.io user. Please be
 aware that not all code is published yet, and we need to remove some blockers by

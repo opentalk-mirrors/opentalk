@@ -1,6 +1,6 @@
 # LiveKit
 
-{{ product_name }} organizes video and audio streams through [LiveKit](https://livekit.io/).
+{{ product_name }} organizes video and audio streams through [LiveKit](https://livekit.com/).
 
 ## Configuration
 

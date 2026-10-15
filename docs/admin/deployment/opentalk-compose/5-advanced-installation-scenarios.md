@@ -390,7 +390,7 @@ mkdir /opt/{opentalk-recorder,opentalk-recorder/config}
 
 Create a `compose.yml` file in `/opt/opentalk-recorder/`:
 
-> **Note:** Adjust the OpenTalk Recorder image tag version to match the installed OpenTalk product version if necessary. Published versions are available at <https://docs.opentalk.eu/releases>
+> **Note:** Adjust the OpenTalk Recorder image tag version to match the installed OpenTalk product version if necessary. Published versions are available at <https://docs.opentalk.eu/releases/>
 
 ```yaml
 services:
@@ -452,8 +452,8 @@ Recordings should now occur on the external Recorder node.
 
 ## 4 External LiveKit Server integration
 
-The following instructions assume you already have a running LiveKit server installation. To install an LiveKit, follow the official self-hosting guide: [https://docs.livekit.io/home/self-hosting/vm/](https://docs.livekit.io/home/self-hosting/vm/). The examples below assume the public DNS names `livekit.example.com` and `livekit-turn.example.com` resolves to your LiveKit host. Replace these hostnames with your own everywhere it appears.
-Also ensure that your firewall configuration allows the required LiveKit Server ports and protocols (signaling, TURN, media). For details, see: <https://docs.livekit.io/home/self-hosting/ports-firewall/>
+The following instructions assume you already have a running LiveKit server installation. To install an LiveKit, follow the official self-hosting guide: [https://docs.livekit.io/transport/self-hosting/vm/](https://docs.livekit.io/transport/self-hosting/vm/). The examples below assume the public DNS names `livekit.example.com` and `livekit-turn.example.com` resolves to your LiveKit host. Replace these hostnames with your own everywhere it appears.
+Also ensure that your firewall configuration allows the required LiveKit Server ports and protocols (signaling, TURN, media). For details, see: <https://docs.livekit.io/transport/self-hosting/ports-firewall/>
 
 ### 4.1 Gather information about the external LiveKit Server
 

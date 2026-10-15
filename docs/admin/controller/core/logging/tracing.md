@@ -28,7 +28,7 @@ This is not an exhaustive list of the configuration values in the logging sectio
 ## Trace context propagation
 
 The controller uses the
-[W3C Trace Context](https://www.w3.org/TR/trace-context-1) `traceparent` and
+[W3C Trace Context](https://www.w3.org/TR/trace-context-1/) `traceparent` and
 `tracestate` HTTP headers. When OTLP tracing export is enabled, valid context
 received on an HTTP request becomes the parent of the controller request span,
 and internal HTTP requests to other services carry the active context. When OTLP

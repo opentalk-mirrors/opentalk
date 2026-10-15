@@ -36,7 +36,7 @@ default_directives = ["warn", "opentalk_obelisk=info"]
 
 ## Trace context propagation
 
-The Obelisk uses the [W3C Trace Context](https://www.w3.org/TR/trace-context-1)
+The Obelisk uses the [W3C Trace Context](https://www.w3.org/TR/trace-context-1/)
 `traceparent` and `tracestate` HTTP headers. When OTLP tracing export is
 enabled, internal HTTP requests to other services carry the active context, for
 example when a dial-in participant joins. The Obelisk does not accept trace

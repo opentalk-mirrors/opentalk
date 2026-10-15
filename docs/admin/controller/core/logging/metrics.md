@@ -37,7 +37,7 @@ allowlist = ["1.1.1.1", "127.0.0.0/8"]
 
 ## Web-API
 
-The metrics can be accessed via the `/metrics` endpoint in the [OpenMetrics Text Format](https://github.com/OpenObservability/OpenMetrics), which is utilized by [prometheus](https://prometheus.io/docs/instrumenting/exposition_formats/#openmetrics-text-format).
+The metrics can be accessed via the `/metrics` endpoint in the [OpenMetrics Text Format](https://github.com/prometheus/OpenMetrics), which is utilized by [prometheus](https://prometheus.io/docs/instrumenting/exposition_formats/#openmetrics-text-format).
 
 All metrics listed below carry an `otel_scope_name` label: `ot-controller` for metrics originating in the controller itself, `ot-roomserver` for signaling metrics coming from the embedded roomserver.
 The OpenTelemetry Prometheus exporter additionally emits a `target_info` gauge carrying SDK and service metadata (`service_name`, `telemetry_sdk_language`, `telemetry_sdk_name`, `telemetry_sdk_version`).

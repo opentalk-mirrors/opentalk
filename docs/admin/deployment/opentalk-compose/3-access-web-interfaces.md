@@ -65,7 +65,7 @@ MinIO Console to manage buckets, objects, policies and access keys used by OpenT
 
 Login: pass Traefik BasicAuth (see 3.2), then use MinIO credentials — username `minioadmin` (unless changed) and the password from `MINIO_ROOT_PASSWORD` (stored in secrets).
 
-Find more information in the [MinIO documentation](https://docs.min.io/community/minio-object-store/administration/minio-console.html)
+Find more information in the [MinIO documentation](https://docs.min.io/aistor/administration/console/)
 
 #### 2.2.4 Optional: MailCrab Web Interface
 

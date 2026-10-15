@@ -13,7 +13,7 @@ The configuration values for the tracing capabilities are in the `tracing` secti
 ## Trace context propagation
 
 The RoomServer uses the
-[W3C Trace Context](https://www.w3.org/TR/trace-context-1) `traceparent` and
+[W3C Trace Context](https://www.w3.org/TR/trace-context-1/) `traceparent` and
 `tracestate` HTTP headers. When OTLP tracing export is enabled, valid context
 received on an HTTP request becomes the parent of the RoomServer request span,
 and internal HTTP requests to other services carry the active context. When OTLP

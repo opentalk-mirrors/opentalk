@@ -1,6 +1,6 @@
 # Metrics
 
-The {{ product_name }} RoomServer is collecting metrics and can expose them through the `/metrics` endpoint. The metrics can be accessed via the `/metrics` endpoint in the [OpenMetrics Text Format](https://github.com/OpenObservability/OpenMetrics), which is utilized by [prometheus](https://prometheus.io/docs/instrumenting/exposition_formats/#openmetrics-text-format).
+The {{ product_name }} RoomServer is collecting metrics and can expose them through the `/metrics` endpoint. The metrics can be accessed via the `/metrics` endpoint in the [OpenMetrics Text Format](https://github.com/prometheus/OpenMetrics), which is utilized by [prometheus](https://prometheus.io/docs/instrumenting/exposition_formats/#openmetrics-text-format).
 
 ## Configuration
 

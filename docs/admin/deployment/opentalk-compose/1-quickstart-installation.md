@@ -690,7 +690,7 @@ Proceed with the following steps to add the OpenTalk Outlook Add-in in Outlook:
 
 1. Login to your OpenTalk instance
 2. Download the manifest from <https://{{ ot_domain }}/outlook/manifest.xml>
-3. Visit <https://outlook.live.com/owa/?path=/options/manageapps>
+3. Visit <https://outlook.live.com/mail/inclientstore>
 4. Select Add-ins → My add-ins → Add from file
 5. Add the downloaded manifest e.g. `opentalk-outlook.xml`
 

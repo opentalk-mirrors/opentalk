@@ -1,6 +1,6 @@
 # File Storage (MinIO)
 
-The {{ product_name }} Controller uses [MinIO](https://min.io/) as its object storage.
+The {{ product_name }} Controller uses [MinIO](https://www.min.io/) as its object storage.
 
 ## Configuration
 

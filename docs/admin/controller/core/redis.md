@@ -3,7 +3,7 @@
 The {{ product_name }} controller can be run in *standalone* mode, where a single
 `opentalk-controller` provides the web api and signaling service, or it can run
 in a *clustered* mode, where multiple `opentalk-controller` nodes provide
-the service in parallel and synchronize through [Redis](https://redis.com/)
+the service in parallel and synchronize through [Redis](https://redis.io/)
 for caching data related to a video conference session.
 
 Up until version `v0.14` of the `opentalk-controller`, the redis service was
