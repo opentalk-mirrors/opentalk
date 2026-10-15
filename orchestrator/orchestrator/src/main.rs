@@ -13,6 +13,7 @@ use axum::{
     routing::{any, get},
 };
 use clap::Parser;
+use opentalk_roomserver_web_api::v1::rooms;
 use opentalk_service_auth::{ApiKey, ApiKeyId, service::ApiKeys};
 use reqwest::Client;
 use service_probe::{ServiceState, start_probe, stop_probe};
@@ -165,17 +166,23 @@ async fn run_webserver(
 ) -> Result<()> {
     let state = AppState::new(storage, settings.services.keys, settings.http.public_url);
 
-    let app = Router::new()
+    let protected = Router::new()
         .route("/metrics", get(metrics))
         .route("/register", any(register))
-        .layer(settings.http.api_keys.auth_middleware()?)
-        .nest("/livekit", livekit::routes())
-        .nest("/roomserver/v1", roomserver::routes())
+        .nest("/roomserver/v1", rooms::routes())
         .nest("/recording", opentalk_recorder_web_api::v1::routes())
         .nest(
             "/transcription",
             opentalk_transcription_web_api::v1::routes(),
         )
+        .layer(settings.http.api_keys.auth_middleware()?);
+
+    let public = Router::new()
+        .nest("/roomserver/v1", roomserver::signaling::routes())
+        .nest("/livekit", livekit::routes());
+
+    let app = protected
+        .merge(public)
         .with_state(state)
         .fallback(not_found_handler)
         .layer(

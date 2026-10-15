@@ -4,7 +4,7 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use axum::{Router, http::StatusCode};
+use axum::http::StatusCode;
 use bytes::Bytes;
 use opentalk_roomserver_types::{
     api::{RoomServerAccess, TokenRequestBody},
@@ -12,7 +12,7 @@ use opentalk_roomserver_types::{
     room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch,
 };
-use opentalk_roomserver_web_api::v1::{RoomAction, RoomBackend, rooms};
+use opentalk_roomserver_web_api::v1::{RoomAction, RoomBackend};
 use opentalk_types_api_common::error::{ApiError, ErrorBody};
 use opentalk_types_common::rooms::RoomId;
 use reqwest::header::AUTHORIZATION;
@@ -24,12 +24,6 @@ use crate::{
 };
 
 pub mod signaling;
-
-pub fn routes() -> Router<AppState> {
-    Router::new()
-        .merge(signaling::routes())
-        .merge(rooms::routes())
-}
 
 #[async_trait]
 impl RoomBackend for AppState {
