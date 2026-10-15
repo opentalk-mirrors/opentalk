@@ -157,12 +157,18 @@ where
                         .get::<MatchedPath>()
                         .map(MatchedPath::as_str);
 
-                    info_span!(
+                    let span = info_span!(
                         "http_request",
                         http.request.method = ?request.method(),
                         http.route = matched_path,
                         http.status_code = tracing::field::Empty,
-                    )
+                        otel.kind = "server",
+                    );
+                    opentalk_tracing::propagation::set_parent_from_headers(
+                        &span,
+                        request.headers(),
+                    );
+                    span
                 })
                 .on_response(|response: &Response<_>, _duration, span: &Span| {
                     span.record(

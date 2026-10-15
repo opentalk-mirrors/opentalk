@@ -123,6 +123,18 @@ impl Client {
         Ok(format!("Bearer {}", self.api_key.generate_jwt()?).parse()?)
     }
 
+    fn request(&self, method: reqwest::Method, url: Url) -> reqwest::RequestBuilder {
+        let request = self.reqwest_client.request(method, url);
+
+        #[cfg(feature = "opentalk-trace-propagation")]
+        {
+            request.headers(opentalk_tracing::propagation::current_context_headers())
+        }
+
+        #[cfg(not(feature = "opentalk-trace-propagation"))]
+        request
+    }
+
     #[tracing::instrument(skip(self, parameters))]
     pub async fn put_room(
         &self,
@@ -131,8 +143,7 @@ impl Client {
     ) -> Result<(), Error<PutRoomError>> {
         let url = self.base_url.join(&format!("v1/rooms/{room_id}"))?;
         let response = self
-            .reqwest_client
-            .put(url)
+            .request(reqwest::Method::PUT, url)
             .header(AUTHORIZATION, self.auth_header()?)
             .json(&parameters)
             .send()
@@ -156,8 +167,7 @@ impl Client {
     ) -> Result<(), Error<PatchRoomError>> {
         let url = self.base_url.join(&format!("v1/rooms/{room_id}"))?;
         let response = self
-            .reqwest_client
-            .patch(url)
+            .request(reqwest::Method::PATCH, url)
             .header(AUTHORIZATION, self.auth_header()?)
             .json(&patch)
             .send()
@@ -177,8 +187,7 @@ impl Client {
     pub async fn delete_room(&self, room_id: RoomId) -> Result<(), Error<DeleteRoomError>> {
         let url = self.base_url.join(&format!("v1/rooms/{room_id}"))?;
         let response = self
-            .reqwest_client
-            .delete(url)
+            .request(reqwest::Method::DELETE, url)
             .header(AUTHORIZATION, self.auth_header()?)
             .send()
             .await?;
@@ -203,8 +212,7 @@ impl Client {
             .base_url
             .join(&format!("v1/user/{user_id}/storage_quota"))?;
         let response = self
-            .reqwest_client
-            .post(url)
+            .request(reqwest::Method::POST, url)
             .header(AUTHORIZATION, self.auth_header()?)
             .json(&quota)
             .send()
@@ -229,8 +237,7 @@ impl Client {
     ) -> Result<RoomServerAccess, Error<RequestTokenError>> {
         let url = self.base_url.join(&format!("v1/rooms/{room_id}/token"))?;
         let response = self
-            .reqwest_client
-            .post(url)
+            .request(reqwest::Method::POST, url)
             .header(AUTHORIZATION, &self.auth_header()?)
             .json(&TokenRequestBody {
                 client_parameters,

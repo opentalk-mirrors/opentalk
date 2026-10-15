@@ -5,13 +5,20 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
-use axum::{Router, response::IntoResponse, routing::get};
+use axum::{
+    Router,
+    extract::{MatchedPath, Request},
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
+    routing::get,
+};
 use futures::future::join_all;
 use opentalk_orchestrator_client::client::OrchestratorHandle;
 use opentalk_transcription_web_api::v1;
 use reqwest::StatusCode;
 use service_probe::{ServiceState, set_service_state};
 use tokio::{net::TcpListener, time::timeout};
+use tracing::Instrument as _;
 
 use crate::{
     AppState, TranscriptionTasks, metrics::PrometheusState, settings::Settings,
@@ -59,7 +66,8 @@ pub(crate) async fn run_web_server(
             "/model",
             get(async move || transcription_model_name.clone()),
         )
-        .with_state(app_state.clone());
+        .with_state(app_state.clone())
+        .layer(middleware::from_fn(trace_request));
 
     let listener = TcpListener::bind((addr, port))
         .await
@@ -106,6 +114,28 @@ pub(crate) async fn run_web_server(
     }
 
     Ok(())
+}
+
+async fn trace_request(request: Request, next: Next) -> Response {
+    let matched_path = request
+        .extensions()
+        .get::<MatchedPath>()
+        .map(MatchedPath::as_str);
+    let span = tracing::info_span!(
+        "http_request",
+        http.request.method = ?request.method(),
+        http.route = matched_path,
+        http.status_code = tracing::field::Empty,
+        otel.kind = "server",
+    );
+    opentalk_tracing::propagation::set_parent_from_headers(&span, request.headers());
+
+    let response = next.run(request).instrument(span.clone()).await;
+    span.record(
+        "http.status_code",
+        tracing::field::display(response.status()),
+    );
+    response
 }
 
 fn metrics_endpoint(prometheus_state: Arc<PrometheusState>) -> impl IntoResponse {

@@ -73,6 +73,7 @@ impl AssetStorageProvider for ControllerAssetStorage {
                     .context("Invalid URL")?,
             )
             .bearer_auth(token)
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .body(Body::wrap_stream(asset))
             .header(CONTENT_TYPE, "application/octet-stream")
             .query(&query)

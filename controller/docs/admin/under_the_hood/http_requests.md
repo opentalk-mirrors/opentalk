@@ -42,8 +42,12 @@ will not be modified.
 
 The [tracing logger](https://docs.rs/tracing-actix-web/latest/tracing_actix_web/struct.TracingLogger.html)
 middleware captures structured request and response information and passes it on
-to the configured tracing subscriber. It does not apply any modifications to
-the request.
+to the configured tracing subscriber. When OTLP tracing export is enabled, a valid
+[W3C `traceparent` and optional `tracestate`](https://www.w3.org/TR/trace-context-1/)
+header become the parent context of the
+request span, and invalid trace context is ignored so a new trace is started. When
+OTLP tracing is disabled (the default), these headers are ignored and never parsed.
+The middleware does not modify the request headers.
 
 ### CORS enforcement middleware
 

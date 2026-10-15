@@ -53,6 +53,8 @@ tokio = { workspace = true, features = [
   "time",
 ] }
 tokio-stream = { workspace = true, features = ["sync"] }
+tower-http = { workspace = true, features = ["trace"] }
+tracing.workspace = true
 urlencoding.workspace = true
 
 # Required for roomserver-client

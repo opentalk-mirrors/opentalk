@@ -7,7 +7,7 @@ use std::{net::SocketAddr, sync::Arc};
 use anyhow::{Context, Result};
 use axum::{
     Json, Router,
-    extract::{ConnectInfo, OriginalUri, State, WebSocketUpgrade},
+    extract::{ConnectInfo, MatchedPath, OriginalUri, Request, State, WebSocketUpgrade},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{any, get},
@@ -23,6 +23,7 @@ use tokio::{
         unix::{SignalKind, signal},
     },
 };
+use tower_http::trace::TraceLayer;
 use url::Url;
 
 use crate::{
@@ -177,6 +178,34 @@ async fn run_webserver(
         )
         .with_state(state)
         .fallback(not_found_handler)
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(|request: &Request<_>| {
+                    let matched_path = request
+                        .extensions()
+                        .get::<MatchedPath>()
+                        .map(MatchedPath::as_str);
+
+                    let span = tracing::info_span!(
+                        "http_request",
+                        http.request.method = ?request.method(),
+                        http.route = matched_path,
+                        http.status_code = tracing::field::Empty,
+                        otel.kind = "server",
+                    );
+                    opentalk_tracing::propagation::set_parent_from_headers(
+                        &span,
+                        request.headers(),
+                    );
+                    span
+                })
+                .on_response(|response: &Response<_>, _duration, span: &tracing::Span| {
+                    span.record(
+                        "http.status_code",
+                        tracing::field::display(response.status()),
+                    );
+                }),
+        )
         .into_make_service_with_connect_info::<SocketAddr>();
 
     let address = format!("{}:{}", settings.http.address, settings.http.port);

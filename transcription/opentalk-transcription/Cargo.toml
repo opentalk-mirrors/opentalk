@@ -49,6 +49,7 @@ service-probe.workspace = true
 service-probe-client.workspace = true
 sysinfo.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
+tracing.workspace = true
 whisper-rs = { workspace = true, features = ["tracing_backend"] }
 
 [dev-dependencies]

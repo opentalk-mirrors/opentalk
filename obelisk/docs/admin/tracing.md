@@ -33,3 +33,18 @@ service_name = "obelisk"
 service_namespace = "opentalk"
 default_directives = ["warn", "opentalk_obelisk=info"]
 ```
+
+## Trace context propagation
+
+The Obelisk uses the [W3C Trace Context](https://www.w3.org/TR/trace-context-1)
+`traceparent` and `tracestate` HTTP headers. When OTLP tracing export is
+enabled, internal HTTP requests to other services carry the active context, for
+example when a dial-in participant joins. The Obelisk does not accept trace
+context from incoming requests. When OTLP tracing is disabled (the default),
+these headers are not emitted.
+
+Configure all {{ product_name }} services to export to the same collector or
+tracing backend to display their spans as one trace in tools such as Jaeger.
+Propagation currently covers HTTP traffic between these services. Services
+without OTLP tracing export terminate the visible trace, even when they receive
+a `traceparent` header.

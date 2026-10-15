@@ -177,6 +177,7 @@ impl HttpClient {
             .http_client
             .post(url)
             .bearer_auth(token.secret())
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .json(&PostRoomsRoomserverStartRequestBody {
                 device_secret: self.device_secret.clone(),
                 password: None,
@@ -233,6 +234,7 @@ impl HttpClient {
             .http_client
             .post(controller_url)
             .bearer_auth(token.secret())
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .json(&RecordingTarget {
                 room_id,
                 breakout_room: breakout_id.map(BreakoutId::into),
@@ -273,6 +275,7 @@ impl HttpClient {
             .http_client
             .post(url)
             .bearer_auth(token.secret())
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .json(&PostCallInStartRoomServerRequestBody { id, pin })
             .send()
             .await?;
@@ -319,6 +322,7 @@ impl HttpClient {
                     page: Page::from_i64_clamped(page),
                 })
                 .bearer_auth(token.secret())
+                .headers(opentalk_tracing::propagation::current_context_headers())
                 .send()
                 .await?;
 
@@ -368,6 +372,7 @@ impl HttpClient {
             .http_client
             .post(url)
             .bearer_auth(token.secret())
+            .headers(opentalk_tracing::propagation::current_context_headers())
             .json(&PostRoomsRequestBody {
                 name,
                 password,
