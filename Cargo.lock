@@ -11032,6 +11032,7 @@ dependencies = [
  "temp-env",
  "textplots",
  "tokio",
+ "tracing",
  "whisper-rs",
 ]
 
