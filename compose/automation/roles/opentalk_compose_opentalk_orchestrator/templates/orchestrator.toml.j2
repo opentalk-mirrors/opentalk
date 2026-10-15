@@ -10,3 +10,10 @@ api_keys = [{ id = "{{ orchestrator_api_key_id }}", secret = "{{ ORCHESTRATOR_AP
 
 [services]
 keys = [{ id = "{{ orchestrator_services_key_id }}", secret = "{{ ROOMSERVER_API_SECRET }}" }]
+
+[storage]
+# The storage backend used to keep track of registered service instances.
+kind = "{{ orchestrator_storage_kind }}"
+{% if orchestrator_storage_redis_url is defined %}
+url = "{{ orchestrator_storage_redis_url }}"
+{% endif %}

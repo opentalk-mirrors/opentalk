@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-10-05
+Last updated: 2026-10-15
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -668,6 +668,7 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `orchestrator_logging_default_directives` | string | `orchestrator=info` |
 | `orchestrator_public_url` | string | `{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) \| build_url }}` |
 | `orchestrator_services_key_id` | string | `roomserver` |
+| `orchestrator_storage_kind` | string | `local` |
 
 ## opentalk_compose_opentalk_outlook_add_in
 

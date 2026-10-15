@@ -46,6 +46,7 @@ No Docker, no network. Discovered automatically by filename pattern `test_*.sh` 
 | `test_opentalk_keycloak_permanent_admin.sh` | permanent admin contract |
 | `test_opentalk_keycloak_realm_export_sanitize.sh` | realm export sanitizer, `jq` assertions |
 | `test_opentalk_migrations.sh` | migration detection, deploy guard and `otctl migrate status` |
+| `test_opentalk_orchestrator_storage_config.sh` | regression: rendered `orchestrator.toml` always has a `[storage]` section |
 | `test_opentalk_otctl_smoke.sh` | `otctl` CLI flows against a fake `OT_PREFIX` |
 | `test_opentalk_packaging_common_lib.sh` | functions in `extras/packaging/lib/common.sh` |
 | `test_opentalk_packaging_maintainer_scripts.sh` | `pkg-postinst.sh`, `pkg-postrm.sh`, `pkg-prerm.sh` |

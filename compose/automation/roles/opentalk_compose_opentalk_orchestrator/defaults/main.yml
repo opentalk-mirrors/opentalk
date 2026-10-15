@@ -28,3 +28,8 @@ orchestrator_api_key_id: "orchestrator"
 orchestrator_services_key_id: "roomserver"
 
 orchestrator_logging_default_directives: "orchestrator=info"
+
+# The storage backend for the orchestrator's service registry.
+# "local" keeps state in memory and only works for a single orchestrator.
+# "redis" requires orchestrator_storage_redis_url to be set.
+orchestrator_storage_kind: "local"
