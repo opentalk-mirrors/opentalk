@@ -191,7 +191,6 @@ impl Metrics {
             ParticipationKind::Recorder => "recorder",
             ParticipationKind::Transcription => "transcription",
             ParticipationKind::CallIn => "call_in",
-            ParticipationKind::RegisteredCallIn => "registered_call_in",
         };
 
         gauge!(CONNECTION_COUNT, PARTICIPATION_KIND => kind, SCOPE_KEY => SCOPE_VALUE)

@@ -105,11 +105,6 @@ impl Settings {
         self.call_in().map(|call_in| call_in.tel())
     }
 
-    /// Returns the call-in enable phone number mapping of this [`Settings`].
-    pub fn call_in_enable_phone_number_mapping(&self) -> Option<bool> {
-        self.call_in().map(|call_in| call_in.enable_phone_mapping())
-    }
-
     /// Returns the call-in mask unmapped numbers of this [`Settings`].
     pub fn call_in_mask_unmapped_numbers(&self) -> Option<bool> {
         self.call_in()

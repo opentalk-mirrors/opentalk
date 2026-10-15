@@ -12,7 +12,7 @@ obelisk-xtask = "run --package obelisk-xtask --"
 # which enables all CPU features available by the building host system
 #
 # We're targeting the `x86-64-v3` architecture,
-# which theres no single option for, so set all 
+# which theres no single option for, so set all
 # configurable CPU features manually below.
 
 GGML_NATIVE = "OFF"

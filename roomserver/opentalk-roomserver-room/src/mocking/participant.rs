@@ -509,22 +509,9 @@ impl<S> MockParticipant<S> {
         }
     }
 
-    pub fn richard_registered_callin(
-        device_number: usize,
-    ) -> MockParticipantBuilder<RegisteredCallIn> {
+    pub fn richard_call_in(device_number: usize) -> MockParticipantBuilder<CallIn> {
         MockParticipantBuilder {
-            profile: RegisteredCallIn(PublicUserProfile {
-                id: UserId::from_u128(0x91c4a9d),
-                email: "richard@example.com".to_string(),
-                user_info: UserInfo {
-                    title: "".parse().expect("Valid title"),
-                    firstname: "Richard".to_string(),
-                    lastname: "Rotauge".to_string(),
-                    display_name: "Richard the reckless".parse().expect("Valid DisplayName"),
-                    avatar_url: "https://example.com/avatar-of-richard".to_string(),
-                },
-                timezone: TimeZone::example_data(),
-            }),
+            profile: CallIn("+49 30 12345678".parse().expect("Valid DisplayName")),
             role: Role::User,
             secret: DeviceSecret::from_str(&format!("Richard Device Secret {device_number}"))
                 .expect("Valid device secret"),
@@ -1013,19 +1000,17 @@ impl MockParticipantBuilder<DisplayName> {
 }
 
 // Call-in builder
-pub struct RegisteredCallIn(PublicUserProfile);
+pub struct CallIn(DisplayName);
 
-impl MockParticipantBuilder<RegisteredCallIn> {
+impl MockParticipantBuilder<CallIn> {
     pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
         room.join_participant(
             ClientParameters {
                 device_secret: self.secret,
-                kind: ClientKind::RegisteredCallIn {
-                    profile: self.profile.0,
-                },
+                kind: ClientKind::CallIn,
                 role: self.role,
             },
-            None,
+            Some(self.profile.0),
         )
         .await
     }

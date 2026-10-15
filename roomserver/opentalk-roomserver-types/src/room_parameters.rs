@@ -229,9 +229,7 @@ impl WaitingRoom {
     fn min_strictness(kind: &ClientKind) -> Option<WaitingRoom> {
         match kind {
             ClientKind::Registered { .. } => Some(WaitingRoom::ForEveryone),
-            ClientKind::Guest | ClientKind::CallIn | ClientKind::RegisteredCallIn { .. } => {
-                Some(WaitingRoom::ForGuests)
-            }
+            ClientKind::Guest | ClientKind::CallIn => Some(WaitingRoom::ForGuests),
             ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => None,
         }
     }
@@ -413,12 +411,6 @@ mod tests {
         }
     }
 
-    fn registered_call_in() -> ClientKind {
-        ClientKind::RegisteredCallIn {
-            profile: PublicUserProfile::example_data(),
-        }
-    }
-
     fn recorder() -> ClientKind {
         ClientKind::Recorder {
             room: RoomKind::Main,
@@ -438,7 +430,6 @@ mod tests {
         assert!(!waiting_room.applies_to(&registered()));
         assert!(!waiting_room.applies_to(&ClientKind::Guest));
         assert!(!waiting_room.applies_to(&ClientKind::CallIn));
-        assert!(!waiting_room.applies_to(&registered_call_in()));
         assert!(!waiting_room.applies_to(&recorder()));
         assert!(!waiting_room.applies_to(&transcription()));
     }
@@ -450,7 +441,6 @@ mod tests {
         assert!(!waiting_room.applies_to(&registered()));
         assert!(waiting_room.applies_to(&ClientKind::Guest));
         assert!(waiting_room.applies_to(&ClientKind::CallIn));
-        assert!(waiting_room.applies_to(&registered_call_in()));
         assert!(!waiting_room.applies_to(&recorder()));
         assert!(!waiting_room.applies_to(&transcription()));
     }
@@ -462,7 +452,6 @@ mod tests {
         assert!(waiting_room.applies_to(&registered()));
         assert!(waiting_room.applies_to(&ClientKind::Guest));
         assert!(waiting_room.applies_to(&ClientKind::CallIn));
-        assert!(waiting_room.applies_to(&registered_call_in()));
         assert!(!waiting_room.applies_to(&recorder()));
         assert!(!waiting_room.applies_to(&transcription()));
     }
@@ -479,10 +468,6 @@ mod tests {
         );
         assert_eq!(
             WaitingRoom::Disabled.raise_to_include(&ClientKind::CallIn),
-            WaitingRoom::ForGuests
-        );
-        assert_eq!(
-            WaitingRoom::Disabled.raise_to_include(&registered_call_in()),
             WaitingRoom::ForGuests
         );
         // Services don't raise the waiting room, as they are never subject to it

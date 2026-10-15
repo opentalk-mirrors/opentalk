@@ -134,7 +134,7 @@ async fn user_cannot_be_moderator() {
     let mut alice = room.join_alice_moderator(0).await;
     let mut gustav = room.join_gustav_guest().await;
     flush_connected_events(&mut [&mut alice]).await;
-    let richard = room.join_richard_registered_callin(0).await;
+    let richard = room.join_richard_call_in(0).await;
     flush_connected_events(&mut [&mut alice, &mut gustav]).await;
 
     // Alice tries to change the role of Gustav to a moderator

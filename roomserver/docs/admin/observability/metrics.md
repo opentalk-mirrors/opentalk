@@ -25,7 +25,7 @@ By default the `/metrics` endpoint is disabled. It can be enabled, by adding the
 | signaling_destroyed_rooms_count          | counter   |                          | Number of destroyed rooms                                                             |
 | signaling_created_breakout_rooms_count   | counter   |                          | Number of created breakout rooms                                                      |
 | signaling_destroyed_breakout_rooms_count | counter   |                          | Number of destroyed breakout rooms                                                    |
-| signaling_connection_count               | gauge     | participation_kind       | Number of connections by kind (user, guest, recorder, call_in, registered_call_in)    |
+| signaling_connection_count               | gauge     | participation_kind       | Number of connections by kind (user, guest, recorder, call_in)                        |
 | signaling_connections_per_room           | gauge     | bucket                   | Connections per room by bucket (2, 10, 25, 50, 100, 200, 300)                         |
 | signaling_connection_meeting_time        | histogram |                          | Time a connection was connected to a meeting room                                     |
 | signaling_room_life_time                 | histogram |                          | Time rooms were active                                                                |
