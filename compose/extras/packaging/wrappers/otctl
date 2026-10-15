@@ -1,0 +1,941 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+set -euo pipefail
+
+PREFIX="${OT_PREFIX:-/opt/opentalk-compose}"
+RUNTIME="$PREFIX/runtime"
+AUTOMATION="$PREFIX/automation"
+VENV_BIN="$RUNTIME/venv/bin"
+VENDOR="$RUNTIME/vendor/collections"
+WRAPPER_DIR="$PREFIX/bin"
+SERVICES_DIR="${OT_SERVICES_DIR:-$PREFIX/services}"
+COMPOSE_CMD="${DOCKER_CMD:-docker}"
+
+# Prefer docker; fallback to podman (compose plugin assumed installed)
+if ! command -v "$COMPOSE_CMD" >/dev/null 2>&1; then
+  if command -v docker >/dev/null 2>&1; then COMPOSE_CMD=docker; elif command -v podman >/dev/null 2>&1; then COMPOSE_CMD=podman; fi
+fi
+
+log_cmd() {
+  # Print command in reproducible shell-escaped form
+  printf '[otctl] +'
+  for c in "$@"; do
+    if [[ "$c" == *","* ]]; then
+      printf ' %s' "$c"
+    else
+      printf ' %q' "$c"
+    fi
+  done
+  printf '\n'
+}
+
+PLAYBOOK_WRAPPER() { log_cmd "$WRAPPER_DIR/ot-ansible-playbook" "$@"; "$WRAPPER_DIR/ot-ansible-playbook" "$@"; }
+
+usage() {
+  local c_hdr="" c_reset=""
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ -z "${OTCTL_NO_COLOR:-}" ]; then
+  c_hdr=$'\e[1;94m'; c_reset=$'\e[0m'
+  fi
+  cat <<EOF
+
+                ${c_hdr}OpenTalk Control (otctl)${c_reset}
+
+Unified control wrapper for OpenTalk automation & compose.
+
+Subcommands (most used first):
+  status      Show service status summary
+  logs        Show container logs (passes remaining args to compose logs)
+  restart     Restart all or selected containers
+  recreate    Force recreate (up -d --force-recreate) all or selected containers
+  tags        List available ansible tags for main playbook
+  deploy      Run main deployment playbook
+  undeploy    Run undeploy playbook (removes deployed containers, volumes, networks)
+  backup      Run backup role (modes: backup [default], dump, cron, ls)
+              Sub-modes:
+                all           -> --tags backup
+                dump          -> run all DB dump tasks (controller + keycloak) (tags: controller_db_dump,keycloak_db_dump)
+                dump controller -> only controller DB dump (tag: controller_db_dump)
+                dump keycloak -> only keycloak DB dump (tag: keycloak_db_dump)
+                config        -> only config backup (tag: config_backup)
+                  volume [NAME] -> backup all volumes or a single volume NAME
+                ls            -> list existing backups
+                clean         -> retention prune (tag: backup_retention)
+                (no arg)      -> this help
+  restore     Restore data from backups (DESTRUCTIVE - requires confirmation)
+              Sub-modes:
+                all                -> config + controller DB + keycloak DB + volumes (tags: restore)
+                controller-db [FILE] -> controller DB SQL dump (tag: controller_db_restore)
+                keycloak-db [FILE]   -> keycloak DB SQL dump (tag: keycloak_db_restore)
+                config [FILE]        -> config archive (tag: config_restore)
+                volume [NAME]        -> all volumes or a single volume NAME (tag: docker_volumes_restore)
+                ls                   -> list existing backup artifacts
+              Options:
+                --yes           -> skip interactive confirmation
+              Note: [FILE] defaults to the newest matching artifact
+  up          Shortcut for compose up -d
+  down        Shortcut for compose down
+  ps          Shortcut for compose ps
+  volumes     List or remove compose project volumes (rm <v...> | prune --force)
+  migrate     Run or review data migrations that a release or a provider change needs
+              Sub-commands:
+                status           -> list migrations that block 'otctl deploy'
+                postgres         -> move the databases to the PostgreSQL major of this release
+                minio-to-garage  -> copy all objects from MinIO to Garage, update settings.yml
+                garage-to-minio  -> copy all objects from Garage to MinIO, update settings.yml
+              Options:
+                --yes            -> skip interactive confirmation
+                --no-deploy      -> skip automatic deploy after migration
+  import      Import data into OpenTalk / Keycloak
+              Sub-commands:
+                users          -> bulk-import users from a CSV or JSON file
+              Options:
+                --users-file=<PATH>      -> path to CSV or JSON file (required)
+                --no-temporary           -> do not force password change on first login
+                --password-reset-email   -> send password reset email to all users
+                --default-password=<PW>  -> fallback password for users without one
+                --password-length=<N>    -> length of auto-generated passwords (default: 20)
+  version     Show detected component versions
+  compose     Run docker compose (passthrough)
+  playbook    Run ansible-playbook (advanced)
+
+Environment:
+  OT_PREFIX            Install root (default /opt/opentalk-compose)
+  OT_COMPOSE_PROJECT   Compose project name override
+  OT_COMPOSE_FILES     (Unused now; single compose.yml enforced)
+  DOCKER_CMD           Override docker/podman executable
+  NO_COLOR / OTCTL_NO_COLOR  Disable colors
+
+Examples:
+  otctl status
+  otctl restart controller
+  otctl recreate # force-recreate everything
+  otctl deploy --tags controller
+  otctl version
+  otctl compose exec controller bash
+
+EOF
+}
+
+usage_short() {
+  local c_hdr="" c_reset=""
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ -z "${OTCTL_NO_COLOR:-}" ]; then
+    c_hdr=$'\e[1;94m'; c_reset=$'\e[0m'
+  fi
+  cat <<EOF
+${c_hdr}otctl${c_reset} status|logs|restart|recreate|undeploy|tags|deploy|backup|restore|up|down|ps|volumes|import|version|compose|playbook
+Hint: run 'otctl help' for details.
+EOF
+}
+
+[ -x "$VENV_BIN/ansible" ] || { echo "[otctl] ansible runtime missing under $VENV_BIN" >&2; exit 1; }
+
+# Collections path wiring (replicate logic from existing wrappers)
+if [ -z "${ANSIBLE_COLLECTIONS_PATHS:-}" ]; then
+  cfg_paths=""
+  if [ -f "$AUTOMATION/ansible.cfg" ]; then
+    cfg_paths="$(awk -F= '/^[[:space:]]*collections_path[s]?[[:space:]]*=/{v=$2;gsub(/^[[:space:]]+|[[:space:]]+$/,"",v);print v;exit}' "$AUTOMATION/ansible.cfg")"
+  fi
+  if [ -d "$VENDOR/ansible_collections" ]; then
+    case ":$cfg_paths:" in
+      *":$VENDOR:"*) ANSIBLE_COLLECTIONS_PATHS="$cfg_paths" ;;
+      "::") ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$HOME/.ansible/collections:/usr/share/ansible/collections" ;;
+      *) ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$cfg_paths" ;;
+    esac
+  else
+    [ -n "$cfg_paths" ] && ANSIBLE_COLLECTIONS_PATHS="$cfg_paths"
+  fi
+  [ -n "${ANSIBLE_COLLECTIONS_PATHS:-}" ] && export ANSIBLE_COLLECTIONS_PATHS
+fi
+export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$AUTOMATION/ansible.cfg}"
+export PYTHONDONTWRITEBYTECODE=1
+
+subcmd="${1:-}"; if [ $# -gt 0 ]; then shift; fi
+
+resolve_compose_files() {
+  # Enforced single compose file path.
+  local f="$PREFIX/compose.yml"
+  if [ ! -f "$f" ]; then
+    echo "[otctl] compose file not found: $f" >&2
+    return 2
+  fi
+  echo "$f"
+}
+
+compose_exec() {
+  local files; read -r -a files <<<"$(resolve_compose_files)"
+  if [ ${#files[@]} -eq 0 ]; then
+    echo "[otctl] No compose files found (set OT_COMPOSE_FILES)." >&2; return 1
+  fi
+  local args=()
+  for f in "${files[@]}"; do args+=( -f "$f" ); done
+  local project_flag=()
+  [ -n "${OT_COMPOSE_PROJECT:-}" ] && project_flag=( -p "$OT_COMPOSE_PROJECT" )
+  local full=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" "$@")
+  log_cmd "${full[@]}"
+  "${full[@]}"
+}
+
+list_services() {
+  # Enforced single compose file path.
+  local files; read -r -a files <<<"$(resolve_compose_files)" || return 1
+  local args=()
+  for f in "${files[@]}"; do args+=( -f "$f" ); done
+  local project_flag=()
+  [ -n "${OT_COMPOSE_PROJECT:-}" ] && project_flag=( -p "$OT_COMPOSE_PROJECT" )
+
+  local rows=()  # triples: service state health
+  local max_svc=0 max_state=0
+
+  # Try JSON (compose v2.21+)
+  local cmd_json=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" ps --format json)
+  log_cmd "${cmd_json[@]}"
+  local out_json
+  out_json="$("${cmd_json[@]}" 2>/dev/null || true)"
+  if [ -n "$out_json" ] && [[ $out_json == \[* ]]; then
+    if command -v jq >/dev/null 2>&1; then
+      while IFS=$'\t' read -r svc state health; do
+        [ -z "$svc" ] && continue
+        [ -z "$health" ] && health="n/a"
+        rows+=("$svc" "$state" "$health")
+        (( ${#svc} > max_svc )) && max_svc=${#svc}
+        (( ${#state} > max_state )) && max_state=${#state}
+      done < <(echo "$out_json" | jq -r '.[] | "\(.Service)\t\(.State)\t\(.Health // "")"' 2>/dev/null || true)
+    elif command -v python3 >/dev/null 2>&1; then
+      while IFS=$'\t' read -r svc state health; do
+        [ -z "$svc" ] && continue
+        [ -z "$health" ] && health="n/a"
+        rows+=("$svc" "$state" "$health")
+        (( ${#svc} > max_svc )) && max_svc=${#svc}
+        (( ${#state} > max_state )) && max_state=${#state}
+      done < <(python3 - <<'PY' "$out_json"
+import sys,json
+for o in json.loads(sys.argv[1]):
+    print(f"{o.get('Service','')}\t{o.get('State','')}\t{o.get('Health','')}")
+PY
+      )
+    fi
+  fi
+
+  # Fallback (go template)
+  if [ ${#rows[@]} -eq 0 ]; then
+    local cmd_tpl=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" ps --format '{{.Service}}\t{{.State}}\t{{.Health}}')
+    log_cmd "${cmd_tpl[@]}"
+    local out_tpl
+    out_tpl="$("${cmd_tpl[@]}" 2>/dev/null || true)"
+    if [ -n "$out_tpl" ]; then
+      while IFS=$'\t' read -r svc state health; do
+        [ -z "$svc" ] && continue
+        [ -z "$health" ] && health="n/a"
+        rows+=("$svc" "$state" "$health")
+        (( ${#svc} > max_svc )) && max_svc=${#svc}
+        (( ${#state} > max_state )) && max_state=${#state}
+      done <<<"$out_tpl"
+    fi
+  fi
+
+  # Last resort: parse table + inspect
+  if [ ${#rows[@]} -eq 0 ]; then
+    local cmd_tab=("$COMPOSE_CMD" compose "${args[@]}" "${project_flag[@]}" ps)
+    log_cmd "${cmd_tab[@]}"
+    local out_tab
+    out_tab="$("${cmd_tab[@]}" 2>/dev/null || true)"
+    local cnames
+    cnames="$(echo "$out_tab" | awk 'NR>1 && NF>0 {print $1}')"
+    while read -r cname; do
+      [ -z "$cname" ] && continue
+      local svc="$cname"
+      if [[ "$svc" == *_* ]]; then
+        svc="${svc#*_}"; svc="${svc%_*}"
+      fi
+      local state="unknown"
+      if docker inspect "$cname" >/dev/null 2>&1; then
+        state="$(docker inspect -f '{{.State.Status}}' "$cname" 2>/dev/null || echo unknown)"
+      fi
+      local health="n/a"
+      if docker inspect "$cname" >/dev/null 2>&1; then
+        health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$cname" 2>/dev/null)"
+        [ -z "$health" ] && health="n/a"
+      fi
+      rows+=("$svc" "$state" "$health")
+      (( ${#svc} > max_svc )) && max_svc=${#svc}
+      (( ${#state} > max_state )) && max_state=${#state}
+    done <<<"$cnames"
+  fi
+
+  if [ ${#rows[@]} -eq 0 ]; then
+    echo "(no services)"
+    return 0
+  fi
+
+  printf '%-*s  %-*s  %s\n' "$max_svc" SERVICE "$max_state" STATE HEALTH
+  local i=0
+  while [ $i -lt ${#rows[@]} ]; do
+    local svc=${rows[$i]} state=${rows[$((i+1))]} health=${rows[$((i+2))]}
+    printf '%-*s  %-*s  %s\n' "$max_svc" "$svc" "$max_state" "$state" "$health"
+    i=$(( i + 3 ))
+  done
+}
+
+print_versions() {
+  # Show entries from .versions.yml; color only product version value.
+  local versions_file="$PREFIX/.versions.yml"
+  local color_product="" color_reset=""
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ -z "${OTCTL_NO_COLOR:-}" ]; then
+    color_product=$'\e[1;95m'
+    color_reset=$'\e[0m'
+  fi
+  echo "otctl version info:"
+  local product_version=""
+  local comp_keys=() comp_vals=()
+  if [ -f "$versions_file" ]; then
+    while IFS= read -r line; do
+  line="${line%%"$(printf '\r')"}"
+      case "$line" in ''|'#'*) continue ;; esac
+      [[ $line != *:* ]] && continue
+      local key="${line%%:*}" val="${line#*:}"
+      key="${key%%[[:space:]]*}"; key="${key##[[:space:]]*}" # defensive
+      # Trim spaces around val
+      val="${val# }"; val="${val%%[[:space:]]}"
+      if [[ $key == opentalk_product_version ]]; then
+        product_version="$val"; continue
+      fi
+      if [[ $key == *_version ]]; then
+        local base="${key%_version}"; base="${base//_/-}"
+        comp_keys+=("$base")
+        comp_vals+=("$val")
+      fi
+    done < "$versions_file"
+  fi
+  if [ -n "$product_version" ]; then
+    printf 'OpenTalk Product Version: %s%s%s\n' "$color_product" "$product_version" "$color_reset"
+  fi
+  # Installed Debian package version (if available)
+  local pkg_version=""
+  local pkg_arch=""
+  if command -v dpkg-query >/dev/null 2>&1; then
+    pkg_version="$(dpkg-query -W -f='${Version}' opentalk-compose 2>/dev/null || true)"
+    pkg_arch="$(dpkg-query -W -f='${Architecture}' opentalk-compose 2>/dev/null || true)"
+  fi
+  if [ -n "$pkg_version" ]; then
+    if [ -n "$pkg_arch" ]; then
+      echo "Package: opentalk-compose_${pkg_version}_${pkg_arch}"
+    else
+      echo "Package: opentalk-compose_${pkg_version}"
+    fi
+  fi
+  if [ ${#comp_keys[@]} -gt 0 ]; then
+    echo "Components:"
+    local prefixed="" others="" i k v
+    for i in "${!comp_keys[@]}"; do
+      k="${comp_keys[$i]}"; v="${comp_vals[$i]}"
+      if [[ $k == opentalk-* ]]; then
+        prefixed+="$k\t$v\n"
+      else
+        others+="$k\t$v\n"
+      fi
+    done
+    # Sort each group
+    local sorted_pref="" sorted_oth=""
+    [ -n "$prefixed" ] && sorted_pref="$(printf '%b' "$prefixed" | sort -k1,1)"
+    [ -n "$others" ] && sorted_oth="$(printf '%b' "$others" | sort -k1,1)"
+    # Ensure newline separator between groups when both present (command substitution trims trailing newlines)
+    local merged="${sorted_pref}"
+    if [ -n "$sorted_pref" ] && [ -n "$sorted_oth" ]; then
+      merged+=$'\n'
+    fi
+    merged+="$sorted_oth"
+    local max=0
+    while IFS=$'\t' read -r n v; do
+      [ -z "$n" ] && continue
+      local l=${#n}; (( l>max )) && max=$l
+    done <<<"$merged"
+    while IFS=$'\t' read -r n v; do
+      [ -z "$n" ] && continue
+      printf '  %-*s : %s\n' "$max" "$n" "$v"
+    done <<<"$merged"
+  fi
+  echo ""
+  echo "Tools:"
+  printf '  %-13s : ' ansible-core; "$VENV_BIN/ansible" --version 2>/dev/null | head -1 || echo "n/a"
+  printf '  %-13s : ' python; "$VENV_BIN/python" -V 2>/dev/null || echo "n/a"
+  printf '  %-13s : ' docker/podman; { "$COMPOSE_CMD" --version 2>/dev/null || echo "n/a"; }
+}
+
+list_tags() {
+  # List ansible playbook tags for the main deployment playbook.
+  local playbook="$AUTOMATION/playbooks/opentalk_compose.yml"
+  [ -f "$playbook" ] || { echo "[otctl] playbook not found: $playbook" >&2; return 2; }
+  # Use ansible-playbook --list-tags (fast, doesn't execute tasks)
+  local out
+  if out="$("$WRAPPER_DIR"/ot-ansible-playbook -i "$AUTOMATION/inventory.yml" "$playbook" --list-tags 2>/dev/null)"; then
+    # Extract lines after 'playbook: ...' containing 'TAGS:' pattern
+    # Typical format: 'playbook: ...' then '  play # tags=tag1,tag2'
+    # Newer ansible shows 'TASK TAGS: [tag1, tag2]'
+    if grep -q 'TASK TAGS' <<<"$out"; then
+      echo "$out" | awk '/TASK TAGS/ {gsub(/.*TASK TAGS: \[/,""); gsub(/].*/ , ""); gsub(/, /,"\n"); print}' | sort -u
+    else
+      echo "$out" | awk -F= '/tags=/ {gsub(/^[[:space:]]+|[[:space:]]+$/,"",$2);gsub(/,/,"\n",$2);print $2}' | sort -u
+    fi
+  else
+    echo "[otctl] failed to obtain tags" >&2
+    return 1
+  fi
+}
+
+migrate_usage() {
+  cat <<'MHELP'
+otctl migrate USAGE:
+  otctl migrate status                    # list migrations that block 'otctl deploy'
+  otctl migrate postgres                  # move the databases to the PostgreSQL major of this release, deploy
+  otctl migrate minio-to-garage           # copy MinIO -> Garage, update settings.yml, deploy
+  otctl migrate garage-to-minio           # copy Garage -> MinIO, update settings.yml, deploy
+Options:
+  --yes                                   # skip the confirmation (required in non-interactive sessions)
+  --no-deploy                             # skip the deploy after the migration
+MHELP
+}
+
+confirm_migration() {
+  # Ask before a migration starts; $1 is 1 when --yes was given.
+  if [ "$1" -eq 1 ]; then
+    echo "[otctl] Confirmation skipped (--yes)." >&2
+    return 0
+  fi
+  if [ ! -t 0 ] || [ ! -t 1 ]; then
+    echo "[otctl] Non-interactive session: re-run with --yes to start the migration." >&2
+    exit 1
+  fi
+  local answer
+  printf 'Type "migrate" to start: '
+  IFS= read -r answer || answer=""
+  if [ "$answer" != "migrate" ]; then
+    echo "[otctl] Aborted - confirmation did not match." >&2
+    exit 1
+  fi
+}
+
+volumes_cmd() {
+  # Manage docker volumes belonging to this compose project.
+  local project="${OT_COMPOSE_PROJECT:-opentalk}"
+  # Derive project from compose config if not set explicitly.
+  if [ -z "${OT_COMPOSE_PROJECT:-}" ]; then
+    # Try docker compose ls to guess (best effort) else default 'opentalk'
+    :
+  fi
+  local action="${1:-list}"; shift || true
+  case "$action" in
+    list)
+      log_cmd "$COMPOSE_CMD" volume ls --format '{{.Name}}\t{{.Mountpoint}}'
+      "$COMPOSE_CMD" volume ls --format '{{.Name}}\t{{.Mountpoint}}' | awk -v p="${project}" 'BEGIN{c=0} index($1,p"_")==1 {printf "%s\n", $1; c++} END{if(c==0)print "(no project volumes)"}'
+      ;;
+    rm)
+      [ $# -gt 0 ] || { echo "[otctl] specify one or more volume names after 'volumes rm'" >&2; return 2; }
+      for v in "$@"; do
+        log_cmd "$COMPOSE_CMD" volume rm "$v"
+        "$COMPOSE_CMD" volume rm "$v" || true
+      done
+      ;;
+  prune)
+      # Remove all project-prefixed volumes
+      local vols
+      vols=$( "$COMPOSE_CMD" volume ls --format '{{.Name}}' | grep -E "^${project}_" || true )
+      if [ -z "$vols" ]; then
+        echo "[otctl] no project volumes to prune"
+        return 0
+      fi
+  if [ "${1:-}" != "--force" ]; then
+        echo "Will remove volumes:" >&2
+        echo "$vols" >&2
+        echo "Re-run: otctl volumes prune --force to confirm" >&2
+        return 3
+      fi
+      echo "$vols" | while read -r v; do
+        [ -z "$v" ] && continue
+        log_cmd "$COMPOSE_CMD" volume rm "$v"
+        "$COMPOSE_CMD" volume rm "$v" || true
+      done
+      ;;
+    *)
+      echo "[otctl] unknown volumes action: $action (use list|rm|prune)" >&2; return 1 ;;
+  esac
+}
+
+backup_list() {
+  # Standard directory structure: /var/opt/opentalk-compose/backups/{dumps,volumes,config}
+  local root
+  if [ -n "${OT_BACKUP_DIR:-}" ]; then
+    root="$OT_BACKUP_DIR"
+  else
+    root="/var/opt/opentalk-compose/backups"
+    [ -d "$root" ] || root="$PREFIX/backups"
+  fi
+  if [ ! -d "$root" ]; then
+    echo "[otctl] Backup root not found: $root" >&2
+    return 3
+  fi
+  local hdr_color="" reset_color=""
+  if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ -z "${OTCTL_NO_COLOR:-}" ]; then
+    hdr_color=$'\e[1;96m'; reset_color=$'\e[0m'
+  fi
+  echo "[otctl] Backup root: $root" >&2
+  local cat dir
+  for cat in dumps volumes config; do
+    dir="$root/$cat"
+    printf '\n%s%s%s\n' "$hdr_color" "${cat^}" "$reset_color"
+    if [ -d "$dir" ]; then
+      # List files (non-recursive) sorted by mtime desc
+      local lines
+      lines="$(find "$dir" -maxdepth 1 -type f -printf '%T@\t%f\t%s\n' 2>/dev/null | sort -nr || true)"
+      if [ -z "$lines" ]; then
+        echo '(none)'
+      else
+        while IFS=$'\t' read -r epoch fname size; do
+          [ -z "$fname" ] && continue
+          local ts size_h
+          ts="$(date -d @"${epoch%%.*}" '+%Y-%m-%d %H:%M:%S')"
+          if [ "$size" -ge 1073741824 ]; then size_h="$(( size / 1073741824 ))G"; elif [ "$size" -ge 1048576 ]; then size_h="$(( size / 1048576 ))M"; elif [ "$size" -ge 1024 ]; then size_h="$(( size / 1024 ))K"; else size_h="${size}B"; fi
+          printf '%-8s  %s  %s\n' "$size_h" "$ts" "$fname"
+        done <<<"$lines"
+      fi
+    else
+      echo '(dir missing)'
+    fi
+  done
+}
+
+case "$subcmd" in
+  status) list_services ;;
+  logs) compose_exec logs "$@" ;;
+  restart) compose_exec restart "$@" ;;
+  recreate)
+    if [ $# -eq 0 ]; then
+      compose_exec up -d --force-recreate
+    else
+      compose_exec up -d --force-recreate "$@"
+    fi
+    ;;
+  backup)
+    backup_usage() {
+      cat <<'BHELP'
+otctl backup USAGE:
+  otctl backup all            # run full backup tag (default)
+  otctl backup                # show this help
+  otctl backup dump           # controller + keycloak DB dumps
+  otctl backup dump controller# only controller DB dump
+  otctl backup dump keycloak  # only keycloak DB dump
+  otctl backup config         # only config backup
+  otctl backup volume         # all configured volumes
+  otctl backup volume opentalk_minio   # single volume by name
+  otctl backup cron           # cron-related dump tasks (if defined)
+  otctl backup clean          # apply retention policy
+  otctl backup ls             # list existing backup artifacts
+  (advanced) otctl backup --tags <custom>
+BHELP
+    }
+  mode="${1:-}"; if [ $# -gt 0 ]; then shift; fi
+    if [ -z "$mode" ] || [[ "$mode" == help ]] || [[ "$mode" == --help ]] || [[ "$mode" == -h ]]; then
+      backup_usage; exit 0
+    fi
+    tags_arg="backup"
+    case "$mode" in
+      all|backup) tags_arg="backup" ;;
+      ls) backup_list; exit $? ;;
+      cron) tags_arg="controller_db_dump_cron" ;;
+  clean|prune) tags_arg="backup_retention" ;;
+      dump)
+        # Optional qualifier
+        qualifier="${1:-}"; if [ -n "$qualifier" ]; then
+          case "$qualifier" in
+            controller|ctrl) tags_arg="controller_db_dump"; if [ $# -gt 0 ]; then shift; fi ;;
+            keycloak|kc) tags_arg="keycloak_db_dump"; if [ $# -gt 0 ]; then shift; fi ;;
+            *) tags_arg="controller_db_dump,keycloak_db_dump" ;;
+          esac
+        else
+          tags_arg="controller_db_dump,keycloak_db_dump"
+        fi
+        ;;
+  controller|dump-controller) tags_arg="controller_db_dump" ;;
+  keycloak|dump-keycloak) tags_arg="keycloak_db_dump" ;;
+      volume)
+        # Optional single volume argument
+        if [ -n "${1:-}" ] && [[ "${1:-}" != -* ]]; then
+          single_vol="$1"; if [ $# -gt 0 ]; then shift; fi
+          # Build JSON for extra var; try to detect if already prefixed with compose project
+          if [[ "$single_vol" != ${OT_COMPOSE_PROJECT:-opentalk}_* ]]; then
+            # Accept raw provided; assume user knows full name
+            :
+          fi
+          extra_vol_json=$(printf '{"backup_docker_volume_list": ["%s"]}' "$single_vol")
+          export OTCTL_BACKUP_EXTRA_VARS="$extra_vol_json"
+        fi
+        tags_arg="docker_volumes_backup" ;;
+  config|cfg) tags_arg="config_backup" ;;
+      *)
+        # passthrough (assume user wants to supply custom args, keep mode in argv)
+        set -- "$mode" "$@"; tags_arg="backup" ;;
+    esac
+    if [ -n "${OTCTL_BACKUP_EXTRA_VARS:-}" ]; then
+      PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --tags "$tags_arg" -e "$OTCTL_BACKUP_EXTRA_VARS" "$@"
+    else
+      PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --tags "$tags_arg" "$@"
+    fi
+    ;;
+  restore)
+    restore_usage() {
+      cat <<'RHELP'
+otctl restore USAGE:
+  otctl restore                       # show this help
+  otctl restore all                   # restore config, controller DB, keycloak DB and volumes (newest artifacts)
+  otctl restore controller-db [FILE]  # restore controller DB from SQL dump (FILE optional, defaults to newest)
+  otctl restore keycloak-db [FILE]    # restore keycloak DB from SQL dump (FILE optional, defaults to newest)
+  otctl restore config [FILE]         # restore config from archive (FILE optional, defaults to newest)
+  otctl restore volume [NAME]         # restore all configured volumes, or a single volume NAME
+  otctl restore ls                    # list existing backup artifacts
+  Options:
+    --yes                             # skip interactive confirmation (required in non-interactive sessions)
+RHELP
+    }
+    _rst_yes=0
+    _rst_args=()
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --yes) _rst_yes=1; shift ;;
+        *) _rst_args+=("$1"); shift ;;
+      esac
+    done
+    set -- "${_rst_args[@]}"
+    mode="${1:-}"; if [ $# -gt 0 ]; then shift; fi
+    if [ -z "$mode" ] || [[ "$mode" == help ]] || [[ "$mode" == --help ]] || [[ "$mode" == -h ]]; then
+      restore_usage; exit 0
+    fi
+    if [ "$mode" = "ls" ]; then
+      backup_list; exit $?
+    fi
+
+    # Locate backup root (same logic as backup_list)
+    _rst_root="${OT_BACKUP_DIR:-/var/opt/opentalk-compose/backups}"
+    [ -d "$_rst_root" ] || _rst_root="$PREFIX/backups"
+
+    latest_backup_file() {
+      # latest_backup_file <dir> <glob> -> basename of newest match (empty if none)
+      local dir="$1" glob="$2"
+      find "$dir" -maxdepth 1 -type f -name "$glob" -printf '%T@\t%f\n' 2>/dev/null | sort -nr | head -n1 | cut -f2
+    }
+
+    resolve_restore_file() {
+      # resolve_restore_file <category> <glob> [explicit-file] -> full path
+      local dir="$1" glob="$2" explicit="${3:-}"
+      if [ -n "$explicit" ]; then
+        [ -f "$explicit" ] || { echo "[otctl] File not found: $explicit" >&2; exit 1; }
+        if [[ "$explicit" == /* ]]; then
+          printf '%s\n' "$explicit"
+        else
+          local d
+          d="$(dirname "$explicit")"
+          printf '%s/%s\n' "$(cd "$d" && pwd)" "$(basename "$explicit")"
+        fi
+      else
+        local f
+        f="$(latest_backup_file "$_rst_root/$dir" "$glob")"
+        [ -n "$f" ] || { echo "[otctl] No matching backup found in $_rst_root/$dir (pattern: $glob) - run a backup first." >&2; exit 1; }
+        printf '%s\n' "$_rst_root/$dir/$f"
+      fi
+    }
+
+    _rst_vars=()
+    json_escape() {
+      local s="$1"
+      s="${s//\\/\\\\}"
+      s="${s//\"/\\\"}"
+      printf '%s' "$s"
+    }
+    add_json_var() {  # add_json_var <name> <string value>
+      _rst_vars+=("\"$(json_escape "$1")\": \"$(json_escape "$2")\"")
+    }
+    add_json_list_var() {  # add_json_list_var <name> <value>
+      _rst_vars+=("\"$(json_escape "$1")\": [\"$(json_escape "$2")\"]")
+    }
+
+    tags_arg="restore"
+    case "$mode" in
+      all)
+        tags_arg="restore"
+        _rst_file="$(resolve_restore_file dumps 'controller-*.sql')"
+        add_json_var controller_db_dump_restore_file "$_rst_file"
+        _rst_file="$(resolve_restore_file dumps 'keycloak-*.sql')"
+        add_json_var keycloak_db_dump_restore_file "$_rst_file"
+        _rst_file="$(resolve_restore_file config '*.tar.gz')"
+        add_json_var config_backup_restore_file "$(basename "$_rst_file")"
+        ;;
+      controller-db|controller|ctrl)
+        tags_arg="controller_db_restore"
+        _rst_file="$(resolve_restore_file dumps 'controller-*.sql' "${1:-}")"
+        if [ $# -gt 0 ]; then shift; fi
+        add_json_var controller_db_dump_restore_file "$_rst_file"
+        ;;
+      keycloak-db|keycloak|kc)
+        tags_arg="keycloak_db_restore"
+        _rst_file="$(resolve_restore_file dumps 'keycloak-*.sql' "${1:-}")"
+        if [ $# -gt 0 ]; then shift; fi
+        add_json_var keycloak_db_dump_restore_file "$_rst_file"
+        ;;
+      config|cfg)
+        tags_arg="config_restore"
+        _rst_file="$(resolve_restore_file config '*.tar.gz' "${1:-}")"
+        if [ $# -gt 0 ]; then shift; fi
+        add_json_var config_backup_restore_file "$(basename "$_rst_file")"
+        ;;
+      volume)
+        tags_arg="docker_volumes_restore"
+        if [ -n "${1:-}" ] && [[ "${1:-}" != -* ]]; then
+          add_json_list_var backup_docker_volume_list "$1"
+          if [ $# -gt 0 ]; then shift; fi
+        fi
+        ;;
+      *)
+        echo "[otctl] Unknown restore mode: $mode" >&2
+        restore_usage
+        exit 1
+        ;;
+    esac
+
+    add_json_var restore_confirmation "yes"
+    _rst_json="{"
+    for _v in "${_rst_vars[@]}"; do
+      [ -n "$_rst_json" ] && [ "$_rst_json" != "{" ] && _rst_json+=", "
+      _rst_json+="${_v}"
+    done
+    _rst_json+="}"
+
+    echo "[otctl] RESTORE PLAN (destructive - ansible tags: $tags_arg):" >&2
+    echo "[otctl] Extra vars: $_rst_json" >&2
+    echo "[otctl] Tip: run 'otctl backup all' before restoring to keep a rollback point." >&2
+
+    if [ "$_rst_yes" -eq 1 ]; then
+      echo "[otctl] Confirmation skipped (--yes)." >&2
+    else
+      if [ ! -t 0 ] || [ ! -t 1 ]; then
+        echo "[otctl] Non-interactive session: re-run with --yes to confirm this destructive restore." >&2
+        exit 1
+      fi
+      printf 'Type "restore" to overwrite live data: '
+      IFS= read -r _rst_answer || _rst_answer=""
+      if [ "$_rst_answer" != "restore" ]; then
+        echo "[otctl] Aborted - confirmation did not match." >&2
+        exit 1
+      fi
+    fi
+
+    PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --tags "$tags_arg" -e "$_rst_json" "$@"
+    ;;
+  tags) list_tags ;;
+  volumes) volumes_cmd "$@" ;;
+  deploy) PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --diff "$@" ;;
+  up) compose_exec up -d "$@" ;;
+  down) compose_exec down "$@" ;;
+  ps) compose_exec ps "$@" ;;
+  version) print_versions ;;
+  undeploy)
+    # Stop containers if compose.yml still exists
+    if [ -f "$PREFIX/compose.yml" ]; then
+      compose_exec down || true
+    else
+      echo "[otctl] compose.yml not present; skipping container shutdown" >&2
+    fi
+    # Remove compose.yml
+    if [ -f "$PREFIX/compose.yml" ]; then
+      log_cmd rm -f "$PREFIX/compose.yml"
+      rm -f "$PREFIX/compose.yml" || true
+    fi
+    # Remove services directory contents (but keep directory itself)
+    if [ -d "$SERVICES_DIR" ]; then
+      # Enable nullglob to avoid literal * when empty
+      shopt -s nullglob 2>/dev/null || true
+      svc_entries=("$SERVICES_DIR"/*)
+      if [ ${#svc_entries[@]} -gt 0 ]; then
+        log_cmd rm -rf "${svc_entries[@]}"
+        rm -rf "${svc_entries[@]}" || true
+      else
+        echo "[otctl] services directory empty: $SERVICES_DIR" >&2
+      fi
+      shopt -u nullglob 2>/dev/null || true
+    else
+      echo "[otctl] services directory not found: $SERVICES_DIR" >&2
+    fi
+    ;;
+  compose) compose_exec "$@" ;;
+  playbook) PLAYBOOK_WRAPPER "$@" ;;
+  migrate)
+    migrate_what="${1:-}"; if [ $# -gt 0 ]; then shift; fi
+    case "$migrate_what" in
+      status)
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/migrate_status.yml" "$@"
+        ;;
+      minio-to-garage|garage-to-minio)
+        _migrate_src="${migrate_what%%-to-*}"
+        _migrate_dst="${migrate_what##*-to-}"
+        _migrate_deploy=1
+        _migrate_yes=0
+        # Rebuild the argument list without our own flags; a pattern
+        # substitution would leave an empty argument behind, which
+        # ansible-playbook reads as a playbook path.
+        _migrate_args=()
+        for _a in "$@"; do
+          case "$_a" in
+            --no-deploy) _migrate_deploy=0 ;;
+            --yes) _migrate_yes=1 ;;
+            *) _migrate_args+=("$_a") ;;
+          esac
+        done
+        set -- ${_migrate_args[@]+"${_migrate_args[@]}"}
+        # otctl runs both deploys itself, so the user's extra arguments reach them.
+        _migrate_caller_deploys=$([ "$_migrate_deploy" -eq 1 ] && echo true || echo false)
+        _migrate_extra_vars="s3_migration_source=${_migrate_src} s3_migrate_run_deploy=false s3_migrate_caller_deploys=${_migrate_caller_deploys}"
+        echo "[otctl] MIGRATION PLAN: copy all S3 objects from ${_migrate_src} to ${_migrate_dst}." >&2
+        echo "[otctl] - A deploy starts ${_migrate_dst} next to ${_migrate_src}, unless both already run." >&2
+        echo "[otctl] - The controller is stopped while the objects are copied; running meetings are interrupted." >&2
+        echo "[otctl] - settings.yml is switched to ${_migrate_dst}. The ${_migrate_src} data stays until you remove its volume." >&2
+        if [ "$_migrate_deploy" -eq 1 ]; then
+          echo "[otctl] - 'otctl deploy' runs afterwards and starts the controller against ${_migrate_dst}." >&2
+        else
+          echo "[otctl] - No deploy afterwards (--no-deploy): the controller stays stopped until you run 'otctl deploy'." >&2
+        fi
+        echo "[otctl] Tip: run 'otctl backup all' first to keep a rollback point." >&2
+        confirm_migration "$_migrate_yes"
+        echo "[otctl] Starting ${_migrate_src} and ${_migrate_dst} side by side." >&2
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --diff \
+          -e "compose_service_minio_enabled=true compose_service_garage_enabled=true s3_migrate_in_progress=true" "$@"
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" \
+          "$AUTOMATION/playbooks/s3_migrate.yml" \
+          -e "$_migrate_extra_vars" "$@"
+        if [ "$_migrate_deploy" -eq 1 ]; then
+          PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --diff "$@"
+        fi
+        ;;
+      postgres)
+        _pg_deploy=1
+        _pg_yes=0
+        _pg_args=()
+        for _a in "$@"; do
+          case "$_a" in
+            --no-deploy) _pg_deploy=0 ;;
+            --yes) _pg_yes=1 ;;
+            *) _pg_args+=("$_a") ;;
+          esac
+        done
+        set -- ${_pg_args[@]+"${_pg_args[@]}"}
+        # Read-only first pass: checks the volumes and disk space, prints the
+        # plan and reports how many databases are pending.
+        _pg_plan_file=$(mktemp)
+        if ! PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/postgres_migrate.yml" \
+          -e "postgres_migrate_plan_only=true postgres_migrate_plan_file=$_pg_plan_file" "$@"; then
+          rm -f "$_pg_plan_file"
+          echo "[otctl] PostgreSQL migration plan failed; nothing was changed." >&2
+          exit 1
+        fi
+        _pg_pending=$(cat "$_pg_plan_file" 2>/dev/null || echo "")
+        rm -f "$_pg_plan_file"
+        if [ "$_pg_pending" = "0" ]; then
+          echo "[otctl] No PostgreSQL migration pending." >&2
+          exit 0
+        fi
+        echo "[otctl] MIGRATION PLAN: move the PostgreSQL databases listed above to new volumes." >&2
+        echo "[otctl] - The affected services are stopped; OpenTalk is unavailable until the deploy has finished." >&2
+        echo "[otctl] - The old volumes and the SQL dumps are kept for rollback." >&2
+        if [ "$_pg_deploy" -eq 1 ]; then
+          echo "[otctl] - 'otctl deploy' runs afterwards and starts the databases on the new volumes." >&2
+        else
+          echo "[otctl] - No deploy afterwards (--no-deploy): the services stay stopped until you run 'otctl deploy'." >&2
+        fi
+        echo "[otctl] Tip: run 'otctl backup all' first to keep a rollback point." >&2
+        confirm_migration "$_pg_yes"
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/postgres_migrate.yml" \
+          -e "postgres_migrate_confirmation=yes" "$@"
+        if [ "$_pg_deploy" -eq 1 ]; then
+          PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" "$AUTOMATION/playbooks/opentalk_compose.yml" --diff "$@"
+        else
+          echo "[otctl] Migration finished. Run 'otctl deploy' to start the services on the new volumes." >&2
+        fi
+        ;;
+      ''|-h|--help|help) migrate_usage ;;
+      *)
+        echo "[otctl] Unknown migration: $migrate_what" >&2
+        migrate_usage >&2
+        exit 1
+        ;;
+    esac
+    ;;
+  import)
+    import_what="${1:-}"; if [ $# -gt 0 ]; then shift; fi
+    case "$import_what" in
+      users)
+        _import_file=""
+        _import_extra_vars=""
+        _new_args=()
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            --users-file=*)
+              _import_file="${1#--users-file=}"
+              shift ;;
+            --users-file)
+              shift
+              if [ -z "${1:-}" ]; then echo "[otctl] --users-file requires a value" >&2; exit 1; fi
+              _import_file="$1"
+              shift ;;
+            --no-temporary)
+              _import_extra_vars="${_import_extra_vars} import_users_password_temporary=false"
+              shift ;;
+            --password-reset-email)
+              _import_extra_vars="${_import_extra_vars} import_users_force_password_reset_email=true"
+              shift ;;
+            --default-password=*)
+              _import_extra_vars="${_import_extra_vars} import_users_default_password=${1#--default-password=}"
+              shift ;;
+            --default-password)
+              shift
+              if [ -z "${1:-}" ]; then echo "[otctl] --default-password requires a value" >&2; exit 1; fi
+              _import_extra_vars="${_import_extra_vars} import_users_default_password=$1"
+              shift ;;
+            --password-length=*)
+              _import_extra_vars="${_import_extra_vars} import_users_password_length=${1#--password-length=}"
+              shift ;;
+            --password-length)
+              shift
+              if [ -z "${1:-}" ]; then echo "[otctl] --password-length requires a value" >&2; exit 1; fi
+              _import_extra_vars="${_import_extra_vars} import_users_password_length=$1"
+              shift ;;
+            *) _new_args+=("$1"); shift ;;
+          esac
+        done
+        set -- "${_new_args[@]}"
+        if [ -z "$_import_file" ]; then
+          echo "[otctl] Missing --users-file argument. Usage: otctl import users --users-file=/path/to/users.csv" >&2; exit 1
+        fi
+        # Resolve to absolute path
+        if [[ "$_import_file" != /* ]]; then _import_file="$(cd "$(dirname "$_import_file")" && pwd)/$(basename "$_import_file")"; fi
+        _import_extra_vars="import_users_file=$_import_file${_import_extra_vars}"
+        PLAYBOOK_WRAPPER -i "$AUTOMATION/inventory.yml" \
+          "$AUTOMATION/playbooks/import_users.yml" \
+          -e "$_import_extra_vars" "$@"
+        ;;
+      ''|-h|--help|help)
+        cat <<'IHELP'
+otctl import users USAGE:
+  otctl import users --users-file=/path/to/users.csv                           # import users from CSV
+  otctl import users --users-file=/path/to/users.json                          # import users from JSON
+  otctl import users --users-file=users.csv --no-temporary                     # passwords are permanent
+  otctl import users --users-file=users.csv --password-reset-email             # send password reset email to all users
+  otctl import users --users-file=users.csv --default-password='ChangeMe!'     # set a fallback password
+  otctl import users --users-file=users.csv --password-length=32               # auto-generate 32-char passwords
+IHELP
+        exit 0 ;;
+      *) echo "[otctl] Unknown import target: $import_what (use 'users')" >&2; exit 1 ;;
+    esac
+    ;;
+  -h|--help|help) usage; exit 0 ;;
+  "") usage_short; exit 0 ;;
+  *) echo "[otctl] Unknown subcommand: $subcmd" >&2; usage_short; exit 1 ;;
+esac

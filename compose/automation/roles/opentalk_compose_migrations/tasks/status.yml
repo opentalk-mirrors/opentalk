@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Report pending migrations for 'otctl migrate status'.
+
+- name: Detect pending migrations
+  ansible.builtin.include_tasks:
+    file: detect.yml
+
+- name: Report migration status
+  ansible.builtin.debug:
+    msg: |-
+      {% if migrations_pending | length == 0 %}
+      No migration pending. 'otctl deploy' can run.
+      {% else %}
+      {{ migrations_pending | length }} migration(s) pending. 'otctl deploy' stays blocked until they are done.
+      {% for m in migrations_pending %}
+
+      * {{ m.title }}
+        {{ m.reason }}
+        Next step: {{ m.action }}
+      {% endfor %}
+      {% endif %}
+      {% if migrations_retained_volumes | length > 0 %}
+
+      Old data kept for rollback after a finished migration:
+      {% for v in migrations_retained_volumes %}
+        - volume {{ v }}
+      {% endfor %}
+      Remove it with 'otctl volumes rm <name>' once the deployment works as expected.
+      {% endif %}

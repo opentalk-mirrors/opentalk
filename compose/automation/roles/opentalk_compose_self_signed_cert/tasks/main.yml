@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Include generate_self_signed_certificates.yml
+  ansible.builtin.include_tasks:
+    file: generate_self_signed_certificates.yml
+  when: self_signed_certificates_generate is true
+  tags:
+    - self-signed-certificates
+
+- name: Include trust installation tasks
+  ansible.builtin.include_tasks:
+    file: trust.yml
+  when: self_signed_certificates_install_system_trust | bool
+        and self_signed_certificates_generate | bool
+        and self_signed_certificates_ssl_certificate_ca_file is defined
+  tags:
+    - self-signed-certificates
+    - system-ca-trust

@@ -1,0 +1,100 @@
+---
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+services:
+  controller:
+    image: "{{ controller_docker_image_src }}:{{ opentalk_controller_version }}"
+    ulimits:
+      nofile:
+        soft: {{ controller_docker_compose_ulimits_nofile_soft }}
+        hard: {{ controller_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ controller_docker_compose_ulimits_nproc }}
+    restart: always
+{% if controller_docker_extra_hosts | length > 0 %}
+    extra_hosts:
+{% for host in controller_docker_extra_hosts %}
+      - "{{ host }}"
+{% endfor %}
+{% endif %}
+    ports:
+      - 11311:11311
+    networks:
+      - {{ docker_network_name }}
+    volumes:
+      - ./config/controller.toml:/etc/opentalk/controller.toml
+{% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
+      - /etc/opentalk-compose/ssl/{{ custom_certificates_ca_root_cert_file }}:/usr/local/share/ca-certificates/{{ custom_certificates_ca_root_cert_file }}
+{% endif %}
+{% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
+    entrypoint: []
+    command: >
+       /bin/bash -c "update-ca-certificates; exec /controller/opentalk-controller"
+    user: root
+{% endif %}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.controller.rule=Host(`{{ ot_domain }}`) && (PathPrefix(`/controller`) || PathPrefix(`/v1/rooms`))"
+      - "traefik.http.routers.controller.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+      - "traefik.http.routers.controller-signaling.rule=Host(`{{ ot_domain }}`) && PathPrefix(`/v1/signaling`)"
+      - "traefik.http.routers.controller-signaling.priority=100"
+      - "traefik.http.routers.controller-signaling.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+{% if (traefik_letsencrypt_enable | default('true')) and (not custom_certificates_enabled is defined or not custom_certificates_enabled) %}
+      - "traefik.http.routers.controller.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.controller-signaling.tls.certresolver=letsencrypt"
+{% endif %}
+      - "traefik.http.routers.controller.middlewares=controller-strip"
+      - "traefik.http.middlewares.controller-strip.stripprefix.prefixes=/controller"
+{% if traefik_letsencrypt_enable or custom_certificates_enabled %}
+      - "traefik.http.routers.controller-signaling.middlewares=secure-headers@file"
+{% endif %}
+      - "traefik.http.services.controller.loadbalancer.server.port=11311"
+    healthcheck:
+      test:
+      - "CMD-SHELL"
+      - |
+        perl -MIO::Socket::INET -e 'my $$sock = IO::Socket::INET->new(PeerAddr => "localhost:11311",
+        Proto => "tcp") or exit 1; exit 0;'
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  controller-db:
+    image: "{{ postgres_docker_image_src }}:{{ postgres_version }}"
+    ulimits:
+      nofile:
+        soft: {{ controller_db_docker_compose_ulimits_nofile_soft }}
+        hard: {{ controller_db_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ controller_db_docker_compose_ulimits_nproc }}
+    ports:
+      - {{ controller_db_bind_interface }}:{{ controller_db_host_port }}:5432
+    volumes:
+      - {{ controller_db_volume_name }}:{{ controller_db_data_mount }}
+    restart: always
+    secrets:
+      - db_controller_secret
+    # The secret file is root:root 0640. An image that starts its entrypoint
+    # as the postgres user instead of root reads it through group 0.
+    group_add:
+      - "0"
+    networks:
+      - {{ docker_network_name }}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-controller}
+      POSTGRES_USER: ${POSTGRES_USER:-ot}
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_controller_secret
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+secrets:
+  db_controller_secret:
+    file: ${CONTAINER_SECRETS_PATH:-{{ config_dir }}/secrets}/.db_controller.secret
+ 
+volumes:
+  {{ controller_db_volume_name }}:
+

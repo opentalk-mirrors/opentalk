@@ -1,0 +1,155 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+.rules_stable:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-\d+)?$/'
+    - when: never
+
+.rules_pre_release:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
+    - when: never
+
+.rules_experimental:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - when: never
+
+.int_base:
+  stage: integration
+  tags:
+    - dind
+  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/${DIST}:dev
+  before_script:
+    - bash extras/ci/gitlab/setup-integration-env.sh
+
+# ------------------------------
+# INTEGRATION TESTS
+# ------------------------------
+
+int:experimental:
+  extends: .int_base
+  parallel:
+    matrix:
+      - DIST: debian12
+      - DIST: debian13
+      - DIST: ubuntu2404
+      - DIST: opensuse15
+      - DIST: opensuse16
+      - DIST: rocky9
+      - DIST: rocky10
+      - DIST: debian13
+        EXTRA_OPTIONAL_SERVICES: "with-optional-services"
+      - DIST: rocky10
+        EXTRA_OPTIONAL_SERVICES: "with-optional-services"
+  needs:
+    - job: package:experimental
+      artifacts: true
+  rules: !reference [.rules_experimental, rules]
+  variables:
+    RUN_SMTP_RABBITMQ_TEST: "true"
+    SMTP_MAILER_ENABLED: "true"
+  script:
+    - bash extras/ci/gitlab/run-integration-test.sh
+
+int:pre-release:
+  extends: .int_base
+  parallel:
+    matrix:
+      - DIST: debian12
+      - DIST: debian13
+      - DIST: ubuntu2404
+      - DIST: opensuse15
+      - DIST: opensuse16
+      - DIST: rocky9
+      - DIST: rocky10
+  needs:
+    - job: package:pre-release
+      artifacts: true
+  rules: !reference [.rules_pre_release, rules]
+  script:
+    - bash extras/ci/gitlab/run-integration-test.sh
+
+int:stable:
+  extends: .int_base
+  parallel:
+    matrix:
+      - DIST: debian12
+      - DIST: debian13
+      - DIST: ubuntu2404
+      - DIST: opensuse15
+      - DIST: opensuse16
+      - DIST: rocky9
+      - DIST: rocky10
+  needs:
+    - job: package:stable
+      artifacts: true
+  rules: !reference [.rules_stable, rules]
+  script:
+    - bash extras/ci/gitlab/run-integration-test.sh
+
+# Migration and upgrade tests run on one distribution against the package of
+# the pipeline: on merge requests and for every release tag.
+.int_migration_base:
+  extends: .int_base
+  variables:
+    DIST: debian12
+    OPENTALK_E2E: "1"
+  needs:
+    - job: package:experimental
+      artifacts: true
+      optional: true
+    - job: package:pre-release
+      artifacts: true
+      optional: true
+    - job: package:stable
+      artifacts: true
+      optional: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)?(-\d+)?$/'
+    - when: never
+
+# 'otctl migrate postgres' of the installed package against real containers.
+int:postgres-migration:
+  extends: .int_migration_base
+  script:
+    - dpkg -i artifacts/*.deb || apt-get install -f -y
+    - OT_PREFIX=/opt/opentalk-compose bash extras/scripts/tests/integration/test_postgres_migration.sh
+
+# Upgrade from the current stable release to the package of the pipeline.
+int:upgrade:
+  extends: .int_migration_base
+  script:
+    - OT_UPGRADE_PACKAGE="$(ls artifacts/*.deb)" bash extras/scripts/tests/integration/test_upgrade_e2e.sh
+
+# Manual, destructive end-to-end Compose test. Requires a dinD runner with
+# Docker, `just`, `uv`, Ansible, and network access to the container registry.
+int:e2e:
+  extends: .int_base
+  image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/debian12:dev
+  needs: []
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: manual
+    - when: never
+  variables:
+    OPENTALK_E2E: "1"
+  before_script:
+    - bash extras/ci/gitlab/setup-integration-env.sh
+    - |
+      set -euo pipefail
+      command -v just >/dev/null || \
+        curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+      command -v uv >/dev/null || { export UV_INSTALL_DIR=/root/.local/bin; curl -LsSf https://astral.sh/uv/install.sh | sh; }
+  script:
+    - export PATH="$HOME/.local/bin:$PATH"
+    - bash extras/scripts/tests/integration/test_compose_e2e.sh

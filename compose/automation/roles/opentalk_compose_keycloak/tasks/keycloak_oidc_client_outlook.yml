@@ -1,0 +1,108 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: "Create a OIDC client for OpenTalk Outlook Add-in | {{ outlook_add_in_oidc_client_id | default('OutlookAddin') }}"
+  community.general.keycloak_client:
+    auth_keycloak_url: "{{ keycloak_base_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_auth_username }}"
+    auth_password: "{{ keycloak_auth_password }}"
+    realm: "{{ keycloak_realm }}"
+    client_id: "{{ outlook_add_in_oidc_client_id | default('OutlookAddin') }}"
+    name: "{{ outlook_add_in_oidc_client_id | default('OutlookAddin') }}"
+    description: "OpenTalk Outlook Add-in OIDC client"
+    enabled: true
+    state: present
+    public_client: true
+    standard_flow_enabled: false
+    direct_access_grants_enabled: false
+    client_authenticator_type: client-secret
+    implicit_flow_enabled: false
+    protocol: openid-connect
+    client_scopes_behavior: idempotent
+    default_client_scopes: "{{ (outlook_add_in_oidc_scopes | default('profile email openid')).split() }}"
+    attributes:
+      oauth2.device.authorization.grant.enabled: "true"
+      access.token.lifespan: "1800"
+      use.refresh.tokens: "true"
+      # client timeouts inherited from realm
+      client.session.idle.timeout: "0"
+      client.session.max.lifespan: "0"
+      client.offline.session.idle.timeout: "0"
+      client.offline.session.max.lifespan: "0"
+
+- name: "Get Keycloak client ID for {{ outlook_add_in_oidc_client_id | default('OutlookAddin') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients?clientId={{ outlook_add_in_oidc_client_id | default('OutlookAddin') }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    status_code: 200
+  register: outlook_client_lookup
+
+- name: "Set outlook client UUID"
+  ansible.builtin.set_fact:
+    outlook_client_uuid: "{{ (outlook_client_lookup.json | first).id }}"
+  when: outlook_client_lookup.json | length > 0
+
+- name: "Get protocol mappers for {{ outlook_add_in_oidc_client_id | default('OutlookAddin') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients/{{ outlook_client_uuid }}/protocol-mappers/models"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+    status_code: 200
+  register: outlook_protocol_mappers
+  when: outlook_client_uuid is defined
+
+- name: "Set outlook audience mapper UUID"
+  ansible.builtin.set_fact:
+    outlook_audience_mapper_uuid: "{{ (outlook_protocol_mappers.json | selectattr('name', 'equalto', 'audience-controller') | list | first).id }}"
+  when:
+    - outlook_client_uuid is defined
+    - outlook_protocol_mappers.json | selectattr('name', 'equalto', 'audience-controller') | list | length > 0
+
+- name: "Update OutlookAddin audience mapper for {{ controller_oidc_controller_client_id | default('Controller') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients/{{ outlook_client_uuid }}/protocol-mappers/models/{{ outlook_audience_mapper_uuid }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      id: "{{ outlook_audience_mapper_uuid }}"
+      name: "audience-controller"
+      protocol: "openid-connect"
+      protocolMapper: "oidc-audience-mapper"
+      consentRequired: false
+      config:
+        included.client.audience: "{{ controller_oidc_controller_client_id | default('Controller') }}"
+        id.token.claim: "false"
+        access.token.claim: "true"
+    status_code: 204
+  when: outlook_audience_mapper_uuid is defined
+
+- name: "Create OutlookAddin audience mapper for {{ controller_oidc_controller_client_id | default('Controller') }}"
+  ansible.builtin.uri:
+    url: "{{ keycloak_base_url }}/admin/realms/{{ keycloak_realm }}/clients/{{ outlook_client_uuid }}/protocol-mappers/models"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ keycloak_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "audience-controller"
+      protocol: "openid-connect"
+      protocolMapper: "oidc-audience-mapper"
+      consentRequired: false
+      config:
+        included.client.audience: "{{ controller_oidc_controller_client_id | default('Controller') }}"
+        id.token.claim: "false"
+        access.token.claim: "true"
+    status_code: 201
+  when:
+    - outlook_client_uuid is defined
+    - outlook_audience_mapper_uuid is not defined

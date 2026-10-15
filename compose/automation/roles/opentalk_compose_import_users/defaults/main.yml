@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose_import_users
+
+# Path to the CSV or JSON file containing users to import (required, pass with -e).
+# import_users_file: /path/to/users.csv
+
+# Keycloak realm to create users in.
+import_users_realm: "{{ keycloak_realm | default('opentalk') }}"
+
+# Default password assigned to users that have no 'password' field in the input file.
+# If unset, a random password is auto-generated and printed to the console.
+# import_users_default_password: ""
+
+# Length of auto-generated passwords (only used when no password and no default_password is set).
+import_users_password_length: 20
+
+# Whether imported user passwords are temporary (user must change on first login).
+import_users_password_temporary: true
+
+# Whether imported users are enabled by default (can be overridden per user in the input file).
+import_users_enabled: true
+
+# When set to true, all users will receive a Keycloak email to set their own password,
+# regardless of the per-user 'password_reset_email' field in the import file.
+# This is the Ansible-level equivalent of the --password-reset-email CLI flag.
+import_users_force_password_reset_email: false
+
+# Keycloak connectivity – these mirror the opentalk_compose_keycloak role defaults so that
+# the import_users playbook can run standalone without the keycloak role being present.
+# When the keycloak role is included in the same play its values take precedence automatically.
+keycloak_auth_username: "{{ keycloak_permanent_admin_username | default('admin') }}"
+keycloak_auth_password: "{{ keycloak_permanent_admin_password | default(KC_PERMANENT_ADMIN_PASSWORD) }}"
+keycloak_auth_realm: "master"
+keycloak_local_hostname: ''
+keycloak_local_port: "{{ ot_ingress_port }}"
+keycloak_base_url: "{{ (ot_ingress_protocol, keycloak_local_hostname, ot_domain, keycloak_local_port) | build_subdomain_url }}/auth"

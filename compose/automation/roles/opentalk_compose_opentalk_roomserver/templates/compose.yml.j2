@@ -1,0 +1,46 @@
+---
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+services:
+  roomserver:
+    image: "{{ roomserver_docker_image_src }}:{{ opentalk_roomserver_version }}"
+    ulimits:
+      nofile:
+        soft: {{ roomserver_docker_compose_ulimits_nofile_soft }}
+        hard: {{ roomserver_docker_compose_ulimits_nofile_hard }}
+      nproc: {{ roomserver_docker_compose_ulimits_nproc }}
+    restart: always
+    volumes:
+      - ./config/roomserver.toml:/opentalk-roomserver/roomserver.toml
+{% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
+      - /etc/opentalk-compose/ssl/{{ custom_certificates_ca_root_cert_file }}:/usr/local/share/ca-certificates/{{ custom_certificates_ca_root_cert_file }}
+{% endif %}
+{% if (custom_certificates_ca_root_cert_file is defined) and (custom_certificates_ca_root_cert_file | length > 0) %}
+    entrypoint: []
+    command: >
+       /bin/sh -c "update-ca-certificates; exec /opentalk-roomserver/opentalk-roomserver"
+    user: root
+{% endif %}
+    environment:
+      - RUST_LOG={{ roomserver_logging_default_directives }}
+    networks:
+      - {{ docker_network_name }}
+    healthcheck:
+      test: [CMD, /opentalk-roomserver/opentalk-roomserver, health]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 1s
+      start_interval: 1s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.roomserver.rule=Host(`{{ ot_domain }}`) && PathPrefix(`/roomserver`)"
+      - "traefik.http.routers.roomserver.entrypoints={{ 'websecure' if traefik_letsencrypt_enable or custom_certificates_enabled else 'web' }}"
+{% if (traefik_letsencrypt_enable | default('true')) and (not custom_certificates_enabled is defined or not custom_certificates_enabled) %}
+      - "traefik.http.routers.roomserver.tls.certresolver=letsencrypt"
+{% endif %}
+      - "traefik.http.routers.roomserver.middlewares=roomserver-strip"
+      - "traefik.http.middlewares.roomserver-strip.stripprefix.prefixes=/roomserver"
+      - "traefik.http.services.roomserver.loadbalancer.server.port={{ roomserver_http_port }}"

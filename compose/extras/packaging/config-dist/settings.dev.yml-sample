@@ -1,0 +1,173 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# Sample settings file for development environment
+# `just compose-setup` copies this file to build/opentalk-compose-dev/config/settings.yml
+# on first use. Edit the copied file for local, uncommitted development settings.
+# Runtime data is kept below build/, which is ignored by Git.
+
+---
+ot_domain: opentalk.dev.localhost
+ot_ingress_port: 8081
+ot_ingress_protocol: http
+
+compose_project_name: "opentalk"
+
+dev_root: "{{ lookup('env', 'OPENTALK_DEV_DIR') | default('build/opentalk-compose-dev', true) }}"
+deploy_dir: "{{ dev_root }}"
+config_dir: "{{ dev_root }}/config"
+services_dir: "{{ dev_root }}/services"
+docker_overwrite_main_compose_file: false
+
+# The frontend runs as UID 1000. An nproc ulimit can prevent its entrypoint
+# from starting when Docker maps that UID to the host user.
+opentalk_web_frontend_docker_compose_ulimits_nproc: null
+
+compose_service_opentalk_controller_enabled: true
+compose_service_opentalk_obelisk_enabled: false
+compose_service_opentalk_outlook_add_in_enabled: true
+compose_service_opentalk_recorder_enabled: true
+compose_service_opentalk_smtp_mailer_enabled: true
+compose_service_opentalk_web_frontend_enabled: true
+compose_service_etherpad_enabled: true
+compose_service_spacedeck_enabled: true
+compose_service_keycloak_enabled: true
+compose_service_livekit_server_enabled: true
+compose_service_mailcrab_enabled: true
+# S3-compatible object storage provider: garage (default) or minio
+s3_storage_provider: garage
+compose_service_rabbitmq_enabled: true
+compose_service_traefik_enabled: true
+
+
+traefik_api_insecure: true
+traefik_letsencrypt_enable: false
+
+traefik_docker_extra_hosts:
+  - host.docker.internal:host-gateway
+# Containers reach the public dev URLs through these aliases. Traefik listens
+# on ot_ingress_port inside the container as well, so a URL like
+# http://opentalk.dev.localhost:8081 works unchanged inside and outside Docker
+# without a detour through the host, which host firewalls may drop.
+traefik_docker_network_aliases:
+  - opentalk.dev.localhost
+  - whiteboard.dev.localhost
+  - whiteboard-internal
+  - etherpad.dev.localhost
+traefik_entryPoints_web_address: ":{{ ot_ingress_port }}"
+traefik_docker_ports:
+  - target: "{{ ot_ingress_port }}"
+    published: "{{ ot_ingress_port }}"
+  - target: 8080
+    published: 7777
+traefik_log_level: DEBUG
+traefik_docker_label_http_routers_dashboard_middlewares: "dashboard-strip"
+
+#minio_docker_label_http_routers_minio_console_middlewares: "minio-replacepathregex"
+minio_docker_label_http_routers_minio_console_middlewares: "minio-stripprefix"
+mailcrab_docker_label_http_routers_minio_console_middlewares: "mailcrab-strip"
+
+custom_certificates_enabled: false
+#custom_certificates_enabled: true
+#custom_certificates_private_key_file:
+#custom_certificates_fullchain_cert_file:
+#livekit_turn_embedded_enabled
+
+
+opentalk_web_frontend_environment_insecure: true
+opentalk_web_frontend_environment_base_url: "http://opentalk.dev.localhost:{{ ot_ingress_port }}"
+opentalk_web_frontend_environment_oidc_issuer: "http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/realms/opentalk"
+opentalk_web_frontend_environment_livekit_server_url: "http://opentalk.dev.localhost:{{ ot_ingress_port }}/livekit"
+opentalk_web_frontend_environment_change_password_url: "http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/realms/opentalk/account/"
+
+
+controller_docker_extra_hosts:
+  - "host.docker.internal:host-gateway"
+
+recorder_docker_extra_hosts:
+  - "host.docker.internal:host-gateway"
+recorder_docker_network_mode: host
+recorder_controller_url: "http://host.docker.internal:11311"
+
+obelisk_sip_addr: "localhost"
+
+
+spacedeck_docker_ports:
+  - "9666:9666"
+spacedeck_docker_labels_traefik_host: whiteboard.dev.localhost
+spacedeck_docker_labels_traefik_hosts:
+  - whiteboard.dev.localhost
+  - whiteboard-internal
+spacedeck_docker_environment_sd_endpoint: "http://whiteboard-internal:{{ ot_ingress_port }}/whiteboard"
+spacedeck_docker_labels_traefik_enable: true
+
+etherpad_docker_labels_traefik_host: opentalk.dev.localhost
+etherpad_docker_ports:
+  - "9001:9001"
+etherpad_docker_labels_traefik_http_routers_etherpad_rule: "Host(`opentalk.dev.localhost`) && PathPrefix(`/etherpad`)"
+
+####
+controller_frontend_base_url: "http://opentalk.dev.localhost:{{ ot_ingress_port }}"
+controller_livekit_public_url: "http://livekit.localhost:7880"
+controller_livekit_service_url: "http://host.docker.internal:7880"
+controller_roomserver_modules_livekit_api_key: "controller"
+controller_roomserver_modules_livekit_api_secret: "{{ LIVEKIT_API_SECRET }}"
+controller_roomserver_modules_livekit_public_url: "ws://opentalk.dev.localhost:{{ ot_ingress_port }}/livekit"
+controller_roomserver_modules_livekit_service_url: "http://host.docker.internal:7880"
+controller_roomserver_modules_recording_url: "http://host.docker.internal:5555"
+controller_roomserver_modules_meeting_notes_base_url: "http://opentalk.dev.localhost:{{ ot_ingress_port }}/etherpad"
+controller_roomserver_modules_whiteboard_api_key: "{{ SPACEDECK_API_KEY }}"
+controller_roomserver_modules_whiteboard_base_url: "http://whiteboard.dev.localhost:{{ ot_ingress_port }}/whiteboard"
+controller_logging_default_directives:
+  - DEBUG
+  - opentalk=DEBUG
+  - pinky_swear=OFF
+  - rustls=WARN
+  - mio=ERROR
+  - lapin=DEBUG
+  - execution_id=trace
+controller_oidc_authority: http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/realms/opentalk
+controller_oidc_frontend_authority: http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/realms/opentalk
+controller_user_search_api_base_url: http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/admin/realms/opentalk
+
+keycloak_redirectUris_uris:
+  - http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/popup_callback
+  - http://opentalk.dev.localhost:{{ ot_ingress_port }}/auth/callback
+  - http://opentalk.dev.localhost:{{ ot_ingress_port }}/dashboard
+  - http://opentalk.dev.localhost:{{ ot_ingress_port }}/dashboard/*
+  - http://opentalk.dev.localhost:{{ ot_ingress_port }}/room/*
+  - http://opentalk.dev.localhost:{{ ot_ingress_port }}/join
+  - http://opentalk.dev.localhost:{{ ot_ingress_port }}/
+
+keycloak_demo_user_email: demo.user@localhost.localhost
+
+mailer_smtp_smtp_server: "smtp://mailcrab:1025?disable_starttls=true"
+mailer_smtp_from_name: "OpenTalk - localhost"
+mailer_smtp_from_email: "no-reply@localhost.localhost"
+
+
+
+backup_volumes:
+  - name: etherpad-data
+  - name: keycloak_keycloak-db
+  - name: minio_minio
+  - name: opentalk-controller_controller-db
+  - name: opentalk_postgres_data
+  - name: rabbitmq_rabbitmq
+  - name: traefik_traefik
+backup_retention_days: 10
+backup_compression: gzip
+restore_volume_backups:
+  # Only set entries below when an actual restore should be performed
+  # - volume: etherpad-data
+  #   file: etherpad-data-20250904-120000.tar.gz
+  #   purge: true
+
+
+# Directory on the host where backup archives are stored
+backup_target_dir: "~/tmp/backups"
+
+opentalk_web_frontend_labels_traefik_http_middlewares_webapp_cors_headers_accessControlAllowOriginList: "{{ (ot_ingress_protocol, ot_domain, '*') | build_url }},{{ (ot_ingress_protocol, ot_domain, '*') | build_wildcard_url }}"
+
+outlook_add_in_labels_traefik_http_middlewares_outlook_add_in_cors_headers_accessControlAllowOriginList: "{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_url }},{{ (ot_ingress_protocol, ot_domain, ot_ingress_port) | build_wildcard_url }}"

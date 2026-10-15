@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# filepath: devops/opentalk-compose/extras/packaging/wrappers/ot-ansible-galaxy
+set -euo pipefail
+PREFIX="${OT_PREFIX:-/opt/opentalk-compose}"
+RUNTIME="$PREFIX/runtime"
+AUTOMATION="$PREFIX/automation"
+VENV_BIN="$RUNTIME/venv/bin"
+BIN="$VENV_BIN/ansible-galaxy"
+VENDOR="$RUNTIME/vendor/collections"
+
+[ -x "$BIN" ] || { echo "[wrapper] ansible-galaxy unavailable" >&2; exit 1; }
+
+export PYTHONDONTWRITEBYTECODE=1
+export ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-$AUTOMATION/ansible.cfg}"
+
+if [ -z "${ANSIBLE_COLLECTIONS_PATHS:-}" ]; then
+  cfg_paths=""
+  if [ -f "$ANSIBLE_CONFIG" ]; then
+    cfg_paths="$(awk -F= '/^[[:space:]]*collections_path[s]?[[:space:]]*=/{v=$2;gsub(/^[[:space:]]+|[[:space:]]+$/,"",v);print v;exit}' "$ANSIBLE_CONFIG")"
+  fi
+  if [ -d "$VENDOR/ansible_collections" ]; then
+    case ":$cfg_paths:" in
+      *":$VENDOR:"*) ANSIBLE_COLLECTIONS_PATHS="$cfg_paths" ;;
+      "::") ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$HOME/.ansible/collections:/usr/share/ansible/collections" ;;
+      *) ANSIBLE_COLLECTIONS_PATHS="$VENDOR:$cfg_paths" ;;
+    esac
+  else
+    [ -n "$cfg_paths" ] && ANSIBLE_COLLECTIONS_PATHS="$cfg_paths"
+  fi
+  [ -n "${ANSIBLE_COLLECTIONS_PATHS:-}" ] && export ANSIBLE_COLLECTIONS_PATHS
+fi
+
+if [ -d "$VENDOR/ansible_collections" ] && [ $# -ge 2 ] && [ "$1" = "collection" ]; then
+  case "$2" in
+    list|install|download|build)
+      have_flag=0
+      for a in "$@"; do
+        case "$a" in -p|--collections-path|--collections-path=*) have_flag=1; break ;; esac
+      done
+      [ $have_flag -eq 0 ] && set -- "$1" "$2" --collections-path "$VENDOR" "${@:3}"
+    ;;
+  esac
+fi
+
+exec "$BIN" "$@"

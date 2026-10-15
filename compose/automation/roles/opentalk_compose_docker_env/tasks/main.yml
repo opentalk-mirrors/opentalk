@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# tasks file for opentalk_compose_docker_env
+
+- name: Include manage_docker_network.yml tasks
+  ansible.builtin.import_tasks: manage_docker_network.yml
+
+- name: Include manage_main_compose.yml tasks
+  ansible.builtin.import_tasks: manage_main_compose.yml
+
+- name: Include manage_service_state.yml tasks
+  ansible.builtin.import_tasks: manage_service_state.yml

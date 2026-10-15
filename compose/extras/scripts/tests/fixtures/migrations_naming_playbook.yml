@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Checks that the migration detection and the compose templates agree on the
+# PostgreSQL volume names: the detection must look for exactly the volume the
+# next deploy will mount.
+- name: PostgreSQL volume naming fixture
+  hosts: localhost
+  gather_facts: false
+  vars:
+    compose_project_name: opentalk
+    s3_storage_provider: garage
+  tasks:
+    - name: Load the volume naming of the database roles
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../../../../automation/roles/opentalk_compose_opentalk_controller/defaults/main.yml"
+        - "{{ playbook_dir }}/../../../../automation/roles/opentalk_compose_keycloak/defaults/main.yml"
+
+    - name: Detect pending migrations
+      ansible.builtin.include_role:
+        name: opentalk_compose_migrations
+        tasks_from: detect.yml
+
+    - name: Assert that detection targets the volumes the templates mount
+      ansible.builtin.assert:
+        that:
+          - item.target_volume == 'opentalk_' ~ lookup('ansible.builtin.vars', item.database.name ~ '_db_volume_name')
+      loop: "{{ migrations_pending | selectattr('kind', 'defined') | selectattr('kind', 'equalto', 'postgres') }}"
+      loop_control:
+        label: "{{ item.id }}"
+
+    - name: Export the result
+      ansible.builtin.copy:
+        content: >-
+          {{ {'pending': migrations_pending | map(attribute='id') | list,
+              'sources': migrations_pending | map(attribute='source_volume') | list,
+              'retained': migrations_retained_volumes,
+              'controller_volume': controller_db_volume_name,
+              'controller_mount': controller_db_data_mount,
+              'keycloak_volume': keycloak_db_volume_name,
+              'keycloak_mount': keycloak_db_data_mount} | to_json }}
+        dest: "{{ lookup('ansible.builtin.env', 'OT_TEST_RESULT_FILE') }}"
+        mode: "0600"

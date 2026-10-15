@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Ensure Garage Service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  with_items:
+    - "{{ garage_docker_compose_services_dir }}"
+    - "{{ garage_docker_compose_services_dir }}/garage"
+
+- name: Render Garage configuration file
+  ansible.builtin.template:
+    src: garage.toml.j2
+    dest: "{{ garage_docker_compose_services_dir }}/garage/garage.toml"
+    mode: '0644'
+  notify: "Recreate Docker service garage"

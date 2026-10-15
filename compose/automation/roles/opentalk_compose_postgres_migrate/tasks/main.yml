@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# tasks file for opentalk_compose_postgres_migrate
+
+- name: Include detect.yml
+  ansible.builtin.include_tasks:
+    file: detect.yml
+
+- name: Include plan.yml
+  ansible.builtin.include_tasks:
+    file: plan.yml
+
+- name: Include migrate.yml
+  ansible.builtin.include_tasks:
+    file: migrate.yml
+  when: not (postgres_migrate_plan_only | bool)

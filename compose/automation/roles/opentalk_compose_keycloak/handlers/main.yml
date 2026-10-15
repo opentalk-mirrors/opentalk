@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# handlers file for opentalk_compose_keycloak
+
+- name: "Restart Docker service Keycloak"
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_dir }}/keycloak"
+    project_name: "{{ compose_project_name }}"
+    files:
+      - compose.yml
+      - "{{ deploy_dir }}/common.yml"
+    recreate: never
+    state: restarted
+
+- name: "Recreate Docker service Keycloak"
+  community.docker.docker_compose_v2:
+    project_src: "{{ services_dir }}/keycloak"
+    project_name: "{{ compose_project_name }}"
+    files:
+      - compose.yml
+      - "{{ deploy_dir }}/common.yml"
+    recreate: always
+    state: restarted
+
+# Services restarted by later handlers (e.g. the controller) fetch the OIDC
+# discovery document on startup. While Keycloak is down, Traefik routes the
+# request to the web frontend, which answers 200 with HTML, so the content type
+# is checked as well.
+- name: "Wait for Keycloak to serve OIDC discovery"
+  ansible.builtin.uri:
+    url: "{{ keycloak_health_url }}"
+    method: GET
+    status_code: 200
+    return_content: false
+    validate_certs: false
+  register: _keycloak_discovery
+  until:
+    - _keycloak_discovery.status == 200
+    - "'json' in (_keycloak_discovery.content_type | default(''))"
+  retries: "{{ keycloak_wait_to_be_reachable_retries }}"
+  delay: "{{ keycloak_wait_to_be_reachable_delay }}"
+  listen:
+    - "Restart Docker service Keycloak"
+    - "Recreate Docker service Keycloak"
