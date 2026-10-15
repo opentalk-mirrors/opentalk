@@ -13,15 +13,12 @@ use std::{
     time::Duration,
 };
 
-use actix_cors::Cors;
-use actix_web::{App, HttpServer, Scope, web, web::Data};
+use actix_web::HttpServer;
 use exchange_task::{ExchangeHandle, ExchangeTask};
 use lapin_pool::RabbitMqPool;
 use opentalk_asset_storage::{ObjectStorage, StorageNotifier};
-use opentalk_controller_api_actix_web::{v1, well_known};
-use opentalk_controller_api_authorization::{
-    authorization::Authorizer, middleware::AuthorizationTransform,
-};
+use opentalk_controller_api_actix_web::v1;
+use opentalk_controller_api_authorization::authorization::Authorizer;
 use opentalk_controller_api_authorization_database::OpenTalkAuthorizerBackend;
 use opentalk_controller_service::{
     ControllerBackend, RedisConnection, Whatever,
@@ -32,7 +29,6 @@ use opentalk_controller_service::{
 use opentalk_controller_service_facade::OpenTalkControllerService;
 use opentalk_controller_settings::{
     HttpTls, Monitoring, Settings, SettingsProvider, UserSearchBackend, UserSearchBackendKeycloak,
-    common::{HttpCorsAllowedOrigin, HttpCorsAllowedOrigins},
 };
 use opentalk_controller_utils::deletion::StopRoomBackend;
 use opentalk_database::Db;
@@ -40,14 +36,12 @@ use opentalk_inventory::InventoryProvider;
 use opentalk_inventory_database::DatabaseConnectionPool;
 use opentalk_jobs::job_runner::JobRunner;
 use opentalk_keycloak_admin::{AuthorizedClient, KeycloakAdminClient};
-use opentalk_service_auth::service::ApiKeyAuthorization;
 pub use opentalk_tracing::Bootstrap;
 use opentalk_tracing::SdkTracerProvider;
 use opentalk_types_api_v1::{auth::OidcProvider, error::ApiError};
 use rustls_pki_types::{CertificateDer, PrivatePkcs8KeyDer};
 use service_probe::{ServiceState, set_service_state, start_probe};
 use snafu::{Report, ResultExt, Snafu};
-use swagger::WithSwagger as _;
 use tokio::{
     signal::{
         ctrl_c,
@@ -57,22 +51,19 @@ use tokio::{
     task::JoinError,
     time::sleep,
 };
-use tracing_actix_web::TracingLogger;
 
-use crate::{
-    api::{
-        livekit,
-        v1::{middleware::metrics::RequestMetrics, response::error::json_error_handler},
-    },
-    trace::ReducedSpanBuilder,
-};
+use crate::api::livekit;
 
 mod exchange_task;
+mod http_app;
 mod metrics;
 mod swagger;
 mod trace;
 
 pub mod api;
+
+pub use http_app::HttpAppState;
+pub use metrics::CombinedMetrics;
 
 #[derive(Debug, Snafu)]
 /// Blocking thread has panicked
@@ -394,25 +385,8 @@ impl Controller {
 
         // Start HTTP Server
         let http_server = {
-            let settings_provider = self.settings_provider.clone();
-            let storage = Arc::downgrade(&self.storage);
-            let storage_notifier = Arc::downgrade(&self.storage_notifier);
-            let inventory_provider = Arc::downgrade(&self.inventory_provider);
-            let http_client = Data::new(reqwest::Client::new());
-
-            let oidc_ctx = Arc::downgrade(&self.oidc);
-            let shutdown = self.shutdown.clone();
-
-            let user_search_client = Data::from(self.user_search_client);
-
-            let metrics = Data::new(self.metrics);
-
-            let caches = Data::from(self.oidc_cache.clone());
-            let service = Data::from(self.service);
-            let signaling = Data::new(self.signaling_handler);
-
-            let authorization = AuthorizationTransform::new(self.authorizer.clone());
-            let service_auth_middleware = settings_provider
+            let service_auth_middleware = self
+                .settings_provider
                 .get()
                 .http
                 .service_api_keys
@@ -421,54 +395,24 @@ impl Controller {
                 .transpose()
                 .whatever_context("Failed to build service auth middleware")?;
 
-            HttpServer::new(move || {
-                let cors = setup_cors(settings_provider.clone());
+            let http_app = HttpAppState {
+                settings_provider: self.settings_provider.clone(),
+                service: self.service,
+                signaling: self.signaling_handler,
+                oidc_cache: self.oidc_cache,
+                oidc: self.oidc,
+                inventory_provider: self.inventory_provider,
+                storage: self.storage,
+                storage_notifier: self.storage_notifier,
+                user_search_client: self.user_search_client,
+                authorizer: self.authorizer,
+                shutdown: self.shutdown.clone(),
+                metrics: Arc::new(self.metrics),
+                http_client: reqwest::Client::new(),
+                service_auth_middleware,
+            };
 
-                // Unwraps cannot panic. Server gets stopped before dropping the Arc.
-                let inventory_provider = Data::from(inventory_provider.upgrade().unwrap());
-                let storage = Data::from(storage.upgrade().unwrap());
-                let storage_notifier = Data::from(storage_notifier.upgrade().unwrap());
-
-                let oidc_ctx = Data::from(oidc_ctx.upgrade().unwrap());
-                let authorizer = Data::new(self.authorizer.clone());
-
-                let authorization = authorization.clone();
-                let service_auth_middleware = service_auth_middleware.clone();
-
-                let swagger_service_enabled = !settings_provider.get().endpoints.disable_openapi;
-
-                App::new()
-                    .wrap(RequestMetrics::new(metrics.endpoint.clone()))
-                    .wrap(cors)
-                    .wrap(TracingLogger::<ReducedSpanBuilder>::new())
-                    .wrap(api::v1::middleware::headers::Headers {})
-                    .app_data(service.clone())
-                    .app_data(signaling.clone())
-                    .app_data(caches.clone())
-                    .app_data(web::JsonConfig::default().error_handler(json_error_handler))
-                    .app_data(Data::new(settings_provider.clone()))
-                    .app_data(inventory_provider.clone())
-                    .app_data(storage)
-                    .app_data(oidc_ctx.clone())
-                    .app_data(user_search_client.clone())
-                    .app_data(authorizer.clone())
-                    .app_data(Data::new(shutdown.clone()))
-                    .app_data(metrics.clone())
-                    .app_data(http_client.clone())
-                    .app_data(storage_notifier)
-                    .service(well_known::opentalk::api::get)
-                    .service(metrics::metrics)
-                    .with_swagger_service_if(swagger_service_enabled)
-                    .service(internal_service_scope(service_auth_middleware))
-                    .service(livekit_scope())
-                    .service(v1_scope(
-                        settings_provider.clone(),
-                        authorizer,
-                        inventory_provider.clone(),
-                        oidc_ctx.clone(),
-                        authorization,
-                    ))
-            })
+            HttpServer::new(move || http_app.build_app())
         };
 
         let socket_address = determine_socket_address(
@@ -771,170 +715,6 @@ impl utoipa::Modify for SecurityAddon {
 
         components.add_security_scheme("Livekit-Token", SecurityScheme::Http(livekit_http_scheme));
     }
-}
-
-fn v1_scope(
-    settings_provider: SettingsProvider,
-    authorizer: Data<Authorizer>,
-    inventory_provider: Data<dyn InventoryProvider>,
-    oidc_ctx: Data<dyn OidcTokenHandler>,
-    authorization: AuthorizationTransform,
-) -> Scope {
-    // the latest version contains the root services
-
-    let scope = web::scope("/v1");
-
-    scope.service(
-        web::scope("")
-            .wrap(authorization)
-            .wrap(api::v1::middleware::user_auth::OidcAuth {
-                settings_provider,
-                inventory_provider,
-                authorizer,
-                oidc_ctx,
-            })
-            .service(api::signaling::get)
-            .service(v1::invite::verify::post)
-            .service(v1::auth::login::post)
-            .service(v1::auth::login::get)
-            .service(v1::auth::logout::post)
-            .service(v1::rooms::by_id::roomserver::start_invited::post)
-            .service(v1::rooms::by_id::start_invited::post)
-            // The invite-code API has been removed; respond with `410 Gone` instead of `404 Not
-            // Found`
-            .service(v1::rooms::by_id::invites::collection())
-            .service(v1::rooms::by_id::invites::by_code())
-            .service(v1::turn::get)
-            .service(v1::rooms::by_id::assets::by_id::proxy::get)
-            .service(v1::users::find::get)
-            .service(v1::users::me::patch)
-            .service(v1::users::me::get)
-            .service(v1::users::me::tariff::get)
-            .service(v1::users::me::assets::get)
-            .service(v1::users::me::pending_invites::get)
-            .service(v1::users::by_id::get)
-            .service(v1::rooms::get)
-            .service(v1::rooms::post)
-            .service(v1::rooms::by_id::patch)
-            .service(v1::rooms::by_id::get)
-            .service(v1::rooms::by_id::event::get)
-            .service(v1::rooms::by_id::tariff::get)
-            .service(v1::rooms::by_id::start::post)
-            .service(v1::rooms::by_id::roomserver::start::post)
-            .service(v1::rooms::by_id::delete)
-            .service(v1::rooms::name::verify::post)
-            .service(v1::events::post)
-            .service(v1::events::get)
-            // "/events/instances" conflicts with "/events/{event_id}" and thus must be listed
-            // before
-            .service(v1::events::instances::get)
-            .service(v1::events::by_id::get)
-            .service(v1::events::by_id::patch)
-            .service(v1::events::by_id::delete)
-            .service(v1::users::me::event_favorites::by_id::put)
-            .service(v1::users::me::event_favorites::by_id::delete)
-            .service(v1::events::by_id::instances::by_id::get)
-            .service(v1::events::by_id::instances::get)
-            .service(v1::events::by_id::instances::by_id::patch)
-            .service(v1::events::by_id::invites::post)
-            .service(v1::events::by_id::invites::get)
-            .service(v1::events::by_id::invites::email::delete)
-            .service(v1::events::by_id::invites::by_id::delete)
-            .service(v1::events::by_id::invites::email::patch)
-            .service(v1::events::by_id::invites::by_id::patch)
-            .service(v1::events::by_id::invite::patch)
-            .service(v1::events::by_id::invite::delete)
-            .service(v1::events::by_id::shared_folder::get)
-            .service(v1::events::by_id::shared_folder::put)
-            .service(v1::events::by_id::shared_folder::delete)
-            .service(v1::rooms::by_id::sip::get)
-            .service(v1::rooms::by_id::sip::put)
-            .service(v1::rooms::by_id::sip::delete)
-            .service(v1::rooms::by_id::assets::get)
-            .service(v1::rooms::by_id::assets::post)
-            .service(v1::rooms::by_id::assets::by_id::get)
-            .service(v1::rooms::by_id::assets::by_id::download::get)
-            .service(v1::rooms::by_id::assets::by_id::delete)
-            .service(v1::rooms::by_id::streaming_targets::get)
-            .service(v1::rooms::by_id::streaming_targets::post)
-            .service(v1::rooms::by_id::streaming_targets::by_id::get)
-            .service(v1::rooms::by_id::streaming_targets::by_id::patch)
-            .service(v1::rooms::by_id::streaming_targets::by_id::delete),
-    )
-}
-
-fn internal_service_scope(auth_middleware: Option<ApiKeyAuthorization>) -> Scope {
-    let services = web::scope("/internal");
-
-    let Some(auth_middleware) = auth_middleware else {
-        static WARN: std::sync::Once = std::sync::Once::new();
-        WARN.call_once(|| {
-            tracing::debug!(
-                "Missing `http.service_api_keys` configuration, internal service routes are disabled"
-            );
-        });
-
-        return services;
-    };
-
-    services.service(
-        web::scope("")
-            .wrap(auth_middleware)
-            .service(api::internal::assets::post_asset)
-            .service(api::internal::module_resources::create)
-            .service(api::internal::module_resources::get)
-            .service(api::internal::module_resources::patch)
-            .service(api::internal::module_resources::delete)
-            .service(api::internal::call_in::post)
-            .service(api::internal::recording::post_start)
-            .service(api::internal::recording::get_upload)
-            .service(api::internal::transcription::post_start),
-    )
-}
-
-fn livekit_scope() -> Scope {
-    web::scope("livekit")
-        .service(livekit::rtc::get)
-        .service(livekit::rtc::v1::get)
-        .service(livekit::rtc::validate::get)
-        .service(livekit::rtc::v1::validate::get)
-}
-
-fn setup_cors(settings_provider: SettingsProvider) -> Cors {
-    use actix_web::http::{Method, header::*};
-
-    let settings = settings_provider.get();
-    let frontend_base_url = &settings.frontend.base_url;
-    let cors_allowed_origins = &settings.http.cors;
-
-    let cors_allowed_origins = cors_allowed_origins
-        .allowed_origin
-        .clone()
-        .map(HttpCorsAllowedOrigins::into_vec)
-        .unwrap_or_else(|| {
-            vec![HttpCorsAllowedOrigin::try_from_url_relaxed(frontend_base_url.clone()).unwrap()]
-        });
-
-    let mut cors = Cors::default();
-
-    for allowed_origin in cors_allowed_origins {
-        cors = if allowed_origin.is_wildcard() {
-            cors.allow_any_origin()
-        } else {
-            cors.allowed_origin(&allowed_origin.header_value())
-        }
-    }
-
-    cors.allowed_header(CONTENT_TYPE)
-        .allowed_header(AUTHORIZATION)
-        .expose_headers([LINK])
-        .allowed_methods([
-            Method::GET,
-            Method::POST,
-            Method::PUT,
-            Method::PATCH,
-            Method::DELETE,
-        ])
 }
 
 /// Set up TLS for the HTTP server that is provided by the controller
