@@ -8,7 +8,7 @@ The SMTP-Mailer has to be configured and started separately.
 
 You can clone the repository and build the Docker image yourself or download the image directly from the [Container Registry](https://gitlab.opencode.de/opentalk/smtp-mailer/container_registry).
 
-Configure the SMTP-Mailer, you can refer to its [example config](https://gitlab.opencode.de/opentalk/smtp-mailer/-/blob/main/config.toml.example?ref_type=heads).
+Configure the SMTP-Mailer, you can refer to its [example config](https://gitlab.opencode.de/opentalk/smtp-mailer/-/blob/main/example/smtp-mailer.toml?ref_type=heads).
 Note that the Controller and Mailer have to use the same rabbitmq service.
 
 ## Configuration
