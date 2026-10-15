@@ -331,7 +331,7 @@ otctl deploy
 
 ## 3 External OpenTalk Recorder-only nodes
 
-Recording meetings can be resource intensive. Offloading the Recorder service to a dedicated host is appropriate if recordings are frequent or occur in parallel. Ideally that host provides compatible GPUs to enable hardware acceleration (see <https://docs.opentalk.eu/admin/recorder/hardware_acceleration/>). Some security precautions are required: the external Recorder host must reach RabbitMQ on port `5672/tcp`, which is currently only possible unencrypted. Ensure the RabbitMQ port is not publicly exposed (bind to a private interface or restrict via firewall). The Recorder should communicate with RabbitMQ over a private, trusted network. Confirm the necessary network infrastructure and firewall rules are in place before proceeding. See also the configuration reference for relevant variables: [Recorder service options](./6-configuration-options-reference.md#opentalk_compose_opentalk_recorder) and [RabbitMQ options](./6-configuration-options-reference.md#opentalk_compose_rabbitmq).
+Recording meetings can be resource intensive. Offloading the Recorder service to a dedicated host is appropriate if recordings are frequent or occur in parallel. Ideally that host provides compatible GPUs to enable hardware acceleration (see ../../recorder/hardware_acceleration.md). Some security precautions are required: the external Recorder host must reach RabbitMQ on port `5672/tcp`, which is currently only possible unencrypted. Ensure the RabbitMQ port is not publicly exposed (bind to a private interface or restrict via firewall). The Recorder should communicate with RabbitMQ over a private, trusted network. Confirm the necessary network infrastructure and firewall rules are in place before proceeding. See also the configuration reference for relevant variables: [Recorder service options](./6-configuration-options-reference.md#opentalk_compose_opentalk_recorder) and [RabbitMQ options](./6-configuration-options-reference.md#opentalk_compose_rabbitmq).
 
 ### 3.1 Prepare the OpenTalk server configuration
 
@@ -374,7 +374,7 @@ An OpenTalk recorder-only node can be provisioned easily as a standalone Docker 
 
 #### Hardware acceleration (optional)
 
-> **Note:** If you have a compatible integrated GPU (e.g. Intel iGPU with VA-API) or dedicated Intel Arc graphics card, you can enable hardware acceleration by uncommenting the settings below. Specifically, the Intel Arc A310 Eco and Intel Arc A770 models have been tested for hardware acceleration. Ensure the appropriate drivers and device passthrough (e.g. `/dev/dri`) are exposed in the container before enabling the option in the OpenTalk Recorder configuration. Find more information about the [Recorder and hardware acceleration](https://docs.opentalk.eu/admin/recorder/hardware_acceleration/) in the OpenTalk documentation.
+> **Note:** If you have a compatible integrated GPU (e.g. Intel iGPU with VA-API) or dedicated Intel Arc graphics card, you can enable hardware acceleration by uncommenting the settings below. Specifically, the Intel Arc A310 Eco and Intel Arc A770 models have been tested for hardware acceleration. Ensure the appropriate drivers and device passthrough (e.g. `/dev/dri`) are exposed in the container before enabling the option in the OpenTalk Recorder configuration. Find more information about the [Recorder and hardware acceleration](../../recorder/hardware_acceleration.md) in the OpenTalk documentation.
 
 #### 3.2.1 Ensure Docker Engine is installed on the external Recorder host
 

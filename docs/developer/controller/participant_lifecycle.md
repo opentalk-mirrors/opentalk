@@ -1,7 +1,7 @@
 # Participant Lifecycle and States
 
 This document provides a technical overview of the participant lifecycle,
-complementing the [admin documentation](https://docs.opentalk.eu/admin/controller/under_the_hood/participant_states/).
+complementing the [admin documentation](../../admin/controller/under_the_hood/participant_states.md).
 
 The state of a participant is influenced by several factors. Primarily, whether
 a user or guest can access the meeting depends on their invitation status. When

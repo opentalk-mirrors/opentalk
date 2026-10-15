@@ -65,7 +65,7 @@ the request.
 Handles the requests to the WebSocket signaling endpoint which is responsible
 for processing the communication between clients and the controller during
 a meeting. The documentation of the protocol can be found in the
-[Signaling section of the developer documentation](https://docs.opentalk.eu/developer/controller/signaling/).
+[Signaling section of the developer documentation](../../../developer/controller/signaling/README.md).
 
 ### Metrics endpoint handler
 
@@ -83,7 +83,7 @@ They provide general information that the client needs to fetch upfront before
 logging in.
 
 The endpoints are described in the
-[OpenAPI specification](https://docs.opentalk.eu/developer/controller/rest/).
+[OpenAPI specification](../../../developer/controller/api.md).
 
 ### Service auth middleware
 
@@ -94,8 +94,8 @@ in the OIDC access token.
 
 These endpoints are for services that log in to meetings for providing
 functionality for the meeting, such as the
-[{{ product_name }} Recorder](https://docs.opentalk.eu/admin/recorder/) or the
-[{{ product_name }} Obelisk](https://docs.opentalk.eu/admin/obelisk/).
+[{{ product_name }} Recorder](../../recorder/README.md) or the
+[{{ product_name }} Obelisk](../../obelisk/README.md).
 
 ### OIDC middleware
 
@@ -124,4 +124,4 @@ is returned.
 These are API endpoints that are only available after authentication.
 
 The endpoints are described in the
-[OpenAPI specification](https://docs.opentalk.eu/developer/controller/rest/).
+[OpenAPI specification](../../../developer/controller/api.md).

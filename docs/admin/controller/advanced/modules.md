@@ -49,7 +49,7 @@ Handles core room functionality such as joining and leaving
 
 ### Features
 
-The following features can be configured for the module. All features are enabled by default and can be disabled either [by configuration](https://docs.opentalk.eu/admin/controller/advanced/defaults/) or [by tariff](https://docs.opentalk.eu/admin/controller/advanced/tariffs/).
+The following features can be configured for the module. All features are enabled by default and can be disabled either [by configuration](defaults.md) or [by tariff](tariffs.md).
 
 #### `core::call_in`
 
@@ -215,7 +215,7 @@ Handles recording functionality.
 
 ### Features
 
-The following features can be configured for the module. All features are enabled by default and can be disabled either [by configuration](https://docs.opentalk.eu/admin/controller/advanced/defaults/) or [by tariff](https://docs.opentalk.eu/admin/controller/advanced/tariffs/).
+The following features can be configured for the module. All features are enabled by default and can be disabled either [by configuration](defaults.md) or [by tariff](tariffs.md).
 
 #### `recording::record`
 
@@ -304,7 +304,7 @@ Live transcription for meetings
 
 ### Features
 
-The following features can be configured for the module. All features are enabled by default and can be disabled either [by configuration](https://docs.opentalk.eu/admin/controller/advanced/defaults/) or [by tariff](https://docs.opentalk.eu/admin/controller/advanced/tariffs/).
+The following features can be configured for the module. All features are enabled by default and can be disabled either [by configuration](defaults.md) or [by tariff](tariffs.md).
 
 #### `transcription::transcription`
 

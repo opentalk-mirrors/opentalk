@@ -2,7 +2,7 @@
 
 This diagram describes the flow of an authentication against the OIDC provider
 for accessing the
-[{{ product_name }} Controller WebAPI](https://docs.opentalk.eu/developer/controller/rest/).
+[{{ product_name }} Controller WebAPI](../../../developer/controller/api.md).
 
 ```mermaid
 sequenceDiagram

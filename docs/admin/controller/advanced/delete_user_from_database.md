@@ -21,7 +21,7 @@ manual can be used to perform the deletion.
   This will be set to the value of the `created_by` field in the same tables.
 - If you need some background information on the database tables and their
   relations, you can find them in the corresponding section of the
-  [developer documentation](https://docs.opentalk.eu/developer/controller/database/).
+  [developer documentation](../../../developer/controller/database.md).
 - If any errors come up during execution of the snippet, no changes are
   committed to the database because the code is executed in a transaction that
   gets rolled back in that case.
