@@ -1,0 +1,126 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+[http]
+# HTTP server settings
+
+# The IPv4/IPv6 address to bind the HTTP server to.
+# Binds to all interfaces by default:
+address = "{{ roomserver_http_address }}"
+
+# All IPv6 interfaces:
+#address = "::"
+
+# Localhost only:
+#address = "127.0.0.1"
+#address = "::1"
+
+# The URL of the roomserver that is reachable by internal services
+service_url = "{{ roomserver_service_url }}"
+
+# The publicly reachable URL of this server
+public_url = "{{ roomserver_public_url }}/roomserver"
+
+# The api keys for internal service endpoints
+#
+# The roomserver can have multiple api keys configured. An api key can be configured as string ("<key_id>:<key_secret>")
+# or as key/value pair ({id = "<key_id>", secret = "<key_secret>"}).
+api_keys = [{ id = "{{ roomserver_api_key_id }}", secret = "{{ ROOMSERVER_API_SECRET }}" }]
+
+# The port to bind the HTTP server to (defaults to 11333)
+port = {{ roomserver_http_port }}
+
+# Disable the OpenAPI endpoint under `/docs/openapi.json` and the corresponding
+# swagger endpoint under `/swagger`.
+{% if roomserver_http_enable_openapi is defined %}
+enable_openapi = {{ roomserver_http_enable_openapi | lower }}
+{% endif %}
+
+[controller]
+# Controller settings
+#
+# If not configured, assets and module resources will be saved in memory.
+
+# The URL of the controller
+url = "{{ roomserver_controller_url }}"
+
+# The api key for the controllers service API
+api_key = { "id" = "{{ roomserver_controller_api_key_id }}", "secret" = "{{ CONTROLLER_API_SECRET }}" }
+
+{% if roomserver_monitoring_addr is defined or roomserver_monitoring_port is defined %}
+[monitoring]
+# Monitoring settings
+{% if roomserver_monitoring_addr is defined %}
+addr = "{{ roomserver_monitoring_addr }}"
+{% endif %}
+{% if roomserver_monitoring_port is defined %}
+port = {{ roomserver_monitoring_port }}
+{% endif %}
+{% else %}
+[monitoring]
+# Monitoring settings
+
+# Monitoring is optional and disabled by default
+# addr = "0.0.0.0"
+# port = 11411
+{% endif %}
+
+[metrics]
+# Metrics settings
+
+# Metrics is optional and disabled by default
+{% if roomserver_metrics_port is defined %}
+port = {{ roomserver_metrics_port }}
+{% else %}
+#port = 11412
+{% endif %}
+# IP addresses allowed to access the metrics endpoint
+allowlist = {{ roomserver_metrics_allowlist | to_json }}
+
+{% if roomserver_tracing_otlp_endpoint is defined %}
+[tracing]
+# Tracing settings
+otlp_tracing_endpoint = "{{ roomserver_tracing_otlp_endpoint }}"
+{% endif %}
+
+# Conference settings are optional
+{% if roomserver_conference_signaling_salt is defined %}
+[conference]
+# Conference settings
+# Used to derive participant ids from device secrets.
+# A random salt is generated at startup when not set. This value must be kept secret.
+signaling_salt = "{{ roomserver_conference_signaling_salt }}"
+{% endif %}
+
+# The duration in seconds after which a room without participants is closed.
+# room_idle_timeout = "60"
+
+[defaults]
+# When true, participants can't share their screens unless permission is granted by a moderator.
+# Moderators can always share their screen.
+screen_share_requires_permission = {{ roomserver_screen_share_requires_permission | lower }}
+
+{% if roomserver_reports_typst_packages_path is defined %}
+[reports.typst]
+# The location where typst looks for packages.
+packages_path = "{{ roomserver_reports_typst_packages_path }}"
+{% endif %}
+
+{% if compose_service_opentalk_orchestrator_enabled is defined and compose_service_opentalk_orchestrator_enabled %}
+# Optional orchestrator configuration
+[orchestrator]
+# The API key of the orchestrator
+api_key = { id = "{{ roomserver_orchestrator_api_key_id }}", secret = "{{ ORCHESTRATOR_API_SECRET }}" }
+# The orchestrator URL
+url = "http://orchestrator:11222"
+{% endif %}
+
+{% if roomserver_internal_parallel_storage_quota_requests is defined %}
+# Internal settings are optional and use default values if not set.
+[internal]
+# The number of rooms to modify in parallel when receiving a storage quota POST request.
+# Higher numbers will reduce the time it takes to update the storage quota for all rooms,
+# but will increase server load while the requests are running.
+parallel_storage_quota_requests = {{ roomserver_internal_parallel_storage_quota_requests }}
+{% endif %}

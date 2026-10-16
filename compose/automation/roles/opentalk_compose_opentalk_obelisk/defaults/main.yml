@@ -1,0 +1,57 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose_opentalk_obelisk
+obelisk_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+obelisk_docker_compose_services_state: "{{ compose_service_opentalk_obelisk_state | default('present') }}"
+obelisk_docker_compose_services_dir: "{{ services_dir }}"
+obelisk_docker_compose_project_src: "{{ deploy_dir }}"
+
+obelisk_docker_compose_ulimits_nofile_soft: 98304
+obelisk_docker_compose_ulimits_nofile_hard: 98304
+obelisk_docker_compose_ulimits_nproc: 16384
+
+obelisk_docker_image_src: registry.heinlein.group/opentalk/obelisk
+obelisk_docker_extra_hosts:
+  - host.docker.internal:host-gateway
+obelisk_docker_network_mode: host
+obelisk_docker_ports:
+  - "5060:5060"
+obelisk_environment_rust_log_level: info
+obelisk_environment_gst_debug_level: 2
+
+obelisk_clock_format: "%d.%m.%y %X %Z"
+# obelisk_language: "de"
+
+obelisk_controller_domain: "{{ ot_domain }}/controller"
+obelisk_controller_insecure: false
+obelisk_controller_api_key_id: "controller"
+obelisk_controller_api_key_secret: "{{ CONTROLLER_API_SECRET }}"
+
+obelisk_sip_addr: 0.0.0.0
+obelisk_sip_port: 5060
+obelisk_sip_transport: ''
+obelisk_sip_id: ''
+obelisk_sip_contact: ''
+# obelisk_sip_inbound_addr: "192.0.2.1:5060"
+# obelisk_sip_inbound_media_ip: "192.0.2.1"
+obelisk_sip_username: ''
+obelisk_sip_password: ''
+obelisk_sip_realm: ''
+obelisk_sip_registrar: ''
+obelisk_sip_outbound_proxy: ''
+obelisk_sip_nat_ping_delta: ''
+obelisk_sip_stun_server: ''
+obelisk_sip_enforce_qop: false
+obelisk_sip_max_video_bitrate: 6000000
+obelisk_sip_encode_video_at_half_bitrate: ''
+obelisk_sip_display_name_source: ''
+obelisk_sip_offer_srtp: ''
+obelisk_sip_rtp_port_range_start: 40000
+obelisk_sip_rtp_port_range_end: 49999
+
+obelisk_monitoring_enable: true
+obelisk_monitoring_addr: '0.0.0.0'
+obelisk_monitoring_port: 11411

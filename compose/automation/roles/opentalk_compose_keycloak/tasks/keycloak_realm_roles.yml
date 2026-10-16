@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Ensure keycloak role opentalk-call-in
+  community.general.keycloak_role:
+    auth_keycloak_url: "{{ keycloak_base_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_auth_username }}"
+    auth_password: "{{ keycloak_auth_password }}"
+    realm: "{{ keycloak_realm }}"
+    name: opentalk-call-in
+    description: "${role_opentalk-call-in}"
+    state: present
+
+- name: Ensure keycloak role opentalk-recorder
+  community.general.keycloak_role:
+    auth_keycloak_url: "{{ keycloak_base_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_auth_username }}"
+    auth_password: "{{ keycloak_auth_password }}"
+    realm: "{{ keycloak_realm }}"
+    name: opentalk-recorder
+    description: "${opentalk-recorder}"
+    state: present
+
+- name: "Map a client role opentalk-call-in to service account user for client {{ recorder_auth_client_id | default('Recorder') }}"
+  community.general.keycloak_user_rolemapping:
+    auth_keycloak_url: "{{ keycloak_base_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_auth_username }}"
+    auth_password: "{{ keycloak_auth_password }}"
+    realm: "{{ keycloak_realm }}"
+    service_account_user_client_id: "{{ recorder_auth_client_id | default('Recorder') }}"
+    roles:
+      - name: opentalk-recorder
+    state: present

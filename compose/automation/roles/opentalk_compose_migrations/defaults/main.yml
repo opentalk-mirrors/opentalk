@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose_migrations
+
+# Stop 'otctl deploy' while a migration is pending. Disable only to deploy a
+# state you have checked yourself; the deploy may then create empty services.
+migration_check_enabled: true
+
+# Compose project whose volumes are inspected.
+migrations_compose_project: "{{ compose_project_name | default('opentalk') }}"
+
+# PostgreSQL major the deployment runs on. Volumes are named per major, see
+# controller_db_volume_name and keycloak_db_volume_name.
+migrations_postgres_major: "{{ (postgres_version | string).split('.') | first }}"
+
+# Databases that 'otctl migrate postgres' moves to a new major. 'service' and
+# 'db_service' are the compose services of the application and its database.
+migrations_postgres_databases:
+  - name: controller
+    service: controller
+    db_service: controller-db
+    secret_file: .db_controller.secret
+    default_user: ot
+    default_database: controller
+    enabled: "{{ compose_service_opentalk_controller_enabled | default(true) }}"
+  - name: keycloak
+    service: keycloak
+    db_service: keycloak-db
+    secret_file: .db_keycloak.secret
+    default_user: ot
+    default_database: keycloak
+    enabled: "{{ compose_service_keycloak_enabled | default(true) }}"

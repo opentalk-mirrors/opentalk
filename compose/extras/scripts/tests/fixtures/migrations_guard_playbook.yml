@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Runs the deploy guard of opentalk_compose_migrations the way the main
+# playbook does, with .versions.yml and the settings from OT_TEST_SETTINGS_FILE.
+- name: Migration guard fixture
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../../../../.versions.yml
+    - "{{ lookup('ansible.builtin.env', 'OT_TEST_SETTINGS_FILE') }}"
+  tasks:
+    - name: Stop if a migration is pending
+      ansible.builtin.include_role:
+        name: opentalk_compose_migrations

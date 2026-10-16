@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Before 26.1 MinIO was the only provider. A deployment that never set the
+# provider explicitly would silently switch to an empty Garage, so ask the
+# user to decide.
+
+- name: Detect an S3 provider that is only implied by the default
+  ansible.builtin.set_fact:
+    migrations_pending: >-
+      {{ migrations_pending + [{
+           'id': 's3-provider',
+           'title': 'S3 storage provider not set',
+           'reason': 'The MinIO volume ' ~ migrations_compose_project ~ '_minio exists, but settings.yml selects no S3 provider, so the deploy would start an empty Garage.',
+           'action': "Keep MinIO with 's3_storage_provider: minio' in settings.yml, or move the data with 'otctl migrate minio-to-garage'."
+         }] }}
+  when:
+    - s3_storage_provider is not defined
+    - compose_service_minio_enabled is not defined
+    - (migrations_compose_project ~ '_minio') in _migrations_volumes

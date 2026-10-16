@@ -1,0 +1,43 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Validate import_users parameters.
+
+- name: Assert import_users_file is set
+  ansible.builtin.assert:
+    that:
+      - import_users_file is defined
+      - import_users_file | length > 0
+    fail_msg: >-
+      import_users_file must be set.
+      Use: otctl import users /path/to/users.csv
+        or otctl import users /path/to/users.json
+  tags: [import_users_logic]
+- name: Check that import file exists
+  ansible.builtin.stat:
+    path: "{{ import_users_file }}"
+  register: _import_users_file_stat
+  tags: [import_users_logic]
+- name: Fail if import file does not exist
+  ansible.builtin.fail:
+    msg: "Import file not found: {{ import_users_file }}"
+  when: not _import_users_file_stat.stat.exists
+  tags: [import_users_logic]
+- name: Derive file format from extension
+  ansible.builtin.set_fact:
+    _import_users_format: "{{ import_users_file | splitext | last | lower }}"
+  tags: [import_users_logic]
+- name: Assert file format is supported
+  ansible.builtin.assert:
+    that:
+      - _import_users_format in ['.csv', '.json']
+    fail_msg: >-
+      Unsupported file format '{{ _import_users_format }}'.
+      Only .csv and .json files are supported.
+  tags: [import_users_logic]
+- name: Show import file info
+  ansible.builtin.debug:
+    msg: "Import file: {{ import_users_file }} (format: {{ _import_users_format }})"
+  tags: [import_users_logic]

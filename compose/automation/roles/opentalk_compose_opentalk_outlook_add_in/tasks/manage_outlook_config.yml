@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+
+- name: Ensure OpenTalk Recorder service directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: "0755"
+    state: directory
+  with_items:
+    - "{{ outlook_add_in_docker_compose_services_dir }}"
+    - "{{ outlook_add_in_docker_compose_services_dir }}/opentalk-outlook_add-in"
+  tags:
+    - outlook_add_in

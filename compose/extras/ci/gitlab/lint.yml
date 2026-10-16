@@ -1,0 +1,91 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+lint:shellcheck:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Linting shell scripts..."
+    - git ls-files -z '*.sh' | xargs -0r shellcheck
+    - shellcheck extras/packaging/wrappers/*
+
+lint:shell-tests:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Running shell regression tests..."
+    - just test-fast-no-lint
+
+lint:yamllint:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Linting YAML files..."
+    - yamllint .
+
+lint:markdown:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Linting Markdown files..."
+    - |
+      git ls-files '*.md' | grep -v 'docs/6-configuration-options-reference.md' | \
+        xargs -P4 -n1 sh -c '
+          f="$1"
+          sed "/\[\[_TOC_\]\]/Id" "$f" | mdl --style .markdown_style.rb - 2>&1 | \
+          sed "s|^|$f: |"
+        ' _
+
+lint:ansible-lint:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Linting Ansible code ..."
+    - ansible-lint .
+
+lint:ansible-syntax:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Syntax-checking Ansible playbooks ..."
+    - |
+      for playbook in automation/playbooks/*.yml; do
+        echo "=== ${playbook} ==="
+        ansible-playbook --syntax-check "${playbook}"
+      done
+
+lint:licensing:
+  stage: lint
+  extends: .default_conditions
+  script:
+    - echo "Check license compliance..."
+    - reuse lint
+
+lint:release_tag:
+  stage: lint
+  extends: .default_conditions
+  before_script:
+    - cd "$CI_PROJECT_DIR/compose"
+    - bash extras/ci/gitlab/update-product-version.sh
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^compose-v\d+\.\d+\.\d+(-\d+)?$/'
+    - when: never
+  script:
+    - bash extras/ci/gitlab/check-release-tag.sh '(-[0-9]+)?'
+
+lint:pre-release_tag:
+  stage: lint
+  extends: .default_conditions
+  before_script:
+    - cd "$CI_PROJECT_DIR/compose"
+    - bash extras/ci/gitlab/update-product-version.sh
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG =~ /^compose-v\d+\.\d+\.\d+(-(alpha|beta)(\.\d+)?)$/'
+    - when: never
+  script:
+    - bash extras/ci/gitlab/check-release-tag.sh '(-(alpha|beta)(\.[0-9]+)?)?'

@@ -1,0 +1,102 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# This file is included from the root `.gitlab-ci.yml` (single merged pipeline).
+# It no longer declares its own `image`, `workflow`, or `stages` - those are
+# owned by the root config since GitLab only honours one of each per pipeline.
+# Every job below operates relative to this `compose/` directory, so anything
+# that touches repo-relative paths carries an explicit `cd` into it.
+
+include:
+  - local: compose/extras/ci/gitlab/lint.yml
+  - local: compose/extras/ci/gitlab/package.yml
+  - local: compose/extras/ci/gitlab/deploy.yml
+  - local: compose/extras/ci/gitlab/integration.yml
+  - local: compose/extras/ci/gitlab/triggers.yml
+
+.template_pkg_vars:
+  FLAVORS_PKG: ['deb', 'rpm']
+
+.template_dist_vars:
+  FLAVORS_DIST: ['debian12', 'debian13', 'opensuse15', 'opensuse16', 'rocky9', 'ubuntu2404']
+
+.default_conditions: &default_conditions
+  image: $CI_REGISTRY_IMAGE/pkgbuild:latest
+  needs:
+    - job: build:pkgbuild
+      optional: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - compose/**/*
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - compose/**/*
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      changes:
+        - compose/**/*
+    - if: '$CI_COMMIT_TAG =~ /^compose-v\d+\.\d+\.\d+/'
+  before_script:
+    - cd "$CI_PROJECT_DIR/compose"
+
+trigger_changelog_preview:
+  stage: trigger
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        - compose/**/*
+  variables:
+    PIPELINE_PROJECT_PATH: $CI_PROJECT_PATH
+    PIPELINE_MERGE_REQUEST_PROJECT_PATH: $CI_MERGE_REQUEST_SOURCE_PROJECT_PATH
+    PIPELINE_MERGE_REQUEST_SOURCE_BRANCH_NAME: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+    PIPELINE_MERGE_REQUEST_TARGET_BRANCH_NAME: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    PIPELINE_MERGE_REQUEST_IID: $CI_MERGE_REQUEST_IID
+  trigger: opentalk/tools/check-changelog
+
+build:pkgbuild:
+  stage: image
+  image: docker:27-cli
+  services:
+    - docker:27-dind
+  tags:
+    - dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  rules:
+    - changes:
+        - compose/extras/ci/pkgbuild/**/*
+        - compose/.gitlab-ci.yml
+    - when: never
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+    - docker buildx create --use
+    - >-
+      docker buildx build
+      --cache-from type=registry,ref=$CI_REGISTRY_IMAGE/pkgbuild:cache
+      --cache-to type=registry,ref=$CI_REGISTRY_IMAGE/pkgbuild:cache,mode=max
+      --tag $CI_REGISTRY_IMAGE/pkgbuild:latest
+      --push
+      compose/extras/ci/pkgbuild
+
+docs:mkdocs:
+  stage: docs
+  <<: *default_conditions
+  script:
+    # The privacy plugin fetches external assets (e.g. Google Fonts); retry on
+    # transient network timeouts.
+    - |
+      for i in 1 2 3; do
+        just docs && exit 0
+        echo "just docs attempt $i failed; retrying..."
+        sleep 10
+      done
+      exit 1
+  artifacts:
+    paths:
+      - compose/site/
+  pages:
+    publish: compose/site

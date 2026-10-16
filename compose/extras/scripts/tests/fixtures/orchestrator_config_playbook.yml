@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- hosts: localhost
+  gather_facts: false
+  vars:
+    orchestrator_role_dir: "{{ roles_dir }}/opentalk_compose_opentalk_orchestrator"
+    ot_ingress_protocol: https
+    ot_domain: example.com
+    ot_ingress_port: 443
+    ORCHESTRATOR_API_SECRET: stub-orchestrator-secret
+    ROOMSERVER_API_SECRET: stub-roomserver-secret
+  tasks:
+    - name: Load orchestrator role defaults
+      ansible.builtin.include_vars:
+        file: "{{ orchestrator_role_dir }}/defaults/main.yml"
+
+    - name: Render orchestrator static config
+      ansible.builtin.template:
+        src: "{{ orchestrator_role_dir }}/templates/orchestrator.toml.j2"
+        dest: "{{ rendered_config }}"

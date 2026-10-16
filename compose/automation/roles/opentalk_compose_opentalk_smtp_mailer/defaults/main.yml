@@ -1,0 +1,57 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# defaults file for opentalk_compose_opentalk_smtp_mailer
+
+mailer_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+mailer_docker_compose_services_state: "{{ compose_service_opentalk_smtp_mailer_state | default('present') }}"
+mailer_docker_compose_services_dir: "{{ services_dir }}"
+mailer_docker_compose_project_src: "{{ deploy_dir }}"
+
+mailer_docker_compose_ulimits_nofile_soft: 16384
+mailer_docker_compose_ulimits_nofile_hard: 32768
+
+mailer_docker_image_src: registry.heinlein.group/opentalk/smtp-mailer
+
+mailer_rabbit_mq_url: "amqp://ot:{{ RABBITMQ_PASSWORD }}@rabbitmq/%2F"
+mailer_rabbit_mq_mail_task_queue: "opentalk_mailer"
+# mailer_rabbit_mq_task_processing_timeout_seconds: 1200
+
+mailer_smtp_smtp_server: "smtp://mailcrab:1025?disable_starttls=true"
+mailer_smtp_from_name: "OpenTalk - {{ ot_domain }}"
+mailer_smtp_from_email: "no-reply@{{ ot_domain }}"
+
+# Optional template builder links
+# mailer_template_builder_join_link_builder: "{base_url}lobby/{room_id}"
+# mailer_template_builder_guest_link_builder: "{base_url}/invite/{invite_id}"
+# mailer_template_builder_dashboard_event_link_builder: "{base_url}/dashboard/meetings/view/{event_id}"
+
+# Optional templates
+# mailer_templates_registered_invite: '{html = "resources/templates/registered_invite.html", txt = "resources/templates/registered_invite.txt"}'
+# mailer_templates_unregistered_invite: '{html = "resources/templates/unregistered_invite.html", txt = "resources/templates/unregistered_invite.txt"}'
+# mailer_templates_external_invite: '{html = "resources/templates/external_invite.html", txt = "resources/templates/external_invite.txt"}'
+# mailer_templates_registered_event_update: '{html = "resources/templates/registered_event_update.html", txt = "resources/templates/registered_event_update.txt"}'
+# mailer_templates_unregistered_event_update: '{html = "resources/templates/unregistered_event_update.html", txt = "resources/templates/unregistered_event_update.txt"}'
+# mailer_templates_external_event_update: '{html = "resources/templates/external_event_update.html", txt = "resources/templates/external_event_update.txt"}'
+# mailer_templates_registered_event_cancellation: '{html = "resources/templates/registered_event_cancellation.html", txt = "resources/templates/registered_event_cancellation.txt"}'
+# mailer_templates_unregistered_event_cancellation: '{html = "resources/templates/unregistered_event_cancellation.html", txt = "resources/templates/unregistered_event_cancellation.txt"}'
+# mailer_templates_external_event_cancellation: '{html = "resources/templates/external_event_cancellation.html", txt = "resources/templates/external_event_cancellation.txt"}'
+# mailer_templates_registered_uninvite: '{html = "resources/templates/registered_uninvite.html", txt = "resources/templates/registered_uninvite.txt"}'
+# mailer_templates_unregistered_uninvite: '{html = "resources/templates/unregistered_uninvite.html", txt = "resources/templates/unregistered_uninvite.txt"}'
+# mailer_templates_external_uninvite: '{html = "resources/templates/external_uninvite.html", txt = "resources/templates/external_uninvite.txt"}'
+
+# Frontend settings
+mailer_frontend_base_url: "https://{{ ot_domain }}"
+# mailer_frontend_data_protection_url: "https://opentalk.example.org/dataprotection"
+
+mailer_languages_default_language: "de-DE"
+
+# Optional monitoring address
+mailer_monitoring_addr: "0.0.0.0"
+mailer_monitoring_port: 11411
+
+# Optional support contact information
+# mailer_support_contact_phone: "+49 123 456789"
+# mailer_support_contact_mail: "support@example.com"

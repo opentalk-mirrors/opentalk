@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+#compdef otctl
+local -a subs
+subs=($(otctl --help 2>/dev/null | awk '/^[[:space:]]+[a-z0-9_-]+[[:space:]]+-/{print $1}'))
+if (( CURRENT == 2 )); then
+  _describe -t commands 'otctl subcommands' subs
+  return
+fi
+_arguments '*:arg:->rest'

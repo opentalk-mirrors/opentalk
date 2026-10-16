@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Abort the deployment while a migration is pending, before anything changes.
+
+- name: Detect pending migrations
+  ansible.builtin.include_tasks:
+    file: detect.yml
+  when: migration_check_enabled | bool
+
+- name: Stop the deployment while migrations are pending
+  ansible.builtin.fail:
+    msg: |-
+      Deployment stopped before any change: {{ migrations_pending | length }} migration(s) required.
+      {% for m in migrations_pending %}
+
+      * {{ m.title }}
+        {{ m.reason }}
+        Next step: {{ m.action }}
+      {% endfor %}
+
+      Run 'otctl migrate status' to review them, and see the chapter
+      'Upgrades and Migrations' in the documentation.
+  when:
+    - migration_check_enabled | bool
+    - migrations_pending | length > 0

@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+# Report migrations that block 'otctl deploy'. Read-only.
+
+- name: Migration status
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../../.versions.yml
+    - "{{ lookup('env', 'OT_SETTINGS_FILE') | default('/etc/opentalk-compose/settings.yml', true) }}"
+  tasks:
+    - name: Report pending migrations
+      ansible.builtin.include_role:
+        name: opentalk_compose_migrations
+        tasks_from: status.yml

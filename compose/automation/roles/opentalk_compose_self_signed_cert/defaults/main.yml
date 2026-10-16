@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+self_signed_certificates_generate: false
+self_signed_certificates_install_system_trust: true
+self_signed_certificates_system_trust_name: "opentalk-selfsigned-ca.crt"
+self_signed_certificates_system_trust_dest_override: ""  # Optional explicit path; if set overrides OS-specific logic.
+
+custom_certificates_certs_dir: /etc/opentalk-compose/ssl
+
+self_signed_certificates_ssl_certificate_ca_file: "{{ custom_certificates_ca_root_cert_file | default('ca.crt') }}"
+self_signed_certificates_ssl_certificate_fullchain_file: "{{ custom_certificates_ssl_certificate_fullchain_file | default('fullchain.crt') }}"
+self_signed_certificates_ssl_certificate_key_file: "{{ custom_certificates_ssl_certificate_key_file | default('privkey.key') }}"
+
+
+self_signed_certificates_ca_dir: "{{ custom_certificates_certs_dir }}/ca"
+
+self_signed_certificates_ca_country: "DE"
+self_signed_certificates_ca_state: "Berlin"
+self_signed_certificates_ca_locality: "Berlin"
+self_signed_certificates_ca_organization: "my CA"
+self_signed_certificates_ca_organizational_unit: "CA"
+self_signed_certificates_ca_common_name: "{{ ot_domain }}"
+self_signed_certificates_ca_email_address: "admin@{{ ot_domain }}"
+self_signed_certificates_ca_key_size: 4096
+self_signed_certificates_ca_certificate_validity_days: 365
+
+self_signed_certificates_server_country: "DE"
+self_signed_certificates_server_state: "Berlin"
+self_signed_certificates_server_locality: "Berlin"
+self_signed_certificates_server_organization: "my Company"
+self_signed_certificates_server_organizational_unit: "IT Security"
+self_signed_certificates_server_common_name: "{{ ot_domain }}"
+self_signed_certificates_server_email_address: "admin@{{ ot_domain }}"
+self_signed_certificates_server_key_size: 4096
+self_signed_certificates_server_certificate_validity_days: 365
+self_signed_certificates_server_san_dns:
+  - "{{ ot_domain }}"
+  - "*.{{ ot_domain }}"
+self_signed_certificates_server_san_ip:
+  - "127.0.0.1"
+  - "::1"
+
+# Overrides in settings.yml defaults for custom certificates (if enabled)
+# custom_certificates_enabled: false
+# custom_certificates_fullchain_cert_file: fullchain.crt
+# custom_certificates_private_key_file: privkey.key
+# custom_certificates_ca_root_cert_file: ca.crt

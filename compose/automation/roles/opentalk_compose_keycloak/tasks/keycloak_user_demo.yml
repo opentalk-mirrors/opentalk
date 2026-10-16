@@ -1,0 +1,66 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+- name: Check Keycloak token endpoint readiness (demo-user)
+  tags:
+    - never
+    - demo-user
+  block:
+    - name: Wait for Keycloak token endpoint to accept POST
+      ansible.builtin.uri:
+        url: "{{ keycloak_base_url }}/realms/{{ keycloak_auth_realm }}/protocol/openid-connect/token"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          grant_type: password
+          client_id: admin-cli
+          username: "{{ keycloak_auth_username }}"
+          password: "{{ keycloak_auth_password }}"
+        status_code:
+          - 200
+          - 401
+          - 404
+          - 405
+          - 502
+          - 503
+        return_content: false
+        validate_certs: false
+        timeout: 5
+      register: keycloak_token_probe
+      failed_when: false
+      until: keycloak_token_probe.status in [200, 401]
+      retries: 30
+      delay: 4
+
+    - name: Mark Keycloak token endpoint as ready
+      ansible.builtin.set_fact:
+        keycloak_token_endpoint_ready: true
+  rescue:
+    - name: Mark Keycloak token endpoint as not ready
+      ansible.builtin.set_fact:
+        keycloak_token_endpoint_ready: false
+- name: "Manage demo user for testing purposes | name: {{ keycloak_demo_user_name | default('Test User') }}"
+  community.general.keycloak_user:
+    auth_keycloak_url: "{{ keycloak_base_url }}"
+    auth_realm: "{{ keycloak_auth_realm }}"
+    auth_username: "{{ keycloak_auth_username }}"
+    auth_password: "{{ keycloak_auth_password }}"
+    realm: "{{ keycloak_realm }}"
+    username: "{{ keycloak_demo_user_name | default('demo') }}"
+    firstName: "{{ keycloak_demo_user_firstName | default('Test') }}"
+    lastName: "{{ keycloak_demo_user_lastName | default('User') }}"
+    email: "{{ keycloak_demo_user_email | default('demo.user@localhost') }}"
+    enabled: "{{ keycloak_demo_user_enabled | default(true) }}"
+    emailVerified: true
+    force: "{{ keycloak_demo_user_force | default(false) }}"
+    credentials:
+      - type: password
+        value: "{{ keycloak_demo_user_password }}"
+        temporary: false
+    state: "{{ keycloak_demo_user_state }}"
+  when: keycloak_token_endpoint_ready | default(false) | bool
+  tags:
+    - never
+    - demo-user

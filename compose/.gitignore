@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+services/3rd_party/minio/.minio_root.secret
+services/3rd_party/postgres/.db_controller.secret
+services/3rd_party/postgres/.db_keycloak.secret
+services/etherpad/.etherpad_api.secret
+services/spacedeck/.spacedeck_api.secret
+services/spacedeck/.spacedeck_invite.secret
+services/cforge/data/.secrets.yaml
+
+extras/packaging/requirements-ansible.txt
+
+config/**
+services/**/config/
+**/data/
+
+.ansible/
+
+# Build artifacts
+*.deb
+*.rpm
+*.tar.gz
+*.tar.xz
+build/
+dist/
+
+# Packaging temp files
+debroot/
+rpmbuild/
+
+**/__pycache__/
+*.pyc
+
+.cache/
+site/
+*.tokens

@@ -1,0 +1,161 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+# Garage configuration — managed by Ansible
+# Documentation: https://garagehq.deuxfleurs.fr/documentation/reference-manual/configuration/
+
+{% if garage_replication_factor is defined %}
+replication_factor = {{ garage_replication_factor }}
+{% endif %}
+{% if garage_consistency_mode is defined and garage_consistency_mode %}
+consistency_mode = "{{ garage_consistency_mode }}"
+{% endif %}
+
+metadata_dir = "{{ garage_metadata_dir }}"
+data_dir = "{{ garage_data_dir }}"
+{% if garage_metadata_snapshots_dir is defined and garage_metadata_snapshots_dir %}
+metadata_snapshots_dir = "{{ garage_metadata_snapshots_dir }}"
+{% endif %}
+{% if garage_metadata_fsync is defined %}
+metadata_fsync = {{ garage_metadata_fsync | to_json }}
+{% endif %}
+{% if garage_data_fsync is defined %}
+data_fsync = {{ garage_data_fsync | to_json }}
+{% endif %}
+{% if garage_disable_scrub is defined %}
+disable_scrub = {{ garage_disable_scrub | to_json }}
+{% endif %}
+{% if garage_use_local_tz is defined %}
+use_local_tz = {{ garage_use_local_tz | to_json }}
+{% endif %}
+{% if garage_metadata_auto_snapshot_interval is defined and garage_metadata_auto_snapshot_interval %}
+metadata_auto_snapshot_interval = "{{ garage_metadata_auto_snapshot_interval }}"
+{% endif %}
+{% if garage_db_engine is defined and garage_db_engine %}
+db_engine = "{{ garage_db_engine }}"
+{% endif %}
+{% if garage_block_size is defined and garage_block_size %}
+block_size = "{{ garage_block_size }}"
+{% endif %}
+{% if garage_block_ram_buffer_max is defined and garage_block_ram_buffer_max %}
+block_ram_buffer_max = "{{ garage_block_ram_buffer_max }}"
+{% endif %}
+{% if garage_block_max_concurrent_reads is defined %}
+block_max_concurrent_reads = {{ garage_block_max_concurrent_reads }}
+{% endif %}
+{% if garage_block_max_concurrent_writes_per_request is defined %}
+block_max_concurrent_writes_per_request = {{ garage_block_max_concurrent_writes_per_request }}
+{% endif %}
+{% if garage_lmdb_map_size is defined and garage_lmdb_map_size %}
+lmdb_map_size = "{{ garage_lmdb_map_size }}"
+{% endif %}
+{% if garage_compression_level is defined %}
+compression_level = {{ garage_compression_level }}
+{% endif %}
+
+rpc_secret_file = "{{ garage_rpc_secret_file }}"
+{% if garage_rpc_bind_addr is defined and garage_rpc_bind_addr %}
+rpc_bind_addr = "{{ garage_rpc_bind_addr }}"
+{% endif %}
+{% if garage_rpc_bind_outgoing is defined %}
+rpc_bind_outgoing = {{ garage_rpc_bind_outgoing | to_json }}
+{% endif %}
+{% if garage_rpc_public_addr is defined and garage_rpc_public_addr %}
+rpc_public_addr = "{{ garage_rpc_public_addr }}"
+{% endif %}
+{% if garage_rpc_public_addr_subnet is defined and garage_rpc_public_addr_subnet %}
+rpc_public_addr_subnet = "{{ garage_rpc_public_addr_subnet }}"
+{% endif %}
+{% if garage_allow_world_readable_secrets is defined %}
+allow_world_readable_secrets = {{ garage_allow_world_readable_secrets | to_json }}
+{% endif %}
+{% if garage_bootstrap_peers is defined %}
+bootstrap_peers = [{% for peer in garage_bootstrap_peers %}"{{ peer }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+{% if garage_allow_punycode is defined %}
+allow_punycode = {{ garage_allow_punycode | to_json }}
+{% endif %}
+
+{% if garage_consul_http_addr is defined and garage_consul_http_addr %}
+[consul_discovery]
+{% if garage_consul_api is defined and garage_consul_api %}
+api = "{{ garage_consul_api }}"
+{% endif %}
+consul_http_addr = "{{ garage_consul_http_addr }}"
+{% if garage_consul_tls_skip_verify is defined %}
+tls_skip_verify = {{ garage_consul_tls_skip_verify | to_json }}
+{% endif %}
+{% if garage_consul_service_name is defined and garage_consul_service_name %}
+service_name = "{{ garage_consul_service_name }}"
+{% endif %}
+{% if garage_consul_ca_cert is defined and garage_consul_ca_cert %}
+ca_cert = "{{ garage_consul_ca_cert }}"
+{% endif %}
+{% if garage_consul_client_cert is defined and garage_consul_client_cert %}
+client_cert = "{{ garage_consul_client_cert }}"
+{% endif %}
+{% if garage_consul_client_key is defined and garage_consul_client_key %}
+client_key = "{{ garage_consul_client_key }}"
+{% endif %}
+{% if garage_consul_token is defined and garage_consul_token %}
+token = "{{ garage_consul_token }}"
+{% endif %}
+{% if garage_consul_tags is defined and garage_consul_tags %}
+tags = [{% for tag in garage_consul_tags %}"{{ tag }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+{% if garage_consul_datacenters is defined and garage_consul_datacenters %}
+datacenters = [{% for dc in garage_consul_datacenters %}"{{ dc }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+{% endif %}
+
+{% if garage_k8s_namespace is defined and garage_k8s_namespace %}
+[kubernetes_discovery]
+namespace = "{{ garage_k8s_namespace }}"
+{% if garage_k8s_service_name is defined and garage_k8s_service_name %}
+service_name = "{{ garage_k8s_service_name }}"
+{% endif %}
+{% if garage_k8s_skip_crd is defined %}
+skip_crd = {{ garage_k8s_skip_crd | to_json }}
+{% endif %}
+{% endif %}
+
+[s3_api]
+{% if garage_s3_region is defined and garage_s3_region %}
+s3_region = "{{ garage_s3_region }}"
+{% endif %}
+{% if garage_s3_api_bind_addr is defined and garage_s3_api_bind_addr %}
+api_bind_addr = "{{ garage_s3_api_bind_addr }}"
+{% endif %}
+root_domain = "{{ garage_s3_api_root_domain }}"
+
+{% if garage_s3_web_bind_addr is defined or garage_s3_web_root_domain is defined or garage_s3_web_index is defined or garage_s3_web_add_host_to_metrics is defined %}
+[s3_web]
+{% if garage_s3_web_bind_addr is defined and garage_s3_web_bind_addr %}
+bind_addr = "{{ garage_s3_web_bind_addr }}"
+{% endif %}
+{% if garage_s3_web_root_domain is defined and garage_s3_web_root_domain %}
+root_domain = "{{ garage_s3_web_root_domain }}"
+{% endif %}
+{% if garage_s3_web_index is defined and garage_s3_web_index %}
+index = "{{ garage_s3_web_index }}"
+{% endif %}
+{% if garage_s3_web_add_host_to_metrics is defined %}
+add_host_to_metrics = {{ garage_s3_web_add_host_to_metrics | to_json }}
+{% endif %}
+{% endif %}
+
+[admin]
+{% if garage_admin_api_bind_addr is defined and garage_admin_api_bind_addr %}
+api_bind_addr = "{{ garage_admin_api_bind_addr }}"
+{% endif %}
+admin_token_file = "{{ garage_admin_token_file }}"
+{% if garage_admin_metrics_token is defined and garage_admin_metrics_token %}
+metrics_token = "{{ garage_admin_metrics_token }}"
+{% endif %}
+{% if garage_admin_metrics_require_token is defined %}
+metrics_require_token = {{ garage_admin_metrics_require_token | to_json }}
+{% endif %}
+{% if garage_admin_trace_sink is defined and garage_admin_trace_sink %}
+trace_sink = "{{ garage_admin_trace_sink }}"
+{% endif %}

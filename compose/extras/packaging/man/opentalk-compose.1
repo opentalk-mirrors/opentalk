@@ -1,0 +1,214 @@
+.TH OPENTALK-COMPOSE 1 "February 2025" "Version 1.0" "EXPERIMENTAL User Manual"
+
+.SH NAME
+opentalk-compose \- Compose and orchestrate OpenTalk services.
+
+.SH SYNOPSIS
+.B cd /opt/opentalk-compose 
+.RS
+IMPORTANT: all commands needs to be executed from /opt/opentalk-compose
+.RE
+
+.B cforge init
+.RS
+Runs the cforge container, which initializes the configuration of services. It must be run at least once before the services can be started.
+After initialization use docker compose to run the applications stack.
+.RE
+
+.B cforge apply
+.RS
+Apply changes in settings.yml to the service configurations. Changes also provoke a restart of a relatet service. Currently it does not include a recreation of a container.
+Changes on the compose override files needs still a `docker compose up -d` to get applied.
+.RE
+
+
+.B cforge task <task name>
+.RS
+Executes a post-installation task.
+.RE
+
+.RS
+Example:
+.EX
+.B cforge task demoUser
+.EE
+.RE
+
+.B docker compose up -d
+.RS
+Starts the entire OpenTalk stack in the background.
+.RE
+
+.B docker compose restart <service name>
+.RS
+Restarts a single OpenTalk service.
+.RE
+
+.RS
+Example:
+.EX
+docker compose restart controller
+.EE
+.RE
+
+.SH DESCRIPTION
+The package opentalk-compose contains compose.yaml files to run a complete OpenTalk instance on a single node.
+It is primarily intended to be used with Docker Compose to orchestrate the services and configuration.
+You must ensure that the Docker container engine and the Docker Compose plugin are properly installed and functioning.
+
+The cforge container is specifically responsible for configuration management. Manual configuration is not recommended, as the application stack consists of many interdependent services.
+
+All commands must be executed from the directory /opt/opentalk-compose.
+
+.SH INSTALLATION
+After installing the package opentalk-compose, the installation can be continued in three phases: preparation, initialization, and optionally post-install. Follow the instructions below to successfully complete the installation of OpenTalk.
+
+.SS Preparation:
+It must be ensured that the following preparations have been made befor the initialization can run.
+
+.B 1. The host has a valid domain name record pointing to the public IP address.
+.RS
+Running `getent hosts opentalk.example.com` on your server must show the public IP address.
+.RE
+
+.B 2. The following ports are used by default and must be accessible on the public interface if the respective services are utilized:
+.RS
+* 80,443/tcp (HTTP, HTTPS)
+.RE
+.RS
+* 40000-49999/udp (RTP Obelisk)
+.RE
+.RS
+* 5060/udp (SIP Obelisk)
+.RE
+.RS
+* 50000-64535/udp (RTP LiveKit)
+.RE
+.RS
+* 7881/tcp (WebRTC ICE over TCP, LiveKit)
+.RE
+
+.SS Initialization:
+During initialization, cforge generates configuration files for the services to be started. Therefore, it is crucial that the domain
+is correctly set as the value for 'OT_DOMAIN' in config/default.env. Secrets for the individual services are also generated and stored in config/secrets/ and in
+the corresponding configuration files. 
+
+.B 1. Change to the directory /opt/opentalk-compose
+.RS
+cd /opt/opentalk-compose
+.RE
+
+.B 2. Add the domain name record (e.g., opentalk.example.com) to the variable 'OT_DOMAIN' in the configuration file config/default.env
+.RS
+sed -i 's/^OT_DOMAIN=.*/OT_DOMAIN="opentalk.example.com"/' /opt/opentalk-compose/config/default.env
+.RE
+
+.B 3. Run the initialization using cforge
+.RS
+cforge init
+.RE
+
+.B 4. Start the OpenTalk application stack
+.RS
+docker compose up -d
+.RE
+
+.SS Post-Install:
+Some configurations or tasks can only be performed once certain services have successfully started.
+These are handled as post-install tasks and can only be executed after the initialization has
+been successfully completed and services have started.
+
+.B Post-Install Tasks can be executed as follows:
+.RS
+cforge task <task name>
+.RE
+
+.B Currently available post-install tasks that can be set as TAGS:
+.RS
+.EX
+
++----------------------------+--------------------------------------------------------+
+| Task Name                  | Task Description                                       |
++----------------------------|--------------------------------------------------------+
+| demoUser                   | Creates a user in Keycloak for testing purposes.       |
+| outlookClient              | Creates a OIDC client for the OpenTalk Outlook Add-in. |
+| selfSignedCerts            | Creates self-signed certificates for the OpenTalk.     |
+|                            |                                                        |
+| createBackup               | Creates full backup of all services                    |
+|   createBackupConfig       | Creates backup of the config directory                 |
+|   createBackupControllerDB | Creates backup of the Controller database              |
+|   createBackupKeycloakDB   | Creates backup of the Keycloak database                |
+|   createBackupTraefik      | Creates backup of the Traefik data directory           |
+|   createBackupMinio        | Creates backup of MinIO bucket                         |
+|                            |                                                        |
+| restoreBackup              | Restore OpenTalk from a given timestamp. A full backup |
+|                            |   archive is required                                  |
+|   restoreBackupConfig      | Restores the config directory from a given timestamp   |
+|   restoreBackupControllerDB| Restores Controller database from a given timestamp    |
+|   restoreBackupKeycloakDB  | Restores Keycloak database from a given timestamp      |
+|   restoreBackupTraefik     | Restores Traefik data directory from a given timestamp |
+|   restoreBackupMinio       | Restores MinIO bucket from a given timestamp           |
++----------------------------+--------------------------------------------------------+
+.EE
+.RE
+
+.SH BACKUPS:
+Backups can be created via the post-install tasks described above. The backup task bundles all files
+into a '.tgz' archive with the current timestamp in the directory '/var/opt/opentalk-compose/backups'.
+For a single-node setup, the 'restoreBackup' task is recommended.
+
+.RS
+Example:
+.EX
+cforge task createBackup
+.EE
+.RE
+
+
+
+.SH RESTORE:
+A restore is also performed as a post-install task. The variable BACKUP_TIMESTAMP must be set
+to the timestamp of the backup archive to restore. The backup archive will be extracted
+into /var/opt/opentalk-compose/backups/tmp/<timestamp>; files will be synced back and database 
+dumps will be imported.
+
+.B IMPORTANT!
+A restore will overwrite existing data!
+
+.SS Scenario 1 - Restore a running OpenTalk instance
+Your OpenTalk installation is functioning but you want to rollback to an earlier release or restore
+deleted files.
+
+.RS
+Example:
+.EX
+cforge task restoreBackup --timestamp 20250207144600Z
+docker compose up -d --force-recreate
+.EE
+.RE
+
+.SS Scenario 2 - Disaster recovery or migration to a new server
+You are running an new machine or a fresh environment and your OpenTalk installation is not
+initialized. To Restore in this Scenario, you need to sync back the configuration files first
+using the task 'restoreBackupConfig'. After that initialze OpenTalk and bring it into a
+functioning state. When OpenTalk is running, you can import databases and other persistant data.
+
+.RS
+Example:
+.EX
+cforge task restoreBackupConfig --timestamp 20250207144600Z
+cforge init
+docker compose up -d
+.EE
+.RE
+
+.SH STATUS
+This man page is still in progress and provides only a basic description.
+
+
+.SH SEE ALSO
+.BR docker (1),
+.BR docker-compose (1)
+
+.SH AUTHOR
+OpenTalk Development Team

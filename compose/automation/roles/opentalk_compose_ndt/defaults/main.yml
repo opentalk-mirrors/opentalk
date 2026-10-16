@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: OpenTalk GmbH <mail@opentalk.eu>
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+---
+ndt_docker_compose_project_name: "{{ compose_project_name | default('opentalk') }}"
+ndt_docker_compose_services_state: "{{ compose_service_ndt_state | default('present') }}"
+ndt_docker_compose_services_dir: "{{ services_dir }}"
+ndt_docker_compose_project_src: "{{ deploy_dir }}"
+
+ndt_docker_compose_ulimits_nofile_soft: 32768
+ndt_docker_compose_ulimits_nofile_hard: 65536
+ndt_docker_compose_ulimits_nproc: 4096
+
+compose_service_ndt_enabled: "{{ ndt_enable | default(false) }}"
+
+ndt_docker_image_src: registry.heinlein.group/opentalk/ndt-server
