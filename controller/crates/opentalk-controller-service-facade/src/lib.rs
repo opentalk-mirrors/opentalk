@@ -10,6 +10,8 @@
 mod controller_service;
 mod middleware;
 
+#[cfg(feature = "mockall")]
+pub use controller_service::MockOpenTalkControllerService;
 pub use controller_service::{AssetDownloadProxyStream, OpenTalkControllerService, StartRoomError};
 pub use middleware::user::RequestUser;
 pub use opentalk_asset_storage::{NewAssetFileName, ObjectStorageError, StorageNotifier};

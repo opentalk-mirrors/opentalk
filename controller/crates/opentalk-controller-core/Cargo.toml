@@ -91,7 +91,18 @@ utoipa-swagger-ui = { workspace = true, features = [
 uuid = { workspace = true, features = ["serde", "v4"] }
 
 [dev-dependencies]
+chrono = { workspace = true, features = ["clock"] }
+opentalk-controller-api-authorization = { workspace = true, features = [
+  "mockall",
+] }
+opentalk-controller-service = { workspace = true, features = ["mockall"] }
+opentalk-controller-service-facade = { workspace = true, features = [
+  "mockall",
+] }
+opentalk-controller-settings = { workspace = true, features = ["test-util"] }
+opentalk-inventory = { workspace = true, features = ["mockall"] }
 pretty_assertions.workspace = true
+tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
 default = []

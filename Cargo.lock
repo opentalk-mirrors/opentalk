@@ -9305,6 +9305,7 @@ dependencies = [
  "async-trait",
  "bytes 1.12.1",
  "futures-core",
+ "mockall",
  "openidconnect",
  "opentalk-asset-storage",
  "opentalk-types-api-internal",

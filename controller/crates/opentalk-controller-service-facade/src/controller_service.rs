@@ -79,6 +79,7 @@ use crate::RequestUser;
 
 /// Trait implemented by OpenTalk controller service backends
 #[async_trait(?Send)]
+#[cfg_attr(feature = "mockall", mockall::automock)]
 pub trait OpenTalkControllerService: Send + Sync {
     /// Get the configured OIDC provider
     async fn get_login(&self) -> GetLoginResponseBody;

@@ -18,6 +18,7 @@ version.workspace = true
 async-trait.workspace = true
 bytes.workspace = true
 futures-core.workspace = true
+mockall = { workspace = true, optional = true }
 openidconnect.workspace = true
 opentalk-asset-storage.workspace = true
 opentalk-types-api-internal.workspace = true
@@ -25,6 +26,9 @@ opentalk-types-api-v1.workspace = true
 opentalk-types-common.workspace = true
 strum.workspace = true
 url.workspace = true
+
+[features]
+mockall = ["dep:mockall"]
 
 [dev-dependencies]
 pretty_assertions.workspace = true

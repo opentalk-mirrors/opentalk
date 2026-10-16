@@ -27,7 +27,7 @@ pub use jwt::{VerifyError, decode_token};
 pub use logout_marker::LogoutMarker;
 pub use oidc_cache_error::OidcCacheError;
 use oidc_context::OidcContext;
-#[cfg(all(test, feature = "mockall"))]
+#[cfg(feature = "mockall")]
 pub use oidc_token_handler::MockOidcTokenHandler;
 pub use oidc_token_handler::{OidcTokenHandler, build_oidc_token_handler};
 pub use open_id_connect_user_info::OpenIdConnectUserInfo;
