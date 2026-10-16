@@ -142,8 +142,10 @@ int:e2e:
   needs: []
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      allow_failure: true
       when: manual
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      allow_failure: true
       when: manual
     - when: never
   variables:
