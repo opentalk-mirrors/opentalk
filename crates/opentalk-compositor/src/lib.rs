@@ -423,6 +423,7 @@ impl Mixer {
         &mut self,
         name: &str,
         sink: impl gstreamer::GStreamerSink,
+        sink_failed_tx: mpsc::UnboundedSender<String>,
     ) -> Result<()> {
         trace!("link sink, name: {name}, sink: {sink:?}");
 
@@ -431,7 +432,8 @@ impl Mixer {
             bail!("a stream with the name '{name}' already exists");
         }
 
-        let active_sink = gstreamer::GStreamerActiveSink::new(self.start, name, sink)?;
+        let active_sink =
+            gstreamer::GStreamerActiveSink::new(self.start, name, sink, sink_failed_tx)?;
 
         sinks.insert(name.to_owned(), Box::new(active_sink));
 

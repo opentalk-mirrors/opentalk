@@ -42,7 +42,7 @@ use reqwest::Url;
 use thiserror::Error;
 use tokio::{
     io::{AsyncRead, ReadBuf},
-    sync::{broadcast, watch},
+    sync::{broadcast, mpsc, watch},
 };
 use tokio_stream::wrappers::BroadcastStream;
 
@@ -67,6 +67,9 @@ pub(crate) enum RecordingSessionError {
 
     #[error("Start recording failed")]
     FailedToStartRecording(#[source] anyhow::Error),
+
+    #[error("Sink '{0}' failed")]
+    SinkFailed(String),
 }
 
 impl From<RecordingSessionError> for StreamErrorReason {
@@ -78,6 +81,7 @@ impl From<RecordingSessionError> for StreamErrorReason {
             RecordingSessionError::NoRunningRecording => "no_running_recording".to_owned(),
             RecordingSessionError::FailedToStartLivestream(_) => "start_livestream".to_owned(),
             RecordingSessionError::FailedToStartRecording(_) => "start_recording".to_owned(),
+            RecordingSessionError::SinkFailed(_) => "sink_failed".to_owned(),
         };
 
         Self {
@@ -220,6 +224,12 @@ pub(crate) struct RecordingSession {
 
     compositor: Mixer,
 
+    /// Sender for failed sinks. Passed to the compositor to receive notifications when a sink
+    /// fails.
+    sink_failed_tx: mpsc::UnboundedSender<String>,
+    /// Receiver for failed sinks. Used to receive notifications when a sink fails.
+    sink_failed_rx: mpsc::UnboundedReceiver<String>,
+
     recording_status: RecordingStatus,
     livestream_states: BTreeMap<StreamingTargetId, LivestreamConfigurationAndStatus>,
 
@@ -296,6 +306,7 @@ impl RecordingSession {
             .clone()
             .unwrap_or_default();
 
+        let (sink_failed_tx, sink_failed_rx) = mpsc::unbounded_channel();
         let compositor_params = MixerParameters {
             target_fps: 30,
             auto_subscribe: false,
@@ -316,7 +327,7 @@ impl RecordingSession {
         if recorder_settings.display {
             let system_sink = SystemSink::create().context("DisplaySink could not created")?;
             compositor
-                .link_gstreamer_sink("Display", system_sink)
+                .link_gstreamer_sink("Display", system_sink, sink_failed_tx.clone())
                 .await?;
         }
 
@@ -329,6 +340,8 @@ impl RecordingSession {
                 room_state,
                 room_id: recording_target.room_id,
                 compositor,
+                sink_failed_tx,
+                sink_failed_rx,
                 recording_status,
                 livestream_states,
                 done: false,
@@ -376,6 +389,12 @@ impl RecordingSession {
                 }
                 res = state_receiver.changed() => {
                     if matches!(*state_receiver.borrow_and_update(), SessionState::Exit) || res.is_err() {
+                        break;
+                    }
+                }
+                Some(failed_sink) = self.sink_failed_rx.recv() => {
+                    if let Err(e) = self.handle_failed_sink(failed_sink).await {
+                        log::error!("Error while handling failed sink: {e}");
                         break;
                     }
                 }
@@ -449,7 +468,7 @@ impl RecordingSession {
         let receiver = webm_sink.subscribe();
 
         self.compositor
-            .link_gstreamer_sink("recording", webm_sink)
+            .link_gstreamer_sink("recording", webm_sink, self.sink_failed_tx.clone())
             .await
             .context("unable to link recording sink to compositor")?;
 
@@ -504,6 +523,7 @@ impl RecordingSession {
             format!("Livestream-{id}"),
             &livestream_state.location,
             self.service_context.settings.encoder_type(),
+            self.sink_failed_tx.clone(),
         )
         .await;
 
@@ -527,6 +547,7 @@ impl RecordingSession {
         name: String,
         location: &Url,
         encoder_type: EncoderType,
+        sink_failed_tx: mpsc::UnboundedSender<String>,
     ) -> Result<()> {
         let rtmp_sink = RTMPSink::create(RTMPParameters {
             location: location.to_string(),
@@ -539,7 +560,7 @@ impl RecordingSession {
         .context("Failed to create RTMP sink from livestream configuration")?;
 
         compositor
-            .link_gstreamer_sink(&name, rtmp_sink)
+            .link_gstreamer_sink(&name, rtmp_sink, sink_failed_tx)
             .await
             .context("unable to link sink to compositor")
     }
@@ -890,6 +911,73 @@ impl RecordingSession {
         self.evaluate_if_done();
 
         Ok(())
+    }
+
+    async fn handle_failed_sink(&mut self, failed_sink: String) -> Result<()> {
+        log::warn!("Sink '{failed_sink}' failed, releasing it.");
+
+        self.compositor.release_sink(&failed_sink).await;
+
+        match failed_sink.as_str() {
+            "recording" => self.handle_failed_recording_sink(failed_sink).await?,
+            sink if sink.starts_with("Livestream-") => {
+                self.handle_failed_streaming_sink(failed_sink).await?
+            }
+            other => log::debug!("Sink '{other}' failed."),
+        };
+
+        self.evaluate_if_done();
+
+        Ok(())
+    }
+
+    async fn handle_failed_recording_sink(&mut self, failed_sink: String) -> Result<()> {
+        if !self.recording_status.is_running() {
+            log::debug!(
+                "Sink failed while recording not running, this can happen during shutdown."
+            );
+            return Ok(());
+        }
+
+        let status = RecordingStatus::Error {
+            reason: RecordingSessionError::SinkFailed(failed_sink).into(),
+        };
+
+        self.recording_status = status.clone();
+
+        self.room_state
+            .recording_service_api()
+            .context("recording_service_api unavailable")?
+            .send_recording_update(status)
+            .await
+    }
+
+    async fn handle_failed_streaming_sink(&mut self, failed_sink: String) -> Result<()> {
+        let Some((id, livestream_state)) = self
+            .livestream_states
+            .iter_mut()
+            .find(|(id, _)| failed_sink == format!("Livestream-{id}"))
+        else {
+            log::debug!("Sink failed for unknown stream '{failed_sink}', ignoring");
+            return Ok(());
+        };
+
+        if !livestream_state.status.is_running() {
+            log::debug!("Sink failed while stream not running, this can happen during shutdown.");
+            return Ok(());
+        }
+
+        let status = StreamStatus::Error {
+            reason: RecordingSessionError::SinkFailed(failed_sink).into(),
+        };
+
+        livestream_state.status = status.clone();
+
+        self.room_state
+            .recording_service_api()
+            .context("recording_service_api unavailable")?
+            .send_stream_update(*id, status)
+            .await
     }
 
     /// Check if there is anything left to do, quit if not
