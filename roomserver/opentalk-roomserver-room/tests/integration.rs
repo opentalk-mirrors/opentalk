@@ -148,7 +148,7 @@ async fn room_task_time_limit() {
     );
 }
 
-#[test_log::test(tokio::test)]
+#[test_log::test(tokio::test(start_paused = true))]
 async fn room_closes_when_last_lobby_participant_leaves() {
     let mut room = TestRoom::builder()
         .room_idle_timeout(ROOM_IDLE_TIMEOUT)
@@ -158,13 +158,13 @@ async fn room_closes_when_last_lobby_participant_leaves() {
     let participant = room.alice_moderator_lobby(0).await;
     participant.disconnect().await.unwrap();
 
-    tokio::time::timeout(ROOM_IDLE_TIMEOUT * 4, room.join_handle)
+    tokio::time::advance(ROOM_IDLE_TIMEOUT).await;
+    (&mut room.join_handle)
         .await
-        .expect("room should close after the last lobby participant left")
-        .unwrap();
+        .expect("room should close after the last participant left");
 }
 
-#[test_log::test(tokio::test)]
+#[test_log::test(tokio::test(start_paused = true))]
 async fn room_closes_when_last_conference_participant_leaves() {
     let mut room = TestRoom::builder()
         .room_idle_timeout(ROOM_IDLE_TIMEOUT)
@@ -173,10 +173,10 @@ async fn room_closes_when_last_conference_participant_leaves() {
     let participant = room.join_alice_moderator(0).await;
     participant.disconnect().await.unwrap();
 
-    tokio::time::timeout(ROOM_IDLE_TIMEOUT * 4, room.join_handle)
+    tokio::time::advance(ROOM_IDLE_TIMEOUT).await;
+    (&mut room.join_handle)
         .await
-        .expect("room should close after the last participant left")
-        .unwrap();
+        .expect("room should close after the last participant left");
 }
 
 #[test_log::test(tokio::test)]
