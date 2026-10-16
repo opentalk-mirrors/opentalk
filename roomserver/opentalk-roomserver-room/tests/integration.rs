@@ -18,6 +18,7 @@ use opentalk_roomserver_types::{
     core::{CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, RoomCloseReason, state::CoreState},
     error::SignalingError,
     rate_limit::RateLimitSettings,
+    room_kind::RoomKind,
     room_parameters::WaitingRoom,
     signaling::websocket::CloseFrame,
     tariff_details::TariffDetails,
@@ -173,6 +174,25 @@ async fn room_closes_when_last_conference_participant_leaves() {
     let participant = room.join_alice_moderator(0).await;
     participant.disconnect().await.unwrap();
 
+    tokio::time::advance(ROOM_IDLE_TIMEOUT).await;
+    (&mut room.join_handle)
+        .await
+        .expect("room should close after the last participant left");
+}
+
+#[test_log::test(tokio::test(start_paused = true))]
+async fn service_users_are_excluded_from_idle_timeout() {
+    let mut room = TestRoom::builder()
+        .room_idle_timeout(ROOM_IDLE_TIMEOUT)
+        .spawn();
+
+    let alice = room.join_alice_moderator(0).await;
+    let _recorder = room.join_recorder(RoomKind::Main, 0).await;
+
+    // The only non-service user leaves the room
+    alice.disconnect().await.unwrap();
+
+    // The room is cleaned up after the idle timeout
     tokio::time::advance(ROOM_IDLE_TIMEOUT).await;
     (&mut room.join_handle)
         .await

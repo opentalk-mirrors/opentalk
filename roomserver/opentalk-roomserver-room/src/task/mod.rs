@@ -774,11 +774,11 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .participants
             .all_unfiltered
             .values()
-            .any(ParticipantState::is_connected)
+            .any(ParticipantState::is_connected_user)
             || self
                 .lobby_participants
                 .values()
-                .any(LobbyParticipant::is_connected);
+                .any(LobbyParticipant::is_connected_user);
 
         if occupied {
             self.idle_timeout.stop();
