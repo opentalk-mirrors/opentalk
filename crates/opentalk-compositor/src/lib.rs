@@ -26,7 +26,7 @@ use livekit::{
 use livekit_api::access_token::{AccessToken, AccessTokenError, VideoGrants};
 use tokio::{
     sync::{Mutex, mpsc, watch},
-    task::JoinHandle,
+    task::{JoinHandle, JoinSet},
     time::timeout,
 };
 use video::{VideoPipeline, VideoStreamCommand};
@@ -57,6 +57,8 @@ pub use sinks::*;
 extern crate log;
 
 pub use livekit::id::ParticipantIdentity;
+
+const SINK_CLOSE_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ClockFormat(String);
@@ -117,6 +119,9 @@ pub struct Mixer {
     // Video
     video_stream_tx: mpsc::UnboundedSender<VideoStreamCommand>,
     video_task: Option<JoinHandle<()>>,
+
+    /// Sinks that are currently being closed.
+    closing_sinks: JoinSet<()>,
 
     shutdown_tx: watch::Sender<WantShutdown>,
 }
@@ -237,6 +242,7 @@ impl Mixer {
             video_stream_tx,
             video_task: Some(video_task),
             shutdown_tx,
+            closing_sinks: JoinSet::new(),
         };
 
         Ok(mixer)
@@ -461,7 +467,16 @@ impl Mixer {
         let sink = self.sinks.lock().await.remove(name);
 
         if let Some(mut sink) = sink {
-            close_sink(name, sink.as_mut()).await;
+            // Remove tasks that have already finished closing
+            while let Some(result) = self.closing_sinks.try_join_next() {
+                if let Err(err) = result {
+                    log::warn!("Sink join task failed: {err}");
+                }
+            }
+
+            let name = name.clone();
+            self.closing_sinks
+                .spawn(async move { close_sink(&name, sink.as_mut()).await });
         }
     }
 
@@ -665,11 +680,13 @@ impl Mixer {
         };
 
         self.audio_mixer_task.abort();
+        let closing_sinks = std::mem::take(&mut self.closing_sinks);
 
         close_mixer(
             self.shutdown_tx.clone(),
             self.video_task.take(),
             self.sinks.clone(),
+            closing_sinks,
             room,
         )
         .await;
@@ -686,11 +703,13 @@ impl Drop for Mixer {
         self.audio_mixer_task.abort();
 
         let video_task = self.video_task.take();
+        let closing_sinks = std::mem::take(&mut self.closing_sinks);
 
         tokio::spawn(close_mixer(
             self.shutdown_tx.clone(),
             video_task,
             self.sinks.clone(),
+            closing_sinks,
             room,
         ));
     }
@@ -700,6 +719,7 @@ async fn close_mixer(
     shutdown_tx: watch::Sender<WantShutdown>,
     video_task: Option<JoinHandle<()>>,
     sinks: Arc<Mutex<HashMap<String, Box<dyn Sink + 'static>>>>,
+    mut closing_sinks: JoinSet<()>,
     livekit_room: Room,
 ) {
     if let Err(e) = livekit_room.close().await {
@@ -733,6 +753,18 @@ async fn close_mixer(
 
     for (name, mut sink) in sinks.drain() {
         close_sink(&name, sink.as_mut()).await;
+    }
+
+    // Wait for closing sinks to finish
+    let closing_sinks = async {
+        while let Some(result) = closing_sinks.join_next().await {
+            if let Err(err) = result {
+                log::warn!("Sink join task failed: {err}");
+            }
+        }
+    };
+    if timeout(SINK_CLOSE_TIMEOUT, closing_sinks).await.is_err() {
+        log::warn!("Timeout while waiting for released sinks to close");
     }
 }
 
