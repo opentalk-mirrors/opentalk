@@ -258,6 +258,27 @@ impl SignalingModule for ModerationModule {
 
         Ok(())
     }
+
+    fn on_moderation_role_change(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        participant_id: ParticipantId,
+    ) -> Result<(), SignalingModuleError<Self::Error>> {
+        if let Some(lobby_participant) = ctx.lobby_participants.get(&participant_id) {
+            ctx.send_ws_message_to_lobby(
+                [participant_id],
+                ModerationEvent::EntryPermissionChanged {
+                    can_enter: lobby_participant.can_enter(
+                        participant_id,
+                        &ctx.participants.all_unfiltered,
+                        ctx.room_task_info.room.waiting_room,
+                    ),
+                },
+            )?;
+        }
+
+        Ok(())
+    }
 }
 
 impl ModerationModule {
