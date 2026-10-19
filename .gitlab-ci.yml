@@ -305,6 +305,11 @@ test:cargo_test:
   variables:
     TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
     RUST_LOG: opentalk=trace
+    # Full debug info (the dev profile default) makes rustc's peak memory
+    # usage for large generated crates (e.g. aws-sdk-s3) spike high enough
+    # to get OOM-killed on CI runners. Coverage mapping doesn't depend on
+    # DWARF debug info, so line tables are enough and cut memory use a lot.
+    CARGO_PROFILE_DEV_DEBUG: line-tables-only
 
 # test:load:
 #   stage: test
