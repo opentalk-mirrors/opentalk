@@ -15,6 +15,7 @@ use opentalk_roomserver_room::mocking::{
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
+    client_parameters::Role as ClientRole,
     connection_id::ConnectionId,
     core::{CoreCommand, CoreError, CoreEvent, LeftWaitingRoom},
     disconnect_reason::DisconnectReason,
@@ -1351,6 +1352,94 @@ async fn moderator_sent_to_waiting_room_cannot_enter_without_acceptance() {
         .role;
 
     assert_eq!(role, Role::User);
+}
+
+/// A participant that is granted moderator right while in the lobby may skip the waiting room and
+/// enter the conference without being accepted.
+///
+/// 1. Spawn room with activated waiting room
+/// 2. Alice and Frank join as moderators
+/// 3. Alice sends Frank to the waiting room, which removes his moderator rights
+/// 4. Alice promotes Frank to moderator
+/// 5. Frank is told that he can enter and enters the conference without being accepted
+#[test_log::test(tokio::test)]
+async fn participant_promoted_to_moderator_in_waiting_room_can_enter() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .waiting_room(WaitingRoom::ForEveryone)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let frank = room.join_frank_moderator(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::SendToWaitingRoom { target: frank.id() },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // Alice receives the ParticipantDisconnected and JoinedWaitingRoom events
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert_matches!(
+        event,
+        CoreEvent::ParticipantDisconnected {
+            participant_id,
+            connection_id,
+            reason,
+        } if participant_id == frank.id()
+         && connection_id == frank.connection_id()
+         && reason == DisconnectReason::SentToWaitingRoom
+    );
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert_matches!(
+        event,
+        CoreEvent::JoinedWaitingRoom {
+            participant_id,
+            connection_ids,
+            ..
+        } if participant_id == frank.id()
+           && connection_ids == vec![frank.connection_id()]
+    );
+
+    let mut frank = frank.in_waiting_room();
+    let event = frank
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, ModerationEvent::SentToWaitingRoom);
+
+    // Alice promotes Frank to moderator
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::UpdateRole {
+                participant_id: frank.id(),
+                new_role: ClientRole::Moderator,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    // As a moderator, Frank may skip the waiting room again
+    let event = frank
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::EntryPermissionChanged { can_enter: true }
+    );
+
+    frank
+        .send_core_command(CoreCommand::EnterRoom { display_name: None }, None)
+        .await
+        .unwrap();
+    let frank = frank.join_success().await.unwrap();
+    assert_eq!(frank.join_success().role, Role::Moderator);
 }
 
 /// Changing the waiting room state notifies participants waiting in the lobby whether they may
