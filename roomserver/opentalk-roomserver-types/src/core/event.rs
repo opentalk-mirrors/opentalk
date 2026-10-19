@@ -184,9 +184,9 @@ mod tests {
 
     use super::{CoreEvent, LeftWaitingRoom};
     use crate::{
-        connection_id::ConnectionId, core::CoreError, device_id::DeviceId,
-        disconnect_reason::DisconnectReason, join::join_success::JoinSuccess, room_info::RoomInfo,
-        shared_json::SharedJson, tariff_details::TariffDetails,
+        client_parameters::ParticipationKind, connection_id::ConnectionId, core::CoreError,
+        device_id::DeviceId, disconnect_reason::DisconnectReason, join::join_success::JoinSuccess,
+        room_info::RoomInfo, shared_json::SharedJson, tariff_details::TariffDetails,
     };
 
     #[test]
@@ -196,6 +196,7 @@ mod tests {
             display_name: DisplayName::example_data(),
             avatar_url: None,
             role: Role::Guest,
+            participation_kind: ParticipationKind::Unregistered,
             closes_at: None,
             tariff: Box::new(TariffDetails::example_data()),
             enabled_modules: BTreeMap::from_iter([(
@@ -226,6 +227,7 @@ mod tests {
           "connections": [],
           "display_name": "Alice Adams",
           "role": "guest",
+          "participation_kind": "unregistered",
           "tariff": {
             "id": "00000000-0000-0000-0000-000000000000",
             "name": "Starter tariff",

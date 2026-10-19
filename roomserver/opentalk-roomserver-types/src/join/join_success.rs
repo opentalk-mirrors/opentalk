@@ -12,6 +12,7 @@ use opentalk_types_signaling::Role;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    client_parameters::ParticipationKind,
     join::{connection_info::ConnectionInfo, event_info::EventInfo, participant::Participant},
     room_info::RoomInfo,
     tariff_details::TariffDetails,
@@ -32,6 +33,9 @@ pub struct JoinSuccess {
 
     /// The role of the participant in the meeting
     pub role: Role,
+
+    /// The type of participant and how they connected to the meeting
+    pub participation_kind: ParticipationKind,
 
     /// The timestamp when the meeting will close
     #[serde(skip_serializing_if = "Option::is_none")]

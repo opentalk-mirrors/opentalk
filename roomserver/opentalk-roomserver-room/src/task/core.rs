@@ -782,6 +782,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .get(&participant_id)
             .map(|state| state.display_name.clone())
             .ok_or_else(|| FatalError(anyhow!("Participant state not found")))?;
+        let participation_kind = client_kind.participant_kind();
         let (avatar_url, is_room_owner) = match client_kind {
             ClientKind::Registered { profile } => (
                 Some(profile.user_info.avatar_url),
@@ -834,6 +835,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             display_name,
             avatar_url,
             role,
+            participation_kind,
             closes_at: self.info.closes_at,
             tariff: Box::new(self.info.room.tariff.clone()),
             participants,
@@ -1030,7 +1032,7 @@ mod tests {
         signaling_event::SignalingEvent,
     };
     use opentalk_roomserver_types::{
-        client_parameters::ClientKind,
+        client_parameters::{ClientKind, ParticipationKind},
         connection_id::ConnectionId,
         core::{CORE_MODULE_ID, CoreError},
         device_id::DeviceId,
@@ -1088,6 +1090,7 @@ mod tests {
             display_name: DisplayName::example_data(),
             avatar_url: None,
             role: Role::Guest,
+            participation_kind: ParticipationKind::Unregistered,
             closes_at: None,
             tariff: Box::new(TariffDetails::example_data()),
             module_data: test_module_data(),
@@ -1132,6 +1135,7 @@ mod tests {
             ],
             "display_name": "Alice Adams",
             "role": "guest",
+            "participation_kind": "unregistered",
             "tariff": {
               "id": "00000000-0000-0000-0000-000000000000",
               "name": "Starter tariff",
@@ -1191,6 +1195,7 @@ mod tests {
                 ],
                 "display_name": "Alice Adams",
                 "role": "guest",
+                "participation_kind": "unregistered",
                 "tariff": {
                     "id": "00000000-0000-0000-0000-000000000000",
                     "name": "Starter tariff",

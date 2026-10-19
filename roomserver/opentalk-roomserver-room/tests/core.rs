@@ -34,6 +34,7 @@ async fn join_success() {
       "display_name": "Alice the angry",
       "avatar_url": "https://example.com/avatar-of-alice",
       "role": "moderator",
+      "participation_kind": "registered",
       "tariff": {
         "id": "00000000-0000-0000-0000-000000000001",
         "name": "Default Tariff",
@@ -91,6 +92,7 @@ async fn participant_joined() {
       "display_name": "Bob the bold",
       "avatar_url": "https://example.com/avatar-of-bob",
       "role": "user",
+      "participation_kind": "registered",
       "tariff": {
         "id": "00000000-0000-0000-0000-000000000001",
         "name": "Default Tariff",
