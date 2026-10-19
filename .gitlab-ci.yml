@@ -36,6 +36,7 @@ stages:
   - push-harbor
   - deploy
   - deploy-manual
+  - trigger
   # - release
 
 variables:
@@ -158,7 +159,7 @@ lint:openapi:
   <<: *default_job_condition
   parallel:
     matrix:
-      - FILE: [roomserver/api/docs/openapi.yml, controller/docs/developer/api.yaml]
+      - FILE: [roomserver/api/docs/openapi.yml, docs/developer/controller/api.yaml]
   image:
     name: redocly/cli:2.58.2
     entrypoint: ['']
@@ -172,7 +173,7 @@ lint:openapi-spectral:
     name: stoplight/spectral
     entrypoint: ['']
   script:
-    - spectral lint --ruleset controller/ci/spectral/openapi.yml lint controller/docs/developer/api.yaml
+    - spectral lint --ruleset controller/ci/spectral/openapi.yml lint docs/developer/controller/api.yaml
     - spectral lint --ruleset roomserver/ci/spectral/openapi.yml lint roomserver/api/docs/openapi.yml
 
 lint:openapi-up-to-date:
@@ -180,15 +181,24 @@ lint:openapi-up-to-date:
   <<: *default_job_condition
   needs: [build]
   script:
-    - target/release/opentalk-controller openapi dump > controller/docs/developer/api.yaml
+    - target/release/opentalk-controller openapi dump > docs/developer/controller/api.yaml
     - target/release/opentalk-roomserver openapi dump > roomserver/api/docs/openapi.yml
     - |
-      if ! git diff -w --exit-code -- controller/ roomserver/ ; then
+      if ! git diff -w --exit-code -- docs/ roomserver/ ; then
         echo "openapi specification outdated, run:"
-        echo "opentalk-controller openapi dump > controller/docs/developer/api.yaml"
+        echo "opentalk-controller openapi dump > docs/developer/controller/api.yaml"
         echo "opentalk-roomserver openapi dump > roomserver/api/docs/openapi.yml"
         exit 1
       fi
+
+lint:docs-urls:
+  stage: lint
+  <<: *default_job_condition
+  image:
+    name: lycheeverse/lychee:0.24.2-alpine
+    entrypoint: ['']
+  script:
+    - lychee -vv docs/
 
 lint:commit-signature:
   stage: lint
@@ -364,30 +374,40 @@ build:dui:
   script:
     - cargo auditable build --release --locked -p opentalk-roomserver-dui
 
-# build:docs:
-#   stage: build
-#   image:
-#     name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
-#     entrypoint: ['']
-#   needs: []
-#   rules:
-#     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-#   artifacts:
-#     paths:
-#       - site/
-#   script:
-#     - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+build:docs:
+  stage: build
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  artifacts:
+    paths:
+      - site/
+  script:
+    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
 
-# build:pages:
-#   stage: build
-#   image:
-#     name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
-#     entrypoint: ['']
-#   pages:
-#     publish: site
-#   needs: []
-#   rules:
-#     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
-#   before_script: []
-#   script:
-#     - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+build:pages:
+  stage: build
+  image:
+    name: git.opentalk.dev:5050/opentalk/backend/containers/mkdocs-material:latest
+    entrypoint: ['']
+  pages:
+    publish: site
+  needs: []
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  before_script: []
+  script:
+    - mkdocs build --config-file "$CI_PROJECT_DIR"/mkdocs.yml --strict
+
+trigger-docs:
+  stage: trigger
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAME !~ /^.*canary$/
+  trigger:
+    project: opentalk/backend/docs
