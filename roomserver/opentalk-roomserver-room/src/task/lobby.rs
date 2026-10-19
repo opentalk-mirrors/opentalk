@@ -75,12 +75,26 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         device_id: DeviceId,
         client_parameters: ClientParameters,
     ) -> Result<(), FatalError> {
+        // The participants role might have changed when they were already in the conference, so
+        // determine the role in the following order: conference, lobby, client parameters.
+        let role = self
+            .participants
+            .all_unfiltered
+            .get(&participant_id)
+            .map(|state| state.role)
+            .or_else(|| {
+                self.lobby_participants
+                    .get(&participant_id)
+                    .map(|state| state.role)
+            })
+            .unwrap_or(client_parameters.role);
+
         let can_enter = can_enter_conference(
             participant_id,
             &self.participants.all_unfiltered,
             self.info.room.waiting_room,
             &client_parameters.kind,
-            client_parameters.role,
+            role,
         );
 
         match self.lobby_participants.entry(participant_id) {

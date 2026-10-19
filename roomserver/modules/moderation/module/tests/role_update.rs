@@ -10,6 +10,7 @@ use opentalk_roomserver_types::{
     client_parameters::Role,
     core::CoreEvent,
     disconnect_reason::DisconnectReason,
+    kick_reason::KickReason,
     room_parameters::{EventContext, WaitingRoom},
 };
 use opentalk_roomserver_types_moderation::{
@@ -516,4 +517,41 @@ async fn role_updated_on_rejoin() {
         bob.join_success().role,
         opentalk_types_signaling::Role::Moderator
     );
+}
+
+#[test_log::test(tokio::test)]
+async fn demoted_moderators_must_enter_waiting_room() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .waiting_room(WaitingRoom::ForEveryone)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut frank = room.join_frank_moderator(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    // Alice kicks Frank, which removes his moderator role
+    alice
+        .send_command::<ModerationModule>(ModerationCommand::Kick { target: frank.id() }, None)
+        .await
+        .unwrap();
+
+    let event = frank
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        ModerationEvent::Kicked {
+            reason: KickReason::Kicked
+        }
+    );
+
+    frank.receive_close_frame().await.unwrap();
+
+    // Frank reconnects
+    let frank = room.lobby_frank(0).await;
+
+    // Frank is not allowed to skip the waiting room, because he no longer is a moderator
+    assert!(!frank.can_enter());
 }
