@@ -17,7 +17,7 @@ RUN apt-get --update install -y --no-install-recommends ca-certificates curl && 
     curl -fsSLO "${WHISPER_MODEL_BASE_URL}/${WHISPER_MODEL}" && \
     echo "${WHISPER_MODEL_SHA256}  ${WHISPER_MODEL}" | sha256sum -c -;
 
-FROM docker.io/nvidia/cuda:13.4.2-devel-ubuntu26.04 AS build
+FROM docker.io/nvidia/cuda:13.4.3-devel-ubuntu26.04 AS build
 
 WORKDIR /transcription
 
@@ -47,7 +47,7 @@ RUN set -eux; \
             --features whisper-rs/cuda \
             --no-default-features
 
-FROM docker.io/nvidia/cuda:13.4.2-runtime-ubuntu26.04
+FROM docker.io/nvidia/cuda:13.4.3-runtime-ubuntu26.04
 
 ARG WHISPER_MODEL
 
