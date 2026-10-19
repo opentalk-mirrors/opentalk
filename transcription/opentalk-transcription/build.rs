@@ -10,5 +10,10 @@ fn main() -> anyhow::Result<()> {
         println!("cargo::rustc-link-arg=-Wl,--allow-multiple-definition");
     }
 
+    // libwebrtc's Objective-C categories are dropped from the static lib without `-ObjC`
+    if std::env::var_os("CARGO_CFG_TARGET_OS").is_some_and(|os| os == "macos") {
+        println!("cargo::rustc-link-arg=-ObjC");
+    }
+
     opentalk_version::collect_build_information().context("Failed to collect build information")
 }
