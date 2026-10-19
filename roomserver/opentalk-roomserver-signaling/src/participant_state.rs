@@ -142,6 +142,11 @@ impl ParticipantState {
     pub fn is_moderator(&self) -> bool {
         matches!(self.role, Role::Moderator)
     }
+
+    /// Returns `true` if the participant has any connection in the room **and** is not a service.
+    pub fn is_connected_user(&self) -> bool {
+        self.is_connected() && !self.kind.is_service()
+    }
 }
 
 #[cfg(test)]

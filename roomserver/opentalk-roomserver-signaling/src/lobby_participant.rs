@@ -163,6 +163,12 @@ impl LobbyParticipant {
         !self.connections.is_empty()
     }
 
+    /// Returns `true` if the participant has any connection in the lobby or waiting room
+    /// **and** is not a service.
+    pub fn is_connected_user(&self) -> bool {
+        self.is_connected() && !self.kind.is_service()
+    }
+
     pub fn can_enter(
         &self,
         participant_id: ParticipantId,
