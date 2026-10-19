@@ -446,6 +446,10 @@ impl ModerationModule {
 
         target_state.role = new_role;
 
+        if let Some(lobby_participant) = ctx.lobby_participants.get_mut(&target) {
+            lobby_participant.role = new_role;
+        }
+
         if new_role.is_moderator() {
             // Send the role update event **with** moderator data to the participant that was
             // promoted to moderator
