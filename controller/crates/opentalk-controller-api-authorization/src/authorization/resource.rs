@@ -106,14 +106,6 @@ pub enum Resource {
     /// Served under `/v1/rooms/{room_id_or_alias}/event`.
     RoomEvent(RoomIdOrAlias),
 
-    /// The removed room invite-management endpoints.
-    ///
-    /// Served under `/v1/rooms/{room_id_or_alias}/invites` and
-    /// `/v1/rooms/{room_id_or_alias}/invites/{invite_code}`. Public: the invite-code API
-    /// has been removed and these endpoints respond with `410 Gone` without
-    /// exposing any room data.
-    RemovedRoomInvites,
-
     /// The list of assets for a room.
     ///
     /// Served under `/v1/rooms/{room_id_or_alias}/assets`.
@@ -311,10 +303,6 @@ pub(super) mod actix_web_impls {
                 "/v1/rooms/{room_id_or_alias}/event" => {
                     let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;
                     Ok(Resource::RoomEvent(room_id_or_alias))
-                }
-                "/v1/rooms/{room_id_or_alias}/invites"
-                | "/v1/rooms/{room_id_or_alias}/invites/{invite_code}" => {
-                    Ok(Resource::RemovedRoomInvites)
                 }
                 "/v1/rooms/{room_id_or_alias}/assets" => {
                     let room_id_or_alias = extract_path::<RoomIdOrAlias>(req.path(), pattern)?;

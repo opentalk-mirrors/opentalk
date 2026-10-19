@@ -101,8 +101,8 @@ impl AuthorizerBackend for OpenTalkAuthorizerBackend {
                 self.authorize_room_start(subjects, method, &room_id_or_alias)
                     .await
             }
-            // Removed endpoints: the handlers redirect or respond with `410 Gone` themselves.
-            Resource::RoomStartInvited(_) | Resource::RemovedRoomInvites => Ok(Admission::Allowed),
+            // Removed endpoint: the handler redirects.
+            Resource::RoomStartInvited(_) => Ok(Admission::Allowed),
             Resource::InviteVerify => Ok(Self::authorize_invite_verify()),
             Resource::Signaling(_) => Ok(Self::authorize_signaling()),
             Resource::RoomAssetDownloadProxy(_, _) => {
