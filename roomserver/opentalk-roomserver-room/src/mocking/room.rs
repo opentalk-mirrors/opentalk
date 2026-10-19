@@ -464,6 +464,13 @@ impl TestRoom {
             .unwrap()
     }
 
+    pub async fn lobby_frank(&mut self, device_number: usize) -> MockParticipantLobby {
+        MockParticipantJoining::frank(device_number)
+            .enter_lobby(self)
+            .await
+            .unwrap()
+    }
+
     pub async fn lobby_gustav_guest(&mut self) -> MockParticipantLobby {
         MockParticipantJoining::gustav()
             .enter_lobby(self)
