@@ -6,7 +6,8 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-10-16
+=======
+Last updated: 2026-10-20
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -768,6 +769,7 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `mailer_docker_image_src` | string | `registry.heinlein.group/opentalk/smtp-mailer` |
 | `mailer_frontend_base_url` | string | `https://{{ ot_domain }}` |
 | `mailer_frontend_data_protection_url` | string | `https://opentalk.example.org/dataprotection` |
+| `mailer_frontend_quick_guide_urls` | dictionary | `en-US: https://opentalk.eu/en/quick-manual`<br>`de-DE: https://opentalk.eu/de/kurzanleitung` |
 | `mailer_languages_default_language` | string | `de-DE` |
 | `mailer_monitoring_addr` | string | `0.0.0.0` |
 | `mailer_monitoring_port` | integer | `11411` |

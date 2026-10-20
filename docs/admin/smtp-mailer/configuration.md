@@ -100,6 +100,11 @@ queue_name = "opentalk_mailer"
 #base_url = "https://opentalk.example.org"
 #data_protection_url = "https://opentalk.example.org/dataprotection"
 
+# Quick guide URLs per email language. Languages that are not configured use the default URL.
+#[frontend.quick_guide_urls]
+#"en-US" = "https://opentalk.eu/en/quick-manual"
+#"de-DE" = "https://opentalk.eu/de/kurzanleitung"
+
 [templates]
 # Path to templates. These are loaded at runtime and are not compiled in.
 #registered_invite = {html = "resources/templates/registered_invite.html", txt = "resources/templates/registered_invite.txt"}

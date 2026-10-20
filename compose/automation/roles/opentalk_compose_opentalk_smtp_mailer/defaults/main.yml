@@ -45,6 +45,10 @@ mailer_smtp_from_email: "no-reply@{{ ot_domain }}"
 # Frontend settings
 mailer_frontend_base_url: "https://{{ ot_domain }}"
 # mailer_frontend_data_protection_url: "https://opentalk.example.org/dataprotection"
+# Quick guide URLs per email language, languages not listed use the built-in default
+# mailer_frontend_quick_guide_urls:
+#   en-US: "https://opentalk.eu/en/quick-manual"
+#   de-DE: "https://opentalk.eu/de/kurzanleitung"
 
 mailer_languages_default_language: "de-DE"
 

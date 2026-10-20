@@ -73,6 +73,13 @@ base_url = "{{ mailer_frontend_base_url }}"
 {% if mailer_frontend_data_protection_url is defined and mailer_frontend_data_protection_url %}
 data_protection_url = "{{ mailer_frontend_data_protection_url }}"
 {% endif %}
+{% if mailer_frontend_quick_guide_urls is defined and mailer_frontend_quick_guide_urls %}
+
+[frontend.quick_guide_urls]
+{% for language, url in mailer_frontend_quick_guide_urls.items() %}
+"{{ language }}" = "{{ url }}"
+{% endfor %}
+{% endif %}
 
 [languages]
 default_language = "{{ mailer_languages_default_language }}"
