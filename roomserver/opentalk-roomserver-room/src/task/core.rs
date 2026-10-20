@@ -44,7 +44,7 @@ use opentalk_roomserver_types::{
 use opentalk_types_api_internal::module_assets::Quota;
 use opentalk_types_common::{
     events::MeetingDetails, features::FeatureId, modules::ModuleId, streaming::StreamingLink,
-    tariffs::QuotaType, time::Timestamp, users::DisplayName,
+    time::Timestamp, users::DisplayName,
 };
 use opentalk_types_signaling::{ModuleData, ParticipantId, Role};
 
@@ -510,6 +510,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         self.join_success_breakout_peer_events(participant_id, &mut peer_events)?;
         self.join_success_core_peer_events(participant_id, &mut peer_events)?;
 
+        self.start_time_limit();
+
         let join_success_msg = self.build_join_success(
             participant_id,
             connection_id,
@@ -549,19 +551,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         actions.handle_requested_messages(self)?;
 
-        // Start the quota timer if the room has a time limit
-        if self
-            .info
-            .room
-            .tariff
-            .quotas
-            .contains_key(&QuotaType::RoomTimeLimitSecs)
-        {
-            // This will have no effect if the timer is already running
-            self.quota_timeout.start();
+        Ok(())
+    }
+
+    /// Starts the time limit on the first join, so `closes_at` matches the quota timeout
+    fn start_time_limit(&mut self) {
+        if self.info.closes_at.is_some() {
+            return;
         }
 
-        Ok(())
+        if let Some(closes_at) = self.info.room.calc_time_limit_quota(Timestamp::now()) {
+            self.info.closes_at = Some(closes_at);
+            self.quota_timeout.start();
+        }
     }
 
     pub(super) fn participant_limit_reached(mut socket: Socket) -> Result<(), FatalError> {
