@@ -231,7 +231,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
             let room_info = RoomTaskInfo {
                 room_id,
-                closes_at: room_parameters.calc_time_limit_quota(Timestamp::now()),
+                // set together with the quota timeout after the first participant joins
+                closes_at: None,
                 room: (*room_parameters).clone(),
             };
 

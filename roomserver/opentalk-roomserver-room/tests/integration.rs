@@ -8,6 +8,7 @@ use std::{
     time::Duration,
 };
 
+use chrono::TimeDelta;
 use opentalk_roomserver_room::mocking::{
     mock_module::{MockCommand, MockModule},
     participant::{MockParticipantBuilder, MockParticipantJoined, bob_public_user_profile},
@@ -27,6 +28,7 @@ use opentalk_types_common::{
     call_in::{CallInId, CallInInfo, CallInPassword},
     roomserver::DeviceSecret,
     tariffs::{QuotaType, TariffId},
+    time::Timestamp,
     users::DisplayName,
     utils::ExampleData,
 };
@@ -146,6 +148,35 @@ async fn room_task_time_limit() {
             code: 1000,
             reason: "closed by server".to_string()
         })
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn room_time_limit_starts_on_first_join() {
+    const TIME_LIMIT: Duration = Duration::from_mins(10);
+    let mut room = TestRoom::builder()
+        .tariff(TariffDetails {
+            id: TariffId::generate(),
+            name: "10 minutes room".into(),
+            quotas: BTreeMap::from_iter([(QuotaType::RoomTimeLimitSecs, TIME_LIMIT.as_secs())]),
+            used_quota: BTreeMap::new(),
+            disabled_features: BTreeSet::new(),
+        })
+        .spawn();
+
+    let alice = room.alice_moderator_lobby(0).await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    let entered_at = Timestamp::now();
+    let alice = alice.enter_room(None).await.unwrap();
+
+    let closes_at = alice
+        .join_success()
+        .closes_at
+        .expect("closes_at must be set for a room with a time limit");
+    assert!(
+        closes_at >= entered_at + TimeDelta::from_std(TIME_LIMIT).unwrap(),
+        "closes_at ({closes_at}) must not include the time spent in the lobby"
     );
 }
 
