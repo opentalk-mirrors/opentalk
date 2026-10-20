@@ -268,7 +268,14 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             return Err(CoreError::UnknownParticipant.into());
         };
 
-        if !participant.get().accepted {
+        let lobby_participant = participant.get();
+        if !lobby_participant.accepted
+            && !lobby_participant.can_enter(
+                participant_origin.id,
+                &self.participants.all_unfiltered,
+                self.info.room.waiting_room,
+            )
+        {
             tracing::debug!("Failed to enter room: participant not yet accepted");
             return Err(CoreError::NotAccepted.into());
         }

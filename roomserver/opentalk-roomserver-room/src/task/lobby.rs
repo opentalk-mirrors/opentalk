@@ -14,7 +14,7 @@ use opentalk_roomserver_signaling::{
     },
 };
 use opentalk_roomserver_types::{
-    client_parameters::ClientParameters,
+    client_parameters::{ClientParameters, Role},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreEvent, LeftWaitingRoom},
     device_id::DeviceId,
@@ -23,7 +23,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_types_signaling::ParticipantId;
 
-use crate::task::RoomTask;
+use crate::{signaling::DynBroadcastEvent, task::RoomTask};
 
 impl<Socket: SignalingSocket> RoomTask<Socket> {
     #[tracing::instrument(level = "debug", skip(self))]
@@ -115,7 +115,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 )]);
                 vacant_entry.insert(LobbyParticipant::new(
                     client_parameters.kind,
-                    client_parameters.role,
+                    role,
                     connections,
                     can_enter,
                     None,
@@ -150,6 +150,10 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         &mut self,
         participant_id: ParticipantId,
     ) -> Result<(), FatalError> {
+        // Moderators that are moved to the waiting room get demoted to user and their ability to
+        // skip the waiting room is removed.
+        self.revoke_waiting_room_bypass(participant_id)?;
+
         let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
             tracing::error!("Failed to move unknown participant {participant_id} to waiting room");
             return Ok(());
@@ -192,8 +196,6 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             }
         }
 
-        state.in_waiting_room = true;
-
         let connection_ids: Vec<ConnectionId> = connection_ids.copied().collect();
         let display_name = state.display_name.clone();
         let avatar_url = state.kind.avatar_url().map(str::to_owned);
@@ -223,6 +225,43 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         )?;
 
         tracing::debug!("Participant left lobby and entered the waiting room");
+        Ok(())
+    }
+
+    /// Removes moderator rights from a participant, assigning them the [`Role::User`], sets their
+    /// `in_waiting_room` flag to `true` and their `accepted` flag to `false`.
+    #[tracing::instrument(skip(self), level = "debug")]
+    fn revoke_waiting_room_bypass(
+        &mut self,
+        participant_id: ParticipantId,
+    ) -> Result<(), FatalError> {
+        let mut did_change = false;
+
+        if let Some(state) = self.lobby_participants.get_mut(&participant_id) {
+            did_change |= state.accepted;
+
+            state.accepted = false;
+            state.role = Role::User;
+        }
+
+        let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
+            return Ok(());
+        };
+
+        state.in_waiting_room = true;
+        did_change |= state.role.is_moderator();
+        state.role = Role::User;
+
+        if did_change {
+            let room = state.room;
+            self.broadcast_event_to_modules(
+                EventOrigin::Internal,
+                room,
+                DynBroadcastEvent::ModerationRoleChanged { participant_id },
+            )
+            .handle_requested_messages(self)?;
+        }
+
         Ok(())
     }
 }
