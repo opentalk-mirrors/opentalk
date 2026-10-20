@@ -397,14 +397,6 @@ build:
     - cargo auditable build --release --locked -p opentalk-transcription
     - du -ch target/release/opentalk-*
 
-# The DUI requires glibc. We therefore build it with a Debian based container.
-build:dui:
-  <<: *default_job_condition
-  stage: build
-  needs: []
-  script:
-    - cargo auditable build --release --locked -p opentalk-roomserver-dui
-
 build:docs:
   stage: build
   image:
