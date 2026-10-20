@@ -20,6 +20,7 @@ use gstreamer::{
     prelude::{ElementExt, GstBinExt, PipelineExt},
 };
 use gstreamer_app::AppSrc;
+use tokio::sync::mpsc;
 
 use super::pipeline_watched::PipelineWatched;
 use crate::{
@@ -62,9 +63,19 @@ pub(crate) struct GStreamerActiveSink {
 }
 
 impl GStreamerActiveSink {
-    pub(crate) fn new(start: Instant, name: &str, sink: impl GStreamerSink) -> Result<Self> {
-        let pipeline = PipelineWatched::new(name, sink.init_bus_watch(), sink.requires_eos())
-            .context("unable to create PipelineWatched")?;
+    pub(crate) fn new(
+        start: Instant,
+        name: &str,
+        sink: impl GStreamerSink,
+        sink_failed_tx: mpsc::UnboundedSender<String>,
+    ) -> Result<Self> {
+        let pipeline = PipelineWatched::new(
+            name,
+            sink.init_bus_watch(),
+            sink.requires_eos(),
+            sink_failed_tx,
+        )
+        .context("unable to create PipelineWatched")?;
 
         pipeline.use_clock(Some(&SystemClock::obtain()));
         pipeline.set_base_time(ClockTime::ZERO);

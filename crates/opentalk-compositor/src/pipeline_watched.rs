@@ -9,7 +9,10 @@ use glib::{ControlFlow, GString};
 use gstreamer::{MessageView, Object, Pipeline, bus::BusWatchGuard, prelude::*};
 use log::{Level, max_level};
 use parking_lot::Mutex;
-use tokio::{sync::oneshot, time::timeout};
+use tokio::{
+    sync::{mpsc, oneshot},
+    time::timeout,
+};
 
 use crate::debug;
 
@@ -29,11 +32,18 @@ impl std::fmt::Debug for PipelineWatched {
 }
 
 impl PipelineWatched {
-    pub(crate) fn new(name: &str, init_bus_watch: bool, wait_for_eos: bool) -> Result<Self> {
+    pub(crate) fn new(
+        name: &str,
+        init_bus_watch: bool,
+        wait_for_eos: bool,
+        sink_failed_tx: mpsc::UnboundedSender<String>,
+    ) -> Result<Self> {
         let pipeline = Pipeline::with_name(name);
 
         let callbacks: Vec<Box<CallbackFn>> = Vec::new();
         let callbacks = Arc::new(Mutex::new(callbacks));
+
+        let mut sink_failed_tx = Some(sink_failed_tx);
 
         let bus_watch_guard = if init_bus_watch {
             let bus = pipeline.bus().context("failed to get bus of pipeline")?;
@@ -60,6 +70,23 @@ impl PipelineWatched {
                                 err.debug().as_ref(),
                                 Level::Error,
                             );
+
+                            // Close the pipeline on the first error and send a notification.
+                            if let Some(sink_failed_tx) = sink_failed_tx.take() {
+                                if let Err(err) = pipeline.set_state(gstreamer::State::Null) {
+                                    log::error!(
+                                        "Failed to set the failed pipeline {} to `null`: {err}",
+                                        pipeline.name(),
+                                    );
+                                }
+
+                                if sink_failed_tx.send(pipeline.name().to_string()).is_err() {
+                                    log::debug!(
+                                        "Receiver for sink failures is gone, not reporting failed pipeline {}",
+                                        pipeline.name()
+                                    );
+                                }
+                            }
                         }
                         MessageView::Warning(warn) => {
                             log_message(
@@ -138,6 +165,11 @@ impl PipelineWatched {
     }
 
     pub(crate) async fn close(&mut self) {
+        if self.pipeline.current_state() == gstreamer::State::Null {
+            log::debug!("pipeline {} is already closed", self.pipeline.name());
+            return;
+        }
+
         log::debug!("close pipeline {}", self.pipeline.name());
 
         debug::debug_dot(&self.pipeline, &format!("drop-{}", self.pipeline.name()));

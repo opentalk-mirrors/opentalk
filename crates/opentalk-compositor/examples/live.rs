@@ -22,6 +22,7 @@ mod example {
             ctrl_c,
             unix::{SignalKind, signal},
         },
+        sync::mpsc,
         time::{Instant, interval_at},
     };
 
@@ -53,6 +54,7 @@ mod example {
             .parse::<u16>()
             .unwrap_or(25);
 
+        let (sink_failed_tx, mut sink_failed_rx) = mpsc::unbounded_channel();
         let mixer_parameters = MixerParameters {
             auto_subscribe: true,
             clock_format: Default::default(),
@@ -70,7 +72,11 @@ mod example {
         let mut mixer = Mixer::new(mixer_parameters).await.unwrap();
 
         mixer
-            .link_gstreamer_sink("system", SystemSink::create().unwrap())
+            .link_gstreamer_sink(
+                "system",
+                SystemSink::create().unwrap(),
+                sink_failed_tx.clone(),
+            )
             .await
             .unwrap();
 
@@ -80,11 +86,20 @@ mod example {
         })
         .unwrap();
         let mut receiver = webmsink.subscribe();
-        mixer.link_gstreamer_sink("webm", webmsink).await.unwrap();
+        mixer
+            .link_gstreamer_sink("webm", webmsink, sink_failed_tx)
+            .await
+            .unwrap();
 
         tokio::spawn(async move {
             loop {
                 println!("Got chunk {}", receiver.recv().await.unwrap().len());
+            }
+        });
+
+        tokio::spawn(async move {
+            while let Some(failed_sink) = sink_failed_rx.recv().await {
+                eprintln!("Sink {failed_sink} failed");
             }
         });
 
