@@ -22,6 +22,8 @@ deploy:experimental:testing:
       when: manual
     - when: never
   resource_group: remote-deploy-$HOST
+  # Canceling a deployment halfway leaves the target host in a broken state.
+  interruptible: false
   variables:
     GIT_STRATEGY: none
   parallel:
