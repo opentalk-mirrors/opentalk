@@ -298,9 +298,7 @@ test:cargo_test:
   coverage: /TOTAL\s+(\d+\s+)+(\d+\.\d+\%)/
   script:
     - cargo llvm-cov nextest --no-report --profile ci --workspace
-    # code coverage for doctests is unstable, so we run them separately
-    - cargo test --doc --workspace --locked
-    - cargo llvm-cov report --doctests --cobertura --output-path target/llvm-cov-target/cobertura.xml
+    - cargo llvm-cov report --cobertura --output-path target/llvm-cov-target/cobertura.xml
     - cargo llvm-cov report --summary-only --ignore-filename-regex 'roomserver/opentalk-roomserver-dui/'
   variables:
     TYPST_PACKAGE_CACHE_PATH: $CI_PROJECT_DIR/target/typst/packages
@@ -309,6 +307,18 @@ test:cargo_test:
     # usage for large generated crates (e.g. aws-sdk-s3) spike high enough
     # to get OOM-killed on CI runners. Coverage mapping doesn't depend on
     # DWARF debug info, so line tables are enough and cut memory use a lot.
+    CARGO_PROFILE_DEV_DEBUG: line-tables-only
+
+# Code coverage for doctests is unstable, so they run uninstrumented. Running
+# them in `test:cargo_test` would compile the whole workspace a second time on
+# the single `testcontainers` runner, so they get their own job instead.
+test:doctest:
+  image: $RUST_IMAGE
+  stage: test
+  <<: *default_job_condition
+  script:
+    - cargo test --doc --workspace --locked
+  variables:
     CARGO_PROFILE_DEV_DEBUG: line-tables-only
 
 # test:load:
