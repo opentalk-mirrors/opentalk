@@ -176,4 +176,31 @@ sys.exit(0 if [str(g) for g in service.get("group_add", [])] == ["0"] else 1)
 PY
 done
 
+# Regression: the controller sees traefik as the peer of every request, so its
+# metrics allowlist cannot keep /controller/metrics private. Traefik must deny
+# the path, and the controller route must not catch "/controller%2Fmetrics".
+python3 - "$TMP_DIR/opentalk_compose_opentalk_controller.yml" <<'PY' || exit 1
+import sys
+import yaml
+with open(sys.argv[1], encoding="utf-8") as f:
+    labels = dict(l.split("=", 1) for l in yaml.safe_load(f)["services"]["controller"]["labels"])
+prefix = "traefik.http.routers."
+errors = []
+if "PathPrefix(`/controller/`)" not in labels.get(prefix + "controller.rule", ""):
+    errors.append("controller router must match PathPrefix(`/controller/`) with the trailing slash")
+if "PathPrefix(`/controller/metrics`)" not in labels.get(prefix + "controller-metrics.rule", ""):
+    errors.append("controller-metrics router must match /controller/metrics")
+# Routers without a priority get the length of their rule.
+priorities = [int(v) for k, v in labels.items() if k.startswith(prefix) and k.endswith(".priority")]
+priorities.append(len(labels.get(prefix + "controller.rule", "")) + 1)
+if int(labels.get(prefix + "controller-metrics.priority", 0)) != max(priorities, default=0):
+    errors.append("controller-metrics router must have the highest priority")
+deny = labels.get(prefix + "controller-metrics.middlewares", "")
+if labels.get(f"traefik.http.middlewares.{deny}.ipallowlist.sourcerange") != "127.0.0.1/32":
+    errors.append("controller-metrics router must deny everything but traefik itself")
+if errors:
+    print("Controller metrics exposure:", *errors, sep="\n  ", file=sys.stderr)
+    sys.exit(1)
+PY
+
 echo "Compose template rendering tests passed (${#template_files[@]} templates)."
