@@ -15,6 +15,8 @@ BACKUP_DIR="$TMP_DIR/backups"
 CALLS_LOG="$PREFIX/ot-ansible-playbook.calls"
 export OT_PREFIX="$PREFIX"
 export OT_BACKUP_DIR="$BACKUP_DIR"
+# Never fall back to a real host backup root such as /var/opt/opentalk-compose/backups.
+export OT_SYSTEM_BACKUP_DIR="$TMP_DIR/no-system-backups"
 export NO_COLOR=1
 
 mkdir -p "$PREFIX/runtime/venv/bin" "$PREFIX/bin" "$PREFIX/automation"

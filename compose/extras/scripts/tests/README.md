@@ -139,6 +139,7 @@ Every script that touches the filesystem takes an override so a test can redirec
 | `CLEANUP_ROOT` | `90-cleanup.sh` | relocates the deletion target; without it the real `build/` and `artifacts/` are deleted |
 | `OT_PREFIX` | `otctl`, the `ot-ansible*` wrappers, the maintainer scripts | install root, defaults to `/opt/opentalk-compose` |
 | `OT_BACKUP_DIR` | `otctl` backup and restore | backup root |
+| `OT_SYSTEM_BACKUP_DIR` | `otctl` backup and restore | fallback backup root when `OT_BACKUP_DIR` is unset, defaults to `/var/opt/opentalk-compose/backups` |
 | `OT_CFG_DIR` | `pkg-postinst.sh` | config directory, defaults to `/etc/opentalk-compose` |
 | `OT_EXAMPLES_DIR` | `pkg-postinst.sh` | example files directory |
 | `OT_SETTINGS_FILE` | the main playbook | settings source |

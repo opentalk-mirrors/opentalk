@@ -12,6 +12,7 @@ VENV_BIN="$RUNTIME/venv/bin"
 VENDOR="$RUNTIME/vendor/collections"
 WRAPPER_DIR="$PREFIX/bin"
 SERVICES_DIR="${OT_SERVICES_DIR:-$PREFIX/services}"
+SYSTEM_BACKUP_DIR="${OT_SYSTEM_BACKUP_DIR:-/var/opt/opentalk-compose/backups}"
 COMPOSE_CMD="${DOCKER_CMD:-docker}"
 
 # Prefer docker; fallback to podman (compose plugin assumed installed)
@@ -469,7 +470,7 @@ backup_list() {
   if [ -n "${OT_BACKUP_DIR:-}" ]; then
     root="$OT_BACKUP_DIR"
   else
-    root="/var/opt/opentalk-compose/backups"
+    root="$SYSTEM_BACKUP_DIR"
     [ -d "$root" ] || root="$PREFIX/backups"
   fi
   if [ ! -d "$root" ]; then
@@ -616,7 +617,7 @@ RHELP
     fi
 
     # Locate backup root (same logic as backup_list)
-    _rst_root="${OT_BACKUP_DIR:-/var/opt/opentalk-compose/backups}"
+    _rst_root="${OT_BACKUP_DIR:-$SYSTEM_BACKUP_DIR}"
     [ -d "$_rst_root" ] || _rst_root="$PREFIX/backups"
 
     latest_backup_file() {
