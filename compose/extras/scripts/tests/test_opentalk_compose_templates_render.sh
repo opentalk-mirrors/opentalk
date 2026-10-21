@@ -139,6 +139,23 @@ with open(sys.argv[1], encoding="utf-8") as f:
 PY
 done
 
+# Regression: ndt had no restart policy and stayed down after exiting, so
+# every rendered service must come back on its own.
+python3 - "$TMP_DIR" "${template_files[@]}" <<'PY' || exit 1
+import sys
+from pathlib import Path
+import yaml
+tmp_dir, missing = Path(sys.argv[1]), []
+for template in sys.argv[2:]:
+    role_name = Path(template).parent.parent.name
+    with (tmp_dir / f"{role_name}.yml").open(encoding="utf-8") as f:
+        services = (yaml.safe_load(f) or {}).get("services") or {}
+    missing += [f"{role_name}: {name}" for name, service in services.items() if not service.get("restart")]
+if missing:
+    print("Services without a restart policy:", *missing, sep="\n  ", file=sys.stderr)
+    sys.exit(1)
+PY
+
 KEYCLOAK_RENDERED="$TMP_DIR/opentalk_compose_keycloak.yml"
 if grep -q '"443:8080"' "$KEYCLOAK_RENDERED"; then
   echo "Keycloak must not publish the ingress port when Traefik is enabled." >&2
