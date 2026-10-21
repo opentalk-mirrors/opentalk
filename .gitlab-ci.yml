@@ -50,6 +50,22 @@ variables:
   # The `livekit` client crate pulls in `webrtc-sys`, whose build script refuses to compile with GCC or clang < 20
   CXX: clang++-21
 
+# A new push to a merge request cancels the jobs of its previous, now redundant
+# pipeline, so they don't compete for runners (especially the single
+# `testcontainers` runner). Pipelines of other sources (main, release branches,
+# tags, schedules) are never auto-canceled, as they push images and packages.
+default:
+  interruptible: true
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      auto_cancel:
+        on_new_commit: interruptible
+    - when: always
+      auto_cancel:
+        on_new_commit: none
+
 .default_job_condition: &default_job_condition
   needs: []
   rules:
@@ -380,14 +396,6 @@ build:
     - cargo auditable build --release --locked -p opentalk-smtp-mailer
     - cargo auditable build --release --locked -p opentalk-transcription
     - du -ch target/release/opentalk-*
-
-# The DUI requires glibc. We therefore build it with a Debian based container.
-build:dui:
-  <<: *default_job_condition
-  stage: build
-  needs: []
-  script:
-    - cargo auditable build --release --locked -p opentalk-roomserver-dui
 
 build:docs:
   stage: build
