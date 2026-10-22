@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.3.0-beta.1] - 2026-10-22
+
+[26.3.0-beta.1]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/compare/v26.2.1...v26.3.0-beta.1
+
+### 🐛 Bug fixes
+
+- (obelisk) Reach the controller directly for the internal call-in api ([!242](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/242))
+- (compose) Add orchestrator storage kind ([!247](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/247))
+- (compose) Create the compose-python venv with the pinned python minor release ([!248](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/248))
+- (e2e) Move the traefik ping entry point off the ingress port ([!248](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/248))
+- (ndt) Restart the container like the other services ([!244](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/244))
+- (controller) Deny /controller/metrics in traefik ([!245](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/245))
+
+### 📦 Dependencies
+
+- (deps) Update OpenTalk web frontend version v2.10.1 ([!249](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/249))
+- (deps) Update OpenTalk controller version v0.35.2 ([!249](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/249))
+- (deps) Update OpenTalk obelisk version v0.23.1 ([!249](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/249))
+- (deps) Update OpenTalk recorder version v0.18.1 ([!249](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/249))
+- (deps) Update OpenTalk roomserver version v0.10.2 ([!249](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/249))
+- (deps) Update livekit-server version v1.13.10 ([!249](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/249))
+- (deps) Update keycloak version v26.8.1 ([!249](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/249))
+- (deps) Update traefik version v3.7.16 ([!249](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/249))
+- (deps) Update OpenTalk product version v26.3.0-beta.1 ([!249](https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/merge_requests/249))
+
 ## [26.3.0-beta.0] - 2026-10-05
 
 [26.3.0-beta.0]: https://git.opentalk.dev/opentalk/opentalk-devops/opentalk-compose/-/commits/v26.3.0-beta.0
