@@ -136,6 +136,8 @@ int:upgrade:
 
 # Manual, destructive end-to-end Compose test. Requires a dinD runner with
 # Docker, `just`, `uv`, Ansible, and network access to the container registry.
+# Not blocking: a manual job without allow_failure keeps the pipeline blocked
+# until someone runs it, so merge requests could not be merged.
 int:e2e:
   extends: .int_base
   image: git.opentalk.dev:5050/opentalk/opentalk-devops/containers/pkgtest-dind/debian12:dev

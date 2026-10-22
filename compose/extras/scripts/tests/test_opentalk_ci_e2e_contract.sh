@@ -31,6 +31,9 @@ fail() {
 grep -q '^int:e2e:' "$INTEGRATION_CI_FILE" || fail "int:e2e job is missing from extras/ci/gitlab/integration.yml"
 grep -q 'OPENTALK_E2E: "1"' "$INTEGRATION_CI_FILE" || fail "int:e2e job must set OPENTALK_E2E=1"
 grep -q 'when: manual' "$INTEGRATION_CI_FILE" || fail "int:e2e job must be gated by a manual trigger"
+# The manual job must not block the pipeline, or merge requests cannot be merged.
+[[ $(sed -n '/^int:e2e:/,/^[^ ]/p' "$INTEGRATION_CI_FILE" | grep -c 'allow_failure: true') == 2 ]] \
+  || fail "both manual rules of int:e2e must set allow_failure: true"
 grep -q 'bash extras/scripts/tests/integration/test_compose_e2e.sh' "$INTEGRATION_CI_FILE" \
   || fail "int:e2e job must run test_compose_e2e.sh"
 grep -q 'bash extras/ci/gitlab/setup-integration-env.sh' "$INTEGRATION_CI_FILE" \
