@@ -55,6 +55,9 @@ sed -e "s/^ot_ingress_port:.*/ot_ingress_port: $INGRESS_PORT/" \
     -e "s/^compose_project_name:.*/compose_project_name: \"$PROJECT_NAME\"/" \
     -e "s#http://keycloak.localhost:8001#http://opentalk.dev.localhost:$INGRESS_PORT#g" \
     "$REPO_ROOT/extras/packaging/config-dist/settings.dev.yml-sample" > "$settings_file"
+# Traefik's ping entry point listens on :8082 inside the container by default,
+# so it must move off the ingress port or Traefik cannot bind and restarts.
+printf 'traefik_entryPoints_ping_address: ":%s"\n' "$((INGRESS_PORT + 1))" >> "$settings_file"
 
 just compose-deploy
 COMPOSE_PROJECT_NAME="$PROJECT_NAME" bash "$RUNTIME_TEST"

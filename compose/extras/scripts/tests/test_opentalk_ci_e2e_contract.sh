@@ -56,6 +56,13 @@ grep -q 'OPENTALK_E2E_DEV_DIR:-"$REPO_ROOT/build/opentalk-compose-e2e-dev"' "$E2
   || fail "E2E default dev dir must be build/opentalk-compose-e2e-dev"
 grep -q 'OPENTALK_E2E_INGRESS_PORT:-8082' "$E2E_TEST" \
   || fail "E2E default ingress port must be 8082"
+# Regression: the ingress port 8082 equals Traefik's default ping port, and
+# Traefik restarted in a loop because it could not bind the port twice.
+grep -qF 'traefik_entryPoints_ping_address: ":%s"' "$E2E_TEST" \
+  || fail "E2E settings must set the Traefik ping entry point"
+# shellcheck disable=SC2016 # The script variable must be matched literally.
+grep -qF '"$((INGRESS_PORT + 1))" >> "$settings_file"' "$E2E_TEST" \
+  || fail "E2E settings must move the Traefik ping entry point off the ingress port"
 # shellcheck disable=SC2016 # The script variable must be matched literally.
 grep -q "keycloak_local_hostname: ''" "$E2E_TEST" \
   || fail "E2E Keycloak URL must use the isolated ingress hostname"
