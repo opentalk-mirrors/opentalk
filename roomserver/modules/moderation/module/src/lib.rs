@@ -20,7 +20,7 @@ use opentalk_roomserver_signaling::{
     },
 };
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, Role},
+    client_parameters::Role,
     connection_id::ConnectionId,
     kick_reason::KickReason,
     room_parameters::WaitingRoom,
@@ -817,7 +817,7 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         };
 
-        if participant.kind != ClientKind::Guest {
+        if !participant.kind.is_guest_or_callin() {
             return Err(ModerationError::CannotChangeNameOfRegisteredUsers.into());
         };
 

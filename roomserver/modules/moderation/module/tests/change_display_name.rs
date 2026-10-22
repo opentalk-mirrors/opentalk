@@ -215,6 +215,47 @@ async fn change_display_name() {
 }
 
 #[test_log::test(tokio::test)]
+async fn change_display_name_of_call_in_participant() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut richard = room.join_richard_call_in(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::ChangeDisplayName {
+                new_name: DisplayName::from_str_lossy("Richard"),
+                target: richard.id(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    let expected = ModerationEvent::DisplayNameChanged {
+        target: richard.id(),
+        issued_by: alice.id(),
+        old_name: richard.display_name().clone(),
+        new_name: DisplayName::from_str_lossy("Richard"),
+    };
+    let event = alice
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, expected.clone());
+
+    let event = richard
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, expected);
+}
+
+#[test_log::test(tokio::test)]
 async fn lobby_participant_receive_display_name_change_event() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
