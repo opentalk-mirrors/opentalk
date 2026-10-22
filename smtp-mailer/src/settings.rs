@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use std::{
+    collections::HashMap,
     net::IpAddr,
     path::{Path, PathBuf},
     str::FromStr,
@@ -587,6 +588,21 @@ pub struct Frontend {
     pub base_url: String,
     #[serde(default = "frontend_default_data_protection_url")]
     pub data_protection_url: String,
+    /// Quick guide URLs keyed by the language of the email
+    ///
+    /// Languages that are not configured fall back to the built-in default URL.
+    #[serde(default = "frontend_default_quick_guide_urls")]
+    pub quick_guide_urls: HashMap<Language, String>,
+}
+
+impl Frontend {
+    /// Returns the quick guide URL for the given (negotiated) email language
+    pub fn quick_guide_url(&self, language: &Language) -> &str {
+        self.quick_guide_urls
+            .get(language)
+            .map(String::as_str)
+            .unwrap_or_else(|| default_quick_guide_url(language))
+    }
 }
 
 impl Default for Frontend {
@@ -594,6 +610,7 @@ impl Default for Frontend {
         Self {
             base_url: frontend_default_base_url(),
             data_protection_url: frontend_default_data_protection_url(),
+            quick_guide_urls: frontend_default_quick_guide_urls(),
         }
     }
 }
@@ -604,6 +621,27 @@ fn frontend_default_base_url() -> String {
 
 fn frontend_default_data_protection_url() -> String {
     "https://opentalk.example.org/dataprotection".into()
+}
+
+const DEFAULT_QUICK_GUIDE_URL_EN: &str = "https://opentalk.eu/en/quick-manual";
+const DEFAULT_QUICK_GUIDE_URL_DE: &str = "https://opentalk.eu/de/kurzanleitung";
+
+fn default_quick_guide_url(language: &Language) -> &'static str {
+    match language.0.language.as_str() {
+        "de" => DEFAULT_QUICK_GUIDE_URL_DE,
+        _ => DEFAULT_QUICK_GUIDE_URL_EN,
+    }
+}
+
+fn frontend_default_quick_guide_urls() -> HashMap<Language, String> {
+    ["en-US", "de-DE"]
+        .into_iter()
+        .map(|language| {
+            let language = Language::from_str(language).expect("valid language identifier");
+            let url = default_quick_guide_url(&language).to_owned();
+            (language, url)
+        })
+        .collect()
 }
 
 /// Template Builder Config
@@ -671,6 +709,49 @@ mod test {
 
     use super::*;
 
+    #[test]
+    fn frontend_default_quick_guide_urls() {
+        let frontend = Frontend::default();
+
+        assert_eq!(
+            frontend.quick_guide_url(&Language::from_str("en-US").unwrap()),
+            "https://opentalk.eu/en/quick-manual"
+        );
+        assert_eq!(
+            frontend.quick_guide_url(&Language::from_str("de-DE").unwrap()),
+            "https://opentalk.eu/de/kurzanleitung"
+        );
+    }
+
+    #[test]
+    fn frontend_configured_quick_guide_urls() -> Result<(), ConfigError> {
+        let settings: Settings = Config::builder()
+            .add_source(File::from_str(
+                r#"
+                [frontend.quick_guide_urls]
+                "de-DE" = "https://example.org/de/quick-guide"
+                "#,
+                FileFormat::Toml,
+            ))
+            .build()?
+            .try_deserialize()?;
+
+        assert_eq!(
+            settings
+                .frontend
+                .quick_guide_url(&Language::from_str("de-DE").unwrap()),
+            "https://example.org/de/quick-guide"
+        );
+        // Languages missing in the configuration fall back to the built-in default
+        assert_eq!(
+            settings
+                .frontend
+                .quick_guide_url(&Language::from_str("en-US").unwrap()),
+            "https://opentalk.eu/en/quick-manual"
+        );
+
+        Ok(())
+    }
     /// Test loading the settings overwritten by env vars.
     ///
     /// This test sets and reads environment variables which is inherently unsafe.

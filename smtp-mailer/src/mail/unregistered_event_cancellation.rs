@@ -41,6 +41,10 @@ fn build_template_context(
     );
     context.insert("support", &builder.support_contact);
     context.insert("data_protection_url", &builder.frontend.data_protection_url);
+    context.insert(
+        "quick_guide_url",
+        builder.frontend.quick_guide_url(&language),
+    );
     context
 }
 

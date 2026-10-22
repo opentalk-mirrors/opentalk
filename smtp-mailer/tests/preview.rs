@@ -44,3 +44,34 @@ fn preview(
         example_mail
     );
 }
+
+#[rstest]
+#[case("de", "https://example.org/de/quick-guide")]
+#[case("en", "https://opentalk.eu/en/quick-manual")]
+fn preview_configured_quick_guide_url(
+    #[case] lang: &str,
+    #[case] expected_url: &str,
+    #[values(OutputVariant::Html, OutputVariant::Plain)] output: OutputVariant,
+) {
+    let mut settings = Settings::default();
+    // Only override German, English must fall back to the built-in URL
+    settings.frontend.quick_guide_urls = [(
+        Language::from_str("de-DE").unwrap(),
+        "https://example.org/de/quick-guide".to_owned(),
+    )]
+    .into();
+    let lang = Language::from_str(lang).unwrap();
+
+    let example_mail = TemplateVariant::RegisteredInvite
+        .render_template(&settings, output, lang)
+        .expect("Rendering must succeed");
+
+    let expected = match output {
+        OutputVariant::Html => format!("<a href=\"{expected_url}\">{expected_url}</a>"),
+        OutputVariant::Plain => expected_url.to_owned(),
+    };
+    assert!(
+        example_mail.contains(&expected),
+        "{expected:?} not found in:\n{example_mail}"
+    );
+}

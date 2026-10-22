@@ -1,2 +1,2 @@
 
-{{ fluent(key="quick-guide-hint-txt", lang = language) }}
+{{ fluent(key="quick-guide-hint-txt", lang = language, link = quick_guide_url) }}

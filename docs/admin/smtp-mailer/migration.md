@@ -43,6 +43,21 @@ default_directives = ["warn", "html5ever=warn", "selectors=warn"]
 No action is required unless you want to enable OTLP export or rely on the exact
 previous log line format or crate-capping behavior.
 
+### New optional `[frontend.quick_guide_urls]` table
+
+The link to the quick guide in the emails can now be configured per email
+language. If you omit the table, the emails keep linking to the default quick
+guide pages. See [Frontend](frontend.md) for details.
+
+```toml
+[frontend.quick_guide_urls]
+"en-US" = "https://opentalk.eu/en/quick-manual"
+"de-DE" = "https://opentalk.eu/de/kurzanleitung"
+```
+
+The `quick-guide-hint-txt` and `quick-guide-hint-html` translations now take the
+URL as `$link` argument instead of containing it.
+
 ## Migrating from v0.18 to v0.19
 
 ### `guest_link_builder` configuration option removed
