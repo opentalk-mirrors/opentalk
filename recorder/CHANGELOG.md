@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.1] - 2026-10-20
+
+[0.18.1]: https://git.opentalk.dev/opentalk/backend/services/recorder/-/compare/v0.18.0...v0.18.1
+
+### 🐛 Bug fixes
+
+- (environment) Fix parsing and deprecate inconsistent double underscore prefix ([!881](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/881), [#271](https://git.opentalk.dev/opentalk/backend/services/recorder/-/issues/271))
+- Deadlock and hangs ([!884](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/884), [#276](https://git.opentalk.dev/opentalk/backend/services/recorder/-/issues/276), [#277](https://git.opentalk.dev/opentalk/backend/services/recorder/-/issues/277))
+
+### 📚 Documentation
+
+- Minor fixes ([!874](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/874))
+
+### 📦 Dependencies
+
+- (deps) Update rustls to 0.23.46 ([!884](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/884))
+- (deps) Document RUSTSEC-2026-0367, RUSTSEC-2026-0368 & RUSTSEC-2026-0369 ([!884](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/884))
+
 ## [0.18.0] - 2026-09-10
 
 [0.18.0]: https://git.opentalk.dev/opentalk/backend/services/recorder/-/compare/v0.17.0...v0.18.0
@@ -69,6 +87,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (renovate) Update opentalk group ([!794](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/794))
 - (security) Update all packages in the container on build ([!846](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/846))
 - Allow admonitions in markdown ([!845](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/845))
+
+## [0.17.6] - 2026-09-18
+
+[0.17.6]: https://git.opentalk.dev/opentalk/backend/services/recorder/-/compare/v0.17.5...v0.17.6
+
+### 🐛 Bug fixes
+
+- (environment) Fix parsing and deprecate inconsistent double underscore prefix ([#271](https://git.opentalk.dev/opentalk/backend/services/recorder/-/issues/271))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!880](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/880))
+
+## [0.17.5] - 2026-09-11
+
+[0.17.5]: https://git.opentalk.dev/opentalk/backend/services/recorder/-/compare/v0.17.4...v0.17.5
+
+### 🐛 Bug fixes
+
+- Update documentation ([!872](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/872))
+
+## [0.17.4] - 2026-09-10
+
+[0.17.4]: https://git.opentalk.dev/opentalk/backend/services/recorder/-/compare/v0.17.3...v0.17.4
+
+### 🐛 Bug fixes
+
+- (ci) Fix package installation in container build and do not fail silently ([!862](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/862))
+- Keep tasks lock while spawning session ([!861](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/861))
+- (signaling) Exit recording session on websocket signaling error ([!866](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/866))
+
+### 📦 Dependencies
+
+- (deps) Update gstreamer base image to 1.26 (based on ubuntu 26.04) ([!862](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/862))
+- (deps) Update roomserver-signaling-client to 0.1.1 ([!864](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/864))
+- (deps) Update compositor to 0.20.1 ([!868](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/868))
+
+### Ci
+
+- (security) Update all packages in the container on build ([!862](https://git.opentalk.dev/opentalk/backend/services/recorder/-/merge_requests/862))
 
 ## [0.17.3] - 2026-09-09
 

@@ -186,6 +186,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (container) Remove debian bookworm image ([!698](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/698), [#178](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/178))
 
+## [0.16.2] - 2026-03-18
+
+[0.16.2]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.16.1...v0.16.2
+
+### 🚀 New features
+
+- (ci) Add release mr creation job ([!679](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/679), [#175](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/175))
+
+### 🐛 Bug fixes
+
+- (log) Print mail sending errors as ERROR instead of WARN ([!675](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/675), [#174](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/174))
+
+### 📦 Dependencies
+
+- (deps) Lockfile maintenance ([!680](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/680))
+
+## [0.16.1] - 2025-12-23
+
+[0.16.1]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.0.0-testsss-v4...v0.16.1
+
+### 📚 Documentation
+
+- (docs) Prepare documentation for mkdocs-material ([!626](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/626), [#156](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/156))
+
+### Ci
+
+- Fix conditions for read-tags CI job ([!641](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/641))
+- Push images to new registry ([!621](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/621), [#165](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/165))
+- Make MR container build optional ([!630](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/630))
+- Include commit evidence job ([!639](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/639), [#168](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/168))
+
+### 📦 Dependencies
+
+- (deps) Update git.opentalk.dev:5050/opentalk/backend/containers/rust docker tag to v1.92.0 ([!635](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/635))
+
 ## [0.16.0] - 2025-11-13
 
 [0.16.0]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.15.2...v0.16.0
@@ -256,6 +291,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Switch to internal kaniko image ([!557](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/557))
 - (deny) Allowlist unmaintained unic-* crates until our dependency has migrated ([!587](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/587))
 
+## [0.15.2] - 2025-10-22
+
+[0.15.2]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.15.1...v0.15.2
+
+### ⚙ Miscellaneous
+
+- Update default ci and container image to Debian Trixie ([#146](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/146))
+
+## [0.15.1] - 2025-10-14
+
+[0.15.1]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.15.0...v0.15.1
+
+### 🐛 Bug fixes
+
+- (rabbitmq) Make handling of rabbitmq tasks more robust ([!533](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/533), [#149](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/149))
+
+### ⚙ Miscellaneous
+
+- Ignore unmaintained warning ()
+
 ## [0.15.0] - 2025-08-21
 
 [0.15.0]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.14.0...v0.15.0
@@ -290,6 +345,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move back to single crate structure ([!464](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/464))
 - Add cargo-machete to ci and pre-commit ([!466](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/466))
 - (justfile) Include the update-changelog job in prepare-release ([!522](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/522))
+
+## [0.14.2] - 2025-10-22
+
+[0.14.2]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.14.1...v0.14.2
+
+### ⚙ Miscellaneous
+
+- Update default ci and container image to Debian Trixie ([#146](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/146))
+
+### Ci
+
+- (deny) Allow unmaintained fxhash
+- (release) Don't use workspace version since this is not a workspace
+
+## [0.14.1] - 2025-10-14
+
+[0.14.1]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.15.0...v0.14.1
+
+### 🐛 Bug fixes
+
+- (rabbitmq) Make handling of rabbitmq tasks more robust ([!533](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/533), [#149](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/149))
+
+### ✨ Style
+
+- Remove unused code
+
+### ⚙ Miscellaneous
+
+- Ignore unmaintained warning
+
+### Ci
+
+- (justfile) Update changelog in `prepare-release`
 
 ## [0.14.0] - 2025-05-29
 
@@ -360,6 +448,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hide dependency graph in cargo-deny output ([!426](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/426))
 - Ignore `RUSTSEC-2025-0021` ([!426](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/426))
 - Changing to latest container scanning ([!434](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/434))
+
+## [0.13.2] - 2025-05-07
+
+[0.13.2]: https://git.opentalk.dev/opentalk/smtp-mailer/-/compare/v0.13.1...v0.13.2
+
+### 🐛 Bug fixes
+
+- Make logo an inline attachement ([!429](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/429))
+
+### 📦 Dependencies
+
+- Update vergen_gix to 1.0.9 fixing RUSTSEC-2025-0021 ([!448](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/448))
+- Update tokio to 1.45.0 fixing RUSTSEC-2025-0023 ([!448](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/448))
+
+## [0.13.1] - 2025-03-12
+
+[0.13.1]: https://git.opentalk.dev/opentalk/smtp-mailer/-/compare/v0.13.0...v0.13.1
+
+### 🐛 Bug fixes
+
+- (container) move installed executable back to `/opt/smtp-mailer` ([!403](https://git.opentalk.dev/opentalk/smtp-mailer/-/merge_requests/403), [#126](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/126))
+
+### 📦 Dependencies
+
+- (deps): update env_logger to 0.11.7 for fixing `RUSTSEC-2025-0014` ([!404](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/404))
+- (deps): update ring to 0.17.1 for fixing `RUSTSEC-2025-0009` ([!404](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/404))
 
 ## [0.13.0] - 2025-03-05
 
@@ -465,6 +579,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### ⚙ Miscellaneous
 
 - Add developer documentation and corresponding CI checks ([!317](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/317))
+
+## [0.11.2] - 2025-02-25
+
+[0.11.2]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.11.1...v0.11.2
+
+### 🚀 New features
+
+- Add ubuntu noble based container image ([!364](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/364))
+
+### 🐛 Bug fixes
+
+- Reduce container size and attack surface ([!364](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/364))
+
+### 🔨 Refactor
+
+- (ci) Clean up install step in Dockerfiles ([!364](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/364))
+
+## [0.11.1] - 2025-02-06
+
+[0.11.1]: https://git.opentalk.dev/opentalk/smtp-mailer/-/compare/v0.11.0...v0.11.1
+
+### 📦 Dependencies
+
+- Update rust crate service-probe to v0.2.1 ([!355](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/355))
 
 ## [0.11.0] - 2024-12-12
 
@@ -575,6 +713,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Test
 
 - Snapshot tests for preview output ([!215](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/215))
+
+## [0.8.1]
+
+[0.8.1]: https://git.opentalk.dev/opentalk/smtp-mailer/-/compare/v0.8.0...v0.8.1
+
+### 🐛 Bug fixes
+
+- (ci) Build of container when `vendored` dir is gone ([!163](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/163))
+
+### 📦 Dependencies
+
+- Lock file maintenance ([!170](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/170), [!175](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/175), [!183](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/183), [!184](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/184))
+- Update opentalk-controller to 0.19.0 ([!185](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/185))
+- Update rust crate bytes to v1.7.1 ([!158](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/158))
+- Update rust crate clap to v4.5.13 ([!159](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/159))
+- Update rust crate env_logger to v0.11.5 ([!153](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/153))
+- Update rust crate fluent-templates to 0.10.0 ([!181](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/181))
+- Update rust crate lapin to v2.5.0 ([!156](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/156))
+- Update rust crate pest ([!139](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/139))
+- Update rust crate serde to v1.0.207 ([!177](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/177))
+- Update rust crate serde_json to v1.0.122 ([!160](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/160))
+- Update rust crate tokio to v1.39.2 ([!155](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/155))
+- Update rust crate vergen to v9 ([!139](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/139))
+- Update rust docker tag to v1.80.0 ([!154](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/154))
+
+### ⚙ Miscellaneous
+
+- Replace controller submodule by crates.io dependencies ([!161](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/161))
+- (renovate) Group opentalk-controller libraries ([!171](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/171))
+- (ci) Build with cargo-auditable ([!167](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/167))
+- (ci) Add container mr build ([!167](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/merge_requests/167))
+
+<!-- End section Unreleased -->
 
 ## [0.8.0]
 
@@ -720,6 +891,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Change wording in emails to match the voice announcements ([#46](https://git.opentalk.dev/opentalk/smtp-mailer/-/issues/46))
 - Add quick guide hint (including link) to the generated emails ([#65](https://git.opentalk.dev/opentalk/smtp-mailer/-/issues/65))
 - Update CI rust tooling to 1.73.0  ([#62](https://git.opentalk.dev/opentalk/smtp-mailer/-/issues/62))
+
+## [0.4.0-rc.1] - 2023-10-23
+
+[0.4.0-rc.1]: https://git.opentalk.dev/opentalk/smtp-mailer/-/compare/f51209ff8fc6d709c3df81198bf709b88a64f44d...v0.4.0-rc.1
+
+### Added
+
+- Send emails to users when they are removed from a meeting ([#48](https://git.opentalk.dev/opentalk/smtp-mailer/-/issues/48))
+
+### Changed
+
+- Change wording in emails to match the voice announcements ([#46](https://git.opentalk.dev/opentalk/smtp-mailer/-/issues/46))
+- Add quick guide hint (including link) to the generated emails ([#65](https://git.opentalk.dev/opentalk/smtp-mailer/-/issues/65))
+- Update CI rust tooling to 1.73.0  ([#62](https://git.opentalk.dev/opentalk/smtp-mailer/-/issues/62))
+
+## [0.3.3] - 2023-09-19
+
+[0.3.3]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.3.2...v0.3.3
+
+### Fixed
+
+- No longer double-encode the .ics attachment in base64 ([#54](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/54))
+
+## [0.3.2] - 2023-09-14
+
+[0.3.2]: https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/compare/v0.3.1...v0.3.2
+
+### Fixed
+
+- container: pin build container to fixed debian version ([#52](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/52))
+
+## [0.3.1] - 2023-09-13
+
+[0.3.1]: https://git.opentalk.dev/opentalk/smtp-mailer/-/compare/v0.3.0...v0.3.1
+
+### Fixed
+
+- RUSTSEC-2023-0052 ([#49](https://git.opentalk.dev/opentalk/backend/services/smtp-mailer/-/issues/49))
 
 ## [0.3.0] - 2023-06-27
 

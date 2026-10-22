@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.35.2] - 2026-10-20
+
+[0.35.2]: https://git.opentalk.dev/opentalk/backend/services/controller/-/compare/v0.35.1...v0.35.2
+
+### 🐛 Bug fixes
+
+- (instances) Prevent meetings from being dropped ([!2825](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2825), [#1513](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1513))
+
+### 📦 Dependencies
+
+- (deps) Update roomserver to v0.10.2 ([!2828](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2828))
+- (deps) Update rustls to 0.23.46 ([!2828](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2828))
+- (deps) Update yoke-derive to 0.8.4 ([!2828](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2828))
+- (deps) Document vulnerabilities ([!2828](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2828))
+
+## [0.35.1] - 2026-09-23
+
+[0.35.1]: https://git.opentalk.dev/opentalk/backend/services/controller/-/compare/v0.35.0...v0.35.1
+
+### 🚀 New features
+
+- (guest-access) Allow guests in e2ee rooms ([!2798](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2798), [#1502](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1502))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!2822](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2822))
+
 ## [0.35.0] - 2026-09-10
 
 [0.35.0]: https://git.opentalk.dev/opentalk/backend/services/controller/-/compare/v0.34.0...v0.35.0
@@ -153,6 +180,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrate database tests to use testcontainers ([!2744](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2744))
 - Migrate tests using S3 to testcontainers ([!2744](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2744))
 - Reduce asset count of `sync_files_and_delete_missing` to 99 ([!2744](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2744))
+
+## [0.34.6] - 2026-10-09
+
+[0.34.6]: https://git.opentalk.dev/opentalk/backend/services/controller/-/compare/v0.34.5...v0.34.6
+
+### 🚀 New features
+
+- (metrics) Expose metrics for internal roomserver ([!2808](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2808), [#1505](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1505))
+
+### 🐛 Bug fixes
+
+- (instances) Prevent meetings from being dropped ([!2824](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2824), [#1512](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1512))
+
+### 📚 Documentation
+
+- Update stale metrics docs ([!2808](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2808))
+- Add metrics migration guide for v0.34 ([!2808](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2808))
+
+### 📦 Dependencies
+
+- (deps) Update dependencies (including roomserver 0.1.5) ([!2827](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2827))
 
 ## [0.34.5] - 2026-09-09
 
@@ -575,6 +623,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (db) Update `get_events` tests for `event_dates` migration ([!2422](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2422))
 - (inventory) Add test for `is_call_in_allowed()` ([!2568](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2568))
 - (inventory) Remove `println!` from test ([!2620](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2620))
+
+## [0.33.8] - 2026-09-23
+
+[0.33.8]: https://git.opentalk.dev/opentalk/backend/services/controller/-/compare/v0.33.7...v0.33.8
+
+### 🐛 Bug fixes
+
+- (api) Calculate the correct ends at for recurring events ([!2817](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2817), [#1509](https://git.opentalk.dev/opentalk/backend/services/controller/-/issues/1509))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!2823](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/2823))
 
 ## [0.33.7] - 2026-08-05
 
@@ -1531,6 +1591,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (deps) Fixes for updated rust version ([!1841](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1841))
 - (deps) Update `tracing-subscriber` to v0.3.20 ([!1841](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1841))
 
+## [0.31.0-2] - 2025-10-15
+
+[0.31.0-2]: https://git.opentalk.dev/opentalk/backend/services/controller/-/compare/v0.31.0...v0.31.0-2
+
+### Security Patch
+
+- update container image
+
+### 📦 Dependencies
+
+- (deps) Fixes for updated rust version
+- (deps) Update `tracing-subscriber` to v0.3.20
+
 ## [0.31.0] - 2025-08-21
 
 [0.31.0]: https://git.opentalk.dev/opentalk/backend/services/controller/-/compare/v0.30.3...v0.31.0
@@ -1653,6 +1726,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 📦 Dependencies
 
 - (deps) Update `slap`, `tracing-subscriber` ([!1832](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1832))
+
+## [0.30.3-2] - 2025-10-15
+
+[0.30.3-2]: https://git.opentalk.dev/opentalk/backend/services/controller/-/compare/v0.30.3...v0.30.3-2
+
+### Security Patch
+
+- update container image
+
+### 🔨 Refactor
+
+- Update for rustc version 1.90.0 ([!1844](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1844))
+
+### 📦 Dependencies
+
+- (deps) Update `slap`, `tracing-subscriber` ([!1844](https://git.opentalk.dev/opentalk/backend/services/controller/-/merge_requests/1844))
 
 ## [0.30.3] - 2025-08-07
 

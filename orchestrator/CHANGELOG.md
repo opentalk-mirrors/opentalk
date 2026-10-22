@@ -47,6 +47,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (roomserver) Update roomserver crate to 0.2.0 ([!179](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/179))
 
+## [0.8.3] - 2026-09-10
+
+[0.8.3]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.8.2...v0.8.3
+
+### 🚀 New features
+
+- (ci) Use rust-contailer-build template for packaging to push images to harbor ([!264](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/264), [#45](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/45))
+
+## [0.8.2] - 2026-09-08
+
+[0.8.2]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.8.1...v0.8.2
+
+### 🐛 Bug fixes
+
+- (recorder) Handle the 204 created response on init call ([!260](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/260))
+
+### 📦 Dependencies
+
+- (deps) Update dependencies ([!261](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/261))
+
+### Ci
+
+- (just) Fix release scripts ([!261](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/261))
+
+## [0.8.1] - 2026-07-13
+
+[0.8.1]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.8.0...v0.8.1
+
+### 🐛 Bug fixes
+
+- (orchestrator) Use fixed orchestrator-shared version to avoid version conflicts ([!175](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/175))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!161](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/161))
+- (deps) Update opentalk ([!164](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/164))
+- (deps) Update anyhow to fix RUSTSEC-2026-0190 ([!175](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/175))
+- (deps) Lock file maintanance ([!176](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/176))
+- (deps) Update dependencies ([!176](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/176))
+- (deps) Update alpine docker tag to v3.24 ([!174](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/174))
+- (deps) Update ubuntu docker tag to v26 ([!139](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/139))
+- (deps) Lock file maintenance ([!183](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/183))
+- (deps) Update pre-commit hook embarkstudios/cargo-deny to v0.20.2 ([!185](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/185))
+- (deps) Update opentalk-roomserver crates to version 0.1 ([!186](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/186))
+
+### Ci
+
+- Build dev images for release branches ([!158](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/158), [#34](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/issues/34))
+- Use lint templates ([!183](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/183))
+- Add pre-commit config ([!183](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/183))
+- (pre-commit) Remove vacuum ([!187](https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/merge_requests/187))
+
 ## [0.8.0] - 2026-05-21
 
 [0.8.0]: https://git.opentalk.dev/opentalk/backend/services/orchestrator/-/compare/v0.7.0...v0.8.0
