@@ -216,7 +216,13 @@ anyhow = "1"
 arc-swap = "1"
 async-stream = "0.3"
 async-trait = "0.1"
-aws-sdk-s3 = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1", default-features = false, features = [
+  "behavior-version-latest",
+  "default-https-client",
+  "http-1x",
+  "rt-tokio",
+  "sigv4a",
+] }
 axum = "0.8"
 axum-prometheus = "0.10"
 barrel = "0.7"
