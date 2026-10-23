@@ -278,7 +278,6 @@ impl ControllerBackend {
                     inventory.as_mut(),
                     &settings,
                     request,
-                    &room,
                     user,
                     invite_role,
                 )
@@ -346,11 +345,10 @@ impl ControllerBackend {
         inventory: &mut dyn Inventory,
         settings: &Arc<Settings>,
         request: PostRoomsRoomserverStartRequestBody,
-        room: &RoomResource,
         user: RequestUser,
         invite_role: Option<InviteRole>,
     ) -> ClientParameters {
-        let timezone = get_user_timezone(room.created_by.id, inventory, settings).await;
+        let timezone = get_user_timezone(user.id, inventory, settings).await;
         let avatar_url = user.avatar_url.unwrap_or_else(|| {
             email_to_libravatar_url(&settings.avatar.libravatar_url, &user.email)
         });
