@@ -203,4 +203,37 @@ if errors:
     sys.exit(1)
 PY
 
+# Regression: in the host network every Docker veth adds an fe80:: ICE
+# candidate, and their zone lookups stall LiveKit (livekit/livekit#4591).
+LIVEKIT_PLAYBOOK="$TMP_DIR/render-livekit.yml"
+LIVEKIT_RENDERED="$TMP_DIR/livekit.yaml"
+cat > "$LIVEKIT_PLAYBOOK" <<YAML
+---
+- name: Render livekit config
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Load livekit defaults
+      ansible.builtin.include_vars:
+        file: "$ROLES_DIR/opentalk_compose_livekit_server/defaults/main.yml"
+    - name: Render livekit.yaml
+      ansible.builtin.template:
+        src: "$ROLES_DIR/opentalk_compose_livekit_server/templates/livekit.yaml.j2"
+        dest: "$LIVEKIT_RENDERED"
+        mode: "0644"
+YAML
+
+ANSIBLE_COLLECTIONS_PATH="$COLLECTIONS" \
+ansible-playbook -i "$INVENTORY" -e "@$SETTINGS" -e "@$SECRETS" "$LIVEKIT_PLAYBOOK" >"$TMP_DIR/render-livekit.log" 2>&1 \
+  || { cat "$TMP_DIR/render-livekit.log" >&2; echo "Ansible failed to render livekit.yaml." >&2; exit 1; }
+
+python3 - "$LIVEKIT_RENDERED" <<'PY' || { echo "livekit.yaml must exclude link-local IPv6 (fe80::/10) from ICE candidates." >&2; exit 1; }
+import sys
+import yaml
+with open(sys.argv[1], encoding="utf-8") as f:
+    excludes = ((yaml.safe_load(f).get("rtc") or {}).get("ips") or {}).get("excludes") or []
+sys.exit(0 if "fe80::/10" in excludes else 1)
+PY
+
 echo "Compose template rendering tests passed (${#template_files[@]} templates)."

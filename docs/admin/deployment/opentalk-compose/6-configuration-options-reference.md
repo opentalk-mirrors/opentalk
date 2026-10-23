@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-10-21
+Last updated: 2026-11-03
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -373,7 +373,7 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `livekit_rtc_enable_loopback_candidate` | boolean | `false` |
 | `livekit_rtc_interfaces_excludes` | list | `[docker0]` |
 | `livekit_rtc_interfaces_includes` | list | `[en0]` |
-| `livekit_rtc_ips_excludes` | list | `[10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]` |
+| `livekit_rtc_ips_excludes` | list | `[10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fe80::/10]` |
 | `livekit_rtc_ips_includes` | list | `[]` |
 | `livekit_rtc_node_ip` | string | `{{ ansible_host }}` |
 | `livekit_rtc_packet_buffer_size_audio` | string | `200` |

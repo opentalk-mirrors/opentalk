@@ -48,10 +48,13 @@ livekit_rtc_enable_loopback_candidate: false
 #     username: ""
 #     credential: ""
 livekit_rtc_ips_includes: []
+# Exclude link-local IPv6: in the host network every Docker veth adds an fe80::
+# candidate, and resolving their zones stalls LiveKit (livekit/livekit#4591).
 livekit_rtc_ips_excludes:
   - 10.0.0.0/8
   - 172.16.0.0/12
   - 192.168.0.0/16
+  - fe80::/10
 
 livekit_turn_embedded_enabled: true
 livekit_turn_embedded_domain: "{{ ot_domain }}"
