@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.2] - 2026-10-20
+
+[0.10.2]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.10.1...v0.10.2
+
+### 🐛 Bug fixes
+
+- Ensure all events are send even with invalid participants ([!1322](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1322), [#335](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/335))
+- Don't send events to disconnected participants ([!1322](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1322))
+- (roomserver) Send join_blocked within the signaling event envelope ([!1331](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1331), [#311](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/311))
+- (recording) Disable recording module when e2ee is enabled ([!1333](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1333), [#345](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/345))
+- (livekit) Include livekit service_url for service participants ([!1336](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1336))
+- (excalidraw) Do not send participants their own (volatile) broadcasts ([!1337](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1337), [#348](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/348))
+- (roomserver) Close empty rooms when the last lobby connection leaves ([!1340](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1340), [#349](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/349))
+- (room) Do not hold the room open for service users ([!1340](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1340), [#349](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/349))
+- (room) Conference role is not considered when determining if a user can skip the waiting room ([!1340](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1340), [#350](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/350))
+- (room) Sending a participant to the waiting room does not revoke their moderator rights ([!1340](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1340), [#355](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/355))
+- (moderation) Lobby and conference role drift when role is changed in the conference ([!1340](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1340))
+- (room) Participants promoted to moderator are rejected when entering the conference ([!1340](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1340), [#356](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/356))
+- (room) Start the time limit countdown on the first join ([!1341](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1341), [#52](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/52))
+- Ensure each crate compiles individually ([!1341](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1341))
+
+### 🔨 Refactor
+
+- Broadcast moderation role changes ([!1340](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1340))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!1341](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1341))
+
+### ⚙ Miscellaneous
+
+- Reduce log level to warn for unknown participants ([!1322](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1322))
+
+### Test
+
+- (room) Fix slow idle timeout tests ([!1341](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1341))
+
+## [0.10.1] - 2026-09-10
+
+[0.10.1]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.10.0...v0.10.1
+
+### 🐛 Bug fixes
+
+- Remove test to break cyclic dependency ([!1316](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1316))
+
 ## [0.10.0] - 2026-09-10
 
 [0.10.0]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.9.0...v0.10.0
@@ -90,6 +135,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Test
 
 - (moderation) Rename misleading test ([!1254](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1254))
+
+## [0.1.6] - 2026-10-22
+
+[0.1.6]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.1.5...v0.1.6
+
+### 🐛 Bug fixes
+
+- (meeting_details) Hide meeting details from users ([!1342](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1342), [#363](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/363))
+- (room) Conference role is not considered when determining if a user can skip the waiting room ([!1342](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1342), [#351](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/351))
+- (room) Sending a participant to the waiting room does not revoke their moderator rights ([!1342](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1342), [#354](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/354))
+- (moderation) Lobby and conference role drift when role is changed in the conference ([!1342](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1342))
+- (roomserver) Close empty rooms when the last waiting connection leaves ([!1342](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1342), [#360](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/360))
+- (room) Do not hold the room open for service users ([!1342](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1342), [#361](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/361))
+- (room) Start the time limit countdown on the first join ([!1342](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1342), [#362](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/362))
+- (roomserver) Allow renaming of call-in participants ([!1343](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1343), [#364](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/364))
+
+### 📦 Dependencies
+
+- (deps) Lock file maintenance ([!1343](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1343))
+
+## [0.1.5] - 2026-10-08
+
+[0.1.5]: https://git.opentalk.dev/opentalk/backend/services/roomserver/-/compare/v0.1.4...v0.1.5
+
+### 🐛 Bug fixes
+
+- (debrief) Prevent sending redundant waiting room notifications ([!1321](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1321), [#302](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/302))
+- (chat) Correctly log token bucket size ([!1321](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1321))
+- (timer) Include ready state when switching breakout rooms ([!1321](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1321), [#327](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/327))
+- (livekit-proxy) Forward websocket pings ([!1321](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1321))
+- Ensure all events are send even with invalid participants ([!1321](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1321), [#335](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/335))
+- Don't send events to disconnected participants ([!1321](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1321))
+- (roomserver) Send join_blocked within the signaling event envelope ([!1330](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1330), [#340](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/340))
+- (livekit) Include livekit service_url for service participants ([!1332](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1332))
+- (recording) Disable recording module when e2ee is enabled ([!1334](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1334), [#344](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/344))
+- Send livekit service_url to call-in services ([!1335](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1335))
+- (excalidraw) Do not send participants their own (volatile) broadcasts ([!1338](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1338), [#347](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/issues/347))
+
+### ⚙ Miscellaneous
+
+- Reduce log level to warn for unknown participants ([!1321](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1321))
+- Fix clippy lints for rustc 1.98.1 ([!1330](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1330))
+
+### 📦 Dependencies
+
+- (deps) Update rustls to 0.23.45 ([!1339](https://git.opentalk.dev/opentalk/backend/services/roomserver/-/merge_requests/1339)))
 
 ## [0.1.4] - 2026-09-09
 
