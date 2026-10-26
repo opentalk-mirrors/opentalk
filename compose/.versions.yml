@@ -21,7 +21,7 @@ opentalk_product_version: v26.3.0-beta.1
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/web-frontend
 opentalk_web_frontend_version: v2.10.2
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/controller
-opentalk_controller_version: v0.35.2
+opentalk_controller_version: v0.35.3
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/obelisk
 opentalk_obelisk_version: v0.23.1
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/recorder
