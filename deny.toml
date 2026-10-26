@@ -100,23 +100,6 @@ ignore = [
   # rsa cve
   # Marvin Attack: potential key recovery through timing sidechannels
   "RUSTSEC-2023-0071",
-  # rustls-webpki cve
-  # Name constraints for URI names were incorrectly accepted
-  "RUSTSEC-2026-0098",
-  # rustls-webpki cve
-  # Name constraints were accepted for certificates asserting a wildcard name
-  "RUSTSEC-2026-0099",
-  # rustls-webpki cve
-  # Reachable panic in certificate revocation list parsing
-  "RUSTSEC-2026-0104",
-  # rustls@0.21
-  # `Debug` impls for client session values expose TLS secrets
-  # This is a transitive dependency of aws-sdk-s3
-  "RUSTSEC-2026-0346",
-  # rustls-webpki@0.101.7
-  # Certificate verification may accept distrusted intermediates
-  # This is a transitive dependency of aws-sdk-s3
-  "RUSTSEC-2026-0382",
   # zip@0.6 and zip@8 cves, fixed in zip@9
   # Only used as build-dependency to extract archives from trusted sources:
   # - zip@0.6 via webrtc-sys-build (livekit)
@@ -127,10 +110,6 @@ ignore = [
   "RUSTSEC-2026-0368",
   # `extract()` applies Unix permissions through symlinks without confining the target
   "RUSTSEC-2026-0369",
-  # rustls@0.21
-  # Unauthenticated ServerHello can downgrade later connections to classical key exchange
-  # This is a transitive dependency of aws-sdk-s3
-  "RUSTSEC-2026-0349",
   # zvariant unmaintained (merged into zbus@6)
   # Transitive dependency of eframe via accesskit/atspi, which still depend on zbus@5
   "RUSTSEC-2026-0370",
