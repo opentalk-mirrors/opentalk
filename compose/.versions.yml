@@ -29,7 +29,7 @@ opentalk_recorder_version: v0.18.2
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/roomserver
 opentalk_roomserver_version: v0.10.3
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/smtp-mailer
-opentalk_smtp_mailer_version: v0.19.0
+opentalk_smtp_mailer_version: v0.19.1
 # renovate: datasource=docker depName=git.opentalk.dev:5050/opentalk/backend/services/orchestrator
 opentalk_orchestrator_version: v0.12.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/outlook-add-in
