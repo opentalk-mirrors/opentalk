@@ -62,7 +62,7 @@ garage_version: v2.4.1
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/mailcrab
 mailcrab_version: v1.9.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/ndt-server
-ndt_version: v0.25.3
+ndt_version: v0.26.1
 
 # Tools
 # Not automated: 13-tools-fetch.sh pulls this from the GitLab job artifacts of
