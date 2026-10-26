@@ -15,7 +15,7 @@
 # OpenTalk Product Version
 # Not automated: this is the version of this repository itself, and
 # lint:release_tag gates it against the git tag.
-opentalk_product_version: v26.3.0-beta.1
+opentalk_product_version: v26.3.0-beta.2
 
 # OpenTalk related Container Image Versions
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/web-frontend
