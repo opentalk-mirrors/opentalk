@@ -9629,6 +9629,7 @@ dependencies = [
  "axum",
  "base64 0.23.1",
  "bytes 1.12.1",
+ "cidr",
  "clap",
  "config",
  "dirs",

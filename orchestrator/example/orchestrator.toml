@@ -52,6 +52,25 @@ public_url = "http://localhost:11222"
 #
 api_keys = [{ id = "orchestrator", secret = "secret" }]
 
+#[metrics]
+# Configuration for the /metrics endpoint.
+#
+# By default, the /metrics endpoint requires a `AUTHORIZATION` header that contains a Bearer JWT based on one of the
+# orchestrators API keys (http.api_keys). This can be changed using the settings below.
+
+# Disable all token based authorization for the /metrics endpoint. This can be useful when the endpoint is only
+# accessible by specific hosts in an internal network or guarded by the `allowlist` setting below.
+#disable_token_auth = false
+
+# Use a plain token string instead of the orchestrators API keys for authorization. The /metrics endpoint will expect
+# a `AUTHORIZATION` header that contains `Bearer <my-token>`
+#bearer_token = "my-token"
+
+# Optional list of IP addresses allowed to access the metrics endpoint. An address that contains the subnet is
+# considered a network, `10.1.2.3/8` will allow all addresses in the `10.0.0.0/8` subnet. An empty list will deny every
+# request.
+#allowlist = []
+
 #[monitoring]
 # Monitoring settings are optional and disabled by default
 #

@@ -10,10 +10,13 @@ use http::Http;
 use serde::Deserialize;
 use services::Services;
 
-use crate::settings::{logging::Logging, monitoring::Monitoring, storage::Storage};
+use crate::settings::{
+    logging::Logging, metrics::Metrics, monitoring::Monitoring, storage::Storage,
+};
 
 pub mod http;
 pub mod logging;
+pub mod metrics;
 pub mod monitoring;
 pub mod services;
 pub mod storage;
@@ -30,7 +33,12 @@ pub struct Settings {
     /// Configuration for the orchestrators HTTP server
     pub http: Http,
 
+    /// Logging configuration
     pub logging: Option<Logging>,
+
+    /// Configuration for the orchestrators /metric endpoint
+    #[serde(default)]
+    pub metrics: Metrics,
 
     /// Configuration for the orchestrators monitoring endpoints (ready, startup, liveness).
     pub monitoring: Option<Monitoring>,
@@ -38,6 +46,7 @@ pub struct Settings {
     /// Configuration related to services that the orchestrator connects to
     pub services: Services,
 
+    /// Configuration for the storage backend
     pub storage: Storage,
 }
 
