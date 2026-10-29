@@ -344,6 +344,7 @@ impl ControllerBackend {
             is_adhoc: event.is_adhoc,
             e2e_encryption: room.e2e_encryption,
             password_required: room.password.is_some() && !is_privileged_user,
+            is_invited: is_privileged_user,
         };
 
         Ok(GetRoomEventResponseBody(event_info))
