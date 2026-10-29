@@ -100,16 +100,6 @@ ignore = [
   # rsa cve
   # Marvin Attack: potential key recovery through timing sidechannels
   "RUSTSEC-2023-0071",
-  # zip@0.6 and zip@8 cves, fixed in zip@9
-  # Only used as build-dependency to extract archives from trusted sources:
-  # - zip@0.6 via webrtc-sys-build (livekit)
-  # - zip@8 via utoipa-swagger-ui
-  # Insecure preservation of SUID/SGID bits during extraction
-  "RUSTSEC-2026-0367",
-  # `ZipArchive::extract` creates symlinks with targets outside the destination directory
-  "RUSTSEC-2026-0368",
-  # `extract()` applies Unix permissions through symlinks without confining the target
-  "RUSTSEC-2026-0369",
   # zvariant unmaintained (merged into zbus@6)
   # Transitive dependency of eframe via accesskit/atspi, which still depend on zbus@5
   "RUSTSEC-2026-0370",
