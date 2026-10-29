@@ -330,7 +330,7 @@ opentelemetry-otlp = "0.33"
 opentelemetry-prometheus = "0.33"
 opentelemetry_sdk = { version = "0.33", features = ["metrics", "rt-tokio-current-thread", "spec_unstable_metrics_views"] }
 owo-colors = "4"
-parking_lot = "0.12"
+parking_lot = "0.13"
 parse-size = "1"
 pdf-extract = "0.12"
 percent-encoding = "2"
