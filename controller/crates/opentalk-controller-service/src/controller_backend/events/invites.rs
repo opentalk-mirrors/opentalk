@@ -139,7 +139,9 @@ impl ControllerBackend {
 
         let current_tenant = inventory.get_tenant(current_user.tenant_id).await?;
         let current_user = inventory.get_user(current_user.id).await?;
-        let room_tariff = self.get_room_tariff(event.room.into()).await?;
+        let room_tariff = self
+            .get_tariff_for_room_with_inventory(inventory.as_mut(), event.room.into())
+            .await?;
 
         match create_invite {
             PostEventInviteBody::User(user_invite) => {
@@ -156,6 +158,9 @@ impl ControllerBackend {
                 .await
             }
             PostEventInviteBody::Email(email_invite) => {
+                // avoid pool deadlocks, the helper acquires its own connection
+                drop(inventory);
+
                 create_email_event_invite(
                     &settings,
                     self.inventory_provider.as_ref(),
@@ -842,6 +847,8 @@ async fn create_invite_to_non_matching_email(
             })
             .await?
     };
+
+    drop(inventory);
 
     match res {
         Some(_) => {

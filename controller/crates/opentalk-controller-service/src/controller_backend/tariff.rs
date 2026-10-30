@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 use opentalk_controller_utils::CaptureApiError;
-use opentalk_inventory::Tariff;
+use opentalk_inventory::{Inventory, Tariff};
 use opentalk_types_common::{
     rooms::RoomIdOrAlias,
     tariffs::{TariffId, TariffResource},
@@ -29,12 +29,18 @@ impl ControllerBackend {
         &self,
         room: RoomIdOrAlias,
     ) -> Result<TariffResource, CaptureApiError> {
-        let tariff = {
-            let mut inventory = self.inventory_provider.get_inventory().await?;
-            let room = inventory.get_room(&room).await?;
-            inventory.get_tariff_for_user(room.created_by).await
-        }?;
+        let mut inventory = self.inventory_provider.get_inventory().await?;
+        self.get_tariff_for_room_with_inventory(inventory.as_mut(), room)
+            .await
+    }
 
+    pub(super) async fn get_tariff_for_room_with_inventory(
+        &self,
+        inventory: &mut dyn Inventory,
+        room: RoomIdOrAlias,
+    ) -> Result<TariffResource, CaptureApiError> {
+        let room = inventory.get_room(&room).await?;
+        let tariff = inventory.get_tariff_for_user(room.created_by).await?;
         self.build_tariff_resource(&tariff)
     }
 
