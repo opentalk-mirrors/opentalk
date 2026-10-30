@@ -157,7 +157,7 @@ code-review-agent:
 lint:fmt_load_tests:
   stage: lint
   <<: *default_job_condition
-  image: node:24.22.1-alpine
+  image: node:26.13.0-alpine
   before_script:
     - npm install -g corepack@latest
     - corepack enable
