@@ -8,12 +8,15 @@ use gstreamer::{Bin, GhostPad};
 use serde::Deserialize;
 use tokio::sync::broadcast;
 
+use super::va::find_va_encoder;
 use crate::{
     EncoderType, GstBinErrorExt,
     elements::matroskas3sink::DEFAULT_CHUNK_SIZE,
     gstreamer::{GStreamerSink, add_ghost_pad},
     parse_bin_from_description_with_context,
 };
+
+const DEFAULT_VIDEO_QUALITY: u8 = 31;
 
 #[derive(Debug)]
 pub struct WebMSink {
@@ -27,6 +30,7 @@ pub struct WebMSink {
 pub struct WebMParameters {
     pub encoder_type: EncoderType,
     pub chunk_size: Option<u64>,
+    pub video_quality: Option<u8>,
 }
 
 impl WebMSink {
@@ -46,8 +50,34 @@ impl WebMSink {
     /// - The local address in `params.address` cannot be listened.
     /// - `GhostPad` cannot be created for `video_sink` or `audio_sink`.
     pub fn create(params: &WebMParameters) -> Result<Self> {
-        //
         trace!("{params:?})");
+
+        static SW_VP8_ENCODER: &str = "
+            video/x-raw,format=I420,pixel-aspect-ratio=1/1,colorimetry=bt709
+            ! vp8enc
+                deadline=1 cpu-used=4 threads=4 token-partitions=1
+                end-usage=cbr target-bitrate=2600000 undershoot=90
+                buffer-size=6000 buffer-initial-size=4000 buffer-optimal-size=5000
+                dropframe-threshold=25 resize-allowed=true
+        ";
+
+        let encoder = match &params.encoder_type {
+            EncoderType::CPU => SW_VP8_ENCODER.to_string(),
+            EncoderType::VAAPI { device } => match find_va_encoder("vp9", device.as_deref()) {
+                Ok(encoder) => {
+                    format!(
+                        "video/x-raw,format=NV12,pixel-aspect-ratio=1/1,colorimetry=bt709
+                        ! {encoder} rate-control=cqp qp={qp}",
+                        qp = params.video_quality.unwrap_or(DEFAULT_VIDEO_QUALITY),
+                    )
+                }
+                Err(err) => {
+                    log::warn!("Falling back to VP8 Software encoder, {err:?}");
+
+                    SW_VP8_ENCODER.to_string()
+                }
+            },
+        };
 
         // The video encoder is setup for a buffer of 6s (vp9enc buffer-size=6000 [ms]) max.
         // Therefore the audio queue is set to 8s (queue max-size-time=8000000000 [ns]) and
@@ -83,22 +113,6 @@ impl WebMSink {
                     name=matroska-s3
                     chunk-size={chunk_size}
                 "#,
-                encoder = match params.encoder_type {
-                    EncoderType::CPU =>
-                        "
-                        video/x-raw,format=I420,pixel-aspect-ratio=1/1,colorimetry=bt709
-                        ! vp8enc
-                          deadline=1 cpu-used=4 threads=4 token-partitions=1
-                          end-usage=cbr target-bitrate=2600000 undershoot=90
-                          buffer-size=6000 buffer-initial-size=4000 buffer-optimal-size=5000
-                          dropframe-threshold=25 resize-allowed=true
-                    ",
-                    EncoderType::VAAPI =>
-                        "
-                        video/x-raw,format=NV12,pixel-aspect-ratio=1/1,colorimetry=bt709
-                        ! vaapivp9enc
-                    ",
-                },
                 chunk_size = params.chunk_size.unwrap_or(DEFAULT_CHUNK_SIZE)
             ),
             false,

@@ -6,6 +6,7 @@ use anyhow::{Context, Result};
 use gstreamer::{Bin, GhostPad};
 use serde::Deserialize;
 
+use super::va::find_va_encoder;
 use crate::{
     EncoderType,
     gstreamer::{GStreamerSink, add_ghost_pad},
@@ -34,7 +35,7 @@ pub struct RTMPParameters {
     pub encoder_type: EncoderType,
 }
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Deserialize)]
 pub enum SpeedPreset {
     Ultrafast = 1,
     Superfast = 2,
@@ -68,6 +69,21 @@ impl RTMPSink {
     /// - Unable to create `rtmpsink` for `GStreamer`.
     /// - `GhostPad` cannot be created for the `video_sink_pad` or `audio_sink_pad`.
     pub fn create(parameters: RTMPParameters) -> Result<RTMPSink> {
+        let encoder_type = match &parameters.encoder_type {
+            EncoderType::VAAPI { device } => match find_va_encoder("h264", device.as_deref()) {
+                Ok(encoder) => format!(
+                    "{encoder} rate-control=vbr bitrate={video_bitrate}",
+                    video_bitrate = parameters.video_bitrate.unwrap_or(DEFAULT_VIDEO_BITRATE),
+                ),
+                Err(err) => {
+                    log::warn!("Falling back to H.264 Software encoder, {err:?}");
+
+                    h264_software_encoder(&parameters)
+                }
+            },
+            EncoderType::CPU => h264_software_encoder(&parameters),
+        };
+
         let bin = parse_bin_from_description_with_context(
             format!(
                 r#"
@@ -96,17 +112,6 @@ impl RTMPSink {
             ! rtmpsink
                 location="{location}"
             "#,
-                encoder_type = match parameters.encoder_type {
-                    EncoderType::CPU => format!(
-                        "x264enc speed-preset={video_speed_preset} tune=zerolatency bitrate={video_bitrate}",
-                        video_bitrate = parameters.video_bitrate.unwrap_or(DEFAULT_VIDEO_BITRATE),
-                        video_speed_preset = parameters.video_speed_preset.unwrap_or_default() as usize,
-                    ),
-                    EncoderType::VAAPI => format!(
-                        "vaapih264enc tune=low-power bitrate={video_bitrate}",
-                        video_bitrate = parameters.video_bitrate.unwrap_or(DEFAULT_VIDEO_BITRATE),
-                    ),
-                },
                 location = parameters.location,
                 audio_bitrate = parameters.audio_bitrate.unwrap_or(DEFAULT_AUDIO_BITRATE),
                 audio_rate = parameters.audio_rate.unwrap_or(DEFAULT_AUDIO_RATE),
@@ -126,6 +131,14 @@ impl RTMPSink {
             audio_sink_pad,
         })
     }
+}
+
+fn h264_software_encoder(parameters: &RTMPParameters) -> String {
+    format!(
+        "x264enc speed-preset={video_speed_preset} tune=zerolatency bitrate={video_bitrate}",
+        video_bitrate = parameters.video_bitrate.unwrap_or(DEFAULT_VIDEO_BITRATE),
+        video_speed_preset = parameters.video_speed_preset.unwrap_or_default() as usize,
+    )
 }
 
 impl GStreamerSink for RTMPSink {

@@ -132,7 +132,7 @@ fn check_plugins() -> Result<()> {
     #[cfg(target_os = "linux")]
     let required = {
         let mut v = required.to_vec();
-        v.push("vaapi");
+        v.push("va");
         v
     };
 
