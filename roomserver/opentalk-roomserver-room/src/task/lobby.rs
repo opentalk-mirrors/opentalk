@@ -76,17 +76,18 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         client_parameters: ClientParameters,
     ) -> Result<(), FatalError> {
         // The participants role might have changed when they were already in the conference, so
-        // determine the role in the following order: conference, lobby, client parameters.
-        let role = self
-            .participants
-            .all_unfiltered
-            .get(&participant_id)
+        // determine the role in the following order: connected conference, lobby, rejoin of a
+        // known participant, client parameters.
+        let conference = self.participants.all_unfiltered.get(&participant_id);
+        let role = conference
+            .filter(|state| state.is_connected())
             .map(|state| state.role)
             .or_else(|| {
                 self.lobby_participants
                     .get(&participant_id)
                     .map(|state| state.role)
             })
+            .or_else(|| conference.map(|state| rejoin_role(state.role, client_parameters.role())))
             .unwrap_or(client_parameters.role());
 
         let can_enter = can_enter_conference(
@@ -275,9 +276,44 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 }
 
+/// Determines the role of a participant that rejoins the room after all their connections left.
+///
+/// Whether a participant is a guest depends on their invite, which might have changed in the
+/// meantime, so it is always taken from the client parameters. Otherwise the role from the previous
+/// participation is kept, so promotions and demotions by moderators persist.
+fn rejoin_role(previous: Role, client_parameters: Role) -> Role {
+    match (previous, client_parameters) {
+        (_, Role::Guest) | (Role::Guest, _) => client_parameters,
+        (Role::User | Role::Moderator, Role::User | Role::Moderator) => previous,
+    }
+}
+
 fn demote_moderator(role: Role) -> Role {
     match role {
         Role::Moderator => Role::User,
         Role::User | Role::Guest => role,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use opentalk_types_signaling::Role;
+
+    use super::rejoin_role;
+
+    #[test]
+    fn rejoin_role_takes_guest_status_from_client_parameters() {
+        assert_eq!(rejoin_role(Role::Guest, Role::User), Role::User);
+        assert_eq!(rejoin_role(Role::Guest, Role::Moderator), Role::Moderator);
+        assert_eq!(rejoin_role(Role::User, Role::Guest), Role::Guest);
+        assert_eq!(rejoin_role(Role::Moderator, Role::Guest), Role::Guest);
+    }
+
+    #[test]
+    fn rejoin_role_keeps_changes_of_moderators() {
+        // Promoted by a moderator
+        assert_eq!(rejoin_role(Role::Moderator, Role::User), Role::Moderator);
+        // Demoted by a moderator or kicked
+        assert_eq!(rejoin_role(Role::User, Role::Moderator), Role::User);
     }
 }

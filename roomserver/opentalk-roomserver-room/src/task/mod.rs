@@ -1135,17 +1135,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         match self.participants.all_unfiltered.entry(participant_id) {
             Occupied(mut occupied) => {
                 let state = occupied.get_mut();
-                // Set join/leave timestamps & display name when this is the first device
-                if !state.is_connected() {
+                // Set join/leave timestamps, display name & role when this is the first device
+                if state.is_connected() {
+                    role = state.role;
+                } else {
                     state.joined_at = Utc::now();
                     state.left_at = None;
                     state.display_name = display_name;
+                    state.role = role;
                 }
                 // The client kind received on the first join is kept for the whole meeting
                 client_kind = state.kind.clone();
                 state.in_waiting_room = false;
                 state.connections.insert(connection_id, device_id);
-                role = state.role;
             }
             Vacant(vacant) => {
                 vacant

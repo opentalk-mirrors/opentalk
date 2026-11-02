@@ -627,6 +627,75 @@ async fn role_updated_on_rejoin() {
 }
 
 #[test_log::test(tokio::test)]
+async fn invited_guest_becomes_user_on_rejoin() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let _alice = room.join_alice_moderator(0).await;
+
+    // Bob joins without being invited
+    let bob = MockParticipantJoining::bob(0)
+        .guest()
+        .join(&mut room)
+        .await
+        .unwrap();
+    assert_eq!(bob.join_success().role, Role::Guest);
+    bob.disconnect().await.unwrap();
+
+    // Bob gets invited and rejoins
+    let bob = MockParticipantJoining::bob(0)
+        .user()
+        .join(&mut room)
+        .await
+        .unwrap();
+    assert_eq!(bob.join_success().role, Role::User);
+}
+
+#[test_log::test(tokio::test)]
+async fn uninvited_user_becomes_guest_on_rejoin() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let _alice = room.join_alice_moderator(0).await;
+
+    // Bob joins as an invited user
+    let bob = room.join_bob(0).await;
+    assert_eq!(bob.join_success().role, Role::User);
+    bob.disconnect().await.unwrap();
+
+    // Bob's invite is withdrawn and he rejoins
+    let bob = MockParticipantJoining::bob(0)
+        .guest()
+        .join(&mut room)
+        .await
+        .unwrap();
+    assert_eq!(bob.join_success().role, Role::Guest);
+}
+
+#[test_log::test(tokio::test)]
+async fn invite_change_is_ignored_while_connected() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .spawn();
+    let _alice = room.join_alice_moderator(0).await;
+
+    // Bob joins without being invited
+    let _bob = MockParticipantJoining::bob(0)
+        .guest()
+        .join(&mut room)
+        .await
+        .unwrap();
+
+    // Bob gets invited and joins with a second device while the first one is still connected
+    let bob_second_device = MockParticipantJoining::bob(1)
+        .user()
+        .join(&mut room)
+        .await
+        .unwrap();
+    assert_eq!(bob_second_device.join_success().role, Role::Guest);
+}
+
+#[test_log::test(tokio::test)]
 async fn demoted_moderators_must_enter_waiting_room() {
     let mut room = TestRoom::builder()
         .register_module::<ModerationModule>()
