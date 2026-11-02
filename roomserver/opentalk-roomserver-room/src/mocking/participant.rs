@@ -905,6 +905,11 @@ impl MockParticipantBuilder<PublicUserProfile> {
         self
     }
 
+    pub fn avatar_url(mut self, avatar_url: String) -> Self {
+        self.profile.user_info.avatar_url = avatar_url;
+        self
+    }
+
     pub async fn join(self, room: &mut TestRoom) -> Result<MockParticipantJoined, room::Error> {
         room.join_participant(
             ClientParameters {

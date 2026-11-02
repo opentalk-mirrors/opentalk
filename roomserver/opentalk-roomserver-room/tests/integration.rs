@@ -11,7 +11,10 @@ use std::{
 use chrono::TimeDelta;
 use opentalk_roomserver_room::mocking::{
     mock_module::{MockCommand, MockModule},
-    participant::{MockParticipantBuilder, MockParticipantJoined, bob_public_user_profile},
+    participant::{
+        MockParticipantBuilder, MockParticipantJoined, MockParticipantJoining,
+        bob_public_user_profile,
+    },
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
@@ -248,6 +251,57 @@ async fn participant_receives_same_display_name() {
 
     // But he receives the same display name as before
     assert_eq!(join_success.display_name(), bob_0.display_name());
+}
+
+#[test_log::test(tokio::test)]
+async fn second_device_receives_the_stored_profile() {
+    let mut room = TestRoom::builder().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let bob_0 = room.join_bob(0).await;
+    receive_participant_connected_core_state(&mut alice).await;
+
+    // Bob changed his avatar and joins with a second device
+    let bob_1 = MockParticipantJoining::bob(1)
+        .avatar_url("https://example.com/new-avatar-of-bob".into())
+        .join(&mut room)
+        .await
+        .unwrap();
+
+    // Alice sees the same profile that Bob received
+    let core_state = receive_participant_connected_core_state(&mut alice).await;
+    assert_eq!(core_state.avatar_url, bob_1.join_success().avatar_url);
+
+    // That is the profile Bob joined with first
+    assert_eq!(
+        bob_1.join_success().avatar_url,
+        bob_0.join_success().avatar_url
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn rejoining_participant_receives_the_stored_profile() {
+    let mut room = TestRoom::builder().spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let bob_first_join = room.join_bob(0).await;
+    let first_avatar_url = bob_first_join.join_success().avatar_url.clone();
+    receive_participant_connected_core_state(&mut alice).await;
+    bob_first_join.disconnect().await.unwrap();
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert_matches!(event, CoreEvent::ParticipantDisconnected { .. });
+
+    // Bob changed his avatar and rejoins
+    let bob = MockParticipantJoining::bob(0)
+        .avatar_url("https://example.com/new-avatar-of-bob".into())
+        .join(&mut room)
+        .await
+        .unwrap();
+
+    // Alice sees the same profile that Bob received
+    let core_state = receive_participant_connected_core_state(&mut alice).await;
+    assert_eq!(core_state.avatar_url, bob.join_success().avatar_url);
+
+    // That is the profile Bob joined with first
+    assert_eq!(bob.join_success().avatar_url, first_avatar_url);
 }
 
 #[test_log::test(tokio::test)]
