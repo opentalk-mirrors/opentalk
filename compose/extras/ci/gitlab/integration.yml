@@ -128,9 +128,13 @@ int:postgres-migration:
     - dpkg -i artifacts/*.deb || apt-get install -f -y
     - OT_PREFIX=/opt/opentalk-compose bash extras/scripts/tests/integration/test_postgres_migration.sh
 
-# Upgrade from the current stable release to the package of the pipeline.
+# Upgrade from the last 26.2 release to the package of the pipeline. Pinned
+# because the newest stable release already runs PostgreSQL 18, and the test
+# needs the path that requires the PostgreSQL 17 -> 18 migration.
 int:upgrade:
   extends: .int_migration_base
+  variables:
+    OT_UPGRADE_FROM_VERSION: "26.2.2-1"
   script:
     - OT_UPGRADE_PACKAGE="$(ls artifacts/*.deb)" bash extras/scripts/tests/integration/test_upgrade_e2e.sh
 
