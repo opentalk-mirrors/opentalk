@@ -109,11 +109,6 @@ ignore = [
   # zvariant_derive unmaintained (merged into zbus@6)
   # Transitive dependency of eframe via accesskit/atspi, which still depend on zbus@5
   "RUSTSEC-2026-0372",
-  # Multiple timing variability issues in operations intended to be constant-time
-  #
-  # This is a transitive dependency of openidconnect (crypto-bigint@0.5.5)
-  "RUSTSEC-2026-0387",
-
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
