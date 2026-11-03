@@ -220,6 +220,12 @@ lint:docs-urls:
 lint:commit-signature:
   stage: lint
   needs: []
+  # The signature check walks every commit since the merge request's base
+  # commit. The default shallow clone holds only the last 20 commits, so larger
+  # merge requests fail with "Invalid revision range". Fetch the full history.
+  # lint:commit gets the same fix in the common-lint template.
+  variables:
+    GIT_DEPTH: 0
   rules:
     # Run in merge requests only.
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
