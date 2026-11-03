@@ -47,11 +47,12 @@ pub enum TranscriptionEvent {
         quota: Quota,
     },
 
-    /// A participant updated their meeting protocol consent
-    MeetingProtocolConsentUpdated {
+    /// A participant updated their automatic transcription consent
+    AutomaticTranscriptionConsentUpdated {
         /// The participant that updated their consent
         participant: ParticipantId,
-        /// Whether or not the participant consents to being included in the meeting protocol.
+        /// Whether or not the participant consents to being included in the automatic
+        /// transcription.
         consents: bool,
     },
 
@@ -76,7 +77,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::{config::MeetingProtocolConfig, status::MeetingProtocolMode};
+    use crate::{config::AutomaticTranscriptionConfig, status::AutomaticTranscriptionMode};
 
     #[test]
     fn serialize_segment() {
@@ -153,7 +154,7 @@ mod tests {
         let event = TranscriptionEvent::ModesUpdated {
             modes: TranscriptionModes {
                 live_transcription: true,
-                meeting_protocol: None,
+                automatic_transcription: None,
             },
         };
 
@@ -175,7 +176,7 @@ mod tests {
         let expected = TranscriptionEvent::ModesUpdated {
             modes: TranscriptionModes {
                 live_transcription: true,
-                meeting_protocol: None,
+                automatic_transcription: None,
             },
         };
 
@@ -183,12 +184,12 @@ mod tests {
     }
 
     #[test]
-    fn serialize_modes_updated_meeting_protocol() {
+    fn serialize_modes_updated_automatic_transcription() {
         let event = TranscriptionEvent::ModesUpdated {
             modes: TranscriptionModes {
                 live_transcription: false,
-                meeting_protocol: Some(MeetingProtocolMode {
-                    config: MeetingProtocolConfig { pseudonymous: true },
+                automatic_transcription: Some(AutomaticTranscriptionMode {
+                    config: AutomaticTranscriptionConfig { pseudonymous: true },
                     paused: false,
                 }),
             },
@@ -198,7 +199,7 @@ mod tests {
         {
           "message": "modes_updated",
           "live_transcription": false,
-          "meeting_protocol": {
+          "automatic_transcription": {
             "pseudonymous": true,
             "paused": false
           }
@@ -207,11 +208,11 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_modes_updated_meeting_protocol() {
+    fn deserialize_modes_updated_automatic_transcription() {
         let produced = serde_json::from_value(json!({
            "message": "modes_updated",
            "live_transcription": false,
-           "meeting_protocol": {
+           "automatic_transcription": {
               "pseudonymous": false,
               "paused": false,
            },
@@ -220,8 +221,8 @@ mod tests {
         let expected = TranscriptionEvent::ModesUpdated {
             modes: TranscriptionModes {
                 live_transcription: false,
-                meeting_protocol: Some(MeetingProtocolMode {
-                    config: MeetingProtocolConfig {
+                automatic_transcription: Some(AutomaticTranscriptionMode {
+                    config: AutomaticTranscriptionConfig {
                         pseudonymous: false,
                     },
                     paused: false,
@@ -235,7 +236,7 @@ mod tests {
     #[test]
     fn serialize_pdf_created() {
         let event = TranscriptionEvent::PdfCreated {
-            filename: "meeting_protocol.pdf".into(),
+            filename: "automatic_transcription.pdf".into(),
             asset_id: AssetId::nil(),
             quota: Quota {
                 total: Some(1000),
@@ -246,7 +247,7 @@ mod tests {
         assert_json_snapshot!(event, @ r#"
         {
           "message": "pdf_created",
-          "filename": "meeting_protocol.pdf",
+          "filename": "automatic_transcription.pdf",
           "asset_id": "00000000-0000-0000-0000-000000000000",
           "quota": {
             "total": 1000,
@@ -260,7 +261,7 @@ mod tests {
     fn deserialize_pdf_created() {
         let produced = serde_json::from_value(json!({
            "message": "pdf_created",
-           "filename": "meeting_protocol.pdf",
+           "filename": "automatic_transcription.pdf",
            "asset_id": "00000000-0000-0000-0000-000000000000",
            "quota": {
               "total": 1000,
@@ -269,7 +270,7 @@ mod tests {
         }))
         .unwrap();
         let expected = TranscriptionEvent::PdfCreated {
-            filename: "meeting_protocol.pdf".into(),
+            filename: "automatic_transcription.pdf".into(),
             asset_id: AssetId::nil(),
             quota: Quota {
                 total: Some(1000),
@@ -281,15 +282,15 @@ mod tests {
     }
 
     #[test]
-    fn serialize_meeting_protocol_consent_updated() {
-        let event = TranscriptionEvent::MeetingProtocolConsentUpdated {
+    fn serialize_automatic_transcription_consent_updated() {
+        let event = TranscriptionEvent::AutomaticTranscriptionConsentUpdated {
             participant: ParticipantId::nil(),
             consents: true,
         };
 
         assert_json_snapshot!(event, @ r#"
         {
-          "message": "meeting_protocol_consent_updated",
+          "message": "automatic_transcription_consent_updated",
           "participant": "00000000-0000-0000-0000-000000000000",
           "consents": true
         }
@@ -297,14 +298,14 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_meeting_protocol_consent_updated() {
+    fn deserialize_automatic_transcription_consent_updated() {
         let produced = serde_json::from_value(json!({
-           "message": "meeting_protocol_consent_updated",
+           "message": "automatic_transcription_consent_updated",
            "participant": "00000000-0000-0000-0000-000000000000",
            "consents": false,
         }))
         .unwrap();
-        let expected = TranscriptionEvent::MeetingProtocolConsentUpdated {
+        let expected = TranscriptionEvent::AutomaticTranscriptionConsentUpdated {
             participant: ParticipantId::nil(),
             consents: false,
         };

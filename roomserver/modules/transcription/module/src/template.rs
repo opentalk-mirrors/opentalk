@@ -6,7 +6,7 @@ use opentalk_report_generation::ReportDateTime;
 use opentalk_types_common::events::EventTitle;
 use serde::Serialize;
 
-use crate::state::protocol::{ProtocolEntry, Speaker};
+use crate::state::automatic_transcription::{Speaker, TranscriptEntry};
 
 #[derive(Debug, Serialize)]
 pub struct ReportTemplateParameter {
@@ -17,18 +17,19 @@ pub struct ReportTemplateParameter {
     pub transcription_language: Option<Language>,
     /// The title of the event for which the report is generated.
     pub title: Option<EventTitle>,
-    /// The time at which the protocol started.
+    /// The time at which the automatic transcription started.
     pub started_at: ReportDateTime,
-    /// The time at which the protocol ended.
+    /// The time at which the automatic transcription ended.
     pub ended_at: ReportDateTime,
-    /// The number of participants that were present at any time while the protocol was ongoing.
+    /// The number of participants that were present at any time while the automatic transcription
+    /// was running.
     pub present_participant_count: usize,
-    /// The moderators that were present while the protocol was ongoing.
+    /// The moderators that were present while the automatic transcription was running.
     pub moderators: Vec<Speaker>,
     /// Whether or not participant names are replaced with pseudonyms.
     pub pseudonymous: bool,
-    /// The recorded entries of the meeting protocol.
-    pub protocol: Vec<ProtocolEntry>,
+    /// The recorded entries of the automatic transcription.
+    pub transcript: Vec<TranscriptEntry>,
 }
 
 #[cfg(test)]
@@ -42,7 +43,7 @@ mod tests {
     };
 
     use super::*;
-    use crate::state::protocol::{ProtocolEvent, Speaker};
+    use crate::state::automatic_transcription::{Speaker, TranscriptEvent};
 
     #[test]
     fn serialize_report_template_parameter() {
@@ -57,14 +58,14 @@ mod tests {
             present_participant_count: 3,
             moderators: vec![Speaker::Pseudonym { number: 1 }],
             pseudonymous: true,
-            protocol: vec![
-                ProtocolEntry {
+            transcript: vec![
+                TranscriptEntry {
                     timestamp,
-                    event: ProtocolEvent::Start,
+                    event: TranscriptEvent::Start,
                 },
-                ProtocolEntry {
+                TranscriptEntry {
                     timestamp: Timestamp::unix_epoch().to_report_date_time(&TimeZone::utc()),
-                    event: ProtocolEvent::Text {
+                    event: TranscriptEvent::Text {
                         speaker: Speaker::Name {
                             name: DisplayName::from_str_lossy("Alice"),
                         },
@@ -94,7 +95,7 @@ mod tests {
             }
           ],
           "pseudonymous": true,
-          "protocol": [
+          "transcript": [
             {
               "timestamp": "1970-01-01T00:00:00",
               "event": {
