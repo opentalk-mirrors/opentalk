@@ -31,6 +31,9 @@ fail() {
 grep -q '^int:e2e:' "$INTEGRATION_CI_FILE" || fail "int:e2e job is missing from extras/ci/gitlab/integration.yml"
 grep -q 'OPENTALK_E2E: "1"' "$INTEGRATION_CI_FILE" || fail "int:e2e job must set OPENTALK_E2E=1"
 grep -q 'when: manual' "$INTEGRATION_CI_FILE" || fail "int:e2e job must be gated by a manual trigger"
+# The manual job must not block the pipeline, or merge requests cannot be merged.
+[[ $(sed -n '/^int:e2e:/,/^[^ ]/p' "$INTEGRATION_CI_FILE" | grep -c 'allow_failure: true') == 2 ]] \
+  || fail "both manual rules of int:e2e must set allow_failure: true"
 grep -q 'bash extras/scripts/tests/integration/test_compose_e2e.sh' "$INTEGRATION_CI_FILE" \
   || fail "int:e2e job must run test_compose_e2e.sh"
 grep -q 'bash extras/ci/gitlab/setup-integration-env.sh' "$INTEGRATION_CI_FILE" \
@@ -56,6 +59,13 @@ grep -q 'OPENTALK_E2E_DEV_DIR:-"$REPO_ROOT/build/opentalk-compose-e2e-dev"' "$E2
   || fail "E2E default dev dir must be build/opentalk-compose-e2e-dev"
 grep -q 'OPENTALK_E2E_INGRESS_PORT:-8082' "$E2E_TEST" \
   || fail "E2E default ingress port must be 8082"
+# Regression: the ingress port 8082 equals Traefik's default ping port, and
+# Traefik restarted in a loop because it could not bind the port twice.
+grep -qF 'traefik_entryPoints_ping_address: ":%s"' "$E2E_TEST" \
+  || fail "E2E settings must set the Traefik ping entry point"
+# shellcheck disable=SC2016 # The script variable must be matched literally.
+grep -qF '"$((INGRESS_PORT + 1))" >> "$settings_file"' "$E2E_TEST" \
+  || fail "E2E settings must move the Traefik ping entry point off the ingress port"
 # shellcheck disable=SC2016 # The script variable must be matched literally.
 grep -q "keycloak_local_hostname: ''" "$E2E_TEST" \
   || fail "E2E Keycloak URL must use the isolated ingress hostname"

@@ -15,33 +15,33 @@
 # OpenTalk Product Version
 # Not automated: this is the version of this repository itself, and
 # lint:release_tag gates it against the git tag.
-opentalk_product_version: v26.3.0-beta.0
+opentalk_product_version: v26.4.0-dev
 
 # OpenTalk related Container Image Versions
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/web-frontend
-opentalk_web_frontend_version: v2.10.0
+opentalk_web_frontend_version: v2.10.2
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/controller
-opentalk_controller_version: v0.35.1
+opentalk_controller_version: v0.35.3
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/obelisk
-opentalk_obelisk_version: v0.23.0
+opentalk_obelisk_version: v0.23.2
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/recorder
-opentalk_recorder_version: v0.18.0
+opentalk_recorder_version: v0.18.2
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/roomserver
-opentalk_roomserver_version: v0.10.1
+opentalk_roomserver_version: v0.10.3
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/smtp-mailer
-opentalk_smtp_mailer_version: v0.19.0
+opentalk_smtp_mailer_version: v0.19.1
 # renovate: datasource=docker depName=git.opentalk.dev:5050/opentalk/backend/services/orchestrator
-opentalk_orchestrator_version: v0.12.0
+opentalk_orchestrator_version: v0.12.1
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/outlook-add-in
-opentalk_outlook_add_in_version: v0.5.0
+opentalk_outlook_add_in_version: v0.6.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/spacedeck
 spacedeck_version: v3.0.3
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/etherpad
 etherpad_version: v2.0.4
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/livekit-server
-livekit_version: v1.13.7
+livekit_version: v1.13.10
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/keycloak
-keycloak_version: 26.8.0
+keycloak_version: v26.8.1-1
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/postgres
 postgres_version: 18.6-alpine
 # Not automated: the previous PostgreSQL major, only used by
@@ -50,19 +50,19 @@ postgres_version: 18.6-alpine
 # moves to a new major.
 postgres_migration_source_version: 17.11-alpine
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/rabbitmq
-rabbitmq_version: v4.3.6-management-alpine
+rabbitmq_version: v4.3.7-management-alpine
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/minio versioning=loose
 minio_version: RELEASE.2025-10-15T17-29-55Z
 # Not automated: no consumer in this repository references this pin.
 minio_client_version: RELEASE.2025-08-13T08-35-41Z
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/traefik
-traefik_version: v3.7.13
+traefik_version: v3.7.16
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/garage
-garage_version: v2.4.1
+garage_version: v2.5.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/mailcrab
 mailcrab_version: v1.9.0
 # renovate: datasource=docker depName=registry.heinlein.group/opentalk/ndt-server
-ndt_version: v0.25.3
+ndt_version: v0.26.1
 
 # Tools
 # Not automated: 13-tools-fetch.sh pulls this from the GitLab job artifacts of

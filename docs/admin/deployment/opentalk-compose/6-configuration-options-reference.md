@@ -6,7 +6,7 @@ SPDX-License-Identifier: EUPL-1.2
 
 # Configuration Reference (Auto-generated)
 
-Last updated: 2026-10-21
+Last updated: 2026-11-03
 
 This document lists the configuration variables for each Ansible role.
 Variables are collected from `defaults/*.yml` and `vars/*.yml`.
@@ -373,7 +373,7 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `livekit_rtc_enable_loopback_candidate` | boolean | `false` |
 | `livekit_rtc_interfaces_excludes` | list | `[docker0]` |
 | `livekit_rtc_interfaces_includes` | list | `[en0]` |
-| `livekit_rtc_ips_excludes` | list | `[10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]` |
+| `livekit_rtc_ips_excludes` | list | `[10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fe80::/10]` |
 | `livekit_rtc_ips_includes` | list | `[]` |
 | `livekit_rtc_node_ip` | string | `{{ ansible_host }}` |
 | `livekit_rtc_packet_buffer_size_audio` | string | `200` |
@@ -609,8 +609,9 @@ block, the mkdocs-macros plugin would try to evaluate them as macros and fail to
 | `obelisk_clock_format` | string | `%d.%m.%y %X %Z` |
 | `obelisk_controller_api_key_id` | string | `controller` |
 | `obelisk_controller_api_key_secret` | string | `{{ CONTROLLER_API_SECRET }}` |
-| `obelisk_controller_domain` | string | `{{ ot_domain }}/controller` |
+| `obelisk_controller_domain` | string | `localhost:11311` |
 | `obelisk_controller_insecure` | boolean | `false` |
+| `obelisk_controller_url` | string | `http://{{ 'localhost' if obelisk_docker_network_mode \| default('') == 'host' else 'host.docker.internal' }}:11311/` |
 | `obelisk_docker_compose_project_name` | string | `{{ compose_project_name \| default('opentalk') }}` |
 | `obelisk_docker_compose_project_src` | string | `{{ deploy_dir }}` |
 | `obelisk_docker_compose_services_dir` | string | `{{ services_dir }}` |

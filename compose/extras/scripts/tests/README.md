@@ -36,6 +36,8 @@ No Docker, no network. Discovered automatically by filename pattern `test_*.sh` 
 | `test_opentalk_check_packaging.sh` | `check-packaging.sh` under a strict fake `PATH` |
 | `test_opentalk_ci_e2e_contract.sh` | grep contract for the `int:e2e` job and E2E isolation |
 | `test_opentalk_cleanup.sh` | `90-cleanup.sh`, all modes, via `CLEANUP_ROOT` |
+| `test_opentalk_compose_deploy_demo_password.sh` | regression: `compose-deploy` reads the demo password without `yq` |
+| `test_opentalk_compose_python_version.sh` | regression: `compose-python` creates its venv with the pinned Python minor release |
 | `test_opentalk_compose_templates_render.sh` | renders every `compose.yml.j2`, validates with `yaml.safe_load` |
 | `test_opentalk_compose_templates_yaml.sh` | `---` and `services:` consistency of the templates |
 | `test_opentalk_config_reference_generator.sh` | generated reference equals the committed file |

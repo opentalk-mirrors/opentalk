@@ -90,8 +90,6 @@ recorder_docker_extra_hosts:
 recorder_docker_network_mode: host
 recorder_controller_url: "http://host.docker.internal:11311"
 
-obelisk_controller_domain: "localhost:{{ ot_ingress_port }}/controller"
-obelisk_controller_insecure: true
 obelisk_sip_addr: "localhost"
 
 
