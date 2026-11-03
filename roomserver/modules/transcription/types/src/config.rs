@@ -4,8 +4,8 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MeetingProtocolConfig {
-    /// If `true` speaker names will be pseudonymized in the meeting protocol.
+pub struct AutomaticTranscriptionConfig {
+    /// If `true` speaker names will be pseudonymized in the automatic transcription.
     pub pseudonymous: bool,
 }
 
@@ -17,8 +17,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn serialize_meeting_protocol_config() {
-        let config = MeetingProtocolConfig { pseudonymous: true };
+    fn serialize_automatic_transcription_config() {
+        let config = AutomaticTranscriptionConfig { pseudonymous: true };
 
         assert_json_snapshot!(config, @ r#"
         {
@@ -28,12 +28,12 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_meeting_protocol_config() {
+    fn deserialize_automatic_transcription_config() {
         let produced = serde_json::from_value(json!({
            "pseudonymous": false,
         }))
         .unwrap();
-        let expected = MeetingProtocolConfig {
+        let expected = AutomaticTranscriptionConfig {
             pseudonymous: false,
         };
 

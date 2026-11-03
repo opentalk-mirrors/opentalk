@@ -22,14 +22,14 @@ impl RoomTranscriptionState {
         let TranscriptionState {
             status,
             live_transcription,
-            meeting_protocol,
+            automatic_transcription,
         } = transcription_state;
 
         Self {
             transcription_status: status,
             transcription_modes: TranscriptionModes {
                 live_transcription,
-                meeting_protocol: meeting_protocol.map(Into::into),
+                automatic_transcription: automatic_transcription.map(Into::into),
             },
         }
     }
@@ -41,7 +41,7 @@ impl RoomTranscriptionState {
         match &event {
             TranscriptionEvent::Segment(..)
             | TranscriptionEvent::PdfCreated { .. }
-            | TranscriptionEvent::MeetingProtocolConsentUpdated { .. } => {}
+            | TranscriptionEvent::AutomaticTranscriptionConsentUpdated { .. } => {}
             TranscriptionEvent::StateUpdated { status } => {
                 self.transcription_status = status.clone();
             }

@@ -4,10 +4,10 @@
 speaker = Speaker { $number }
 unknown = Unknown
 transcript = Transcript
-protocol_start = Transcription was started
-protocol_pause = Transcription was paused
-protocol_resume = Transcription was resumed
-protocol_end = Transcription was stopped
+transcript_start = Transcription was started
+transcript_pause = Transcription was paused
+transcript_resume = Transcription was resumed
+transcript_end = Transcription was stopped
 automatic_transcript = Automatic Transcript
 date = Date
 time = Time

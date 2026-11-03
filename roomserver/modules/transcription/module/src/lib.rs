@@ -24,12 +24,12 @@ use opentalk_roomserver_types::{
 use opentalk_roomserver_types_transcription::{
     TRANSCRIPTION_FEATURE_ID, TRANSCRIPTION_MODULE_ID,
     command::TranscriptionCommand,
-    config::MeetingProtocolConfig,
+    config::AutomaticTranscriptionConfig,
     event::{TranscriptionError, TranscriptionEvent},
     peer_state::TranscriptionPeerState,
     service::{command::TranscriptionServiceCommand, event::TranscriptionServiceEvent},
     settings::TranscriptionSettings,
-    state::{MeetingProtocolState, TranscriptionState},
+    state::{AutomaticTranscriptionState, TranscriptionState},
     status::{TranscriptionModes, TranscriptionStatus},
 };
 use opentalk_transcription_web_api::v1::TranscriptionTarget;
@@ -42,7 +42,7 @@ use crate::{
     loopback::LoopBackEvent,
     state::{
         ActiveTranscriptionModes, ServiceAction, ServiceState, TranscriptionModeConfig,
-        TranscriptionRoomState, protocol::FinishedMeetingProtocol,
+        TranscriptionRoomState, automatic_transcription::FinishedAutomaticTranscription,
     },
 };
 
@@ -112,7 +112,7 @@ impl SignalingModule for TranscriptionModule {
         _connection_id: ConnectionId,
         _is_first_connection: bool,
     ) -> Result<ModuleJoinData<Self>, SignalingModuleError<Self::Error>> {
-        self.record_protocol_presence(ctx, participant_id)?;
+        self.record_transcript_presence(ctx, participant_id)?;
 
         let PeerDataMaps {
             peer_events,
@@ -169,7 +169,7 @@ impl SignalingModule for TranscriptionModule {
             TranscriptionCommand::TranscriptionServiceEvent { event } => {
                 self.handle_transcription_service_event(ctx, event, sender)
             }
-            TranscriptionCommand::StartMeetingProtocol {
+            TranscriptionCommand::StartAutomaticTranscription {
                 language,
                 timezone,
                 pseudonymous,
@@ -177,8 +177,8 @@ impl SignalingModule for TranscriptionModule {
                 ctx,
                 sender,
                 language,
-                TranscriptionModeConfig::MeetingProtocol {
-                    config: MeetingProtocolConfig { pseudonymous },
+                TranscriptionModeConfig::AutomaticTranscription {
+                    config: AutomaticTranscriptionConfig { pseudonymous },
                     time_zone: timezone.unwrap_or_else(|| {
                         ctx.participant_state(sender)
                             .and_then(|state| state.kind.time_zone())
@@ -186,12 +186,16 @@ impl SignalingModule for TranscriptionModule {
                     }),
                 },
             ),
-            TranscriptionCommand::PauseMeetingProtocol => self.pause_meeting_protocol(ctx, sender),
-            TranscriptionCommand::ResumeMeetingProtocol => {
-                self.resume_meeting_protocol(ctx, sender)
+            TranscriptionCommand::PauseAutomaticTranscription => {
+                self.pause_automatic_transcription(ctx, sender)
             }
-            TranscriptionCommand::StopMeetingProtocol => self.stop_meeting_protocol(ctx, sender),
-            TranscriptionCommand::SetMeetingProtocolConsent { consent } => {
+            TranscriptionCommand::ResumeAutomaticTranscription => {
+                self.resume_automatic_transcription(ctx, sender)
+            }
+            TranscriptionCommand::StopAutomaticTranscription => {
+                self.stop_automatic_transcription(ctx, sender)
+            }
+            TranscriptionCommand::SetAutomaticTranscriptionConsent { consent } => {
                 self.set_consent(ctx, sender, consent)
             }
         }
@@ -204,7 +208,7 @@ impl SignalingModule for TranscriptionModule {
         _old_room: RoomKind,
         new_room: RoomKind,
     ) -> Result<ModuleSwitchData<Self>, SignalingModuleError<Self::Error>> {
-        self.record_protocol_presence(ctx, participant_id)?;
+        self.record_transcript_presence(ctx, participant_id)?;
 
         let state = self.build_module_state(new_room, participant_id);
         let switch_success = ctx
@@ -238,15 +242,17 @@ impl SignalingModule for TranscriptionModule {
 
         let mut error = false;
         for mut state in states {
-            if let Some(protocol) = state.modes.deactivate_meeting_protocol(ctx) {
+            if let Some(automatic_transcription) =
+                state.modes.deactivate_automatic_transcription(ctx)
+            {
                 error |= self
-                    .generate_protocol(ctx, state.language.as_deref(), protocol)
+                    .generate_transcript(ctx, state.language.as_deref(), automatic_transcription)
                     .is_err();
             }
         }
 
         if error {
-            Err(TranscriptionError::GenerateProtocol.into())
+            Err(TranscriptionError::GenerateTranscript.into())
         } else {
             Ok(())
         }
@@ -262,12 +268,12 @@ impl SignalingModule for TranscriptionModule {
                 tracing::warn!("Failed to request transcription service");
                 self.handle_service_error(ctx, TranscriptionError::ServiceRequestFailed)?;
             }
-            LoopBackEvent::MeetingProtocolGenerated(AssetUploaded {
+            LoopBackEvent::AutomaticTranscriptionGenerated(AssetUploaded {
                 id: asset_id,
                 filename,
                 quota,
             }) => {
-                tracing::debug!("Generated meeting protocol: {asset_id} ({filename})");
+                tracing::debug!("Generated automatic transcription: {asset_id} ({filename})");
                 ctx.send_ws_message(
                     ctx.participants.connected().ids(),
                     TranscriptionEvent::PdfCreated {
@@ -277,8 +283,8 @@ impl SignalingModule for TranscriptionModule {
                     },
                 )?;
             }
-            LoopBackEvent::MeetingProtocolGenerationFailed => {
-                return Err(TranscriptionError::GenerateProtocol.into());
+            LoopBackEvent::AutomaticTranscriptionGenerationFailed => {
+                return Err(TranscriptionError::GenerateTranscript.into());
             }
         }
 
@@ -295,16 +301,18 @@ impl SignalingModule for TranscriptionModule {
             return Ok(());
         }
 
-        let Some(protocol) = self
+        let Some(automatic_transcription) = self
             .transcription_states
             .get_mut(&ctx.room)
-            .and_then(|state| state.modes.meeting_protocol_mut())
+            .and_then(|state| state.modes.automatic_transcription_mut())
         else {
-            // No meeting protocol ongoing, nothing to do.
+            // No automatic transcription ongoing, nothing to do.
             return Ok(());
         };
 
-        protocol.seen_moderators.insert(participant_id);
+        automatic_transcription
+            .seen_moderators
+            .insert(participant_id);
 
         Ok(())
     }
@@ -315,13 +323,14 @@ impl SignalingModule for TranscriptionModule {
             return Ok(());
         };
 
-        let Some(protocol) = state.modes.deactivate_meeting_protocol(ctx) else {
-            // No meeting protocol ongoing, nothing to do.
+        let Some(automatic_transcription) = state.modes.deactivate_automatic_transcription(ctx)
+        else {
+            // No automatic transcription ongoing, nothing to do.
             return Ok(());
         };
 
-        self.generate_protocol(ctx, state.language.as_deref(), protocol)
-            .map_err(|e| anyhow!("Failed to generate pdf: {e:?}"))
+        self.generate_transcript(ctx, state.language.as_deref(), automatic_transcription)
+            .map_err(|e| anyhow!("Failed to generate transcript: {e:?}"))
     }
 }
 
@@ -394,7 +403,7 @@ impl TranscriptionModule {
         Ok(())
     }
 
-    fn pause_meeting_protocol(
+    fn pause_automatic_transcription(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
@@ -407,7 +416,7 @@ impl TranscriptionModule {
             return Err(TranscriptionError::NotActive.into());
         };
 
-        let was_already_paused = state.modes.pause_meeting_protocol()?.is_unchanged();
+        let was_already_paused = state.modes.pause_automatic_transcription()?.is_unchanged();
 
         if was_already_paused {
             self.send_modes_updated(ctx, [sender])?;
@@ -418,7 +427,7 @@ impl TranscriptionModule {
         self.update_service(ctx)
     }
 
-    fn resume_meeting_protocol(
+    fn resume_automatic_transcription(
         &mut self,
         ctx: &mut ModuleContext<'_, Self>,
         sender: ParticipantId,
@@ -431,7 +440,7 @@ impl TranscriptionModule {
             return Err(TranscriptionError::NotActive.into());
         };
 
-        let was_already_running = state.modes.resume_meeting_protocol()?.is_unchanged();
+        let was_already_running = state.modes.resume_automatic_transcription()?.is_unchanged();
 
         if was_already_running {
             self.send_modes_updated(ctx, [sender])?;
@@ -467,7 +476,7 @@ impl TranscriptionModule {
         Ok(())
     }
 
-    fn stop_meeting_protocol(
+    fn stop_automatic_transcription(
         &mut self,
         ctx: &mut ModuleContext<'_, TranscriptionModule>,
         sender: ParticipantId,
@@ -480,7 +489,8 @@ impl TranscriptionModule {
             return Err(TranscriptionError::NotActive.into());
         };
 
-        let Some(protocol) = state.modes.deactivate_meeting_protocol(ctx) else {
+        let Some(automatic_transcription) = state.modes.deactivate_automatic_transcription(ctx)
+        else {
             return Err(TranscriptionError::NotActive.into());
         };
 
@@ -489,20 +499,20 @@ impl TranscriptionModule {
         self.send_modes_updated(ctx, ctx.participants.in_room(ctx.room).connected().ids())?;
         self.update_service(ctx)?;
 
-        self.generate_protocol(ctx, language.as_deref(), protocol)
+        self.generate_transcript(ctx, language.as_deref(), automatic_transcription)
     }
 
-    fn generate_protocol(
+    fn generate_transcript(
         &self,
         ctx: &ModuleContext<'_, Self>,
         transcription_language: Option<&str>,
-        protocol: FinishedMeetingProtocol,
+        automatic_transcription: FinishedAutomaticTranscription,
     ) -> Result<(), SignalingModuleError<TranscriptionError>> {
         let transcription_language =
             transcription_language.and_then(|language| language.parse::<LanguageIdentifier>().ok());
         let report_language =
             negotiate_languages(ctx, transcription_language.as_ref(), AVAILABLE_LANGUAGES)
-                .ok_or(TranscriptionError::GenerateProtocol)?;
+                .ok_or(TranscriptionError::GenerateTranscript)?;
 
         let title = ctx
             .room_task_info
@@ -511,12 +521,12 @@ impl TranscriptionModule {
             .as_ref()
             .map(|event| event.title.clone());
 
-        ctx.spawn(loopback::create_protocol(
+        ctx.spawn(loopback::create_transcript(
             ctx.assets(),
             title,
             report_language,
             transcription_language.map(|id| id.language),
-            protocol,
+            automatic_transcription,
             self.typst_package_path.clone(),
         ));
 
@@ -622,8 +632,8 @@ impl TranscriptionModule {
 
                 if state.service != (ServiceState::Requested { request_id }) {
                     // The service belongs to an earlier request, e.g. the transcription was stopped
-                    // and started again, or the meeting protocol was paused, before the service
-                    // started.
+                    // and started again, or the automatic transcription was paused, before the
+                    // service started.
                     ctx.send_ws_message(
                         [participant_id],
                         TranscriptionEvent::ServiceCommand {
@@ -670,7 +680,7 @@ impl TranscriptionModule {
                         if state.modes.is_empty() {
                             self.transcription_states.remove(&ctx.room);
                         } else {
-                            // This can be the case when the meeting protocol was paused
+                            // This can be the case when the automatic transcription was paused
                             state.service = ServiceState::Stopped;
                         }
                         self.broadcast_status_updated(ctx)?;
@@ -689,13 +699,13 @@ impl TranscriptionModule {
                     return Err(TranscriptionError::InsufficientPermissions.into());
                 }
 
-                if let Some(protocol) = state.modes.meeting_protocol_mut()
-                    && !protocol.paused()
-                    && protocol
+                if let Some(automatic_transcription) = state.modes.automatic_transcription_mut()
+                    && !automatic_transcription.paused()
+                    && automatic_transcription
                         .consenting_participants
                         .contains(&transcription_segment.participant_id)
                 {
-                    protocol.push_segment(ctx, &transcription_segment);
+                    automatic_transcription.push_segment(ctx, &transcription_segment);
                 }
 
                 if state.modes.live_transcription() {
@@ -713,7 +723,7 @@ impl TranscriptionModule {
     /// Handle a transcription service that is gone or could not be started.
     ///
     /// Recovers by removing the current transcription state to return to a clean slate. The
-    /// meeting protocol is generated, so that no data is lost.
+    /// automatic transcription is generated, so that no data is lost.
     fn handle_service_error(
         &mut self,
         ctx: &ModuleContext<'_, Self>,
@@ -724,7 +734,7 @@ impl TranscriptionModule {
             return Ok(());
         };
 
-        let protocol = state.modes.deactivate_meeting_protocol(ctx);
+        let automatic_transcription = state.modes.deactivate_automatic_transcription(ctx);
 
         let state = self.transcription_states.remove(&ctx.room);
 
@@ -735,9 +745,13 @@ impl TranscriptionModule {
         self.send_modes_updated(ctx, ctx.participants.in_room(ctx.room).connected().ids())?;
         self.broadcast_status_updated(ctx)?;
 
-        if let Some(protocol) = protocol {
+        if let Some(automatic_transcription) = automatic_transcription {
             let transcription_language = state.and_then(|state| state.language);
-            self.generate_protocol(ctx, transcription_language.as_deref(), protocol)?;
+            self.generate_transcript(
+                ctx,
+                transcription_language.as_deref(),
+                automatic_transcription,
+            )?;
         }
 
         Ok(())
@@ -778,24 +792,28 @@ impl TranscriptionModule {
         sender: ParticipantId,
         consent: bool,
     ) -> Result<(), SignalingModuleError<TranscriptionError>> {
-        let Some(protocol) = self
+        let Some(automatic_transcription) = self
             .transcription_states
             .get_mut(&ctx.room)
-            .and_then(|state| state.modes.meeting_protocol_mut())
+            .and_then(|state| state.modes.automatic_transcription_mut())
         else {
             return Err(TranscriptionError::NotActive.into());
         };
 
         let updated = if consent {
-            protocol.consenting_participants.insert(sender)
+            automatic_transcription
+                .consenting_participants
+                .insert(sender)
         } else {
-            protocol.consenting_participants.remove(&sender)
+            automatic_transcription
+                .consenting_participants
+                .remove(&sender)
         };
 
         if updated {
             ctx.send_ws_message(
                 ctx.participants.in_room(ctx.room).connected().ids(),
-                TranscriptionEvent::MeetingProtocolConsentUpdated {
+                TranscriptionEvent::AutomaticTranscriptionConsentUpdated {
                     participant: sender,
                     consents: consent,
                 },
@@ -805,7 +823,7 @@ impl TranscriptionModule {
             // sender
             ctx.send_ws_message(
                 [sender],
-                TranscriptionEvent::MeetingProtocolConsentUpdated {
+                TranscriptionEvent::AutomaticTranscriptionConsentUpdated {
                     participant: sender,
                     consents: consent,
                 },
@@ -898,36 +916,37 @@ impl TranscriptionModule {
             return TranscriptionState {
                 status: TranscriptionStatus::Inactive,
                 live_transcription: false,
-                meeting_protocol: None,
+                automatic_transcription: None,
             };
         };
 
         TranscriptionState {
             status: state.status(),
             live_transcription: state.modes.live_transcription(),
-            meeting_protocol: state
-                .modes
-                .meeting_protocol()
-                .map(|protocol| MeetingProtocolState {
-                    config: protocol.config(),
-                    consents: protocol.consenting_participants.contains(&participant_id),
-                    paused: protocol.paused(),
-                }),
+            automatic_transcription: state.modes.automatic_transcription().map(
+                |automatic_transcription| AutomaticTranscriptionState {
+                    config: automatic_transcription.config(),
+                    consents: automatic_transcription
+                        .consenting_participants
+                        .contains(&participant_id),
+                    paused: automatic_transcription.paused(),
+                },
+            ),
         }
     }
 
     #[tracing::instrument(skip(self, ctx), level = "debug")]
-    fn record_protocol_presence(
+    fn record_transcript_presence(
         &mut self,
         ctx: &ModuleContext<'_, Self>,
         participant_id: ParticipantId,
     ) -> Result<(), SignalingModuleError<TranscriptionError>> {
-        let Some(protocol) = self
+        let Some(automatic_transcription) = self
             .transcription_states
             .get_mut(&ctx.room)
-            .and_then(|state| state.modes.meeting_protocol_mut())
+            .and_then(|state| state.modes.automatic_transcription_mut())
         else {
-            // Protocol is not active, nothing to do.
+            // Automatic transcription is not active, nothing to do.
             return Ok(());
         };
 
@@ -936,14 +955,18 @@ impl TranscriptionModule {
             .context("Participant has no state")?
             .is_visible()
         {
-            // Participant should be visible in the protocol.
+            // Participant should be visible in the transcript.
             return Ok(());
         }
 
-        protocol.seen_participants.insert(participant_id);
+        automatic_transcription
+            .seen_participants
+            .insert(participant_id);
 
         if ctx.is_moderator(participant_id) {
-            protocol.seen_moderators.insert(participant_id);
+            automatic_transcription
+                .seen_moderators
+                .insert(participant_id);
         }
 
         Ok(())
@@ -957,30 +980,38 @@ impl TranscriptionModule {
         let mut peer_data = PeerDataMap::default();
         let mut peer_events = PeerDataMap::default();
 
-        if let Some(protocol) = self
+        if let Some(automatic_transcription) = self
             .transcription_states
             .get(&ctx.room)
-            .and_then(|state| state.modes.meeting_protocol())
+            .and_then(|state| state.modes.automatic_transcription())
         {
             peer_data.insert_for_matching(
                 ctx,
                 TranscriptionPeerState {
-                    consents_meeting_protocol: true,
+                    consents_automatic_transcription: true,
                 },
-                |id, _| protocol.consenting_participants.contains(&id),
+                |id, _| {
+                    automatic_transcription
+                        .consenting_participants
+                        .contains(&id)
+                },
             )?;
             peer_data.insert_for_matching(
                 ctx,
                 TranscriptionPeerState {
-                    consents_meeting_protocol: false,
+                    consents_automatic_transcription: false,
                 },
-                |id, _| !protocol.consenting_participants.contains(&id),
+                |id, _| {
+                    !automatic_transcription
+                        .consenting_participants
+                        .contains(&id)
+                },
             )?;
 
             peer_events.insert_for_all(
                 ctx,
                 TranscriptionPeerState {
-                    consents_meeting_protocol: protocol
+                    consents_automatic_transcription: automatic_transcription
                         .consenting_participants
                         .contains(&participant_id),
                 },

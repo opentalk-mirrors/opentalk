@@ -79,10 +79,10 @@
 
 #let display_marker(key) = dim(emph(linguify(key)))
 #let display_event = (
-  start: event => display_marker("protocol_start"),
-  pause: event => display_marker("protocol_pause"),
-  resume: event => display_marker("protocol_resume"),
-  end: event => display_marker("protocol_end"),
+  start: event => display_marker("transcript_start"),
+  pause: event => display_marker("transcript_pause"),
+  resume: event => display_marker("transcript_resume"),
+  end: event => display_marker("transcript_end"),
   text: event => [#display_speaker(event.speaker) \ #wrappable(event.text)],
 )
 #let title = data.at("title", default: none)
@@ -124,7 +124,7 @@
   #linguify("disclaimer_errors")
 ]
 
-#for entry in data.protocol {
+#for entry in data.transcript {
   block(below: 1.5em)[
     #dim(parse_datetime(entry.timestamp).display(exact_time_format))
     #display_event.at(entry.event.kind)(entry.event)

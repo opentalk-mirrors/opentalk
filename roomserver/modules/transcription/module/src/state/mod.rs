@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: EUPL-1.2
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
+use automatic_transcription::AutomaticTranscription;
 use opentalk_roomserver_signaling::module_context::ModuleContext;
 use opentalk_roomserver_types::signaling::module_error::SignalingModuleError;
 use opentalk_roomserver_types_transcription::{
-    config::MeetingProtocolConfig,
+    config::AutomaticTranscriptionConfig,
     event::TranscriptionError,
     status::{TranscriptionModes, TranscriptionStatus},
 };
 use opentalk_types_common::{time::TimeZone, transcription::RequestId};
 use opentalk_types_signaling::ParticipantId;
-use protocol::MeetingProtocol;
 
-use crate::{TranscriptionModule, state::protocol::FinishedMeetingProtocol};
+use crate::{TranscriptionModule, state::automatic_transcription::FinishedAutomaticTranscription};
 
-pub mod protocol;
+pub mod automatic_transcription;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
@@ -118,11 +118,11 @@ impl ServiceState {
 /// The active transcription modes for a room.
 ///
 /// This can be [`live_transcription`](Self::live_transcription),
-/// [`meeting_protocol`](Self::meeting_protocol) or both, but never neither.
+/// [`automatic_transcription`](Self::automatic_transcription) or both, but never neither.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActiveTranscriptionModes {
     live_transcription: bool,
-    meeting_protocol: Option<MeetingProtocol>,
+    automatic_transcription: Option<AutomaticTranscription>,
 }
 
 impl ActiveTranscriptionModes {
@@ -134,11 +134,11 @@ impl ActiveTranscriptionModes {
         match mode {
             TranscriptionModeConfig::LiveTranscription => Self {
                 live_transcription: true,
-                meeting_protocol: None,
+                automatic_transcription: None,
             },
-            TranscriptionModeConfig::MeetingProtocol { config, time_zone } => Self {
+            TranscriptionModeConfig::AutomaticTranscription { config, time_zone } => Self {
                 live_transcription: false,
-                meeting_protocol: Some(MeetingProtocol::new(ctx, config, time_zone)),
+                automatic_transcription: Some(AutomaticTranscription::new(ctx, config, time_zone)),
             },
         }
     }
@@ -159,27 +159,28 @@ impl ActiveTranscriptionModes {
 
                 self.live_transcription = true;
             }
-            TranscriptionModeConfig::MeetingProtocol { config, time_zone } => {
-                if self.meeting_protocol.is_some() {
+            TranscriptionModeConfig::AutomaticTranscription { config, time_zone } => {
+                if self.automatic_transcription.is_some() {
                     return Changed::No;
                 }
 
-                self.meeting_protocol = Some(MeetingProtocol::new(ctx, config, time_zone));
+                self.automatic_transcription =
+                    Some(AutomaticTranscription::new(ctx, config, time_zone));
             }
         }
 
         Changed::Yes
     }
 
-    pub fn pause_meeting_protocol(&mut self) -> Result<Changed, NotActive> {
-        self.meeting_protocol
+    pub fn pause_automatic_transcription(&mut self) -> Result<Changed, NotActive> {
+        self.automatic_transcription
             .as_mut()
             .map(|p| if p.pause() { Changed::Yes } else { Changed::No })
             .ok_or(NotActive)
     }
 
-    pub fn resume_meeting_protocol(&mut self) -> Result<Changed, NotActive> {
-        self.meeting_protocol
+    pub fn resume_automatic_transcription(&mut self) -> Result<Changed, NotActive> {
+        self.automatic_transcription
             .as_mut()
             .map(|p| {
                 if p.resume() {
@@ -201,39 +202,39 @@ impl ActiveTranscriptionModes {
         self.live_transcription = false;
     }
 
-    /// Returns a reference to the meeting protocol, if it is active.
+    /// Returns a reference to the automatic transcription, if it is active.
     #[must_use]
-    pub fn meeting_protocol(&self) -> Option<&MeetingProtocol> {
-        self.meeting_protocol.as_ref()
+    pub fn automatic_transcription(&self) -> Option<&AutomaticTranscription> {
+        self.automatic_transcription.as_ref()
     }
 
-    pub fn deactivate_meeting_protocol(
+    pub fn deactivate_automatic_transcription(
         &mut self,
         ctx: &ModuleContext<'_, TranscriptionModule>,
-    ) -> Option<FinishedMeetingProtocol> {
-        self.meeting_protocol
+    ) -> Option<FinishedAutomaticTranscription> {
+        self.automatic_transcription
             .take()
-            .map(|protocol| protocol.stop(ctx))
+            .map(|automatic_transcription| automatic_transcription.stop(ctx))
     }
 
-    /// Returns a mutable reference to the meeting protocol, if it is active.
+    /// Returns a mutable reference to the automatic transcription, if it is active.
     #[must_use]
-    pub fn meeting_protocol_mut(&mut self) -> Option<&mut MeetingProtocol> {
-        self.meeting_protocol.as_mut()
+    pub fn automatic_transcription_mut(&mut self) -> Option<&mut AutomaticTranscription> {
+        self.automatic_transcription.as_mut()
     }
 
     #[must_use]
     pub fn needs_service(&self) -> bool {
         self.live_transcription
             || self
-                .meeting_protocol
+                .automatic_transcription
                 .as_ref()
-                .is_some_and(|protocol| !protocol.paused)
+                .is_some_and(|automatic_transcription| !automatic_transcription.paused)
     }
 
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        !self.live_transcription && self.meeting_protocol.is_none()
+        !self.live_transcription && self.automatic_transcription.is_none()
     }
 }
 
@@ -241,7 +242,7 @@ impl From<&ActiveTranscriptionModes> for TranscriptionModes {
     fn from(value: &ActiveTranscriptionModes) -> Self {
         Self {
             live_transcription: value.live_transcription,
-            meeting_protocol: value.meeting_protocol.as_ref().map(Into::into),
+            automatic_transcription: value.automatic_transcription.as_ref().map(Into::into),
         }
     }
 }
@@ -250,8 +251,8 @@ impl From<&ActiveTranscriptionModes> for TranscriptionModes {
 #[derive(Debug, Clone, Copy)]
 pub enum TranscriptionModeConfig {
     LiveTranscription,
-    MeetingProtocol {
-        config: MeetingProtocolConfig,
+    AutomaticTranscription {
+        config: AutomaticTranscriptionConfig,
         time_zone: TimeZone,
     },
 }
@@ -261,7 +262,9 @@ impl TranscriptionModeConfig {
     pub fn mode(&self) -> TranscriptionMode {
         match self {
             TranscriptionModeConfig::LiveTranscription => TranscriptionMode::LiveTranscription,
-            TranscriptionModeConfig::MeetingProtocol { .. } => TranscriptionMode::MeetingProtocol,
+            TranscriptionModeConfig::AutomaticTranscription { .. } => {
+                TranscriptionMode::AutomaticTranscription
+            }
         }
     }
 }
@@ -269,7 +272,7 @@ impl TranscriptionModeConfig {
 #[derive(Debug, Clone, Copy)]
 pub enum TranscriptionMode {
     LiveTranscription,
-    MeetingProtocol,
+    AutomaticTranscription,
 }
 
 #[derive(Debug, Clone, Copy)]
