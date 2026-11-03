@@ -141,7 +141,6 @@ mod tests {
         unsafe {
             env::remove_var("OPENTALK_CTRL_DATABASE__URL");
             env::remove_var("OPENTALK_CTRL_HTTP__PORT");
-            env::remove_var("OPENTALK_CTRL_DEFAULTS__SCREEN_SHARE_REQUIRES_PERMISSION");
         }
 
         // Sanity check
