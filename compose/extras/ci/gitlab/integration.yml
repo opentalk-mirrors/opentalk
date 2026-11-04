@@ -23,6 +23,19 @@
         - compose/**/*
     - when: never
 
+.rules_experimental_on_merge:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - compose/**/*
+        - controller/**/*
+        - obelisk/**/*
+        - orchestrator/**/*
+        - roomserver/**/*
+        - smtp-mailer/**/*
+        - recorder/**/*
+    - when: never
+
 .int_base:
   stage: integration
   tags:
@@ -58,6 +71,53 @@ int:experimental:
   variables:
     RUN_SMTP_RABBITMQ_TEST: "true"
     SMTP_MAILER_ENABLED: "true"
+  script:
+    - bash extras/ci/gitlab/run-integration-test.sh
+
+# Debian-only subset of int:experimental, run again after a merge to main so a
+# broken Debian deployment is caught even if the MR pipeline raced the merge.
+# Deploys the component images this same pipeline just built (see the
+# container-<service> jobs in the root .gitlab-ci.yml) instead of the
+# versions pinned in .versions.yml, so a changed component is actually
+# exercised rather than just the last release.
+int:experimental-on-merge:
+  extends: .int_base
+  parallel:
+    matrix:
+      - DIST: debian12
+      - DIST: debian13
+  needs:
+    - job: package:experimental-on-merge
+      artifacts: true
+    - job: container-controller
+      parallel:
+        matrix:
+          - FLAVOR: ubuntu
+    - job: container-obelisk
+      parallel:
+        matrix:
+          - FLAVOR: ubuntu
+    - job: container-orchestrator
+      parallel:
+        matrix:
+          - FLAVOR: ubuntu
+    - job: container-roomserver
+      parallel:
+        matrix:
+          - FLAVOR: ubuntu
+    - job: container-smtp-mailer
+      parallel:
+        matrix:
+          - FLAVOR: ubuntu
+    - job: container-recorder
+      parallel:
+        matrix:
+          - FLAVOR: intel
+  rules: !reference [.rules_experimental_on_merge, rules]
+  variables:
+    RUN_SMTP_RABBITMQ_TEST: "true"
+    SMTP_MAILER_ENABLED: "true"
+    USE_DEV_IMAGES: "true"
   script:
     - bash extras/ci/gitlab/run-integration-test.sh
 

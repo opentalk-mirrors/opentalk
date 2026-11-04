@@ -60,6 +60,28 @@ write_settings() {
             "$SETTINGS_FILE"
         echo "Extra optional services (orchestrator, obelisk, outlook) enabled for this distro slot."
     fi
+
+    # Point at this pipeline's freshly built component images instead of the
+    # versions pinned in .versions.yml, so a merge that changes a component
+    # is tested against its own build rather than the last release.
+    if [ "${USE_DEV_IMAGES:-false}" = "true" ]; then
+        local sha="$CI_COMMIT_SHORT_SHA"
+        cat >>"$SETTINGS_FILE" <<EOF
+controller_docker_image_src: "${CI_REGISTRY_IMAGE}/controller"
+opentalk_controller_version: "ubuntu-${sha}"
+obelisk_docker_image_src: "${CI_REGISTRY_IMAGE}/obelisk"
+opentalk_obelisk_version: "ubuntu-${sha}"
+orchestrator_docker_image_src: "${CI_REGISTRY_IMAGE}/orchestrator"
+opentalk_orchestrator_version: "ubuntu-${sha}"
+roomserver_docker_image_src: "${CI_REGISTRY_IMAGE}/roomserver"
+opentalk_roomserver_version: "ubuntu-${sha}"
+mailer_docker_image_src: "${CI_REGISTRY_IMAGE}/smtp-mailer"
+opentalk_smtp_mailer_version: "ubuntu-${sha}"
+recorder_docker_image_src: "${CI_REGISTRY_IMAGE}/recorder"
+opentalk_recorder_version: "intel-${sha}"
+EOF
+        echo "Using dev-tagged component images built from ${sha}."
+    fi
 }
 
 run_tests() {

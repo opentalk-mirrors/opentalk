@@ -23,6 +23,23 @@
         - compose/**/*
     - when: never
 
+# Feeds int:experimental-on-merge: a deb-only rebuild after a merge to main,
+# so the Debian integration tests have an artifact to install from that pipeline.
+# Also fires when a deployed component's own source changes, not just the
+# compose automation, since the Debian integration test exercises all of them.
+.rules_experimental_on_merge:
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - compose/**/*
+        - controller/**/*
+        - obelisk/**/*
+        - orchestrator/**/*
+        - roomserver/**/*
+        - smtp-mailer/**/*
+        - recorder/**/*
+    - when: never
+
 .package:
   stage: package
   image: $CI_REGISTRY_IMAGE/pkgbuild:latest
@@ -80,6 +97,25 @@ package:experimental:
       else
         VERSION="${CI_COMMIT_TAG#compose-}+git${CI_COMMIT_SHORT_SHA}"
       fi
+      echo "VERSION=$VERSION"
+    - just "build-${FLAVOR}-version" "$VERSION"
+  artifacts:
+    paths:
+      - compose/artifacts/*
+    expire_in: 2 hours
+
+package:experimental-on-merge:
+  extends: .package
+  needs:
+    - job: build:pkgbuild
+      optional: true
+  parallel: null
+  rules: !reference [.rules_experimental_on_merge, rules]
+  variables:
+    FLAVOR: deb
+  script:
+    - |
+      VERSION="$(yq -r '.opentalk_product_version' .versions.yml)+git${CI_COMMIT_SHORT_SHA}"
       echo "VERSION=$VERSION"
     - just "build-${FLAVOR}-version" "$VERSION"
   artifacts:
