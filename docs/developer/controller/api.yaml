@@ -3279,6 +3279,7 @@ components:
         - is_adhoc
         - e2e_encryption
         - password_required
+        - is_invited
       properties:
         e2e_encryption:
           type: boolean
@@ -3289,6 +3290,9 @@ components:
         is_adhoc:
           type: boolean
           description: True if the event was created ad-hoc
+        is_invited:
+          type: boolean
+          description: Indicates whether the current user is invited to the event
         password_required:
           type: boolean
           description: Indicates whether the meeting room requires a password to join.
@@ -3302,6 +3306,7 @@ components:
         e2e_encryption: false
         id: 00000000-0000-0000-0000-004433221100
         is_adhoc: false
+        is_invited: false
         password_required: false
         room_id: 00000000-0000-0000-0000-0000abadcafe
         title: Team Event

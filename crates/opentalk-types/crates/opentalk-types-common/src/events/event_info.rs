@@ -36,6 +36,9 @@ pub struct EventInfo {
 
     /// Indicates whether the meeting room requires a password to join.
     pub password_required: bool,
+
+    /// Indicates whether the current user is invited to the event
+    pub is_invited: bool,
 }
 
 impl ExampleData for EventInfo {
@@ -47,6 +50,7 @@ impl ExampleData for EventInfo {
             is_adhoc: false,
             e2e_encryption: false,
             password_required: false,
+            is_invited: false,
         }
     }
 }
@@ -69,6 +73,7 @@ mod serde_tests {
                 "is_adhoc": false,
                 "e2e_encryption": false,
                 "password_required": false,
+                "is_invited": false,
             })
         );
     }
@@ -82,6 +87,7 @@ mod serde_tests {
             "is_adhoc": false,
             "e2e_encryption": false,
             "password_required": false,
+            "is_invited": false,
         });
 
         assert_eq!(
