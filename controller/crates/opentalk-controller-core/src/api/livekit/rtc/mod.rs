@@ -24,6 +24,14 @@ pub mod validate;
 
 const CHANNEL_BUFFER_SIZE: usize = 32;
 
+/// Maximum size of a single WebSocket frame received from the client.
+///
+/// The actix default of 64 KiB is too small for LiveKit signaling in large meetings: the
+/// subscriber SDP (sent as `answer` and within `syncState` on resume) contains one media
+/// section per subscribed track and exceeds 64 KiB with 100+ participants, which made the
+/// proxy drop the connection.
+const MAX_FRAME_SIZE: usize = 1024 * 1024;
+
 /// Opens a new LiveKit WebSocket connection for RTC communication.
 ///
 /// This endpoint establishes a WebSocket connection to the upstream LiveKit server.
@@ -103,7 +111,7 @@ pub(crate) async fn proxy_socket(
     let upstream_socket = proxy.connect_upstream_socket(ws_request.clone()).await?;
 
     // Perform the WebSocket upgrade
-    let (response, session, msg_stream) = actix_ws::handle(&req, payload).map_err(|err| {
+    let (response, session, msg_stream) = upgrade_websocket(&req, payload).map_err(|err| {
         tracing::error!("WebSocket handshake failed: {err}");
         ApiError::internal().with_message("WebSocket handshake failed")
     })?;
@@ -219,4 +227,69 @@ fn to_http1_headers(actix_headers: &HeaderMap) -> http::HeaderMap {
             Some((name, value))
         })
         .collect()
+}
+
+fn upgrade_websocket(
+    req: &HttpRequest,
+    payload: Payload,
+) -> Result<(HttpResponse, actix_ws::Session, actix_ws::MessageStream), actix_web::Error> {
+    let (response, session, msg_stream) = actix_ws::handle(req, payload)?;
+
+    Ok((response, session, msg_stream.max_frame_size(MAX_FRAME_SIZE)))
+}
+
+#[cfg(test)]
+mod tests {
+    use actix_web::{FromRequest as _, test::TestRequest};
+
+    use super::*;
+
+    /// Encodes a masked (client to server) binary websocket frame with a zero mask key.
+    fn client_binary_frame(payload_len: usize) -> Vec<u8> {
+        let mut frame = vec![0x82, 0x80 | 127];
+        frame.extend_from_slice(&(payload_len as u64).to_be_bytes());
+        frame.extend_from_slice(&[0, 0, 0, 0]);
+        frame.resize(frame.len() + payload_len, 0xAB);
+        frame
+    }
+
+    async fn receive_frame(
+        payload_len: usize,
+    ) -> Option<Result<actix_ws::Message, actix_ws::ProtocolError>> {
+        let (req, mut payload) = TestRequest::get()
+            .insert_header(("upgrade", "websocket"))
+            .insert_header(("connection", "upgrade"))
+            .insert_header(("sec-websocket-version", "13"))
+            .insert_header(("sec-websocket-key", "dGhlIHNhbXBsZSBub25jZQ=="))
+            .set_payload(client_binary_frame(payload_len))
+            .to_http_parts();
+        let payload = Payload::from_request(&req, &mut payload).await.unwrap();
+
+        let (_response, _session, mut msg_stream) = upgrade_websocket(&req, payload).unwrap();
+
+        msg_stream.next().await
+    }
+
+    #[actix_web::test]
+    async fn accepts_client_frames_larger_than_actix_default() {
+        // Chrome sent a 68.1 kB subscriber SDP in a meeting with 100+ participants
+        let len = 68_100;
+
+        let message = receive_frame(len).await;
+
+        assert!(
+            matches!(message, Some(Ok(actix_ws::Message::Binary(ref bytes))) if bytes.len() == len),
+            "unexpected message: {message:?}"
+        );
+    }
+
+    #[actix_web::test]
+    async fn rejects_client_frames_larger_than_max_frame_size() {
+        let message = receive_frame(MAX_FRAME_SIZE + 1).await;
+
+        assert!(
+            matches!(message, Some(Err(actix_ws::ProtocolError::Overflow))),
+            "unexpected message: {message:?}"
+        );
+    }
 }
