@@ -29,6 +29,7 @@ deploy:experimental:testing:
       optional: true
   # Show manual button on tag and MR pipelines
   rules:
+    - !reference [.rules_upstream_only, rules]
     - if: '$CI_COMMIT_TAG =~ /^compose-v\d+\.\d+\.\d+/'
       when: manual
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'

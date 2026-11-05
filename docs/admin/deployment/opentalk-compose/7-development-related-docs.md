@@ -157,6 +157,12 @@ To update hook versions defined in the repository root's `.pre-commit-config.yam
 pre-commit autoupdate
 ```
 
+## Release Tags
+
+opentalk-compose shares its repository with the OpenTalk components, so its releases use their own tag prefix: `compose-` followed by the product version, for example `compose-v26.4.0` or `compose-v26.4.0-beta.1`. Only these tags start the compose release jobs; any other tag is ignored by them. The pipeline strips the prefix and uses the remaining product version everywhere else.
+
+Create the component release first. The compose release pins the component images in `.versions.yml`, and its integration tests fail if one of them has not been published yet.
+
 ## Versioning of DEB or RPM Packages
 
 Because the OpenTalk product version cannot be mapped 1:1 to DEB or RPM package versions without breaking update mechanics, product versions are converted accordingly. Nothing changes for authoring: keep using the product version schema below, prefixed with `compose-` for the git tag that triggers the release pipeline (e.g. `compose-v25.3.2`). The conversion happens when running the build scripts.

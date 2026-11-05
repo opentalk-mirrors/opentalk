@@ -71,6 +71,12 @@ repos:
         exclude: ^api/docs/openapi\.yml$
         args:
           - .
+      # The root .yamllint.yaml ignores compose/, which has its own rules.
+      - id: yamllint
+        name: yamllint (compose)
+        entry: bash -c 'cd compose && yamllint .'
+        files: ^compose/
+        pass_filenames: false
   - repo: https://github.com/fsfe/reuse-tool
     rev: v6.2.0
     hooks:
@@ -79,8 +85,49 @@ repos:
     rev: v0.23.3
     hooks:
       - id: markdownlint-cli2-docker
+        # compose/ is linted with mdl and its own style below, like in CI.
+        exclude: ^compose/
         args:
           - --warnings
+  # opentalk-compose: the same checks as its CI lint jobs, run from compose/.
+  - repo: https://github.com/ansible/ansible-lint.git
+    rev: v25.11.0
+    hooks:
+      - id: ansible-lint
+        name: ansible-lint (compose)
+        entry: bash -c 'cd compose && ANSIBLE_COLLECTIONS_PATH=.ansible/collections ansible-lint automation'
+        files: ^compose/.*\.ya?ml$
+        language_version: python3
+        pass_filenames: false
+  - repo: local
+    hooks:
+      - id: compose-shellcheck
+        name: shellcheck (compose)
+        # The wrappers have no .sh extension, so list them explicitly.
+        entry: >-
+          bash -c 'cd compose &&
+          git ls-files -z "*.sh" | xargs -0r shellcheck &&
+          shellcheck extras/packaging/wrappers/*'
+        language: system
+        files: ^compose/
+        pass_filenames: false
+      - id: compose-markdown
+        name: mdl (compose)
+        entry: |
+          bash -c '
+          cd compose &&
+          git ls-files "*.md" |
+          grep -v "docs/6-configuration-options-reference.md" |
+          xargs -P4 -n1 sh -c "
+            f=\"\$1\";
+            sed \"/\\[\\[_TOC_\\]\\]/Id\" \"\$f\" |
+            mdl --style .markdown_style.rb - 2>&1 |
+            sed \"s|^|\$f: |\"
+          " _
+          '
+        language: system
+        files: ^compose/.*\.md$
+        pass_filenames: false
   # No official hooks for commitlint available, this one seems actively maintained
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
     rev: v9.27.0

@@ -19,8 +19,23 @@ include:
 .template_pkg_vars:
   FLAVORS_PKG: ['deb', 'rpm']
 
-.template_dist_vars:
-  FLAVORS_DIST: ['debian12', 'debian13', 'opensuse15', 'opensuse16', 'rocky9', 'ubuntu2404']
+# Releases of opentalk-compose are tagged `compose-vX.Y.Z[-(alpha|beta).N]`; the
+# components use their own tags. Keep compose jobs out of pipelines for any other
+# tag, and out of branch push pipelines that duplicate an open merge request
+# pipeline. Scheduled pipelines on such a branch still run.
+.rules_compose_only:
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG !~ /^compose-v/'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+
+# Jobs that publish, deploy or trigger other projects need credentials that only
+# the upstream project has. Forks run everything up to and including integration.
+.rules_upstream_only:
+  rules:
+    - if: '$CI_PROJECT_ROOT_NAMESPACE != "opentalk"'
+      when: never
 
 .default_conditions: &default_conditions
   image: $CI_REGISTRY_IMAGE/pkgbuild:latest
@@ -28,6 +43,7 @@ include:
     - job: build:pkgbuild
       optional: true
   rules:
+    - !reference [.rules_compose_only, rules]
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
         - compose/**/*
@@ -41,21 +57,6 @@ include:
   before_script:
     - cd "$CI_PROJECT_DIR/compose"
 
-trigger_changelog_preview:
-  stage: trigger
-  needs: []
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      changes:
-        - compose/**/*
-  variables:
-    PIPELINE_PROJECT_PATH: $CI_PROJECT_PATH
-    PIPELINE_MERGE_REQUEST_PROJECT_PATH: $CI_MERGE_REQUEST_SOURCE_PROJECT_PATH
-    PIPELINE_MERGE_REQUEST_SOURCE_BRANCH_NAME: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
-    PIPELINE_MERGE_REQUEST_TARGET_BRANCH_NAME: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-    PIPELINE_MERGE_REQUEST_IID: $CI_MERGE_REQUEST_IID
-  trigger: opentalk/tools/check-changelog
-
 build:pkgbuild:
   stage: image
   image: docker:27-cli
@@ -67,6 +68,7 @@ build:pkgbuild:
     DOCKER_HOST: tcp://docker:2375
     DOCKER_TLS_CERTDIR: ""
   rules:
+    - !reference [.rules_compose_only, rules]
     - changes:
         - compose/extras/ci/pkgbuild/**/*
         - compose/.gitlab-ci.yml
