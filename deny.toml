@@ -109,6 +109,12 @@ ignore = [
   # zvariant_derive unmaintained (merged into zbus@6)
   # Transitive dependency of eframe via accesskit/atspi, which still depend on zbus@5
   "RUSTSEC-2026-0372",
+  # astral-tokio-tar unmaintained
+  # Transitive dev-dependency via testcontainers@0.28 (latest), no alternative available
+  "RUSTSEC-2026-0440",
+  # pin-utils unmaintained
+  # Transitive dependency of obelisk via rtp -> webrtc-util@0.17 (latest) -> nix@0.26
+  "RUSTSEC-2026-0441",
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
