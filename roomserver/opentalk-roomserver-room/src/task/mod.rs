@@ -1121,7 +1121,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         device_id: DeviceId,
-        client_kind: ClientKind,
+        mut client_kind: ClientKind,
         display_name: DisplayName,
         mut role: Role,
     ) -> Result<(), FatalError> {
@@ -1134,6 +1134,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     state.left_at = None;
                     state.display_name = display_name;
                 }
+                // The client kind received on the first join is kept for the whole meeting
+                client_kind = state.kind.clone();
                 state.in_waiting_room = false;
                 state.connections.insert(connection_id, device_id);
                 role = state.role;

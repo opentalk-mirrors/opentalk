@@ -113,8 +113,15 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                         in_waiting_room: false,
                     },
                 )]);
+                // The client kind received on the first join is kept for the whole meeting
+                let kind = self
+                    .participants
+                    .all_unfiltered
+                    .get(&participant_id)
+                    .map(|state| state.kind.clone())
+                    .unwrap_or(client_parameters.kind);
                 vacant_entry.insert(LobbyParticipant::new(
-                    client_parameters.kind,
+                    kind,
                     role,
                     connections,
                     can_enter,
