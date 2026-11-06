@@ -78,7 +78,7 @@ use opentalk_roomserver_signaling::{
 use opentalk_roomserver_types::{
     breakout::BREAKOUT_MODULE_ID,
     client_allowed::{ClientAllowed, ClientNotAllowedReason},
-    client_parameters::{ClientKind, ClientParameters, ParticipationKind, Role},
+    client_parameters::{ClientKind, ClientParameters, ParticipationKind},
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, RoomCloseReason},
     device_id::DeviceId,
@@ -97,7 +97,7 @@ use opentalk_types_common::{
     time::Timestamp,
     users::{DisplayName, UserId},
 };
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use tokio::sync::{mpsc, oneshot};
 use tracing::Instrument;
 use uuid::Uuid;
@@ -412,8 +412,9 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 response: response_tx,
                 user_id,
                 participation_kind,
+                role,
             } => {
-                let client_allowed = self.is_client_allowed(user_id, participation_kind);
+                let client_allowed = self.is_client_allowed(user_id, participation_kind, role);
 
                 response_tx
                     .send(Ok(client_allowed))
@@ -646,6 +647,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     fn calculate_new_role(role: Role, reason: &KickReason) -> Role {
         match role {
+            Role::Guest => Role::Guest,
             Role::User => Role::User,
             // In case of debriefing, moderators must keep their roles
             // Otherwise degrade them to users
@@ -794,7 +796,12 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    fn is_client_allowed(&self, user_id: Option<UserId>, kind: ParticipationKind) -> ClientAllowed {
+    fn is_client_allowed(
+        &self,
+        user_id: Option<UserId>,
+        kind: ParticipationKind,
+        role: Role,
+    ) -> ClientAllowed {
         // Check if the user is banned
         if let Some(user_id) = user_id {
             let participant_id = ParticipantId::from(Uuid::from(user_id));
@@ -814,7 +821,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         // Check guest access
-        if !self.info.room.guest_access && kind.is_guest_or_callin() {
+        if !self.info.room.guest_access && role.is_guest() {
             ClientAllowed::No {
                 reason: ClientNotAllowedReason::GuestAccessDisabled,
             }
@@ -1045,8 +1052,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         socket: Socket,
         client_parameters: ClientParameters,
     ) -> Result<(), FatalError> {
-        let device_id = self.derive_device_id(&client_parameters.device_secret);
-        let participant_id = build_participant_id(&client_parameters.kind, device_id);
+        let device_id = self.derive_device_id(client_parameters.device_secret());
+        let participant_id = build_participant_id(client_parameters.kind(), device_id);
 
         // Enforce room participant limit
         if self.exceeds_room_participant_limit(participant_id) {
@@ -1062,7 +1069,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         // known, but the participant kinds differ.
         if let Some(existing_participant) = self.participants.all_unfiltered.get(&participant_id)
             && mem::discriminant(&existing_participant.kind)
-                != mem::discriminant(&client_parameters.kind)
+                != mem::discriminant(client_parameters.kind())
         {
             tracing::error!("ParticipantId collision, dropping new participant ({participant_id})");
             return Ok(());
@@ -1128,17 +1135,19 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         match self.participants.all_unfiltered.entry(participant_id) {
             Occupied(mut occupied) => {
                 let state = occupied.get_mut();
-                // Set join/leave timestamps & display name when this is the first device
-                if !state.is_connected() {
+                // Set join/leave timestamps, display name & role when this is the first device
+                if state.is_connected() {
+                    role = state.role;
+                } else {
                     state.joined_at = Utc::now();
                     state.left_at = None;
                     state.display_name = display_name;
+                    state.role = role;
                 }
                 // The client kind received on the first join is kept for the whole meeting
                 client_kind = state.kind.clone();
                 state.in_waiting_room = false;
                 state.connections.insert(connection_id, device_id);
-                role = state.role;
             }
             Vacant(vacant) => {
                 vacant
@@ -1270,7 +1279,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 fn build_participant_id(kind: &ClientKind, device_id: DeviceId) -> ParticipantId {
     match kind {
         ClientKind::Registered { profile } => participant_id_from_uuid(profile.id),
-        ClientKind::Guest
+        ClientKind::Unregistered
         | ClientKind::Recorder { .. }
         | ClientKind::Transcription { .. }
         | ClientKind::CallIn => participant_id_from_uuid(device_id),

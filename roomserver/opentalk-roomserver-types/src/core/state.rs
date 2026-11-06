@@ -2,15 +2,12 @@
 // SPDX-FileCopyrightText: OpenTalk Team <mail@opentalk.eu>
 
 use opentalk_types_common::{modules::ModuleId, time::Timestamp, users::DisplayName};
-use opentalk_types_signaling::SignalingModulePeerFrontendData;
+use opentalk_types_signaling::{Role, SignalingModulePeerFrontendData};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    client_parameters::{ParticipationKind, Role},
-    core::CORE_MODULE_ID,
-};
+use crate::{client_parameters::ParticipationKind, core::CORE_MODULE_ID};
 
-/// The state of a participant in the `control` module.
+/// The state of a participant in the `core` module.
 ///
 /// This struct is sent to the participant in the `join_success` message
 /// when they join successfully to the meeting.

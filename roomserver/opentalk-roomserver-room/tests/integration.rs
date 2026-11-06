@@ -18,7 +18,7 @@ use opentalk_roomserver_room::mocking::{
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, ClientParameters, Role},
+    client_parameters::{ClientKind, ClientParameters},
     core::{CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, RoomCloseReason, state::CoreState},
     error::SignalingError,
     rate_limit::RateLimitSettings,
@@ -35,6 +35,7 @@ use opentalk_types_common::{
     users::DisplayName,
     utils::ExampleData,
 };
+use opentalk_types_signaling::Role;
 use serde_json::json;
 
 const ROOM_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
@@ -431,13 +432,19 @@ async fn enter_room_with_display_name(
     role: Role,
     display_name: Option<DisplayName>,
 ) -> CoreEvent {
+    let device_secret = DeviceSecret::from_str("Display Name Test Device Secret")
+        .expect("Hardcoded device secret must be valid");
+    let client_parameters = match kind {
+        ClientKind::Registered { profile } => {
+            ClientParameters::registered(device_secret, profile, role)
+        }
+        ClientKind::Unregistered => ClientParameters::unregistered(device_secret),
+        ClientKind::Recorder { room } => ClientParameters::recorder(device_secret, room),
+        ClientKind::Transcription { room } => ClientParameters::transcription(device_secret, room),
+        ClientKind::CallIn => ClientParameters::call_in(device_secret),
+    };
     let mut participant = room
-        .enter_lobby(ClientParameters {
-            device_secret: DeviceSecret::from_str("Display Name Test Device Secret")
-                .expect("Hardcoded device secret must be valid"),
-            kind,
-            role,
-        })
+        .enter_lobby(client_parameters)
         .await
         .expect("Failed to join lobby");
     participant
@@ -454,7 +461,8 @@ async fn enter_room_with_display_name(
 #[test_log::test(tokio::test)]
 async fn guest_must_provide_display_name_to_enter_room() {
     let mut room = TestRoom::builder().spawn();
-    let event = enter_room_with_display_name(&mut room, ClientKind::Guest, Role::User, None).await;
+    let event =
+        enter_room_with_display_name(&mut room, ClientKind::Unregistered, Role::User, None).await;
     assert_matches!(event, CoreEvent::Error(CoreError::DisplayNameRequired));
 }
 
@@ -463,7 +471,7 @@ async fn guest_can_provide_display_name() {
     let mut room = TestRoom::builder().spawn();
     let event = enter_room_with_display_name(
         &mut room,
-        ClientKind::Guest,
+        ClientKind::Unregistered,
         Role::User,
         Some(DisplayName::from_str_lossy("Gustav")),
     )

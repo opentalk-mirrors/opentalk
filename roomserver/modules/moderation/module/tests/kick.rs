@@ -9,15 +9,15 @@ use opentalk_roomserver_room::mocking::{
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
-    client_parameters::Role, core::CoreEvent, disconnect_reason::DisconnectReason,
-    kick_reason::KickReason, room_parameters::WaitingRoom, signaling::websocket::CloseFrame,
+    core::CoreEvent, disconnect_reason::DisconnectReason, kick_reason::KickReason,
+    room_parameters::WaitingRoom, signaling::websocket::CloseFrame,
 };
 use opentalk_roomserver_types_moderation::{
     command::ModerationCommand,
     event::{ModerationError, ModerationEvent},
     state::ModeratorJoinInfo,
 };
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 
 async fn receive_waiting_room_updated<S>(
     participants: &mut [&mut MockParticipant<S>],

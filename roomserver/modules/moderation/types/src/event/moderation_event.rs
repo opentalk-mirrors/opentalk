@@ -4,11 +4,9 @@
 
 use std::collections::{BTreeSet, HashSet};
 
-use opentalk_roomserver_types::{
-    client_parameters::Role, kick_reason::KickReason, room_parameters::WaitingRoom,
-};
+use opentalk_roomserver_types::{kick_reason::KickReason, room_parameters::WaitingRoom};
 use opentalk_types_common::users::DisplayName;
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -143,8 +141,7 @@ impl From<ModerationError> for ModerationEvent {
 #[cfg(test)]
 mod tests {
     use insta::assert_snapshot;
-    use opentalk_roomserver_types::client_parameters::Role;
-    use opentalk_types_signaling::ParticipantId;
+    use opentalk_types_signaling::{ParticipantId, Role};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 

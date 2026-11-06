@@ -21,7 +21,7 @@ use opentalk_roomserver_types_moderation::{
     event::{BannedParticipantInfo, ModerationError, ModerationEvent},
 };
 use opentalk_types_common::users::UserId;
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use uuid::Uuid;
 
 #[test_log::test(tokio::test)]
@@ -143,12 +143,15 @@ async fn unban_participant() {
 
     let allowed = room
         .room_handle
-        .is_client_allowed(&ClientKind::Registered {
-            profile: PublicUserProfile {
-                id: UserId::from(Uuid::from(bob.id())),
-                ..bob_public_user_profile()
+        .is_client_allowed(
+            &ClientKind::Registered {
+                profile: PublicUserProfile {
+                    id: UserId::from(Uuid::from(bob.id())),
+                    ..bob_public_user_profile()
+                },
             },
-        })
+            Role::User,
+        )
         .await
         .unwrap();
     assert_eq!(
@@ -178,12 +181,15 @@ async fn unban_participant() {
 
     let allowed = room
         .room_handle
-        .is_client_allowed(&ClientKind::Registered {
-            profile: PublicUserProfile {
-                id: UserId::from(Uuid::from(bob.id())),
-                ..bob_public_user_profile()
+        .is_client_allowed(
+            &ClientKind::Registered {
+                profile: PublicUserProfile {
+                    id: UserId::from(Uuid::from(bob.id())),
+                    ..bob_public_user_profile()
+                },
             },
-        })
+            Role::User,
+        )
         .await
         .unwrap();
 

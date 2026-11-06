@@ -187,7 +187,7 @@ impl Metrics {
         const PARTICIPATION_KIND: &str = "participation_kind";
         let kind = match kind {
             ParticipationKind::Registered => "user",
-            ParticipationKind::Guest => "guest",
+            ParticipationKind::Unregistered => "guest",
             ParticipationKind::Recorder => "recorder",
             ParticipationKind::Transcription => "transcription",
             ParticipationKind::CallIn => "call_in",

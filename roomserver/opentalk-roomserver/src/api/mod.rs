@@ -313,11 +313,11 @@ impl RoomBackend for Context {
             (None, Some(parameters)) => {
                 // Check services before guest access, so services receive the correct
                 // `e2ee_enabled` reason instead of the `not_found` that is sent to guests.
-                if client_parameters.kind.is_service_or_callin() && parameters.e2e_encryption {
+                if client_parameters.kind().is_service_or_callin() && parameters.e2e_encryption {
                     return Err(ApiError::e2ee_enabled());
                 }
 
-                if client_parameters.kind.is_guest_or_callin() && !parameters.guest_access {
+                if client_parameters.role().is_guest() && !parameters.guest_access {
                     return Err(ApiError::guest_access_disabled());
                 }
 
@@ -336,7 +336,7 @@ impl RoomBackend for Context {
                 }
 
                 let allowed = task_handle
-                    .is_client_allowed(&client_parameters.kind)
+                    .is_client_allowed(client_parameters.kind(), client_parameters.role())
                     .await?;
                 reject_if_client_not_allowed(allowed)?;
             }
@@ -518,12 +518,8 @@ mod test {
     use icu_locid::langid;
     use opentalk_roomserver_common::settings::{ControllerConfig, Http};
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, Role},
-        module_settings::ModuleSettings,
-        public_user_profile::PublicUserProfile,
-        room_kind::RoomKind,
-        room_parameters::WaitingRoom,
-        tariff_details::TariffDetails,
+        module_settings::ModuleSettings, public_user_profile::PublicUserProfile,
+        room_kind::RoomKind, room_parameters::WaitingRoom, tariff_details::TariffDetails,
     };
     use opentalk_roomserver_web_api::v1::signaling::SignalingBackend;
     use opentalk_service_auth::{ApiKey, service::ApiKeys};
@@ -534,6 +530,7 @@ mod test {
         users::{DisplayName, UserId, UserInfo, UserTitle},
         utils::ExampleData,
     };
+    use opentalk_types_signaling::Role;
     use pretty_assertions::assert_eq;
     use url::Url;
 
@@ -582,50 +579,34 @@ mod test {
     }
 
     fn recorder_client_parameters() -> ClientParameters {
-        ClientParameters {
-            device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Recorder {
-                room: RoomKind::Main,
-            },
-            role: Role::User,
-        }
+        ClientParameters::recorder(DeviceSecret::example_data(), RoomKind::Main)
     }
 
     fn call_in_client_parameters() -> ClientParameters {
-        ClientParameters {
-            device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::CallIn,
-            role: Role::User,
-        }
+        ClientParameters::call_in(DeviceSecret::example_data())
     }
 
     fn guest_client_parameters() -> ClientParameters {
-        ClientParameters {
-            device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Guest,
-            role: Role::User,
-        }
+        ClientParameters::unregistered(DeviceSecret::example_data())
     }
 
     fn registered_client_parameters() -> ClientParameters {
-        ClientParameters {
-            device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Registered {
-                profile: PublicUserProfile {
-                    id: UserId::nil(),
-                    email: "example@opentalk.eu".into(),
-                    user_info: UserInfo {
-                        title: UserTitle::new(),
-                        firstname: "Test".into(),
-                        lastname: "Tester".into(),
-                        display_name: DisplayName::from_str_lossy("tester"),
-                        avatar_url: "example.com".into(),
-                    },
-                    timezone: TimeZone::example_data(),
+        ClientParameters::registered(
+            DeviceSecret::example_data(),
+            PublicUserProfile {
+                id: UserId::nil(),
+                email: "example@opentalk.eu".into(),
+                user_info: UserInfo {
+                    title: UserTitle::new(),
+                    firstname: "Test".into(),
+                    lastname: "Tester".into(),
+                    display_name: DisplayName::from_str_lossy("tester"),
+                    avatar_url: "example.com".into(),
                 },
+                timezone: TimeZone::example_data(),
             },
-            role: Role::Moderator,
-        }
+            Role::Moderator,
+        )
     }
 
     fn room_parameters() -> RoomParameters {
@@ -834,9 +815,13 @@ mod test {
             .await;
         assert!(token.is_ok());
 
-        ctx.reject_if_client_not_allowed(&guest_client_parameters().kind, room_id)
-            .await
-            .expect("Guest must be allowed while guest access is enabled");
+        ctx.reject_if_client_not_allowed(
+            guest_client_parameters().kind(),
+            guest_client_parameters().role(),
+            room_id,
+        )
+        .await
+        .expect("Guest must be allowed while guest access is enabled");
 
         // Guest access is disabled after the token was issued
         let room_action = ctx
@@ -852,7 +837,11 @@ mod test {
 
         // Opening a signaling connection with the previously issued token must be rejected
         let error = ctx
-            .reject_if_client_not_allowed(&guest_client_parameters().kind, room_id)
+            .reject_if_client_not_allowed(
+                guest_client_parameters().kind(),
+                guest_client_parameters().role(),
+                room_id,
+            )
             .await
             .unwrap_err();
 

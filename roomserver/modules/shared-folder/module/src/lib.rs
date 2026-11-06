@@ -24,14 +24,13 @@ use opentalk_roomserver_signaling::{
     },
 };
 use opentalk_roomserver_types::{
-    client_parameters::Role, connection_id::ConnectionId,
-    signaling::module_error::SignalingModuleError,
+    connection_id::ConnectionId, signaling::module_error::SignalingModuleError,
 };
 use opentalk_roomserver_types_shared_folder::{
     SHARED_FOLDER_MODULE_ID, command::SharedFolderCommand, event::SharedFolderEvent,
 };
 use opentalk_types_common::{modules::ModuleId, shared_folders::SharedFolder};
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 
 pub struct SharedFolderModule {
     state: SharedFolder,

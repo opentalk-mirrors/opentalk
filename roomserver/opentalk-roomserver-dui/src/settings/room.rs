@@ -16,7 +16,7 @@ use opentalk_roomserver_client::api::{
     event::{E2EE_MODULE_ID, SHARED_FOLDER_MODULE_ID, WHITEBOARD_MODULE_ID},
 };
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, ClientParameters, Role},
+    client_parameters::ClientParameters,
     module_settings::ModuleSettings,
     public_user_profile::PublicUserProfile,
     room_parameters::{EventContext, RoomParameters, WaitingRoom},
@@ -32,6 +32,7 @@ use opentalk_types_common::{
     users::{UserId, UserInfo},
     utils::ExampleData,
 };
+use opentalk_types_signaling::Role;
 
 pub fn alice_profile() -> PublicUserProfile {
     PublicUserProfile {
@@ -138,35 +139,29 @@ pub fn default_room_parameters() -> RoomParameters {
 }
 
 pub fn alice_client_parameters(connection: usize) -> ClientParameters {
-    ClientParameters {
-        device_secret: format!("v3rys3cr3tD3v1ce5tr1ng-alice-{connection}")
+    ClientParameters::registered(
+        format!("v3rys3cr3tD3v1ce5tr1ng-alice-{connection}")
             .parse()
             .expect("secret must be valid"),
-        kind: ClientKind::Registered {
-            profile: alice_profile(),
-        },
-        role: Role::Moderator,
-    }
+        alice_profile(),
+        Role::Moderator,
+    )
 }
 
 pub fn bob_client_parameters(connection: usize) -> ClientParameters {
-    ClientParameters {
-        device_secret: format!("v3rys3cr3tD3v1ce5tr1ng-bob-{connection}")
+    ClientParameters::registered(
+        format!("v3rys3cr3tD3v1ce5tr1ng-bob-{connection}")
             .parse()
             .expect("secret must be valid"),
-        kind: ClientKind::Registered {
-            profile: bob_profile(),
-        },
-        role: Role::User,
-    }
+        bob_profile(),
+        Role::User,
+    )
 }
 
 pub fn gustav_client_parameters(connection: usize) -> ClientParameters {
-    ClientParameters {
-        device_secret: format!("v3rys3cr3tD3v1ce5tr1ng-gustav-{connection}")
+    ClientParameters::unregistered(
+        format!("v3rys3cr3tD3v1ce5tr1ng-gustav-{connection}")
             .parse()
             .expect("secret must be valid"),
-        kind: ClientKind::Guest,
-        role: Role::User,
-    }
+    )
 }

@@ -20,7 +20,6 @@ use opentalk_roomserver_signaling::{
     },
 };
 use opentalk_roomserver_types::{
-    client_parameters::Role,
     connection_id::ConnectionId,
     kick_reason::KickReason,
     room_parameters::WaitingRoom,
@@ -39,7 +38,7 @@ use opentalk_roomserver_types_moderation::{
     },
 };
 use opentalk_types_common::{modules::ModuleId, users::DisplayName};
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use tokio::sync::oneshot;
 
 struct EntryChange {
@@ -436,8 +435,12 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         };
 
-        if !target_state.kind.is_registered() {
+        if target_state.role.is_guest() || target_state.kind.is_service() {
             return Err(ModerationError::UserCannotBeModerator.into());
+        }
+
+        if new_role.is_guest() {
+            return Err(ModerationError::UserCannotBeGuest.into());
         }
 
         if target_state.role == new_role {
@@ -566,7 +569,7 @@ impl ModerationModule {
         let mut non_guests = Vec::new();
         let mut guests = Vec::new();
         for (&id, state) in ctx.participants.connected().iter() {
-            if state.kind.is_guest_or_callin() {
+            if state.role.is_guest() {
                 guests.push(id);
             } else {
                 non_guests.push(id);
@@ -585,7 +588,7 @@ impl ModerationModule {
         let lobby_guests = ctx
             .lobby_participants
             .iter()
-            .filter_map(|(id, state)| state.kind.is_guest_or_callin().then_some(*id));
+            .filter_map(|(id, state)| state.role.is_guest().then_some(*id));
 
         // Notify guests in the lobby that they will be kicked
         ctx.send_ws_message_to_lobby(
@@ -704,7 +707,7 @@ impl ModerationModule {
         let mut not_kicked = Vec::new();
 
         for (id, state) in participants {
-            if scope.kicks(state.role, &state.kind) {
+            if scope.kicks(state.role) {
                 kicked.push(*id);
             } else {
                 not_kicked.push(*id);
@@ -817,7 +820,8 @@ impl ModerationModule {
             return Err(ModerationError::UnknownParticipant.into());
         };
 
-        if !participant.kind.is_guest_or_callin() {
+        // Only guests can be renamed, this includes call-in participants
+        if !participant.role.is_guest() {
             return Err(ModerationError::CannotChangeNameOfRegisteredUsers.into());
         };
 
@@ -1006,7 +1010,7 @@ impl ModerationModule {
         };
 
         let current_waiting_room = ctx.room_task_info.room.waiting_room;
-        let required_waiting_room = current_waiting_room.raise_to_include(&state.kind);
+        let required_waiting_room = current_waiting_room.raise_to_include(&state.kind, state.role);
         if required_waiting_room > current_waiting_room {
             Self::update_waiting_room(ctx, required_waiting_room)?;
         }
@@ -1054,12 +1058,11 @@ mod tests {
         signaling_module::SignalingModuleDescription as _,
     };
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, Role},
-        public_user_profile::PublicUserProfile,
+        client_parameters::ClientKind, public_user_profile::PublicUserProfile,
         room_parameters::WaitingRoom,
     };
     use opentalk_types_common::{time::Timestamp, users::DisplayName, utils::ExampleData};
-    use opentalk_types_signaling::ParticipantId;
+    use opentalk_types_signaling::{ParticipantId, Role};
 
     use super::ModerationModule;
     use crate::EntryChange;
@@ -1069,13 +1072,11 @@ mod tests {
         accepted: bool,
         waiting_room_state: Option<WaitingRoomState>,
     ) -> LobbyParticipant {
-        LobbyParticipant::new(
-            kind,
-            Role::User,
-            HashMap::new(),
-            accepted,
-            waiting_room_state,
-        )
+        let role = match kind {
+            ClientKind::Unregistered | ClientKind::CallIn => Role::Guest,
+            _ => Role::User,
+        };
+        LobbyParticipant::new(kind, role, HashMap::new(), accepted, waiting_room_state)
     }
 
     fn registered() -> ClientKind {
@@ -1103,7 +1104,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, true, Some(waiting_room_state())),
+            lobby_participant(ClientKind::Unregistered, true, Some(waiting_room_state())),
         )]);
 
         let EntryChange {
@@ -1157,7 +1158,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, false, None),
+            lobby_participant(ClientKind::Unregistered, false, None),
         )]);
 
         let EntryChange {
@@ -1181,7 +1182,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, true, None),
+            lobby_participant(ClientKind::Unregistered, true, None),
         )]);
 
         let EntryChange {
@@ -1207,7 +1208,7 @@ mod tests {
         // Already blocked; a stricter waiting room keeps them blocked.
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, false, None),
+            lobby_participant(ClientKind::Unregistered, false, None),
         )]);
         let EntryChange {
             now_allowed,
@@ -1229,7 +1230,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, false, Some(waiting_room_state())),
+            lobby_participant(ClientKind::Unregistered, false, Some(waiting_room_state())),
         )]);
 
         let EntryChange {
@@ -1253,7 +1254,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, false, Some(waiting_room_state())),
+            lobby_participant(ClientKind::Unregistered, false, Some(waiting_room_state())),
         )]);
 
         let EntryChange {
@@ -1286,7 +1287,7 @@ mod tests {
             ),
             (
                 guest_in_lobby,
-                lobby_participant(ClientKind::Guest, true, None),
+                lobby_participant(ClientKind::Unregistered, true, None),
             ),
             (
                 registered_in_waiting_room,
@@ -1294,7 +1295,7 @@ mod tests {
             ),
             (
                 guest_in_wating_room,
-                lobby_participant(ClientKind::Guest, false, Some(waiting_room_state())),
+                lobby_participant(ClientKind::Unregistered, false, Some(waiting_room_state())),
             ),
         ]);
 
@@ -1323,7 +1324,7 @@ mod tests {
         let participant_id = ParticipantId::from_u128(1);
         let mut lobby_participants = HashMap::from_iter([(
             participant_id,
-            lobby_participant(ClientKind::Guest, true, None),
+            lobby_participant(ClientKind::Unregistered, true, None),
         )]);
 
         // The guest already has a conference presence (e.g. reconnecting with another device),
@@ -1331,9 +1332,9 @@ mod tests {
         let conference_participants = HashMap::from_iter([(
             participant_id,
             ParticipantState::new(
-                ClientKind::Guest,
+                ClientKind::Unregistered,
                 DisplayName::from_str_lossy("Alice"),
-                Role::User,
+                Role::Guest,
                 Timestamp::unix_epoch().into(),
                 false,
             ),

@@ -35,6 +35,7 @@ opentalk-roomserver-web-api.workspace = true
 opentalk-tracing.workspace = true
 opentalk-types-api-internal = { workspace = true, features = ["utoipa"] }
 opentalk-types-common.workspace = true
+opentalk-types-signaling.workspace = true
 opentalk-version.workspace = true
 reqwest.workspace = true
 service-probe.workspace = true
@@ -52,6 +53,7 @@ yaml-rust2.workspace = true
 icu_locid.workspace = true
 opentalk-roomserver-room = { workspace = true, features = ["mock"] }
 opentalk-service-auth.workspace = true
+opentalk-types-signaling.workspace = true
 pretty_assertions.workspace = true
 reqwest.workspace = true
 test-log.workspace = true

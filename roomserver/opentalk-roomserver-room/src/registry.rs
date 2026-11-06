@@ -11,6 +11,7 @@ use opentalk_roomserver_types::{
 };
 use opentalk_types_api_internal::error::ApiError;
 use opentalk_types_common::{rooms::RoomId, users::UserId};
+use opentalk_types_signaling::Role;
 use tokio::sync::{Notify, RwLock};
 
 use crate::{
@@ -171,6 +172,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
     pub async fn is_client_allowed(
         &self,
         kind: &ClientKind,
+        role: Role,
         room_id: RoomId,
     ) -> Result<ClientAllowed, ApiError> {
         self.rooms
@@ -179,7 +181,7 @@ impl<Socket: SignalingSocket> RoomTaskRegistry<Socket> {
             .map()
             .get(&room_id)
             .ok_or_else(ApiError::not_found)?
-            .is_client_allowed(kind)
+            .is_client_allowed(kind, role)
             .await
     }
 

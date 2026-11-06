@@ -5,13 +5,11 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use chrono::{DateTime, Utc};
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, Role},
-    connection_id::ConnectionId,
-    device_id::DeviceId,
+    client_parameters::ClientKind, connection_id::ConnectionId, device_id::DeviceId,
     room_kind::RoomKind,
 };
 use opentalk_types_common::users::DisplayName;
-use opentalk_types_signaling::{ParticipantId, ParticipationVisibility};
+use opentalk_types_signaling::{ParticipantId, ParticipationVisibility, Role};
 
 use crate::participant_filter::{ParticipantsFiltered, ParticipantsFilteredMut};
 
@@ -189,9 +187,9 @@ mod tests {
             connected_participant_1,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 display_name: DisplayName::from_str_lossy("Guest"),
-                role: Role::User,
+                role: Role::Guest,
                 connections: HashMap::from([(ConnectionId::generate(), DeviceId::nil())]),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: None,
@@ -259,9 +257,9 @@ mod tests {
             disconnected_breakout,
             ParticipantState {
                 room: RoomKind::Breakout(BreakoutId::from(0)),
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 display_name: DisplayName::from_str_lossy("Guest"),
-                role: Role::User,
+                role: Role::Guest,
                 connections: HashMap::from([]),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
@@ -377,7 +375,7 @@ mod tests {
             guest,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 display_name: DisplayName::from_str_lossy("Guest"),
                 role: Role::User,
                 connections: HashMap::new(),
@@ -449,9 +447,9 @@ mod tests {
             guest,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 display_name: DisplayName::from_str_lossy("Guest"),
-                role: Role::User,
+                role: Role::Guest,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: Some(DateTime::UNIX_EPOCH + Duration::hours(1)),
@@ -512,9 +510,9 @@ mod tests {
             guest,
             ParticipantState {
                 room: RoomKind::Main,
-                kind: ClientKind::Guest,
+                kind: ClientKind::Unregistered,
                 display_name: DisplayName::from_str_lossy("Guest"),
-                role: Role::User,
+                role: Role::Guest,
                 connections: HashMap::new(),
                 joined_at: DateTime::UNIX_EPOCH,
                 left_at: None,

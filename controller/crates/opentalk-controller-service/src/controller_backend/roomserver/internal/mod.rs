@@ -163,7 +163,7 @@ impl RoomServerBackend for InternalRoomServer {
             }
 
             match task_handle
-                .is_client_allowed(&client_parameters.kind)
+                .is_client_allowed(client_parameters.kind(), client_parameters.role())
                 .await?
             {
                 ClientAllowed::Yes => {}
@@ -192,14 +192,14 @@ impl RoomServerBackend for InternalRoomServer {
         } else {
             // Check services before guest access, so services receive the correct `e2ee_enabled`
             // reason instead of the `not_found` that is sent to guests.
-            if client_parameters.kind.is_service_or_callin() && room.e2e_encryption {
+            if client_parameters.kind().is_service_or_callin() && room.e2e_encryption {
                 log::debug!(
                     "Service attempted to request a token for a room with e2ee enabled, rejecting access"
                 );
                 return Err(ApiError::e2ee_enabled());
             }
 
-            if client_parameters.kind.is_guest_or_callin() && room.guest_access.is_disabled() {
+            if client_parameters.role().is_guest() && room.guest_access.is_disabled() {
                 log::debug!(
                     "Guest attempted to request a token for a room with guest access disabled, rejecting access"
                 );
@@ -360,7 +360,11 @@ impl SignalingHandler for InternalRoomServer {
         // proof that the room exists and that access was granted when the token was issued.
         match self
             .room_tasks
-            .is_client_allowed(&ctx.client_parameters.kind, ctx.room_id)
+            .is_client_allowed(
+                ctx.client_parameters.kind(),
+                ctx.client_parameters.role(),
+                ctx.room_id,
+            )
             .await?
         {
             ClientAllowed::Yes => Ok(AuthorizedClientContext(ctx)),
@@ -413,12 +417,11 @@ mod test {
     use opentalk_controller_settings::test_util::settings_provider_from_example_raw_settings;
     use opentalk_inventory::{MockInventory, MockInventoryProvider};
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, Role},
-        public_user_profile::PublicUserProfile,
-        room_kind::RoomKind,
+        public_user_profile::PublicUserProfile, room_kind::RoomKind,
         room_parameters::RoomParameters,
     };
     use opentalk_types_common::{roomserver::DeviceSecret, utils::ExampleData};
+    use opentalk_types_signaling::Role;
     use pretty_assertions::assert_eq;
 
     use super::*;
@@ -451,39 +454,23 @@ mod test {
     }
 
     fn recorder_client_parameters() -> ClientParameters {
-        ClientParameters {
-            device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Recorder {
-                room: RoomKind::Main,
-            },
-            role: Role::User,
-        }
+        ClientParameters::recorder(DeviceSecret::example_data(), RoomKind::Main)
     }
 
     fn call_in_client_parameters() -> ClientParameters {
-        ClientParameters {
-            device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::CallIn,
-            role: Role::User,
-        }
+        ClientParameters::call_in(DeviceSecret::example_data())
     }
 
     fn registered_client_parameters() -> ClientParameters {
-        ClientParameters {
-            device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Registered {
-                profile: PublicUserProfile::example_data(),
-            },
-            role: Role::User,
-        }
+        ClientParameters::registered(
+            DeviceSecret::example_data(),
+            PublicUserProfile::example_data(),
+            Role::User,
+        )
     }
 
     fn guest_client_parameters() -> ClientParameters {
-        ClientParameters {
-            device_secret: DeviceSecret::example_data(),
-            kind: ClientKind::Guest,
-            role: Role::User,
-        }
+        ClientParameters::unregistered(DeviceSecret::example_data())
     }
 
     fn room_resource(e2e_encryption: bool) -> RoomResource {

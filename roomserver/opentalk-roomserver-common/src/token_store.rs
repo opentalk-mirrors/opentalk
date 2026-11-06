@@ -116,8 +116,7 @@ mod tests {
     };
 
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, ClientParameters, Role},
-        public_user_profile::PublicUserProfile,
+        client_parameters::ClientParameters, public_user_profile::PublicUserProfile,
         signaling::signaling_context::SignalingClientContext,
     };
     use opentalk_types_common::{
@@ -127,6 +126,7 @@ mod tests {
         users::{UserId, UserInfo},
         utils::ExampleData,
     };
+    use opentalk_types_signaling::Role;
     use pretty_assertions::assert_eq;
 
     use super::{TokenExpiry, TokenStore};
@@ -134,27 +134,24 @@ mod tests {
     fn build_test_context(i: u128) -> SignalingClientContext {
         SignalingClientContext {
             room_id: RoomId::from_u128(i),
-            client_parameters: ClientParameters {
-                device_secret: DeviceSecret::from_str(&format!("LongEnoughToBeADeviceSecret{i}"))
+            client_parameters: ClientParameters::registered(
+                DeviceSecret::from_str(&format!("LongEnoughToBeADeviceSecret{i}"))
                     .expect("Valid device secret"),
-                kind: ClientKind::Registered {
-                    profile: PublicUserProfile {
-                        id: UserId::from_u128(i),
-                        email: "alice@example.com".to_string(),
-                        user_info: UserInfo {
-                            title: "".parse().expect("valid user title"),
-                            firstname: "Alice".to_string(),
-                            lastname: "Adams".to_string(),
-                            display_name: "Alice Adams".parse().expect("valid display name"),
-                            avatar_url:
-                                "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
-                                    .to_string(),
-                        },
-                        timezone: TimeZone::example_data(),
+                PublicUserProfile {
+                    id: UserId::from_u128(i),
+                    email: "alice@example.com".to_string(),
+                    user_info: UserInfo {
+                        title: "".parse().expect("valid user title"),
+                        firstname: "Alice".to_string(),
+                        lastname: "Adams".to_string(),
+                        display_name: "Alice Adams".parse().expect("valid display name"),
+                        avatar_url: "https://gravatar.com/avatar/c160f8cc69a4f0bf2b0362752353d060"
+                            .to_string(),
                     },
+                    timezone: TimeZone::example_data(),
                 },
-                role: Role::User,
-            },
+                Role::User,
+            ),
         }
     }
 

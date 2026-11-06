@@ -8,12 +8,11 @@
 
 use icu_locid::LanguageIdentifier;
 use opentalk_report_generation::ReportDateTime;
-use opentalk_roomserver_types::client_parameters::{ClientKind, Role};
 use opentalk_types_common::{
     events::{EventDescription, EventTitle},
     time::TimeZone,
 };
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -46,30 +45,12 @@ pub struct ReportTemplateParameter {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ReportRole {
-    User,
-    Moderator,
-    Guest,
-}
-
-impl From<(Role, &ClientKind)> for ReportRole {
-    fn from(value: (Role, &ClientKind)) -> Self {
-        match value {
-            (.., ClientKind::Guest) => ReportRole::Guest,
-            (Role::User, ..) => ReportRole::User,
-            (Role::Moderator, ..) => ReportRole::Moderator,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReportParticipant {
     pub id: ParticipantId,
 
     pub name: String,
 
-    pub role: ReportRole,
+    pub role: Role,
 
     pub email: String,
 
@@ -82,12 +63,12 @@ pub struct ReportParticipant {
 #[cfg(test)]
 pub(crate) mod tests {
     use icu_locid::langid;
-    use opentalk_types_signaling::ParticipantId;
+    use opentalk_types_signaling::{ParticipantId, Role};
     use pretty_assertions::assert_eq;
     use serde_json::json;
 
     use super::{ReportParticipant, ReportTemplateParameter};
-    use crate::{AVAILABLE_LANGUAGES, template::ReportRole};
+    use crate::AVAILABLE_LANGUAGES;
 
     pub fn example_small() -> ReportTemplateParameter {
         ReportTemplateParameter {
@@ -110,7 +91,7 @@ pub(crate) mod tests {
             participants: vec![ReportParticipant {
                 id: ParticipantId::from_u128(0x263e256d_adf8_4548_bf77_9262959cd124),
                 name: "Alice Adams".into(),
-                role: ReportRole::Moderator,
+                role: Role::Moderator,
                 email: "".into(),
                 joined_at: "2025-02-06T08:18:23"
                     .parse()
@@ -170,7 +151,7 @@ pub(crate) mod tests {
                 ReportParticipant {
                     id: ParticipantId::from_u128(0x31acc6f2_dba2_4236_96c7_2c5faf0bda93),
                     name: "Charlie Cooper".into(),
-                    role: ReportRole::User,
+                    role: Role::User,
                     email: "charlie@example.com".into(),
                     joined_at: "2025-02-06T08:16:30"
                         .parse()
@@ -184,7 +165,7 @@ pub(crate) mod tests {
                 ReportParticipant {
                     id: ParticipantId::from_u128(0x31acc6f2_dba2_4236_96c7_2c5faf0bda93),
                     name: "Bob Burton".into(),
-                    role: ReportRole::User,
+                    role: Role::User,
                     email: "bob@example.com".into(),
                     joined_at: "2025-02-06T08:16:03"
                         .parse()
@@ -194,7 +175,7 @@ pub(crate) mod tests {
                 ReportParticipant {
                     id: ParticipantId::from_u128(0x263e256d_adf8_4548_bf77_9262959cd124),
                     name: "Alice Adams".into(),
-                    role: ReportRole::Moderator,
+                    role: Role::Moderator,
                     email: "".into(),
                     joined_at: "2025-02-06T08:16:03"
                         .parse()
@@ -272,7 +253,7 @@ pub(crate) mod tests {
                 ReportParticipant {
                     id: ParticipantId::from_u128(0xe3524b19_503d_4d79_844b_803b1ecd3115),
                     name: "Franz Fischer".into(),
-                    role: ReportRole::User,
+                    role: Role::User,
                     email: "".into(),
                     joined_at: "2025-02-06T08:16:18"
                         .parse()
@@ -282,7 +263,7 @@ pub(crate) mod tests {
                 ReportParticipant {
                     id: ParticipantId::from_u128(0xdd2c831e_c949_4030_b723_3c80da6c8034),
                     name: "Recorder".into(),
-                    role: ReportRole::User,
+                    role: Role::User,
                     email: "".into(),
                     joined_at: "2025-02-06T08:26:20"
                         .parse()
@@ -292,7 +273,7 @@ pub(crate) mod tests {
                 ReportParticipant {
                     id: ParticipantId::from_u128(0x855c575d_b48e_4463_8b63_8f193d556867),
                     name: "Erin".into(),
-                    role: ReportRole::Guest,
+                    role: Role::Guest,
                     email: "".into(),
                     joined_at: "2025-02-06T08:16:50"
                         .parse()
@@ -302,7 +283,7 @@ pub(crate) mod tests {
                 ReportParticipant {
                     id: ParticipantId::from_u128(0x97d10184_2080_4807_87f2_2de07eb05948),
                     name: "Dave Dunn".into(),
-                    role: ReportRole::Guest,
+                    role: Role::Guest,
                     email: "".into(),
                     joined_at: "2025-02-06T08:16:40"
                         .parse()
@@ -312,7 +293,7 @@ pub(crate) mod tests {
                 ReportParticipant {
                     id: ParticipantId::from_u128(0x31acc6f2_dba2_4236_96c7_2c5faf0bda93),
                     name: "Charlie Cooper".into(),
-                    role: ReportRole::User,
+                    role: Role::User,
                     email: "charlie@example.com".into(),
                     joined_at: "2025-02-06T08:16:30"
                         .parse()
@@ -322,7 +303,7 @@ pub(crate) mod tests {
                 ReportParticipant {
                     id: ParticipantId::from_u128(0x31acc6f2_dba2_4236_96c7_2c5faf0bda93),
                     name: "Bob Burton".into(),
-                    role: ReportRole::User,
+                    role: Role::User,
                     email: "bob@example.com".into(),
                     joined_at: "2025-02-06T08:16:03"
                         .parse()
@@ -332,7 +313,7 @@ pub(crate) mod tests {
                 ReportParticipant {
                     id: ParticipantId::from_u128(0x263e256d_adf8_4548_bf77_9262959cd124),
                     name: "Alice Adams".into(),
-                    role: ReportRole::Moderator,
+                    role: Role::Moderator,
                     email: "".into(),
                     joined_at: "2025-02-06T08:16:03"
                         .parse()

@@ -14,14 +14,14 @@ use opentalk_roomserver_signaling::{
     },
 };
 use opentalk_roomserver_types::{
-    client_parameters::{ClientParameters, Role},
+    client_parameters::ClientParameters,
     connection_id::ConnectionId,
     core::{CORE_MODULE_ID, CoreEvent, LeftWaitingRoom},
     device_id::DeviceId,
     disconnect_reason::DisconnectReason,
     signaling::{module_error::FatalError, websocket::SignalingSocket},
 };
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 
 use crate::{signaling::DynBroadcastEvent, task::RoomTask};
 
@@ -76,24 +76,25 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         client_parameters: ClientParameters,
     ) -> Result<(), FatalError> {
         // The participants role might have changed when they were already in the conference, so
-        // determine the role in the following order: conference, lobby, client parameters.
-        let role = self
-            .participants
-            .all_unfiltered
-            .get(&participant_id)
+        // determine the role in the following order: connected conference, lobby, rejoin of a
+        // known participant, client parameters.
+        let conference = self.participants.all_unfiltered.get(&participant_id);
+        let role = conference
+            .filter(|state| state.is_connected())
             .map(|state| state.role)
             .or_else(|| {
                 self.lobby_participants
                     .get(&participant_id)
                     .map(|state| state.role)
             })
-            .unwrap_or(client_parameters.role);
+            .or_else(|| conference.map(|state| rejoin_role(state.role, client_parameters.role())))
+            .unwrap_or(client_parameters.role());
 
         let can_enter = can_enter_conference(
             participant_id,
             &self.participants.all_unfiltered,
             self.info.room.waiting_room,
-            &client_parameters.kind,
+            client_parameters.kind(),
             role,
         );
 
@@ -119,7 +120,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     .all_unfiltered
                     .get(&participant_id)
                     .map(|state| state.kind.clone())
-                    .unwrap_or(client_parameters.kind);
+                    .unwrap_or(client_parameters.kind().clone());
                 vacant_entry.insert(LobbyParticipant::new(
                     kind,
                     role,
@@ -237,6 +238,8 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
     /// Removes moderator rights from a participant, assigning them the [`Role::User`], sets their
     /// `in_waiting_room` flag to `true` and their `accepted` flag to `false`.
+    ///
+    /// Participants with the [`Role::Guest`] keep their role.
     #[tracing::instrument(skip(self), level = "debug")]
     fn revoke_waiting_room_bypass(
         &mut self,
@@ -248,7 +251,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             did_change |= state.accepted;
 
             state.accepted = false;
-            state.role = Role::User;
+            state.role = demote_moderator(state.role);
         }
 
         let Some(state) = self.participants.all_unfiltered.get_mut(&participant_id) else {
@@ -257,7 +260,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
 
         state.in_waiting_room = true;
         did_change |= state.role.is_moderator();
-        state.role = Role::User;
+        state.role = demote_moderator(state.role);
 
         if did_change {
             let room = state.room;
@@ -270,5 +273,47 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         }
 
         Ok(())
+    }
+}
+
+/// Determines the role of a participant that rejoins the room after all their connections left.
+///
+/// Whether a participant is a guest depends on their invite, which might have changed in the
+/// meantime, so it is always taken from the client parameters. Otherwise the role from the previous
+/// participation is kept, so promotions and demotions by moderators persist.
+fn rejoin_role(previous: Role, client_parameters: Role) -> Role {
+    match (previous, client_parameters) {
+        (_, Role::Guest) | (Role::Guest, _) => client_parameters,
+        (Role::User | Role::Moderator, Role::User | Role::Moderator) => previous,
+    }
+}
+
+fn demote_moderator(role: Role) -> Role {
+    match role {
+        Role::Moderator => Role::User,
+        Role::User | Role::Guest => role,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use opentalk_types_signaling::Role;
+
+    use super::rejoin_role;
+
+    #[test]
+    fn rejoin_role_takes_guest_status_from_client_parameters() {
+        assert_eq!(rejoin_role(Role::Guest, Role::User), Role::User);
+        assert_eq!(rejoin_role(Role::Guest, Role::Moderator), Role::Moderator);
+        assert_eq!(rejoin_role(Role::User, Role::Guest), Role::Guest);
+        assert_eq!(rejoin_role(Role::Moderator, Role::Guest), Role::Guest);
+    }
+
+    #[test]
+    fn rejoin_role_keeps_changes_of_moderators() {
+        // Promoted by a moderator
+        assert_eq!(rejoin_role(Role::Moderator, Role::User), Role::Moderator);
+        // Demoted by a moderator or kicked
+        assert_eq!(rejoin_role(Role::User, Role::Moderator), Role::User);
     }
 }

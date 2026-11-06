@@ -9,7 +9,7 @@ use std::{
 use anyhow::Context as _;
 use futures::stream::FuturesUnordered;
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, Role},
+    client_parameters::ClientKind,
     connection_id::ConnectionId,
     error::{self, SignalingError},
     kick_reason::KickReason,
@@ -18,7 +18,7 @@ use opentalk_roomserver_types::{
     signaling::module_error::FatalError,
 };
 use opentalk_types_common::{rooms::RoomId, time::Timestamp, users::UserId};
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use serde_json::value::RawValue;
 use tokio::{
     select,

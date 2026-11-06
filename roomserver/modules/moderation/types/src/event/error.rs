@@ -42,8 +42,10 @@ pub enum ModerationError {
     CannotChangeRoomOwnerRole,
     /// The participant already has the role assigned
     RoleAlreadyAssigned,
-    /// Guests and call-in users can not become moderators
+    /// Guests, call-in users and services can not become moderators
     UserCannotBeModerator,
+    /// Users can not become guests
+    UserCannotBeGuest,
     /// The participant is not in the waiting room
     NotWaiting,
     /// The participant cannot enter the room because they were not accepted by a moderator yet.
@@ -385,6 +387,29 @@ mod tests {
         });
 
         let expected = ModerationError::UserCannotBeModerator;
+        let produced = serde_json::from_value(json).unwrap();
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn serialize_user_cannot_be_guest() {
+        let error = ModerationError::UserCannotBeGuest;
+
+        assert_snapshot!(serde_json::to_string_pretty(&error).unwrap(), @r#"
+        {
+          "error": "user_cannot_be_guest"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_user_cannot_be_guest() {
+        let json = json!({
+           "error": "user_cannot_be_guest",
+        });
+
+        let expected = ModerationError::UserCannotBeGuest;
         let produced = serde_json::from_value(json).unwrap();
 
         assert_eq!(expected, produced);

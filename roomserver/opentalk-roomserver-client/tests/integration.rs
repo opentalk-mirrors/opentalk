@@ -12,10 +12,8 @@ use opentalk_roomserver_client::{
 };
 use opentalk_roomserver_crypto_provider::ensure_crypto_provider;
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, ClientParameters, Role},
-    public_user_profile::PublicUserProfile,
-    room_kind::RoomKind,
-    room_parameters::RoomParameters,
+    client_parameters::ClientParameters, public_user_profile::PublicUserProfile,
+    room_kind::RoomKind, room_parameters::RoomParameters,
     room_parameters_patch::RoomParametersPatch,
 };
 use opentalk_service_auth::ApiKey;
@@ -202,14 +200,10 @@ async fn request_recorder_token_e2ee_enabled() {
     let client = Client::new(base_url, api_key());
 
     let room_id = RoomId::from_u128(1);
-    let recorder_client_params = ClientParameters {
-        device_secret: DeviceSecret::from_str("recorder device secret")
-            .expect("Device secret must be valid"),
-        kind: ClientKind::Recorder {
-            room: RoomKind::Main,
-        },
-        role: Role::User,
-    };
+    let recorder_client_params = ClientParameters::recorder(
+        DeviceSecret::from_str("recorder device secret").expect("Device secret must be valid"),
+        RoomKind::Main,
+    );
     let room_parameters = RoomParameters {
         e2e_encryption: true,
         ..RoomParameters::example_data()
@@ -235,12 +229,9 @@ async fn request_call_in_token_e2ee_enabled() {
     let client = Client::new(base_url, api_key());
 
     let room_id = RoomId::from_u128(1);
-    let call_in_client_params = ClientParameters {
-        device_secret: DeviceSecret::from_str("call-in device secret")
-            .expect("Device secret must be valid"),
-        kind: ClientKind::CallIn,
-        role: Role::User,
-    };
+    let call_in_client_params = ClientParameters::call_in(
+        DeviceSecret::from_str("call-in device secret").expect("Device secret must be valid"),
+    );
     let room_parameters = RoomParameters {
         e2e_encryption: true,
         ..RoomParameters::example_data()
@@ -266,12 +257,9 @@ async fn request_token_guest_access_disabled() {
     let client = Client::new(base_url, api_key());
 
     let room_id = RoomId::from_u128(1);
-    let guest_client_params = ClientParameters {
-        device_secret: DeviceSecret::from_str("guest device secret")
-            .expect("Device secret must be valid"),
-        kind: ClientKind::Guest,
-        role: Role::User,
-    };
+    let guest_client_params = ClientParameters::unregistered(
+        DeviceSecret::from_str("guest device secret").expect("Device secret must be valid"),
+    );
     let room_parameters = RoomParameters {
         guest_access: false,
         ..RoomParameters::example_data()

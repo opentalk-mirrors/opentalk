@@ -9,9 +9,7 @@ use opentalk_controller_settings::Settings;
 use opentalk_controller_utils::CaptureApiError;
 use opentalk_inventory::Inventory;
 use opentalk_roomserver_types::{
-    breakout::breakout_id::BreakoutId,
-    client_parameters::{ClientKind, ClientParameters, Role},
-    room_kind::RoomKind,
+    breakout::breakout_id::BreakoutId, client_parameters::ClientParameters, room_kind::RoomKind,
 };
 use opentalk_types_api_v1::{error::ApiError, rooms::RoomResource};
 use opentalk_types_common::{
@@ -69,13 +67,9 @@ pub(crate) async fn build_roomserver_params(
         RoomKind::Main
     };
 
-    let client_parameters = ClientParameters {
-        device_secret,
-        kind: match service_kind {
-            ServiceKind::Recording => ClientKind::Recorder { room },
-            ServiceKind::Transcription => ClientKind::Transcription { room },
-        },
-        role: Role::User,
+    let client_parameters = match service_kind {
+        ServiceKind::Recording => ClientParameters::recorder(device_secret, room),
+        ServiceKind::Transcription => ClientParameters::transcription(device_secret, room),
     };
 
     Ok((room_resource, client_parameters))

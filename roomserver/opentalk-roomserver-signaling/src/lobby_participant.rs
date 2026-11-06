@@ -5,13 +5,11 @@ use std::collections::{HashMap, hash_map::Entry};
 
 use chrono::{DateTime, Utc};
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, Role},
-    connection_id::ConnectionId,
-    device_id::DeviceId,
+    client_parameters::ClientKind, connection_id::ConnectionId, device_id::DeviceId,
     room_parameters::WaitingRoom,
 };
 use opentalk_types_common::users::DisplayName;
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 
 use crate::participant_state::ParticipantState;
 
@@ -206,7 +204,7 @@ pub fn can_enter_conference(
 ) -> bool {
     role.is_moderator()
         || kind.is_service()
-        || !waiting_room.applies_to(kind)
+        || !waiting_room.applies_to(kind, role)
         || all_participants
             .get(&participant_id)
             .is_some_and(|state| !state.in_waiting_room)
@@ -218,13 +216,11 @@ mod tests {
 
     use chrono::DateTime;
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, Role},
-        public_user_profile::PublicUserProfile,
-        room_kind::RoomKind,
+        client_parameters::ClientKind, public_user_profile::PublicUserProfile, room_kind::RoomKind,
         room_parameters::WaitingRoom,
     };
     use opentalk_types_common::{users::DisplayName, utils::ExampleData};
-    use opentalk_types_signaling::ParticipantId;
+    use opentalk_types_signaling::{ParticipantId, Role};
 
     use super::*;
     use crate::participant_state::ParticipantState;
@@ -232,8 +228,8 @@ mod tests {
     /// Builds an empty participant that the individual tests populate with connections.
     fn participant() -> LobbyParticipant {
         LobbyParticipant {
-            kind: ClientKind::Guest,
-            role: Role::User,
+            kind: ClientKind::Unregistered,
+            role: Role::Guest,
             connections: HashMap::new(),
             accepted: false,
             waiting_room_state: None,
@@ -339,8 +335,8 @@ mod tests {
             ParticipantId::nil(),
             &HashMap::new(),
             WaitingRoom::ForEveryone,
-            &ClientKind::Guest,
-            Role::User,
+            &ClientKind::Unregistered,
+            Role::Guest,
         ));
     }
 
@@ -353,9 +349,9 @@ mod tests {
         let participants = HashMap::from_iter([(
             id,
             ParticipantState::new(
-                ClientKind::Guest,
+                ClientKind::Unregistered,
                 DisplayName::from_str_lossy("Guest"),
-                Role::User,
+                Role::Guest,
                 DateTime::UNIX_EPOCH,
                 false,
             ),
@@ -364,17 +360,17 @@ mod tests {
             id,
             &participants,
             WaitingRoom::ForEveryone,
-            &ClientKind::Guest,
-            Role::User
+            &ClientKind::Unregistered,
+            Role::Guest
         ));
 
         // A participant that is currently in the waiting room is not allowed to skip it.
         let participants = HashMap::from_iter([(
             id,
             ParticipantState::new(
-                ClientKind::Guest,
+                ClientKind::Unregistered,
                 DisplayName::from_str_lossy("Guest"),
-                Role::User,
+                Role::Guest,
                 DateTime::UNIX_EPOCH,
                 true,
             ),
@@ -383,8 +379,8 @@ mod tests {
             id,
             &participants,
             WaitingRoom::ForEveryone,
-            &ClientKind::Guest,
-            Role::User,
+            &ClientKind::Unregistered,
+            Role::Guest,
         ));
     }
 }

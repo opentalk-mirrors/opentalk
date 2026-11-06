@@ -7,9 +7,9 @@
 use std::collections::{BTreeSet, HashSet};
 
 use opentalk_roomserver_signaling::signaling_module::CreateReplica;
-use opentalk_roomserver_types::{client_parameters::Role, room_parameters::WaitingRoom};
+use opentalk_roomserver_types::room_parameters::WaitingRoom;
 use opentalk_types_common::users::DisplayName;
-use opentalk_types_signaling::ParticipantId;
+use opentalk_types_signaling::{ParticipantId, Role};
 use serde::{Deserialize, Serialize};
 
 use crate::{KickScope, event::ModerationEvent};

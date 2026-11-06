@@ -19,7 +19,7 @@ use opentalk_roomserver_signaling::{
     signaling_event::SignalingEvent,
 };
 use opentalk_roomserver_types::{
-    client_parameters::{ClientKind, Role as RoomserverClientRole},
+    client_parameters::ClientKind,
     connection_id::ConnectionId,
     core::{
         CORE_MODULE_ID, CoreCommand, CoreError, CoreEvent, JoinBlockedReason, LeftWaitingRoom,
@@ -441,7 +441,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                     let display_name = DisplayName::from_str_lossy(DEFAULT_TRANSCRIPTION_NAME);
                     Ok(display_name)
                 }
-                ClientKind::CallIn | ClientKind::Guest => {
+                ClientKind::CallIn | ClientKind::Unregistered => {
                     return Err(CoreError::DisplayNameRequired);
                 }
             };
@@ -471,7 +471,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         client_kind: ClientKind,
-        role: RoomserverClientRole,
+        role: Role,
     ) -> Result<(), FatalError> {
         let mut own_data = ModuleData::new();
         let mut peer_events = BTreeMap::new();
@@ -745,7 +745,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         client_kind: ClientKind,
-        role: RoomserverClientRole,
+        role: Role,
         module_data: ModuleData,
         mut participants_module_data: BTreeMap<ParticipantId, BTreeMap<ModuleId, SharedJson>>,
     ) -> Result<JoinSuccess, FatalError> {
@@ -782,16 +782,16 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             .get(&participant_id)
             .map(|state| state.display_name.clone())
             .ok_or_else(|| FatalError(anyhow!("Participant state not found")))?;
-        let (role, avatar_url, is_room_owner) = match client_kind {
+        let participation_kind = client_kind.participant_kind();
+        let (avatar_url, is_room_owner) = match client_kind {
             ClientKind::Registered { profile } => (
-                role.to_opentalk_types_signaling_role(),
                 Some(profile.user_info.avatar_url),
                 self.info.room.created_by.id == profile.id,
             ),
-            ClientKind::Guest
+            ClientKind::Unregistered
             | ClientKind::Transcription { .. }
             | ClientKind::Recorder { .. }
-            | ClientKind::CallIn => (Role::Guest, None, false),
+            | ClientKind::CallIn => (None, false),
         };
 
         let event_info = self
@@ -835,6 +835,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
             display_name,
             avatar_url,
             role,
+            participation_kind,
             closes_at: self.info.closes_at,
             tariff: Box::new(self.info.room.tariff.clone()),
             participants,
@@ -1031,7 +1032,7 @@ mod tests {
         signaling_event::SignalingEvent,
     };
     use opentalk_roomserver_types::{
-        client_parameters::{ClientKind, Role as ClientRole},
+        client_parameters::{ClientKind, ParticipationKind},
         connection_id::ConnectionId,
         core::{CORE_MODULE_ID, CoreError},
         device_id::DeviceId,
@@ -1089,6 +1090,7 @@ mod tests {
             display_name: DisplayName::example_data(),
             avatar_url: None,
             role: Role::Guest,
+            participation_kind: ParticipationKind::Unregistered,
             closes_at: None,
             tariff: Box::new(TariffDetails::example_data()),
             module_data: test_module_data(),
@@ -1133,6 +1135,7 @@ mod tests {
             ],
             "display_name": "Alice Adams",
             "role": "guest",
+            "participation_kind": "unregistered",
             "tariff": {
               "id": "00000000-0000-0000-0000-000000000000",
               "name": "Starter tariff",
@@ -1192,6 +1195,7 @@ mod tests {
                 ],
                 "display_name": "Alice Adams",
                 "role": "guest",
+                "participation_kind": "unregistered",
                 "tariff": {
                     "id": "00000000-0000-0000-0000-000000000000",
                     "name": "Starter tariff",
@@ -1242,7 +1246,7 @@ mod tests {
     fn lobby_participant(kind: ClientKind, waiting_room_name: Option<&str>) -> LobbyParticipant {
         LobbyParticipant::new(
             kind,
-            ClientRole::User,
+            Role::User,
             HashMap::new(),
             false,
             waiting_room_name.map(|name| WaitingRoomState {
@@ -1257,7 +1261,7 @@ mod tests {
         ParticipantState::new(
             kind,
             DisplayName::from_str_lossy(name),
-            ClientRole::User,
+            Role::User,
             DateTime::UNIX_EPOCH,
             false,
         )
@@ -1265,8 +1269,8 @@ mod tests {
 
     #[test]
     fn require_display_name_uses_the_conference_name_when_none_is_provided() {
-        let conference = participant_state(ClientKind::Guest, "Conference Name");
-        let lobby = lobby_participant(ClientKind::Guest, None);
+        let conference = participant_state(ClientKind::Unregistered, "Conference Name");
+        let lobby = lobby_participant(ClientKind::Unregistered, None);
 
         let name = RoomTask::<MockSocket>::require_display_name(
             Some(&conference),
@@ -1282,8 +1286,8 @@ mod tests {
 
     #[test]
     fn require_display_name_rejects_a_name_provided_while_in_the_conference() {
-        let conference = participant_state(ClientKind::Guest, "Conference Name");
-        let lobby = lobby_participant(ClientKind::Guest, None);
+        let conference = participant_state(ClientKind::Unregistered, "Conference Name");
+        let lobby = lobby_participant(ClientKind::Unregistered, None);
 
         let err = RoomTask::<MockSocket>::require_display_name(
             Some(&conference),
@@ -1299,8 +1303,8 @@ mod tests {
 
     #[test]
     fn require_display_name_prefers_conference_name_over_waiting_room_name() {
-        let conference = participant_state(ClientKind::Guest, "Conference Name");
-        let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
+        let conference = participant_state(ClientKind::Unregistered, "Conference Name");
+        let lobby = lobby_participant(ClientKind::Unregistered, Some("Waiting Room Name"));
 
         let name = RoomTask::<MockSocket>::require_display_name(
             Some(&conference),
@@ -1316,7 +1320,7 @@ mod tests {
 
     #[test]
     fn require_display_name_uses_waiting_room_name_when_none_is_provided() {
-        let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
+        let lobby = lobby_participant(ClientKind::Unregistered, Some("Waiting Room Name"));
 
         let name =
             RoomTask::<MockSocket>::require_display_name(None, &lobby, None, None, None).unwrap();
@@ -1326,7 +1330,7 @@ mod tests {
 
     #[test]
     fn require_display_name_rejects_a_name_provided_while_in_the_waiting_room() {
-        let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
+        let lobby = lobby_participant(ClientKind::Unregistered, Some("Waiting Room Name"));
 
         let err = RoomTask::<MockSocket>::require_display_name(
             None,
@@ -1342,7 +1346,7 @@ mod tests {
 
     #[test]
     fn require_display_name_requires_a_name_from_guests() {
-        let lobby = lobby_participant(ClientKind::Guest, None);
+        let lobby = lobby_participant(ClientKind::Unregistered, None);
 
         let err = RoomTask::<MockSocket>::require_display_name(None, &lobby, None, None, None)
             .unwrap_err();
@@ -1352,7 +1356,7 @@ mod tests {
 
     #[test]
     fn require_display_name_accepts_a_name_from_guests() {
-        let lobby = lobby_participant(ClientKind::Guest, None);
+        let lobby = lobby_participant(ClientKind::Unregistered, None);
 
         let name = RoomTask::<MockSocket>::require_display_name(
             None,
@@ -1457,7 +1461,7 @@ mod tests {
 
     #[test]
     fn derive_display_name_returns_none_for_guests_without_prior_presence() {
-        let lobby = lobby_participant(ClientKind::Guest, None);
+        let lobby = lobby_participant(ClientKind::Unregistered, None);
 
         let name = RoomTask::<MockSocket>::derive_display_name(None, Some(&lobby));
 
@@ -1480,7 +1484,7 @@ mod tests {
 
     #[test]
     fn derive_display_name_uses_the_waiting_room_name() {
-        let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
+        let lobby = lobby_participant(ClientKind::Unregistered, Some("Waiting Room Name"));
 
         let name = RoomTask::<MockSocket>::derive_display_name(None, Some(&lobby));
 
@@ -1489,8 +1493,8 @@ mod tests {
 
     #[test]
     fn derive_display_name_prefers_the_conference_name_over_the_waiting_room_name() {
-        let conference = participant_state(ClientKind::Guest, "Conference Name");
-        let lobby = lobby_participant(ClientKind::Guest, Some("Waiting Room Name"));
+        let conference = participant_state(ClientKind::Unregistered, "Conference Name");
+        let lobby = lobby_participant(ClientKind::Unregistered, Some("Waiting Room Name"));
 
         let name = RoomTask::<MockSocket>::derive_display_name(Some(&conference), Some(&lobby));
 

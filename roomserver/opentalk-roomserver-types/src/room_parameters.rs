@@ -15,6 +15,7 @@ use opentalk_types_common::{
     time::Timestamp,
     utils::ExampleData,
 };
+use opentalk_types_signaling::Role;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -208,29 +209,34 @@ pub enum WaitingRoom {
 }
 
 impl WaitingRoom {
-    /// Does a participant of `kind` have to be placed in the waiting room?
+    /// Does a participant of `kind` with `role` have to be placed in the waiting room?
     ///
     /// Does not take moderator rights into account.
-    pub fn applies_to(self, kind: &ClientKind) -> bool {
-        Self::min_strictness(kind).is_some_and(|min| self >= min)
+    pub fn applies_to(self, kind: &ClientKind, role: Role) -> bool {
+        Self::min_strictness(kind, role).is_some_and(|min| self >= min)
     }
 
-    /// Returns this setting raised just enough to place `kind` in the waiting room.
+    /// Returns this setting raised just enough to place a participant of `kind` with `role` in the
+    /// waiting room.
     ///
-    /// Unchanged if `self` already catches `kind`, or if `kind` never enters the waiting room.
-    pub fn raise_to_include(self, kind: &ClientKind) -> Self {
-        match Self::min_strictness(kind) {
+    /// Unchanged if `self` already catches the participant, or if they never enter the waiting
+    /// room.
+    pub fn raise_to_include(self, kind: &ClientKind, role: Role) -> Self {
+        match Self::min_strictness(kind, role) {
             Some(min_required) => self.max(min_required),
             None => self,
         }
     }
 
     /// The minimum required waiting room strictness for a client to be placed in the waiting room.
-    fn min_strictness(kind: &ClientKind) -> Option<WaitingRoom> {
-        match kind {
-            ClientKind::Registered { .. } => Some(WaitingRoom::ForEveryone),
-            ClientKind::Guest | ClientKind::CallIn => Some(WaitingRoom::ForGuests),
-            ClientKind::Recorder { .. } | ClientKind::Transcription { .. } => None,
+    fn min_strictness(kind: &ClientKind, role: Role) -> Option<WaitingRoom> {
+        if kind.is_service() {
+            return None;
+        }
+
+        match role {
+            Role::Guest => Some(WaitingRoom::ForGuests),
+            Role::User | Role::Moderator => Some(WaitingRoom::ForEveryone),
         }
     }
 }
@@ -427,56 +433,67 @@ mod tests {
     fn applies_to_disabled() {
         let waiting_room = WaitingRoom::Disabled;
 
-        assert!(!waiting_room.applies_to(&registered()));
-        assert!(!waiting_room.applies_to(&ClientKind::Guest));
-        assert!(!waiting_room.applies_to(&ClientKind::CallIn));
-        assert!(!waiting_room.applies_to(&recorder()));
-        assert!(!waiting_room.applies_to(&transcription()));
+        assert!(!waiting_room.applies_to(&registered(), Role::User));
+        assert!(!waiting_room.applies_to(&registered(), Role::Guest));
+        assert!(!waiting_room.applies_to(&ClientKind::Unregistered, Role::Guest));
+        assert!(!waiting_room.applies_to(&ClientKind::CallIn, Role::Guest));
+        assert!(!waiting_room.applies_to(&recorder(), Role::User));
+        assert!(!waiting_room.applies_to(&transcription(), Role::User));
     }
 
     #[test]
     fn applies_to_for_guests() {
         let waiting_room = WaitingRoom::ForGuests;
 
-        assert!(!waiting_room.applies_to(&registered()));
-        assert!(waiting_room.applies_to(&ClientKind::Guest));
-        assert!(waiting_room.applies_to(&ClientKind::CallIn));
-        assert!(!waiting_room.applies_to(&recorder()));
-        assert!(!waiting_room.applies_to(&transcription()));
+        assert!(!waiting_room.applies_to(&registered(), Role::User));
+        assert!(waiting_room.applies_to(&registered(), Role::Guest));
+        assert!(waiting_room.applies_to(&ClientKind::Unregistered, Role::Guest));
+        assert!(waiting_room.applies_to(&ClientKind::CallIn, Role::Guest));
+        assert!(!waiting_room.applies_to(&recorder(), Role::User));
+        assert!(!waiting_room.applies_to(&transcription(), Role::User));
     }
 
     #[test]
     fn applies_to_for_everyone() {
         let waiting_room = WaitingRoom::ForEveryone;
 
-        assert!(waiting_room.applies_to(&registered()));
-        assert!(waiting_room.applies_to(&ClientKind::Guest));
-        assert!(waiting_room.applies_to(&ClientKind::CallIn));
-        assert!(!waiting_room.applies_to(&recorder()));
-        assert!(!waiting_room.applies_to(&transcription()));
+        assert!(waiting_room.applies_to(&registered(), Role::User));
+        assert!(waiting_room.applies_to(&registered(), Role::Guest));
+        assert!(waiting_room.applies_to(&ClientKind::Unregistered, Role::Guest));
+        assert!(waiting_room.applies_to(&ClientKind::CallIn, Role::Guest));
+        assert!(!waiting_room.applies_to(&recorder(), Role::User));
+        assert!(!waiting_room.applies_to(&transcription(), Role::User));
     }
 
     #[test]
     fn raise_to() {
         assert_eq!(
-            WaitingRoom::Disabled.raise_to_include(&registered()),
+            WaitingRoom::Disabled.raise_to_include(&registered(), Role::User),
             WaitingRoom::ForEveryone
         );
         assert_eq!(
-            WaitingRoom::Disabled.raise_to_include(&ClientKind::Guest),
+            WaitingRoom::Disabled.raise_to_include(&registered(), Role::Moderator),
+            WaitingRoom::ForEveryone
+        );
+        assert_eq!(
+            WaitingRoom::Disabled.raise_to_include(&registered(), Role::Guest),
             WaitingRoom::ForGuests
         );
         assert_eq!(
-            WaitingRoom::Disabled.raise_to_include(&ClientKind::CallIn),
+            WaitingRoom::Disabled.raise_to_include(&ClientKind::Unregistered, Role::Guest),
+            WaitingRoom::ForGuests
+        );
+        assert_eq!(
+            WaitingRoom::Disabled.raise_to_include(&ClientKind::CallIn, Role::Guest),
             WaitingRoom::ForGuests
         );
         // Services don't raise the waiting room, as they are never subject to it
         assert_eq!(
-            WaitingRoom::Disabled.raise_to_include(&recorder()),
+            WaitingRoom::Disabled.raise_to_include(&recorder(), Role::User),
             WaitingRoom::Disabled
         );
         assert_eq!(
-            WaitingRoom::Disabled.raise_to_include(&transcription()),
+            WaitingRoom::Disabled.raise_to_include(&transcription(), Role::User),
             WaitingRoom::Disabled
         );
     }

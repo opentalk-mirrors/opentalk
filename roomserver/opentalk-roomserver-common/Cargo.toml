@@ -34,6 +34,7 @@ thiserror.workspace = true
 url.workspace = true
 
 [dev-dependencies]
+opentalk-types-signaling.workspace = true
 pretty_assertions.workspace = true
 temp-env.workspace = true
 toml.workspace = true

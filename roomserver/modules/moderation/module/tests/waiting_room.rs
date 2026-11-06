@@ -15,7 +15,6 @@ use opentalk_roomserver_room::mocking::{
     room::{TestRoom, flush_connected_events},
 };
 use opentalk_roomserver_types::{
-    client_parameters::Role as ClientRole,
     connection_id::ConnectionId,
     core::{CoreCommand, CoreError, CoreEvent, LeftWaitingRoom},
     disconnect_reason::DisconnectReason,
@@ -370,6 +369,36 @@ async fn guest_users_once_accepted_always_skip() {
     room.join_gustav_guest().await;
     let event = alice.receive::<CoreEvent>().await.unwrap();
     assert_matches!(event.payload, CoreEvent::ParticipantConnected { .. });
+}
+
+/// Registered users that are not invited have the guest role and must wait in a waiting room that
+/// is enabled for guests.
+///
+/// 1. Spawn room with a waiting room for guests
+/// 2. Alice joins as a moderator
+/// 3. Bob joins as a registered user with the guest role and has to enter the waiting room
+/// 4. Alice accepts Bob, who enters the room as a guest
+#[test_log::test(tokio::test)]
+async fn registered_guests_wait_in_waiting_room_for_guests() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .waiting_room(WaitingRoom::ForGuests)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    let bob = MockParticipantJoining::bob(0)
+        .guest()
+        .enter_waiting_room(&mut room)
+        .await
+        .unwrap();
+    let event = alice.receive::<CoreEvent>().await.unwrap();
+    assert_matches!(
+        event.payload,
+        CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == bob.id()
+    );
+
+    let bob = accept_participant(&mut alice, bob).await;
+    assert_eq!(bob.join_success().role, Role::Guest);
 }
 
 /// 1. Spawn room with activated waiting room
@@ -1242,6 +1271,68 @@ async fn send_to_waiting_room() {
     );
 }
 
+/// A guest that is sent to the waiting room keeps the guest role.
+///
+/// 1. Spawn room with deactivated waiting room
+/// 2. Alice joins as a moderator, Gustav joins as a guest
+/// 3. Alice sends Gustav to the waiting room, which enables the waiting room for guests
+/// 4. Alice accepts Gustav, who enters the room as a guest again
+#[test_log::test(tokio::test)]
+async fn guest_sent_to_waiting_room_keeps_guest_role() {
+    let mut room = TestRoom::builder()
+        .register_module::<ModerationModule>()
+        .waiting_room(WaitingRoom::Disabled)
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut gustav = room.join_gustav_guest().await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    alice
+        .send_command::<ModerationModule>(
+            ModerationCommand::SendToWaitingRoom {
+                target: gustav.id(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    for participant in [&mut alice, &mut gustav] {
+        let event = participant
+            .receive_event::<ModerationModule>()
+            .await
+            .unwrap()
+            .payload;
+        assert_eq!(
+            event,
+            ModerationEvent::WaitingRoomUpdated {
+                new_state: WaitingRoom::ForGuests
+            }
+        );
+    }
+
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert_matches!(
+        event,
+        CoreEvent::ParticipantDisconnected { participant_id, .. } if participant_id == gustav.id()
+    );
+    let event = alice.receive::<CoreEvent>().await.unwrap().payload;
+    assert_matches!(
+        event,
+        CoreEvent::JoinedWaitingRoom { participant_id, .. } if participant_id == gustav.id()
+    );
+
+    let event = gustav
+        .receive_event::<ModerationModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(event, ModerationEvent::SentToWaitingRoom);
+
+    let gustav = accept_participant(&mut alice, gustav.in_waiting_room()).await;
+    assert_eq!(gustav.join_success().role, Role::Guest);
+}
+
 /// A moderator that is sent to the waiting room has their moderator role revoked and can no longer
 /// enter the room without being accepted first.
 ///
@@ -1416,7 +1507,7 @@ async fn participant_promoted_to_moderator_in_waiting_room_can_enter() {
         .send_command::<ModerationModule>(
             ModerationCommand::UpdateRole {
                 participant_id: frank.id(),
-                new_role: ClientRole::Moderator,
+                new_role: Role::Moderator,
             },
             None,
         )
