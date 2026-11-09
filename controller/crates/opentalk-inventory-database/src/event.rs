@@ -177,7 +177,7 @@ impl EventInventory for DatabaseConnection {
         user_id: UserId,
     ) -> Result<Vec<(EventId, RoomId)>> {
         Ok(
-            db::queries::events::get_all_events_and_room_ids_for_creator_including_disabled(
+            db::queries::events::get_all_event_and_room_ids_for_creator_including_disabled(
                 &mut self.inner,
                 user_id,
             )

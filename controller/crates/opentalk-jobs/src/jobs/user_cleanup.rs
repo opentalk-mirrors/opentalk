@@ -108,12 +108,12 @@ mod tests {
     use opentalk_test_util::{database::DatabaseContext, object_storage::ObjectStorageContext};
     use opentalk_types_common::{events::EventId, time::Timestamp, users::UserId};
 
-    use super::{UserCleanup, default_days_since_user_has_been_disabled};
     use crate::{
         Job as _,
         jobs::{
+            UserCleanup,
             test_utils::{RecordingStopRoomBackend, create_generic_test_event},
-            user_cleanup::UserCleanupParameters,
+            user_cleanup::{UserCleanupParameters, default_days_since_user_has_been_disabled},
         },
     };
 

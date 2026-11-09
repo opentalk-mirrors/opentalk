@@ -81,7 +81,7 @@ pub async fn get_event(conn: &mut DbConnection, event_id: EventId) -> Result<Eve
         .map_err(DatabaseError::from)
 }
 
-pub async fn get_all_event_and_room_ids_with_creator(
+pub async fn get_all_event_ids_with_creator(
     conn: &mut DbConnection,
 ) -> Result<Vec<(EventId, UserId)>> {
     let events = events::table
@@ -130,7 +130,7 @@ pub async fn get_all_event_and_room_ids_adhoc_created_before(
 }
 
 #[tracing::instrument(err(level = "debug"), skip_all)]
-pub async fn get_all_events_and_room_ids_for_creator_including_disabled(
+pub async fn get_all_event_and_room_ids_for_creator_including_disabled(
     conn: &mut DbConnection,
     created_by: UserId,
 ) -> Result<Vec<(EventId, RoomId)>> {
