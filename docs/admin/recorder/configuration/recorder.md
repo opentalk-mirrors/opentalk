@@ -19,7 +19,7 @@ The section in the [configuration file](README.md) is called `recorder`.
 | Field          | Type           | Required | Default value | Description                                                    |
 | -------------- | -------------- | -------- | ------------- | -------------------------------------------------------------- |
 | `manufacturer` | `enum (intel)` | no       | -             | Enabled Hardware Acceleration, if Manufacturer is set          |
-| `device`       | `string`       | no       | -             | The device where the metrics should be fetch (only intel GPUs) |
+| `device`       | `string`       | no       | -             | The device used for encoding and metrics (only intel GPUs)     |
 
 Right now only `Intel` is support for Hardware Acceleration, if `Intel` is not set, the CPU will be used for Video Encoding.
 

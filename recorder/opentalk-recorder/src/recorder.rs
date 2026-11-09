@@ -461,6 +461,7 @@ impl RecordingSession {
         let webm_sink = WebMSink::create(&WebMParameters {
             encoder_type: self.service_context.settings.encoder_type(),
             chunk_size: Some(self.service_context.settings.controller.upload_chunk_size as u64),
+            video_quality: None,
         })
         .context("WebM-Sink could not created")
         .map_err(RecordingSessionError::FailedToStartRecording)?;

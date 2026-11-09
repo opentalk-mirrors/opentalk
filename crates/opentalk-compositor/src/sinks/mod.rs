@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: EUPL-1.2
 
-use std::{fmt::Debug, future::Future, pin::Pin};
+use std::{fmt::Debug, future::Future, path::PathBuf, pin::Pin};
 
 use anyhow::Result;
 use ezk::Frame;
@@ -14,6 +14,8 @@ use serde::Deserialize;
 mod rtmp;
 #[cfg(feature = "gstreamer")]
 mod system;
+#[cfg(feature = "gstreamer")]
+mod va;
 #[cfg(feature = "gstreamer")]
 mod webm;
 
@@ -27,7 +29,7 @@ pub use webm::*;
 #[derive(Debug, Clone, Deserialize)]
 pub enum EncoderType {
     CPU,
-    VAAPI,
+    VAAPI { device: Option<PathBuf> },
 }
 
 // TODO: This will be fixed later on

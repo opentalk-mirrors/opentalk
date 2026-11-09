@@ -121,7 +121,11 @@ impl Settings {
             .map_or(
                 EncoderType::CPU,
                 |hardware_acceleration| match hardware_acceleration {
-                    HardwareAcceleration::Intel(_) => EncoderType::VAAPI,
+                    HardwareAcceleration::Intel(HardwareAccelerationIntel { device }) => {
+                        EncoderType::VAAPI {
+                            device: device.as_ref().map(PathBuf::from),
+                        }
+                    }
                 },
             )
     }
