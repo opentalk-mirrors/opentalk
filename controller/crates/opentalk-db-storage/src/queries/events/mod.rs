@@ -135,7 +135,6 @@ pub async fn get_all_events_and_room_ids_for_creator_including_disabled(
     created_by: UserId,
 ) -> Result<Vec<(EventId, RoomId)>> {
     events::table
-        .inner_join(users::table.on(users::id.eq(events::created_by)))
         .select((events::id, events::room))
         .filter(events::created_by.eq(created_by))
         .load(conn)
