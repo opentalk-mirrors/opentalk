@@ -167,6 +167,22 @@ The participant receives a [PresenceConfirmationLogged](#presenceconfirmationlog
 
 Can return [Error](#error) of kind `presence_logging_not_allowed_for_participant` or `presence_logging_not_running`.
 
+### TriggerPresenceCheck
+
+The `TriggerPresenceCheck` action can be sent by the room creator to trigger a presence check immediately. The currently pending checkpoint is replaced by an immediate one, and the subsequent checkpoint is scheduled according to the configured `checkpoint_interval`.
+
+#### Fields
+
+| Field                | Type     | Required | Description                        |
+| -------------------- | -------- | -------- | ---------------------------------- |
+| `action`             | `enum`   | yes      | Must be `"trigger_presence_check"` |
+
+#### Response
+
+All participants in the room receive a [PresenceConfirmationRequested](#presenceconfirmationrequested) message.
+
+Can return [Error](#error) of kind `insufficient_permissions` or `presence_logging_not_enabled`.
+
 ## Events
 
 ### PresenceLoggingEnabled

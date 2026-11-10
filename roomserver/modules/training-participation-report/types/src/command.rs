@@ -27,6 +27,13 @@ pub enum TrainingParticipationReportCommand {
 
     /// Confirm presence
     ConfirmPresence,
+
+    /// Manually trigger a presence check immediately.
+    ///
+    /// The pending checkpoint is replaced by an immediate one, the subsequent checkpoint is
+    /// scheduled according to the configured checkpoint interval. Only the room owner is allowed
+    /// to send this command.
+    TriggerPresenceCheck,
 }
 
 impl CreateReplica<TrainingParticipationReportEvent> for TrainingParticipationReportCommand {
@@ -156,6 +163,30 @@ mod serde_tests {
         assert_eq!(
             serde_json::from_value::<TrainingParticipationReportCommand>(json).unwrap(),
             TrainingParticipationReportCommand::ConfirmPresence
+        );
+    }
+
+    #[test]
+    fn serialize_trigger_presence_check() {
+        let cmd = TrainingParticipationReportCommand::TriggerPresenceCheck;
+        let raw = serde_json::to_string_pretty(&cmd).unwrap();
+
+        assert_snapshot!(raw, @r#"
+        {
+          "action": "trigger_presence_check"
+        }
+        "#);
+    }
+
+    #[test]
+    fn deserialize_trigger_presence_check() {
+        let json = json!({
+            "action": "trigger_presence_check",
+        });
+
+        assert_eq!(
+            serde_json::from_value::<TrainingParticipationReportCommand>(json).unwrap(),
+            TrainingParticipationReportCommand::TriggerPresenceCheck
         );
     }
 }
