@@ -19,18 +19,18 @@ use opentalk_types_common::{
 use reqwest::Client;
 
 use crate::{
-    AVAILABLE_LANGUAGES, state::automatic_transcription::FinishedAutomaticTranscription,
+    AVAILABLE_LANGUAGES, state::automatic_meeting_protocol::FinishedAutomaticMeetingProtocol,
     template::ReportTemplateParameter,
 };
 
-const TRANSCRIPT_TEMPLATE: &str = include_str!("../templates/automatic_transcription.typ");
+const PROTOCOL_TEMPLATE: &str = include_str!("../templates/automatic_meeting_protocol.typ");
 const FTL_EN: &str = include_str!("../templates/l10n/en.ftl");
 const FTL_DE: &str = include_str!("../templates/l10n/de.ftl");
 
 pub enum LoopBackEvent {
     TranscriptionRequestFailed,
-    AutomaticTranscriptionGenerated(AssetUploaded),
-    AutomaticTranscriptionGenerationFailed,
+    AutomaticMeetingProtocolGenerated(AssetUploaded),
+    AutomaticMeetingProtocolGenerationFailed,
 }
 
 #[tracing::instrument(
@@ -103,26 +103,26 @@ struct CreateReportError;
 
 impl From<CreateReportError> for LoopBackEvent {
     fn from(_: CreateReportError) -> Self {
-        Self::AutomaticTranscriptionGenerationFailed
+        Self::AutomaticMeetingProtocolGenerationFailed
     }
 }
 
-pub(super) async fn create_transcript(
+pub(super) async fn create_automatic_meeting_protocol(
     storage: ModuleAssetStorage,
     title: Option<EventTitle>,
     report_language: LanguageIdentifier,
     transcription_language: Option<Language>,
-    automatic_transcription: FinishedAutomaticTranscription,
+    automatic_meeting_protocol: FinishedAutomaticMeetingProtocol,
     typst_package_path: PathBuf,
 ) -> LoopBackEvent {
-    let FinishedAutomaticTranscription {
+    let FinishedAutomaticMeetingProtocol {
         started_at,
         ended_at,
         present_participant_count,
         moderators,
         pseudonymous,
-        transcript,
-    } = automatic_transcription;
+        protocol,
+    } = automatic_meeting_protocol;
 
     let template_parameter = ReportTemplateParameter {
         available_languages: AVAILABLE_LANGUAGES.to_vec(),
@@ -134,21 +134,21 @@ pub(super) async fn create_transcript(
         present_participant_count,
         moderators,
         pseudonymous,
-        transcript,
+        protocol,
     };
 
-    create_transcript_inner(storage, template_parameter, &typst_package_path)
+    create_automatic_meeting_protocol_inner(storage, template_parameter, &typst_package_path)
         .await
-        .map(LoopBackEvent::AutomaticTranscriptionGenerated)
+        .map(LoopBackEvent::AutomaticMeetingProtocolGenerated)
         .unwrap_or_else(Into::into)
 }
 
-async fn create_transcript_inner(
+async fn create_automatic_meeting_protocol_inner(
     storage: ModuleAssetStorage,
     template_parameter: ReportTemplateParameter,
     typst_package_path: &Path,
 ) -> Result<AssetUploaded, CreateReportError> {
-    const ASSET_FILE_KIND: AssetFileKind = asset_file_kind!("automatic_transcript");
+    const ASSET_FILE_KIND: AssetFileKind = asset_file_kind!("automatic_meeting_protocol");
 
     let mut generate_options = GenerateOptions::default();
     generate_options.packages_path = Some(typst_package_path);
@@ -165,19 +165,19 @@ async fn create_transcript_inner(
         ("l10n/de.ftl", (None, FTL_DE.as_bytes().into())),
         ("l10n/en.ftl", (None, FTL_EN.as_bytes().into())),
     ];
-    let transcript = opentalk_report_generation::generate_pdf_report(
-        TRANSCRIPT_TEMPLATE.to_owned(),
+    let protocol = opentalk_report_generation::generate_pdf_report(
+        PROTOCOL_TEMPLATE.to_owned(),
         BTreeMap::from_iter(files),
         &generate_options,
     )
     .map_err(|err| {
-        tracing::error!("Failed to generate transcript: {err}");
+        tracing::error!("Failed to generate protocol: {err}");
         CreateReportError
     })?;
 
     storage
         .upload_asset_vec(
-            transcript,
+            protocol,
             AssetMetaData {
                 kind: ASSET_FILE_KIND,
                 timestamp: Timestamp::now(),
@@ -186,7 +186,7 @@ async fn create_transcript_inner(
         )
         .await
         .map_err(|err| {
-            tracing::error!("Uploading transcript failed: {err:?}");
+            tracing::error!("Uploading protocol failed: {err:?}");
             CreateReportError
         })
 }

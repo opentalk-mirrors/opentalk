@@ -3,12 +3,12 @@
 
 speaker = Speaker { $number }
 unknown = Unknown
-transcript = Transcript
-transcript_start = Transcription was started
-transcript_pause = Transcription was paused
-transcript_resume = Transcription was resumed
-transcript_end = Transcription was stopped
-automatic_transcript = Automatic Transcript
+protocol = Protocol
+protocol_start = Protocol was started
+protocol_pause = Protocol was paused
+protocol_resume = Protocol was resumed
+protocol_end = Protocol was stopped
+automatic_meeting_protocol = Automatic Meeting Protocol
 date = Date
 time = Time
 moderated_by = Moderated by
@@ -23,5 +23,5 @@ language_name = { $language ->
     *[other] { $language }
 }
 automatic = Automatic
-disclaimer_errors = This transcript was generated automatically and may contain errors.
+disclaimer_errors = This meeting protocol was generated automatically and may contain errors.
 page_number = Page { $current } of { $total }

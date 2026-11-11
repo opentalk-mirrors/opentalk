@@ -4,7 +4,7 @@ expression: text
 ---
 
 
-Automatic Transcript
+Automatic Meeting Protocol
  Date [date]
 
 Time [time_minutes] - [time_minutes]
@@ -17,9 +17,9 @@ Pseudonymization Disabled
 
 Moderated by Alice the angry
 
-This transcript was generated automatically and may contain errors.
+This meeting protocol was generated automatically and may contain errors.
 
-[time_seconds]   Transcription was started
+[time_seconds]   Protocol was started
 
 [time_seconds]   Alice the angry
 
@@ -30,12 +30,12 @@ Hi Alice.
 [time_seconds]   Alice the angry
 
 First topic.
-[time_seconds]   Transcription was paused
+[time_seconds]   Protocol was paused
 
-[time_seconds]   Transcription was resumed
+[time_seconds]   Protocol was resumed
 
 [time_seconds]   Bob the bold
 
 Welcome back.
-[time_seconds]   Transcription was stopped
+[time_seconds]   Protocol was stopped
  Page   1   of   1

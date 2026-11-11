@@ -23,13 +23,13 @@ use opentalk_roomserver_types::{
 };
 use opentalk_roomserver_types_transcription::{
     command::TranscriptionCommand,
-    config::AutomaticTranscriptionConfig,
+    config::AutomaticMeetingProtocolConfig,
     event::{TranscriptionError, TranscriptionEvent},
     segment::TranscriptionSegment,
     service::{command::TranscriptionServiceCommand, event::TranscriptionServiceEvent},
     settings::TranscriptionSettings,
-    state::{AutomaticTranscriptionState, TranscriptionState},
-    status::{AutomaticTranscriptionMode, TranscriptionModes, TranscriptionStatus},
+    state::{AutomaticMeetingProtocolState, TranscriptionState},
+    status::{AutomaticMeetingProtocolMode, TranscriptionModes, TranscriptionStatus},
 };
 use opentalk_service_auth::{ApiKey, service::ApiKeys};
 use opentalk_transcription_web_api::v1::TranscriptionTarget;
@@ -161,7 +161,7 @@ async fn start_transcription(
     transcription_target.request_id
 }
 
-async fn start_automatic_transcription(
+async fn start_automatic_meeting_protocol(
     transcription: &mut MockTranscriptionTask,
     room: &mut TestRoom,
     room_kind: RoomKind,
@@ -172,7 +172,7 @@ async fn start_automatic_transcription(
 ) -> RequestId {
     issuer
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::StartAutomaticTranscription {
+            TranscriptionCommand::StartAutomaticMeetingProtocol {
                 language: language.clone(),
                 timezone: Some(TimeZone::utc()),
                 pseudonymous,
@@ -186,7 +186,7 @@ async fn start_automatic_transcription(
         expect_transcription_event!(
             participant,
             TranscriptionEvent::ModesUpdated {
-                modes: automatic_transcription_modes(pseudonymous, false)
+                modes: automatic_meeting_protocol_modes(pseudonymous, false)
             }
         );
         expect_transcription_event!(
@@ -213,17 +213,20 @@ async fn start_automatic_transcription(
     transcription_target.request_id
 }
 
-/// Stops the automatic transcription as the last active mode and returns the generated PDF.
+/// Stops the automatic meeting protocol as the last active mode and returns the generated PDF.
 ///
 /// The service is no longer needed and told to stop.
-async fn stop_automatic_transcription(
+async fn stop_automatic_meeting_protocol(
     room: &TestRoom,
     transcription: &mut MockParticipantJoined,
     issuer: &mut MockParticipantJoined,
     others: &mut [&mut MockParticipantJoined],
 ) -> Vec<u8> {
     issuer
-        .send_command::<TranscriptionModule>(TranscriptionCommand::StopAutomaticTranscription, None)
+        .send_command::<TranscriptionModule>(
+            TranscriptionCommand::StopAutomaticMeetingProtocol,
+            None,
+        )
         .await
         .unwrap();
 
@@ -264,7 +267,7 @@ async fn stop_automatic_transcription(
 
     room.stored_asset(asset_id)
         .await
-        .expect("Automatic transcription PDF must be stored")
+        .expect("Automatic meeting protocol PDF must be stored")
 }
 
 /// Starts the live transcription, stops it and starts it again before the first service stopped.
@@ -334,8 +337,8 @@ async fn restart_before_service_stopped(
     (old_service, new_service)
 }
 
-/// Sets the automatic transcription consent of `participant`, the participant and all `others` are
-/// notified about it.
+/// Sets the automatic meeting protocol consent of `participant`, the participant and all `others`
+/// are notified about it.
 async fn set_consent(
     consent: bool,
     participant: &mut MockParticipantJoined,
@@ -343,7 +346,7 @@ async fn set_consent(
 ) {
     participant
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::SetAutomaticTranscriptionConsent { consent },
+            TranscriptionCommand::SetAutomaticMeetingProtocolConsent { consent },
             None,
         )
         .await
@@ -354,7 +357,7 @@ async fn set_consent(
     {
         expect_transcription_event!(
             receiver,
-            TranscriptionEvent::AutomaticTranscriptionConsentUpdated {
+            TranscriptionEvent::AutomaticMeetingProtocolConsentUpdated {
                 participant: participant_id,
                 consents: consent,
             }
@@ -412,7 +415,7 @@ async fn join_transcription_service(
 fn live_transcription_modes() -> TranscriptionModes {
     TranscriptionModes {
         live_transcription: true,
-        automatic_transcription: None,
+        automatic_meeting_protocol: None,
     }
 }
 
@@ -428,11 +431,11 @@ fn switched_room_transcription_state(event: BreakoutEvent) -> TranscriptionState
         .expect("Transcription state must not be none")
 }
 
-fn automatic_transcription_modes(pseudonymous: bool, paused: bool) -> TranscriptionModes {
+fn automatic_meeting_protocol_modes(pseudonymous: bool, paused: bool) -> TranscriptionModes {
     TranscriptionModes {
         live_transcription: false,
-        automatic_transcription: Some(AutomaticTranscriptionMode {
-            config: AutomaticTranscriptionConfig { pseudonymous },
+        automatic_meeting_protocol: Some(AutomaticMeetingProtocolMode {
+            config: AutomaticMeetingProtocolConfig { pseudonymous },
             paused,
         }),
     }
@@ -936,7 +939,7 @@ async fn unexpected_service_stop() {
 }
 
 #[test_log::test(tokio::test)]
-async fn automatic_transcription_join_success() {
+async fn automatic_meeting_protocol_join_success() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -951,13 +954,13 @@ async fn automatic_transcription_join_success() {
         TranscriptionState {
             status: TranscriptionStatus::Inactive,
             live_transcription: false,
-            automatic_transcription: None,
+            automatic_meeting_protocol: None,
         }
     );
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    let request_id = start_automatic_transcription(
+    let request_id = start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -983,8 +986,8 @@ async fn automatic_transcription_join_success() {
                 language: language.clone()
             },
             live_transcription: false,
-            automatic_transcription: Some(AutomaticTranscriptionState {
-                config: AutomaticTranscriptionConfig { pseudonymous: true },
+            automatic_meeting_protocol: Some(AutomaticMeetingProtocolState {
+                config: AutomaticMeetingProtocolConfig { pseudonymous: true },
                 consents: false,
                 paused: false,
             })
@@ -1014,8 +1017,8 @@ async fn automatic_transcription_join_success() {
                 language: language.clone()
             },
             live_transcription: false,
-            automatic_transcription: Some(AutomaticTranscriptionState {
-                config: AutomaticTranscriptionConfig { pseudonymous: true },
+            automatic_meeting_protocol: Some(AutomaticMeetingProtocolState {
+                config: AutomaticMeetingProtocolConfig { pseudonymous: true },
                 consents: false,
                 paused: false,
             })
@@ -1024,8 +1027,8 @@ async fn automatic_transcription_join_success() {
 }
 
 #[test_log::test(tokio::test)]
-async fn pseudonymous_automatic_transcription() {
-    let text = record_automatic_transcription(true).await;
+async fn pseudonymous_automatic_meeting_protocol() {
+    let text = record_automatic_meeting_protocol(true).await;
 
     insta::with_settings!({
        filters => vec![
@@ -1037,8 +1040,8 @@ async fn pseudonymous_automatic_transcription() {
 }
 
 #[test_log::test(tokio::test)]
-async fn named_automatic_transcription() {
-    let text = record_automatic_transcription(false).await;
+async fn named_automatic_meeting_protocol() {
+    let text = record_automatic_meeting_protocol(false).await;
 
     insta::with_settings!({
        filters => vec![
@@ -1049,7 +1052,7 @@ async fn named_automatic_transcription() {
     }, { assert_snapshot!(text)});
 }
 
-/// Participants joining after the automatic transcription started are counted as present.
+/// Participants joining after the automatic meeting protocol started are counted as present.
 #[test_log::test(tokio::test)]
 async fn late_joining_participant_is_counted_as_present() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
@@ -1057,7 +1060,7 @@ async fn late_joining_participant_is_counted_as_present() {
     let mut alice = room.join_alice_moderator(0).await;
 
     let language = Some("en".to_owned());
-    let request_id = start_automatic_transcription(
+    let request_id = start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         RoomKind::Main,
@@ -1082,15 +1085,16 @@ async fn late_joining_participant_is_counted_as_present() {
     set_consent(true, &mut alice, &mut [&mut bob, &mut transcription]).await;
 
     let pdf =
-        stop_automatic_transcription(&room, &mut transcription, &mut alice, &mut [&mut bob]).await;
+        stop_automatic_meeting_protocol(&room, &mut transcription, &mut alice, &mut [&mut bob])
+            .await;
     let text = pdf_extract::extract_text_from_mem(&pdf).expect("PDF must contain text");
 
     assert!(text.contains("Participants 2"));
 }
 
-/// Records an automatic transcription that contains every kind of transcript entry and returns the
-/// generated PDF.
-async fn record_automatic_transcription(pseudonymous: bool) -> String {
+/// Records an automatic meeting protocol that contains every kind of protocol entry and returns
+/// the generated PDF.
+async fn record_automatic_meeting_protocol(pseudonymous: bool) -> String {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -1101,7 +1105,7 @@ async fn record_automatic_transcription(pseudonymous: bool) -> String {
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
 
-    let request_id = start_automatic_transcription(
+    let request_id = start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1122,7 +1126,7 @@ async fn record_automatic_transcription(pseudonymous: bool) -> String {
     )
     .await;
 
-    // Only participants that consented are included in the automatic transcription
+    // Only participants that consented are included in the automatic meeting protocol
     set_consent(true, &mut alice, &mut [&mut bob, &mut transcription]).await;
     set_consent(true, &mut bob, &mut [&mut alice, &mut transcription]).await;
 
@@ -1151,21 +1155,21 @@ async fn record_automatic_transcription(pseudonymous: bool) -> String {
             .unwrap();
     }
 
-    // Pause the automatic transcription, the service is no longer needed and gets stopped
+    // Pause the automatic meeting protocol, the service is no longer needed and gets stopped
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::PauseAutomaticTranscription,
+            TranscriptionCommand::PauseAutomaticMeetingProtocol,
             None,
         )
         .await
         .unwrap();
 
-    // All participants get notified that the automatic transcription is paused
+    // All participants get notified that the automatic meeting protocol is paused
     for participant in [&mut alice, &mut bob, &mut transcription] {
         expect_transcription_event!(
             participant,
             TranscriptionEvent::ModesUpdated {
-                modes: automatic_transcription_modes(pseudonymous, true)
+                modes: automatic_meeting_protocol_modes(pseudonymous, true)
             }
         );
     }
@@ -1178,8 +1182,8 @@ async fn record_automatic_transcription(pseudonymous: bool) -> String {
         }
     );
 
-    // Segments that arrive while the automatic transcription is paused must not be written to the
-    // transcript
+    // Segments that arrive while the automatic meeting protocol is paused must not be written to
+    // the protocol
     transcription
         .send_command::<TranscriptionModule>(
             TranscriptionCommand::TranscriptionServiceEvent {
@@ -1220,10 +1224,10 @@ async fn record_automatic_transcription(pseudonymous: bool) -> String {
     transcription.disconnect().await.unwrap();
     flush_disconnected_events(&mut [&mut alice, &mut bob]).await;
 
-    // Resume the automatic transcription, a new service gets requested
+    // Resume the automatic meeting protocol, a new service gets requested
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::ResumeAutomaticTranscription,
+            TranscriptionCommand::ResumeAutomaticMeetingProtocol,
             None,
         )
         .await
@@ -1235,7 +1239,7 @@ async fn record_automatic_transcription(pseudonymous: bool) -> String {
         expect_transcription_event!(
             participant,
             TranscriptionEvent::ModesUpdated {
-                modes: automatic_transcription_modes(pseudonymous, false)
+                modes: automatic_meeting_protocol_modes(pseudonymous, false)
             }
         );
         expect_transcription_event!(
@@ -1285,15 +1289,16 @@ async fn record_automatic_transcription(pseudonymous: bool) -> String {
         .unwrap();
 
     let pdf =
-        stop_automatic_transcription(&room, &mut transcription, &mut alice, &mut [&mut bob]).await;
+        stop_automatic_meeting_protocol(&room, &mut transcription, &mut alice, &mut [&mut bob])
+            .await;
 
     pdf_extract::extract_text_from_mem(&pdf).expect("PDF must contain text")
 }
 
-/// Pausing and resuming the automatic transcription while live transcription is running must not
+/// Pausing and resuming the automatic meeting protocol while live transcription is running must not
 /// affect the transcription service.
 #[test_log::test(tokio::test)]
-async fn pause_and_resume_automatic_transcription_with_live_transcription() {
+async fn pause_and_resume_automatic_meeting_protocol_with_live_transcription() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -1320,10 +1325,10 @@ async fn pause_and_resume_automatic_transcription_with_live_transcription() {
     )
     .await;
 
-    // Start the automatic transcription, the running service is used for it
+    // Start the automatic meeting protocol, the running service is used for it
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::StartAutomaticTranscription {
+            TranscriptionCommand::StartAutomaticMeetingProtocol {
                 language: None,
                 timezone: Some(TimeZone::utc()),
                 pseudonymous: false,
@@ -1339,16 +1344,16 @@ async fn pause_and_resume_automatic_transcription_with_live_transcription() {
             TranscriptionEvent::ModesUpdated {
                 modes: TranscriptionModes {
                     live_transcription: true,
-                    ..automatic_transcription_modes(false, false)
+                    ..automatic_meeting_protocol_modes(false, false)
                 }
             }
         );
     }
 
-    // Pause the automatic transcription, the service is still needed for the live transcription
+    // Pause the automatic meeting protocol, the service is still needed for the live transcription
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::PauseAutomaticTranscription,
+            TranscriptionCommand::PauseAutomaticMeetingProtocol,
             None,
         )
         .await
@@ -1360,13 +1365,13 @@ async fn pause_and_resume_automatic_transcription_with_live_transcription() {
             TranscriptionEvent::ModesUpdated {
                 modes: TranscriptionModes {
                     live_transcription: true,
-                    ..automatic_transcription_modes(false, true)
+                    ..automatic_meeting_protocol_modes(false, true)
                 }
             }
         );
     }
 
-    // Segments are still broadcast while the automatic transcription is paused. The service must
+    // Segments are still broadcast while the automatic meeting protocol is paused. The service must
     // not be told to stop and the service status must not change, so the next event is the
     // segment.
     let segment = TranscriptionSegment {
@@ -1391,10 +1396,11 @@ async fn pause_and_resume_automatic_transcription_with_live_transcription() {
         expect_transcription_event!(participant, TranscriptionEvent::Segment(segment.clone()));
     }
 
-    // Resume the automatic transcription, the service is still connected so it resumes immediately
+    // Resume the automatic meeting protocol, the service is still connected so it resumes
+    // immediately
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::ResumeAutomaticTranscription,
+            TranscriptionCommand::ResumeAutomaticMeetingProtocol,
             None,
         )
         .await
@@ -1406,7 +1412,7 @@ async fn pause_and_resume_automatic_transcription_with_live_transcription() {
             TranscriptionEvent::ModesUpdated {
                 modes: TranscriptionModes {
                     live_transcription: true,
-                    ..automatic_transcription_modes(false, false)
+                    ..automatic_meeting_protocol_modes(false, false)
                 }
             }
         );
@@ -1431,9 +1437,12 @@ async fn pause_and_resume_automatic_transcription_with_live_transcription() {
         expect_transcription_event!(participant, TranscriptionEvent::Segment(segment.clone()));
     }
 
-    // Stop the automatic transcription, the service keeps running for the live transcription
+    // Stop the automatic meeting protocol, the service keeps running for the live transcription
     alice
-        .send_command::<TranscriptionModule>(TranscriptionCommand::StopAutomaticTranscription, None)
+        .send_command::<TranscriptionModule>(
+            TranscriptionCommand::StopAutomaticMeetingProtocol,
+            None,
+        )
         .await
         .unwrap();
 
@@ -1459,10 +1468,10 @@ async fn pause_and_resume_automatic_transcription_with_live_transcription() {
     }
 }
 
-/// When the transcription service disconnects unexpectedly, the automatic transcription is stopped
-/// and the PDF is generated, so that no data is lost.
+/// When the transcription service disconnects unexpectedly, the automatic meeting protocol is
+/// stopped and the PDF is generated, so that no data is lost.
 #[test_log::test(tokio::test)]
-async fn unexpected_disconnect_automatic_transcription() {
+async fn unexpected_disconnect_automatic_meeting_protocol() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -1470,7 +1479,7 @@ async fn unexpected_disconnect_automatic_transcription() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    let request_id = start_automatic_transcription(
+    let request_id = start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1520,7 +1529,7 @@ async fn unexpected_disconnect_automatic_transcription() {
         } if participant_id == transcription_id
     );
 
-    // The automatic transcription recorded so far is not lost
+    // The automatic meeting protocol recorded so far is not lost
     let event = alice.receive::<TranscriptionEvent>().await.unwrap();
     let TranscriptionEvent::PdfCreated { asset_id, .. } = event.payload else {
         panic!("Expected PdfCreated, got {:?}", event.payload);
@@ -1528,12 +1537,12 @@ async fn unexpected_disconnect_automatic_transcription() {
 
     room.stored_asset(asset_id)
         .await
-        .expect("Automatic transcription PDF must be stored");
+        .expect("Automatic meeting protocol PDF must be stored");
 }
 
-/// Only participants that consented are included in the automatic transcription.
+/// Only participants that consented are included in the automatic meeting protocol.
 #[test_log::test(tokio::test)]
-async fn consent_automatic_transcription() {
+async fn consent_automatic_meeting_protocol() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -1543,7 +1552,7 @@ async fn consent_automatic_transcription() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    let request_id = start_automatic_transcription(
+    let request_id = start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1608,7 +1617,8 @@ async fn consent_automatic_transcription() {
         .unwrap();
 
     let pdf =
-        stop_automatic_transcription(&room, &mut transcription, &mut alice, &mut [&mut bob]).await;
+        stop_automatic_meeting_protocol(&room, &mut transcription, &mut alice, &mut [&mut bob])
+            .await;
     let content = pdf_extract::extract_text_from_mem(&pdf).unwrap();
 
     assert!(content.contains("Consented speech"), "{content}");
@@ -1616,9 +1626,9 @@ async fn consent_automatic_transcription() {
     assert!(!content.contains("Revoked speech"), "{content}");
 }
 
-/// Setting the consent fails when no automatic transcription is running.
+/// Setting the consent fails when no automatic meeting protocol is running.
 #[test_log::test(tokio::test)]
-async fn consent_without_automatic_transcription() {
+async fn consent_without_automatic_meeting_protocol() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -1627,7 +1637,7 @@ async fn consent_without_automatic_transcription() {
     // No transcription at all
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::SetAutomaticTranscriptionConsent { consent: true },
+            TranscriptionCommand::SetAutomaticMeetingProtocolConsent { consent: true },
             None,
         )
         .await
@@ -1650,7 +1660,7 @@ async fn consent_without_automatic_transcription() {
 
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::SetAutomaticTranscriptionConsent { consent: true },
+            TranscriptionCommand::SetAutomaticMeetingProtocolConsent { consent: true },
             None,
         )
         .await
@@ -1662,7 +1672,7 @@ async fn consent_without_automatic_transcription() {
     );
 }
 
-/// A participant that reconnects keeps their automatic transcription consent.
+/// A participant that reconnects keeps their automatic meeting protocol consent.
 #[test_log::test(tokio::test)]
 async fn reconnect_keeps_consent() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
@@ -1672,7 +1682,7 @@ async fn reconnect_keeps_consent() {
 
     let language = Some("en".to_owned());
 
-    start_automatic_transcription(
+    start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         RoomKind::Main,
@@ -1701,8 +1711,8 @@ async fn reconnect_keeps_consent() {
         TranscriptionState {
             status: TranscriptionStatus::Requested { language },
             live_transcription: false,
-            automatic_transcription: Some(AutomaticTranscriptionState {
-                config: AutomaticTranscriptionConfig {
+            automatic_meeting_protocol: Some(AutomaticMeetingProtocolState {
+                config: AutomaticMeetingProtocolConfig {
                     pseudonymous: false
                 },
                 consents: true,
@@ -1712,9 +1722,9 @@ async fn reconnect_keeps_consent() {
     );
 }
 
-/// The consent only applies to the automatic transcription it was given for.
+/// The consent only applies to the automatic meeting protocol it was given for.
 #[test_log::test(tokio::test)]
-async fn stopping_automatic_transcription_clears_consent() {
+async fn stopping_automatic_meeting_protocol_clears_consent() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -1722,7 +1732,7 @@ async fn stopping_automatic_transcription_clears_consent() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    let request_id = start_automatic_transcription(
+    let request_id = start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1744,10 +1754,10 @@ async fn stopping_automatic_transcription_clears_consent() {
     .await;
 
     set_consent(true, &mut alice, &mut [&mut transcription]).await;
-    stop_automatic_transcription(&room, &mut transcription, &mut alice, &mut []).await;
+    stop_automatic_meeting_protocol(&room, &mut transcription, &mut alice, &mut []).await;
 
-    // Start a new automatic transcription, the previous consent does not carry over
-    start_automatic_transcription(
+    // Start a new automatic meeting protocol, the previous consent does not carry over
+    start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1766,16 +1776,16 @@ async fn stopping_automatic_transcription_clears_consent() {
         .get_module::<TranscriptionState>()
         .expect("Transcription state must be valid")
         .expect("Transcription state must not be none")
-        .automatic_transcription
-        .expect("Automatic transcription must be ongoing")
+        .automatic_meeting_protocol
+        .expect("Automatic meeting protocol must be ongoing")
         .consents;
     assert!(!consents);
 }
 
-/// Starting live transcription while the automatic transcription is running reuses the running
+/// Starting live transcription while the automatic meeting protocol is running reuses the running
 /// service.
 #[test_log::test(tokio::test)]
-async fn start_live_transcription_while_automatic_transcription_running() {
+async fn start_live_transcription_while_automatic_meeting_protocol_running() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -1783,7 +1793,7 @@ async fn start_live_transcription_while_automatic_transcription_running() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    let request_id = start_automatic_transcription(
+    let request_id = start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -1821,7 +1831,7 @@ async fn start_live_transcription_while_automatic_transcription_running() {
             TranscriptionEvent::ModesUpdated {
                 modes: TranscriptionModes {
                     live_transcription: true,
-                    ..automatic_transcription_modes(false, false)
+                    ..automatic_meeting_protocol_modes(false, false)
                 }
             }
         );
@@ -1852,10 +1862,10 @@ async fn start_live_transcription_while_automatic_transcription_running() {
     }
 }
 
-/// Stopping live transcription while the automatic transcription is running keeps the service
-/// running for the automatic transcription.
+/// Stopping live transcription while the automatic meeting protocol is running keeps the service
+/// running for the automatic meeting protocol.
 #[test_log::test(tokio::test)]
-async fn stop_live_transcription_keeps_automatic_transcription() {
+async fn stop_live_transcription_keeps_automatic_meeting_protocol() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -1883,7 +1893,7 @@ async fn stop_live_transcription_keeps_automatic_transcription() {
 
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::StartAutomaticTranscription {
+            TranscriptionCommand::StartAutomaticMeetingProtocol {
                 language: None,
                 timezone: Some(TimeZone::utc()),
                 pseudonymous: false,
@@ -1899,7 +1909,7 @@ async fn stop_live_transcription_keeps_automatic_transcription() {
             TranscriptionEvent::ModesUpdated {
                 modes: TranscriptionModes {
                     live_transcription: true,
-                    ..automatic_transcription_modes(false, false)
+                    ..automatic_meeting_protocol_modes(false, false)
                 }
             }
         );
@@ -1909,7 +1919,7 @@ async fn stop_live_transcription_keeps_automatic_transcription() {
 
     let alice_id = alice.id();
 
-    // Stop the live transcription, the service is still needed for the automatic transcription
+    // Stop the live transcription, the service is still needed for the automatic meeting protocol
     alice
         .send_command::<TranscriptionModule>(TranscriptionCommand::Stop, None)
         .await
@@ -1919,7 +1929,7 @@ async fn stop_live_transcription_keeps_automatic_transcription() {
         expect_transcription_event!(
             participant,
             TranscriptionEvent::ModesUpdated {
-                modes: automatic_transcription_modes(false, false)
+                modes: automatic_meeting_protocol_modes(false, false)
             }
         );
     }
@@ -1943,7 +1953,7 @@ async fn stop_live_transcription_keeps_automatic_transcription() {
 
     // The service was not told to stop and no segment was broadcast, so the next events are the
     // modes update and the stop command
-    let pdf = stop_automatic_transcription(&room, &mut transcription, &mut alice, &mut []).await;
+    let pdf = stop_automatic_meeting_protocol(&room, &mut transcription, &mut alice, &mut []).await;
     let content = pdf_extract::extract_text_from_mem(&pdf).unwrap();
 
     assert!(content.contains("Still recorded"), "{content}");
@@ -2001,13 +2011,13 @@ async fn start_when_already_active() {
     assert!(bob.received_nothing());
     assert!(transcription.received_nothing());
 
-    let start_automatic_transcription = TranscriptionCommand::StartAutomaticTranscription {
+    let start_automatic_meeting_protocol = TranscriptionCommand::StartAutomaticMeetingProtocol {
         language: None,
         timezone: Some(TimeZone::utc()),
         pseudonymous: false,
     };
     alice
-        .send_command::<TranscriptionModule>(start_automatic_transcription.clone(), None)
+        .send_command::<TranscriptionModule>(start_automatic_meeting_protocol.clone(), None)
         .await
         .unwrap();
 
@@ -2017,15 +2027,15 @@ async fn start_when_already_active() {
             TranscriptionEvent::ModesUpdated {
                 modes: TranscriptionModes {
                     live_transcription: true,
-                    ..automatic_transcription_modes(false, false)
+                    ..automatic_meeting_protocol_modes(false, false)
                 }
             }
         );
     }
 
-    // The automatic transcription is already active
+    // The automatic meeting protocol is already active
     alice
-        .send_command::<TranscriptionModule>(start_automatic_transcription, None)
+        .send_command::<TranscriptionModule>(start_automatic_meeting_protocol, None)
         .await
         .unwrap();
 
@@ -2034,7 +2044,7 @@ async fn start_when_already_active() {
         TranscriptionEvent::ModesUpdated {
             modes: TranscriptionModes {
                 live_transcription: true,
-                ..automatic_transcription_modes(false, false)
+                ..automatic_meeting_protocol_modes(false, false)
             }
         }
     );
@@ -2067,24 +2077,24 @@ async fn commands_when_not_active() {
     .await;
     assert_command_error(
         &mut alice,
-        TranscriptionCommand::PauseAutomaticTranscription,
+        TranscriptionCommand::PauseAutomaticMeetingProtocol,
         TranscriptionError::NotActive,
     )
     .await;
     assert_command_error(
         &mut alice,
-        TranscriptionCommand::ResumeAutomaticTranscription,
+        TranscriptionCommand::ResumeAutomaticMeetingProtocol,
         TranscriptionError::NotActive,
     )
     .await;
     assert_command_error(
         &mut alice,
-        TranscriptionCommand::StopAutomaticTranscription,
+        TranscriptionCommand::StopAutomaticMeetingProtocol,
         TranscriptionError::NotActive,
     )
     .await;
 
-    // Only live transcription, the automatic transcription commands fail
+    // Only live transcription, the automatic meeting protocol commands fail
     start_transcription(
         &mut transcription_task,
         &mut room,
@@ -2096,27 +2106,27 @@ async fn commands_when_not_active() {
 
     assert_command_error(
         &mut alice,
-        TranscriptionCommand::PauseAutomaticTranscription,
+        TranscriptionCommand::PauseAutomaticMeetingProtocol,
         TranscriptionError::NotActive,
     )
     .await;
     assert_command_error(
         &mut alice,
-        TranscriptionCommand::ResumeAutomaticTranscription,
+        TranscriptionCommand::ResumeAutomaticMeetingProtocol,
         TranscriptionError::NotActive,
     )
     .await;
     assert_command_error(
         &mut alice,
-        TranscriptionCommand::StopAutomaticTranscription,
+        TranscriptionCommand::StopAutomaticMeetingProtocol,
         TranscriptionError::NotActive,
     )
     .await;
 }
 
-/// Only moderators can control the automatic transcription.
+/// Only moderators can control the automatic meeting protocol.
 #[test_log::test(tokio::test)]
-async fn automatic_transcription_commands_insufficient_permission() {
+async fn automatic_meeting_protocol_commands_insufficient_permission() {
     let transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -2124,7 +2134,7 @@ async fn automatic_transcription_commands_insufficient_permission() {
 
     assert_command_error(
         &mut bob,
-        TranscriptionCommand::StartAutomaticTranscription {
+        TranscriptionCommand::StartAutomaticMeetingProtocol {
             language: None,
             timezone: Some(TimeZone::utc()),
             pseudonymous: false,
@@ -2134,19 +2144,19 @@ async fn automatic_transcription_commands_insufficient_permission() {
     .await;
     assert_command_error(
         &mut bob,
-        TranscriptionCommand::PauseAutomaticTranscription,
+        TranscriptionCommand::PauseAutomaticMeetingProtocol,
         TranscriptionError::InsufficientPermissions,
     )
     .await;
     assert_command_error(
         &mut bob,
-        TranscriptionCommand::ResumeAutomaticTranscription,
+        TranscriptionCommand::ResumeAutomaticMeetingProtocol,
         TranscriptionError::InsufficientPermissions,
     )
     .await;
     assert_command_error(
         &mut bob,
-        TranscriptionCommand::StopAutomaticTranscription,
+        TranscriptionCommand::StopAutomaticMeetingProtocol,
         TranscriptionError::InsufficientPermissions,
     )
     .await;
@@ -2166,7 +2176,7 @@ async fn assert_command_error(
     expect_transcription_event!(participant, TranscriptionEvent::Error(error));
 }
 
-/// Pausing a paused automatic transcription and resuming a running one only notifies the sender.
+/// Pausing a paused automatic meeting protocol and resuming a running one only notifies the sender.
 #[test_log::test(tokio::test)]
 async fn pause_twice_and_resume_unpaused() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
@@ -2178,7 +2188,7 @@ async fn pause_twice_and_resume_unpaused() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    let request_id = start_automatic_transcription(
+    let request_id = start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -2199,10 +2209,10 @@ async fn pause_twice_and_resume_unpaused() {
     )
     .await;
 
-    // Resuming a running automatic transcription only notifies the sender
+    // Resuming a running automatic meeting protocol only notifies the sender
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::ResumeAutomaticTranscription,
+            TranscriptionCommand::ResumeAutomaticMeetingProtocol,
             None,
         )
         .await
@@ -2211,7 +2221,7 @@ async fn pause_twice_and_resume_unpaused() {
     expect_transcription_event!(
         alice,
         TranscriptionEvent::ModesUpdated {
-            modes: automatic_transcription_modes(false, false)
+            modes: automatic_meeting_protocol_modes(false, false)
         }
     );
     assert!(bob.received_nothing());
@@ -2219,7 +2229,7 @@ async fn pause_twice_and_resume_unpaused() {
 
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::PauseAutomaticTranscription,
+            TranscriptionCommand::PauseAutomaticMeetingProtocol,
             None,
         )
         .await
@@ -2229,7 +2239,7 @@ async fn pause_twice_and_resume_unpaused() {
         expect_transcription_event!(
             participant,
             TranscriptionEvent::ModesUpdated {
-                modes: automatic_transcription_modes(false, true)
+                modes: automatic_meeting_protocol_modes(false, true)
             }
         );
     }
@@ -2241,10 +2251,10 @@ async fn pause_twice_and_resume_unpaused() {
         }
     );
 
-    // Pausing a paused automatic transcription only notifies the sender
+    // Pausing a paused automatic meeting protocol only notifies the sender
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::PauseAutomaticTranscription,
+            TranscriptionCommand::PauseAutomaticMeetingProtocol,
             None,
         )
         .await
@@ -2253,7 +2263,7 @@ async fn pause_twice_and_resume_unpaused() {
     expect_transcription_event!(
         alice,
         TranscriptionEvent::ModesUpdated {
-            modes: automatic_transcription_modes(false, true)
+            modes: automatic_meeting_protocol_modes(false, true)
         }
     );
     assert!(bob.received_nothing());
@@ -2267,7 +2277,7 @@ async fn change_language_not_active() {
     let mut room = create_room(&transcription_task);
     let mut alice = room.join_alice_moderator(0).await;
 
-    start_automatic_transcription(
+    start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         RoomKind::Main,
@@ -2360,9 +2370,9 @@ async fn change_language() {
     }
 }
 
-/// An automatic transcription in a breakout room does not affect the main room.
+/// An automatic meeting protocol in a breakout room does not affect the main room.
 #[test_log::test(tokio::test)]
-async fn breakout_room_automatic_transcription() {
+async fn breakout_room_automatic_meeting_protocol() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -2384,7 +2394,7 @@ async fn breakout_room_automatic_transcription() {
     alice.switch_breakout_room(&mut [], breakout_room).await;
 
     let language = Some("en".to_owned());
-    start_automatic_transcription(
+    start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         breakout_room,
@@ -2402,19 +2412,19 @@ async fn breakout_room_automatic_transcription() {
         TranscriptionState {
             status: TranscriptionStatus::Inactive,
             live_transcription: false,
-            automatic_transcription: None,
+            automatic_meeting_protocol: None,
         }
     );
 
-    // The automatic transcription in the breakout room is still running
+    // The automatic meeting protocol in the breakout room is still running
     let event = alice.switch_breakout_room(&mut [], breakout_room).await;
     assert_eq!(
         switched_room_transcription_state(event),
         TranscriptionState {
             status: TranscriptionStatus::Requested { language },
             live_transcription: false,
-            automatic_transcription: Some(AutomaticTranscriptionState {
-                config: AutomaticTranscriptionConfig {
+            automatic_meeting_protocol: Some(AutomaticMeetingProtocolState {
+                config: AutomaticMeetingProtocolConfig {
                     pseudonymous: false
                 },
                 consents: false,
@@ -2424,15 +2434,15 @@ async fn breakout_room_automatic_transcription() {
     );
 }
 
-/// Closing the room while an automatic transcription is ongoing generates the automatic
-/// transcription PDF.
+/// Closing the room while an automatic meeting protocol is ongoing generates the automatic
+/// meeting protocol PDF.
 #[test_log::test(tokio::test(start_paused = true))]
-async fn closing_room_generates_automatic_transcription() {
+async fn closing_room_generates_automatic_meeting_protocol() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
     let mut alice = room.join_alice_moderator(0).await;
-    start_automatic_transcription(
+    start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         RoomKind::Main,
@@ -2455,10 +2465,10 @@ async fn closing_room_generates_automatic_transcription() {
     assert_eq!(assets.len(), 1);
 }
 
-/// Closing the breakout rooms while an automatic transcription is ongoing in a breakout room
-/// generates the automatic transcription PDF.
+/// Closing the breakout rooms while an automatic meeting protocol is ongoing in a breakout room
+/// generates the automatic meeting protocol PDF.
 #[test_log::test(tokio::test)]
-async fn closing_breakout_room_generates_automatic_transcription() {
+async fn closing_breakout_room_generates_automatic_meeting_protocol() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
     let mut room = create_room(&transcription_task);
 
@@ -2479,7 +2489,7 @@ async fn closing_breakout_room_generates_automatic_transcription() {
     let breakout_room = RoomKind::Breakout(BreakoutId::from(0));
     alice.switch_breakout_room(&mut [], breakout_room).await;
 
-    start_automatic_transcription(
+    start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         breakout_room,
@@ -2507,7 +2517,7 @@ async fn closing_breakout_room_generates_automatic_transcription() {
 
     room.stored_asset(asset_id)
         .await
-        .expect("Automatic transcription PDF must be stored");
+        .expect("Automatic meeting protocol PDF must be stored");
 }
 
 /// Stopping the transcription before the requested service connected notifies the participants
@@ -2658,8 +2668,8 @@ async fn stop_after_service_connected_before_started() {
     assert!(alice.received_nothing());
 }
 
-/// Resuming the automatic transcription before the old service confirmed that it stopped must not
-/// treat the late `Stopped` of the old service as unexpected.
+/// Resuming the automatic meeting protocol before the old service confirmed that it stopped must
+/// not treat the late `Stopped` of the old service as unexpected.
 #[test_log::test(tokio::test)]
 async fn resume_before_service_stopped() {
     let mut transcription_task = MockTranscriptionTask::spawn().await;
@@ -2669,7 +2679,7 @@ async fn resume_before_service_stopped() {
 
     let language = Some("en".to_owned());
     let room_kind = RoomKind::Main;
-    let request_id = start_automatic_transcription(
+    let request_id = start_automatic_meeting_protocol(
         &mut transcription_task,
         &mut room,
         room_kind,
@@ -2690,10 +2700,10 @@ async fn resume_before_service_stopped() {
     )
     .await;
 
-    // Pause the automatic transcription, the service is told to stop
+    // Pause the automatic meeting protocol, the service is told to stop
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::PauseAutomaticTranscription,
+            TranscriptionCommand::PauseAutomaticMeetingProtocol,
             None,
         )
         .await
@@ -2703,7 +2713,7 @@ async fn resume_before_service_stopped() {
         expect_transcription_event!(
             participant,
             TranscriptionEvent::ModesUpdated {
-                modes: automatic_transcription_modes(false, true)
+                modes: automatic_meeting_protocol_modes(false, true)
             }
         );
     }
@@ -2715,10 +2725,10 @@ async fn resume_before_service_stopped() {
         }
     );
 
-    // Resume the automatic transcription before the service reported that it stopped
+    // Resume the automatic meeting protocol before the service reported that it stopped
     alice
         .send_command::<TranscriptionModule>(
-            TranscriptionCommand::ResumeAutomaticTranscription,
+            TranscriptionCommand::ResumeAutomaticMeetingProtocol,
             None,
         )
         .await
@@ -2728,7 +2738,7 @@ async fn resume_before_service_stopped() {
         expect_transcription_event!(
             participant,
             TranscriptionEvent::ModesUpdated {
-                modes: automatic_transcription_modes(false, false)
+                modes: automatic_meeting_protocol_modes(false, false)
             }
         );
 

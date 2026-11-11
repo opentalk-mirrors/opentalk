@@ -3,12 +3,12 @@
 
 speaker = Sprecher { $number }
 unknown = Unbekannt
-transcript = Protokoll
-transcript_start = Die Protokollierung wurde gestartet
-transcript_pause = Die Protokollierung wurde pausiert
-transcript_resume = Die Protokollierung wurde fortgesetzt
-transcript_end = Die Protokollierung wurde beendet
-automatic_transcript = Automatisches Protokoll
+protocol = Protokoll
+protocol_start = Die Protokollierung wurde gestartet
+protocol_pause = Die Protokollierung wurde pausiert
+protocol_resume = Die Protokollierung wurde fortgesetzt
+protocol_end = Die Protokollierung wurde beendet
+automatic_meeting_protocol = Automatisches Protokoll
 date = Datum
 time = Zeit
 moderated_by = Moderation

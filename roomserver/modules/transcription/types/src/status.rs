@@ -7,11 +7,11 @@
 //! - [`TranscriptionStatus`] describes the lifecycle of the transcription service (e.g. from
 //!   `requested` to `running`).
 //! - [`TranscriptionModes`] describes which transcription modes have been activated by the
-//!   moderators (live transcription and/or automatic transcription).
+//!   moderators (live transcription and/or automatic meeting protocol).
 
 use serde::{Deserialize, Serialize};
 
-use crate::{config::AutomaticTranscriptionConfig, state::AutomaticTranscriptionState};
+use crate::{config::AutomaticMeetingProtocolConfig, state::AutomaticMeetingProtocolState};
 
 /// The status of the transcription service
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,21 +30,21 @@ pub enum TranscriptionStatus {
 pub struct TranscriptionModes {
     /// If `true` live transcription is enabled.
     pub live_transcription: bool,
-    /// If `Some`, an automatic transcription is recorded.
+    /// If `Some`, an automatic meeting protocol is recorded.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub automatic_transcription: Option<AutomaticTranscriptionMode>,
+    pub automatic_meeting_protocol: Option<AutomaticMeetingProtocolMode>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AutomaticTranscriptionMode {
+pub struct AutomaticMeetingProtocolMode {
     #[serde(flatten)]
-    pub config: AutomaticTranscriptionConfig,
-    /// While paused, no speech is written to the transcript.
+    pub config: AutomaticMeetingProtocolConfig,
+    /// While paused, no speech is written to the protocol.
     pub paused: bool,
 }
 
-impl From<AutomaticTranscriptionState> for AutomaticTranscriptionMode {
-    fn from(value: AutomaticTranscriptionState) -> Self {
+impl From<AutomaticMeetingProtocolState> for AutomaticMeetingProtocolMode {
+    fn from(value: AutomaticMeetingProtocolState) -> Self {
         Self {
             config: value.config,
             paused: value.paused,
@@ -59,9 +59,9 @@ mod tests {
     use serde_json::json;
 
     use crate::{
-        config::AutomaticTranscriptionConfig,
-        state::AutomaticTranscriptionState,
-        status::{AutomaticTranscriptionMode, TranscriptionStatus},
+        config::AutomaticMeetingProtocolConfig,
+        state::AutomaticMeetingProtocolState,
+        status::{AutomaticMeetingProtocolMode, TranscriptionStatus},
     };
 
     #[test]
@@ -143,9 +143,9 @@ mod tests {
     }
 
     #[test]
-    fn serialize_automatic_transcription_state() {
-        let state = AutomaticTranscriptionState {
-            config: AutomaticTranscriptionConfig { pseudonymous: true },
+    fn serialize_automatic_meeting_protocol_state() {
+        let state = AutomaticMeetingProtocolState {
+            config: AutomaticMeetingProtocolConfig { pseudonymous: true },
             consents: true,
             paused: false,
         };
@@ -160,9 +160,9 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_automatic_transcription_state() {
-        let expected = AutomaticTranscriptionState {
-            config: AutomaticTranscriptionConfig { pseudonymous: true },
+    fn deserialize_automatic_meeting_protocol_state() {
+        let expected = AutomaticMeetingProtocolState {
+            config: AutomaticMeetingProtocolConfig { pseudonymous: true },
             consents: true,
             paused: false,
         };
@@ -177,9 +177,9 @@ mod tests {
     }
 
     #[test]
-    fn serialize_automatic_transcription_mode() {
-        let mode = AutomaticTranscriptionMode {
-            config: AutomaticTranscriptionConfig { pseudonymous: true },
+    fn serialize_automatic_meeting_protocol_mode() {
+        let mode = AutomaticMeetingProtocolMode {
+            config: AutomaticMeetingProtocolConfig { pseudonymous: true },
             paused: false,
         };
 
@@ -192,15 +192,15 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_automatic_transcription_mode() {
-        let produced: AutomaticTranscriptionMode = serde_json::from_value(json!({
+    fn deserialize_automatic_meeting_protocol_mode() {
+        let produced: AutomaticMeetingProtocolMode = serde_json::from_value(json!({
            "pseudonymous": false,
            "paused": true,
         }))
         .unwrap();
 
-        let expected = AutomaticTranscriptionMode {
-            config: AutomaticTranscriptionConfig {
+        let expected = AutomaticMeetingProtocolMode {
+            config: AutomaticMeetingProtocolConfig {
                 pseudonymous: false,
             },
             paused: true,

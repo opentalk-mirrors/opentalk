@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TranscriptionPeerState {
     /// Flag showing whether the participant consents to being included in the automatic
-    /// transcription
-    pub consents_automatic_transcription: bool,
+    /// meeting protocol
+    pub consents_automatic_meeting_protocol: bool,
 }
 
 #[cfg(test)]
@@ -21,12 +21,12 @@ mod tests {
     #[test]
     fn serialize_transcription_peer_state() {
         let state = TranscriptionPeerState {
-            consents_automatic_transcription: true,
+            consents_automatic_meeting_protocol: true,
         };
 
         assert_json_snapshot!(state, @ r#"
         {
-          "consents_automatic_transcription": true
+          "consents_automatic_meeting_protocol": true
         }
         "#);
     }
@@ -34,11 +34,11 @@ mod tests {
     #[test]
     fn deserialize_transcription_peer_state() {
         let produced = serde_json::from_value(json!({
-           "consents_automatic_transcription": false,
+           "consents_automatic_meeting_protocol": false,
         }))
         .unwrap();
         let expected = TranscriptionPeerState {
-            consents_automatic_transcription: false,
+            consents_automatic_meeting_protocol: false,
         };
 
         assert_eq!(expected, produced);

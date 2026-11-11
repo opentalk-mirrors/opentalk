@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{config::AutomaticTranscriptionConfig, status::TranscriptionStatus};
+use crate::{config::AutomaticMeetingProtocolConfig, status::TranscriptionStatus};
 
 /// The state of the `transcription` module.
 ///
@@ -20,15 +20,15 @@ pub struct TranscriptionState {
     pub status: TranscriptionStatus,
     /// If `true` live transcription is enabled.
     pub live_transcription: bool,
-    /// If `Some`, an automatic transcription is recorded.
+    /// If `Some`, an automatic meeting protocol is recorded.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub automatic_transcription: Option<AutomaticTranscriptionState>,
+    pub automatic_meeting_protocol: Option<AutomaticMeetingProtocolState>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AutomaticTranscriptionState {
+pub struct AutomaticMeetingProtocolState {
     #[serde(flatten)]
-    pub config: AutomaticTranscriptionConfig,
+    pub config: AutomaticMeetingProtocolConfig,
     pub consents: bool,
     pub paused: bool,
 }
@@ -51,7 +51,7 @@ mod tests {
         let state = TranscriptionState {
             status: TranscriptionStatus::Inactive,
             live_transcription: false,
-            automatic_transcription: None,
+            automatic_meeting_protocol: None,
         };
 
         assert_json_snapshot!(state, @ r#"
@@ -69,7 +69,7 @@ mod tests {
                 language: Some("de".into()),
             },
             live_transcription: true,
-            automatic_transcription: None,
+            automatic_meeting_protocol: None,
         };
 
         assert_json_snapshot!(state, @ r#"
@@ -88,8 +88,8 @@ mod tests {
                 language: Some("en".into()),
             },
             live_transcription: false,
-            automatic_transcription: Some(AutomaticTranscriptionState {
-                config: AutomaticTranscriptionConfig { pseudonymous: true },
+            automatic_meeting_protocol: Some(AutomaticMeetingProtocolState {
+                config: AutomaticMeetingProtocolConfig { pseudonymous: true },
                 consents: false,
                 paused: true,
             }),
@@ -100,7 +100,7 @@ mod tests {
           "status": "running",
           "language": "en",
           "live_transcription": false,
-          "automatic_transcription": {
+          "automatic_meeting_protocol": {
             "pseudonymous": true,
             "consents": false,
             "paused": true
@@ -110,9 +110,9 @@ mod tests {
     }
 
     #[test]
-    fn serialize_automatic_transcription_state() {
-        let state = AutomaticTranscriptionState {
-            config: AutomaticTranscriptionConfig { pseudonymous: true },
+    fn serialize_automatic_meeting_protocol_state() {
+        let state = AutomaticMeetingProtocolState {
+            config: AutomaticMeetingProtocolConfig { pseudonymous: true },
             consents: true,
             paused: false,
         };
@@ -127,15 +127,15 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_automatic_transcription_state() {
+    fn deserialize_automatic_meeting_protocol_state() {
         let produced = serde_json::from_value(json!({
            "pseudonymous": false,
            "consents": false,
            "paused": true,
         }))
         .unwrap();
-        let expected = AutomaticTranscriptionState {
-            config: AutomaticTranscriptionConfig {
+        let expected = AutomaticMeetingProtocolState {
+            config: AutomaticMeetingProtocolConfig {
                 pseudonymous: false,
             },
             consents: false,
