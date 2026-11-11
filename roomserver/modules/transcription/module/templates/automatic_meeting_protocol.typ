@@ -79,10 +79,10 @@
 
 #let display_marker(key) = dim(emph(linguify(key)))
 #let display_event = (
-  start: event => display_marker("transcript_start"),
-  pause: event => display_marker("transcript_pause"),
-  resume: event => display_marker("transcript_resume"),
-  end: event => display_marker("transcript_end"),
+  start: event => display_marker("protocol_start"),
+  pause: event => display_marker("protocol_pause"),
+  resume: event => display_marker("protocol_resume"),
+  end: event => display_marker("protocol_end"),
   text: event => [#display_speaker(event.speaker) \ #wrappable(event.text)],
 )
 #let title = data.at("title", default: none)
@@ -93,11 +93,11 @@
 
 // We need to use linguify-raw here because the regular `linguify()` returns a `context` expression, which Typst only
 // resolved when placed somewhere in the document, which is not the case for the document title.
-#let transcript_label = linguify-raw("transcript", from: database, lang: data.report_language)
-#set document(title: (title, transcript_label, started_at.display(day_format)).filter(it => it != none).join(" - "))
+#let protocol_label = linguify-raw("protocol", from: database, lang: data.report_language)
+#set document(title: (title, protocol_label, started_at.display(day_format)).filter(it => it != none).join(" - "))
 
 #if title != none [= #wrappable(title) ]
-#smallcaps[#dim(linguify("automatic_transcript"))]
+#smallcaps[#dim(linguify("automatic_meeting_protocol"))]
 #v(1em)
 
 #let separator = line(length: 100%, stroke: luma(70%))
@@ -124,7 +124,7 @@
   #linguify("disclaimer_errors")
 ]
 
-#for entry in data.transcript {
+#for entry in data.protocol {
   block(below: 1.5em)[
     #dim(parse_datetime(entry.timestamp).display(exact_time_format))
     #display_event.at(entry.event.kind)(entry.event)

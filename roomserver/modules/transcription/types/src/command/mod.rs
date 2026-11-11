@@ -28,8 +28,8 @@ pub enum TranscriptionCommand {
         language: Option<String>,
     },
 
-    /// Start the automatic transcription
-    StartAutomaticTranscription {
+    /// Start the automatic meeting protocol
+    StartAutomaticMeetingProtocol {
         #[serde(skip_serializing_if = "Option::is_none")]
         /// Optional language hint for the transcription service, e.g. "en" or "de".
         ///
@@ -45,21 +45,21 @@ pub enum TranscriptionCommand {
         #[serde(skip_serializing_if = "Option::is_none")]
         timezone: Option<TimeZone>,
 
-        /// Replace participant names with pseudonyms in the automatic transcription.
+        /// Replace participant names with pseudonyms in the automatic meeting protocol.
         pseudonymous: bool,
     },
 
-    /// Pause the automatic transcription
-    PauseAutomaticTranscription,
+    /// Pause the automatic meeting protocol
+    PauseAutomaticMeetingProtocol,
 
-    /// Resume the automatic transcription.
-    ResumeAutomaticTranscription,
+    /// Resume the automatic meeting protocol.
+    ResumeAutomaticMeetingProtocol,
 
-    /// Stop the automatic transcription.
-    StopAutomaticTranscription,
+    /// Stop the automatic meeting protocol.
+    StopAutomaticMeetingProtocol,
 
-    /// Set the participants consent status to be recorded in the automatic transcription
-    SetAutomaticTranscriptionConsent {
+    /// Set the participants consent status to be recorded in the automatic meeting protocol
+    SetAutomaticMeetingProtocolConsent {
         /// Flag indicating whether the participant consents to being recorded
         consent: bool,
     },
@@ -122,8 +122,8 @@ mod tests {
     }
 
     #[test]
-    fn serialize_start_automatic_transcription() {
-        let command = TranscriptionCommand::StartAutomaticTranscription {
+    fn serialize_start_automatic_meeting_protocol() {
+        let command = TranscriptionCommand::StartAutomaticMeetingProtocol {
             language: None,
             timezone: None,
             pseudonymous: false,
@@ -131,21 +131,21 @@ mod tests {
 
         assert_json_snapshot!(command, @r#"
         {
-          "action": "start_automatic_transcription",
+          "action": "start_automatic_meeting_protocol",
           "pseudonymous": false
         }
         "#);
     }
 
     #[test]
-    fn deserialize_start_automatic_transcription() {
-        let expected = TranscriptionCommand::StartAutomaticTranscription {
+    fn deserialize_start_automatic_meeting_protocol() {
+        let expected = TranscriptionCommand::StartAutomaticMeetingProtocol {
             language: None,
             timezone: None,
             pseudonymous: false,
         };
         let produced = serde_json::from_value(json!({
-           "action": "start_automatic_transcription",
+           "action": "start_automatic_meeting_protocol",
            "pseudonymous": false,
         }))
         .unwrap();
@@ -154,21 +154,21 @@ mod tests {
     }
 
     #[test]
-    fn serialize_pause_automatic_transcription() {
-        let command = TranscriptionCommand::PauseAutomaticTranscription;
+    fn serialize_pause_automatic_meeting_protocol() {
+        let command = TranscriptionCommand::PauseAutomaticMeetingProtocol;
 
         assert_json_snapshot!(command, @r#"
         {
-          "action": "pause_automatic_transcription"
+          "action": "pause_automatic_meeting_protocol"
         }
         "#);
     }
 
     #[test]
-    fn deserialize_pause_automatic_transcription() {
-        let expected = TranscriptionCommand::PauseAutomaticTranscription;
+    fn deserialize_pause_automatic_meeting_protocol() {
+        let expected = TranscriptionCommand::PauseAutomaticMeetingProtocol;
         let produced = serde_json::from_value(json!({
-           "action": "pause_automatic_transcription"
+           "action": "pause_automatic_meeting_protocol"
         }))
         .unwrap();
 
@@ -176,21 +176,21 @@ mod tests {
     }
 
     #[test]
-    fn serialize_resume_automatic_transcription() {
-        let command = TranscriptionCommand::ResumeAutomaticTranscription;
+    fn serialize_resume_automatic_meeting_protocol() {
+        let command = TranscriptionCommand::ResumeAutomaticMeetingProtocol;
 
         assert_json_snapshot!(command, @r#"
         {
-          "action": "resume_automatic_transcription"
+          "action": "resume_automatic_meeting_protocol"
         }
         "#);
     }
 
     #[test]
-    fn deserialize_resume_automatic_transcription() {
-        let expected = TranscriptionCommand::ResumeAutomaticTranscription;
+    fn deserialize_resume_automatic_meeting_protocol() {
+        let expected = TranscriptionCommand::ResumeAutomaticMeetingProtocol;
         let produced = serde_json::from_value(json!({
-           "action": "resume_automatic_transcription"
+           "action": "resume_automatic_meeting_protocol"
         }))
         .unwrap();
 
@@ -198,21 +198,21 @@ mod tests {
     }
 
     #[test]
-    fn serialize_stop_automatic_transcription() {
-        let command = TranscriptionCommand::StopAutomaticTranscription;
+    fn serialize_stop_automatic_meeting_protocol() {
+        let command = TranscriptionCommand::StopAutomaticMeetingProtocol;
 
         assert_json_snapshot!(command, @r#"
         {
-          "action": "stop_automatic_transcription"
+          "action": "stop_automatic_meeting_protocol"
         }
         "#);
     }
 
     #[test]
-    fn deserialize_stop_automatic_transcription() {
-        let expected = TranscriptionCommand::StopAutomaticTranscription;
+    fn deserialize_stop_automatic_meeting_protocol() {
+        let expected = TranscriptionCommand::StopAutomaticMeetingProtocol;
         let produced = serde_json::from_value(json!({
-           "action": "stop_automatic_transcription"
+           "action": "stop_automatic_meeting_protocol"
         }))
         .unwrap();
 
@@ -220,22 +220,22 @@ mod tests {
     }
 
     #[test]
-    fn serialize_set_automatic_transcription_consent() {
-        let command = TranscriptionCommand::SetAutomaticTranscriptionConsent { consent: true };
+    fn serialize_set_automatic_meeting_protocol_consent() {
+        let command = TranscriptionCommand::SetAutomaticMeetingProtocolConsent { consent: true };
 
         assert_json_snapshot!(command, @r#"
         {
-          "action": "set_automatic_transcription_consent",
+          "action": "set_automatic_meeting_protocol_consent",
           "consent": true
         }
         "#);
     }
 
     #[test]
-    fn deserialize_set_automatic_transcription_consent() {
-        let expected = TranscriptionCommand::SetAutomaticTranscriptionConsent { consent: true };
+    fn deserialize_set_automatic_meeting_protocol_consent() {
+        let expected = TranscriptionCommand::SetAutomaticMeetingProtocolConsent { consent: true };
         let produced = serde_json::from_value(json!({
-           "action": "set_automatic_transcription_consent",
+           "action": "set_automatic_meeting_protocol_consent",
            "consent": true,
         }))
         .unwrap();

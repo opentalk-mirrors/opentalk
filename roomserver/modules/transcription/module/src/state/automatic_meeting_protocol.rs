@@ -6,8 +6,8 @@ use std::collections::{HashMap, HashSet};
 use opentalk_report_generation::{ReportDateTime, ToReportDateTime};
 use opentalk_roomserver_signaling::module_context::ModuleContext;
 use opentalk_roomserver_types_transcription::{
-    config::AutomaticTranscriptionConfig, segment::TranscriptionSegment,
-    status::AutomaticTranscriptionMode,
+    config::AutomaticMeetingProtocolConfig, segment::TranscriptionSegment,
+    status::AutomaticMeetingProtocolMode,
 };
 use opentalk_types_common::{
     time::{TimeZone, Timestamp},
@@ -19,35 +19,35 @@ use serde::Serialize;
 use crate::TranscriptionModule;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AutomaticTranscription {
-    /// The configuration of the automatic transcription.
-    config: AutomaticTranscriptionConfig,
-    /// The time zone used when rendering the transcript.
+pub struct AutomaticMeetingProtocol {
+    /// The configuration of the automatic meeting protocol.
+    config: AutomaticMeetingProtocolConfig,
+    /// The time zone used when rendering the protocol.
     time_zone: TimeZone,
-    /// The time the automatic transcription started.
+    /// The time the automatic meeting protocol started.
     started_at: ReportDateTime,
-    /// Whether the automatic transcription is currently paused.
+    /// Whether the automatic meeting protocol is currently paused.
     pub(super) paused: bool,
-    /// The recorded entries of the automatic transcription.
-    transcript: Vec<TranscriptEntry>,
+    /// The recorded entries of the automatic meeting protocol.
+    protocol: Vec<AutomaticMeetingProtocolEntry>,
     /// The pseudonyms assigned to participants in the order they first spoke.
     ///
-    /// Only populated when [`AutomaticTranscriptionConfig::pseudonymous`] is `true`.
+    /// Only populated when [`AutomaticMeetingProtocolConfig::pseudonymous`] is `true`.
     pseudonyms: HashMap<ParticipantId, usize>,
-    /// Set of participants which consented to being included in the automatic transcription.
+    /// Set of participants which consented to being included in the automatic meeting protocol.
     pub consenting_participants: HashSet<ParticipantId>,
-    /// Set of participants that were present in the room while the automatic transcription
+    /// Set of participants that were present in the room while the automatic meeting protocol
     /// was running.
     pub seen_participants: HashSet<ParticipantId>,
-    /// Set of moderators that were present in the room while the automatic transcription was
+    /// Set of moderators that were present in the room while the automatic meeting protocol was
     /// running.
     pub seen_moderators: HashSet<ParticipantId>,
 }
 
-impl AutomaticTranscription {
+impl AutomaticMeetingProtocol {
     pub fn new(
         ctx: &ModuleContext<'_, TranscriptionModule>,
-        config: AutomaticTranscriptionConfig,
+        config: AutomaticMeetingProtocolConfig,
         time_zone: TimeZone,
     ) -> Self {
         let now = Timestamp::now().to_report_date_time(&time_zone);
@@ -72,9 +72,9 @@ impl AutomaticTranscription {
             time_zone,
             started_at: now,
             paused: false,
-            transcript: vec![TranscriptEntry {
+            protocol: vec![AutomaticMeetingProtocolEntry {
                 timestamp: now,
-                event: TranscriptEvent::Start,
+                event: AutomaticMeetingProtocolEvent::Start,
             }],
             pseudonyms: HashMap::new(),
             consenting_participants: HashSet::new(),
@@ -114,10 +114,10 @@ impl AutomaticTranscription {
     }
 
     fn ongoing_utterance(&mut self, speaker: &Speaker) -> Option<&mut String> {
-        if let TranscriptEvent::Text {
+        if let AutomaticMeetingProtocolEvent::Text {
             speaker: last_speaker,
             text,
-        } = &mut self.transcript.last_mut()?.event
+        } = &mut self.protocol.last_mut()?.event
             && last_speaker == speaker
         {
             Some(text)
@@ -137,37 +137,39 @@ impl AutomaticTranscription {
             text.push(' ');
             text.push_str(&segment.text);
         } else {
-            self.push_event(TranscriptEvent::Text {
+            self.push_event(AutomaticMeetingProtocolEvent::Text {
                 speaker,
                 text: segment.text.to_owned(),
             });
         }
     }
 
-    /// Pauses the automatic transcription and records a [`TranscriptEvent::Pause`] entry.
+    /// Pauses the automatic meeting protocol and records a [`AutomaticMeetingProtocolEvent::Pause`]
+    /// entry.
     ///
-    /// Returns `false` if the automatic transcription was already paused.
+    /// Returns `false` if the automatic meeting protocol was already paused.
     pub(super) fn pause(&mut self) -> bool {
         if self.paused {
             return false;
         }
 
         self.paused = true;
-        self.push_event(TranscriptEvent::Pause);
+        self.push_event(AutomaticMeetingProtocolEvent::Pause);
 
         true
     }
 
-    /// Resumes the automatic transcription and records a [`TranscriptEvent::Resume`] entry.
+    /// Resumes the automatic meeting protocol and records a
+    /// [`AutomaticMeetingProtocolEvent::Resume`] entry.
     ///
-    /// Returns `false` if the automatic transcription was not paused.
+    /// Returns `false` if the automatic meeting protocol was not paused.
     pub(super) fn resume(&mut self) -> bool {
         if !self.paused {
             return false;
         }
 
         self.paused = false;
-        self.push_event(TranscriptEvent::Resume);
+        self.push_event(AutomaticMeetingProtocolEvent::Resume);
 
         true
     }
@@ -175,7 +177,7 @@ impl AutomaticTranscription {
     pub fn stop(
         mut self,
         ctx: &ModuleContext<'_, TranscriptionModule>,
-    ) -> FinishedAutomaticTranscription {
+    ) -> FinishedAutomaticMeetingProtocol {
         let moderators = std::mem::take(&mut self.seen_moderators)
             .into_iter()
             .map(|id| self.speaker(ctx, id))
@@ -186,36 +188,36 @@ impl AutomaticTranscription {
             time_zone,
             started_at,
             paused: _,
-            mut transcript,
+            mut protocol,
             pseudonyms: _,
             consenting_participants: _,
             seen_participants,
             seen_moderators: _,
         } = self;
         let now = Timestamp::now().to_report_date_time(&time_zone);
-        transcript.push(TranscriptEntry {
+        protocol.push(AutomaticMeetingProtocolEntry {
             timestamp: now,
-            event: TranscriptEvent::End,
+            event: AutomaticMeetingProtocolEvent::End,
         });
 
-        FinishedAutomaticTranscription {
+        FinishedAutomaticMeetingProtocol {
             started_at,
             ended_at: now,
             present_participant_count: seen_participants.len(),
             moderators,
             pseudonymous: config.pseudonymous,
-            transcript,
+            protocol,
         }
     }
 
-    fn push_event(&mut self, event: TranscriptEvent) {
-        self.transcript.push(TranscriptEntry {
+    fn push_event(&mut self, event: AutomaticMeetingProtocolEvent) {
+        self.protocol.push(AutomaticMeetingProtocolEntry {
             timestamp: Timestamp::now().to_report_date_time(&self.time_zone),
             event,
         });
     }
 
-    pub fn config(&self) -> AutomaticTranscriptionConfig {
+    pub fn config(&self) -> AutomaticMeetingProtocolConfig {
         self.config
     }
 
@@ -224,8 +226,8 @@ impl AutomaticTranscription {
     }
 }
 
-impl From<&AutomaticTranscription> for AutomaticTranscriptionMode {
-    fn from(value: &AutomaticTranscription) -> Self {
+impl From<&AutomaticMeetingProtocol> for AutomaticMeetingProtocolMode {
+    fn from(value: &AutomaticMeetingProtocol) -> Self {
         Self {
             config: value.config(),
             paused: value.paused(),
@@ -234,35 +236,35 @@ impl From<&AutomaticTranscription> for AutomaticTranscriptionMode {
 }
 
 #[derive(Debug)]
-pub struct FinishedAutomaticTranscription {
+pub struct FinishedAutomaticMeetingProtocol {
     pub started_at: ReportDateTime,
     pub ended_at: ReportDateTime,
     pub present_participant_count: usize,
     pub moderators: Vec<Speaker>,
     pub pseudonymous: bool,
-    pub transcript: Vec<TranscriptEntry>,
+    pub protocol: Vec<AutomaticMeetingProtocolEntry>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct TranscriptEntry {
+pub struct AutomaticMeetingProtocolEntry {
     /// The time when the event happened.
     pub timestamp: ReportDateTime,
 
-    /// The event that occurred in the automatic transcription.
-    pub event: TranscriptEvent,
+    /// The event that occurred in the automatic meeting protocol.
+    pub event: AutomaticMeetingProtocolEvent,
 }
 
-/// An event that can occur in an automatic transcription.
+/// An event that can occur in an automatic meeting protocol.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
-pub enum TranscriptEvent {
-    /// The automatic transcription has started.
+pub enum AutomaticMeetingProtocolEvent {
+    /// The automatic meeting protocol has started.
     Start,
-    /// The automatic transcription was paused.
+    /// The automatic meeting protocol was paused.
     Pause,
-    /// The automatic transcription was resumed.
+    /// The automatic meeting protocol was resumed.
     Resume,
-    /// The automatic transcription has ended.
+    /// The automatic meeting protocol has ended.
     End,
     /// A participant spoke.
     Text {
@@ -284,7 +286,7 @@ pub enum Speaker {
     },
     Unknown {
         // This field ensures that two different unknown speakers are not considered equal and is
-        // not included in the rendered transcript.
+        // not included in the rendered protocol.
         participant_id: ParticipantId,
     },
 }
@@ -296,10 +298,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn serialize_transcript_entry() {
-        let entry = TranscriptEntry {
+    fn serialize_automatic_meeting_protocol_entry() {
+        let entry = AutomaticMeetingProtocolEntry {
             timestamp: Timestamp::unix_epoch().to_report_date_time(&TimeZone::utc()),
-            event: TranscriptEvent::Text {
+            event: AutomaticMeetingProtocolEvent::Text {
                 speaker: Speaker::Name {
                     name: DisplayName::from_str_lossy("Alice"),
                 },
@@ -325,7 +327,7 @@ mod tests {
 
     #[test]
     fn serialize_start() {
-        let event = TranscriptEvent::Start;
+        let event = AutomaticMeetingProtocolEvent::Start;
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -337,7 +339,7 @@ mod tests {
 
     #[test]
     fn serialize_pause() {
-        let event = TranscriptEvent::Pause;
+        let event = AutomaticMeetingProtocolEvent::Pause;
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -349,7 +351,7 @@ mod tests {
 
     #[test]
     fn serialize_resume() {
-        let event = TranscriptEvent::Resume;
+        let event = AutomaticMeetingProtocolEvent::Resume;
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -361,7 +363,7 @@ mod tests {
 
     #[test]
     fn serialize_end() {
-        let event = TranscriptEvent::End;
+        let event = AutomaticMeetingProtocolEvent::End;
         let raw = serde_json::to_string_pretty(&event).unwrap();
 
         assert_snapshot!(raw, @r#"
@@ -373,7 +375,7 @@ mod tests {
 
     #[test]
     fn serialize_text() {
-        let event = TranscriptEvent::Text {
+        let event = AutomaticMeetingProtocolEvent::Text {
             speaker: Speaker::Name {
                 name: DisplayName::from_str_lossy("Alice"),
             },

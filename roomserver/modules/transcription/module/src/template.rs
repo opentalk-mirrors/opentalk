@@ -6,7 +6,7 @@ use opentalk_report_generation::ReportDateTime;
 use opentalk_types_common::events::EventTitle;
 use serde::Serialize;
 
-use crate::state::automatic_transcription::{Speaker, TranscriptEntry};
+use crate::state::automatic_meeting_protocol::{AutomaticMeetingProtocolEntry, Speaker};
 
 #[derive(Debug, Serialize)]
 pub struct ReportTemplateParameter {
@@ -17,19 +17,19 @@ pub struct ReportTemplateParameter {
     pub transcription_language: Option<Language>,
     /// The title of the event for which the report is generated.
     pub title: Option<EventTitle>,
-    /// The time at which the automatic transcription started.
+    /// The time at which the automatic meeting protocol started.
     pub started_at: ReportDateTime,
-    /// The time at which the automatic transcription ended.
+    /// The time at which the automatic meeting protocol ended.
     pub ended_at: ReportDateTime,
-    /// The number of participants that were present at any time while the automatic transcription
-    /// was running.
+    /// The number of participants that were present at any time while the automatic meeting
+    /// protocol was running.
     pub present_participant_count: usize,
-    /// The moderators that were present while the automatic transcription was running.
+    /// The moderators that were present while the automatic meeting protocol was running.
     pub moderators: Vec<Speaker>,
     /// Whether or not participant names are replaced with pseudonyms.
     pub pseudonymous: bool,
-    /// The recorded entries of the automatic transcription.
-    pub transcript: Vec<TranscriptEntry>,
+    /// The recorded entries of the automatic meeting protocol.
+    pub protocol: Vec<AutomaticMeetingProtocolEntry>,
 }
 
 #[cfg(test)]
@@ -43,7 +43,7 @@ mod tests {
     };
 
     use super::*;
-    use crate::state::automatic_transcription::{Speaker, TranscriptEvent};
+    use crate::state::automatic_meeting_protocol::{AutomaticMeetingProtocolEvent, Speaker};
 
     #[test]
     fn serialize_report_template_parameter() {
@@ -58,14 +58,14 @@ mod tests {
             present_participant_count: 3,
             moderators: vec![Speaker::Pseudonym { number: 1 }],
             pseudonymous: true,
-            transcript: vec![
-                TranscriptEntry {
+            protocol: vec![
+                AutomaticMeetingProtocolEntry {
                     timestamp,
-                    event: TranscriptEvent::Start,
+                    event: AutomaticMeetingProtocolEvent::Start,
                 },
-                TranscriptEntry {
+                AutomaticMeetingProtocolEntry {
                     timestamp: Timestamp::unix_epoch().to_report_date_time(&TimeZone::utc()),
-                    event: TranscriptEvent::Text {
+                    event: AutomaticMeetingProtocolEvent::Text {
                         speaker: Speaker::Name {
                             name: DisplayName::from_str_lossy("Alice"),
                         },
@@ -95,7 +95,7 @@ mod tests {
             }
           ],
           "pseudonymous": true,
-          "transcript": [
+          "protocol": [
             {
               "timestamp": "1970-01-01T00:00:00",
               "event": {

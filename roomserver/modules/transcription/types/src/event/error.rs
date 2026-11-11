@@ -26,8 +26,8 @@ pub enum TranscriptionError {
     /// The transcription service disconnected unexpectedly
     ServiceDisconnected,
 
-    /// Internal error while generating the transcript
-    GenerateTranscript,
+    /// Internal error while generating the automatic meeting protocol
+    GenerateAutomaticMeetingProtocol,
 }
 
 impl ModuleError for TranscriptionError {}
@@ -154,21 +154,24 @@ mod tests {
     }
 
     #[test]
-    fn serialize_generate_transcript() {
-        let err = TranscriptionError::GenerateTranscript;
+    fn serialize_generate_automatic_meeting_protocol() {
+        let err = TranscriptionError::GenerateAutomaticMeetingProtocol;
 
         assert_json_snapshot!(err, @r#"
         {
-          "error": "generate_transcript"
+          "error": "generate_automatic_meeting_protocol"
         }
         "#);
     }
 
     #[test]
-    fn deserialize_generate_transcript() {
-        let json = json!({"error": "generate_transcript"});
+    fn deserialize_generate_automatic_meeting_protocol() {
+        let json = json!({"error": "generate_automatic_meeting_protocol"});
         let produced = serde_json::from_value(json).unwrap();
 
-        assert_eq!(TranscriptionError::GenerateTranscript, produced);
+        assert_eq!(
+            TranscriptionError::GenerateAutomaticMeetingProtocol,
+            produced
+        );
     }
 }
