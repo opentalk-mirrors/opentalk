@@ -210,6 +210,9 @@ impl SignalingModule for TrainingParticipationReportModule {
             TrainingParticipationReportCommand::ConfirmPresence => {
                 self.confirm_presence(ctx, sender)
             }
+            TrainingParticipationReportCommand::TriggerPresenceCheck => {
+                self.trigger_presence_check(ctx, sender)
+            }
         }
     }
 
@@ -494,31 +497,69 @@ impl TrainingParticipationReportModule {
         ctx: &mut ModuleContext<'_, Self>,
         timestamp: Timestamp,
     ) -> Result<(), SignalingModuleError<TrainingParticipationReportError>> {
-        let Some(TrainingSession {
-            interval,
-            checkpoints,
-            tx_cancel,
-            ..
-        }) = self.sessions.get_mut(&ctx.room)
-        else {
+        let Some(session) = self.sessions.get_mut(&ctx.room) else {
             tracing::warn!("Training session ended without the checkpoint being canceled");
             return Ok(());
         };
 
-        checkpoints.push(Checkpoint {
+        // The timer of the previous checkpoint has already fired, so the old cancel sender can be
+        // dropped without notifying anybody.
+        Self::create_checkpoint(ctx, session, timestamp)?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self, ctx), level = "debug")]
+    fn trigger_presence_check(
+        &mut self,
+        ctx: &mut ModuleContext<'_, Self>,
+        sender: ParticipantId,
+    ) -> Result<(), SignalingModuleError<TrainingParticipationReportError>> {
+        if !ctx.is_room_owner(sender) {
+            return Err(TrainingParticipationReportError::InsufficientPermissions.into());
+        }
+
+        let Some(session) = self.sessions.get_mut(&ctx.room) else {
+            return Err(TrainingParticipationReportError::PresenceLoggingNotEnabled.into());
+        };
+
+        let previous_tx_cancel = Self::create_checkpoint(ctx, session, ctx.timestamp)?;
+
+        // Cancel the pending checkpoint timer. Dropping the sender without sending would result
+        // in a `ChannelDropped` loopback event.
+        if previous_tx_cancel
+            .send(TrainingParticipationReportLoopback::CheckpointCanceled)
+            .is_err()
+        {
+            tracing::debug!("Cancel receiver has been dropped");
+        }
+
+        Ok(())
+    }
+
+    /// Create a new checkpoint at `timestamp`, schedule the next one according to the session
+    /// interval and request all participants in the room to confirm their presence.
+    ///
+    /// Returns the cancel sender of the previously scheduled checkpoint.
+    fn create_checkpoint(
+        ctx: &ModuleContext<'_, Self>,
+        session: &mut TrainingSession,
+        timestamp: Timestamp,
+    ) -> Result<Sender<TrainingParticipationReportLoopback>, FatalError> {
+        session.checkpoints.push(Checkpoint {
             timestamp,
             presence: HashMap::new(),
         });
 
-        let (_, tx) = Self::schedule_next_checkpoint(ctx, interval);
-        *tx_cancel = tx;
+        let (_, tx) = Self::schedule_next_checkpoint(ctx, &session.interval);
+        let previous_tx_cancel = std::mem::replace(&mut session.tx_cancel, tx);
 
         ctx.send_ws_message(
             ctx.participants.in_room(ctx.room).connected().ids(),
             TrainingParticipationReportEvent::PresenceConfirmationRequested,
         )?;
 
-        Ok(())
+        Ok(previous_tx_cancel)
     }
 
     #[tracing::instrument(skip(self, ctx), level = "debug")]

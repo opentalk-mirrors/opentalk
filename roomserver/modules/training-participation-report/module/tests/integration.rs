@@ -352,6 +352,161 @@ async fn confirm_presence_not_enabled() {
     );
 }
 
+#[test_log::test(tokio::test)]
+async fn trigger_presence_check_insufficient_permissions() {
+    let mut room = TestRoom::builder()
+        .register_module::<TrainingParticipationReportModule>()
+        .owner(participant::bob_public_user_profile())
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    alice
+        .send_command::<TrainingParticipationReportModule>(
+            TrainingParticipationReportCommand::TriggerPresenceCheck,
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice
+        .receive_event::<TrainingParticipationReportModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        TrainingParticipationReportEvent::Error(
+            TrainingParticipationReportError::InsufficientPermissions
+        )
+    );
+}
+
+#[test_log::test(tokio::test)]
+async fn trigger_presence_check_not_enabled() {
+    let mut room = TestRoom::builder()
+        .register_module::<TrainingParticipationReportModule>()
+        .owner(participant::alice_public_profile())
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+
+    alice
+        .send_command::<TrainingParticipationReportModule>(
+            TrainingParticipationReportCommand::TriggerPresenceCheck,
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice
+        .receive_event::<TrainingParticipationReportModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert_eq!(
+        event,
+        TrainingParticipationReportEvent::Error(
+            TrainingParticipationReportError::PresenceLoggingNotEnabled
+        )
+    );
+}
+
+#[test_log::test(tokio::test(start_paused = true))]
+async fn trigger_presence_check() {
+    let mut room = TestRoom::builder()
+        .register_module::<TrainingParticipationReportModule>()
+        .owner(participant::alice_public_profile())
+        .spawn();
+    let mut alice = room.join_alice_moderator(0).await;
+    let mut bob = room.join_bob(0).await;
+    flush_connected_events(&mut [&mut alice]).await;
+
+    let interval = Duration::from_mins(30);
+    alice
+        .send_command::<TrainingParticipationReportModule>(
+            TrainingParticipationReportCommand::EnablePresenceLogging {
+                initial_checkpoint_delay: Some(TimeRange::new_with_clamped_durations(
+                    Duration::from_mins(10),
+                    Duration::ZERO,
+                )),
+                checkpoint_interval: Some(TimeRange::new_with_clamped_durations(
+                    interval,
+                    Duration::ZERO,
+                )),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+
+    let event = alice
+        .receive_event::<TrainingParticipationReportModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert!(
+        matches!(
+            event,
+            TrainingParticipationReportEvent::PresenceLoggingStarted { .. }
+        ),
+        "{event:?}"
+    );
+    let event = bob
+        .receive_event::<TrainingParticipationReportModule>()
+        .await
+        .unwrap()
+        .payload;
+    assert!(
+        matches!(
+            event,
+            TrainingParticipationReportEvent::PresenceLoggingStarted { .. }
+        ),
+        "{event:?}"
+    );
+
+    // Alice triggers a presence check manually before the first checkpoint is due
+    alice
+        .send_command::<TrainingParticipationReportModule>(
+            TrainingParticipationReportCommand::TriggerPresenceCheck,
+            None,
+        )
+        .await
+        .unwrap();
+
+    for participant in [&mut alice, &mut bob] {
+        let event = participant
+            .receive_event::<TrainingParticipationReportModule>()
+            .await
+            .unwrap()
+            .payload;
+        assert_eq!(
+            event,
+            TrainingParticipationReportEvent::PresenceConfirmationRequested
+        );
+    }
+
+    // The originally scheduled initial checkpoint has been canceled and does not fire.
+    tokio::time::advance(Duration::from_mins(11)).await;
+    tokio::task::yield_now().await;
+    assert!(alice.received_nothing());
+    assert!(bob.received_nothing());
+
+    // The next checkpoint is scheduled according to the interval, counting from the manual
+    // trigger.
+    tokio::time::advance(interval - Duration::from_mins(11)).await;
+
+    for participant in [&mut alice, &mut bob] {
+        let event = participant
+            .receive_event::<TrainingParticipationReportModule>()
+            .await
+            .unwrap()
+            .payload;
+        assert_eq!(
+            event,
+            TrainingParticipationReportEvent::PresenceConfirmationRequested
+        );
+    }
+}
+
 #[test_log::test(tokio::test(start_paused = true))]
 async fn stop_presence_logging_manual() {
     let mut room = TestRoom::builder()
