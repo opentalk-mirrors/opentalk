@@ -70,7 +70,7 @@ pub enum DynEvent {
         connection_id: ConnectionId,
         command: Box<RawValue>,
     },
-    WaitingRoomWebsocketMessage {
+    LobbyWebsocketMessage {
         participant_id: ParticipantId,
         connection_id: ConnectionId,
         command: Box<RawValue>,
@@ -175,7 +175,7 @@ where
                 connection_id,
                 command,
             } => self.handle_ws_event(ctx, sender, connection_id, &command),
-            DynEvent::WaitingRoomWebsocketMessage {
+            DynEvent::LobbyWebsocketMessage {
                 participant_id: sender,
                 connection_id,
                 command,

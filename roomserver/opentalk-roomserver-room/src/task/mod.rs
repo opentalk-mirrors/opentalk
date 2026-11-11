@@ -991,7 +991,7 @@ impl<Socket: SignalingSocket> RoomTask<Socket> {
                 Ok(())
             }
             _ => {
-                let event = DynEvent::WaitingRoomWebsocketMessage {
+                let event = DynEvent::LobbyWebsocketMessage {
                     participant_id,
                     connection_id,
                     command: signaling_command.payload,
